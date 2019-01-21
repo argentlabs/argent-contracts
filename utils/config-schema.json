@@ -1,0 +1,140 @@
+{
+  "title": "DeployConfig",
+  "description": "Configuration of smart contracts deployment",
+
+  "definitions": {
+    "ethaddress": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$"
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "ENS": {
+      "type": "object",
+      "properties": {
+        "deployOwnRegistry": { "type": "boolean" },
+        "ensRegistry": { "$ref": "#/definitions/ethaddress" },
+        "domain": { "type": "string" }
+      },
+      "required": ["deployOwnRegistry"],
+      "if": { "properties": { "deployOwnRegistry": { "const": false } } },
+      "then": { "required": ["ensRegistry"]},
+      "additionalProperties": false
+    },
+    "Kyber": {
+      "type": "object",
+      "properties": {
+        "deployOwn": { "type": "boolean" },
+        "contract": { "$ref": "#/definitions/ethaddress" }
+      },
+      "required": ["deployOwn"],
+      "if": { "properties": { "deployOwn": { "const": false } } },
+      "then": { "required": ["contract"]},
+      "additionalProperties": false
+    },
+    "contracts": {
+      "type": "object",
+      "properties": {
+        "MultiSigWallet": { "$ref": "#/definitions/ethaddress" },
+        "WalletFactory": { "$ref": "#/definitions/ethaddress" },
+        "ENSResolver": { "$ref": "#/definitions/ethaddress" },
+        "ENSManager": { "$ref": "#/definitions/ethaddress" },
+        "TokenPriceProvider": { "$ref": "#/definitions/ethaddress" },
+        "ModuleRegistry": { "$ref": "#/definitions/ethaddress" }
+      },
+      "required": [
+        "MultiSigWallet",
+        "WalletFactory",
+        "ENSResolver",
+        "ENSManager",
+        "TokenPriceProvider",
+        "ModuleRegistry"
+      ],
+      "additionalProperties": true
+    },
+    "modules": {
+      "type": "object",
+      "properties": {
+        "ModuleManager": { "$ref": "#/definitions/ethaddress" },
+        "GuardianManager": { "$ref": "#/definitions/ethaddress" },
+        "LockManager": { "$ref": "#/definitions/ethaddress" },
+        "RecoveryManager": { "$ref": "#/definitions/ethaddress" },
+        "ApprovedTransfer": { "$ref": "#/definitions/ethaddress" },
+        "TokenTransfer": { "$ref": "#/definitions/ethaddress" },
+        "DappManager": { "$ref": "#/definitions/ethaddress" },
+        "TokenExchanger": { "$ref": "#/definitions/ethaddress" }
+      },
+      "required": [],
+      "additionalProperties": true
+    },
+    "backend": {
+        "type": "object",
+        "properties": {
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/ethaddress"
+            }
+          }
+        },
+        "required": ["accounts"],
+        "additionalProperties": false
+    },
+    "multisig": {
+        "type": "object",
+        "properties": {
+          "owners": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ethaddress"
+              }
+            },
+          "threshold": { "type": "integer", "minimum": 1 },
+          "autosign": { "type": "boolean" }
+        },
+        "required": ["owners", "threshold"],
+        "additionalProperties": false
+    },
+    "settings": {
+        "type": "object",
+        "properties": {
+          "deployer": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["ganache", "infura", "jsonrpc"] },
+              "options": { "type": "object" }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          "privateKey": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["plain", "s3"] },
+              "options": { "type": "object" }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          "abiUpload": {
+            "type": "object",
+            "properties": {
+              "bucket": { "type": "string" }
+            },
+            "required": ["bucket"],
+            "additionalProperties": false
+          },
+          "lockPeriod": { "type": "integer" },
+          "recoveryPeriod": { "type": "integer" },
+          "securityPeriod": { "type": "integer" },
+          "securityWindow": { "type": "integer" },
+          "defaultLimit": { "type": "string" },
+          "feeRatio": { "type": "integer" }
+        },
+        "required": ["deployer"],
+        "additionalProperties": false
+    }
+  }
+}

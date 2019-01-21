@@ -1,0 +1,31 @@
+{
+  "name": "argent-contracts",
+  "version": "1.0.0",
+  "description": "Argent Contracts",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/argentlabs/argent-contracts.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/argentlabs/argent-contracts/issues"
+  },
+  "homepage": "https://github.com/argentlabs/argent-contracts#readme",
+  "dependencies": {
+    "ajv": "^6.7.0",
+    "aws-sdk": "^2.387.0",
+    "cli-table2": "^0.2.0",
+    "dotenv": "^6.2.0",
+    "etherlime": "^0.10.4",
+    "tinyreq": "^3.4.1",
+    "ethers": "^4.0.21",
+    "solc": "0.4.24"
+  }
+}

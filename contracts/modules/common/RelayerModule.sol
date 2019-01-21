@@ -1,0 +1,260 @@
+pragma solidity ^0.4.24;
+import "../../wallet/BaseWallet.sol";
+import "../../interfaces/Module.sol";
+import "./BaseModule.sol";
+
+/**
+ * @title RelayerModule
+ * @dev Base module containing logic to execute transactions signed by eth-less accounts and sent by a relayer. 
+ * @author Julien Niset - <julien@argent.im>
+ */
+contract RelayerModule is Module {
+
+    uint256 constant internal BLOCKBOUND = 10000;
+
+    mapping (address => RelayerConfig) public relayer; 
+
+    struct RelayerConfig {
+        uint256 nonce;
+        mapping (bytes32 => bool) executedTx;
+    }
+
+    event TransactionExecuted(address indexed wallet, bool indexed success, bytes32 signedHash);
+
+    /**
+     * @dev Throws if the call did not go through the execute() method.
+     */
+    modifier onlyExecute {
+        require(msg.sender == address(this), "RM: must be called via execute()");
+        _;
+    }
+
+    /* ***************** Abstract method ************************* */
+
+    /**
+    * @dev Gets the number of valid signatures that must be provided to execute a
+    * specific relayed transaction.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures.
+    */
+    function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256);
+
+    /**
+    * @dev Validates the signatures provided with a relayed transaction.
+    * The method MUST throw if one or more signatures are not valid.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @param _signHash The signed hash representing the relayed transaction.
+    * @param _signatures The signatures as a concatenated byte array.
+    */
+    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view;
+
+    /* ************************************************************ */
+
+    /**
+    * @dev Executes a relayed transaction.
+    * @param _wallet The target wallet.
+    * @param _data The data for the relayed transaction
+    * @param _nonce The nonce used to prevent replay attacks.
+    * @param _signatures The signatures as a concatenated byte array.
+    * @param _gasPrice The gas price to use for the gas refund.
+    * @param _gasLimit The gas limit to use for the gas refund.
+    */
+    function execute(
+        BaseWallet _wallet,
+        bytes _data, 
+        uint256 _nonce, 
+        bytes _signatures, 
+        uint256 _gasPrice,
+        uint256 _gasLimit
+    )
+        external
+        returns (bool success)
+    {
+        uint startGas = gasleft();
+        uint256 requiredSignatures = getRequiredSignatures(_wallet, _data);
+        require((requiredSignatures * 65) == _signatures.length, "RM: wrong number of signatures");
+        require(verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures), "RM: not enough funds to refund relayer");
+        require(verifyData(address(_wallet), _data), "RM: the wallet authorized is different then the target of the relayed data");
+        if(requiredSignatures > 0) {
+            bytes32 signHash = getSignHash(address(this), _wallet, 0, _data, _nonce, _gasPrice, _gasLimit);
+            require(checkAndUpdateUniqueness(_wallet, _nonce, signHash, requiredSignatures), "RM: Duplicate request");
+            validateSignatures(_wallet, _data, signHash, _signatures);
+        }
+        // solium-disable-next-line security/no-call-value
+        success = address(this).call(_data);
+        emit TransactionExecuted(_wallet, success, signHash); 
+        refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
+    }
+
+    /**
+    * @dev Gets the current nonce for a wallet.
+    * @param _wallet The target wallet.
+    */
+    function getNonce(BaseWallet _wallet) external view returns (uint256 nonce) {
+        return relayer[_wallet].nonce;
+    }
+
+    /**
+    * @dev Generates the signed hash of a relayed transaction according to ERC 1077.
+    * @param _from The starting address for the relayed transaction (should be the module)
+    * @param _to The destination address for the relayed transaction (should be the wallet)
+    * @param _value The value for the relayed transaction
+    * @param _data The data for the relayed transaction
+    * @param _nonce The nonce used to prevent replay attacks.
+    * @param _gasPrice The gas price to use for the gas refund.
+    * @param _gasLimit The gas limit to use for the gas refund.
+    */
+    function getSignHash(
+        address _from,
+        address _to, 
+        uint256 _value, 
+        bytes _data, 
+        uint256 _nonce,
+        uint256 _gasPrice,
+        uint256 _gasLimit
+    ) 
+        internal 
+        pure
+        returns (bytes32) 
+    {
+        return keccak256(
+            abi.encodePacked(
+                "\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encodePacked(byte(0x19), byte(0), _from, _to, _value, _data, _nonce, _gasPrice, _gasLimit))
+        ));
+    }
+
+    /**
+    * @dev Checks if the relayed transaction is unique.
+    * @param _wallet The target wallet.
+    * @param _nonce The nonce
+    * @param _signHash The signed hash of the transaction
+    * @param _requiredSignatures The number of required signatures
+    */
+    function checkAndUpdateUniqueness(
+        BaseWallet _wallet, 
+        uint256 _nonce, 
+        bytes32 _signHash, 
+        uint256 _requiredSignatures
+    ) 
+        internal 
+        returns (bool) 
+    {
+        if(_requiredSignatures == 1) {
+            if(!isValidNonce(_nonce, relayer[_wallet].nonce)) {
+                return false;
+            }
+            relayer[_wallet].nonce = _nonce;
+        }
+        else {
+            if(relayer[_wallet].executedTx[_signHash] == true) {
+                return false;
+            }
+            relayer[_wallet].executedTx[_signHash] = true;
+        }
+        return true;
+    }
+
+    /**
+    * @dev Recovers the signer at a given position from a list of concatenated signatures.
+    * @param _signedHash The signed hash
+    * @param _signatures The concatenated signatures.
+    * @param _index The index of the signature to recover.
+    */
+    function recoverSigner(bytes32 _signedHash, bytes _signatures, uint _index) internal pure returns (address) {
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+        // we jump 32 (0x20) as the first slot of bytes contains the length
+        // we jump 65 (0x41) per signature
+        // for v we load 32 bytes ending with v (the first 31 come from s) then apply a mask
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            r := mload(add(_signatures, add(0x20,mul(0x41,_index))))
+            s := mload(add(_signatures, add(0x40,mul(0x41,_index))))
+            v := and(mload(add(_signatures, add(0x41,mul(0x41,_index)))), 0xff)
+        }
+        require(v == 27 || v == 28); 
+        return ecrecover(_signedHash, v, r, s);
+    }
+
+    /**
+    * @dev Refunds the gas used to the Relayer. 
+    * For security reasons the default behavior is to not refund calls with 0 or 1 signatures. 
+    * @param _wallet The target wallet.
+    * @param _gasUsed The gas used.
+    * @param _gasPrice The gas price for the refund.
+    * @param _gasLimit The gas limit for the refund.
+    * @param _signatures The number of signatures used in the call.
+    * @param _relayer The address of the Relayer.
+    */
+    function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
+        uint256 amount = 28620 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + _gasUsed
+        require(amount <= _gasLimit, "RM: the transaction consumed too much gas");
+        // only refund if gas price not null and more than 1 signatures
+        if(_gasPrice > 0 && _signatures > 1) {
+            if(_gasPrice > tx.gasprice) {
+                amount = amount * tx.gasprice;
+            }
+            else {
+                amount = amount * _gasPrice;
+            }
+            _wallet.invoke(_relayer, amount, "");
+        }
+    }
+
+    /**
+    * @dev Returns false if the refund is expected to fail.
+    * @param _wallet The target wallet.
+    * @param _gasUsed The expected gas used.
+    * @param _gasPrice The expected gas price for the refund.
+    */
+    function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
+        if(_gasPrice > 0 && _signatures > 1 && address(_wallet).balance < _gasUsed * _gasPrice) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+    * @dev Checks that the wallet address provided as the first parameter of the relayed data is the same
+    * as the wallet passed as the input of the execute() method. 
+    @return false if the addresses are different.
+    */
+    function verifyData(address _wallet, bytes _data) private pure returns (bool) {
+        require(_data.length >= 36, "RM: Invalid dataWallet");
+        address dataWallet;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            //_data = {length:32}{sig:4}{_wallet:32}{...}
+            dataWallet := mload(add(_data, 0x24))
+        }
+        return dataWallet == _wallet;
+    }
+
+    /**
+    * @dev Helper method to verify that a noce has the correct format. 
+    * It must be constructed as nonce = {block number}{timestamp} where each component is 16 bytes.
+    */
+    function isValidNonce(uint256 _nonce, uint256 _configNonce) private view returns (bool) {
+        if(_nonce <= _configNonce)
+            return false;
+        uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
+        if(nonceBlock > block.number + BLOCKBOUND)
+            return false;
+        return true;
+    }
+
+    /**
+    * @dev Parses the data to extract the method signature. 
+    */
+    function functionPrefix(bytes _data) internal pure returns (bytes4 prefix) {
+        require(_data.length >= 4, "RM: Invalid functionPrefix");
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            prefix := mload(add(_data, 0x20))
+        }
+    }
+}

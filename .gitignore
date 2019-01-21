@@ -1,0 +1,35 @@
+node_modules
+build
+tmp
+bin
+
+## Core latex/pdflatex auxiliary files:
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+.*.lb
+*.fdb_latexmk
+*.synctex.gz
+
+.DS_Store
+.node-xmlhttprequest-sync-*
+.vscode
+
+.env
+*.sh
+utils/config/*.json
+!utils/config/ganache.json
+
+## Etherlime
+**/.etherlime-store
+
+
+
