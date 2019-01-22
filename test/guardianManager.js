@@ -3,6 +3,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const DumbContract = require("../build/TestContract");
+const NonCompliantGuardian = require("../build/NonCompliantGuardian");
 
 const TestManager = require("../utils/test-manager");
 
@@ -338,5 +339,27 @@ describe("GuardianManager", () => {
             await manager.increaseTime(30);
             await assert.revert(guardianManager.confirmGuardianRevokation(wallet.contractAddress, guardian1.address), "confirmGuardianRevokation should throw");
         });
+    });
+
+    describe("Cancelling Pending Guardians", () => { 
+        let nonCompliantGuardian;
+        beforeEach(async () => {
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+            nonCompliantGuardian = await deployer.deploy(NonCompliantGuardian);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, nonCompliantGuardian.contractAddress);
+            await manager.increaseTime(30);
+            await guardianManager.confirmGuardianAddition(wallet.contractAddress, nonCompliantGuardian.contractAddress);
+            const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber(); 
+            assert.equal(count, 2, "2 guardian should be added"); 
+            const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, nonCompliantGuardian.contractAddress);
+            assert.equal(isGuardian, true, "non-compliant guardian should be added"); 
+        }); 
+        it("it should add a guardian after the addition of a non-compliant guardian", async () => {
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian2.address, {gasLimit: 2000000});
+            await manager.increaseTime(30);
+            await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardian2.address);
+            const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber(); 
+            assert.equal(count, 3, "3 guardians should be added");
+        });            
     });
 });
