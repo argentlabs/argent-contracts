@@ -12,7 +12,7 @@ class MultisigExecutor {
         const contract_address = contractWrapper.contractAddress;
 
         // Encode the method call with its parameters
-        let data = contractWrapper.contract.interface.functions[method].encode(params); 
+        let data = contractWrapper.contract.interface.functions[method].encode(params);
 
         // Get the nonce
         const nonce = (await this._multisigWrapper.contract.nonce()).toNumber();
@@ -38,6 +38,7 @@ class MultisigExecutor {
         } else {
             console.log(`******* MultisigExecutor *******`);
             console.log(`Signing data for transaction to ${contractWrapper._contract.contractName} located at ${contract_address}:`);
+            console.log(`multisig:          ${this._multisigWrapper.contractAddress}`);
             console.log(`to:                ${contract_address}`);
             console.log(`value:             0`);
             console.log(`data:              ${data}`);
