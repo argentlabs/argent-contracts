@@ -16,6 +16,8 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
 
     bytes32 constant NAME = "TokenTransfer";
 
+    bytes4 constant internal EXECUTE_PENDING_PREFIX = bytes4(keccak256("executePendingTransfer(address,address,address,uint256,bytes,uint256)"));
+
     bytes constant internal EMPTY_BYTES = "";
 
     using SafeMath for uint256;
@@ -370,7 +372,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
 
     function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
-        if (methodId == bytes4(keccak256("executePendingTransfer(address,address,address,uint256,bytes,uint256)"))) {
+        if (methodId == EXECUTE_PENDING_PREFIX) {
             return 0;
         }
         return 1;
