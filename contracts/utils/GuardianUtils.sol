@@ -12,7 +12,7 @@ library GuardianUtils {
     * @return true and the list of guardians minus the found guardian upon success, false and the original list of guardians if not found.
     */
     function isGuardian(address[] _guardians, address _guardian) internal view returns (bool, address[]) {
-        if(_guardians.length == 0) {
+        if(_guardians.length == 0 || _guardian == address(0)) {
             return (false, _guardians);
         }
         bool isFound = false;
@@ -26,7 +26,7 @@ library GuardianUtils {
                     continue;
                 }
                 // check if _guardian is the owner of a smart contract guardian
-                if(isContract(_guardians[i]) && BaseWallet(_guardians[i]).owner.gas(5000)() == _guardian) {
+                if(isContract(_guardians[i]) && isGuardianOwner(_guardians[i], _guardian)) {
                     isFound = true;
                     continue;
                 }
@@ -50,6 +50,27 @@ library GuardianUtils {
             size := extcodesize(_addr)
         }
         return (size > 0);
+    }
+
+    /**
+    * @dev Checks if an address is the owner of a guardian contract. 
+    * The method does not revert if the call to the owner() method consumes more then 5000 gas. 
+    * @param _guardian The guardian contract
+    * @param _owner The owner to verify.
+    */
+    function isGuardianOwner(address _guardian, address _owner) internal view returns (bool) {
+        address owner = address(0);
+        bytes4 sig = bytes4(keccak256("owner()"));
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr,sig)
+            let result := staticcall(5000, _guardian, ptr, 0x20, ptr, 0x20)
+            if eq(result, 1) {
+                owner := mload(ptr)
+            }
+        }
+        return owner == _owner;
     }
         
 } 
