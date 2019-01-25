@@ -289,10 +289,11 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
 
     // Overrides verifyRefund to add the refund in the daily limit.
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if( (_gasPrice > 0 
-            && _signatures > 0 
-            && (address(_wallet).balance < _gasUsed * _gasPrice || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false))
-            || _wallet.authorised(this) == false) 
+        if(_gasPrice > 0 && _signatures > 0 && (
+                address(_wallet).balance < _gasUsed * _gasPrice 
+                || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
+                || _wallet.authorised(this) == false
+        ))
         {
             return false;
         }

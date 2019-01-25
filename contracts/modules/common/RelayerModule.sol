@@ -212,7 +212,9 @@ contract RelayerModule is Module {
     * @param _gasPrice The expected gas price for the refund.
     */
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if((_gasPrice > 0 && _signatures > 1 && address(_wallet).balance < _gasUsed * _gasPrice) || _wallet.authorised(this) == false) {
+        if(_gasPrice > 0 
+            && _signatures > 1 
+            && (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(this) == false)) {
             return false;
         }
         return true;
