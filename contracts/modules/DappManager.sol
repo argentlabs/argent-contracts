@@ -273,8 +273,8 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
 
     // Overrides refund to add the refund in the daily limit.
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
-        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 424 to log the event + _gasUsed
-        uint256 amount = 36368 + _gasUsed; 
+        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
+        uint256 amount = 36616 + _gasUsed; 
         if(_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;

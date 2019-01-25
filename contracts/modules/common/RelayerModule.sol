@@ -192,7 +192,7 @@ contract RelayerModule is Module {
     * @param _relayer The address of the Relayer.
     */
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
-        uint256 amount = 29044 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 424 to log the event + _gasUsed
+        uint256 amount = 29292 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 672 to log the event + _gasUsed
         // only refund if gas price not null, more than 1 signatures, gas less than gasLimit
         if(_gasPrice > 0 && _signatures > 1 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
