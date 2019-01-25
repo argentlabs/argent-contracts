@@ -82,11 +82,11 @@ contract RelayerModule is Module {
                 if(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures)) {
                     // solium-disable-next-line security/no-call-value
                     success = address(this).call(_data);
+                    refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
                 }
             }
         }
         emit TransactionExecuted(_wallet, success, signHash); 
-        refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
     }
 
     /**
@@ -192,7 +192,7 @@ contract RelayerModule is Module {
     * @param _relayer The address of the Relayer.
     */
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
-        uint256 amount = 28620 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + _gasUsed
+        uint256 amount = 29044 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 424 to log the event + _gasUsed
         // only refund if gas price not null, more than 1 signatures, gas less than gasLimit
         if(_gasPrice > 0 && _signatures > 1 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
@@ -212,7 +212,7 @@ contract RelayerModule is Module {
     * @param _gasPrice The expected gas price for the refund.
     */
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if(_gasPrice > 0 && _signatures > 1 && address(_wallet).balance < _gasUsed * _gasPrice && _wallet.authorised(this) == false) {
+        if((_gasPrice > 0 && _signatures > 1 && address(_wallet).balance < _gasUsed * _gasPrice) || _wallet.authorised(this) == false) {
             return false;
         }
         return true;

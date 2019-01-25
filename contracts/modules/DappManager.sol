@@ -273,7 +273,8 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
 
     // Overrides refund to add the refund in the daily limit.
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
-        uint256 amount = 35944 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + _gasUsed
+        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 424 to log the event + _gasUsed
+        uint256 amount = 36368 + _gasUsed; 
         if(_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
@@ -288,10 +289,10 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
 
     // Overrides verifyRefund to add the refund in the daily limit.
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if( _gasPrice > 0 
+        if( (_gasPrice > 0 
             && _signatures > 0 
-            && (address(_wallet).balance < _gasUsed * _gasPrice || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false)
-            && _wallet.authorised(this) == false) 
+            && (address(_wallet).balance < _gasUsed * _gasPrice || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false))
+            || _wallet.authorised(this) == false) 
         {
             return false;
         }
