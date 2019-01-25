@@ -76,7 +76,9 @@ describe("RecoveryManager", () => {
 
         it("should not let a minority of guardians execute the recovery procedure (relayed transaction)", async () => {
             let minority = guardians.slice(0, Math.ceil( (guardians.length + 1)/2 ) - 1 );
-            await assert.revert(manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress(minority)), "executeRecovery should throw");
+            let txReceipt = await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress(minority));
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "executeRecovery should fail");
             const isLocked = await lockManager.isLocked(wallet.contractAddress);
             assert.isFalse(isLocked, "should not be locked");
         });
@@ -128,13 +130,17 @@ describe("RecoveryManager", () => {
         });
 
         it("should not let 1 guardian cancel the recovery procedure (relayed transaction)", async () => {
-            await assert.revert(manager.relay(recoveryManager, 'cancelRecovery', [wallet.contractAddress], wallet, [guardian1]), "cancelRecovery should throw");
+            let txReceipt = await manager.relay(recoveryManager, 'cancelRecovery', [wallet.contractAddress], wallet, [guardian1]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "cancelRecovery should fail");
             const isLocked = await lockManager.isLocked(wallet.contractAddress);
             assert.isTrue(isLocked, "should still be locked");
         });
 
         it("should not let the owner cancel the recovery procedure (relayed transaction)", async () => {
-            await assert.revert(manager.relay(recoveryManager, 'cancelRecovery', [wallet.contractAddress], wallet, [owner]), "cancelRecovery should throw");
+            let txReceipt = await manager.relay(recoveryManager, 'cancelRecovery', [wallet.contractAddress], wallet, [owner]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "cancelRecovery should fail");
             const isLocked = await lockManager.isLocked(wallet.contractAddress);
             assert.isTrue(isLocked, "should still be locked");
         });

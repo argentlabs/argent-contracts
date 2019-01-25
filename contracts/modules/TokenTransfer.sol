@@ -342,8 +342,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     // Overrides refund to add the refund in the daily limit.
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
         uint256 amount = 35944 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + _gasUsed
-        require(amount <= _gasLimit, "TT: the transaction consumed too much gas");
-        if(_gasPrice > 0 && _signatures > 0) {
+        if(_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
             }
@@ -357,17 +356,19 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
 
     // Overrides verifyRefund to add the refund in the daily limit.
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if( _gasPrice > 0 && _signatures > 0 
-            && (address(_wallet).balance < _gasUsed * _gasPrice || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false)) 
+        if( _gasPrice > 0 
+            && _signatures > 0 
+            && (address(_wallet).balance < _gasUsed * _gasPrice || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false)
+            && _wallet.authorised(this) == false) 
         {
             return false;
         }
         return true;
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view {
+    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
         address signer = recoverSigner(_signHash, _signatures, 0);
-        require(isOwner(_wallet, signer), "TT: signer must be owner");
+        return isOwner(_wallet, signer); // "TT: signer must be owner"
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {

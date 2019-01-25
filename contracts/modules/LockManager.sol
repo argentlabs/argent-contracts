@@ -110,9 +110,9 @@ contract LockManager is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view {
+    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), recoverSigner(_signHash, _signatures, 0));
-        require(isGuardian, "LM: must be a guardian to lock or unlock");
+        return isGuardian; // "LM: must be a guardian to lock or unlock"
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {

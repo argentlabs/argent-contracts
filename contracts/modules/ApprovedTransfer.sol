@@ -69,22 +69,32 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view {
+    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
         for (uint8 i = 0; i < _signatures.length / 65; i++) {
             address signer = recoverSigner(_signHash, _signatures, i);
             if(i == 0) {
-                require(isOwner(_wallet, signer), "AT: first signer must be owner");
+                // AT: first signer must be owner
+                if(!isOwner(_wallet, signer)) { 
+                    return false;
+                }
             }
             else {
-                require(signer > lastSigner, "AT: signers must be different");
+                // "AT: signers must be different"
+                if(signer <= lastSigner) { 
+                    return false;
+                }
                 lastSigner = signer;
                 (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                require(isGuardian, "AT: signatures not valid");
+                // "AT: signatures not valid"
+                if(!isGuardian) { 
+                    return false;
+                }
             }
         }
+        return true;
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {

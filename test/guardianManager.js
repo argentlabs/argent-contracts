@@ -132,7 +132,7 @@ describe("GuardianManager", () => {
                 for(let i = 1; i <= 5; i++) {
                     await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardians[i-1].address);
                     if(i > 1) {
-                        await manager.increaseTime(30);
+                        await manager.increaseTime(31);
                         await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardians[i-1].address);
                     }
                     count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber(); 
@@ -145,7 +145,7 @@ describe("GuardianManager", () => {
             it("should add many Guardians (relayed transaction)", async () => {
                 const guardians = [guardian1, guardian2, guardian3, guardian4, guardian5];
                 let count, active;
-                for(let i = 1; i <= 5; i++) {
+                for(let i = 1; i <= 3; i++) {
                     await manager.relay(guardianManager, 'addGuardian', [wallet.contractAddress, guardians[i-1].address], wallet, [owner]);
                     if(i > 1) {
                         await manager.increaseTime(30);
