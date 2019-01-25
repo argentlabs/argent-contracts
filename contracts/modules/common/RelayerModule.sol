@@ -141,6 +141,24 @@ contract RelayerModule is Module {
     }
 
     /**
+    * @dev Checks that a nonce has the correct format and is valid. 
+    * It must be constructed as nonce = {block number}{timestamp} where each component is 16 bytes.
+    * @param _wallet The target wallet.
+    * @param _nonce The nonce
+    */
+    function checkAndUpdateNonce(BaseWallet _wallet, uint256 _nonce) internal returns (bool) {
+        if(_nonce <= relayer[_wallet].nonce) {
+            return false;
+        }   
+        uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
+        if(nonceBlock > block.number + BLOCKBOUND) {
+            return false;
+        }
+        relayer[_wallet].nonce = _nonce;
+        return true;    
+    }
+
+    /**
     * @dev Recovers the signer at a given position from a list of concatenated signatures.
     * @param _signedHash The signed hash
     * @param _signatures The concatenated signatures.
@@ -215,19 +233,6 @@ contract RelayerModule is Module {
             dataWallet := mload(add(_data, 0x24))
         }
         return dataWallet == _wallet;
-    }
-
-    /**
-    * @dev Helper method to verify that a noce has the correct format. 
-    * It must be constructed as nonce = {block number}{timestamp} where each component is 16 bytes.
-    */
-    function isValidNonce(uint256 _nonce, uint256 _configNonce) internal view returns (bool) {
-        if(_nonce <= _configNonce)
-            return false;
-        uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
-        if(nonceBlock > block.number + BLOCKBOUND)
-            return false;
-        return true;
     }
 
     /**
