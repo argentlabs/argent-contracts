@@ -74,7 +74,7 @@ contract RelayerModule is Module {
     {
         uint startGas = gasleft();
         bytes32 signHash = getSignHash(address(this), _wallet, 0, _data, _nonce, _gasPrice, _gasLimit);
-        require(checkAndUpdateUniqueness(_wallet, _nonce, signHash, requiredSignatures), "RM: Duplicate request");
+        require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
         require(verifyData(address(_wallet), _data), "RM: the wallet authorized is different then the target of the relayed data");
         uint256 requiredSignatures = getRequiredSignatures(_wallet, _data);
         if((requiredSignatures * 65) == _signatures.length) {
@@ -132,30 +132,31 @@ contract RelayerModule is Module {
     * @param _wallet The target wallet.
     * @param _nonce The nonce
     * @param _signHash The signed hash of the transaction
-    * @param _requiredSignatures The number of required signatures
     */
-    function checkAndUpdateUniqueness(
-        BaseWallet _wallet, 
-        uint256 _nonce, 
-        bytes32 _signHash, 
-        uint256 _requiredSignatures
-    ) 
-        internal 
-        returns (bool) 
-    {
-        if(_requiredSignatures == 1) {
-            if(!isValidNonce(_nonce, relayer[_wallet].nonce)) {
-                return false;
-            }
-            relayer[_wallet].nonce = _nonce;
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+        if(relayer[_wallet].executedTx[_signHash] == true) {
+            return false;
         }
-        else {
-            if(relayer[_wallet].executedTx[_signHash] == true) {
-                return false;
-            }
-            relayer[_wallet].executedTx[_signHash] = true;
-        }
+        relayer[_wallet].executedTx[_signHash] = true;
         return true;
+    }
+
+    /**
+    * @dev Checks that a nonce has the correct format and is valid. 
+    * It must be constructed as nonce = {block number}{timestamp} where each component is 16 bytes.
+    * @param _wallet The target wallet.
+    * @param _nonce The nonce
+    */
+    function checkAndUpdateNonce(BaseWallet _wallet, uint256 _nonce) internal returns (bool) {
+        if(_nonce <= relayer[_wallet].nonce) {
+            return false;
+        }   
+        uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
+        if(nonceBlock > block.number + BLOCKBOUND) {
+            return false;
+        }
+        relayer[_wallet].nonce = _nonce;
+        return true;    
     }
 
     /**
@@ -234,19 +235,6 @@ contract RelayerModule is Module {
             dataWallet := mload(add(_data, 0x24))
         }
         return dataWallet == _wallet;
-    }
-
-    /**
-    * @dev Helper method to verify that a noce has the correct format. 
-    * It must be constructed as nonce = {block number}{timestamp} where each component is 16 bytes.
-    */
-    function isValidNonce(uint256 _nonce, uint256 _configNonce) private view returns (bool) {
-        if(_nonce <= _configNonce)
-            return false;
-        uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
-        if(nonceBlock > block.number + BLOCKBOUND)
-            return false;
-        return true;
     }
 
     /**
