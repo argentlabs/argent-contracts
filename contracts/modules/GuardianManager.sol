@@ -95,11 +95,11 @@ contract GuardianManager is BaseModule, RelayerModule {
     function addGuardian(BaseWallet _wallet, address _guardian) external onlyOwner(_wallet) onlyWhenUnlocked(_wallet) {
         require(!isOwner(_wallet, _guardian), "GM: target guardian cannot be owner");
         require(!isGuardian(_wallet, _guardian), "GM: target is already a guardian"); 
-        // _guardian must either be an EOA or a contract with an owner manager.
-        // This is to make sure that we will be able to check the owner of 
-        // the _guardian contract later on (e.g. in GuardianUtils.isGuardian())
+        // Guardians must either be an EOA or a contract with an owner() 
+        // method that returns an address with a 5000 gas stipend.
+        // Note that this test is not meant to be strict and can be bypassed by custom malicious contracts.
         // solium-disable-next-line security/no-low-level-calls
-        require(_guardian.call(abi.encodeWithSignature("owner()")), "GM: guardian must be EOA or implement owner()");
+        require(_guardian.call.gas(5000)(abi.encodeWithSignature("owner()")), "GM: guardian must be EOA or implement owner()");
         if(guardianStorage.guardianCount(_wallet) == 0) {
             guardianStorage.addGuardian(_wallet, _guardian);
             emit GuardianAdded(_wallet, _guardian);
