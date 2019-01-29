@@ -4,7 +4,8 @@ const Wallet = require('../build/BaseWallet');
 const Module = require('../build/BaseModule');
 const Registry = require('../build/ModuleRegistry');
 
-describe("Test Proxy", () => {
+describe("Test Proxy", function () {
+    this.timeout(10000);
 
     let owner = accounts[1].wallet;
     let nonowner = accounts[2].wallet;
@@ -14,21 +15,21 @@ describe("Test Proxy", () => {
     before(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);
         const registry = await deployer.deploy(Registry);
-        walletImplementation = await deployer.deploy(Wallet); 
-        module1 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero); 
-        module2 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero); 
-        module3 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero); 
+        walletImplementation = await deployer.deploy(Wallet);
+        module1 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero);
+        module2 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero);
+        module3 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero);
     });
 
-    beforeEach(async () => { 
-        proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress); 
+    beforeEach(async () => {
+        proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
         wallet = deployer.wrapDeployedContract(Wallet, proxy.contractAddress);
     });
 
     it("should init the wallet with the correct owner", async () => {
-        let walletOwner = await wallet.owner(); 
+        let walletOwner = await wallet.owner();
         assert.equal(walletOwner, "0x0000000000000000000000000000000000000000", "owner should be null before init");
-        await wallet.init(owner.address, [module1.contractAddress], {gasLimit: 1000000}); 
+        await wallet.init(owner.address, [module1.contractAddress], {gasLimit: 1000000});
         walletOwner = await wallet.owner();
         assert.equal(walletOwner, owner.address, "owner should be the owner after init");
     });

@@ -12,7 +12,8 @@ const FEE_RATIO = 30;
 
 const TestManager = require("../utils/test-manager");
 
-describe("Test Token Exchanger", () => {
+describe("Test Token Exchanger", function () {
+    this.timeout(10000);
 
     const manager = new TestManager(accounts);
 
@@ -40,9 +41,9 @@ describe("Test Token Exchanger", () => {
     });
 
     describe("Expected Trade for token ", () => {
-        it('should get the correct fee', async () => { 
+        it('should get the correct fee', async () => {
             let srcAmount = 10000;
-            let rate = await exchanger.getExpectedTrade(ETH_TOKEN, erc20.contractAddress, srcAmount); 
+            let rate = await exchanger.getExpectedTrade(ETH_TOKEN, erc20.contractAddress, srcAmount);
             let fee = ethers.utils.bigNumberify(rate[1]).toNumber();
             assert.equal(fee, srcAmount * FEE_RATIO / 10000, "rate should be correct");
         });
@@ -80,11 +81,11 @@ describe("Test Token Exchanger", () => {
             assert.isTrue(beforeETH.gte(srcAmount), "wallet should have enough ether");
 
             const txReceipt =  await manager.relay(exchanger, 'trade', [
-                wallet.contractAddress, 
-                ETH_TOKEN, 
-                srcAmount, 
-                erc20.contractAddress, 
-                '10000000000000000000000', 
+                wallet.contractAddress,
+                ETH_TOKEN,
+                srcAmount,
+                erc20.contractAddress,
+                '10000000000000000000000',
                 0
             ], wallet, [owner]);
             const destAmount = txReceipt.events.find(log => log.event === "TokenExchanged").args["destAmount"];
@@ -100,7 +101,7 @@ describe("Test Token Exchanger", () => {
             const beforeERC20 = await erc20.balanceOf(wallet.contractAddress);
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             assert.isTrue(beforeERC20.gte(srcAmount), "wallet should have enough ERC20");
-            
+
             const tx = await exchanger.from(owner).trade(
                 wallet.contractAddress,
                 erc20.contractAddress,
@@ -122,7 +123,7 @@ describe("Test Token Exchanger", () => {
             const beforeERC20 = await erc20.balanceOf(wallet.contractAddress);
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             assert.isTrue(beforeERC20.gte(srcAmount), "wallet should have enough ERC20");
-                        
+
             const txReceipt =  await manager.relay(exchanger, 'trade', [
                 wallet.contractAddress,
                 erc20.contractAddress,

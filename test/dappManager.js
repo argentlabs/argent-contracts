@@ -13,7 +13,8 @@ const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 10;
 const SECURITY_WINDOW = 10;
 
-describe("DappManager", () => {
+describe("DappManager", function () {
+    this.timeout(10000);
 
     const manager = new TestManager(accounts);
 
@@ -33,7 +34,7 @@ describe("DappManager", () => {
         dappRegistry = await deployer.deploy(DappRegistry);
         const guardianStorage = await deployer.deploy(GuardianStorage);
         const dappStorage = await deployer.deploy(DappStorage);
-        dappManager = await deployer.deploy(DappManager, {}, 
+        dappManager = await deployer.deploy(DappManager, {},
             moduleRegistry.contractAddress,
             dappRegistry.contractAddress,
             dappStorage.contractAddress,
@@ -98,8 +99,8 @@ describe("DappManager", () => {
 
                 beforeEach(async () => {
                     registeredContract = await deployer.deploy(TestContract);
-                    dataToTransfer = registeredContract.contract.interface.functions['setState'].encode([targetState]); 
-                    setStateSignature = registeredContract.contract.interface.functions['setState'].sighash; 
+                    dataToTransfer = registeredContract.contract.interface.functions['setState'].encode([targetState]);
+                    setStateSignature = registeredContract.contract.interface.functions['setState'].sighash;
                     assert.equal(await registeredContract.state(), 0, "initial contract state should be 0");
                     await dappRegistry.register(registeredContract.contractAddress, [setStateSignature]);
                 });
@@ -153,7 +154,7 @@ describe("DappManager", () => {
                 });
                 it('should not allow authorized dapp to call arbitrary module methods (relayed transaction)', async () => {
                     // evil dapp will try to increase the dapp limit
-                    const data = dappManager.contract.interface.functions['changeLimit'].encode([wallet.contractAddress, dappLimit + 10]); 
+                    const data = dappManager.contract.interface.functions['changeLimit'].encode([wallet.contractAddress, dappLimit + 10]);
                     const txReceipt = await manager.relay(dappManager, 'callContract', [wallet.contractAddress, dapp.address, dappManager.contractAddress, 0, data], wallet, [dapp]);
                     const success = parseRelayReceipt(txReceipt);
                     assert.isNotOk(success, 'callContract should not have succeeded');
@@ -164,7 +165,7 @@ describe("DappManager", () => {
         });
         describe("Unauthorized Dapp", () => {
 
-            const dataToTransfer = ethers.constants.HashZero; 
+            const dataToTransfer = ethers.constants.HashZero;
             const amount = dappLimit - 100;
 
             it('should not allow unauthorized dapp to do ETH transfer (relayed transaction)', async () => {

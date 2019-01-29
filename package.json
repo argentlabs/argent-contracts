@@ -20,12 +20,12 @@
   "homepage": "https://github.com/argentlabs/argent-contracts#readme",
   "dependencies": {
     "ajv": "^6.7.0",
-    "aws-sdk": "^2.387.0",
+    "aws-sdk": "^2.395.0",
     "cli-table2": "^0.2.0",
     "dotenv": "^6.2.0",
-    "etherlime": "^0.10.4",
-    "tinyreq": "^3.4.1",
-    "ethers": "^4.0.21",
-    "solc": "0.4.24"
+    "etherlime": "^0.10.6",
+    "ethers": "^4.0.23",
+    "solc": "0.4.24",
+    "tinyreq": "^3.4.1"
   }
 }
