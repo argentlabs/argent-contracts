@@ -13,11 +13,12 @@ const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
 const DECIMALS = 12; // number of decimal for TOKN contract
 const KYBER_RATE = ethers.utils.bigNumberify(51 * 10**13); // 1 TOKN = 0.00051 ETH
-const ZERO_BYTES32 = ethers.constants.HashZero; 
+const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const TestManager = require("../utils/test-manager");
 
-describe("Test Token Transfer", () => {
+describe("Test Token Transfer", function () {
+    this.timeout(10000);
 
     const manager = new TestManager(accounts);
 
@@ -35,7 +36,7 @@ describe("Test Token Transfer", () => {
         priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
         const transferStorage = await deployer.deploy(TransferStorage);
         const guardianStorage = await deployer.deploy(GuardianStorage);
-        transferModule = await deployer.deploy(TransferModule, {}, 
+        transferModule = await deployer.deploy(TransferModule, {},
             registry.contractAddress,
             transferStorage.contractAddress,
             guardianStorage.contractAddress,
@@ -46,32 +47,32 @@ describe("Test Token Transfer", () => {
         );
     });
 
-    beforeEach(async () => { 
+    beforeEach(async () => {
         wallet = await deployer.deploy(Wallet);
         await wallet.init(owner.address, [transferModule.contractAddress]);
         erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-        await kyber.addToken(erc20.contractAddress, KYBER_RATE, DECIMALS); 
+        await kyber.addToken(erc20.contractAddress, KYBER_RATE, DECIMALS);
         await priceProvider.syncPrice(erc20.contractAddress);
         await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify('1000000000000000000') });
     });
 
     describe("Managing limit and whitelist ", () => {
-        it('should get the global limit', async () => { 
-            let limit = await transferModule.getCurrentLimit(wallet.contractAddress); 
+        it('should get the global limit', async () => {
+            let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit, ETH_LIMIT, "limit should be ETH_LIMIT");
         });
         it('should only change the global limit after the security period', async () => {
             await transferModule.from(owner).changeLimit(wallet.contractAddress, 4000000);
-            let limit = await transferModule.getCurrentLimit(wallet.contractAddress); 
+            let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit, ETH_LIMIT, "limit should be ETH_LIMIT");
             await manager.increaseTime(3);
-            limit = await transferModule.getCurrentLimit(wallet.contractAddress); 
+            limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), 4000000, "limit should be changed");
         });
         it('should change the global limit via relayed transaction', async () =>  {
             await manager.relay(transferModule, 'changeLimit', [wallet.contractAddress, 4000000], wallet, [owner]);
             await manager.increaseTime(3);
-            limit = await transferModule.getCurrentLimit(wallet.contractAddress); 
+            limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), 4000000, "limit should be changed");
         });
         it('should add/remove an account to/from the whitelist', async () =>  {
@@ -143,8 +144,8 @@ describe("Test Token Transfer", () => {
         it('should create and execute a pending transfers', async () => {
             let amountToTransfer = ETH_LIMIT + 10000;
             let before = await deployer.provider.getBalance(recipient.address);
-            let tx = await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32); 
-            let receipt = await transferModule.verboseWaitForTransaction(tx); 
+            let tx = await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32);
+            let receipt = await transferModule.verboseWaitForTransaction(tx);
             let after = await deployer.provider.getBalance(recipient.address);
             assert.equal(after.sub(before).toNumber(), 0, 'should not have executed the transfer');
             let block = receipt.blockNumber;
@@ -160,7 +161,7 @@ describe("Test Token Transfer", () => {
             let amountToTransfer = ETH_LIMIT + 10000;
             let before = await deployer.provider.getBalance(recipient.address);
             let tx = await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32);
-            let receipt = await transferModule.verboseWaitForTransaction(tx); 
+            let receipt = await transferModule.verboseWaitForTransaction(tx);
             let after = await deployer.provider.getBalance(recipient.address);
             assert.equal(after.sub(before).toNumber(), 0, 'should not have executed the transfer');
             let block = receipt.blockNumber;
@@ -172,12 +173,12 @@ describe("Test Token Transfer", () => {
             await manager.increaseTime(5);
             // after period
             await assert.revert(transferModule.executePendingTransfer(wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32, block), "confirmation after the security window should throw");
-        });  
+        });
         it('should cancel an existing pending transfer', async () => {
             let amountToTransfer = ETH_LIMIT + 10000;
             let before = await deployer.provider.getBalance(recipient.address);
             let tx = await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32);
-            let receipt = await transferModule.verboseWaitForTransaction(tx); 
+            let receipt = await transferModule.verboseWaitForTransaction(tx);
             let after = await deployer.provider.getBalance(recipient.address);
             assert.equal(after.sub(before).toNumber(), 0, 'should not have executed the transfer');
             let block = receipt.blockNumber;
@@ -204,7 +205,7 @@ describe("Test Token Transfer", () => {
             let amountToTransfer = ETH_LIMIT + 10000;
             let before = await deployer.provider.getBalance(recipient.address);
             let tx = await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32);
-            let receipt = await transferModule.verboseWaitForTransaction(tx); 
+            let receipt = await transferModule.verboseWaitForTransaction(tx);
             let block = receipt.blockNumber;
             let id = ethers.utils.solidityKeccak256(['address', 'address', 'uint256', 'bytes', 'uint256'], [ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32, block]);
             let executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
@@ -221,7 +222,7 @@ describe("Test Token Transfer", () => {
             let amountToTransfer = 10000;
             let before = await erc20.balanceOf(recipient.address);
             let tx = await transferModule.from(owner).transferToken(wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32);
-            let receipt = await transferModule.verboseWaitForTransaction(tx); 
+            let receipt = await transferModule.verboseWaitForTransaction(tx);
             let after = await erc20.balanceOf(recipient.address);
             assert.equal(after.sub(before).toNumber(), 0, 'should not have executed the transfer');
             let block = receipt.blockNumber;

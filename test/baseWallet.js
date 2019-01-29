@@ -4,7 +4,8 @@ const Registry = require('../build/ModuleRegistry');
 
 const TestManager = require("../utils/test-manager");
 
-describe("Test BaseWallet", () => {
+describe("Test BaseWallet", function () {
+    this.timeout(10000);
 
     const manager = new TestManager(accounts);
 
@@ -17,17 +18,17 @@ describe("Test BaseWallet", () => {
     before(async () => {
         deployer = manager.newDeployer();
         const registry = await deployer.deploy(Registry);
-        module1 = await deployer.deploy(Module, {}, registry.contractAddress, true, 42); 
-        module2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 42); 
-        module3 = await deployer.deploy(Module, {}, registry.contractAddress, true, 42); 
+        module1 = await deployer.deploy(Module, {}, registry.contractAddress, true, 42);
+        module2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 42);
+        module3 = await deployer.deploy(Module, {}, registry.contractAddress, true, 42);
     });
 
     beforeEach(async () => {
-        wallet = await deployer.deploy(Wallet); 
+        wallet = await deployer.deploy(Wallet);
     });
 
-    it("should create a wallet with the correct owner", async () => { 
-        let walletOwner = await wallet.owner(); 
+    it("should create a wallet with the correct owner", async () => {
+        let walletOwner = await wallet.owner();
         assert.equal(walletOwner, "0x0000000000000000000000000000000000000000", "owner should be null before init");
         await wallet.init(owner.address, [module1.contractAddress]);
         walletOwner = await wallet.owner();
@@ -44,7 +45,7 @@ describe("Test BaseWallet", () => {
         assert.equal(module3IsAuthorised, false, "module3 should not be authorised");
     });
 
-    it("should accept ETH", async () => { 
+    it("should accept ETH", async () => {
         let before = await deployer.provider.getBalance(wallet.contractAddress);
         await nonowner.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
         let after = await deployer.provider.getBalance(wallet.contractAddress);

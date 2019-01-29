@@ -6,9 +6,10 @@ const ENSConsumer = require('../build/ENSConsumer');
 
 const TestManager = require("../utils/test-manager");
 
-const ZERO_BYTES32 = ethers.constants.HashZero; 
+const ZERO_BYTES32 = ethers.constants.HashZero;
 
-describe("Test ENS contracts", () => {
+describe("Test ENS contracts", function () {
+    this.timeout(10000);
 
     const manager = new TestManager(accounts);
 
@@ -19,7 +20,7 @@ describe("Test ENS contracts", () => {
 
     let root = "xyz";
     let subnameWallet = "argent";
-    let walletNode = ethers.utils.namehash(subnameWallet + '.' + root);   
+    let walletNode = ethers.utils.namehash(subnameWallet + '.' + root);
 
     let ensRegistry, ensResolver, ensReverse, ensManager;
 
@@ -64,7 +65,7 @@ describe("Test ENS contracts", () => {
             let nodeOwner = await ensRegistry.owner(labelNode);
             assert.equal(nodeOwner, owner.address, "new manager should have registered the ens name");
         });
-    
+
         it("should fail to register an ENS name when the caller is not a manager", async () => {
             let label = "wallet";
             await assert.revert(ensManager.from(anonmanager).register(label, owner.address), "registering should throw");

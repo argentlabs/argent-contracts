@@ -8,12 +8,8 @@ const Registry = require("../build/ModuleRegistry");
 const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt } = require("../utils/utilities.js");
 
-// const { increaseTime, getNonceForRelay, signOffchain, methodAbiFrom } = require("../utils.js");
-// const executeRecoveryABI = methodAbiFrom(RecoveryManager, "executeRecovery");
-// const finalizeRecoveryABI = methodAbiFrom(RecoveryManager, "finalizeRecovery");
-// const cancelRecoveryABI = methodAbiFrom(RecoveryManager, "cancelRecovery");
-
-describe("RecoveryManager", () => {
+describe("RecoveryManager", function () {
+    this.timeout(10000);
 
     const manager = new TestManager(accounts);
 
@@ -36,15 +32,15 @@ describe("RecoveryManager", () => {
         await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
     });
 
-    async function addGuardians(guardians) { 
+    async function addGuardians(guardians) {
         // guardians can be Wallet or ContractWrapper objects
         let guardianAddresses = guardians.map(guardian => {
-            if(guardian.address) 
+            if(guardian.address)
                 return guardian.address;
             return guardian.contractAddress;
         });
 
-        for (const address of guardianAddresses) { 
+        for (const address of guardianAddresses) {
             await guardianManager.from(owner).addGuardian(wallet.contractAddress, address);
         }
 
@@ -52,7 +48,7 @@ describe("RecoveryManager", () => {
         for (let i = 1; i < guardianAddresses.length; i++) {
             await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardianAddresses[i]);
         }
-        const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber(); 
+        const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
         assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
     }
 
@@ -151,7 +147,7 @@ describe("RecoveryManager", () => {
             beforeEach(async () => {
                 await addGuardians([guardian1, guardian2])
             });
-    
+
             testExecuteRecovery([guardian1, guardian2]);
         });
 
@@ -159,28 +155,28 @@ describe("RecoveryManager", () => {
             beforeEach(async () => {
                 await addGuardians([guardian1, guardian2, guardian3])
             });
-    
+
             testExecuteRecovery([guardian1, guardian2, guardian3]);
         });
-    
+
         describe("Smart Contract Guardians: G = 2", () => {
-            let guardians; 
+            let guardians;
             beforeEach(async () => {
                 guardians = await createSmartContractGuardians([guardian1, guardian2]);
                 await addGuardians(guardians);
             });
-    
-            testExecuteRecovery([guardian1, guardian2]); 
+
+            testExecuteRecovery([guardian1, guardian2]);
         });
 
         describe("Smart Contract Guardians: G = 3", () => {
-            let guardians; 
+            let guardians;
             beforeEach(async () => {
                 guardians = await createSmartContractGuardians([guardian1, guardian2, guardian3]);
                 await addGuardians(guardians);
             });
-    
-            testExecuteRecovery([guardian1, guardian2]); 
+
+            testExecuteRecovery([guardian1, guardian2]);
         });
     });
 
