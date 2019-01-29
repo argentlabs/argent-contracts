@@ -8,7 +8,7 @@ const TokenPriceProvider = require("../build/TokenPriceProviderTest");
 const ERC20 = require("../build/TestERC20");
 
 const TestManager = require("../utils/test-manager");
-const { sortWalletByAddress } = require("../utils/utilities.js");
+const { sortWalletByAddress, parseRelayReceipt } = require("../utils/utilities.js");
 
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 const DECIMALS = 12; // number of decimal for TOKN contract
@@ -109,7 +109,9 @@ describe("Test Approved Transfer", () => {
             assert.equal(count, 3, '3 guardians should be active'); 
             let before = await deployer.provider.getBalance(recipient.address);
             // should fail with one confirmation
-            await assert.revert(manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]), "transfer should fail with 1 guardian confirmation");
+            let txReceipt = await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "transfer should fail with 1 guardian confirmation");
             // should succeed with 2 confirmations
             await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
             let after = await deployer.provider.getBalance(recipient.address);
@@ -119,8 +121,10 @@ describe("Test Approved Transfer", () => {
             let amountToTransfer = 10000;
             let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
             assert.equal(count, 0, '0 guardians should be active'); 
-            // should throw 
-            await assert.revert(manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]), "transfer should thrwo when signer is not a guardian");
+            // should fail 
+            let txReceipt = await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "transfer should fail when signer is not a guardian");
         });
         it('should transfer ERC20 with 1 confirmations for 1 guardians', async () => { 
             let amountToTransfer = 10000;
@@ -140,7 +144,9 @@ describe("Test Approved Transfer", () => {
             assert.equal(count, 3, '3 guardians should be active'); 
             let before = await erc20.balanceOf(recipient.address);
             // should fail with one confirmation
-            await assert.revert(manager.relay(transferModule, "transferToken", [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]), "transfer with 1 guardian signature should throw");
+            let txReceipt = await manager.relay(transferModule, "transferToken", [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "transfer with 1 guardian signature should fail");
             // should succeed with 2 confirmations
             await manager.relay(transferModule, "transferToken", [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
             let after = await erc20.balanceOf(recipient.address);
@@ -178,7 +184,9 @@ describe("Test Approved Transfer", () => {
             assert.equal(count, 3, '3 guardians should be active'); 
             let before = await deployer.provider.getBalance(recipient.address);
             // should fail with one confirmation
-            await assert.revert(manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]), "transfer with 1 guardian signature should throw");
+            let txReceipt = await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "transfer with 1 guardian signature should fail");
             // should succeed with 2 confirmations
             await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
             let after = await deployer.provider.getBalance(recipient.address);
@@ -202,7 +210,9 @@ describe("Test Approved Transfer", () => {
             assert.equal(count, 3, '3 guardians should be active'); 
             let before = await erc20.balanceOf(recipient.address);
             // should fail with one confirmation
-            await assert.revert(manager.relay(transferModule, "transferToken", [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]), "transfer with 1 guardian signature should throw");
+            let txReceipt = await manager.relay(transferModule, "transferToken", [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "transfer with 1 guardian signature should throw");
             // should succeed with 2 confirmations
             await manager.relay(transferModule, "transferToken", [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
             let after = await erc20.balanceOf(recipient.address);
