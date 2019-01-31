@@ -42,6 +42,10 @@ class Configurator {
         this._config.multisig.owners = owners;
     }
 
+    updateGitHash(hash) {
+        this._config.gitCommit = hash;
+    }
+
     async load(validate = true) {
         const json = await this.loader.load();
         this._config = JSON.parse(json);
