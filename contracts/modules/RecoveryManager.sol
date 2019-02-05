@@ -135,15 +135,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(
-        BaseWallet _wallet, 
-        bytes _data,
-        bytes32 _signHash, 
-        bytes _signatures
-    ) 
-        internal 
-        view 
-    {
+    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
@@ -154,12 +146,17 @@ contract RecoveryManager is BaseModule, RelayerModule {
                 continue;
             }
             else {
-                require(signer > lastSigner, "RM: signers must be different");
+                if(signer <= lastSigner) {
+                    return false;
+                } // "RM: signers must be different"
                 lastSigner = signer;
                 (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                require(isGuardian == true, "RM: signatures not valid");
+                if(!isGuardian) {
+                    return false;
+                } // "RM: signatures not valid"
             }
         }
+        return true;
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {

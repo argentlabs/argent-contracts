@@ -95,11 +95,11 @@ contract GuardianManager is BaseModule, RelayerModule {
     function addGuardian(BaseWallet _wallet, address _guardian) external onlyOwner(_wallet) onlyWhenUnlocked(_wallet) {
         require(!isOwner(_wallet, _guardian), "GM: target guardian cannot be owner");
         require(!isGuardian(_wallet, _guardian), "GM: target is already a guardian"); 
-        // _guardian must either be an EOA or a contract with an owner manager.
-        // This is to make sure that we will be able to check the owner of 
-        // the _guardian contract later on (e.g. in GuardianUtils.isGuardian())
+        // Guardians must either be an EOA or a contract with an owner() 
+        // method that returns an address with a 5000 gas stipend.
+        // Note that this test is not meant to be strict and can be bypassed by custom malicious contracts.
         // solium-disable-next-line security/no-low-level-calls
-        require(_guardian.call(abi.encodeWithSignature("owner()")), "GM: guardian must be EOA or implement owner()");
+        require(_guardian.call.gas(5000)(abi.encodeWithSignature("owner()")), "GM: guardian must be EOA or implement owner()");
         if(guardianStorage.guardianCount(_wallet) == 0) {
             guardianStorage.addGuardian(_wallet, _guardian);
             emit GuardianAdded(_wallet, _guardian);
@@ -223,9 +223,14 @@ contract GuardianManager is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view {
+    // Overrides to use the incremental nonce and save some gas
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+        return checkAndUpdateNonce(_wallet, _nonce);
+    }
+
+    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
         address signer = recoverSigner(_signHash, _signatures, 0);
-        require(isOwner(_wallet, signer), "GM: signer must be owner");
+        return isOwner(_wallet, signer); // "GM: signer must be owner"
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {

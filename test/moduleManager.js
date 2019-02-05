@@ -5,7 +5,8 @@ const ModuleManager = require("../build/ModuleManager");
 const Registry = require("../build/ModuleRegistry");
 const Upgrader = require("../build/SimpleUpgrader");
 
-describe("Test ModuleManager", () => {
+describe("Test ModuleManager", function () {
+    this.timeout(10000);
 
     let owner = accounts[1].wallet;
 
@@ -24,7 +25,7 @@ describe("Test ModuleManager", () => {
             await registry.registerModule(module.contractAddress, ethers.utils.formatBytes32String(name));
             let isRegistered = await registry.isRegisteredModule(module.contractAddress);
             assert.equal(isRegistered, true, "module1 should be registered");
-            let info = await registry.moduleInfo(module.contractAddress); 
+            let info = await registry.moduleInfo(module.contractAddress);
             assert.equal(ethers.utils.parseBytes32String(info), name, "module1 should be registered with the correct name");
         });
 
@@ -83,7 +84,7 @@ describe("Test ModuleManager", () => {
             await moduleManager.from(owner).upgrade(wallet.contractAddress, upgrader.contractAddress, {gasLimit: 1000000});
             //test if upgrade worked
             let isV1Authorised = await wallet.authorised(moduleV1.contractAddress);
-            let isV2Authorised = await wallet.authorised(moduleV2.contractAddress); 
+            let isV2Authorised = await wallet.authorised(moduleV2.contractAddress);
             assert.equal(isV1Authorised, false, "moduleV1 should not be authorised");
             assert.equal(isV2Authorised, true, "module2 should be authorised");
         });

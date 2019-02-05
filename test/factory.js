@@ -10,9 +10,10 @@ const Factory = require('../build/WalletFactory');
 
 const TestManager = require("../utils/test-manager");
 
-const ZERO_BYTES32 = ethers.constants.HashZero; 
+const ZERO_BYTES32 = ethers.constants.HashZero;
 
-describe("Test Wallet Factory", () => {
+describe("Test Wallet Factory", function () {
+    this.timeout(10000);
 
     const manager = new TestManager(accounts);
 
@@ -23,13 +24,13 @@ describe("Test Wallet Factory", () => {
 
     let root = "xyz";
     let subnameWallet = "argent";
-    let walletNode = ethers.utils.namehash(subnameWallet + '.' + root);   
+    let walletNode = ethers.utils.namehash(subnameWallet + '.' + root);
 
-    let ensRegistry, 
-        ensResolver, 
-        ensReverse, 
-        ensManager, 
-        implementation, 
+    let ensRegistry,
+        ensResolver,
+        ensReverse,
+        ensManager,
+        implementation,
         moduleRegistry,
         factory;
 
@@ -53,7 +54,7 @@ describe("Test Wallet Factory", () => {
         moduleRegistry = await deployer.deploy(ModuleRegistry);
 
         factory = await deployer.deploy(Factory, {},
-            ensRegistry.contractAddress, 
+            ensRegistry.contractAddress,
             moduleRegistry.contractAddress,
             implementation.contractAddress,
             ensManager.contractAddress,
@@ -61,7 +62,7 @@ describe("Test Wallet Factory", () => {
         await factory.addManager(infrastructure.address);
         await ensManager.addManager(factory.contractAddress);
     });
-    
+
     describe("Create wallets", () => {
 
         let moduleManager, module1, module2;
@@ -74,13 +75,13 @@ describe("Test Wallet Factory", () => {
             await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
             await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
         });
-    
+
         it("should create with the correct owner", async () => {
             // we create the wallet
             let modules = [moduleManager.contractAddress];
             let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", {gasLimit: 200000});
             let txReceipt = await factory.verboseWaitForTransaction(tx);
-            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet; 
+            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
             // we test that the wallet has the correct owner
             let wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
             let walletOwner = await wallet.owner();
@@ -92,7 +93,7 @@ describe("Test Wallet Factory", () => {
             // we create the wallet
             let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", {gasLimit: 300000});
             let txReceipt = await factory.verboseWaitForTransaction(tx);
-            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet; 
+            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
             // we test that the wallet has the correct modules
             let wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
             let isAuthorised = await wallet.authorised(moduleManager.contractAddress);
@@ -115,7 +116,7 @@ describe("Test Wallet Factory", () => {
             // we create the wallet
             let tx = await factory.from(infrastructure).createWallet(owner.address, modules, label, {gasLimit: 550000});
             let txReceipt = await factory.verboseWaitForTransaction(tx);
-            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet; 
+            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
             // we test that the wallet has the correct ENS
             let nodeOwner = await ensRegistry.owner(labelNode);
             assert.equal(nodeOwner, walletAddr);

@@ -19,6 +19,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
     bytes32 constant NAME = "DappManager";
 
     bytes4 constant internal CONFIRM_AUTHORISATION_PREFIX = bytes4(keccak256("confirmAuthorizeCall(address,address,address,bytes4[])"));
+    bytes4 constant internal CALL_CONTRACT_PREFIX = bytes4(keccak256("callContract(address,address,address,uint256,bytes)"));
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -272,9 +273,9 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
 
     // Overrides refund to add the refund in the daily limit.
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
-        uint256 amount = 35944 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + _gasUsed
-        require(amount <= _gasLimit, "DM: the transaction consumed too much gas");
-        if(_gasPrice > 0 && _signatures > 0) {
+        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
+        uint256 amount = 36616 + _gasUsed; 
+        if(_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
             }
@@ -288,27 +289,38 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
 
     // Overrides verifyRefund to add the refund in the daily limit.
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if( _gasPrice > 0 && _signatures > 0 
-            && (address(_wallet).balance < _gasUsed * _gasPrice || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false)) 
+        if(_gasPrice > 0 && _signatures > 0 && (
+                address(_wallet).balance < _gasUsed * _gasPrice 
+                || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
+                || _wallet.authorised(this) == false
+        ))
         {
             return false;
         }
         return true;
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view {
+    // Overrides to use the incremental nonce and save some gas
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+        return checkAndUpdateNonce(_wallet, _nonce);
+    }
+
+    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
         address signer = recoverSigner(_signHash, _signatures, 0);
-        if(functionPrefix(_data) == bytes4(keccak256("callContract(address,address,address,uint256,bytes)"))) {
-            require(_data.length >= 68, "RM: Invalid dapp in data");
+        if(functionPrefix(_data) == CALL_CONTRACT_PREFIX) {
+            // "RM: Invalid dapp in data"
+            if(_data.length < 68) {
+                return false;
+            }
             address dapp;
             // solium-disable-next-line security/no-inline-assembly
             assembly {
                 //_data = {length:32}{sig:4}{_wallet:32}{_dapp:32}{...}
                 dapp := mload(add(_data, 0x44))
             }
-            require(dapp == signer, "DM: dapp and signer must be the same");
+            return dapp == signer; // "DM: dapp and signer must be the same"
         } else {
-            require(isOwner(_wallet, signer), "DM: signer must be owner");
+            return isOwner(_wallet, signer); // "DM: signer must be owner"
         }
     }
 

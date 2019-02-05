@@ -127,6 +127,10 @@ const deploy = async (network, secret) => {
         DappManager: DappManagerWrapper.contractAddress,
         TokenExchanger: TokenExchangerWrapper.contractAddress
     });
+
+    const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
+    configurator.updateGitHash(gitHash);
+
     await configurator.save();
 
     await Promise.all([
