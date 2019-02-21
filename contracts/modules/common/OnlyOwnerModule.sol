@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "./BaseModule.sol";
 import "./RelayerModule.sol";
 import "../../wallet/BaseWallet.sol";
@@ -18,12 +18,12 @@ contract OnlyOwnerModule is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
+    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
         address signer = recoverSigner(_signHash, _signatures, 0);
         return isOwner(_wallet, signer); // "OOM: signer must be owner"
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         return 1;
     }
 }

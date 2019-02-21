@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../utils/SafeMath.sol";
 import "./ERC20.sol";
 import "./KyberNetwork.sol";
@@ -17,14 +17,14 @@ contract TokenPriceProvider {
     function syncPrice(ERC20 token) public {
         uint256 expectedRate;
         (expectedRate,) = kyberNetwork().getExpectedRate(token, ERC20(ETH_TOKEN_ADDRESS), 10000);
-        cachedPrices[token] = expectedRate;
+        cachedPrices[address(token)] = expectedRate;
     }
 
     //
     // Convenience functions
     //
 
-    function syncPriceForTokenList(ERC20[] tokens) public {
+    function syncPriceForTokenList(ERC20[] memory tokens) public {
         for(uint16 i = 0; i < tokens.length; i++) {
             syncPrice(tokens[i]);
         }

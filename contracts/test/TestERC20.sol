@@ -1,12 +1,12 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 
 /**
  * ERC20 contract interface.
  */
 contract ERC20 {
-    function totalSupply() public constant returns (uint);
-    function balanceOf(address tokenOwner) public constant returns (uint balance);
-    function allowance(address tokenOwner, address spender) public constant returns (uint remaining);
+    function totalSupply() public view returns (uint);
+    function balanceOf(address tokenOwner) public view returns (uint balance);
+    function allowance(address tokenOwner, address spender) public view returns (uint remaining);
     function transfer(address to, uint tokens) public returns (bool success);
     function approve(address spender, uint tokens) public returns (bool success);
     function transferFrom(address from, address to, uint tokens) public returns (bool success);
@@ -28,7 +28,7 @@ contract TestERC20 is ERC20 {
     mapping(address => uint) balances;
     mapping(address => mapping(address => uint)) allowed;
 
-    constructor(address[] _owners, uint _supply, uint8 _decimals) public {
+    constructor(address[] memory _owners, uint _supply, uint8 _decimals) public {
         decimals = _decimals;
         for(uint i = 0; i < _owners.length; i++) {
             balances[_owners[i]] = _supply * 10**uint(_decimals);
@@ -36,11 +36,11 @@ contract TestERC20 is ERC20 {
         _totalSupply = _owners.length * _supply * 10**uint(_decimals);
     }
 
-    function totalSupply() public constant returns (uint) {
+    function totalSupply() public view returns (uint) {
         return _totalSupply  - balances[address(0)];
     }
 
-    function balanceOf(address tokenOwner) public constant returns (uint balance) {
+    function balanceOf(address tokenOwner) public view returns (uint balance) {
         return balances[tokenOwner];
     }
 
@@ -70,11 +70,11 @@ contract TestERC20 is ERC20 {
         return true;
     }
 
-    function allowance(address tokenOwner, address spender) public constant returns (uint remaining) {
+    function allowance(address tokenOwner, address spender) public view returns (uint remaining) {
         return allowed[tokenOwner][spender];
     }
 
-    function () public payable {
+    function () external payable {
         revert();
     }
 }

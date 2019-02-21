@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../utils/strings.sol";
 import "./ENS.sol";
 import "./ENSConsumer.sol";
@@ -9,7 +9,7 @@ import "../base/Managed.sol";
  */
 interface IENSManager {
     function changeRootnodeOwner(address _newOwner) external;
-    function register(string _label, address _owner) external;
+    function register(string calldata _label, address _owner) external;
     function isAvailable(bytes32 _subnode) external view returns(bool);
 }
 
@@ -46,7 +46,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
      * @param _rootName The root name (e.g. argentx.eth).
      * @param _rootNode The node of the root name (e.g. namehash(argentx.eth)).
      */
-    constructor(string _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) ENSConsumer(_ensRegistry) public {
+    constructor(string memory _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) ENSConsumer(_ensRegistry) public {
         rootName = _rootName;
         rootNode = _rootNode;
         ensResolver = _ensResolver;
@@ -80,11 +80,11 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
     * @param _label The subdomain label.
     * @param _owner The owner of the subdomain.
     */
-    function register(string _label, address _owner) external onlyManager {
+    function register(string calldata _label, address _owner) external onlyManager {
         bytes32 labelNode = keccak256(abi.encodePacked(_label));
         bytes32 node = keccak256(abi.encodePacked(rootNode, labelNode));
         address currentOwner = getENSRegistry().owner(node);
-        require(currentOwner == 0, "AEM: _label is alrealdy owned");
+        require(currentOwner == address(0), "AEM: _label is alrealdy owned");
 
         // Forward ENS
         getENSRegistry().setSubnodeOwner(rootNode, labelNode, address(this));
@@ -113,7 +113,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
     function isAvailable(bytes32 _subnode) public view returns (bool) {
         bytes32 node = keccak256(abi.encodePacked(rootNode, _subnode));
         address currentOwner = getENSRegistry().owner(node);
-        if(currentOwner == 0) {
+        if(currentOwner == address(0)) {
             return true;
         }
         return false;

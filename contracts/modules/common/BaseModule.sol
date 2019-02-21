@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../upgrade/ModuleRegistry.sol";
 import "../../interfaces/Module.sol";
@@ -52,7 +52,7 @@ contract BaseModule is Module {
      * @param _wallet The wallet.
      */
     function init(BaseWallet _wallet) external onlyWallet(_wallet) {
-        emit ModuleInitialised(_wallet);
+        emit ModuleInitialised(address(_wallet));
     }
 
     /**
@@ -61,8 +61,8 @@ contract BaseModule is Module {
      * @param _module The modules to authorise.
      */
     function addModule(BaseWallet _wallet, Module _module) external strictOnlyOwner(_wallet) {
-        require(registry.isRegisteredModule(_module), "BM: module is not registered");
-        _wallet.authoriseModule(_module, true);
+        require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
+        _wallet.authoriseModule(address(_module), true);
     }
 
     /**

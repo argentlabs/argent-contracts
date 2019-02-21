@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 
 /**
  * ENS Registry interface.
@@ -19,8 +19,8 @@ contract ENSRegistry {
 contract ENSResolver {
     function addr(bytes32 _node) public view returns (address);
     function setAddr(bytes32 _node, address _addr) public;
-    function name(bytes32 _node) public view returns (string);
-    function setName(bytes32 _node, string _name) public;
+    function name(bytes32 _node) public view returns (string memory);
+    function setName(bytes32 _node, string memory _name) public;
 }
 
 /**
@@ -29,6 +29,6 @@ contract ENSResolver {
 contract ENSReverseRegistrar {
     function claim(address _owner) public returns (bytes32 _node);
     function claimWithResolver(address _owner, address _resolver) public returns (bytes32);
-    function setName(string _name) public returns (bytes32);
-    function node(address _addr) public view returns (bytes32);
+    function setName(string memory _name) public returns (bytes32);
+    function node(address _addr) public returns (bytes32);
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./Storage.sol";
 
@@ -23,7 +23,7 @@ contract TransferStorage is Storage {
      * @param _value True for addition, false for revokation.
      */
     function setWhitelist(BaseWallet _wallet, address _target, uint256 _value) external onlyModule(_wallet) {
-        whitelist[_wallet][_target] = _value;
+        whitelist[address(_wallet)][_target] = _value;
     }
 
     /**
@@ -33,6 +33,6 @@ contract TransferStorage is Storage {
      * @return the epoch time at which an account strats to be whitelisted, or zero if the account is not whitelisted.
      */
     function getWhitelist(BaseWallet _wallet, address _target) external view returns (uint256) {
-        return whitelist[_wallet][_target];
+        return whitelist[address(_wallet)][_target];
     }
 }

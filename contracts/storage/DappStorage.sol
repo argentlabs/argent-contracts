@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./Storage.sol";
 
@@ -28,14 +28,14 @@ contract DappStorage is Storage {
         BaseWallet _wallet, 
         address _dapp, 
         address _contract, 
-        bytes4[] _signatures, 
+        bytes4[] calldata _signatures, 
         bool _authorized
     ) 
         external 
         onlyModule(_wallet) 
     {
         for(uint i = 0; i < _signatures.length; i++) {
-            whitelistedMethods[_wallet][_dapp][_contract][_signatures[i]] = _authorized;
+            whitelistedMethods[address(_wallet)][_dapp][_contract][_signatures[i]] = _authorized;
         }
     }
 
@@ -48,6 +48,6 @@ contract DappStorage is Storage {
      * @return true if the method is whitelisted, false otherwise
      */
     function getMethodAuthorization(BaseWallet _wallet, address _dapp, address _contract, bytes4 _signature) external view returns (bool) {
-        return whitelistedMethods[_wallet][_dapp][_contract][_signature];
+        return whitelistedMethods[address(_wallet)][_dapp][_contract][_signature];
     }
 }

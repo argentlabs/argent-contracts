@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -124,7 +124,7 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
         if (fee > 0) {
             _wallet.invoke(feeCollector, fee, "");
         }
-        emit TokenExchanged(_wallet, _srcToken, _srcAmount, _destToken, destAmount);
+        emit TokenExchanged(address(_wallet), _srcToken, _srcAmount, _destToken, destAmount);
         return destAmount;
     }
 
