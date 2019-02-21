@@ -79,7 +79,7 @@ describe("Test Wallet Factory", function () {
         it("should create with the correct owner", async () => {
             // we create the wallet
             let modules = [moduleManager.contractAddress];
-            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", {gasLimit: 200000});
+            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", {gasLimit: 300000});
             let txReceipt = await factory.verboseWaitForTransaction(tx);
             let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
             // we test that the wallet has the correct owner
