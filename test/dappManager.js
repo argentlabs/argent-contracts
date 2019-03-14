@@ -18,12 +18,12 @@ describe("DappManager", function () {
 
     const manager = new TestManager(accounts);
 
-    let infrastructure = accounts[0].wallet;
-    let owner = accounts[1].wallet;
-    let dapp = accounts[2].wallet;
-    let nondapp = accounts[3].wallet;
-    let nonowner = accounts[4].wallet;
-    let recipient = accounts[5].wallet;
+    let infrastructure = accounts[0].signer;
+    let owner = accounts[1].signer;
+    let dapp = accounts[2].signer;
+    let nondapp = accounts[3].signer;
+    let nonowner = accounts[4].signer;
+    let recipient = accounts[5].signer;
 
     let wallet, dappRegistry, dappManager;
 

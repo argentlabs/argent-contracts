@@ -13,11 +13,11 @@ describe("RecoveryManager", function () {
 
     const manager = new TestManager(accounts);
 
-    let owner = accounts[1].wallet;
-    let guardian1 = accounts[2].wallet;
-    let guardian2 = accounts[3].wallet;
-    let guardian3 = accounts[4].wallet;
-    let newowner = accounts[5].wallet;
+    let owner = accounts[1].signer;
+    let guardian1 = accounts[2].signer;
+    let guardian2 = accounts[3].signer;
+    let guardian3 = accounts[4].signer;
+    let newowner = accounts[5].signer;
 
     let guardianManager, lockManager, recoveryManager, wallet;
 

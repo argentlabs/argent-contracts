@@ -17,9 +17,9 @@ describe("Test Token Exchanger", function () {
 
     const manager = new TestManager(accounts);
 
-    let infrastructure = accounts[0].wallet;
-    let owner = accounts[1].wallet;
-    let collector = accounts[2].wallet;
+    let infrastructure = accounts[0].signer;
+    let owner = accounts[1].signer;
+    let collector = accounts[2].signer;
 
     let wallet, kyber, exchanger;
 
