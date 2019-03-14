@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "./ERC20.sol";
 
 contract KyberNetwork {
@@ -16,7 +16,7 @@ contract KyberNetwork {
         ERC20 src,
         uint srcAmount,
         ERC20 dest,
-        address destAddress,
+        address payable destAddress,
         uint maxDestAmount,
         uint minConversionRate,
         address walletId

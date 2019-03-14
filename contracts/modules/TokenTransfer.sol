@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -111,7 +111,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         address _token, 
         address _to, 
         uint256 _amount, 
-        bytes _data
+        bytes calldata _data
     ) 
         external 
         onlyOwnerOrModule(_wallet) 
@@ -169,7 +169,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         // solium-disable-next-line security/no-block-members
         uint256 whitelistAfter = now.add(securityPeriod);
         transferStorage.setWhitelist(_wallet, _target, whitelistAfter);
-        emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
+        emit AddedToWhitelist(address(_wallet), _target, uint64(whitelistAfter));
     }
 
     /**
@@ -187,7 +187,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     {
         require(isWhitelisted(_wallet, _target), "TT: target not whitelisted");
         transferStorage.setWhitelist(_wallet, _target, 0);
-        emit RemovedFromWhitelist(_wallet, _target);
+        emit RemovedFromWhitelist(address(_wallet), _target);
     }
 
     /**
@@ -205,14 +205,14 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         address _token, 
         address _to, 
         uint _amount, 
-        bytes _data,
+        bytes memory _data,
         uint _block 
     ) 
         public 
         onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(_token, _to, _amount, _data, _block));
-        uint executeAfter = configs[_wallet].pendingTransfers[id];
+        uint executeAfter = configs[address(_wallet)].pendingTransfers[id];
         uint executeBefore = executeAfter.add(securityWindow);
         require(executeAfter <= now && now <= executeBefore, "TT: outside of the execution window");
         removePendingTransfer(_wallet, id);
@@ -222,7 +222,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         else {
             transferERC20(_wallet, _token, _to, _amount, _data);
         }
-        emit PendingTransferExecuted(_wallet, id);
+        emit PendingTransferExecuted(address(_wallet), id);
     }
 
     /**
@@ -238,9 +238,9 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         onlyOwner(_wallet) 
         onlyWhenUnlocked(_wallet) 
     {
-        require(configs[_wallet].pendingTransfers[_id] > 0, "TT: unknown pending transfer");
+        require(configs[address(_wallet)].pendingTransfers[_id] > 0, "TT: unknown pending transfer");
         removePendingTransfer(_wallet, _id);
-        emit PendingTransferCanceled(_wallet, _id);
+        emit PendingTransferCanceled(address(_wallet), _id);
     }
 
     /**
@@ -281,7 +281,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     * @return the epoch time at which the pending transfer can be executed.
     */
     function getPendingTransfer(BaseWallet _wallet, bytes32 _id) external view returns (uint64 _executeAfter) {
-        _executeAfter = uint64(configs[_wallet].pendingTransfers[_id]);
+        _executeAfter = uint64(configs[address(_wallet)].pendingTransfers[_id]);
     }
 
     // *************** Internal Functions ********************* //
@@ -293,9 +293,9 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     * @param _value The amount of ETH to transfer
     * @param _data The data to *log* with the transfer.
     */
-    function transferETH(BaseWallet _wallet, address _to, uint256 _value, bytes _data) internal {
+    function transferETH(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
         _wallet.invoke(_to, _value, EMPTY_BYTES);
-        emit Transfer(_wallet, ETH_TOKEN, _value, _to, _data);
+        emit Transfer(address(_wallet), ETH_TOKEN, _value, _to, _data);
     }
 
     /**
@@ -306,10 +306,10 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     * @param _value The amount of token to transfer
     * @param _data The data to pass with the trnasfer.
     */
-    function transferERC20(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes _data) internal {
+    function transferERC20(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
         bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
         _wallet.invoke(_token, 0, methodData);
-        emit Transfer(_wallet, _token, _value, _to, _data);
+        emit Transfer(address(_wallet), _token, _value, _to, _data);
     }
 
     /**
@@ -321,11 +321,11 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
      * @param _data The data associated to the transfer.
      * @return the identifier for the new pending transfer.
      */
-    function addPendingTransfer(BaseWallet _wallet, address _token, address _to, uint _amount, bytes _data) internal returns (bytes32) {
+    function addPendingTransfer(BaseWallet _wallet, address _token, address _to, uint _amount, bytes memory _data) internal returns (bytes32) {
         bytes32 id = keccak256(abi.encodePacked(_token, _to, _amount, _data, block.number));
         uint executeAfter = now.add(securityPeriod);
-        configs[_wallet].pendingTransfers[id] = executeAfter;
-        emit PendingTransferCreated(_wallet, id, executeAfter, _token, _to, _amount, _data);
+        configs[address(_wallet)].pendingTransfers[id] = executeAfter;
+        emit PendingTransferCreated(address(_wallet), id, executeAfter, _token, _to, _amount, _data);
     }
 
     /**
@@ -334,7 +334,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     * @param _id The id of the transfer to remove.
     */
     function removePendingTransfer(BaseWallet _wallet, bytes32 _id) internal {
-        delete configs[_wallet].pendingTransfers[_id];
+        delete configs[address(_wallet)].pendingTransfers[_id];
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
@@ -360,7 +360,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         if(_gasPrice > 0 && _signatures > 0 && (
             address(_wallet).balance < _gasUsed * _gasPrice 
             || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
-            || _wallet.authorised(this) == false
+            || _wallet.authorised(address(_wallet)) == false
         ))
         {
             return false;
@@ -373,12 +373,12 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
+    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
         address signer = recoverSigner(_signHash, _signatures, 0);
         return isOwner(_wallet, signer); // "TT: signer must be owner"
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_PENDING_PREFIX) {
             return 0;

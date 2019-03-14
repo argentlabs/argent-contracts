@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../base/Owned.sol";
 
 /**
@@ -21,7 +21,7 @@ contract DappRegistry is Owned {
      * @param _contract The dapp contract.
      * @param _methods The dapp methods.
      */
-    function register(address _contract, bytes4[] _methods) external onlyOwner {
+    function register(address _contract, bytes4[] calldata _methods) external onlyOwner {
         for(uint i = 0; i < _methods.length; i++) {
             authorised[_contract][_methods[i]] = true;
         }
@@ -33,7 +33,7 @@ contract DappRegistry is Owned {
      * @param _contract The dapp contract.
      * @param _methods The dapp methods.
      */
-    function deregister(address _contract, bytes4[] _methods) external onlyOwner {
+    function deregister(address _contract, bytes4[] calldata _methods) external onlyOwner {
         for(uint i = 0; i < _methods.length; i++) {
             authorised[_contract][_methods[i]] = false;
         }
@@ -56,7 +56,7 @@ contract DappRegistry is Owned {
      * @param _methods The dapp methods.
      * @return true if all the methods are registered.
      */
-    function isRegistered(address _contract, bytes4[] _methods) external view returns (bool) {
+    function isRegistered(address _contract, bytes4[] calldata _methods) external view returns (bool) {
         for(uint i = 0; i < _methods.length; i++) {
             if (!authorised[_contract][_methods[i]]) {
                 return false;

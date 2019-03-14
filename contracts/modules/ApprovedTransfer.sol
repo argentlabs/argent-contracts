@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -48,7 +48,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
         address _token, 
         address _to, 
         uint256 _amount, 
-        bytes _data
+        bytes calldata _data
     ) 
         external 
         onlyExecute 
@@ -57,19 +57,19 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
         // eth transfer to whitelist
         if(_token == ETH_TOKEN) {
             _wallet.invoke(_to, _amount, _data);
-            emit Transfer(_wallet, ETH_TOKEN, _amount, _to, _data);
+            emit Transfer(address(_wallet), ETH_TOKEN, _amount, _to, _data);
         }
         // erc20 transfer to whitelist
         else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _amount);
             _wallet.invoke(_token, 0, methodData);
-            emit Transfer(_wallet, _token, _amount, _to, _data);
+            emit Transfer(address(_wallet), _token, _amount, _to, _data);
         }
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
+    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
@@ -97,7 +97,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
         return true;
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         // owner  + [n/2] guardians
         return  1 + SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
     }

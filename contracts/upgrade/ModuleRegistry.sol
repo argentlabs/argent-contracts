@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../interfaces/Module.sol";
 import "../interfaces/Upgrader.sol";
 import "../base/Owned.sol";
@@ -109,7 +109,7 @@ contract ModuleRegistry is Owned {
      * @param _modules The list of modules address.
      * @return true if all the modules are registered.
      */
-    function isRegisteredModule(address[] _modules) external view returns (bool) {
+    function isRegisteredModule(address[] calldata _modules) external view returns (bool) {
         for(uint i = 0; i < _modules.length; i++) {
             if (!modules[_modules[i]].exists) {
                 return false;

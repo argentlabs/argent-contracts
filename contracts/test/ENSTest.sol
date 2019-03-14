@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../ens/ENS.sol";
 
 /**
@@ -132,7 +132,7 @@ contract TestReverseRegistrar is ENSReverseRegistrar {
      * @return The ENS node hash of the reverse record.
      */
     function claim(address owner) public returns (bytes32) {
-        return claimWithResolver(owner, 0);
+        return claimWithResolver(owner, address(0));
     }
 
     /**
@@ -148,10 +148,10 @@ contract TestReverseRegistrar is ENSReverseRegistrar {
         address currentOwner = ens.owner(node);
 
         // Update the resolver if required
-        if(resolver != 0 && resolver != address(ens.resolver(node))) {
+        if(resolver != address(0) && resolver != address(ens.resolver(node))) {
             // Transfer the name to us first if it's not already
             if(currentOwner != address(this)) {
-                ens.setSubnodeOwner(ADDR_REVERSE_NODE, label, this);
+                ens.setSubnodeOwner(ADDR_REVERSE_NODE, label, address(this));
                 currentOwner = address(this);
             }
             ens.setResolver(node, resolver);
@@ -172,8 +172,8 @@ contract TestReverseRegistrar is ENSReverseRegistrar {
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
-    function setName(string name) public returns (bytes32 node) {
-        node = claimWithResolver(this, defaultResolver);
+    function setName(string memory name) public returns (bytes32 node) {
+        node = claimWithResolver(address(this), address(defaultResolver));
         defaultResolver.setName(node, name);
         return node;
     }
@@ -183,7 +183,7 @@ contract TestReverseRegistrar is ENSReverseRegistrar {
      * @param addr The address to hash
      * @return The ENS node hash.
      */
-    function node(address addr) public view returns (bytes32 ret) {
+    function node(address addr) public returns (bytes32 ret) {
         return keccak256(abi.encodePacked(ADDR_REVERSE_NODE, sha3HexAddress(addr)));
     }
 
@@ -198,14 +198,15 @@ contract TestReverseRegistrar is ENSReverseRegistrar {
         assembly {
             let lookup := 0x3031323334353637383961626364656600000000000000000000000000000000
             let i := 40
-        loop:
-            i := sub(i, 1)
-            mstore8(i, byte(and(addr, 0xf), lookup))
-            addr := div(addr, 0x10)
-            i := sub(i, 1)
-            mstore8(i, byte(and(addr, 0xf), lookup))
-            addr := div(addr, 0x10)
-            jumpi(loop, i)
+
+            for { } gt(i, 0) { } {
+                i := sub(i, 1)
+                mstore8(i, byte(and(addr, 0xf), lookup))
+                addr := div(addr, 0x10)
+                i := sub(i, 1)
+                mstore8(i, byte(and(addr, 0xf), lookup))
+                addr := div(addr, 0x10)
+            }
             ret := keccak256(0, 40)
         }
     }

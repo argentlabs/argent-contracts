@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "../storage/GuardianStorage.sol";
 
@@ -11,7 +11,7 @@ library GuardianUtils {
     * @param _guardian the address to test
     * @return true and the list of guardians minus the found guardian upon success, false and the original list of guardians if not found.
     */
-    function isGuardian(address[] _guardians, address _guardian) internal view returns (bool, address[]) {
+    function isGuardian(address[] memory _guardians, address _guardian) internal view returns (bool, address[] memory) {
         if(_guardians.length == 0 || _guardian == address(0)) {
             return (false, _guardians);
         }

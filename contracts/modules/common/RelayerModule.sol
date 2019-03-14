@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../interfaces/Module.sol";
 import "./BaseModule.sol";
@@ -38,7 +38,7 @@ contract RelayerModule is Module {
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures.
     */
-    function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256);
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256);
 
     /**
     * @dev Validates the signatures provided with a relayed transaction.
@@ -48,7 +48,7 @@ contract RelayerModule is Module {
     * @param _signHash The signed hash representing the relayed transaction.
     * @param _signatures The signatures as a concatenated byte array.
     */
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool);
+    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool);
 
     /* ************************************************************ */
 
@@ -63,9 +63,9 @@ contract RelayerModule is Module {
     */
     function execute(
         BaseWallet _wallet,
-        bytes _data, 
+        bytes calldata _data, 
         uint256 _nonce, 
-        bytes _signatures, 
+        bytes calldata _signatures, 
         uint256 _gasPrice,
         uint256 _gasLimit
     )
@@ -73,7 +73,7 @@ contract RelayerModule is Module {
         returns (bool success)
     {
         uint startGas = gasleft();
-        bytes32 signHash = getSignHash(address(this), _wallet, 0, _data, _nonce, _gasPrice, _gasLimit);
+        bytes32 signHash = getSignHash(address(this), address(_wallet), 0, _data, _nonce, _gasPrice, _gasLimit);
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
         require(verifyData(address(_wallet), _data), "RM: the wallet authorized is different then the target of the relayed data");
         uint256 requiredSignatures = getRequiredSignatures(_wallet, _data);
@@ -81,12 +81,12 @@ contract RelayerModule is Module {
             if(verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
                 if(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures)) {
                     // solium-disable-next-line security/no-call-value
-                    success = address(this).call(_data);
+                    (success,) = address(this).call(_data);
                     refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
                 }
             }
         }
-        emit TransactionExecuted(_wallet, success, signHash); 
+        emit TransactionExecuted(address(_wallet), success, signHash); 
     }
 
     /**
@@ -94,7 +94,7 @@ contract RelayerModule is Module {
     * @param _wallet The target wallet.
     */
     function getNonce(BaseWallet _wallet) external view returns (uint256 nonce) {
-        return relayer[_wallet].nonce;
+        return relayer[address(_wallet)].nonce;
     }
 
     /**
@@ -111,7 +111,7 @@ contract RelayerModule is Module {
         address _from,
         address _to, 
         uint256 _value, 
-        bytes _data, 
+        bytes memory _data, 
         uint256 _nonce,
         uint256 _gasPrice,
         uint256 _gasLimit
@@ -134,10 +134,10 @@ contract RelayerModule is Module {
     * @param _signHash The signed hash of the transaction
     */
     function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
-        if(relayer[_wallet].executedTx[_signHash] == true) {
+        if(relayer[address(_wallet)].executedTx[_signHash] == true) {
             return false;
         }
-        relayer[_wallet].executedTx[_signHash] = true;
+        relayer[address(_wallet)].executedTx[_signHash] = true;
         return true;
     }
 
@@ -148,14 +148,14 @@ contract RelayerModule is Module {
     * @param _nonce The nonce
     */
     function checkAndUpdateNonce(BaseWallet _wallet, uint256 _nonce) internal returns (bool) {
-        if(_nonce <= relayer[_wallet].nonce) {
+        if(_nonce <= relayer[address(_wallet)].nonce) {
             return false;
         }   
         uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
         if(nonceBlock > block.number + BLOCKBOUND) {
             return false;
         }
-        relayer[_wallet].nonce = _nonce;
+        relayer[address(_wallet)].nonce = _nonce;
         return true;    
     }
 
@@ -165,7 +165,7 @@ contract RelayerModule is Module {
     * @param _signatures The concatenated signatures.
     * @param _index The index of the signature to recover.
     */
-    function recoverSigner(bytes32 _signedHash, bytes _signatures, uint _index) internal pure returns (address) {
+    function recoverSigner(bytes32 _signedHash, bytes memory _signatures, uint _index) internal pure returns (address) {
         uint8 v;
         bytes32 r;
         bytes32 s;
@@ -215,7 +215,7 @@ contract RelayerModule is Module {
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
         if(_gasPrice > 0 
             && _signatures > 1 
-            && (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(this) == false)) {
+            && (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(address(this)) == false)) {
             return false;
         }
         return true;
@@ -226,7 +226,7 @@ contract RelayerModule is Module {
     * as the wallet passed as the input of the execute() method. 
     @return false if the addresses are different.
     */
-    function verifyData(address _wallet, bytes _data) private pure returns (bool) {
+    function verifyData(address _wallet, bytes memory _data) private pure returns (bool) {
         require(_data.length >= 36, "RM: Invalid dataWallet");
         address dataWallet;
         // solium-disable-next-line security/no-inline-assembly
@@ -240,7 +240,7 @@ contract RelayerModule is Module {
     /**
     * @dev Parses the data to extract the method signature. 
     */
-    function functionPrefix(bytes _data) internal pure returns (bytes4 prefix) {
+    function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
         require(_data.length >= 4, "RM: Invalid functionPrefix");
         // solium-disable-next-line security/no-inline-assembly
         assembly {

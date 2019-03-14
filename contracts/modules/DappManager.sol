@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -109,7 +109,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         address _dapp,
         address _to, 
         uint256 _amount, 
-        bytes _data
+        bytes calldata _data
     ) 
         external 
         onlyExecuteOrDapp(_dapp)
@@ -131,7 +131,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         BaseWallet _wallet, 
         address _dapp,
         address _contract,
-        bytes4[] _signatures
+        bytes4[] calldata _signatures
     ) 
         external 
         onlyOwner(_wallet) 
@@ -141,12 +141,12 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         if(dappRegistry.isRegistered(_contract, _signatures)) {
             // authorise immediately
             dappStorage.setMethodAuthorization(_wallet, _dapp, _contract, _signatures, true);
-            emit ContractCallAuthorized(_wallet, _dapp, _contract, _signatures);
+            emit ContractCallAuthorized(address(_wallet), _dapp, _contract, _signatures);
         }
         else {
             bytes32 id = keccak256(abi.encodePacked(address(_wallet), _dapp, _contract, _signatures, true));
-            configs[_wallet].pending[id] = now + securityPeriod;
-            emit ContractCallAuthorizationRequested(_wallet, _dapp, _contract, _signatures);
+            configs[address(_wallet)].pending[id] = now + securityPeriod;
+            emit ContractCallAuthorizationRequested(address(_wallet), _dapp, _contract, _signatures);
         }
     }
 
@@ -161,14 +161,14 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         BaseWallet _wallet, 
         address _dapp,
         address _contract,
-        bytes4[] _signatures
+        bytes4[] calldata _signatures
     ) 
         external 
         onlyOwner(_wallet) 
         onlyWhenUnlocked(_wallet)
     {
         dappStorage.setMethodAuthorization(_wallet, _dapp, _contract, _signatures, false);
-        emit ContractCallDeauthorized(_wallet, _dapp, _contract, _signatures);
+        emit ContractCallDeauthorized(address(_wallet), _dapp, _contract, _signatures);
     }
 
     /**
@@ -182,19 +182,19 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         BaseWallet _wallet, 
         address _dapp,
         address _contract,
-        bytes4[] _signatures
+        bytes4[] calldata _signatures
     ) 
         external 
         onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _dapp, _contract, _signatures, true));
-        DappManagerConfig storage config = configs[_wallet];
+        DappManagerConfig storage config = configs[address(_wallet)];
         require(config.pending[id] > 0, "DM: No pending authorisation for the target dapp");
         require(config.pending[id] < now, "DM: Too early to confirm pending authorisation");
         require(now < config.pending[id] + securityWindow, "GM: Too late to confirm pending authorisation");
         dappStorage.setMethodAuthorization(_wallet, _dapp, _contract, _signatures, true);
         delete config.pending[id];
-        emit ContractCallAuthorized(_wallet, _dapp, _contract, _signatures);
+        emit ContractCallAuthorized(address(_wallet), _dapp, _contract, _signatures);
     }
 
     /**
@@ -208,17 +208,17 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         BaseWallet _wallet, 
         address _dapp,
         address _contract,
-        bytes4[] _signatures
+        bytes4[] memory _signatures
     )
         public 
         onlyOwner(_wallet) 
         onlyWhenUnlocked(_wallet) 
     {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _dapp, _contract, _signatures, true));
-        DappManagerConfig storage config = configs[_wallet];
+        DappManagerConfig storage config = configs[address(_wallet)];
         require(config.pending[id] > 0, "DM: No pending authorisation for the target dapp");
         delete config.pending[id];
-        emit ContractCallAuthorizationCanceled(_wallet, _dapp, _contract, _signatures);
+        emit ContractCallAuthorizationCanceled(address(_wallet), _dapp, _contract, _signatures);
     }
 
     /**
@@ -229,7 +229,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
     * @param _data The call data
     * @return true if the contract call is authorised for the wallet.
     */
-    function isAuthorizedCall(BaseWallet _wallet, address _dapp, address _to, bytes _data) public view returns (bool _isAuthorized) {
+    function isAuthorizedCall(BaseWallet _wallet, address _dapp, address _to, bytes memory _data) public view returns (bool _isAuthorized) {
         if(_data.length >= 4) {
             return dappStorage.getMethodAuthorization(_wallet, _dapp, _to, functionPrefix(_data));
         }
@@ -264,9 +264,9 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
     * @param _data The data of the call.
     */
 
-    function doCall(BaseWallet _wallet, address _to, uint256 _value, bytes _data) internal {
+    function doCall(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
         _wallet.invoke(_to, _value, _data);
-        emit Transfer(_wallet, ETH_TOKEN, _value, _to, _data);
+        emit Transfer(address(_wallet), ETH_TOKEN, _value, _to, _data);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
@@ -292,7 +292,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         if(_gasPrice > 0 && _signatures > 0 && (
                 address(_wallet).balance < _gasUsed * _gasPrice 
                 || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
-                || _wallet.authorised(this) == false
+                || _wallet.authorised(address(this)) == false
         ))
         {
             return false;
@@ -305,7 +305,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
+    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
         address signer = recoverSigner(_signHash, _signatures, 0);
         if(functionPrefix(_data) == CALL_CONTRACT_PREFIX) {
             // "RM: Invalid dapp in data"
@@ -324,7 +324,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         }
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == CONFIRM_AUTHORISATION_PREFIX) {
             return 0;

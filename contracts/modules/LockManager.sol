@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -73,7 +73,7 @@ contract LockManager is BaseModule, RelayerModule {
      */
     function lock(BaseWallet _wallet) external onlyGuardian(_wallet) onlyWhenUnlocked(_wallet) {
         guardianStorage.setLock(_wallet, now + lockPeriod);
-        emit Locked(_wallet, uint64(now + lockPeriod));
+        emit Locked(address(_wallet), uint64(now + lockPeriod));
     }
 
     /**
@@ -84,7 +84,7 @@ contract LockManager is BaseModule, RelayerModule {
         address locker = guardianStorage.getLocker(_wallet);
         require(locker == address(this), "LM: cannot unlock a wallet that was locked by another module");
         guardianStorage.setLock(_wallet, 0);
-        emit Unlocked(_wallet);
+        emit Unlocked(address(_wallet));
     }
 
     /**
@@ -115,12 +115,12 @@ contract LockManager is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
+    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), recoverSigner(_signHash, _signatures, 0));
         return isGuardian; // "LM: must be a guardian to lock or unlock"
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         return 1;
     }
 }
