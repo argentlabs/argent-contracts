@@ -15,7 +15,7 @@ describe('Test Kyber', function () {
 
     const manager = new TestManager(accounts);
 
-    let trader = accounts[1].wallet;
+    let trader = accounts[1].signer;
 
     let erc20;
     let kyber;

@@ -9,8 +9,8 @@ describe("Test BaseWallet", function () {
 
     const manager = new TestManager(accounts);
 
-    let owner = accounts[1].wallet;
-    let nonowner = accounts[2].wallet;
+    let owner = accounts[1].signer;
+    let nonowner = accounts[2].signer;
 
     let wallet;
     let module1, module2, module3;

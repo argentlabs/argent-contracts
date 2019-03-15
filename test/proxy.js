@@ -7,8 +7,8 @@ const Registry = require('../build/ModuleRegistry');
 describe("Test Proxy", function () {
     this.timeout(10000);
 
-    let owner = accounts[1].wallet;
-    let nonowner = accounts[2].wallet;
+    let owner = accounts[1].signer;
+    let nonowner = accounts[2].signer;
 
     let walletImplementation, wallet, proxy, module1, module2, module3;
 

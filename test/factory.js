@@ -17,10 +17,10 @@ describe("Test Wallet Factory", function () {
 
     const manager = new TestManager(accounts);
 
-    let infrastructure = accounts[0].wallet;
-    let owner = accounts[1].wallet;
-    let amanager = accounts[2].wallet;
-    let anonmanager = accounts[3].wallet;
+    let infrastructure = accounts[0].signer;
+    let owner = accounts[1].signer;
+    let amanager = accounts[2].signer;
+    let anonmanager = accounts[3].signer;
 
     let root = "xyz";
     let subnameWallet = "argent";

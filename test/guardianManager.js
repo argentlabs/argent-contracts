@@ -12,14 +12,14 @@ describe("GuardianManager", function () {
 
     const manager = new TestManager(accounts);
 
-    let infrastructure = accounts[0].wallet;
-    let owner = accounts[1].wallet;
-    let guardian1 = accounts[2].wallet;
-    let guardian2 = accounts[3].wallet;
-    let guardian3 = accounts[4].wallet;
-    let guardian4 = accounts[5].wallet;
-    let guardian5 = accounts[6].wallet;
-    let nonowner = accounts[7].wallet;
+    let infrastructure = accounts[0].signer;
+    let owner = accounts[1].signer;
+    let guardian1 = accounts[2].signer;
+    let guardian2 = accounts[3].signer;
+    let guardian3 = accounts[4].signer;
+    let guardian4 = accounts[5].signer;
+    let guardian5 = accounts[6].signer;
+    let nonowner = accounts[7].signer;
 
     let wallet, guardianStorage, guardianManager;
 
