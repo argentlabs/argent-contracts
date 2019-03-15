@@ -15,11 +15,14 @@ describe("Test Token Transfer", function () {
 
     const manager = new TestManager(accounts);
 
-    let owner = accounts[1].wallet;
-    let recipient = accounts[2].wallet;
-    let nftModule, wallet, erc721;
+    const owner1 = accounts[1].signer;
+    const owner2 = accounts[2].signer;
+    const eoaRecipient = accounts[3].signer;
+
+    let nftModule, wallet1, wallet2, erc721;
 
     const tokenId = 1;
+
 
     before(async () => {
         deployer = manager.newDeployer();
@@ -33,50 +36,65 @@ describe("Test Token Transfer", function () {
     });
 
     beforeEach(async () => {
-        wallet = await deployer.deploy(Wallet);
-        await wallet.init(owner.address, [nftModule.contractAddress]);
+        wallet1 = await deployer.deploy(Wallet);
+        wallet2 = await deployer.deploy(Wallet);
+        await wallet1.init(owner1.address, [nftModule.contractAddress]);
+        await wallet2.init(owner2.address, [nftModule.contractAddress]);
         erc721 = await deployer.deploy(ERC721);
-        await erc721.mint(wallet.contractAddress, tokenId);
+        await erc721.mint(wallet1.contractAddress, tokenId);
     });
 
 
     describe("NFT transfers", () => {
-        async function testNftTransfer(safe) {
-            let beforeWallet = await erc721.balanceOf(wallet.contractAddress);
-            let beforeRecipient = await erc721.balanceOf(recipient.address);
-            await nftModule.from(owner).transferNFT(wallet.contractAddress, erc721.contractAddress, recipient.address, tokenId, safe, ZERO_BYTES32);
-            let afterWallet = await erc721.balanceOf(wallet.contractAddress);
-            let afterRecipient = await erc721.balanceOf(recipient.address);
-            assert.equal(beforeWallet.sub(afterWallet).toNumber(), 1, `wallet should have one less NFT (safe transfer: ${safe})`);
-            assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more NFT (safe transfer: ${safe})`);
+        async function testNftTransfer({ safe, relayed, recipientAddress }) {
+            let beforeWallet1 = await erc721.balanceOf(wallet1.contractAddress);
+            let beforeRecipient = await erc721.balanceOf(recipientAddress);
+            if (relayed) {
+                await manager.relay(nftModule, 'transferNFT', [wallet1.contractAddress, erc721.contractAddress, recipientAddress, tokenId, safe, ZERO_BYTES32], wallet1, [owner1]);
+            } else {
+                await nftModule.from(owner1).transferNFT(wallet1.contractAddress, erc721.contractAddress, recipientAddress, tokenId, safe, ZERO_BYTES32);
+            }
+            let afterWallet1 = await erc721.balanceOf(wallet1.contractAddress);
+            let afterRecipient = await erc721.balanceOf(recipientAddress);
+            assert.equal(beforeWallet1.sub(afterWallet1).toNumber(), 1, `wallet1 should have one less NFT (safe: ${safe}, relayed: ${relayed})`);
+            assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more NFT (safe: ${safe}, relayed: ${relayed})`);
         }
 
-        it('should allow safe NFT transfer from the owner', async () => {
-            await testNftTransfer(false);
+        describe("transfer to EOA account", () => {
+            it('should allow unsafe NFT transfer from wallet1 to an EOA account', async () => {
+                await testNftTransfer({ safe: false, relayed: false, recipientAddress: eoaRecipient.address });
+            });
+
+            it('should allow safe NFT transfer from wallet1 to an EOA account', async () => {
+                await testNftTransfer({ safe: true, relayed: false, recipientAddress: eoaRecipient.address });
+            });
+
+
+            it('should allow unsafe NFT transfer from wallet1 to an EOA account (relayed)', async () => {
+                await testNftTransfer({ safe: false, relayed: true, recipientAddress: eoaRecipient.address });
+            });
+
+            it('should allow safe NFT transfer from wallet1 to an EOA account (relayed)', async () => {
+                await testNftTransfer({ safe: true, relayed: true, recipientAddress: eoaRecipient.address });
+            });
         });
 
-        it('should allow unsafe NFT transfer from the owner', async () => {
-            await testNftTransfer(true);
-        });
+        describe("transfer to other wallet", () => {
+            it('should allow unsafe NFT transfer from wallet1 to wallet2', async () => {
+                await testNftTransfer({ safe: false, relayed: false, recipientAddress: wallet2.contractAddress });
+            });
 
-        async function testRelayedNftTransfer(safe) {
-            let beforeWallet = await erc721.balanceOf(wallet.contractAddress);
-            let beforeRecipient = await erc721.balanceOf(recipient.address);
-            await nftModule.from(owner).transferNFT(wallet.contractAddress, erc721.contractAddress, recipient.address, tokenId, safe, ZERO_BYTES32);
-            await manager.relay(nftModule, 'transferNFT', [wallet.contractAddress, erc721.contractAddress, recipient.address, tokenId, safe, ZERO_BYTES32], wallet, [owner]);
-            let afterWallet = await erc721.balanceOf(wallet.contractAddress);
-            let afterRecipient = await erc721.balanceOf(recipient.address);
-            assert.equal(beforeWallet.sub(afterWallet).toNumber(), 1, `wallet should have one less NFT (relayed; safe transfer: ${safe})`);
-            assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more NFT (relayed; safe transfer: ${safe})`);
-        }
+            it('should allow safe NFT transfer from wallet1 to wallet2', async () => {
+                await testNftTransfer({ safe: true, relayed: false, recipientAddress: wallet2.contractAddress });
+            });
 
+            it('should allow unsafe NFT transfer from wallet1 to wallet2 (relayed)', async () => {
+                await testNftTransfer({ safe: false, relayed: true, recipientAddress: wallet2.contractAddress });
+            });
 
-        it('should allow safe NFT transfer from the owner (relayed)', async () => {
-            await testRelayedNftTransfer(false);
-        });
-
-        it('should allow unsafe NFT transfer from the owner (relayed)', async () => {
-            await testRelayedNftTransfer(true);
+            it('should allow safe NFT transfer from wallet1 to wallet2 (relayed)', async () => {
+                await testNftTransfer({ safe: true, relayed: true, recipientAddress: wallet2.contractAddress });
+            });
         });
     });
 
