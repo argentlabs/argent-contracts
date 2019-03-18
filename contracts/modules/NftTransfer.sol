@@ -2,6 +2,7 @@ pragma solidity ^0.5.4;
 
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
+import "./common/OnlyOwnerModule.sol";
 import "../storage/GuardianStorage.sol";
 
 /**
@@ -9,7 +10,7 @@ import "../storage/GuardianStorage.sol";
  * @dev Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NftTransfer is BaseModule, RelayerModule {
+contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "NftTransfer";
 
@@ -24,14 +25,6 @@ contract NftTransfer is BaseModule, RelayerModule {
     event NonFungibleTransfer(address indexed wallet, address indexed nftContract, uint256 indexed tokenId, address to, bytes data);    
 
     // *************** Modifiers *************************** //
-
-    /**
-     * @dev Throws if the caller is not the owner or an authorised module.
-     */
-    modifier onlyOwnerOrModule(BaseWallet _wallet) {
-        require(isOwner(_wallet, msg.sender) || _wallet.authorised(msg.sender), "NT: must be wallet owner or module");
-        _;
-    }
 
     /**
      * @dev Throws if the wallet is locked.
@@ -101,7 +94,7 @@ contract NftTransfer is BaseModule, RelayerModule {
         bytes calldata _data
     ) 
         external 
-        onlyOwnerOrModule(_wallet) 
+        onlyOwner(_wallet) 
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;
@@ -115,22 +108,6 @@ contract NftTransfer is BaseModule, RelayerModule {
 
         _wallet.invoke(_nftContract, 0, methodData);
         emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
-    }
-
-     // *************** Implementation of RelayerModule methods ********************* //
-
-    // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
-        return checkAndUpdateNonce(_wallet, _nonce);
-    }
-
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
-        address signer = recoverSigner(_signHash, _signatures, 0);
-        return isOwner(_wallet, signer); // "NT: signer must be owner"
-    }
-
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
-        return 1;
     }
 
 }
