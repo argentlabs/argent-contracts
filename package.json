@@ -27,5 +27,8 @@
     "ethers": "^4.0.27",
     "solc": "0.5.4",
     "tinyreq": "^3.4.1"
+  },
+  "devDependencies": {
+    "openzeppelin-solidity": "^2.1.3"
   }
 }

@@ -58,14 +58,6 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     // *************** Modifiers *************************** //
 
     /**
-     * @dev Throws if the caller is not the owner or an authorised module.
-     */
-    modifier onlyOwnerOrModule(BaseWallet _wallet) {
-        require(isOwner(_wallet, msg.sender) || _wallet.authorised(msg.sender), "TT: must be wallet owner or module");
-        _;
-    }
-
-    /**
      * @dev Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(BaseWallet _wallet) {
@@ -114,7 +106,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         bytes calldata _data
     ) 
         external 
-        onlyOwnerOrModule(_wallet) 
+        onlyOwner(_wallet) 
         onlyWhenUnlocked(_wallet)
     {
         if(isWhitelisted(_wallet, _to)) {
