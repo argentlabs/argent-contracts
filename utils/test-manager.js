@@ -2,15 +2,31 @@ const etherlime = require('etherlime');
 const ethers = require('ethers');
 const { signOffchain } = require("./utilities.js");
 
+const APIKEY = "41c41ec78ad0435982708754d5e8cc24";
+
 class TestManager {
-    constructor(accounts) {
+    constructor(accounts, network) {
+        this.network = network;
         this.accounts = accounts;
-        this.deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);
+        this.deployer = this.newDeployer();
         this.provider = this.deployer.provider;
     }
 
     newDeployer() {
+        if(this.network === 'ropsten') {
+            const defaultConfigs = {
+                gasPrice: 20000000000,
+                gasLimit: 4700000,
+                chainId: 3
+            }
+            return new etherlime.InfuraPrivateKeyDeployer(this.accounts[0].signer.privateKey, 'ropsten', APIKEY, defaultConfigs);
+        }
         return new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey);
+    }
+
+    async getCurrentBlock() {
+        let block = await this.provider.getBlockNumber();
+        return block;
     }
 
     async getNonceForRelay() {

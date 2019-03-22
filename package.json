@@ -20,12 +20,15 @@
   "homepage": "https://github.com/argentlabs/argent-contracts#readme",
   "dependencies": {
     "ajv": "^6.10.0",
-    "aws-sdk": "^2.421.0",
+    "aws-sdk": "^2.423.0",
     "cli-table2": "^0.2.0",
     "dotenv": "^6.2.0",
     "etherlime": "^1.0.3",
     "ethers": "^4.0.27",
     "solc": "0.5.4",
     "tinyreq": "^3.4.1"
+  },
+  "devDependencies": {
+    "openzeppelin-solidity": "^2.1.3"
   }
 }
