@@ -66,8 +66,8 @@ describe("Test Uniswap", function () {
         let ethAfter = await deployer.provider.getBalance(wallet.contractAddress);
         let tokenAfter = await token.balanceOf(wallet.contractAddress);
         assert.isTrue(shares.gt(0), "should have received shares");
-        assert.isTrue(ethToAdd == 0 ||ethBefore.sub(ethAfter).gte(0.97 * ethToAdd), "should have pooled at least 95% of the eth value provided"); 
-        assert.isTrue(tokenToAdd == 0 || tokenBefore.sub(tokenAfter).gte(0.97 * tokenToAdd), "should have pooled at least 95% of the token value provided");
+        assert.isTrue(ethToAdd == 0 || ethBefore.sub(ethAfter).gte(Math.floor(0.95 * ethToAdd)), "should have pooled at least 95% of the eth value provided"); 
+        assert.isTrue(tokenToAdd == 0 || tokenBefore.sub(tokenAfter).gte(Math.floor(0.95 * tokenToAdd)), "should have pooled at least 95% of the token value provided");
         return [pool, shares];
     };
 
@@ -80,7 +80,7 @@ describe("Test Uniswap", function () {
         assert.isTrue(sharesBefore.eq(sharesAfter.add(sharesToRemove)), "should have sold the correct amount of shares");
     }
 
-    describe("Add liquidity ", () => {
+    describe("Add liquidity", () => {
         it('should create a liquidity pool with the correct supply', async () => {
             await testCreatePool(ethers.utils.bigNumberify('10000000000000000'), 2);
         });
@@ -116,6 +116,24 @@ describe("Test Uniswap", function () {
         it('should add liquidity to the pool whith token and some ETH when the pool is large (100MX)', async () => {
             await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 5000000, 20000000);
         });
+    });
+
+    describe("Add liquidity with random values", () => {
+        for(i = 0; i < 10; i++) {
+            it('should add liquidity to the pool whith random token and ETH when the pool is small (100X)', async () => {
+                let eth = Math.floor(Math.random() * 5000000) + 1;
+                let token = Math.floor(Math.random() * 10000000) + 1;
+                await testAddLiquidity(ethers.utils.bigNumberify('100000000000'), 2, eth, token);
+            });
+        }
+
+        for(i = 0; i < 10; i++) {
+            it('should add liquidity to the pool whith random token and ETH when the pool is large (100MX)', async () => {
+                let eth = Math.floor(Math.random() * 5000000) + 1;
+                let token = Math.floor(Math.random() * 10000000) + 1;
+                await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000000'), 2, eth, token);
+            });
+        }
     });
 
     describe("Remove liquidity ", () => {
