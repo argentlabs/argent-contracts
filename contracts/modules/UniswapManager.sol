@@ -12,13 +12,6 @@ interface UniswapFactory {
     function getExchange(address _token) external view returns(address);
 }
 
-interface UniswapExchange {
-    function getEthToTokenInputPrice(uint256 _ethAmount) external view returns(uint256);
-    function getTokenToEthInputPrice(uint256 _tokenAmount) external view returns(uint256);
-}
-
-// uniswap on Ropsten 0x9c83dCE8CA20E9aAF9D3efc003b2ea62aBC08351
-//            Rinkeby 0xf5D915570BC477f9B8D6C0E980aA81757A3AaC36
 contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "UniswapManager";
@@ -34,7 +27,6 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
      * @dev Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
         require(!guardianStorage.isLocked(_wallet), "TT: wallet must be unlocked");
         _;
     }
@@ -47,6 +39,7 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         BaseModule(_registry, NAME) 
         public 
     {
+        guardianStorage = GuardianStorage(_guardianStorage);
         uniswap = UniswapFactory(_uniswap);
     }
  
@@ -67,55 +60,93 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         external 
         onlyOwner(_wallet)
         onlyWhenUnlocked(_wallet)
-        returns(uint256)
-        
     {
         address pool = uniswap.getExchange(_poolToken);
+        require(pool != address(0), "UM: The target token is not traded on Uniswap");
+
         uint256 ethPoolSize = address(pool).balance;
         uint256 tokenPoolSize = ERC20(_poolToken).balanceOf(pool);
 
-        uint256 ethToPool;
-        uint256 tokenToPool;
+        uint256 tokenInEth = getInputToOutputPrice(_tokenAmount, tokenPoolSize, ethPoolSize);
+        if(_ethAmount >= tokenInEth) {
+            // swap some eth for tokens
+            (uint256 ethSwap, uint256 ethPool, uint256 tokenPool) = computePooledValue(ethPoolSize, tokenPoolSize, _ethAmount, _tokenAmount, tokenInEth);
+            _wallet.invoke(pool, ethSwap, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
+            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenPool));
+            // add liquidity
+            _wallet.invoke(pool, ethPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
+        }
+        else {
+            // swap some tokens for eth
+            (uint256 tokenSwap, uint256 tokenPool, uint256 ethPool) = computePooledValue(tokenPoolSize, ethPoolSize, _tokenAmount, _ethAmount, 0);
+            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenSwap + tokenPool));
+            _wallet.invoke(pool, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", tokenSwap, 1, block.timestamp));
+            // add liquidity
+            _wallet.invoke(pool, ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
+        }
+    }
 
-        if(_tokenAmount == 0 || _ethAmount > _tokenAmount.mul(tokenPoolSize).div(ethPoolSize)) { 
-            // we swap some eth for tokens
-            uint256 tokenInEth = UniswapExchange(pool).getTokenToEthInputPrice(_tokenAmount);
-            uint ethToSwap = computeUniswapFraction(_ethAmount + tokenInEth, ethPoolSize);
-            ethToPool = (_ethAmount - ethToSwap);
-            tokenToPool = UniswapExchange(pool).getEthToTokenInputPrice(ethToSwap);
-            // do the swap
-            _wallet.invoke(pool, ethToSwap, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", tokenToPool, block.number));
-            // approve the pool on erc20
-            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenToPool));
-        }
-        else { 
-            // we swap some tokens for eth
-            uint256 ethInToken = UniswapExchange(pool).getEthToTokenInputPrice(_ethAmount); 
-            uint tokenToSwap = computeUniswapFraction(_tokenAmount + ethInToken, tokenPoolSize);
-            tokenToPool = (_tokenAmount - tokenToSwap);
-            ethToPool = UniswapExchange(pool).getTokenToEthInputPrice(tokenToSwap);
-            // approve uniswap on erc20
-            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenToSwap + tokenToPool));
-            // do the swap
-            _wallet.invoke(pool, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", tokenToSwap, ethToPool, block.number));
-        }
-        // add liquidity
-        _wallet.invoke(pool, ethToPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",0, tokenToPool, block.number));
-        return ERC20(pool).balanceOf(address(_wallet));
+    function removeLiquidityFromUniswap(    
+        BaseWallet _wallet, 
+        address _poolToken, 
+        uint256 _amount
+    )
+        external 
+        onlyOwner(_wallet)
+        onlyWhenUnlocked(_wallet)        
+    {
+        address pool = uniswap.getExchange(_poolToken);
+        require(pool != address(0), "UM: The target token is not traded on Uniswap");
+        _wallet.invoke(pool, 0, abi.encodeWithSignature("removeLiquidity(uint256,uint256,uint256,uint256)",_amount, 1, 1, block.timestamp + 1));
     }
 
     /**
-     * @dev Given an amount of input token 'x = x1 + x2', computes the fraction 'x2' that needs to be swapped on Uniswap 
-     * such that 'x1' and 'SWAP(x2)' are equal in value and can be added to the liquidity pool.   
-     * To compute 'x2' we use the approximation 'x2 >= (1000/1997) * x1 - [2*(997000)^2/(1997)^3] * x1^2 / X'.
-     * @param _input The amount of input token.
-     * @param _poolSize The amount of input token in the pool.
-     * @return the fraction 'x2' that needs to be swapped on Uniswap.
+     * @dev Computes the amount of tokens to swap and pool when there are more value in "major" tokens then "minor".
+     * @param _majorPoolSize The size of the pool in major tokens
+     * @param _minorPoolSize The size of the pool in minor tokens
+     * @param _majorAmount The amount of major token provided
+     * @param _minorAmount The amount of minor token provided
+     * @param _minorInMajor The amount of minor token converted to major (optional)
      */
-    function computeUniswapFraction(uint256 _input, uint256 _poolSize) private view returns (uint256) {
-        if(_input == 0) {
+    function computePooledValue(
+        uint256 _majorPoolSize,
+        uint256 _minorPoolSize, 
+        uint256 _majorAmount,
+        uint256 _minorAmount, 
+        uint256 _minorInMajor
+    ) 
+        internal 
+        view 
+        returns(uint256 _majorSwap, uint256 _majorPool, uint256 _minorPool) 
+    {
+        if(_minorInMajor == 0) {
+            _minorInMajor = getInputToOutputPrice(_minorAmount, _minorPoolSize, _majorPoolSize); 
+        }
+        _majorSwap = (_majorAmount - _minorInMajor) * 1003 / 2000;
+        uint256 minorSwap = getInputToOutputPrice(_majorSwap, _majorPoolSize, _minorPoolSize);
+        _majorPool = _majorAmount - _majorSwap;
+        _minorPool = _majorPool.mul(_minorPoolSize.sub(minorSwap)).div(_majorPoolSize.add(_majorSwap)) + 1;
+        uint256 minorPoolMax = _minorAmount.add(minorSwap);
+        if(_minorPool > minorPoolMax) {
+            _minorPool = minorPoolMax;
+            _majorPool = _minorPool.mul(_majorPoolSize.add(_majorSwap)).div(_minorPoolSize.sub(minorSwap)) + 1;
+        }
+        assert(_majorAmount >= _majorPool + _majorSwap);
+    }
+
+    /**
+     * @dev Computes the amount of output tokens that can be obtained by swapping the provided amoutn of input.
+     * @param _inputAmount The amount of input token.
+     * @param _inputPoolSize The size of the input pool.
+     * @param _outputPoolSize The size of the output pool.
+     */
+    function getInputToOutputPrice(uint256 _inputAmount, uint256 _inputPoolSize, uint256 _outputPoolSize) internal view returns(uint256) {
+        if(_inputAmount == 0) {
             return 0;
         }
-        return (1000 * _input).div(1997) - (249624 * _input).mul(_input).div(1000 * _poolSize);  
-    } 
+        uint256 inputWithFee = _inputAmount.mul(997);
+        uint256 numerator = inputWithFee.mul(_outputPoolSize);
+        uint256 denominator = _inputPoolSize.mul(1000) + inputWithFee;
+        return numerator.div(denominator);
+    }
 }

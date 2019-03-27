@@ -29,6 +29,11 @@ class TestManager {
         return block;
     }
 
+    async getTimestamp(blockNumber) {
+        let block = await this.provider.getBlock(blockNumber); 
+        return block.timestamp;
+    }
+
     async getNonceForRelay() {
         let block = await this.provider.getBlockNumber();
         let timestamp = (new Date()).getTime();
