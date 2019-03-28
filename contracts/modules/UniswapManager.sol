@@ -12,6 +12,11 @@ interface UniswapFactory {
     function getExchange(address _token) external view returns(address);
 }
 
+/**
+ * @title UniswapManager
+ * @dev Contract enabling the wallet owner to pool tokens to a Uniswap liquidity pool.
+ * @author Julien Niset - <julien@argent.im>
+ */
 contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "UniswapManager";
@@ -101,12 +106,14 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /**
-     * @dev Computes the amount of tokens to swap and pool when there are more value in "major" tokens then "minor".
+     * @dev Computes the amount of tokens to swap and then pool given an amount of "major" and "minor" tokens,
+     * where there are more value of "major" tokens then "minor".
      * @param _majorPoolSize The size of the pool in major tokens
      * @param _minorPoolSize The size of the pool in minor tokens
      * @param _majorAmount The amount of major token provided
      * @param _minorAmount The amount of minor token provided
      * @param _minorInMajor The amount of minor token converted to major (optional)
+     * @return the amount of major tokens to first swap and the amount of major and minor tokens that can be added to the pool after.
      */
     function computePooledValue(
         uint256 _majorPoolSize,
@@ -122,16 +129,16 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         if(_minorInMajor == 0) {
             _minorInMajor = getInputToOutputPrice(_minorAmount, _minorPoolSize, _majorPoolSize); 
         }
-        _majorSwap = (_majorAmount - _minorInMajor) * 1003 / 2000;
+        _majorSwap = (_majorAmount.sub(_minorInMajor)).mul(1003).div(2000);
         uint256 minorSwap = getInputToOutputPrice(_majorSwap, _majorPoolSize, _minorPoolSize);
-        _majorPool = _majorAmount - _majorSwap;
+        _majorPool = _majorAmount.sub(_majorSwap);
         _minorPool = _majorPool.mul(_minorPoolSize.sub(minorSwap)).div(_majorPoolSize.add(_majorSwap)) + 1;
         uint256 minorPoolMax = _minorAmount.add(minorSwap);
         if(_minorPool > minorPoolMax) {
             _minorPool = minorPoolMax;
             _majorPool = _minorPool.mul(_majorPoolSize.add(_majorSwap)).div(_minorPoolSize.sub(minorSwap)) + 1;
         }
-        assert(_majorAmount >= _majorPool + _majorSwap);
+        assert(_majorAmount >= _majorPool.add(_majorSwap));
     }
 
     /**
@@ -146,7 +153,7 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         }
         uint256 inputWithFee = _inputAmount.mul(997);
         uint256 numerator = inputWithFee.mul(_outputPoolSize);
-        uint256 denominator = _inputPoolSize.mul(1000) + inputWithFee;
+        uint256 denominator = (_inputPoolSize.mul(1000)).add(inputWithFee);
         return numerator.div(denominator);
     }
 }

@@ -36,7 +36,7 @@ describe("Test Uniswap", function () {
     });
 
     async function testCreatePool(initialEthLiquidity, initialTokenPrice) {
-        let initialTokenAmount = ethers.utils.bigNumberify(initialEthLiquidity).mul(initialTokenPrice);
+        let initialTokenAmount = initialEthLiquidity.mul(initialTokenPrice);
         await uniswapFactory.from(infrastructure).createExchange(token.contractAddress); 
         const exchangeAddress = await uniswapFactory.getExchange(token.contractAddress); 
         const liquidityPool = await etherlime.ContractAt(UniswapExchange, exchangeAddress);
@@ -66,8 +66,8 @@ describe("Test Uniswap", function () {
         let ethAfter = await deployer.provider.getBalance(wallet.contractAddress);
         let tokenAfter = await token.balanceOf(wallet.contractAddress);
         assert.isTrue(shares.gt(0), "should have received shares");
-        assert.isTrue(ethToAdd == 0 || ethBefore.sub(ethAfter).gte(Math.floor(0.95 * ethToAdd)), "should have pooled at least 95% of the eth value provided"); 
-        assert.isTrue(tokenToAdd == 0 || tokenBefore.sub(tokenAfter).gte(Math.floor(0.95 * tokenToAdd)), "should have pooled at least 95% of the token value provided");
+        assert.isTrue(ethers.utils.bigNumberify(ethToAdd).eq(0) || ethBefore.sub(ethAfter).gte(Math.floor(0.95 * ethToAdd)), "should have pooled at least 95% of the eth value provided"); 
+        assert.isTrue(ethers.utils.bigNumberify(tokenToAdd).eq(0) || tokenBefore.sub(tokenAfter).gte(Math.floor(0.95 * tokenToAdd)), "should have pooled at least 95% of the token value provided");
         return [pool, shares];
     };
 
@@ -119,19 +119,13 @@ describe("Test Uniswap", function () {
     });
 
     describe("Add liquidity with random values", () => {
-        for(i = 0; i < 10; i++) {
-            it('should add liquidity to the pool whith random token and ETH when the pool is small (100X)', async () => {
-                let eth = Math.floor(Math.random() * 5000000) + 1;
-                let token = Math.floor(Math.random() * 10000000) + 1;
-                await testAddLiquidity(ethers.utils.bigNumberify('100000000000'), 2, eth, token);
-            });
-        }
-
-        for(i = 0; i < 10; i++) {
-            it('should add liquidity to the pool whith random token and ETH when the pool is large (100MX)', async () => {
-                let eth = Math.floor(Math.random() * 5000000) + 1;
-                let token = Math.floor(Math.random() * 10000000) + 1;
-                await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000000'), 2, eth, token);
+        for(i = 0; i < 20; i++) {
+            it('should add liquidity to the pool whith random token, random ETH and random liquidity ', async () => {
+                let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000;
+                let tokenPrice = Math.floor(Math.random() * 10) + 1;
+                let eth = Math.floor(Math.random() * 10000000) + 1;
+                let token = (Math.floor(Math.random() * 10000000) + 1) * tokenPrice;
+                await testAddLiquidity(ethers.utils.bigNumberify(pool), tokenPrice, eth, token);
             });
         }
     });
