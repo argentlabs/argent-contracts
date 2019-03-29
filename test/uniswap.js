@@ -119,9 +119,9 @@ describe("Test Uniswap", function () {
     });
 
     describe("Add liquidity with random values", () => {
-        for(i = 0; i < 20; i++) {
+        for(i = 0; i < 30; i++) {
             it('should add liquidity to the pool whith random token, random ETH and random liquidity ', async () => {
-                let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000;
+                let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000; 
                 let tokenPrice = Math.floor(Math.random() * 10) + 1;
                 let eth = Math.floor(Math.random() * 10000000) + 1;
                 let token = (Math.floor(Math.random() * 10000000) + 1) * tokenPrice;

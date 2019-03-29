@@ -53,7 +53,6 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _poolToken The address of the ERC20 token of the pair.
      * @param _ethAmount The amount of ETH available.
      * @param _tokenAmount The amount of ERC20 token available.
-     * @return the number of liquidity shares minted. 
      */
     function addLiquidityToUniswap(
         BaseWallet _wallet, 
@@ -71,25 +70,34 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         uint256 ethPoolSize = address(pool).balance;
         uint256 tokenPoolSize = ERC20(_poolToken).balanceOf(pool);
 
-        uint256 tokenInEth = getInputToOutputPrice(_tokenAmount, tokenPoolSize, ethPoolSize);
-        if(_ethAmount >= tokenInEth) {
+        if(_ethAmount >= _tokenAmount.mul(ethPoolSize).div(tokenPoolSize)) {
             // swap some eth for tokens
-            (uint256 ethSwap, uint256 ethPool, uint256 tokenPool) = computePooledValue(ethPoolSize, tokenPoolSize, _ethAmount, _tokenAmount, tokenInEth);
-            _wallet.invoke(pool, ethSwap, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
-            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenPool + 1));
+            (uint256 ethSwap, uint256 ethPool, uint256 tokenPool) = computePooledValue(ethPoolSize, tokenPoolSize, _ethAmount, _tokenAmount);
+            if(ethSwap > 0) {
+                _wallet.invoke(pool, ethSwap, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
+            }
+            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenPool));
             // add liquidity
-            _wallet.invoke(pool, ethPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool + 1, block.timestamp + 1));
+            _wallet.invoke(pool, ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
         }
         else {
             // swap some tokens for eth
-            (uint256 tokenSwap, uint256 tokenPool, uint256 ethPool) = computePooledValue(tokenPoolSize, ethPoolSize, _tokenAmount, _ethAmount, 0);
-            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenSwap + tokenPool + 1));
-            _wallet.invoke(pool, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", tokenSwap, 1, block.timestamp));
+            (uint256 tokenSwap, uint256 tokenPool, uint256 ethPool) = computePooledValue(tokenPoolSize, ethPoolSize, _tokenAmount, _ethAmount);
+            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenSwap + tokenPool));
+            if(tokenSwap > 0) {
+                _wallet.invoke(pool, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", tokenSwap, 1, block.timestamp));
+            }
             // add liquidity
-            _wallet.invoke(pool, ethPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool + 1, block.timestamp + 1));
+            _wallet.invoke(pool, ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
         }
     }
 
+    /**
+     * @dev Removes liquidity from a Uniswap ETH-ERC20 pair.
+     * @param _wallet The target wallet
+     * @param _poolToken The address of the ERC20 token of the pair.
+     * @param _amount The amount of pool shares to liquidate.
+     */
     function removeLiquidityFromUniswap(    
         BaseWallet _wallet, 
         address _poolToken, 
@@ -111,23 +119,19 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _minorPoolSize The size of the pool in minor tokens
      * @param _majorAmount The amount of major token provided
      * @param _minorAmount The amount of minor token provided
-     * @param _minorInMajor The amount of minor token converted to major (optional)
      * @return the amount of major tokens to first swap and the amount of major and minor tokens that can be added to the pool after.
      */
     function computePooledValue(
         uint256 _majorPoolSize,
         uint256 _minorPoolSize, 
         uint256 _majorAmount,
-        uint256 _minorAmount, 
-        uint256 _minorInMajor
+        uint256 _minorAmount
     ) 
         internal 
         view 
         returns(uint256 _majorSwap, uint256 _majorPool, uint256 _minorPool) 
     {
-        if(_minorInMajor == 0) {
-            _minorInMajor = getInputToOutputPrice(_minorAmount, _minorPoolSize, _majorPoolSize); 
-        }
+        uint256 _minorInMajor = _minorAmount.mul(_majorPoolSize).div(_minorPoolSize); 
         _majorSwap = (_majorAmount.sub(_minorInMajor)).mul(1000).div(1997);
         uint256 minorSwap = getInputToOutputPrice(_majorSwap, _majorPoolSize, _minorPoolSize);
         _majorPool = _majorAmount.sub(_majorSwap);
@@ -135,9 +139,8 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         uint256 minorPoolMax = _minorAmount.add(minorSwap);
         if(_minorPool > minorPoolMax) {
             _minorPool = minorPoolMax;
-            _majorPool = _minorPool.mul(_majorPoolSize.add(_majorSwap)).div(_minorPoolSize.sub(minorSwap));
+            _majorPool = (_minorPool).mul(_majorPoolSize.add(_majorSwap)).div(_minorPoolSize.sub(minorSwap));
         }
-        assert(_majorAmount >= _majorPool.add(_majorSwap));
     }
 
     /**
