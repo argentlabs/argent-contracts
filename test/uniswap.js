@@ -90,7 +90,7 @@ describe("Test Uniswap", function () {
         });
 
         it('should add liquidity to the pool whith ETH only when the pool is large (100MX)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 1000000, 0);
+            await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 100000000, 0);
         });
 
         it('should add liquidity to the pool whith ETH and some tokens when the pool is small (100X)', async () => {

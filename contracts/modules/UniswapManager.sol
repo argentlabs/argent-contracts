@@ -5,7 +5,6 @@ import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "../exchange/ERC20.sol";
 import "../utils/SafeMath.sol";
-import "../utils/SafeMath.sol";
 import "../storage/GuardianStorage.sol";
 
 interface UniswapFactory {
@@ -77,17 +76,17 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
             // swap some eth for tokens
             (uint256 ethSwap, uint256 ethPool, uint256 tokenPool) = computePooledValue(ethPoolSize, tokenPoolSize, _ethAmount, _tokenAmount, tokenInEth);
             _wallet.invoke(pool, ethSwap, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
-            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenPool));
+            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenPool + 1));
             // add liquidity
-            _wallet.invoke(pool, ethPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
+            _wallet.invoke(pool, ethPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool + 1, block.timestamp + 1));
         }
         else {
             // swap some tokens for eth
             (uint256 tokenSwap, uint256 tokenPool, uint256 ethPool) = computePooledValue(tokenPoolSize, ethPoolSize, _tokenAmount, _ethAmount, 0);
-            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenSwap + tokenPool));
+            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenSwap + tokenPool + 1));
             _wallet.invoke(pool, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", tokenSwap, 1, block.timestamp));
             // add liquidity
-            _wallet.invoke(pool, ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
+            _wallet.invoke(pool, ethPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool + 1, block.timestamp + 1));
         }
     }
 
@@ -129,14 +128,14 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         if(_minorInMajor == 0) {
             _minorInMajor = getInputToOutputPrice(_minorAmount, _minorPoolSize, _majorPoolSize); 
         }
-        _majorSwap = (_majorAmount.sub(_minorInMajor)).mul(1003).div(2000);
+        _majorSwap = (_majorAmount.sub(_minorInMajor)).mul(1000).div(1997);
         uint256 minorSwap = getInputToOutputPrice(_majorSwap, _majorPoolSize, _minorPoolSize);
         _majorPool = _majorAmount.sub(_majorSwap);
-        _minorPool = _majorPool.mul(_minorPoolSize.sub(minorSwap)).div(_majorPoolSize.add(_majorSwap)) + 1;
+        _minorPool = _majorPool.mul(_minorPoolSize.sub(minorSwap)).div(_majorPoolSize.add(_majorSwap));
         uint256 minorPoolMax = _minorAmount.add(minorSwap);
         if(_minorPool > minorPoolMax) {
             _minorPool = minorPoolMax;
-            _majorPool = _minorPool.mul(_majorPoolSize.add(_majorSwap)).div(_minorPoolSize.sub(minorSwap)) + 1;
+            _majorPool = _minorPool.mul(_majorPoolSize.add(_majorSwap)).div(_minorPoolSize.sub(minorSwap));
         }
         assert(_majorAmount >= _majorPool.add(_majorSwap));
     }
@@ -151,9 +150,9 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         if(_inputAmount == 0) {
             return 0;
         }
-        uint256 inputWithFee = _inputAmount.mul(997);
-        uint256 numerator = inputWithFee.mul(_outputPoolSize);
-        uint256 denominator = (_inputPoolSize.mul(1000)).add(inputWithFee);
+        uint256 inputAfterFee = _inputAmount.mul(997);
+        uint256 numerator = inputAfterFee.mul(_outputPoolSize);
+        uint256 denominator = (_inputPoolSize.mul(1000)).add(inputAfterFee);
         return numerator.div(denominator);
     }
 }
