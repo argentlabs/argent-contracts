@@ -51,7 +51,7 @@ describe("Test Uniswap", function () {
         return liquidityPool;
     };
 
-    async function testAddLiquidity(initialEthLiquidity, initialTokenPrice, ethToAdd, tokenToAdd) {
+    async function testAddLiquidityWithSwap(initialEthLiquidity, initialTokenPrice, ethToAdd, tokenToAdd) {
         if(ethToAdd > 0) {
             await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethToAdd });
         }
@@ -61,7 +61,7 @@ describe("Test Uniswap", function () {
         let ethBefore = await deployer.provider.getBalance(wallet.contractAddress);
         let tokenBefore = await token.balanceOf(wallet.contractAddress);
         let pool = await testCreatePool(initialEthLiquidity, initialTokenPrice);
-        await uniswapManager.from(owner).addLiquidityToUniswap(wallet.contractAddress, token.contractAddress, ethToAdd, tokenToAdd, {gasLimit: 300000});
+        await uniswapManager.from(owner).addLiquidityToUniswap(wallet.contractAddress, token.contractAddress, ethToAdd, tokenToAdd, false, {gasLimit: 300000});
         let shares = await pool.balanceOf(wallet.contractAddress);
         let ethAfter = await deployer.provider.getBalance(wallet.contractAddress);
         let tokenAfter = await token.balanceOf(wallet.contractAddress);
@@ -71,8 +71,27 @@ describe("Test Uniswap", function () {
         return [pool, shares];
     };
 
+    async function testAddLiquidityWithoutSwap(initialEthLiquidity, initialTokenPrice, ethToAdd, tokenToAdd) {
+        if(ethToAdd > 0) {
+            await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethToAdd });
+        }
+        if(tokenToAdd > 0) {
+            await token.from(infrastructure).transfer(wallet.contractAddress, tokenToAdd);
+        }
+        let ethBefore = await deployer.provider.getBalance(wallet.contractAddress);
+        let tokenBefore = await token.balanceOf(wallet.contractAddress);
+        let pool = await testCreatePool(initialEthLiquidity, initialTokenPrice);
+        await uniswapManager.from(owner).addLiquidityToUniswap(wallet.contractAddress, token.contractAddress, ethToAdd, tokenToAdd, true, {gasLimit: 300000});
+        let shares = await pool.balanceOf(wallet.contractAddress); 
+        let ethAfter = await deployer.provider.getBalance(wallet.contractAddress);
+        let tokenAfter = await token.balanceOf(wallet.contractAddress);
+        assert.isTrue(shares.gt(0), "should have received shares"); 
+        assert.isTrue(tokenBefore.sub(tokenAfter).eq(shares.mul(initialTokenPrice)) || ethBefore.sub(ethAfter).eq(shares), "should have pooled 100% of ETH or token"); 
+        return [pool, shares];
+    };
+
     async function testRemoveLiquidity(initialEthLiquidity, initialTokenPrice, percentToAdd, percentToremove) {
-        let result = await testAddLiquidity(initialEthLiquidity, initialTokenPrice, initialEthLiquidity.mul(percentToAdd).div(100), 0);
+        let result = await testAddLiquidityWithSwap(initialEthLiquidity, initialTokenPrice, initialEthLiquidity.mul(percentToAdd).div(100), 0);
         let sharesBefore = result[1];
         let sharesToRemove = sharesBefore.mul(percentToremove).div(100);
         await uniswapManager.from(owner).removeLiquidityFromUniswap(wallet.contractAddress, token.contractAddress, sharesToRemove, {gasLimit: 100000});
@@ -80,52 +99,82 @@ describe("Test Uniswap", function () {
         assert.isTrue(sharesBefore.eq(sharesAfter.add(sharesToRemove)), "should have sold the correct amount of shares");
     }
 
-    describe("Add liquidity", () => {
+    describe("Add liquidity with swap", () => {
         it('should create a liquidity pool with the correct supply', async () => {
             await testCreatePool(ethers.utils.bigNumberify('10000000000000000'), 2);
         });
 
         it('should add liquidity to the pool whith ETH only when the pool is small (100X)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000'), 2, 100000000, 0);
+            await testAddLiquidityWithSwap(ethers.utils.bigNumberify('10000000000'), 2, 100000000, 0);
         });
 
         it('should add liquidity to the pool whith ETH only when the pool is large (100MX)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 100000000, 0);
+            await testAddLiquidityWithSwap(ethers.utils.bigNumberify('10000000000000000'), 2, 100000000, 0);
         });
 
         it('should add liquidity to the pool whith ETH and some tokens when the pool is small (100X)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000'), 2, 100000000, 100000000);
+            await testAddLiquidityWithSwap(ethers.utils.bigNumberify('10000000000'), 2, 100000000, 100000000);
         });
 
         it('should add liquidity to the pool whith ETH and some tokens when the pool is large (100MX)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 100000000, 100000000);
+            await testAddLiquidityWithSwap(ethers.utils.bigNumberify('10000000000000000'), 2, 100000000, 100000000);
         });
 
         it('should add liquidity to the pool whith token only when the pool is small (100X)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000'), 2, 0, 20000000);
+            await testAddLiquidityWithSwap(ethers.utils.bigNumberify('10000000000'), 2, 0, 20000000);
         });
 
         it('should add liquidity to the pool whith token only when the pool is large (100X)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 0, 20000000);
+            await testAddLiquidityWithSwap(ethers.utils.bigNumberify('10000000000000000'), 2, 0, 20000000);
         });
 
         it('should add liquidity to the pool whith token and some ETH when the pool is small (100X)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000'), 2, 5000000, 20000000);
+            await testAddLiquidityWithSwap(ethers.utils.bigNumberify('10000000000'), 2, 5000000, 20000000);
         });
 
         it('should add liquidity to the pool whith token and some ETH when the pool is large (100MX)', async () => {
-            await testAddLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 5000000, 20000000);
+            await testAddLiquidityWithSwap(ethers.utils.bigNumberify('10000000000000000'), 2, 5000000, 20000000);
         });
     });
 
-    describe("Add liquidity with random values", () => {
-        for(i = 0; i < 30; i++) {
+    describe("Add liquidity without swap", () => {
+        it('should add liquidity to the pool whith ETH and some tokens when the pool is small (100X)', async () => {
+            await testAddLiquidityWithoutSwap(ethers.utils.bigNumberify('10000000000'), 2, 100000000, 100000000);
+        });
+
+        it('should add liquidity to the pool whith ETH and some tokens when the pool is large (100MX)', async () => {
+            await testAddLiquidityWithoutSwap(ethers.utils.bigNumberify('10000000000000000'), 2, 100000000, 100000000);
+        });
+
+        it('should add liquidity to the pool whith token and some ETH when the pool is small (100X)', async () => {
+            await testAddLiquidityWithoutSwap(ethers.utils.bigNumberify('10000000000'), 2, 5000000, 20000000);
+        });
+
+        it('should add liquidity to the pool whith token and some ETH when the pool is large (100MX)', async () => {
+            await testAddLiquidityWithoutSwap(ethers.utils.bigNumberify('10000000000000000'), 2, 5000000, 20000000);
+        });
+    });
+
+    describe("Add liquidity with random values (swap)", () => {
+        for(i = 0; i < 20; i++) {
             it('should add liquidity to the pool whith random token, random ETH and random liquidity ', async () => {
                 let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000; 
                 let tokenPrice = Math.floor(Math.random() * 10) + 1;
                 let eth = Math.floor(Math.random() * 10000000) + 1;
                 let token = (Math.floor(Math.random() * 10000000) + 1) * tokenPrice;
-                await testAddLiquidity(ethers.utils.bigNumberify(pool), tokenPrice, eth, token);
+                await testAddLiquidityWithSwap(ethers.utils.bigNumberify(pool), tokenPrice, eth, token);
+            });
+        }
+    });
+
+    describe("Add liquidity with random values (no swap)", () => {
+        for(i = 0; i < 20; i++) {
+            it('should add liquidity to the pool whith random token, random ETH and random liquidity ', async () => {
+                let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000; 
+                let tokenPrice = Math.floor(Math.random() * 10) + 1;
+                let eth = Math.floor(Math.random() * 10000000) + 1;
+                let token = (Math.floor(Math.random() * 10000000) + 1) * tokenPrice;
+                await testAddLiquidityWithoutSwap(ethers.utils.bigNumberify(pool), tokenPrice, eth, token);
             });
         }
     });

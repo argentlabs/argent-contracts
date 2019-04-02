@@ -58,38 +58,57 @@ contract UniswapManager is BaseModule, RelayerModule, OnlyOwnerModule {
         BaseWallet _wallet, 
         address _poolToken, 
         uint256 _ethAmount, 
-        uint256 _tokenAmount
+        uint256 _tokenAmount,
+        bool _preventSwap
     )
         external 
         onlyOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        require(_ethAmount <= address(_wallet).balance, "UM: not enough ETH");
+        require(_tokenAmount <= ERC20(_poolToken).balanceOf(address(_wallet)), "UM: not enough token");
+        
         address pool = uniswap.getExchange(_poolToken);
-        require(pool != address(0), "UM: The target token is not traded on Uniswap");
+        require(pool != address(0), "UM: target token is not traded on Uniswap");
 
         uint256 ethPoolSize = address(pool).balance;
         uint256 tokenPoolSize = ERC20(_poolToken).balanceOf(pool);
+        uint256 ethPool;
+        uint256 tokenPool;
 
         if(_ethAmount >= _tokenAmount.mul(ethPoolSize).div(tokenPoolSize)) {
-            // swap some eth for tokens
-            (uint256 ethSwap, uint256 ethPool, uint256 tokenPool) = computePooledValue(ethPoolSize, tokenPoolSize, _ethAmount, _tokenAmount);
-            if(ethSwap > 0) {
-                _wallet.invoke(pool, ethSwap, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
+            if(_preventSwap) {
+                tokenPool = _tokenAmount;
+                ethPool = tokenPool.mul(ethPoolSize).div(tokenPoolSize);
+            }
+            else {
+                // swap some eth for tokens
+                uint256 ethSwap;
+                (ethSwap, ethPool, tokenPool) = computePooledValue(ethPoolSize, tokenPoolSize, _ethAmount, _tokenAmount);
+                if(ethSwap > 0) {
+                    _wallet.invoke(pool, ethSwap, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
+                }
             }
             _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenPool));
-            // add liquidity
-            _wallet.invoke(pool, ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
         }
         else {
-            // swap some tokens for eth
-            (uint256 tokenSwap, uint256 tokenPool, uint256 ethPool) = computePooledValue(tokenPoolSize, ethPoolSize, _tokenAmount, _ethAmount);
-            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenSwap + tokenPool));
-            if(tokenSwap > 0) {
-                _wallet.invoke(pool, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", tokenSwap, 1, block.timestamp));
+            if(_preventSwap) {
+                ethPool = _ethAmount;
+                tokenPool = _ethAmount.mul(tokenPoolSize).div(ethPoolSize);
+                _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenPool));
             }
-            // add liquidity
-            _wallet.invoke(pool, ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
+            else {
+                // swap some tokens for eth
+                uint256 tokenSwap;
+                (tokenSwap, tokenPool, ethPool) = computePooledValue(tokenPoolSize, ethPoolSize, _tokenAmount, _ethAmount);
+                _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", pool, tokenSwap + tokenPool));
+                if(tokenSwap > 0) {
+                    _wallet.invoke(pool, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", tokenSwap, 1, block.timestamp));
+                }
+            }   
         }
+        // add liquidity
+        _wallet.invoke(pool, ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
     }
 
     /**
