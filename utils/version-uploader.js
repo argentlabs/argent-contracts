@@ -15,10 +15,17 @@ class VersionUploaderS3 {
     }
 
     async upload(version) {
-        const params = {
+        let params = {
             Body: JSON.stringify(version),
             Bucket: this._bucket,
             Key: `${S3_BUCKET_FOLDER_VERSION}/${version.fingerprint}.json`
+        };
+        await s3.putObject(params).promise();
+
+        params = {
+            Body: JSON.stringify(version),
+            Bucket: this._bucket,
+            Key: `${S3_BUCKET_FOLDER_VERSION}/latest.json`
         };
         await s3.putObject(params).promise();
     }
