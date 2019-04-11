@@ -8,14 +8,14 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "2.0";
+const TARGET_VERSION = "1.1.0";
+const MODULES_TO_ENABLE = ["NftTransfer"];
+const MODULES_TO_DISABLE = [];
+const BACKWARD_COMPATIBILITY = 1;
 
-const deploy = async (network, secret) => {
+const deploy = async (network) => {
 
-    const newModuleNames = ["NftTransfer"];
     const newModuleWrappers = [];
-    const deprecatedModuleNames = [];
-    const compatibility = 1;
     const newVersion = {};
 
     ////////////////////////////////////
@@ -29,7 +29,7 @@ const deploy = async (network, secret) => {
 	const deployer = manager.deployer;
     const abiUploader = manager.abiUploader;
     const versionUploader = manager.versionUploader;
-    const deploymentWallet = deployer.wallet;
+    const deploymentWallet = deployer.signer;
     const config = configurator.config;
 
     const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
@@ -46,7 +46,7 @@ const deploy = async (network, secret) => {
         NftTransfer,
         {},
         config.contracts.ModuleRegistry,
-        config.contracts.GuardianStorage
+        config.modules.GuardianStorage
     );
     newModuleWrappers.push(NftTransferWrapper);  
     
@@ -66,8 +66,6 @@ const deploy = async (network, secret) => {
         abiUploader.upload(NftTransferWrapper, "modules")
     ]);
 
-    console.log('Config:', config);
-
     ////////////////////////////////////
     // Register new modules
     ////////////////////////////////////
@@ -81,25 +79,24 @@ const deploy = async (network, secret) => {
     // Deploy and Register upgraders
     ////////////////////////////////////
 
-    const toAdd = newModuleNWrappers.map((wrapper) => {
+    const toAdd = newModuleWrappers.map((wrapper) => {
         return {
-            'name': utils.asciiToBytes32(wrapper._contract.contractName),
+            'name': wrapper._contract.contractName,
             'address': wrapper.contractAddress
         };
     });
-    let fingerprint;
+    let fingerprint; 
 
-    const versions = versionUploader.load(compatibility);
+    const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
     for (let idx = 0; idx < versions.length; idx++) {
         const version = versions[idx];
-        const moduleNames = deprecatedModuleNames.concat(newModuleNames);
+        const moduleNames = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
         const toRemove = version.modules.filter(module => moduleNames.includes(module.name));
         const toKeep = version.modules.filter(module => !moduleNames.includes(module.name));
-
         if(idx == 0) {
             let modules = toKeep.concat(toAdd);
             fingerprint = utils.versionFingerprint(modules);
-            newVersion.version = semver.lt(version.version, TARGET_VERSION)? TARGET_VERSION : semver.inc(version.version, 'minor');
+            newVersion.version = semver.lt(version.version, TARGET_VERSION)? TARGET_VERSION : semver.inc(version.version, 'patch');
             newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
             newVersion.modules = modules;
             newVersion.fingerprint = fingerprint;
@@ -109,7 +106,7 @@ const deploy = async (network, secret) => {
             ////////////////////////////////////
 
             for (let i = 0; i < toRemove.length; i++) {
-                await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove.address]);
+                await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
             }
         }
         
@@ -120,7 +117,7 @@ const deploy = async (network, secret) => {
             toAdd.map((module) => {return module.address;})
         );
         const upgraderName = version.fingerprint + '_' + fingerprint; 
-        await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, upgraderName]);
+        await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
     };
 
     ////////////////////////////////////

@@ -1,8 +1,10 @@
 "use strict"
 
-var AWS = require('aws-sdk');
+const AWS = require('aws-sdk');
+const fs = require('fs');
+const path = require('path');
 
-var s3 = new AWS.S3();
+const s3 = new AWS.S3();
 
 const S3_BUCKET_FOLDER_VERSION = "version";
 
@@ -33,12 +35,19 @@ class VersionUploaderLocal{
     constructor(dir) {
         this._dir = dir;
     }
+
     async upload(version) { 
-        console.log(version);
+        fs.writeFileSync(this._path(), JSON.stringify(version));
     }
 
     async load(count) {
-        
+        const string = fs.readFileSync(this._path(), 'utf8'); 
+        const json = JSON.parse(string);
+        return [ json ];
+    }
+
+    _path() {
+        return path.join(this._dir, `latest.json`);
     }
 }
 

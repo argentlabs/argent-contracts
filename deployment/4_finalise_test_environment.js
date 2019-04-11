@@ -27,7 +27,7 @@ const deploy = async (network, secret) => {
 
 	const config = configurator.config;
 
-	const deploymentAccount = await deployer.wallet.getAddress();
+	const deploymentAccount = await deployer.signer.getAddress();
 
 	if (config.ENS.deployOwnRegistry) {
         await deployENSReverseRegistrar(deployer, config, deploymentAccount);

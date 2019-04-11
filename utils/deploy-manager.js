@@ -41,7 +41,7 @@ class DeployManager {
             this.deployer = new etherlime.EtherlimeGanacheDeployer();
 
             // this need to be tested
-            const account = await this.deployer.wallet.getAddress();
+            const account = await this.deployer.signer.getAddress();
             this.configurator.updateBackendAccounts([account]);
             this.configurator.updateMultisigOwner([account]);
         } else {
