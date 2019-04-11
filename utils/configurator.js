@@ -22,7 +22,8 @@ class Configurator {
     }
 
     updateModuleAddresses(modules) {
-        this._config.modules = modules;
+        if (!this._config.modules) this._config.modules = {};
+        Object.assign(this._config.modules, modules);
     }
 
     updateENSRegistry(address) {
