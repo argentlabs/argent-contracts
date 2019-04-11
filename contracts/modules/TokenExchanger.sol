@@ -39,7 +39,15 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
      */
     modifier onlyWhenUnlocked(BaseWallet _wallet) {
         // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "TT: wallet must be unlocked");
+        require(!guardianStorage.isLocked(_wallet), "TE: wallet must be unlocked");
+        _;
+    }
+
+    /**
+     * @dev Throws if the sender is not the owner of the target wallet or an authorized module.
+     */
+    modifier onlyOwnerOrModule(BaseWallet _wallet) {
+        require(_wallet.authorised(msg.sender) || isOwner(_wallet, msg.sender), "TE: must be module or wallet owner");
         _;
     }
 
@@ -78,7 +86,7 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
         uint256 _minConversionRate
     )
         external 
-        onlyOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
         returns(uint256)
     {    
