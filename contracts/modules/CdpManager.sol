@@ -45,7 +45,7 @@ contract CdpManager is BaseModule, RelayerModule, OnlyOwnerModule {
     event CdpOpened(address indexed wallet, bytes32 cup, uint256 pethCollateral, uint256 daiDebt);    
     event CdpUpdated(address indexed wallet, bytes32 cup, uint256 pethCollateral, uint256 daiDebt);    
     event CdpClosed(address indexed wallet, bytes32 cup);
-    
+
     // *************** Modifiers *************************** //
 
     /**
@@ -263,7 +263,7 @@ contract CdpManager is BaseModule, RelayerModule, OnlyOwnerModule {
         uint256 mkrBalance = ERC20(mkrToken).balanceOf(address(_wallet));
         if (mkrBalance < mkrFee) {
             // Not enough MKR => Convert some ETH into MKR
-            (uint256 etherValueOfMKR,,) = tokenExchanger.getExpectedTrade(mkrToken, ETH_TOKEN_ADDRESS, mkrFee);
+            (uint256 etherValueOfMKR,,) = tokenExchanger.getExpectedTrade(mkrToken, ETH_TOKEN_ADDRESS, mkrFee - mkrBalance);
             tokenExchanger.trade(    
                 _wallet,
                 ETH_TOKEN_ADDRESS,
@@ -307,6 +307,7 @@ contract CdpManager is BaseModule, RelayerModule, OnlyOwnerModule {
         // emit CdpClosed
         emit CdpClosed(address(_wallet), _cup);    
     }
+
 
     // *************** Internal Functions ********************* //
 
