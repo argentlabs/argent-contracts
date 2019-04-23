@@ -236,7 +236,7 @@ contract SaiTub is DSThing, SaiTubEvents {
 
     // Abstracted collateral price (ref per skr)
     function tag() public view returns (uint wad) {
-        return off ? fit : wmul(per(), uint(pip.read())); // (ETH/PETH) * (USD/ETH)
+        return off ? fit : wmul(per(), uint(pip.read())); // (ETH/PETH) * (USD/ETH) = USD/PETH
     }
     // Returns true if cup is well-collateralized
     function safe(bytes32 cup) public returns (bool) {
@@ -293,7 +293,7 @@ contract SaiTub is DSThing, SaiTubEvents {
         require(!off);
 
         uint256 owe = rmul(wad, rdiv(rap(cup), tab(cup)));
-
+        
         cups[cup].art = sub(cups[cup].art, rdiv(wad, chi()));
         rum = sub(rum, rdiv(wad, chi()));
 

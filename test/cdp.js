@@ -21,9 +21,12 @@ const WAD = bigNumberify('1000000000000000000') // 10**18
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const KYBER_FEE_RATIO = 30;
 const MKR_DECIMALS = 18;
+const DAI_DECIMALS = 18;
+const USD_PER_DAI = RAY; // 1 DAI = 1 USD
 const USD_PER_ETH = WAD.mul(100); // 1 ETH = 100 USD
 const USD_PER_MKR = WAD.mul(400); // 1 MKR = 400 USD
 const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 4 ETH
+const ETH_PER_DAI = WAD.mul(USD_PER_DAI).div(RAY).mul(WAD).div(USD_PER_ETH); // 1 DAI = 0.01 ETH
 
 describe("Test CDP Module", function () {
     this.timeout(10000);
@@ -41,11 +44,11 @@ describe("Test CDP Module", function () {
         const registry = await deployer.deploy(Registry);
 
         // deploy MakerDAO infrastructure
-        const vox = await deployer.deploy(Vox, {}, RAY);
+        const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
         sai = await deployer.deploy(DSToken, {}, formatBytes32String("DAI"));
+        gov = await deployer.deploy(DSToken, {}, formatBytes32String("MKR"));
         const sin = await deployer.deploy(DSToken, {}, formatBytes32String("SIN"));
         const skr = await deployer.deploy(DSToken, {}, formatBytes32String("PETH"));
-        gov = await deployer.deploy(DSToken, {}, formatBytes32String("MKR"));
         const gem = await deployer.deploy(WETH);
         const pip = await deployer.deploy(DSValue);
         const pep = await deployer.deploy(DSValue);
@@ -79,7 +82,10 @@ describe("Test CDP Module", function () {
         // setup Kyber & Token Exchanger module for purchase of MKR tokens
         kyber = await deployer.deploy(KyberNetwork);
         await kyber.addToken(gov.contractAddress, ETH_PER_MKR, MKR_DECIMALS);
+        await kyber.addToken(sai.contractAddress, ETH_PER_DAI, DAI_DECIMALS);
         await gov['mint(address,uint256)'](kyber.contractAddress, parseEther('1000'));
+        await sai['mint(address,uint256)'](kyber.contractAddress, parseEther('1000'));
+        await infrastructure.sendTransaction({ to: kyber.contractAddress, value: parseEther('5') });
         exchanger = await deployer.deploy(TokenExchanger, {},
             registry.contractAddress,
             guardianStorage.contractAddress,
@@ -99,13 +105,12 @@ describe("Test CDP Module", function () {
             sai.contractAddress,
             gov.contractAddress
         );
-
     });
 
     beforeEach(async () => {
         wallet = await deployer.deploy(Wallet);
         await wallet.init(owner.address, [cdpManager.contractAddress, exchanger.contractAddress]);
-        await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther('0.5') });
+        await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther('5') });
     });
 
 
@@ -184,7 +189,7 @@ describe("Test CDP Module", function () {
             const beforeDAI = await sai.balanceOf(wallet.contractAddress);
             const beforeDAISupply = await sai.totalSupply();
             const method = add ? 'addDebt' : 'removeDebt';
-            const params = [wallet.contractAddress, cup, daiAmount].concat(add ? [] : [0]);
+            const params = [wallet.contractAddress, cup, daiAmount].concat(add ? [] : [0, 0]);
             if (relayed) {
                 await manager.relay(cdpManager, method, params, wallet, [owner]);
             } else {
@@ -270,11 +275,11 @@ describe("Test CDP Module", function () {
             const beforeDAI = await sai.balanceOf(wallet.contractAddress);
             const beforeDAISupply = await sai.totalSupply();
 
-            const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: relayed })
+            const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: relayed });
             await manager.increaseTime(3600 * 24 * 365); // wait one year
 
             const method = 'closeCdp'
-            const params = [wallet.contractAddress, cup, 0];
+            const params = [wallet.contractAddress, cup, 0, 0];
             if (relayed) {
                 await manager.relay(cdpManager, method, params, wallet, [owner]);
             } else {
