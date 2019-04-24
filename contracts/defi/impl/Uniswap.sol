@@ -2,7 +2,7 @@ pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../exchange/ERC20.sol";
 import "../../utils/SafeMath.sol";
-import "../interfaces/SavingsAccount.sol";
+import "../interfaces/IEP.sol";
 
 interface UniswapFactory {
     function getExchange(address _token) external view returns(address);
@@ -13,25 +13,33 @@ interface UniswapFactory {
  * @dev Contract integrating with Uniswap.
  * @author Julien Niset - <julien@argent.im>
  */
-contract Uniswap is SavingsAccount {
+contract Uniswap is IEP {
 
     address constant internal UNISWAP_FACTORY = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     using SafeMath for uint256;
 
-    function openSavingsAccount(BaseWallet _wallet, address[] calldata _tokens, uint256[] calldata _amounts, uint256 _period) external {
+    function openIep(
+        BaseWallet _wallet, 
+        address[] calldata _tokens, 
+        uint256[] calldata _amounts, 
+        uint256 _period, 
+        address _helper
+    ) 
+        external 
+    {
         require(_tokens.length == 2 && _amounts.length == 2, "Uniswap: You must invest a token pair.");
         if(_tokens[0] == ETH_TOKEN_ADDRESS) {
-            addLiquidityToPool(_wallet, _tokens[1], _amounts[0], _amounts[1], true);
+            addLiquidityToPool(_wallet, _tokens[1], _amounts[0], _amounts[1], _helper);
         }
         else {
             require(_tokens[1] == ETH_TOKEN_ADDRESS, "Uniswap: One token of the pair must be ETH");
-            addLiquidityToPool(_wallet, _tokens[0], _amounts[1], _amounts[0], true);
+            addLiquidityToPool(_wallet, _tokens[0], _amounts[1], _amounts[0], _helper);
         }
     }
 
-    function closeSavingsAccount(BaseWallet _wallet, address[] calldata _tokens, uint256 _fraction) external {
+    function closeIep(BaseWallet _wallet, address[] calldata _tokens, uint256 _fraction) external {
         require(_tokens.length == 2, "Uniswap: You must invest a token pair.");
         require(_fraction <= 10000, "Uniswap: _fraction must be expressed in 1 per 10000");
         address token;
@@ -64,14 +72,14 @@ contract Uniswap is SavingsAccount {
         address _poolToken, 
         uint256 _ethAmount, 
         uint256 _tokenAmount,
-        bool _preventSwap
+        address _factory
     )
         internal 
     {
         require(_ethAmount <= address(_wallet).balance, "Uniswap: not enough ETH");
         require(_tokenAmount <= ERC20(_poolToken).balanceOf(address(_wallet)), "Uniswap: not enough token");
         
-        address pool = UniswapFactory(UNISWAP_FACTORY).getExchange(_poolToken);
+        address pool = UniswapFactory(_factory).getExchange(_poolToken);
         require(pool != address(0), "Uniswap: target token is not traded on Uniswap");
 
         uint256 ethPoolSize = address(pool).balance;
@@ -79,6 +87,7 @@ contract Uniswap is SavingsAccount {
         uint256 ethPool;
         uint256 tokenPool;
 
+        uint256 tokenValue = _tokenAmount.mul(ethPoolSize).div(tokenPoolSize);
         if(_ethAmount >= _tokenAmount.mul(ethPoolSize).div(tokenPoolSize)) {
             if(_preventSwap) {
                 tokenPool = _tokenAmount;
@@ -177,5 +186,9 @@ contract Uniswap is SavingsAccount {
         uint256 numerator = inputAfterFee.mul(_outputPoolSize);
         uint256 denominator = (_inputPoolSize.mul(1000)).add(inputAfterFee);
         return numerator.div(denominator);
+    }
+
+    function shouldPreventSwap(uint256 _ethValue, uint256 _tokenValue) internal pure returns(bool) {
+        return (_ethValue
     }
 }
