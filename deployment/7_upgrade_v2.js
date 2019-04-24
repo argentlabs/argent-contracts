@@ -81,8 +81,8 @@ const deploy = async (network) => {
 
     const toAdd = newModuleWrappers.map((wrapper) => {
         return {
-            'name': wrapper._contract.contractName,
-            'address': wrapper.contractAddress
+            'address': wrapper.contractAddress,
+            'name': wrapper._contract.contractName
         };
     });
     let fingerprint; 
