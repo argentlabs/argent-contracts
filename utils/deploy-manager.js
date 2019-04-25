@@ -6,6 +6,7 @@ const Configurator = require('./configurator.js');
 const ConfiguratorLoader = require('./configurator-loader.js');
 const PrivateKeyLoader = require('./private-key-loader.js');
 const ABIUploader = require('./abi-uploader.js');
+const VersionUploader = require('./version-uploader.js');
 
 const defaultConfigs = {
     gasPrice: 10000000000, // 10 Gwei
@@ -40,7 +41,7 @@ class DeployManager {
             this.deployer = new etherlime.EtherlimeGanacheDeployer();
 
             // this need to be tested
-            const account = await this.deployer.wallet.getAddress();
+            const account = await this.deployer.signer.getAddress();
             this.configurator.updateBackendAccounts([account]);
             this.configurator.updateMultisigOwner([account]);
         } else {
@@ -68,6 +69,14 @@ class DeployManager {
             this.abiUploader = new ABIUploader.S3(config.settings.abiUpload.bucket);
         } else {
             this.abiUploader = new ABIUploader.None();
+        }
+
+        // version upload
+        if (config.settings.versionUpload) {
+            this.versionUploader = new VersionUploader.S3(config.settings.versionUpload.bucket, config.settings.versionUpload.url);
+        } else {
+            const dirPath = path.join(__dirname, './versions/', this.network);
+            this.versionUploader = new VersionUploader.Local(dirPath);
         }
     }
 }

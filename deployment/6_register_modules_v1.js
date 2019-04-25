@@ -25,8 +25,9 @@ const deploy = async (network, secret) => {
 
 	const configurator = manager.configurator;
     const deployer = manager.deployer;
+    const versionUploader = manager.versionUploader;
 
-    const deploymentWallet = deployer.wallet;
+    const deploymentWallet = deployer.signer;
 
 	const config = configurator.config;
     console.log('Config:', config);
@@ -63,6 +64,21 @@ const deploy = async (network, secret) => {
         let wrapper = wrappers[idx];
         await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
     }
+
+    ////////////////////////////////////
+    // Upload Version
+    ////////////////////////////////////
+
+    const modules = wrappers.map((wrapper) => { 
+        return {address: wrapper.contractAddress, name: wrapper._contract.contractName};
+    });
+    const version = {
+        modules : modules,
+        fingerprint: utils.versionFingerprint(modules),
+        version: "1.0.0",
+        createdAt: Math.floor((new Date()).getTime() / 1000)
+    }
+    await versionUploader.upload(version);
 };
 
 module.exports = {
