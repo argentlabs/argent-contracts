@@ -2,7 +2,7 @@ pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../exchange/ERC20.sol";
 import "../../utils/SafeMath.sol";
-import "../Iep.sol";
+import "../Invest.sol";
 
 interface UniswapFactory {
     function getExchange(address _token) external view returns(address);
@@ -13,13 +13,13 @@ interface UniswapFactory {
  * @dev Wrapper contract to integrate Uniswap.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract Uniswap is Iep {
+contract Uniswap is Invest {
 
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     using SafeMath for uint256;
 
-    /* ********************************** Implementation of Iep ************************************* */
+    /* ********************************** Implementation of Invest ************************************* */
 
     /**
      * @dev Invest tokens for a given period.
@@ -27,9 +27,17 @@ contract Uniswap is Iep {
      * @param _tokens The array of token address.
      * @param _amounts The amount to invest for each token.
      * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @param _oracle The address of an oracle contract that may be used by the method to query information on-chain (optional).
+     * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.
      */
-    function addInvestment(BaseWallet _wallet, address[] calldata _tokens, uint256[] calldata _amounts, uint256 _period, address _oracle) external {
+    function addInvestment(
+        BaseWallet _wallet, 
+        address[] calldata _tokens, 
+        uint256[] calldata _amounts, 
+        uint256 _period, 
+        address _oracle
+    ) 
+        external 
+    {
         require(_tokens.length == 2 && _amounts.length == 2, "Uniswap: You must invest a token pair.");
         if(_tokens[0] == ETH_TOKEN_ADDRESS) {
             addLiquidityToPool(_wallet, UniswapFactory(_oracle).getExchange(_tokens[1]), _tokens[1], _amounts[0], _amounts[1]);
@@ -41,13 +49,20 @@ contract Uniswap is Iep {
     }
 
     /**
-     * @dev Exit invested postions.
+     * @dev Removes a fraction of the tokens from an investment.
      * @param _wallet The target wallet.s
      * @param _tokens The array of token address.
      * @param _fractions The fraction of invested tokens to exit in per 10000. 
-     * @param _oracle The address of an oracle contract that may be used by the method to query information on-chain (optional).
+     * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.
      */
-    function removeInvestment(BaseWallet _wallet, address[] calldata _tokens, uint256 _fraction, address _oracle) external {
+    function removeInvestment(
+        BaseWallet _wallet, 
+        address[] calldata _tokens, 
+        uint256 _fraction, 
+        address _oracle
+    ) 
+        external 
+    {
         require(_tokens.length == 2, "Uniswap: You must invest a token pair.");
         require(_fraction <= 10000, "Uniswap: _fraction must be expressed in 1 per 10000");
         address token;
@@ -67,16 +82,27 @@ contract Uniswap is Iep {
      * @dev Get the amount of investment in a given token.
      * @param _wallet The target wallet.
      * @param _token The token address.
-     * @param _oracle The address of an oracle contract that may be used by the method to query information on-chain (optional).
-     * @return A representation of the amount of tokens invested and the time at which the eip can be closed.
+     * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.
+     * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
      */
-    function getInvestment(BaseWallet _wallet, address _token, address _oracle) external view returns (uint256 _shares, uint256 _periodEnd) {
+    function getInvestment(
+        BaseWallet _wallet, 
+        address _token, 
+        address _oracle
+    ) 
+        external 
+        view 
+        returns (uint256 _tokenValue, uint256 _periodEnd) 
+    {
         address pool = UniswapFactory(_oracle).getExchange(_token);
-        _shares = ERC20(pool).balanceOf(address(_wallet));
-        _periodEnd = now - 1;
+        uint256 ethPoolSize = address(pool).balance;
+        uint256 tokenPoolSize = ERC20(_token).balanceOf(pool);
+        uint shares = ERC20(pool).balanceOf(address(_wallet));
+        _tokenValue = shares.mul(tokenPoolSize) + getInputToOutputPrice(shares.mul(ethPoolSize), ethPoolSize, tokenPoolSize);
+        _periodEnd = 0;
     }
 
-    /* ****************************************** Utility methods ******************************************* */
+    /* ****************************************** Uniswap utilities ******************************************* */
  
     /**
      * @dev Adds liquidity to a Uniswap ETH-ERC20 pair.
@@ -197,7 +223,15 @@ contract Uniswap is Iep {
      * @param _inputPoolSize The size of the input pool.
      * @param _outputPoolSize The size of the output pool.
      */
-    function getInputToOutputPrice(uint256 _inputAmount, uint256 _inputPoolSize, uint256 _outputPoolSize) internal pure returns(uint256) {
+    function getInputToOutputPrice(
+        uint256 _inputAmount, 
+        uint256 _inputPoolSize, 
+        uint256 _outputPoolSize
+    ) 
+        internal 
+        pure 
+        returns(uint256) 
+    {
         if(_inputAmount == 0) {
             return 0;
         }
@@ -213,7 +247,14 @@ contract Uniswap is Iep {
      * @param _tokenValue The value of tokens provided (in ETH).
      * @return true if the 2 values are within 95% of each other.
      */
-    function preventSwap(uint256 _ethValue, uint256 _tokenValue) internal pure returns(bool) {
+    function preventSwap(
+        uint256 _ethValue, 
+        uint256 _tokenValue
+    ) 
+        internal 
+        pure 
+        returns(bool) 
+    {
         if(_ethValue != 0 && _tokenValue != 0) {
             uint ratio = _ethValue.mul(1000000).div(_tokenValue);
             return ratio >= 90000 && ratio <= 1052631; 

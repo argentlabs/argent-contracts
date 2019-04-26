@@ -56,7 +56,7 @@ contract IepManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _amounts The amount to invest for each token.
      * @param _period The period over which the tokens may be locked in the investment (optional).
      */
-    function openIep(
+    function addInvestment(
         BaseWallet _wallet, 
         bytes32 _providerKey, 
         address[] calldata _tokens, 
@@ -79,12 +79,12 @@ contract IepManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /**
-     * @dev Exit invested postions.
+     * @dev Removes a fraction of the tokens from an investment.
      * @param _wallet The target wallet.s
      * @param _tokens The array of token address.
      * @param _fractions The fraction of invested tokens to exit in per 10000. 
      */
-    function closeIep(
+    function removeInvestment(
         BaseWallet _wallet, 
         bytes32 _providerKey,
         address[] calldata _tokens, 
