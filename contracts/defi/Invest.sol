@@ -26,7 +26,7 @@ interface Invest {
 
     /**
      * @dev Exit invested postions.
-     * @param _wallet The target wallet.s
+     * @param _wallet The target wallet.
      * @param _tokens The array of token address.
      * @param _fractions The fraction of invested tokens to exit in per 10000. 
      * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.

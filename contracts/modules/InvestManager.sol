@@ -6,13 +6,13 @@ import "./common/OnlyOwnerModule.sol";
 import "../storage/GuardianStorage.sol";
 
 /**
- * @title TokenExchanger
- * @dev Module to trade tokens (ETH or ERC20) using KyberNetworks.
+ * @title InvestManager
+ * @dev Module to invest tokens with a provider in order to earn an interest. 
  * @author Julien Niset - <julien@argent.im>
  */
-contract IepManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
+contract InvestManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
 
-    bytes32 constant NAME = "TokenExchanger";
+    bytes32 constant NAME = "InvestManager";
 
     // The Guardian storage 
     GuardianStorage public guardianStorage;
@@ -67,7 +67,7 @@ contract IepManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet) 
     {
         bytes memory methodData = abi.encodeWithSignature(
-            "openIep(address,address[],uint256[],uint256,address)", 
+            "addInvestment(address,address[],uint256[],uint256,address)", 
             address(_wallet), 
             _tokens,
             _amounts,
@@ -75,12 +75,12 @@ contract IepManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
             providers[_providerKey].oracle
             );
         (bool success, bytes memory data) = delegateToProvider(_providerKey, methodData);
-        require(success, "IepManager: request to provider failed");
+        require(success, "InvestManager: request to provider failed");
     }
 
     /**
-     * @dev Removes a fraction of the tokens from an investment.
-     * @param _wallet The target wallet.s
+     * @dev Exit invested postions.
+     * @param _wallet The target wallet.
      * @param _tokens The array of token address.
      * @param _fractions The fraction of invested tokens to exit in per 10000. 
      */
@@ -94,14 +94,42 @@ contract IepManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet) 
     {
         bytes memory methodData = abi.encodeWithSignature(
-            "closeIep(address,address[],uint256,address)", 
+            "removeInvestment(address,address[],uint256,address)", 
             address(_wallet), 
             _tokens,
             _fraction,
             providers[_providerKey].oracle
             );
         (bool success, bytes memory data) = delegateToProvider(_providerKey, methodData);
-        require(success, "IepManager: request to provider failed");
+        require(success, "InvestManager: request to provider failed");
+    }
+
+    /**
+     * @dev Get the amount of investment in a given token.
+     * @param _wallet The target wallet.
+     * @param _token The token address.
+     * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.
+     * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
+     */
+    function getInvestment(
+        BaseWallet _wallet, 
+        bytes32 _providerKey,
+        address _token, 
+        address _oracle
+    ) 
+        external 
+        view 
+        returns (uint256 _tokenValue, uint256 _periodEnd) 
+    {
+        bytes memory methodData = abi.encodeWithSignature(
+            "getInvestment(address,address,address)", 
+            address(_wallet), 
+            _token,
+            providers[_providerKey].oracle
+            );
+        (bool success, bytes memory data) = delegateToProvider(_providerKey, methodData);
+        (_tokenValue, _periodEnd) = abi.decode(data,(uint256, uint256));
+        require(success, "InvestManager: request to provider failed");
     }
 
     function addProvider(bytes32 _key, address _addr, address _oracle) public onlyContractOwner {
@@ -115,7 +143,7 @@ contract IepManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
 
     function delegateToProvider(bytes32 _providerKey, bytes memory _methodData) internal returns (bool, bytes memory) {
         address provider = providers[_providerKey].addr;
-        require(provider != address(0), "IepManager: Unknown provider");
+        require(provider != address(0), "InvestManager: Unknown provider");
         return provider.delegatecall(_methodData);
     }
 }
