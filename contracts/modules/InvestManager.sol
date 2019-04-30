@@ -3,31 +3,21 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
+import "./common/ProviderModule.sol";
 import "../storage/GuardianStorage.sol";
+import "../defi/Invest.sol";
 
 /**
  * @title InvestManager
  * @dev Module to invest tokens with a provider in order to earn an interest. 
  * @author Julien Niset - <julien@argent.im>
  */
-contract InvestManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
+contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModule {
 
     bytes32 constant NAME = "InvestManager";
 
     // The Guardian storage 
     GuardianStorage public guardianStorage;
-    // Supported providers
-    mapping (bytes32 => Provider) public providers; 
-
-    struct Provider {
-        address addr;
-        address oracle;
-    }
-
-    modifier onlyContractOwner {
-        require(msg.sender == owner, "Must be owner");
-        _;
-    }
 
     /**
      * @dev Throws if the wallet is locked.
@@ -52,6 +42,7 @@ contract InvestManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
     /**
      * @dev Invest tokens for a given period.
      * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
      * @param _tokens The array of token address.
      * @param _amounts The amount to invest for each token.
      * @param _period The period over which the tokens may be locked in the investment (optional).
@@ -66,21 +57,23 @@ contract InvestManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
         external
         onlyWhenUnlocked(_wallet) 
     {
+        Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
             "addInvestment(address,address[],uint256[],uint256,address)", 
             address(_wallet), 
             _tokens,
             _amounts,
             _period,
-            providers[_providerKey].oracle
+            provider.oracle
             );
-        (bool success, bytes memory data) = delegateToProvider(_providerKey, methodData);
+        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "InvestManager: request to provider failed");
     }
 
     /**
      * @dev Exit invested postions.
      * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
      * @param _tokens The array of token address.
      * @param _fractions The fraction of invested tokens to exit in per 10000. 
      */
@@ -93,57 +86,35 @@ contract InvestManager is Owned, BaseModule, RelayerModule, OnlyOwnerModule {
         external 
         onlyWhenUnlocked(_wallet) 
     {
+        Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
             "removeInvestment(address,address[],uint256,address)", 
             address(_wallet), 
             _tokens,
             _fraction,
-            providers[_providerKey].oracle
+            provider.oracle
             );
-        (bool success, bytes memory data) = delegateToProvider(_providerKey, methodData);
+        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "InvestManager: request to provider failed");
     }
 
     /**
      * @dev Get the amount of investment in a given token.
      * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
      * @param _token The token address.
-     * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.
      * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
      */
     function getInvestment(
         BaseWallet _wallet, 
         bytes32 _providerKey,
-        address _token, 
-        address _oracle
+        address _token
     ) 
         external 
         view 
         returns (uint256 _tokenValue, uint256 _periodEnd) 
     {
-        bytes memory methodData = abi.encodeWithSignature(
-            "getInvestment(address,address,address)", 
-            address(_wallet), 
-            _token,
-            providers[_providerKey].oracle
-            );
-        (bool success, bytes memory data) = delegateToProvider(_providerKey, methodData);
-        (_tokenValue, _periodEnd) = abi.decode(data,(uint256, uint256));
-        require(success, "InvestManager: request to provider failed");
-    }
-
-    function addProvider(bytes32 _key, address _addr, address _oracle) public onlyContractOwner {
-        providers[_key] = Provider(_addr, _oracle);
-    } 
-
-    function getProvider(bytes32 _key) public view returns (address _addr, address _oracle) {
-        _addr = providers[_key].addr;
-        _oracle = providers[_key].oracle;
-    }
-
-    function delegateToProvider(bytes32 _providerKey, bytes memory _methodData) internal returns (bool, bytes memory) {
-        address provider = providers[_providerKey].addr;
-        require(provider != address(0), "InvestManager: Unknown provider");
-        return provider.delegatecall(_methodData);
+        Provider memory provider = providers[_providerKey];
+        (_tokenValue, _periodEnd) = Invest(provider.addr).getInvestment(_wallet, _token, provider.oracle);
     }
 }

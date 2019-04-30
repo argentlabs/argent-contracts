@@ -1,0 +1,250 @@
+pragma solidity ^0.5.4;
+import "../wallet/BaseWallet.sol";
+import "./common/BaseModule.sol";
+import "./common/RelayerModule.sol";
+import "./common/OnlyOwnerModule.sol";
+import "./common/ProviderModule.sol";
+import "../storage/GuardianStorage.sol";
+import "../defi/Loan.sol";
+
+/**
+ * @title LoanManager
+ * @dev Module to invest tokens with a provider in order to earn an interest. 
+ * @author Julien Niset - <julien@argent.im>
+ */
+contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModule {
+
+    bytes32 constant NAME = "LoanManager";
+
+    // The Guardian storage 
+    GuardianStorage public guardianStorage;
+
+    /**
+     * @dev Throws if the wallet is locked.
+     */
+    modifier onlyWhenUnlocked(BaseWallet _wallet) {
+        // solium-disable-next-line security/no-block-members
+        require(!guardianStorage.isLocked(_wallet), "TT: wallet must be unlocked");
+        _;
+    }
+
+    constructor(
+        ModuleRegistry _registry, 
+        GuardianStorage _guardianStorage
+    ) 
+        BaseModule(_registry, NAME) 
+        public 
+    {
+        guardianStorage = _guardianStorage;
+
+    }
+
+    /**
+     * @dev Invest tokens for a given period.
+     * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
+     * @param _collateral The token used as a collateral.
+     * @param _collateralAmount The amount of collateral token provided.
+     * @param _debtToken The token borrowed.
+     * @param _debtAmount The amount of tokens borrowed.
+     * @return (optional) An ID for the loan when the provider enables users to create multiple distinct loans.
+     */
+    function openLoan(
+        BaseWallet _wallet, 
+        bytes32 _providerKey,
+        address _collateral, 
+        uint256 _collateralAmount, 
+        address _debtToken, 
+        uint256 _debtAmount
+    )  
+        external
+        onlyWhenUnlocked(_wallet) 
+        returns (bytes32 _loanId)
+    {
+        Provider memory provider = providers[_providerKey];
+        bytes memory methodData = abi.encodeWithSignature(
+            "openLoan(address,address,uint256,address,uint256,address)", 
+            address(_wallet), 
+            _collateral,
+            _collateralAmount,
+            _debtToken,
+            _debtAmount,
+            provider.oracle
+            );
+        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        (_loanId) = abi.decode(data,(bytes32));
+        require(success, "LoanManager: request to provider failed");
+    }
+
+        /**
+     * @dev Closes a collateralized loan by repaying all debts (plus interest) and redeeming all collateral (plus interest).
+     * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
+     * @param _loanId The ID of the loan if any, 0 otherwise.
+     */
+    function closeLoan(
+        BaseWallet _wallet, 
+        bytes32 _providerKey,
+        bytes32 _loanId
+    ) 
+        external
+        onlyWhenUnlocked(_wallet) 
+    {
+        Provider memory provider = providers[_providerKey];
+        bytes memory methodData = abi.encodeWithSignature(
+            "closeLoan(address,bytes32,address)", 
+            address(_wallet), 
+            _loanId,
+            provider.oracle
+            );
+        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        require(success, "LoanManager: request to provider failed");
+    }
+
+    /**
+     * @dev Adds collateral to a loan identified by its ID.
+     * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
+     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @param _collateral The token used as a collateral.
+     * @param _collateralAmount The amount of collateral to add.
+     */
+    function addCollateral(
+        BaseWallet _wallet, 
+        bytes32 _providerKey,
+        bytes32 _loanId, 
+        address _collateral, 
+        uint256 _collateralAmount
+    ) 
+        external
+        onlyWhenUnlocked(_wallet) 
+    {
+        Provider memory provider = providers[_providerKey];
+        bytes memory methodData = abi.encodeWithSignature(
+            "addCollateral(address,bytes32,address,uint256,address)", 
+            address(_wallet), 
+            _loanId,
+            _collateral,
+            _collateralAmount,
+            provider.oracle
+            );
+        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        require(success, "LoanManager: request to provider failed");
+    }
+
+    /**
+     * @dev Removes collateral from a loan identified by its ID.
+     * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
+     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @param _collateral The token used as a collateral.
+     * @param _collateralAmount The amount of collateral to remove.
+     */
+    function removeCollateral(
+        BaseWallet _wallet, 
+        bytes32 _providerKey,
+        bytes32 _loanId, 
+        address _collateral, 
+        uint256 _collateralAmount
+    ) 
+        external
+        onlyWhenUnlocked(_wallet) 
+    {
+        Provider memory provider = providers[_providerKey];
+        bytes memory methodData = abi.encodeWithSignature(
+            "removeCollateral(address,bytes32,address,uint256,address)", 
+            address(_wallet), 
+            _loanId,
+            _collateral,
+            _collateralAmount,
+            provider.oracle
+            );
+        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        require(success, "LoanManager: request to provider failed");
+    }
+
+    /**
+     * @dev Increases the debt by borrowing more token from a loan identified by its ID.
+     * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
+     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @param _debtToken The token borrowed.
+     * @param _debtAmount The amount of token to borrow.
+     */
+    function addDebt(
+        BaseWallet _wallet, 
+        bytes32 _providerKey,
+        bytes32 _loanId, 
+        address _debtToken, 
+        uint256 _debtAmount
+    ) 
+        external
+        onlyWhenUnlocked(_wallet) 
+    {
+        Provider memory provider = providers[_providerKey];
+        bytes memory methodData = abi.encodeWithSignature(
+            "addDebt(address,bytes32,address,uint256,address)", 
+            address(_wallet), 
+            _loanId,
+            _debtToken,
+            _debtAmount,
+            provider.oracle
+            );
+        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        require(success, "LoanManager: request to provider failed");
+    }
+
+    /**
+     * @dev Decreases the debt by repaying some token from a loan identified by its ID.
+     * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
+     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @param _debtToken The token to repay.
+     * @param _debtAmount The amount of token to repay.
+     */
+    function removeDebt(
+        BaseWallet _wallet, 
+        bytes32 _providerKey,
+        bytes32 _loanId, 
+        address _debtToken, 
+        uint256 _debtAmount 
+    ) 
+        external
+        onlyWhenUnlocked(_wallet)
+    {
+        Provider memory provider = providers[_providerKey];
+        bytes memory methodData = abi.encodeWithSignature(
+            "removeDebt(address,bytes32,address,uint256,address)", 
+            address(_wallet), 
+            _loanId,
+            _debtToken,
+            _debtAmount,
+            provider.oracle
+            );
+        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        require(success, "LoanManager: request to provider failed");
+    }
+
+    /**
+     * @dev Gets information about a loan identified by its ID.
+     * @param _wallet The target wallet.
+     * @param _providerKey The provider to use.
+     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated] and the estimated ETH value of the loan
+     * combining all collaterals and all debts. When status = 1 it represents the value that could still be borrowed, while with status = 2
+     * it represents the value of collateral that should be added to avoid liquidation.      
+     */
+    function getLoan(
+        BaseWallet _wallet, 
+        bytes32 _providerKey,
+        bytes32 _loanId 
+    ) 
+        external 
+        view 
+        returns (uint8 _status, uint256 _ethValue)
+    {
+        Provider memory provider = providers[_providerKey];
+        (_status, _ethValue) = Loan(provider.addr).getLoan(_wallet, _loanId, provider.oracle);
+    }   
+
+}

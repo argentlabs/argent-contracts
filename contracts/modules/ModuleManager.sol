@@ -27,7 +27,7 @@ contract ModuleManager is BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet.
      * @param _upgrader The address of an implementation of the Upgrader interface.
      */
-    function upgrade(BaseWallet _wallet, Upgrader _upgrader) external onlyOwner(_wallet) {
+    function upgrade(BaseWallet _wallet, Upgrader _upgrader) external onlyWalletOwner(_wallet) {
         require(registry.isRegisteredUpgrader(address(_upgrader)), "MM: upgrader is not registered");
         address[] memory toDisable = _upgrader.toDisable();
         address[] memory toEnable = _upgrader.toEnable();

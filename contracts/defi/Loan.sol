@@ -10,7 +10,7 @@ interface Loan {
     /**
      * @dev Opens a collateralized loan.
      * @param _wallet The target wallet.
-     * @param _collateralToken The token used as a collateral.
+     * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral token provided.
      * @param _debtToken The token borrowed.
      * @param _debtAmount The amount of tokens borrowed.

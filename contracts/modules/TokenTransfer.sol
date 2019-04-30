@@ -106,7 +106,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         bytes calldata _data
     ) 
         external 
-        onlyOwner(_wallet) 
+        onlyWalletOwner(_wallet) 
         onlyWhenUnlocked(_wallet)
     {
         if(isWhitelisted(_wallet, _to)) {
@@ -154,7 +154,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         address _target
     ) 
         external 
-        onlyOwner(_wallet) 
+        onlyWalletOwner(_wallet) 
         onlyWhenUnlocked(_wallet)
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
@@ -174,7 +174,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         address _target
     ) 
         external 
-        onlyOwner(_wallet) 
+        onlyWalletOwner(_wallet) 
         onlyWhenUnlocked(_wallet)
     {
         require(isWhitelisted(_wallet, _target), "TT: target not whitelisted");
@@ -227,7 +227,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         bytes32 _id
     ) 
         public 
-        onlyOwner(_wallet) 
+        onlyWalletOwner(_wallet) 
         onlyWhenUnlocked(_wallet) 
     {
         require(configs[address(_wallet)].pendingTransfers[_id] > 0, "TT: unknown pending transfer");
@@ -241,7 +241,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(BaseWallet _wallet, uint256 _newLimit) public onlyOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(BaseWallet _wallet, uint256 _newLimit) public onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         changeLimit(_wallet, _newLimit, securityPeriod);
     }
 
@@ -250,7 +250,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
      * The limit is disabled by setting it to an arbitrary large value.
      * @param _wallet The target wallet.
      */
-    function disableLimit(BaseWallet _wallet) external onlyOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function disableLimit(BaseWallet _wallet) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         changeLimit(_wallet, LIMIT_DISABLED, securityPeriod);
     }
 
