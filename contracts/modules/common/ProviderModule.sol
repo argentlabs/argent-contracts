@@ -14,16 +14,15 @@ contract ProviderModule is Owned {
 
     struct Provider {
         address addr;
-        address oracle;
+        address[] oracles;
     }
 
-    function addProvider(bytes32 _key, address _addr, address _oracle) public onlyOwner {
-        providers[_key] = Provider(_addr, _oracle);
+    function addProvider(bytes32 _key, address _addr, address[] memory _oracles) public onlyOwner {
+        providers[_key] = Provider(_addr, _oracles);
     } 
 
-    function getProvider(bytes32 _key) public view returns (address _addr, address _oracle) {
+    function getProvider(bytes32 _key) public view returns (address _addr) {
         _addr = providers[_key].addr;
-        _oracle = providers[_key].oracle;
     }
 
     function delegateToProvider(address _provider, bytes memory _methodData) internal returns (bool, bytes memory) {

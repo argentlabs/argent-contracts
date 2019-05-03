@@ -63,13 +63,13 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     {
         Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
-            "openLoan(address,address,uint256,address,uint256,address)", 
+            "openLoan(address,address,uint256,address,uint256,address[])", 
             address(_wallet), 
             _collateral,
             _collateralAmount,
             _debtToken,
             _debtAmount,
-            provider.oracle
+            provider.oracles
             );
         (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         (_loanId) = abi.decode(data,(bytes32));
@@ -92,10 +92,10 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     {
         Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
-            "closeLoan(address,bytes32,address)", 
+            "closeLoan(address,bytes32,address[])", 
             address(_wallet), 
             _loanId,
-            provider.oracle
+            provider.oracles
             );
         (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "LoanManager: request to provider failed");
@@ -121,12 +121,12 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     {
         Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
-            "addCollateral(address,bytes32,address,uint256,address)", 
+            "addCollateral(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
             _loanId,
             _collateral,
             _collateralAmount,
-            provider.oracle
+            provider.oracles
             );
         (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "LoanManager: request to provider failed");
@@ -152,12 +152,12 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     {
         Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
-            "removeCollateral(address,bytes32,address,uint256,address)", 
+            "removeCollateral(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
             _loanId,
             _collateral,
             _collateralAmount,
-            provider.oracle
+            provider.oracles
             );
         (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "LoanManager: request to provider failed");
@@ -183,12 +183,12 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     {
         Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
-            "addDebt(address,bytes32,address,uint256,address)", 
+            "addDebt(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
             _loanId,
             _debtToken,
             _debtAmount,
-            provider.oracle
+            provider.oracles
             );
         (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "LoanManager: request to provider failed");
@@ -214,12 +214,12 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     {
         Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
-            "removeDebt(address,bytes32,address,uint256,address)", 
+            "removeDebt(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
             _loanId,
             _debtToken,
             _debtAmount,
-            provider.oracle
+            provider.oracles
             );
         (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "LoanManager: request to provider failed");
@@ -230,7 +230,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
      * @param _wallet The target wallet.
      * @param _providerKey The provider to use.
      * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated] and the estimated ETH value of the loan
+     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: unable to provide info] and the estimated ETH value of the loan
      * combining all collaterals and all debts. When status = 1 it represents the value that could still be borrowed, while with status = 2
      * it represents the value of collateral that should be added to avoid liquidation.      
      */
@@ -244,7 +244,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         returns (uint8 _status, uint256 _ethValue)
     {
         Provider memory provider = providers[_providerKey];
-        (_status, _ethValue) = Loan(provider.addr).getLoan(_wallet, _loanId, provider.oracle);
+        (_status, _ethValue) = Loan(provider.addr).getLoan(_wallet, _loanId, provider.oracles);
     }   
 
 }

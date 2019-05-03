@@ -13,14 +13,14 @@ interface Invest {
      * @param _tokens The array of token address.
      * @param _amounts The amount to invest for each token.
      * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.
+     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function addInvestment(
         BaseWallet _wallet, 
         address[] calldata _tokens, 
         uint256[] calldata _amounts, 
         uint256 _period, 
-        address _oracle
+        address[] calldata _oracles
     ) 
         external;
 
@@ -28,14 +28,14 @@ interface Invest {
      * @dev Exit invested postions.
      * @param _wallet The target wallet.
      * @param _tokens The array of token address.
-     * @param _fractions The fraction of invested tokens to exit in per 10000. 
-     * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.
+     * @param _fraction The fraction of invested tokens to exit in per 10000. 
+     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function removeInvestment(
         BaseWallet _wallet, 
         address[] calldata _tokens, 
         uint256 _fraction, 
-        address _oracle
+        address[] calldata _oracles
     ) 
         external;
 
@@ -43,13 +43,13 @@ interface Invest {
      * @dev Get the amount of investment in a given token.
      * @param _wallet The target wallet.
      * @param _token The token address.
-     * @param _oracle (optional) The address of an oracle contract that may be used by the provider to query information on-chain.
+     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
      */
     function getInvestment(
         BaseWallet _wallet, 
         address _token, 
-        address _oracle
+        address[] calldata _oracles
     ) 
         external 
         view 

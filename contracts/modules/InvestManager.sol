@@ -59,12 +59,12 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
     {
         Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
-            "addInvestment(address,address[],uint256[],uint256,address)", 
+            "addInvestment(address,address[],uint256[],uint256,address[])", 
             address(_wallet), 
             _tokens,
             _amounts,
             _period,
-            provider.oracle
+            provider.oracles
             );
         (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "InvestManager: request to provider failed");
@@ -75,7 +75,7 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
      * @param _wallet The target wallet.
      * @param _providerKey The provider to use.
      * @param _tokens The array of token address.
-     * @param _fractions The fraction of invested tokens to exit in per 10000. 
+     * @param _fraction The fraction of invested tokens to exit in per 10000. 
      */
     function removeInvestment(
         BaseWallet _wallet, 
@@ -88,11 +88,11 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
     {
         Provider memory provider = providers[_providerKey];
         bytes memory methodData = abi.encodeWithSignature(
-            "removeInvestment(address,address[],uint256,address)", 
+            "removeInvestment(address,address[],uint256,address[])", 
             address(_wallet), 
             _tokens,
             _fraction,
-            provider.oracle
+            provider.oracles
             );
         (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
         require(success, "InvestManager: request to provider failed");
@@ -115,6 +115,6 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         returns (uint256 _tokenValue, uint256 _periodEnd) 
     {
         Provider memory provider = providers[_providerKey];
-        (_tokenValue, _periodEnd) = Invest(provider.addr).getInvestment(_wallet, _token, provider.oracle);
+        (_tokenValue, _periodEnd) = Invest(provider.addr).getInvestment(_wallet, _token, provider.oracles);
     }
 }
