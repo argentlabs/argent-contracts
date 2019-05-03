@@ -24,7 +24,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
      */
     modifier onlyWhenUnlocked(BaseWallet _wallet) {
         // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "TT: wallet must be unlocked");
+        require(!guardianStorage.isLocked(_wallet), "LoanManager: wallet must be unlocked");
         _;
     }
 
@@ -42,7 +42,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     /**
      * @dev Invest tokens for a given period.
      * @param _wallet The target wallet.
-     * @param _providerKey The provider to use.
+     * @param _provider The address of the provider to use.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral token provided.
      * @param _debtToken The token borrowed.
@@ -51,7 +51,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
      */
     function openLoan(
         BaseWallet _wallet, 
-        bytes32 _providerKey,
+        address _provider, 
         address _collateral, 
         uint256 _collateralAmount, 
         address _debtToken, 
@@ -61,7 +61,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         onlyWhenUnlocked(_wallet) 
         returns (bytes32 _loanId)
     {
-        Provider memory provider = providers[_providerKey];
+        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "openLoan(address,address,uint256,address,uint256,address[])", 
             address(_wallet), 
@@ -69,9 +69,9 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             _collateralAmount,
             _debtToken,
             _debtAmount,
-            provider.oracles
+            providers[_provider].oracles
             );
-        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        (bool success, bytes memory data) = delegateToProvider(_provider, methodData);
         (_loanId) = abi.decode(data,(bytes32));
         require(success, "LoanManager: request to provider failed");
     }
@@ -79,39 +79,39 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         /**
      * @dev Closes a collateralized loan by repaying all debts (plus interest) and redeeming all collateral (plus interest).
      * @param _wallet The target wallet.
-     * @param _providerKey The provider to use.
+     * @param _provider The address of the provider to use.
      * @param _loanId The ID of the loan if any, 0 otherwise.
      */
     function closeLoan(
         BaseWallet _wallet, 
-        bytes32 _providerKey,
+        address _provider, 
         bytes32 _loanId
     ) 
         external
         onlyWhenUnlocked(_wallet) 
     {
-        Provider memory provider = providers[_providerKey];
+        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "closeLoan(address,bytes32,address[])", 
             address(_wallet), 
             _loanId,
-            provider.oracles
+            providers[_provider].oracles
             );
-        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
     }
 
     /**
      * @dev Adds collateral to a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _providerKey The provider to use.
+     * @param _provider The address of the provider to use.
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral to add.
      */
     function addCollateral(
         BaseWallet _wallet, 
-        bytes32 _providerKey,
+        address _provider, 
         bytes32 _loanId, 
         address _collateral, 
         uint256 _collateralAmount
@@ -119,30 +119,30 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet) 
     {
-        Provider memory provider = providers[_providerKey];
+        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "addCollateral(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
             _loanId,
             _collateral,
             _collateralAmount,
-            provider.oracles
+            providers[_provider].oracles
             );
-        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
     }
 
     /**
      * @dev Removes collateral from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _providerKey The provider to use.
+     * @param _provider The address of the provider to use.
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral to remove.
      */
     function removeCollateral(
         BaseWallet _wallet, 
-        bytes32 _providerKey,
+        address _provider, 
         bytes32 _loanId, 
         address _collateral, 
         uint256 _collateralAmount
@@ -150,30 +150,30 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet) 
     {
-        Provider memory provider = providers[_providerKey];
+        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "removeCollateral(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
             _loanId,
             _collateral,
             _collateralAmount,
-            provider.oracles
+            providers[_provider].oracles
             );
-        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
     }
 
     /**
      * @dev Increases the debt by borrowing more token from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _providerKey The provider to use.
+     * @param _provider The address of the provider to use.
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _debtToken The token borrowed.
      * @param _debtAmount The amount of token to borrow.
      */
     function addDebt(
         BaseWallet _wallet, 
-        bytes32 _providerKey,
+        address _provider, 
         bytes32 _loanId, 
         address _debtToken, 
         uint256 _debtAmount
@@ -181,30 +181,30 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet) 
     {
-        Provider memory provider = providers[_providerKey];
+        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "addDebt(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
             _loanId,
             _debtToken,
             _debtAmount,
-            provider.oracles
+            providers[_provider].oracles
             );
-        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
     }
 
     /**
      * @dev Decreases the debt by repaying some token from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _providerKey The provider to use.
+     * @param _provider The address of the provider to use.
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _debtToken The token to repay.
      * @param _debtAmount The amount of token to repay.
      */
     function removeDebt(
         BaseWallet _wallet, 
-        bytes32 _providerKey,
+        address _provider, 
         bytes32 _loanId, 
         address _debtToken, 
         uint256 _debtAmount 
@@ -212,23 +212,23 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet)
     {
-        Provider memory provider = providers[_providerKey];
+        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "removeDebt(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
             _loanId,
             _debtToken,
             _debtAmount,
-            provider.oracles
+            providers[_provider].oracles
             );
-        (bool success, bytes memory data) = delegateToProvider(provider.addr, methodData);
+        (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
     }
 
     /**
      * @dev Gets information about a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _providerKey The provider to use.
+     * @param _provider The address of the provider to use.
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: unable to provide info] and the estimated ETH value of the loan
      * combining all collaterals and all debts. When status = 1 it represents the value that could still be borrowed, while with status = 2
@@ -236,15 +236,14 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
      */
     function getLoan(
         BaseWallet _wallet, 
-        bytes32 _providerKey,
+        address _provider, 
         bytes32 _loanId 
     ) 
         external 
         view 
         returns (uint8 _status, uint256 _ethValue)
     {
-        Provider memory provider = providers[_providerKey];
-        (_status, _ethValue) = Loan(provider.addr).getLoan(_wallet, _loanId, provider.oracles);
+        (_status, _ethValue) = Loan(_provider).getLoan(_wallet, _loanId, providers[_provider].oracles);
     }   
 
 }

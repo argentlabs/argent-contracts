@@ -10,19 +10,23 @@ import "../../base/Owned.sol";
 contract ProviderModule is Owned {
 
     // Supported providers
-    mapping (bytes32 => Provider) public providers; 
+    mapping (address => Provider) public providers; 
 
     struct Provider {
-        address addr;
+        bool exists;
         address[] oracles;
     }
 
-    function addProvider(bytes32 _key, address _addr, address[] memory _oracles) public onlyOwner {
-        providers[_key] = Provider(_addr, _oracles);
+    function addProvider(address _provider, address[] memory _oracles) public onlyOwner {
+        providers[_provider] = Provider(true, _oracles);
     } 
 
-    function getProvider(bytes32 _key) public view returns (address _addr) {
-        _addr = providers[_key].addr;
+    function removeProvider(address _provider) public onlyOwner {
+        delete providers[_provider];
+    } 
+
+    function isProvider(address _provider) public view returns (bool) {
+        return providers[_provider].exists;
     }
 
     function delegateToProvider(address _provider, bytes memory _methodData) internal returns (bool, bytes memory) {
