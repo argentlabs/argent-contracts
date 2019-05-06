@@ -14,6 +14,7 @@ interface Invest {
      * @param _amounts The amount to invest for each token.
      * @param _period The period over which the tokens may be locked in the investment (optional).
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @return The exact amount of each tokens that have been invested. 
      */
     function addInvestment(
         BaseWallet _wallet, 
@@ -22,7 +23,8 @@ interface Invest {
         uint256 _period, 
         address[] calldata _oracles
     ) 
-        external;
+        external
+        returns (uint256[] memory _invested);
 
     /**
      * @dev Exit invested postions.

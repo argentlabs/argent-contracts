@@ -36,6 +36,7 @@ contract Uniswap is Invest {
      * @param _amounts The amount to invest for each token.
      * @param _period The period over which the tokens may be locked in the investment (optional).
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @return The exact amount of each tokens that have been invested. 
      */
     function addInvestment(
         BaseWallet _wallet, 
@@ -45,15 +46,17 @@ contract Uniswap is Invest {
         address[] calldata _oracles
     ) 
         external 
+        returns (uint256[] memory _invested)
     {
         require(_tokens.length == 2 && _amounts.length == 2, "Uniswap: You must invest a token pair.");
         require(_oracles.length == 1, "Uniswap: invalid oracles length");
+        _invested = new uint256[](2);
         if(_tokens[0] == ETH_TOKEN_ADDRESS) {
-            addLiquidityToPool(_wallet, UniswapFactory(_oracles[0]).getExchange(_tokens[1]), _tokens[1], _amounts[0], _amounts[1]);
+            (_invested[0], _invested[1]) = addLiquidityToPool(_wallet, UniswapFactory(_oracles[0]).getExchange(_tokens[1]), _tokens[1], _amounts[0], _amounts[1]);
         }
         else {
             require(_tokens[1] == ETH_TOKEN_ADDRESS, "Uniswap: One token of the pair must be ETH");
-            addLiquidityToPool(_wallet, UniswapFactory(_oracles[0]).getExchange(_tokens[0]), _tokens[0], _amounts[1], _amounts[0]);
+            (_invested[1], _invested[0]) = addLiquidityToPool(_wallet, UniswapFactory(_oracles[0]).getExchange(_tokens[0]), _tokens[0], _amounts[1], _amounts[0]);
         }
     }
 
@@ -130,6 +133,7 @@ contract Uniswap is Invest {
         uint256 _tokenAmount
     )
         internal 
+        returns (uint256 _ethPool, uint256 _tokenPool)
     {
         require(_pool != address(0), "Uniswap: target token is not traded on Uniswap");
         require(_ethAmount <= address(_wallet).balance, "Uniswap: not enough ETH");
@@ -137,48 +141,46 @@ contract Uniswap is Invest {
         
         uint256 ethPoolSize = address(_pool).balance;
         uint256 tokenPoolSize = ERC20(_poolToken).balanceOf(_pool);
-        uint256 ethPool;
-        uint256 tokenPool;
 
         uint256 tokenValue = _tokenAmount.mul(ethPoolSize).div(tokenPoolSize);
         bool preventSwap = preventSwap(_ethAmount, tokenValue);
         if(_ethAmount >= tokenValue) {
             if(preventSwap) {
-                tokenPool = _tokenAmount;
-                ethPool = tokenValue;
+                _tokenPool = _tokenAmount;
+                _ethPool = tokenValue;
             }
             else {
                 // swap some eth for tokens
                 uint256 ethSwap;
-                (ethSwap, ethPool, tokenPool) = computePooledValue(ethPoolSize, tokenPoolSize, _ethAmount, _tokenAmount);
+                (ethSwap, _ethPool, _tokenPool) = computePooledValue(ethPoolSize, tokenPoolSize, _ethAmount, _tokenAmount);
                 if(ethSwap > 0) {
                     _wallet.invoke(_pool, ethSwap, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
                 }
             }
-            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", _pool, tokenPool));
+            _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", _pool, _tokenPool));
         }
         else {
             if(preventSwap) {
-                ethPool = _ethAmount;
-                tokenPool = _ethAmount.mul(tokenPoolSize).div(ethPoolSize);
-                _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", _pool, tokenPool));
+                _ethPool = _ethAmount;
+                _tokenPool = _ethAmount.mul(tokenPoolSize).div(ethPoolSize);
+                _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", _pool, _tokenPool));
             }
             else {
                 // swap some tokens for eth
                 uint256 tokenSwap;
-                (tokenSwap, tokenPool, ethPool) = computePooledValue(tokenPoolSize, ethPoolSize, _tokenAmount, _ethAmount);
-                _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", _pool, tokenSwap + tokenPool));
+                (tokenSwap, _tokenPool, _ethPool) = computePooledValue(tokenPoolSize, ethPoolSize, _tokenAmount, _ethAmount);
+                _wallet.invoke(_poolToken, 0, abi.encodeWithSignature("approve(address,uint256)", _pool, tokenSwap + _tokenPool));
                 if(tokenSwap > 0) {
                     _wallet.invoke(_pool, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", tokenSwap, 1, block.timestamp));
                 }
             }   
         }
         // add liquidity
-        _wallet.invoke(_pool, ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, tokenPool, block.timestamp + 1));
+        _wallet.invoke(_pool, _ethPool - 1, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, _tokenPool, block.timestamp + 1));
     }
 
     /**
-     * @dev Removes liquidity from a Uniswap ETH-ERC20 pair.
+     * @dev Removes liquidity from a Uniswap ETH-ERC20 pair.©
      * @param _wallet The target wallet
      * @param _pool The address of the Uniswap contract for the target pair.
      * @param _poolToken The address of the ERC20 token of the pair.
@@ -267,7 +269,7 @@ contract Uniswap is Invest {
     {
         if(_ethValue != 0 && _tokenValue != 0) {
             uint ratio = _ethValue.mul(1000000).div(_tokenValue);
-            return ratio >= 90000 && ratio <= 1052631; 
+            return ratio >= 900000 && ratio <= 1052631; 
         }
         return false;
     }

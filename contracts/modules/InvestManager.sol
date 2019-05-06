@@ -19,7 +19,7 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
     // The Guardian storage 
     GuardianStorage public guardianStorage;
 
-    event InvestmentAdded(address indexed _wallet, address indexed _provider, address[] _tokens, uint256[] _amounts, uint256 _period);
+    event InvestmentAdded(address indexed _wallet, address indexed _provider, address[] _tokens, uint256[] _invested, uint256 _period);
     event InvestmentRemoved(address indexed _wallet, address indexed _provider, address[] _tokens, uint256 _fraction);
 
     /**
@@ -69,9 +69,10 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
             _period,
             providers[_provider].oracles
             );
-        (bool success, ) = delegateToProvider(_provider, methodData);
+        (bool success, bytes memory data) = delegateToProvider(_provider, methodData);
         require(success, "InvestManager: request to provider failed");
-        emit InvestmentAdded(address(_wallet), _provider, _tokens, _amounts, _period);
+        (uint256[] memory invested) = abi.decode(data,(uint256[]));
+        emit InvestmentAdded(address(_wallet), _provider, _tokens, invested, _period);
     }
 
     /**

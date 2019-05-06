@@ -56,54 +56,91 @@ describe("Invest Manager with Uniswap", function () {
         return liquidityPool;
     };
 
-    async function testAddInvestment(initialEthLiquidity, initialTokenPrice, ethToAdd, tokenToAdd) {
+    async function testAddInvestment(initialEthLiquidity, initialTokenPrice, ethToAdd, tokenToAdd, relay = false) {
         if(ethToAdd > 0) {
             await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethToAdd });
         }
         if(tokenToAdd > 0) {
             await token.from(infrastructure).transfer(wallet.contractAddress, tokenToAdd);
         }
+        
         let ethBefore = await deployer.provider.getBalance(wallet.contractAddress);
         let tokenBefore = await token.balanceOf(wallet.contractAddress);
         let pool = await testCreatePool(initialEthLiquidity, initialTokenPrice);
-
-        await investManager.from(owner).addInvestment(
-            wallet.contractAddress, 
-            uniswapProvider.contractAddress,
-            [ETH_TOKEN, token.contractAddress], 
-            [ethToAdd, tokenToAdd], 
-            0,
-            {gasLimit: 300000}
-        );
         
+        let txReceipt;
+        const params = [wallet.contractAddress, uniswapProvider.contractAddress, [ETH_TOKEN, token.contractAddress], [ethToAdd, tokenToAdd], 0];
+        if(relay) {
+            txReceipt = await manager.relay(investManager, 'addInvestment', params, wallet, [owner]);
+        }
+        else {
+            const tx = await investManager.from(owner).addInvestment(...params, {gasLimit: 300000});
+            txReceipt = await investManager.verboseWaitForTransaction(tx);
+        }
+        
+        let logs = utils.parseLogs(txReceipt, investManager, "InvestmentAdded");
         let shares = await pool.balanceOf(wallet.contractAddress);
         let ethAfter = await deployer.provider.getBalance(wallet.contractAddress);
         let tokenAfter = await token.balanceOf(wallet.contractAddress);
+
         assert.isTrue(shares.gt(0), "should have received shares");
         assert.isTrue(ethers.utils.bigNumberify(ethToAdd).eq(0) || ethBefore.sub(ethAfter).gte(Math.floor(0.95 * ethToAdd)), "should have pooled at least 95% of the eth value provided"); 
         assert.isTrue(ethers.utils.bigNumberify(tokenToAdd).eq(0) || tokenBefore.sub(tokenAfter).gte(Math.floor(0.95 * tokenToAdd)), "should have pooled at least 95% of the token value provided");
+        
         return [pool, shares];
     };
 
-    async function testRemoveInvestment(initialEthLiquidity, initialTokenPrice, percentToAdd, percentToremove) {
+    async function testRemoveInvestment(initialEthLiquidity, initialTokenPrice, percentToAdd, percentToremove, relay = false) {
         let result = await testAddInvestment(initialEthLiquidity, initialTokenPrice, initialEthLiquidity.mul(percentToAdd).div(100), 0);
-        let sharesBefore = result[1];
-        await investManager.from(owner).removeInvestment(
-            wallet.contractAddress,
-            uniswapProvider.contractAddress,
-            [ETH_TOKEN, token.contractAddress],
-            percentToremove.mul(100), 
-            {gasLimit: 100000}
-        );
+        let sharesBefore = result[1]; 
+
+        let txReceipt;
+        const params = [wallet.contractAddress, uniswapProvider.contractAddress, [ETH_TOKEN, token.contractAddress], percentToremove *100];
+        if(relay) {
+            txReceipt = await manager.relay(investManager, 'removeInvestment', params, wallet, [owner]);
+        }
+        else {
+            const tx = await investManager.from(owner).removeInvestment(...params, {gasLimit: 300000});
+            txReceipt = await investManager.verboseWaitForTransaction(tx);
+        }
+
+        let logs = utils.parseLogs(txReceipt, investManager, "InvestmentRemoved"); 
         let sharesAfter = await result[0].balanceOf(wallet.contractAddress);
-        assert.isTrue(sharesAfter.eq(sharesBefore.mul(percentToremove).div(100)), "should have sold the correct amount of shares");
+
+        assert.isTrue(sharesAfter.eq(sharesBefore.sub(sharesBefore.mul(percentToremove).div(100))), "should have sold the correct amount of shares");
     }
 
-    describe("Add liquidity", () => {
+    describe("Basic framework", () => {
         it('should create a liquidity pool with the correct supply', async () => {
             await testCreatePool(ethers.utils.bigNumberify('10000000000000000'), 2);
         });
 
+        it('should fail to add investment when the provider is unknown', async () => {
+            await testCreatePool(ethers.utils.bigNumberify('10000000000000000'), 2);
+            await assert.revert(investManager.from(owner).addInvestment(
+                wallet.contractAddress, 
+                uniswapFactory.contractAddress,
+                [ETH_TOKEN, token.contractAddress], 
+                [5000000, 20000000], 
+                0,
+                {gasLimit: 300000}
+            ),"should throw when the provider is unknown");
+        });
+
+        it('should fail to remove investment when the provider is unknown', async () => {
+            let initialEthLiquidity = ethers.utils.bigNumberify('10000000000000000');
+            await testAddInvestment(initialEthLiquidity, 2, initialEthLiquidity.div(1000000), initialEthLiquidity.div(2000000));
+            await assert.revert(investManager.from(owner).removeInvestment(
+                wallet.contractAddress,
+                uniswapFactory.contractAddress,
+                [ETH_TOKEN, token.contractAddress],
+                5000, 
+                {gasLimit: 100000}
+            ), "should throw when the provider is unknown");
+        });
+    });
+
+    describe("Add liquidity with edge parameters", () => {
         it('should add liquidity to the pool whith ETH only when the pool is small (100X)', async () => {
             await testAddInvestment(ethers.utils.bigNumberify('10000000000'), 2, 100000000, 0);
         });
@@ -137,34 +174,60 @@ describe("Invest Manager with Uniswap", function () {
         });
     });
 
-    // describe("Add liquidity with random values", () => {
-    //     for(i = 0; i < 20; i++) {
-    //         it('should add liquidity to the pool whith random token, random ETH and random liquidity ', async () => {
-    //             let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000; 
-    //             let tokenPrice = Math.floor(Math.random() * 10) + 1;
-    //             let eth = Math.floor(Math.random() * 10000000) + 1;
-    //             let token = (Math.floor(Math.random() * 10000000) + 1) * tokenPrice;
-    //             await testAddInvestment(ethers.utils.bigNumberify(pool), tokenPrice, eth, token);
-    //         });
-    //     }
-    // });
+    describe("Add liquidity with random parameters", () => {
+        for(i = 0; i < 20; i++) {
+            it('should add liquidity to the pool whith random token, random ETH and random liquidity ', async () => {
+                let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000; 
+                let tokenPrice = Math.floor(Math.random() * 10) + 1;
+                let eth = Math.floor(Math.random() * 10000000) + 1;
+                let token = (Math.floor(Math.random() * 10000000) + 1) * tokenPrice;
+                await testAddInvestment(ethers.utils.bigNumberify(pool), tokenPrice, eth, token);
+            });
+        }
 
-    // describe("Remove liquidity ", () => {
-    //     it('should remove 100% the user shares from the liquidity pool', async () => {
-    //         await testRemoveLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 100);
-    //     });
+        for(i = 0; i < 20; i++) {
+            it('should add liquidity to the pool whith random token, random ETH and random liquidity (relayed)', async () => {
+                let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000; 
+                let tokenPrice = Math.floor(Math.random() * 10) + 1;
+                let eth = Math.floor(Math.random() * 10000000) + 1;
+                let token = (Math.floor(Math.random() * 10000000) + 1) * tokenPrice;
+                await testAddInvestment(ethers.utils.bigNumberify(pool), tokenPrice, eth, token, true);
+            });
+        }
+    });
 
-    //     it('should remove 50% the user shares from the liquidity pool', async () => {
-    //         await testRemoveLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 50);
-    //     });
+    describe("Remove liquidity ", () => {
+        it('should remove 100% the user shares from the liquidity pool', async () => {
+            await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 100);
+        });
 
-    //     it('should remove 10% the user shares from the liquidity pool', async () => {
-    //         await testRemoveLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 10);
-    //     });
+        it('should remove 50% the user shares from the liquidity pool', async () => {
+            await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 50);
+        });
 
-    //     it('should remove 1% the user shares from the liquidity pool', async () => {
-    //         await testRemoveLiquidity(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 1);
-    //     });
-    // });
+        it('should remove 10% the user shares from the liquidity pool', async () => {
+            await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 10);
+        });
+
+        it('should remove 1% the user shares from the liquidity pool', async () => {
+            await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 1);
+        });
+
+        it('should remove 100% the user shares from the liquidity pool (relayed)', async () => {
+            await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 100, true);
+        });
+
+        it('should remove 50% the user shares from the liquidity pool (relayed)', async () => {
+            await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 50, true);
+        });
+
+        it('should remove 10% the user shares from the liquidity pool (relayed)', async () => {
+            await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 10, true);
+        });
+
+        it('should remove 1% the user shares from the liquidity pool (relayed)', async () => {
+            await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 1, true);
+        });
+    });
 
 });

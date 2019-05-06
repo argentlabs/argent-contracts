@@ -44,6 +44,7 @@ contract CompoundV2 is Invest, Loan {
      * @param _amounts The amount to invest for each token.
      * @param _period The period over which the tokens may be locked in the investment (optional).
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @return The exact amount of each tokens that have been invested. 
      */
     function addInvestment(
         BaseWallet _wallet, 
@@ -53,12 +54,14 @@ contract CompoundV2 is Invest, Loan {
         address[] calldata _oracles
     ) 
         external 
+        returns (uint256[] memory _invested)
     {
         require(_oracles.length == 2, "CompoundV2: invalid oracles length");
         for(uint i = 0; i < _tokens.length; i++) {
             address cToken = CompoundRegistry(_oracles[1]).getCToken(_tokens[i]);
             mint(_wallet, cToken, _tokens[i], _amounts[i]);
         }
+        _invested = _amounts;
     }
 
     /**
