@@ -87,8 +87,6 @@ contract Maker is Loan, Leverage {
     event CdpOpened(address indexed wallet, bytes32 cup, uint256 pethCollateral, uint256 daiDebt);    
     event CdpUpdated(address indexed wallet, bytes32 cup, uint256 pethCollateral, uint256 daiDebt);    
     event CdpClosed(address indexed wallet, bytes32 cup);
-    event LeverageOpened(address indexed wallet, bytes32 cup, uint256 pethCollateral, uint256 daiDebt);    
-    event LeverageClosed(address indexed wallet, bytes32 cup);   
 
     /* ********************************** Implementation of Loan ************************************* */
 
@@ -273,23 +271,21 @@ contract Maker is Loan, Leverage {
         address[] calldata _oracles
     ) 
         external
-        returns (bytes32 _leverageId)
+        returns (bytes32 _leverageId, uint256 _totalCollateral, uint256 _totalDebt)
     {
         require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
         IMakerCdp makerCdp = IMakerCdp(_oracles[0]);
         _leverageId = openCdp(_wallet, _collateralAmount, 0, makerCdp);
         uint256 daiPerPethRatio = availableDaiPerPeth(_conversionRatio, makerCdp);
         uint256 availableCollateral = _collateralAmount;
-        uint256 totalCollateral = availableCollateral;
-        uint256 totalDebt;
+        _totalCollateral = availableCollateral;
         uint256 drawnDai;
 
         for(uint8 i = 0; i < _iterations; i++) {
             (availableCollateral, drawnDai) = drawMoreDai(_wallet, _leverageId, availableCollateral, daiPerPethRatio, makerCdp, UniswapFactory(_oracles[1]));
-            totalDebt += drawnDai;
-            totalCollateral += availableCollateral;
+            _totalDebt += drawnDai;
+            _totalCollateral += availableCollateral;
         }
-        emit LeverageOpened(address(_wallet), _leverageId, totalCollateral, totalDebt);
     }
 
     /**
@@ -345,8 +341,6 @@ contract Maker is Loan, Leverage {
         }
 
         _wallet.invoke(address(makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _leverageId));
-
-        emit LeverageClosed(address(_wallet), _leverageId);
     }
 
     /* *********************************** Maker wrappers ************************************* */

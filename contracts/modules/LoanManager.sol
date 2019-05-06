@@ -19,6 +19,13 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     // The Guardian storage 
     GuardianStorage public guardianStorage;
 
+    event LoanOpened(address indexed _wallet, address indexed _provider, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount, address _debtToken, uint256 _debtAmount);
+    event LoanClosed(address indexed _wallet, address indexed _provider, bytes32 indexed _loanId);
+    event CollateralAdded(address indexed _wallet, address indexed _provider, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
+    event CollateralRemoved(address indexed _wallet, address indexed _provider, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
+    event DebtAdded(address indexed _wallet, address indexed _provider, bytes32 indexed _loanId, address _debtToken, uint256 _debtAmount);
+    event DebtRemoved(address indexed _wallet, address indexed _provider, bytes32 indexed _loanId, address _debtToken, uint256 _debtAmount);
+
     /**
      * @dev Throws if the wallet is locked.
      */
@@ -40,11 +47,11 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     }
 
     /**
-     * @dev Invest tokens for a given period.
+     * @dev Opens a collateralized loan.
      * @param _wallet The target wallet.
      * @param _provider The address of the provider to use.
      * @param _collateral The token used as a collateral.
-     * @param _collateralAmount The amount of collateral token provided.
+     * @param _collateralAmount The amount of collateral provided.
      * @param _debtToken The token borrowed.
      * @param _debtAmount The amount of tokens borrowed.
      * @return (optional) An ID for the loan when the provider enables users to create multiple distinct loans.
@@ -74,6 +81,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         (bool success, bytes memory data) = delegateToProvider(_provider, methodData);
         (_loanId) = abi.decode(data,(bytes32));
         require(success, "LoanManager: request to provider failed");
+        emit LoanOpened(address(_wallet), _provider, _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
     }
 
         /**
@@ -99,6 +107,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             );
         (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
+        emit LoanClosed(address(_wallet), _provider, _loanId);
     }
 
     /**
@@ -130,6 +139,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             );
         (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
+        emit CollateralAdded(address(_wallet), _provider, _loanId, _collateral, _collateralAmount);
     }
 
     /**
@@ -161,6 +171,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             );
         (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
+        emit CollateralRemoved(address(_wallet), _provider, _loanId, _collateral, _collateralAmount);
     }
 
     /**
@@ -192,6 +203,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             );
         (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
+        emit DebtAdded(address(_wallet), _provider, _loanId, _debtToken, _debtAmount);
     }
 
     /**
@@ -223,6 +235,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             );
         (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "LoanManager: request to provider failed");
+        emit DebtRemoved(address(_wallet), _provider, _loanId, _debtToken, _debtAmount);
     }
 
     /**

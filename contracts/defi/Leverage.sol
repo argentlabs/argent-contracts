@@ -31,7 +31,7 @@ interface Leverage {
         address[] calldata _oracles
     ) 
         external
-        returns (bytes32 _leverageId);
+        returns (bytes32 _leverageId, uint256 _totalCollateral, uint256 _totalDebt);
 
     /**
      * @dev Lets the owner of a wallet close a previously opened Leveraged Position. 
