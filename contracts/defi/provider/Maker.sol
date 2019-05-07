@@ -61,12 +61,6 @@ contract Maker is Loan, Leverage {
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    // Multiplicative factor applied to the ether value of the MKR governance
-    // fee to take into account the Kyber spread (in 1-per-10000)
-    uint256 constant internal MKR_ETH_SPREAD = 11000;
-    // Multiplicative factor applied to the ether value of the DAI debt
-    // to take into account the Kyber spread (in 1-per-10000)
-    uint256 constant internal DAI_ETH_SPREAD = 11000;
 
     // Method signatures to reduce gas cost at depoyment
     bytes4 constant internal CDP_DRAW = bytes4(keccak256("draw(bytes32,uint256)"));
@@ -79,6 +73,9 @@ contract Maker is Loan, Leverage {
     bytes4 constant internal CDP_EXIT = bytes4(keccak256("exit(uint256)"));
     bytes4 constant internal ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
     bytes4 constant internal ERC20_WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
+    bytes4 constant internal ETH_TOKEN_SWAP_OUTPUT = bytes4(keccak256("ethToTokenSwapOutput(uint256,uint256)"));
+    bytes4 constant internal ETH_TOKEN_SWAP_INPUT = bytes4(keccak256("ethToTokenSwapInput(uint256,uint256)"));
+    bytes4 constant internal TOKEN_ETH_SWAP_INPUT = bytes4(keccak256("tokenToEthSwapInput(uint256,uint256,uint256)"));
 
     using SafeMath for uint256;
 
@@ -311,7 +308,7 @@ contract Maker is Loan, Leverage {
         UniswapFactory uniswapFactory = UniswapFactory(_oracles[1]);
         if (_daiPayment > 0) {
             // Cap the amount being repaid
-            uint256 daiRepaid = (_daiPayment > makerCdp.tab(_leverageId)) ? makerCdp.tab(_leverageId) : _daiPayment;
+            uint256 daiRepaid = (_daiPayment > daiDebt(_leverageId, makerCdp)) ? daiDebt(_leverageId, makerCdp) : _daiPayment;
             // (Partially) repay debt
             removeDebt(_wallet, _leverageId, daiRepaid, makerCdp, uniswapFactory);
         }
@@ -324,7 +321,7 @@ contract Maker is Loan, Leverage {
             collateral -= removedCollateral;
 
             // Check if there is more debt to pay
-            uint256 tab = makerCdp.tab(_leverageId);
+            uint256 tab = daiDebt(_leverageId, makerCdp);
             if(tab == 0) break; // no more debt (and no more collateral) left in the CDP. We are done
 
             // Convert removedCollateral into DAI and MKR
@@ -339,8 +336,7 @@ contract Maker is Loan, Leverage {
 
             removeDebt(_wallet, _leverageId, convertedDai, makerCdp, uniswapFactory);
         }
-
-        _wallet.invoke(address(makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _leverageId));
+        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _leverageId));
     }
 
     /* *********************************** Maker wrappers ************************************* */
@@ -374,7 +370,7 @@ contract Maker is Loan, Leverage {
         lockETH(_wallet, _cup, _pethCollateral, _makerCdp);
         // Draw DAI from CDP
         if(_daiDebt > 0) {
-            _wallet.invoke(address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _daiDebt));
+            invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _daiDebt));
         }
         emit CdpOpened(address(_wallet), _cup, _pethCollateral, _daiDebt);
     }
@@ -439,7 +435,7 @@ contract Maker is Loan, Leverage {
         internal
     {
         // draw DAI from CDP
-        _wallet.invoke(address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _amount));  
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _amount));
         emit CdpUpdated(address(_wallet), _cup, pethCollateral(_cup, _makerCdp), daiDebt(_cup, _makerCdp));
     }
 
@@ -474,7 +470,7 @@ contract Maker is Loan, Leverage {
             // Not enough MKR => Convert some ETH into MKR with Uniswap
             address mkrUniswap = _uniswapFactory.getExchange(mkrToken);
             uint256 etherValueOfMKR = UniswapExchange(mkrUniswap).getEthToTokenOutputPrice(mkrFee - mkrBalance);
-            _wallet.invoke(mkrUniswap, etherValueOfMKR * MKR_ETH_SPREAD / 10000, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", mkrFee - mkrBalance, block.timestamp));
+            invokeWallet(_wallet, mkrUniswap, etherValueOfMKR, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee - mkrBalance, block.timestamp));
         }
 
         // get DAI balance
@@ -484,15 +480,15 @@ contract Maker is Loan, Leverage {
             // Not enough DAI => Convert some ETH into DAI with Uniswap
             address daiUniswap = _uniswapFactory.getExchange(daiToken);
             uint256 etherValueOfDAI = UniswapExchange(daiUniswap).getEthToTokenOutputPrice(_amount - daiBalance);
-            _wallet.invoke(daiUniswap, etherValueOfDAI * DAI_ETH_SPREAD / 10000, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _amount - daiBalance, block.timestamp));
+            invokeWallet(_wallet, daiUniswap, etherValueOfDAI, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, _amount - daiBalance, block.timestamp));
         }
 
         // Approve DAI to let wipe() repay the DAI debt
-        _wallet.invoke(daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _amount));
+        invokeWallet(_wallet, daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _amount));
         // Approve MKR to let wipe() pay the MKR governance fee
-        _wallet.invoke(mkrToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), mkrFee));
+        invokeWallet(_wallet, mkrToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), mkrFee));
         // repay DAI debt and MKR governance fee
-        _wallet.invoke(address(_makerCdp), 0, abi.encodeWithSelector(CDP_WIPE, _cup, _amount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_WIPE, _cup, _amount));
         // emit CdpUpdated
         emit CdpUpdated(address(_wallet), _cup, pethCollateral(_cup, _makerCdp), daiDebt(_cup, _makerCdp));    
     }
@@ -518,7 +514,7 @@ contract Maker is Loan, Leverage {
         // free all ETH collateral
         removeCollateral(_wallet, _cup, pethCollateral(_cup, _makerCdp), _makerCdp);
         // shut the CDP
-        _wallet.invoke(address(_makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _cup));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _cup));
         // emit CdpClosed
         emit CdpClosed(address(_wallet), _cup);    
     }
@@ -595,7 +591,7 @@ contract Maker is Loan, Leverage {
      * @return the governance fee in MKR
      */
     function governanceFeeInMKR(bytes32 _cup, uint256 _daiRefund, IMakerCdp _makerCdp) public returns (uint256 _fee) { 
-        uint256 feeInDAI = _daiRefund.rmul(_makerCdp.rap(_cup).rdiv(_makerCdp.tab(_cup)));
+        uint256 feeInDAI = _daiRefund.rmul(_makerCdp.rap(_cup).rdiv(daiDebt(_cup, _makerCdp)));
         (bytes32 daiPerMKR, bool ok) = _makerCdp.pep().peek();
         if (ok && daiPerMKR != 0) _fee = feeInDAI.wdiv(uint(daiPerMKR));
     }
@@ -617,7 +613,7 @@ contract Maker is Loan, Leverage {
      * @return The minimum amount of PETH to lock in the CDP
      */
     function minRequiredCollateral(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256 _minCollateral) { 
-        _minCollateral = _makerCdp.tab(_cup)     // DAI debt
+        _minCollateral = daiDebt(_cup, _makerCdp)    // DAI debt
             .rmul(_makerCdp.vox().par())         // x ~1 USD/DAI 
             .rmul(_makerCdp.mat())               // x 1.5
             .rmul(1010000000000000000000000000) // x (1+1%) cushion
@@ -646,18 +642,18 @@ contract Maker is Loan, Leverage {
         // Get WETH/PETH rate
         uint ethAmount = _makerCdp.ask(_pethAmount);
         // ETH to WETH
-        _wallet.invoke(wethToken, ethAmount, abi.encodeWithSelector(CDP_DEPOSIT));
+        invokeWallet(_wallet, wethToken, ethAmount, abi.encodeWithSelector(CDP_DEPOSIT));
         // Approve WETH
-        _wallet.invoke(wethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), ethAmount));
+        invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), ethAmount));
         // WETH to PETH
-        _wallet.invoke(address(_makerCdp), 0, abi.encodeWithSelector(CDP_JOIN, _pethAmount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_JOIN, _pethAmount));
 
         // 2. Lock PETH into CDP
         address pethToken = _makerCdp.skr();
         // Approve PETH
-        _wallet.invoke(pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
+        invokeWallet(_wallet, pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
         // lock PETH into CDP
-        _wallet.invoke(address(_makerCdp), 0, abi.encodeWithSelector(CDP_LOCK, _cup, _pethAmount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_LOCK, _cup, _pethAmount));
     }
 
     /**
@@ -678,19 +674,19 @@ contract Maker is Loan, Leverage {
         // 1. Unlock PETH
 
         // Unlock PETH from CDP
-        _wallet.invoke(address(_makerCdp), 0, abi.encodeWithSelector(CDP_FREE, _cup, _pethAmount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_FREE, _cup, _pethAmount));
 
         // 2. Convert PETH to ETH
         address wethToken = _makerCdp.gem();
         address pethToken = _makerCdp.skr();
         // Approve PETH
-        _wallet.invoke(pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
+        invokeWallet(_wallet, pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
         // PETH to WETH
-        _wallet.invoke(address(_makerCdp), 0, abi.encodeWithSelector(CDP_EXIT, _pethAmount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_EXIT, _pethAmount));
         // Get WETH/PETH rate
         uint ethAmount = _makerCdp.bid(_pethAmount);
         // WETH to ETH
-        _wallet.invoke(wethToken, 0, abi.encodeWithSelector(ERC20_WITHDRAW, ethAmount));
+        invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(ERC20_WITHDRAW, ethAmount));
     }
 
     /**
@@ -720,8 +716,8 @@ contract Maker is Loan, Leverage {
         // Exchange drawn DAI for ETH
         address daiToken = _makerCdp.sai();
         address daiExchange = _uniswapFactory.getExchange(daiToken);
-        _wallet.invoke(daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _drawnDai));
-        _wallet.invoke(daiExchange, 0, abi.encodeWithSignature("tokenToEthSwapInput(uint256,uint256,uint256)", _drawnDai, 1, block.timestamp));
+        invokeWallet(_wallet, daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _drawnDai));
+        invokeWallet(_wallet, daiExchange, 0, abi.encodeWithSelector(TOKEN_ETH_SWAP_INPUT, _drawnDai, 1, block.timestamp));
         _availableCollateral = UniswapExchange(daiExchange).getTokenToEthInputPrice(_drawnDai);
 
         // Add ETH as collateral
@@ -772,18 +768,20 @@ contract Maker is Loan, Leverage {
         internal 
         returns (uint256 _convertedDai) 
     {
+        address exchange;
+        uint256 expectedToken;
         // Convert a portion of _collateral into DAI
         uint256 rap = _makerCdp.rap(_cup); // total MKR governance fee left to pay, converted to DAI
         uint256 collateralForDai = _collateralAmount.wmul(_tab).wdiv(_tab + rap);
-        address daiUniswap = _uniswapFactory.getExchange(_makerCdp.sai());
-        uint expectedDai = UniswapExchange(daiUniswap).getEthToTokenInputPrice(collateralForDai);
-        if(expectedDai > _tab) {
-            _wallet.invoke(daiUniswap, collateralForDai, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tab, block.timestamp));
+        exchange = _uniswapFactory.getExchange(_makerCdp.sai());
+        expectedToken = UniswapExchange(exchange).getEthToTokenInputPrice(collateralForDai);
+        if(expectedToken > _tab) {
+            invokeWallet(_wallet, exchange, collateralForDai, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, _tab, block.timestamp));
             _convertedDai = _tab;
         }
         else {
-            _wallet.invoke(daiUniswap, collateralForDai, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
-            _convertedDai = expectedDai;
+            invokeWallet(_wallet, exchange, collateralForDai, abi.encodeWithSelector(ETH_TOKEN_SWAP_INPUT, 1, block.timestamp));
+            _convertedDai = expectedToken;
         }
         
         // Convert the remaining portion of removedCollateral into MKR
@@ -793,15 +791,26 @@ contract Maker is Loan, Leverage {
             // Convert the remaining portion of _collateral into MKR
             address mkrToken = _makerCdp.gov();
             uint256 collateralForMkr = _collateralAmount - collateralForDai;
-            address mkrUniswap = _uniswapFactory.getExchange(mkrToken);
-            uint expectedMkr = UniswapExchange(mkrUniswap).getEthToTokenInputPrice(collateralForMkr);
-            if(expectedMkr > mkrFee) {
-                _wallet.invoke(mkrUniswap, collateralForMkr, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", mkrFee, block.timestamp));
+            exchange = _uniswapFactory.getExchange(mkrToken);
+            expectedToken = UniswapExchange(exchange).getEthToTokenInputPrice(collateralForMkr);
+            if(expectedToken > mkrFee) {
+                invokeWallet(_wallet, exchange, collateralForMkr, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee, block.timestamp));
             }
             else {
-                _wallet.invoke(mkrUniswap, collateralForMkr, abi.encodeWithSignature("ethToTokenSwapInput(uint256,uint256)", 1, block.timestamp));
+                invokeWallet(_wallet, exchange, collateralForMkr, abi.encodeWithSelector(ETH_TOKEN_SWAP_INPUT, 1, block.timestamp));
             }
         }
+    }
+
+    /**
+     * @dev Utility method to invoke a wallet
+     * @param _wallet The wallet to invoke.
+     * @param _to The target address.
+     * @param _value The value.
+     * @param _data The data.
+     */
+    function invokeWallet(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
+        _wallet.invoke(_to, _value, _data);
     }
 } 
 

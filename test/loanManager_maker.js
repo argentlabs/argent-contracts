@@ -1,11 +1,14 @@
+const etherlime = require('etherlime');
+
 const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 
 const GuardianStorage = require("../build/GuardianStorage");
-const CdpManager = require("../build/CdpManager");
+const LoanManager = require("../build/LoanManager");
 
-const KyberNetwork = require("../build/KyberNetworkTest");
-const TokenExchanger = require("../build/TokenExchanger");
+const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
+const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
+const MakerProvider = require("../build/Maker");
 
 const TestManager = require("../utils/test-manager");
 
@@ -19,9 +22,6 @@ const { parseEther, formatBytes32String, bigNumberify } = require('ethers').util
 const RAY = bigNumberify('1000000000000000000000000000') // 10**27
 const WAD = bigNumberify('1000000000000000000') // 10**18
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-const KYBER_FEE_RATIO = 30;
-const MKR_DECIMALS = 18;
-const DAI_DECIMALS = 18;
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
 const USD_PER_ETH = WAD.mul(100); // 1 ETH = 100 USD
 const USD_PER_MKR = WAD.mul(400); // 1 MKR = 400 USD
@@ -37,11 +37,13 @@ describe("Test CDP Module", function () {
     const owner = accounts[1].signer;
     const pit = accounts[2].signer;
 
-    let deployer, cdpManager, wallet, sai, gov, tub, kyber, exchanger;
+    let deployer, loanManager, makerProvider, wallet, sai, gov, tub, uniswapFactory;
 
     before(async () => {
         deployer = manager.newDeployer();
+
         const registry = await deployer.deploy(Registry);
+        const guardianStorage = await deployer.deploy(GuardianStorage);
 
         // deploy MakerDAO infrastructure
         const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
@@ -77,60 +79,58 @@ describe("Test CDP Module", function () {
         // set the governance fee to 7.5% APR
         await tub.mold(formatBytes32String('fee'), '1000000002293273137447730714');
 
-        const guardianStorage = await deployer.deploy(GuardianStorage);
-
-        // setup Kyber & Token Exchanger module for purchase of MKR tokens
-        kyber = await deployer.deploy(KyberNetwork);
-        await kyber.addToken(gov.contractAddress, ETH_PER_MKR, MKR_DECIMALS);
-        await kyber.addToken(sai.contractAddress, ETH_PER_DAI, DAI_DECIMALS);
-        await gov['mint(address,uint256)'](kyber.contractAddress, parseEther('1000'));
-        await sai['mint(address,uint256)'](kyber.contractAddress, parseEther('1000'));
-        await infrastructure.sendTransaction({ to: kyber.contractAddress, value: parseEther('5') });
-        exchanger = await deployer.deploy(TokenExchanger, {},
-            registry.contractAddress,
-            guardianStorage.contractAddress,
-            kyber.contractAddress,
-            infrastructure.address,
-            KYBER_FEE_RATIO
-        );
-
-        // setup CDP Manager Module
-        cdpManager = await deployer.deploy(CdpManager, {},
-            registry.contractAddress,
-            guardianStorage.contractAddress,
-            exchanger.contractAddress,
-            tub.contractAddress,
-            gem.contractAddress,
-            skr.contractAddress,
-            sai.contractAddress,
-            gov.contractAddress
-        );
+        // setup Uniswap for purchase of MKR and DAI
+        uniswapFactory = await deployer.deploy(UniswapFactory);
+        const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
+        await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress); 
+        // MKR
+        await uniswapFactory.from(infrastructure).createExchange(gov.contractAddress); 
+        const mkrExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(gov.contractAddress));
+        let mkrLiquidity = parseEther('1');
+        await gov['mint(address,uint256)'](infrastructure.address, mkrLiquidity);
+        await gov.from(infrastructure).approve(mkrExchange.contractAddress, mkrLiquidity); 
+        let currentBlock = await manager.getCurrentBlock(); 
+        let timestamp = await manager.getTimestamp(currentBlock); 
+        await mkrExchange.from(infrastructure).addLiquidity(1, mkrLiquidity, timestamp + 300, {value: mkrLiquidity.mul(ETH_PER_MKR).div(WAD), gasLimit: 150000});
+        // DAI
+        await uniswapFactory.from(infrastructure).createExchange(sai.contractAddress); 
+        const saiExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(sai.contractAddress));
+        let saiLiquidity = parseEther('1');
+        await sai['mint(address,uint256)'](infrastructure.address, saiLiquidity);
+        await sai.from(infrastructure).approve(saiExchange.contractAddress, saiLiquidity); 
+        currentBlock = await manager.getCurrentBlock(); 
+        timestamp = await manager.getTimestamp(currentBlock); 
+        await saiExchange.from(infrastructure).addLiquidity(1, saiLiquidity, timestamp + 300, {value: saiLiquidity.mul(ETH_PER_DAI).div(WAD), gasLimit: 150000});
+        
+        makerProvider = await deployer.deploy(MakerProvider);
+        loanManager = await deployer.deploy(LoanManager, {}, registry.contractAddress, guardianStorage.contractAddress);
+        await loanManager.addProvider(makerProvider.contractAddress, [tub.contractAddress, uniswapFactory.contractAddress]);
     });
 
     beforeEach(async () => {
         wallet = await deployer.deploy(Wallet);
-        await wallet.init(owner.address, [cdpManager.contractAddress, exchanger.contractAddress]);
+        await wallet.init(owner.address, [loanManager.contractAddress]);
         await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther('5') });
     });
 
 
-    describe("CDP", () => {
-        async function testOpenCdp({ ethAmount, daiAmount, relayed }) {
+    describe("Loan", () => {
+        async function testOpenLoan({ ethAmount, daiAmount, relayed }) {
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             const beforeDAI = await sai.balanceOf(wallet.contractAddress);
             const beforeDAISupply = await sai.totalSupply();
 
-            const params = [wallet.contractAddress, ethAmount, daiAmount];
+            const params = [wallet.contractAddress, makerProvider.contractAddress, ETH_TOKEN, ethAmount, sai.contractAddress, daiAmount];
             let txReceipt;
             if (relayed) {
-                txReceipt = await manager.relay(cdpManager, 'openCdp', params, wallet, [owner]);
+                txReceipt = await manager.relay(loanManager, 'openLoan', params, wallet, [owner]);
             } else {
-                const tx = await cdpManager.from(owner).openCdp(...params, { gasLimit: 2000000 });
-                txReceipt = await cdpManager.verboseWaitForTransaction(tx);
+                const tx = await loanManager.from(owner).openLoan(...params, { gasLimit: 2000000 });
+                txReceipt = await loanManager.verboseWaitForTransaction(tx);
             }
 
-            const cup = txReceipt.events.find(e => e.event === 'CdpOpened').args.cup;
-            assert.isDefined(cup, 'cup id should be defined')
+            const loanId = txReceipt.events.find(e => e.event === 'LoanOpened').args._loanId;
+            assert.isDefined(loanId, 'Loan ID should be defined')
 
             const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
             const afterDAI = await sai.balanceOf(wallet.contractAddress);
@@ -140,26 +140,26 @@ describe("Test CDP Module", function () {
             assert.equal(afterDAI.sub(beforeDAI).toString(), daiAmount.toString(), `wallet should have ${daiAmount} more DAI (relayed: ${relayed})`);
             assert.equal(afterDAISupply.sub(beforeDAISupply).toString(), daiAmount.toString(), `${daiAmount} DAI should have been minted (relayed: ${relayed})`);
 
-            return cup;
+            return loanId;
         }
 
-        describe("Open CDP", () => {
+        describe("Open Loan", () => {
             it('should open a CDP (blockchain tx)', async () => {
-                await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('6.6'), relayed: false })
+                await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('6.6'), relayed: false })
             });
             it('should open a CDP (relayed tx)', async () => {
-                await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('6.6'), relayed: true })
+                await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('6.6'), relayed: true })
             });
         });
 
-        async function testChangeCollateral({ cup, ethAmount, add, relayed }) {
+        async function testChangeCollateral({ loanId, ethAmount, add, relayed }) {
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             const method = add ? 'addCollateral' : 'removeCollateral';
-            const params = [wallet.contractAddress, cup, ethAmount];
+            const params = [wallet.contractAddress, makerProvider.contractAddress, loanId, ETH_TOKEN, ethAmount];
             if (relayed) {
-                await manager.relay(cdpManager, method, params, wallet, [owner]);
+                await manager.relay(loanManager, method, params, wallet, [owner]);
             } else {
-                await cdpManager.from(owner)[method](...params, { gasLimit: 2000000 });
+                await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
             }
             const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
             const expectedETHChange = ethAmount.mul(add ? -1 : 1).toString()
@@ -168,32 +168,32 @@ describe("Test CDP Module", function () {
 
         describe("Add/Remove Collateral", () => {
             it('should add collateral (blockchain tx)', async () => {
-                const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: false })
-                await testChangeCollateral({ cup: cup, ethAmount: parseEther('0.010'), add: true, relayed: false })
+                const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: false })
+                await testChangeCollateral({ loanId: loanId, ethAmount: parseEther('0.010'), add: true, relayed: false })
             });
             it('should add collateral (relayed tx)', async () => {
-                const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: true })
-                await testChangeCollateral({ cup: cup, ethAmount: parseEther('0.010'), add: true, relayed: true })
+                const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: true })
+                await testChangeCollateral({ loanId: loanId, ethAmount: parseEther('0.010'), add: true, relayed: true })
             });
             it('should remove collateral (blockchain tx)', async () => {
-                const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: false })
-                await testChangeCollateral({ cup: cup, ethAmount: parseEther('0.010'), add: false, relayed: false })
+                const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: false })
+                await testChangeCollateral({ loanId: loanId, ethAmount: parseEther('0.010'), add: false, relayed: false })
             });
             it('should remove collateral (relayed tx)', async () => {
-                const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: true })
-                await testChangeCollateral({ cup: cup, ethAmount: parseEther('0.010'), add: false, relayed: true })
+                const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: true })
+                await testChangeCollateral({ loanId: loanId, ethAmount: parseEther('0.010'), add: false, relayed: true })
             });
         });
 
-        async function testChangeDebt({ cup, daiAmount, add, relayed }) {
-            const beforeDAI = await sai.balanceOf(wallet.contractAddress);
+        async function testChangeDebt({ loanId, daiAmount, add, relayed }) {
+            const beforeDAI = await sai.balanceOf(wallet.contractAddress); 
             const beforeDAISupply = await sai.totalSupply();
             const method = add ? 'addDebt' : 'removeDebt';
-            const params = [wallet.contractAddress, cup, daiAmount].concat(add ? [] : [0, 0]);
+            const params = [wallet.contractAddress, makerProvider.contractAddress, loanId, sai.contractAddress, daiAmount];
             if (relayed) {
-                await manager.relay(cdpManager, method, params, wallet, [owner]);
+                await manager.relay(loanManager, method, params, wallet, [owner]);
             } else {
-                await cdpManager.from(owner)[method](...params, { gasLimit: 2000000 });
+                await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
             }
             const afterDAI = await sai.balanceOf(wallet.contractAddress);
             const afterDAISupply = await sai.totalSupply();
@@ -204,34 +204,24 @@ describe("Test CDP Module", function () {
 
         describe("Increase Debt", () => {
             it('should increase debt (blockchain tx)', async () => {
-                const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: false })
-                await testChangeDebt({ cup: cup, daiAmount: parseEther('1'), add: true, relayed: false })
+                const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('1'), relayed: false })
+                await testChangeDebt({ loanId: loanId, daiAmount: parseEther('0.5'), add: true, relayed: false })
             });
             it('should increase debt (relayed tx)', async () => {
-                const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: true })
-                await testChangeDebt({ cup: cup, daiAmount: parseEther('1'), add: true, relayed: true })
+                const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('1'), relayed: true })
+                await testChangeDebt({ loanId: loanId, daiAmount: parseEther('0.5'), add: true, relayed: true })
             });
         });
 
         async function testRepayDebt({ useOwnMKR, relayed }) {
             if (useOwnMKR) {
-                // Buy MKR
-                await exchanger.from(owner).trade(
-                    wallet.contractAddress,
-                    ETH_TOKEN,
-                    parseEther('0.1'),
-                    gov.contractAddress,
-                    parseEther('1000'),
-                    0,
-                    { gasLimit: 200000 }
-                );
+                await gov['mint(address,uint256)'](wallet.contractAddress, parseEther('0.1'));
             }
-            const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: relayed })
+            const loanId = await testOpenLoan({ ethAmount: parseEther('0.0100'), daiAmount: parseEther('0.1'), relayed: relayed })
             await manager.increaseTime(3600 * 24 * 365); // wait one year
-
             const beforeMKR = await gov.balanceOf(wallet.contractAddress);
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
-            await testChangeDebt({ cup: cup, daiAmount: parseEther('1'), add: false, relayed: relayed })
+            await testChangeDebt({ loanId: loanId, daiAmount: parseEther('0.00000005'), add: false, relayed: relayed })
             const afterMKR = await gov.balanceOf(wallet.contractAddress);
             const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
 
@@ -242,7 +232,7 @@ describe("Test CDP Module", function () {
         }
 
         describe("Repay Debt", () => {
-            it('should close CDP debt when paying fee in MKR (blockchain tx)', async () => {
+            it('should repay debt when paying fee in MKR (blockchain tx)', async () => {
                 await testRepayDebt({ useOwnMKR: true, relayed: false });
             });
             it('should repay debt when paying fee in MKR (relayed tx)', async () => {
@@ -256,18 +246,9 @@ describe("Test CDP Module", function () {
             });
         });
 
-        async function testCloseCdp({ useOwnMKR, relayed }) {
+        async function testCloseLoan({ useOwnMKR, relayed }) {
             if (useOwnMKR) {
-                // Buy MKR
-                await exchanger.from(owner).trade(
-                    wallet.contractAddress,
-                    ETH_TOKEN,
-                    parseEther('0.1'),
-                    gov.contractAddress,
-                    parseEther('1000'),
-                    0,
-                    { gasLimit: 200000 }
-                );
+                await gov['mint(address,uint256)'](wallet.contractAddress, parseEther('0.1'));
             }
 
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
@@ -275,15 +256,15 @@ describe("Test CDP Module", function () {
             const beforeDAI = await sai.balanceOf(wallet.contractAddress);
             const beforeDAISupply = await sai.totalSupply();
 
-            const cup = await testOpenCdp({ ethAmount: parseEther('0.100'), daiAmount: parseEther('2'), relayed: relayed });
+            const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('1'), relayed: relayed });
             await manager.increaseTime(3600 * 24 * 365); // wait one year
 
-            const method = 'closeCdp'
-            const params = [wallet.contractAddress, cup, 0, 0];
+            const method = 'closeLoan'
+            const params = [wallet.contractAddress, makerProvider.contractAddress, loanId];
             if (relayed) {
-                await manager.relay(cdpManager, method, params, wallet, [owner]);
+                await manager.relay(loanManager, method, params, wallet, [owner]);
             } else {
-                await cdpManager.from(owner)[method](...params, { gasLimit: 2000000 });
+                await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
             }
 
             const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
@@ -298,21 +279,21 @@ describe("Test CDP Module", function () {
                 assert.isTrue(afterMKR.lt(beforeMKR) && afterETH.eq(beforeETH), 'governance fee should have been paid in MKR')
             else
                 assert.isTrue(afterMKR.eq(beforeMKR) && afterETH.lt(beforeETH), 'governance fee should have been paid in ETH')
-            assert.equal(await tub.lad(cup), '0x0000000000000000000000000000000000000000', 'CDP should have been wiped');
+            assert.equal(await tub.lad(loanId), '0x0000000000000000000000000000000000000000', 'CDP should have been wiped');
         }
 
         describe("Close CDP", () => {
             it('should close CDP when paying fee in MKR (blockchain tx)', async () => {
-                await testCloseCdp({ useOwnMKR: true, relayed: false });
+                await testCloseLoan({ useOwnMKR: true, relayed: false });
             });
             it('should close CDP when paying fee in MKR (relayed tx)', async () => {
-                await testCloseCdp({ useOwnMKR: true, relayed: true });
+                await testCloseLoan({ useOwnMKR: true, relayed: true });
             });
             it('should close CDP when paying fee in ETH (blockchain tx)', async () => {
-                await testCloseCdp({ useOwnMKR: false, relayed: false });
+                await testCloseLoan({ useOwnMKR: false, relayed: false });
             });
             it('should close CDP when paying fee in ETH (relayed tx)', async () => {
-                await testCloseCdp({ useOwnMKR: false, relayed: true });
+                await testCloseLoan({ useOwnMKR: false, relayed: true });
             });
         });
 
