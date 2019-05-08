@@ -83,24 +83,25 @@ describe("Test CDP Module", function () {
         uniswapFactory = await deployer.deploy(UniswapFactory);
         const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
         await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress); 
+        let ethLiquidity = parseEther('10');
         // MKR
         await uniswapFactory.from(infrastructure).createExchange(gov.contractAddress); 
         const mkrExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(gov.contractAddress));
-        let mkrLiquidity = parseEther('1');
+        let mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
         await gov['mint(address,uint256)'](infrastructure.address, mkrLiquidity);
         await gov.from(infrastructure).approve(mkrExchange.contractAddress, mkrLiquidity); 
         let currentBlock = await manager.getCurrentBlock(); 
         let timestamp = await manager.getTimestamp(currentBlock); 
-        await mkrExchange.from(infrastructure).addLiquidity(1, mkrLiquidity, timestamp + 300, {value: mkrLiquidity.mul(ETH_PER_MKR).div(WAD), gasLimit: 150000});
+        await mkrExchange.from(infrastructure).addLiquidity(1, mkrLiquidity, timestamp + 300, {value: ethLiquidity, gasLimit: 150000});
         // DAI
         await uniswapFactory.from(infrastructure).createExchange(sai.contractAddress); 
         const saiExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(sai.contractAddress));
-        let saiLiquidity = parseEther('1');
+        let saiLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_DAI);
         await sai['mint(address,uint256)'](infrastructure.address, saiLiquidity);
         await sai.from(infrastructure).approve(saiExchange.contractAddress, saiLiquidity); 
         currentBlock = await manager.getCurrentBlock(); 
         timestamp = await manager.getTimestamp(currentBlock); 
-        await saiExchange.from(infrastructure).addLiquidity(1, saiLiquidity, timestamp + 300, {value: saiLiquidity.mul(ETH_PER_DAI).div(WAD), gasLimit: 150000});
+        await saiExchange.from(infrastructure).addLiquidity(1, saiLiquidity, timestamp + 300, {value: ethLiquidity, gasLimit: 150000});
         
         makerProvider = await deployer.deploy(MakerProvider);
         loanManager = await deployer.deploy(LoanManager, {}, registry.contractAddress, guardianStorage.contractAddress);

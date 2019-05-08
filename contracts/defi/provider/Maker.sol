@@ -693,35 +693,36 @@ contract Maker is Loan, Leverage {
      * @dev Draw more DAI from the CDP and exchange it to collateral.
      * @param _wallet The target wallet
      * @param _leverageId The id of the CDP.
-     * @param _collateralAmount The amount of collateral available in the CDP.
+     * @param _availableCollateral The amount of collateral available in the CDP.
      * @param _daiPerPethRatio The ratio of DAI that can be drawn from 1 PETH.
      * @param _makerCdp The Maker CDP contract
      * @param _uniswapFactory The Uniswap Factory contract used for the exchange.
+     * @return the amount of DAI that where drawn from the CDP and the amount of collateral that where added
      */
     function drawMoreDai(
         BaseWallet _wallet, 
         bytes32 _leverageId, 
-        uint256 _collateralAmount,
+        uint256 _availableCollateral,
         uint256 _daiPerPethRatio,
         IMakerCdp _makerCdp,
         UniswapFactory _uniswapFactory
     ) 
         internal 
-        returns (uint256 _availableCollateral, uint256 _drawnDai)
+        returns (uint256 _nextAvailableCollateral, uint256 _drawnDai)
     {
         // Draw DAI
-        _drawnDai = _collateralAmount.rmul(_daiPerPethRatio); 
+        _drawnDai = _availableCollateral.rmul(_daiPerPethRatio); 
         addDebt(_wallet, _leverageId, _drawnDai, _makerCdp);
 
         // Exchange drawn DAI for ETH
         address daiToken = _makerCdp.sai();
         address daiExchange = _uniswapFactory.getExchange(daiToken);
-        invokeWallet(_wallet, daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _drawnDai));
+        _nextAvailableCollateral = UniswapExchange(daiExchange).getTokenToEthInputPrice(_drawnDai);
+        invokeWallet(_wallet, daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, daiExchange, _drawnDai));
         invokeWallet(_wallet, daiExchange, 0, abi.encodeWithSelector(TOKEN_ETH_SWAP_INPUT, _drawnDai, 1, block.timestamp));
-        _availableCollateral = UniswapExchange(daiExchange).getTokenToEthInputPrice(_drawnDai);
 
         // Add ETH as collateral
-        addCollateral(_wallet, _leverageId, _availableCollateral, _makerCdp);
+        addCollateral(_wallet, _leverageId, _nextAvailableCollateral, _makerCdp);
     }
 
     /**
