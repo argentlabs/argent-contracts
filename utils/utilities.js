@@ -67,5 +67,18 @@ module.exports = {
 
     parseRelayReceipt(txReceipt) {
         return txReceipt.events.find(l => l.event === 'TransactionExecuted').args.success;
+    },
+
+    versionFingerprint(modules) {
+        let concat = modules.map((module) => {
+			return module.address;
+		}).sort((m1,m2) => {
+			const bn1 = ethers.utils.bigNumberify(m1);
+			const bn2 = ethers.utils.bigNumberify(m2);
+			return bn1.lt(bn2);
+		}).reduce((prevValue, currentValue) => {
+			return prevValue + currentValue.slice(2);
+		}, "0x");
+		return ethers.utils.keccak256(concat).slice(0,10);
     }
 }

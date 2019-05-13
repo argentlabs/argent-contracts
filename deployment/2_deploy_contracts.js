@@ -30,7 +30,7 @@ const deploy = async (network, secret) => {
     const prevConfig = configurator.copyConfig();
 	console.log('Previous Config:', prevConfig);
 
-    const deploymentWallet = deployer.wallet;
+    const deploymentWallet = deployer.signer;
     const deploymentAccount = await deploymentWallet.getAddress();
     const walletRootEns = prevConfig.ENS.domain;
 

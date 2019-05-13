@@ -126,6 +126,15 @@
             "required": ["bucket"],
             "additionalProperties": false
           },
+          "versionUpload": {
+            "type": "object",
+            "properties": {
+              "bucket": { "type": "string" },
+              "url": { "type": "string" }
+            },
+            "required": ["bucket", "url"],
+            "additionalProperties": false
+          },
           "lockPeriod": { "type": "integer" },
           "recoveryPeriod": { "type": "integer" },
           "securityPeriod": { "type": "integer" },

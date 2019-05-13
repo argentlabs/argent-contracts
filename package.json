@@ -25,6 +25,7 @@
     "dotenv": "^6.2.0",
     "etherlime": "^1.1.2",
     "ethers": "^4.0.27",
+    "node-fetch": "^2.3.0",
     "solc": "0.5.4",
     "tinyreq": "^3.4.1"
   },
