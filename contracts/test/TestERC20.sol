@@ -7,7 +7,12 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
  */
 contract TestERC20 is ERC20 {
 
+    string constant public symbol = "AGT";
+    string constant public name = "ArgentToken";
+    uint8 public decimals;
+
     constructor (address[] memory _initialAccounts, uint _supply, uint8 _decimals) public {
+        decimals = _decimals;
         for(uint i = 0; i < _initialAccounts.length; i++) {
             _mint(_initialAccounts[i], _supply * 10**uint(_decimals));
         }

@@ -1,6 +1,7 @@
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../utils/SafeMath.sol";
+import "../utils/CompoundRegistry.sol";
 import "../Invest.sol";
 import "../Loan.sol";
 
@@ -9,16 +10,14 @@ interface Comptroller {
     function exitMarket(address _cToken) external returns (uint);
     function getAssetsIn(address _account) external view returns (address[] memory);
     function getAccountLiquidity(address _account) external view returns (uint, uint, uint);
-}
-
-interface CompoundRegistry {
-    function getCToken(address _token) external view returns (address);
+    function checkMembership(address account, CToken cToken) external view returns (bool);
 }
 
 interface CToken {
     function comptroller() external view returns (address);
     function underlying() external view returns (address);
-    function exchangeRateCurrent() external view returns (uint256);
+    function exchangeRateCurrent() external returns (uint256);
+    function exchangeRateStored() external view returns (uint256);
     function balanceOf(address _account) external view returns (uint256);
     function borrowBalanceCurrent(address _account) external view returns (uint256);
 }
@@ -100,13 +99,13 @@ contract CompoundV2 is Invest, Loan {
         address[] calldata _oracles
     ) 
         external 
-        view 
+        view
         returns (uint256 _tokenValue, uint256 _periodEnd) 
     {
         require(_oracles.length == 2, "CompoundV2: invalid oracles length");
         address cToken = CompoundRegistry(_oracles[1]).getCToken(_token);
         uint amount = CToken(cToken).balanceOf(address(_wallet));
-        uint exchangeRateMantissa = CToken(cToken).exchangeRateCurrent();
+        uint exchangeRateMantissa = CToken(cToken).exchangeRateStored();
         _tokenValue = amount.mul(exchangeRateMantissa).div(10 ** 18);
         _periodEnd = 0;
     }
@@ -382,13 +381,10 @@ contract CompoundV2 is Invest, Loan {
      * @param _comptroller The comptroller contract.
      */
     function enterMarketIfNeeded(BaseWallet _wallet, address _cToken, address _comptroller) internal {
-        address[] memory markets = Comptroller(_comptroller).getAssetsIn(address(_wallet));
-        for(uint i = 0; i < markets.length; i++) {
-            if(markets[i] == _cToken) {
-                return;
-            }
+        bool isEntered = Comptroller(_comptroller).checkMembership(address(_wallet), CToken(_cToken));
+        if(!isEntered) {
+            _wallet.invoke(_comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", [_cToken]));
         }
-        _wallet.invoke(_comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", [_cToken]));
     }
 
     /**

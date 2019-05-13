@@ -104,7 +104,7 @@ contract Uniswap is Invest {
         address[] calldata _oracles
     ) 
         external 
-        view 
+        view
         returns (uint256 _tokenValue, uint256 _periodEnd) 
     {
         address pool = UniswapFactory(_oracles[0]).getExchange(_token);

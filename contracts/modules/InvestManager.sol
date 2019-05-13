@@ -117,7 +117,7 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         address _token
     ) 
         external 
-        view 
+        view
         returns (uint256 _tokenValue, uint256 _periodEnd) 
     {
         require(isProvider(_provider), "InvestManager: Not a valid provider");

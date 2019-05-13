@@ -54,6 +54,6 @@ interface Invest {
         address[] calldata _oracles
     ) 
         external 
-        view 
+        view
         returns (uint256 _tokenValue, uint256 _periodEnd);
 }

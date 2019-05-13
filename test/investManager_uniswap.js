@@ -140,7 +140,7 @@ describe("Invest Manager with Uniswap", function () {
         });
     });
 
-    describe("Add liquidity with edge parameters", () => {
+    describe("Add investment with edge parameters", () => {
         it('should add liquidity to the pool whith ETH only when the pool is small (100X)', async () => {
             await testAddInvestment(ethers.utils.bigNumberify('10000000000'), 2, 100000000, 0);
         });
@@ -174,7 +174,7 @@ describe("Invest Manager with Uniswap", function () {
         });
     });
 
-    describe("Add liquidity with random parameters", () => {
+    describe("Add investment with random parameters", () => {
         for(i = 0; i < 20; i++) {
             it('should add liquidity to the pool whith random token, random ETH and random liquidity ', async () => {
                 let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000; 
@@ -196,7 +196,7 @@ describe("Invest Manager with Uniswap", function () {
         }
     });
 
-    describe("Remove liquidity ", () => {
+    describe("Remove investment", () => {
         it('should remove 100% the user shares from the liquidity pool', async () => {
             await testRemoveInvestment(ethers.utils.bigNumberify('10000000000000000'), 2, 1, 100);
         });
