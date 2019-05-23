@@ -110,4 +110,29 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
         emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
     }
 
+    /**
+    * @dev lets the owner transfer a CryptoKitty from a wallet.
+    * @param _wallet The target wallet.
+    * @param _nftContract The CryptoKitty contract address.
+    * @param _to The recipient.
+    * @param _tokenId The kitty id
+    * @param _data The data to pass with the transfer.
+    */
+    function transferCryptoKitty(
+        BaseWallet _wallet,
+        address _nftContract,
+        address _to,
+        uint256 _tokenId,
+        bytes calldata _data
+    )
+        external
+        onlyOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        bytes memory methodData = abi.encodeWithSignature(
+                "transfer(address,uint256)", _to, _tokenId);
+        _wallet.invoke(_nftContract, 0, methodData);
+        emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
+    }
+
 }

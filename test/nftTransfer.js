@@ -5,6 +5,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const NftModule = require("../build/NftTransfer");
 
 const ERC721 = require("../build/TestERC721");
+const CK = require("../build/CryptoKittyTest");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -19,7 +20,7 @@ describe("Test Token Transfer", function () {
     const owner2 = accounts[2].signer;
     const eoaRecipient = accounts[3].signer;
 
-    let nftModule, wallet1, wallet2, erc721;
+    let nftModule, wallet1, wallet2, erc721, ck;
 
     const tokenId = 1;
 
@@ -95,6 +96,44 @@ describe("Test Token Transfer", function () {
             it('should allow safe NFT transfer from wallet1 to wallet2 (relayed)', async () => {
                 await testNftTransfer({ safe: true, relayed: true, recipientAddress: wallet2.contractAddress });
             });
+        });
+
+        describe("CK transfer", () => {
+            async function testCryptoKittyTransfer({ relayed, recipientAddress, ckId }) {
+                let beforeWallet1 = await ck.balanceOf(wallet1.contractAddress);
+                let beforeRecipient = await ck.balanceOf(recipientAddress);
+                if (relayed) {
+                    await manager.relay(nftModule, 'transferCryptoKitty', [wallet1.contractAddress, ck.contractAddress, recipientAddress, ckId, ZERO_BYTES32], wallet1, [owner1]);
+                } else {
+                    await nftModule.from(owner1).transferCryptoKitty(wallet1.contractAddress, ck.contractAddress, recipientAddress, ckId, ZERO_BYTES32);
+                }
+                let afterWallet1 = await ck.balanceOf(wallet1.contractAddress);
+                let afterRecipient = await ck.balanceOf(recipientAddress);
+                assert.equal(beforeWallet1.sub(afterWallet1).toNumber(), 1, `wallet1 should have one less CK (relayed: ${relayed})`);
+                assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more CK (relayed: ${relayed})`);
+            }
+
+            beforeEach(async () => {
+                ck = await deployer.deploy(CK);
+                await ck.createDumbKitty(wallet1.contractAddress);
+            });
+
+            it('should allow CK transfer from wallet1 to wallet2', async () => {
+                await testCryptoKittyTransfer({ relayed: false, ckId: 0, recipientAddress: wallet2.contractAddress });
+            });
+
+            it('should allow CK transfer from wallet1 to wallet2 (relayed)', async () => {
+                await testCryptoKittyTransfer({ relayed: true, ckId: 0, recipientAddress: wallet2.contractAddress });
+            });
+
+            it('should allow CK transfer from wallet1 to EOA account', async () => {
+                await testCryptoKittyTransfer({ relayed: false, ckId: 0, recipientAddress: eoaRecipient.address });
+            });
+
+            it('should allow CK transfer from wallet1 to EOA account (relayed)', async () => {
+                await testCryptoKittyTransfer({ relayed: true, ckId: 0, recipientAddress: eoaRecipient.address });
+            });
+
         });
     });
 
