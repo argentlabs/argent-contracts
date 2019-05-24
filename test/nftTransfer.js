@@ -20,7 +20,7 @@ describe("Test Token Transfer", function () {
     const owner2 = accounts[2].signer;
     const eoaRecipient = accounts[3].signer;
 
-    let nftModule, wallet1, wallet2, erc721, ck;
+    let nftModule, wallet1, wallet2, erc721, ck, ckId;
 
     const tokenId = 1;
 
@@ -30,9 +30,11 @@ describe("Test Token Transfer", function () {
         const registry = await deployer.deploy(Registry);
 
         const guardianStorage = await deployer.deploy(GuardianStorage);
+        ck = await deployer.deploy(CK);
         nftModule = await deployer.deploy(NftModule, {},
             registry.contractAddress,
             guardianStorage.contractAddress,
+            ck.contractAddress
         );
     });
 
@@ -47,16 +49,16 @@ describe("Test Token Transfer", function () {
 
 
     describe("NFT transfers", () => {
-        async function testNftTransfer({ safe, relayed, recipientAddress }) {
-            let beforeWallet1 = await erc721.balanceOf(wallet1.contractAddress);
-            let beforeRecipient = await erc721.balanceOf(recipientAddress);
+        async function testNftTransfer({ safe = true, relayed, recipientAddress, nftContract = erc721, nftId = tokenId }) {
+            let beforeWallet1 = await nftContract.balanceOf(wallet1.contractAddress);
+            let beforeRecipient = await nftContract.balanceOf(recipientAddress);
             if (relayed) {
-                await manager.relay(nftModule, 'transferNFT', [wallet1.contractAddress, erc721.contractAddress, recipientAddress, tokenId, safe, ZERO_BYTES32], wallet1, [owner1]);
+                await manager.relay(nftModule, 'transferNFT', [wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32], wallet1, [owner1]);
             } else {
-                await nftModule.from(owner1).transferNFT(wallet1.contractAddress, erc721.contractAddress, recipientAddress, tokenId, safe, ZERO_BYTES32);
+                await nftModule.from(owner1).transferNFT(wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32);
             }
-            let afterWallet1 = await erc721.balanceOf(wallet1.contractAddress);
-            let afterRecipient = await erc721.balanceOf(recipientAddress);
+            let afterWallet1 = await nftContract.balanceOf(wallet1.contractAddress);
+            let afterRecipient = await nftContract.balanceOf(recipientAddress);
             assert.equal(beforeWallet1.sub(afterWallet1).toNumber(), 1, `wallet1 should have one less NFT (safe: ${safe}, relayed: ${relayed})`);
             assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more NFT (safe: ${safe}, relayed: ${relayed})`);
         }
@@ -99,39 +101,25 @@ describe("Test Token Transfer", function () {
         });
 
         describe("CK transfer", () => {
-            async function testCryptoKittyTransfer({ relayed, recipientAddress, ckId }) {
-                let beforeWallet1 = await ck.balanceOf(wallet1.contractAddress);
-                let beforeRecipient = await ck.balanceOf(recipientAddress);
-                if (relayed) {
-                    await manager.relay(nftModule, 'transferCryptoKitty', [wallet1.contractAddress, ck.contractAddress, recipientAddress, ckId, ZERO_BYTES32], wallet1, [owner1]);
-                } else {
-                    await nftModule.from(owner1).transferCryptoKitty(wallet1.contractAddress, ck.contractAddress, recipientAddress, ckId, ZERO_BYTES32);
-                }
-                let afterWallet1 = await ck.balanceOf(wallet1.contractAddress);
-                let afterRecipient = await ck.balanceOf(recipientAddress);
-                assert.equal(beforeWallet1.sub(afterWallet1).toNumber(), 1, `wallet1 should have one less CK (relayed: ${relayed})`);
-                assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more CK (relayed: ${relayed})`);
-            }
-
             beforeEach(async () => {
-                ck = await deployer.deploy(CK);
                 await ck.createDumbKitty(wallet1.contractAddress);
+                ckId = (ckId === undefined) ? 0 : ckId + 1; // update the id of the CryptoKitty that was just created
             });
 
             it('should allow CK transfer from wallet1 to wallet2', async () => {
-                await testCryptoKittyTransfer({ relayed: false, ckId: 0, recipientAddress: wallet2.contractAddress });
+                await testNftTransfer({ relayed: false, nftId: ckId, nftContract: ck, recipientAddress: wallet2.contractAddress });
             });
 
             it('should allow CK transfer from wallet1 to wallet2 (relayed)', async () => {
-                await testCryptoKittyTransfer({ relayed: true, ckId: 0, recipientAddress: wallet2.contractAddress });
+                await testNftTransfer({ relayed: true, nftId: ckId, nftContract: ck, recipientAddress: wallet2.contractAddress });
             });
 
             it('should allow CK transfer from wallet1 to EOA account', async () => {
-                await testCryptoKittyTransfer({ relayed: false, ckId: 0, recipientAddress: eoaRecipient.address });
+                await testNftTransfer({ relayed: false, nftId: ckId, nftContract: ck, recipientAddress: eoaRecipient.address });
             });
 
             it('should allow CK transfer from wallet1 to EOA account (relayed)', async () => {
-                await testCryptoKittyTransfer({ relayed: true, ckId: 0, recipientAddress: eoaRecipient.address });
+                await testNftTransfer({ relayed: true, nftId: ckId, nftContract: ck, recipientAddress: eoaRecipient.address });
             });
 
         });

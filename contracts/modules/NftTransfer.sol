@@ -19,6 +19,8 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     // The Guardian storage 
     GuardianStorage public guardianStorage;
+    // The address of the CryptoKitties contract
+    address public ckAddress;
 
     // *************** Events *************************** //
 
@@ -39,12 +41,14 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     constructor(
         ModuleRegistry _registry,
-        GuardianStorage _guardianStorage
-    ) 
+        GuardianStorage _guardianStorage,
+        address _ckAddress
+    )
         BaseModule(_registry, NAME)
-        public 
+        public
     {
         guardianStorage = _guardianStorage;
+        ckAddress = _ckAddress;
     }
 
     // *************** External/Public Functions ********************* //
@@ -85,54 +89,31 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     * @param _safe Whether to execute a safe transfer or not
     * @param _data The data to pass with the transfer.
     */
-    function transferNFT(
-        BaseWallet _wallet, 
-        address _nftContract, 
-        address _to, 
-        uint256 _tokenId,
-        bool _safe,
-        bytes calldata _data
-    ) 
-        external 
-        onlyOwner(_wallet) 
-        onlyWhenUnlocked(_wallet)
-    {
-        bytes memory methodData;
-        if(_safe) {
-            methodData = abi.encodeWithSignature(
-                "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
-        } else {
-            methodData = abi.encodeWithSignature(
-                "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
-        }
-
-        _wallet.invoke(_nftContract, 0, methodData);
-        emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
-    }
-
-    /**
-    * @dev lets the owner transfer a CryptoKitty from a wallet.
-    * @param _wallet The target wallet.
-    * @param _nftContract The CryptoKitty contract address.
-    * @param _to The recipient.
-    * @param _tokenId The kitty id
-    * @param _data The data to pass with the transfer.
-    */
-    function transferCryptoKitty(
+function transferNFT(
         BaseWallet _wallet,
         address _nftContract,
         address _to,
         uint256 _tokenId,
+        bool _safe,
         bytes calldata _data
     )
         external
         onlyOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        bytes memory methodData = abi.encodeWithSignature(
-                "transfer(address,uint256)", _to, _tokenId);
+        bytes memory methodData;
+        if(_nftContract == ckAddress) {
+            methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _tokenId);
+        } else {
+           if(_safe) {
+               methodData = abi.encodeWithSignature(
+                   "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
+           } else {
+               methodData = abi.encodeWithSignature(
+                   "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
+           }
+        }
         _wallet.invoke(_nftContract, 0, methodData);
         emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
     }
-
 }
