@@ -129,9 +129,9 @@ describe("Invest Manager with Compound", function () {
         async function addInvestment(tokenAddress, amount, days, relay = false) {
 
             let tx, txReceipt;
-            let investInEth = tokenAddress == ETH_TOKEN ? true : false;
+            let investInEth = (tokenAddress == ETH_TOKEN) ? true : false;
 
-            if(investInEth) {
+            if(investInEth) { 
                 await infrastructure.sendTransaction({ to: wallet.contractAddress, value: amount });
             }
             else {
@@ -139,21 +139,21 @@ describe("Invest Manager with Compound", function () {
             }
             
             const params = [wallet.contractAddress, compoundProvider.contractAddress, [tokenAddress], [amount], 0];
-            if(relay) {
+            if(relay) { 
                 txReceipt = await manager.relay(investManager, 'addInvestment', params, wallet, [owner]);
             }
-            else {
+            else { 
                 tx = await investManager.from(owner).addInvestment(...params, {gasLimit: 300000});
                 txReceipt = await investManager.verboseWaitForTransaction(tx);
-            }
+            } 
             assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentAdded"), "should have generated InvestmentAdded event"); 
 
             // genrate borrows to create interests
-            await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress]);
-            if(investInEth) {
+            await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress]); 
+            if(investInEth) { 
                 await token.from(borrower).approve(cToken.contractAddress, parseEther('10'));
                 await cToken.from(borrower).mint(parseEther('10'));
-                tx = await cEther.from(borrower).borrow(parseEther('1'));
+                tx = await cEther.from(borrower).borrow(parseEther('0.1')); 
                 txReceipt = await cEther.verboseWaitForTransaction(tx);
                 assert.isTrue(await utils.hasEvent(txReceipt, cEther, "Borrow"), "should have generated Borrow event"); 
             }
@@ -173,12 +173,12 @@ describe("Invest Manager with Compound", function () {
             return output._tokenValue;
         }
 
-        it('should invest in ERC20 for 1 year and gain interests (blockchain tx)', async () => {
-            await addInvestment(token.contractAddress, parseEther('1'), 365, false);
-        });
-
         it('should invest in ETH for 1 year and gain interests (blockchain tx)', async () => {
             await addInvestment(ETH_TOKEN, parseEther('1'), 365, false);
+        });
+
+        it('should invest in ERC20 for 1 year and gain interests (blockchain tx)', async () => {
+            await addInvestment(token.contractAddress, parseEther('1'), 365, false);
         });
     });
 
