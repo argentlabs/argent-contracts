@@ -39,51 +39,47 @@ contract CompoundV2Provider is Invest, Loan {
     /**
      * @dev Invest tokens for a given period.
      * @param _wallet The target wallet.
-     * @param _tokens The array of token address.
-     * @param _amounts The amount to invest for each token.
+     * @param _token The token address.
+     * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
-     * @return The exact amount of each tokens that have been invested. 
+     * @return The exact amount of tokens that have been invested. 
      */
     function addInvestment(
         BaseWallet _wallet, 
-        address[] calldata _tokens, 
-        uint256[] calldata _amounts, 
+        address _token, 
+        uint256 _amount, 
         uint256 _period, 
         address[] calldata _oracles
     ) 
         external 
-        returns (uint256[] memory _invested)
+        returns (uint256 _invested)
     {
         require(_oracles.length == 2, "CompoundV2: invalid oracles length");
-        for(uint i = 0; i < _tokens.length; i++) {
-            address cToken = CompoundRegistry(_oracles[1]).getCToken(_tokens[i]);
-            mint(_wallet, cToken, _tokens[i], _amounts[i]);
-        }
-        _invested = _amounts;
+        address cToken = CompoundRegistry(_oracles[1]).getCToken(_token);
+        mint(_wallet, cToken, _token, _amount);
+        _invested = _amount;
     }
 
     /**
      * @dev Exit invested postions.
      * @param _wallet The target wallet.s
-     * @param _tokens The array of token address.
+     * @param _token The token address.
      * @param _fraction The fraction of invested tokens to exit in per 10000. 
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function removeInvestment(
         BaseWallet _wallet, 
-        address[] calldata _tokens, 
+        address _token, 
         uint256 _fraction, 
         address[] calldata _oracles
     ) 
         external 
     {
         require(_oracles.length == 2, "CompoundV2: invalid oracles length");
-        for(uint i = 0; i < _tokens.length; i++) {
-            address cToken = CompoundRegistry(_oracles[1]).getCToken(_tokens[i]);
-            uint shares = CToken(cToken).balanceOf(address(_wallet));
-            redeem(_wallet, cToken, shares.mul(_fraction).div(10000));
-        }
+        address cToken = CompoundRegistry(_oracles[1]).getCToken(_token);
+        uint shares = CToken(cToken).balanceOf(address(_wallet));
+        redeem(_wallet, cToken, shares.mul(_fraction).div(10000));
     }
 
     /**

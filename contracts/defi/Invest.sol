@@ -10,32 +10,32 @@ interface Invest {
     /**
      * @dev Invest tokens for a given period.
      * @param _wallet The target wallet.
-     * @param _tokens The array of token address.
-     * @param _amounts The amount to invest for each token.
+     * @param _token The token address.
+     * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
-     * @return The exact amount of each tokens that have been invested. 
+     * @return The exact amount of tokens that have been invested. 
      */
     function addInvestment(
         BaseWallet _wallet, 
-        address[] calldata _tokens, 
-        uint256[] calldata _amounts, 
+        address _token, 
+        uint256 _amount, 
         uint256 _period, 
         address[] calldata _oracles
     ) 
         external
-        returns (uint256[] memory _invested);
+        returns (uint256 _invested);
 
     /**
      * @dev Exit invested postions.
      * @param _wallet The target wallet.
-     * @param _tokens The array of token address.
+     * @param _token The token address.
      * @param _fraction The fraction of invested tokens to exit in per 10000. 
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function removeInvestment(
         BaseWallet _wallet, 
-        address[] calldata _tokens, 
+        address _token, 
         uint256 _fraction, 
         address[] calldata _oracles
     ) 
