@@ -21,7 +21,7 @@ interface UniswapExchange {
  * The first item of the oracles array is the Uniswap Factory contract.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract Uniswap is Invest {
+contract UniswapProvider is Invest {
 
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 

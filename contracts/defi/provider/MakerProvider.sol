@@ -3,7 +3,7 @@ import "../../wallet/BaseWallet.sol";
 import "../../utils/SafeMath.sol";
 import "../Loan.sol";
 import "../Leverage.sol";
-import "./Uniswap.sol";
+import "./UniswapProvider.sol";
 
 // Interface to MakerDAO's Tub contract, used to manage CDPs
 contract IMakerCdp {
@@ -51,13 +51,13 @@ interface IDSValue {
 } 
 
 /**
- * @title Maker
+ * @title MakerProvider
  * @dev Wrapper contract to integrate MakerDao.
  * The first item of the oracles array is the Maker Tub contract, the second is the Uniswap Factory 
  * that may be used to orchestrate the exchange of tokens.
  * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
-contract Maker is Loan, Leverage {
+contract MakerProvider is Loan, Leverage {
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;

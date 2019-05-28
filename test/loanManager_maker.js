@@ -8,7 +8,7 @@ const LoanManager = require("../build/LoanManager");
 
 const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
 const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
-const MakerProvider = require("../build/Maker");
+const MakerProvider = require("../build/MakerProvider");
 
 const TestManager = require("../utils/test-manager");
 

@@ -14,7 +14,7 @@ const Comptroller = require("../build/Comptroller");
 const InterestModel = require("../build/StableCoinInterestRateModel");
 const CEther = require("../build/CEther");
 const CErc20 = require("../build/CErc20");
-const CompoundProvider = require("../build/CompoundV2");
+const CompoundProvider = require("../build/CompoundV2Provider");
 const CompoundRegistry = require("../build/CompoundRegistry");
 
 const WAD = bigNumberify('1000000000000000000') // 10**18

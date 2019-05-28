@@ -1,5 +1,5 @@
 const LoanManager = require('../build/LoanManager');
-const MakerProvider = require('../build/Maker');
+const MakerProvider = require('../build/MakerProvider');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
@@ -12,10 +12,7 @@ const semver = require('semver');
 const TARGET_VERSION = "1.2.0";
 const MODULES_TO_ENABLE = ["LoanManager"];
 const MODULES_TO_DISABLE = [];
-const BACKWARD_COMPATIBILITY = 1;
-
-const MAKER_TUB = ;
-const UNISWAP_FACTORY = ;
+const BACKWARD_COMPATIBILITY = 2;
 
 const deploy = async (network) => {
 
@@ -43,10 +40,14 @@ const deploy = async (network) => {
     console.log('Config:', config);
 
     ////////////////////////////////////
-    // Deploy new modules
+    // Deploy utility contracts
     ////////////////////////////////////
 
     const MakerProviderWrapper = await deployer.deploy(MakerProvider);
+
+    ////////////////////////////////////
+    // Deploy new modules
+    ////////////////////////////////////
 
     const LoanManagerWrapper = await deployer.deploy(
         LoanManager,
@@ -54,16 +55,20 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.GuardianStorage
     );
-    newModuleWrappers.push(NftTransferWrapper);  
+    await LoanManagerWrapper.addProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory]);
 
-
+    newModuleWrappers.push(LoanManagerWrapper);  
     
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        NftTransfer: NftTransferWrapper.contractAddress
+        LoanManager: LoanManagerWrapper.contractAddress
+    });
+
+    configurator.updateInfrastructureAddresses({
+        MakerProvider: MakerProviderWrapper.contractAddress
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -71,7 +76,8 @@ const deploy = async (network) => {
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(NftTransferWrapper, "modules")
+        abiUploader.upload(LoanManagerWrapper, "modules"),
+        abiUploader.upload(MakerProviderWrapper, "contracts")
     ]);
 
     ////////////////////////////////////

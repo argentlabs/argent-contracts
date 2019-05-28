@@ -23,12 +23,12 @@ interface CToken {
 }
 
 /**
- * @title CompoundV2
+ * @title CompoundV2Provider
  * @dev Wrapper contract to integrate Compound V2.
  * The first item of the oracles array is the Comptroller contract and the second the CompoundRegistry.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract CompoundV2 is Invest, Loan {
+contract CompoundV2Provider is Invest, Loan {
 
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 

@@ -34,6 +34,36 @@
       "then": { "required": ["contract"]},
       "additionalProperties": false
     },
+    "CryptoKitties": {
+      "type": "object",
+      "properties": {
+        "contract": { "$ref": "#/definitions/ethaddress" }
+      },
+      "required": ["contract"]
+    },
+    "defi": {
+      "type": "object",
+      "properties": {
+        "maker": { 
+          "type": "object",
+          "properties": {
+            "tub": { "$ref": "#/definitions/ethaddress" }
+          }
+        },
+        "uniswap": {
+          "type": "object",
+          "properties": {
+            "factory": { "$ref": "#/definitions/ethaddress" }
+          }
+        },
+        "compound": {
+          "type": "object",
+          "properties": {
+            "comptroller": { "$ref": "#/definitions/ethaddress" }
+          }
+        }
+      }
+    },
     "contracts": {
       "type": "object",
       "properties": {
