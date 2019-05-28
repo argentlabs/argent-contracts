@@ -19,8 +19,8 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
     // The Guardian storage 
     GuardianStorage public guardianStorage;
 
-    event InvestmentAdded(address indexed _wallet, address indexed _provider, address[] _tokens, uint256[] _invested, uint256 _period);
-    event InvestmentRemoved(address indexed _wallet, address indexed _provider, address[] _tokens, uint256 _fraction);
+    event InvestmentAdded(address indexed _wallet, address indexed _provider, address _token, uint256 _invested, uint256 _period);
+    event InvestmentRemoved(address indexed _wallet, address indexed _provider, address _token, uint256 _fraction);
 
     /**
      * @dev Throws if the wallet is locked.
@@ -46,15 +46,15 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
      * @dev Invest tokens for a given period.
      * @param _wallet The target wallet.
      * @param _provider The address of the provider to use.
-     * @param _tokens The array of token address.
-     * @param _amounts The amount to invest for each token.
+     * @param _token The token address.
+     * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
      */
     function addInvestment(
         BaseWallet _wallet, 
         address _provider, 
-        address[] calldata _tokens, 
-        uint256[] calldata _amounts, 
+        address _token, 
+        uint256 _amount, 
         uint256 _period
     ) 
         external
@@ -64,28 +64,28 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         bytes memory methodData = abi.encodeWithSignature(
             "addInvestment(address,address[],uint256[],uint256,address[])", 
             address(_wallet), 
-            _tokens,
-            _amounts,
+            _token,
+            _amount,
             _period,
             providers[_provider].oracles
             );
         (bool success, bytes memory data) = delegateToProvider(_provider, methodData);
         require(success, "InvestManager: request to provider failed");
-        (uint256[] memory invested) = abi.decode(data,(uint256[]));
-        emit InvestmentAdded(address(_wallet), _provider, _tokens, invested, _period);
+        (uint256 invested) = abi.decode(data,(uint256));
+        emit InvestmentAdded(address(_wallet), _provider, _token, invested, _period);
     }
 
     /**
      * @dev Exit invested postions.
      * @param _wallet The target wallet.
      * @param _provider The address of the provider to use.
-     * @param _tokens The array of token address.
+     * @param _token The token address.
      * @param _fraction The fraction of invested tokens to exit in per 10000. 
      */
     function removeInvestment(
         BaseWallet _wallet, 
         address _provider, 
-        address[] calldata _tokens, 
+        address _token, 
         uint256 _fraction
     ) 
         external 
@@ -95,13 +95,13 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         bytes memory methodData = abi.encodeWithSignature(
             "removeInvestment(address,address[],uint256,address[])", 
             address(_wallet), 
-            _tokens,
+            _token,
             _fraction,
             providers[_provider].oracles
             );
         (bool success, ) = delegateToProvider(_provider, methodData);
         require(success, "InvestManager: request to provider failed");
-        emit InvestmentRemoved(address(_wallet), _provider, _tokens, _fraction);
+        emit InvestmentRemoved(address(_wallet), _provider, _token, _fraction);
     }
 
     /**
