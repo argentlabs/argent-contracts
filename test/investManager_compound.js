@@ -61,9 +61,9 @@ describe("Invest Manager with Compound", function () {
             ETH_EXCHANGE_RATE,
             formatBytes32String("Compound Ether"),
             formatBytes32String("cETH"),
-            8);
+            8); 
         // deploy token
-        token = await deployer.deploy(ERC20, {}, [infrastructure.address, liquidityProvider.address, borrower.address], 10000, 18); 
+        token = await deployer.deploy(ERC20, {}, [infrastructure.address, liquidityProvider.address, borrower.address], 10000, 18);
         // deploy CToken
         cToken = await deployer.deploy(
             CErc20, 
@@ -138,7 +138,7 @@ describe("Invest Manager with Compound", function () {
                 await token.from(infrastructure).transfer(wallet.contractAddress, amount);
             }
             
-            const params = [wallet.contractAddress, compoundProvider.contractAddress, [tokenAddress], [amount], 0];
+            const params = [wallet.contractAddress, compoundProvider.contractAddress, tokenAddress, amount, 0];
             if(relay) { 
                 txReceipt = await manager.relay(investManager, 'addInvestment', params, wallet, [owner]);
             }

@@ -36,7 +36,7 @@ const deploy = async (network) => {
     const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
     const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
     const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
-    
+
     console.log('Config:', config);
 
     ////////////////////////////////////
@@ -55,7 +55,7 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.GuardianStorage
     );
-    await LoanManagerWrapper.addProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory]);
+    await LoanManagerWrapper.addProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory], {gasLimit: 150000});
 
     newModuleWrappers.push(LoanManagerWrapper);  
     
@@ -93,52 +93,52 @@ const deploy = async (network) => {
     // Deploy and Register upgraders
     ////////////////////////////////////
 
-    const toAdd = newModuleWrappers.map((wrapper) => {
-        return {
-            'address': wrapper.contractAddress,
-            'name': wrapper._contract.contractName
-        };
-    });
-    let fingerprint; 
+    // const toAdd = newModuleWrappers.map((wrapper) => {
+    //     return {
+    //         'address': wrapper.contractAddress,
+    //         'name': wrapper._contract.contractName
+    //     };
+    // });
+    // let fingerprint; 
 
-    const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
-    for (let idx = 0; idx < versions.length; idx++) {
-        const version = versions[idx];
-        const moduleNames = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
-        const toRemove = version.modules.filter(module => moduleNames.includes(module.name));
-        const toKeep = version.modules.filter(module => !moduleNames.includes(module.name));
-        if(idx == 0) {
-            let modules = toKeep.concat(toAdd);
-            fingerprint = utils.versionFingerprint(modules);
-            newVersion.version = semver.lt(version.version, TARGET_VERSION)? TARGET_VERSION : semver.inc(version.version, 'patch');
-            newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
-            newVersion.modules = modules;
-            newVersion.fingerprint = fingerprint;
+    // const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
+    // for (let idx = 0; idx < versions.length; idx++) {
+    //     const version = versions[idx];
+    //     const moduleNames = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
+    //     const toRemove = version.modules.filter(module => moduleNames.includes(module.name));
+    //     const toKeep = version.modules.filter(module => !moduleNames.includes(module.name));
+    //     if(idx == 0) {
+    //         let modules = toKeep.concat(toAdd);
+    //         fingerprint = utils.versionFingerprint(modules);
+    //         newVersion.version = semver.lt(version.version, TARGET_VERSION)? TARGET_VERSION : semver.inc(version.version, 'patch');
+    //         newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
+    //         newVersion.modules = modules;
+    //         newVersion.fingerprint = fingerprint;
 
-            ////////////////////////////////////
-            // Deregister old modules
-            ////////////////////////////////////
+    //         ////////////////////////////////////
+    //         // Deregister old modules
+    //         ////////////////////////////////////
 
-            for (let i = 0; i < toRemove.length; i++) {
-                await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
-            }
-        }
+    //         for (let i = 0; i < toRemove.length; i++) {
+    //             await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
+    //         }
+    //     }
         
-        const UpgraderWrapper = await deployer.deploy(
-            Upgrader,
-            {},
-            toRemove.map((module) => {return module.address;}),
-            toAdd.map((module) => {return module.address;})
-        );
-        const upgraderName = version.fingerprint + '_' + fingerprint; 
-        await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
-    };
+    //     const UpgraderWrapper = await deployer.deploy(
+    //         Upgrader,
+    //         {},
+    //         toRemove.map((module) => {return module.address;}),
+    //         toAdd.map((module) => {return module.address;})
+    //     );
+    //     const upgraderName = version.fingerprint + '_' + fingerprint; 
+    //     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+    // };
 
-    ////////////////////////////////////
-    // Upload Version
-    ////////////////////////////////////
+    // ////////////////////////////////////
+    // // Upload Version
+    // ////////////////////////////////////
 
-    await versionUploader.upload(newVersion);
+    // await versionUploader.upload(newVersion);
 
 }
 

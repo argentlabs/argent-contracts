@@ -55,7 +55,7 @@ contract UniswapProvider is Invest {
     /**
      * @dev Removes a fraction of the tokens from an investment.
      * @param _wallet The target wallet.s
-     * @param _tokens The array of token address.
+     * @param _token The array of token address.
      * @param _fraction The fraction of invested tokens to exit in per 10000. 
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
@@ -88,11 +88,10 @@ contract UniswapProvider is Invest {
         view
         returns (uint256 _tokenValue, uint256 _periodEnd) 
     {
-        address pool = UniswapFactory(_oracles[0]).getExchange(_token);
-        uint256 ethPoolSize = address(pool).balance;
-        uint256 tokenPoolSize = ERC20(_token).balanceOf(pool);
-        uint shares = ERC20(pool).balanceOf(address(_wallet));
-        _tokenValue = shares.mul(tokenPoolSize) + getInputToOutputPrice(shares.mul(ethPoolSize), ethPoolSize, tokenPoolSize);
+        address tokenPool = UniswapFactory(_oracles[0]).getExchange(_token);
+        uint256 tokenPoolSize = ERC20(_token).balanceOf(tokenPool);
+        uint shares = ERC20(tokenPool).balanceOf(address(_wallet));
+        _tokenValue = shares.mul(tokenPoolSize).mul(2);
         _periodEnd = 0;
     }
 

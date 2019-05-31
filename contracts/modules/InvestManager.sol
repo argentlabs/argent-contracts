@@ -62,7 +62,7 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
     {
         require(isProvider(_provider), "InvestManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
-            "addInvestment(address,address[],uint256[],uint256,address[])", 
+            "addInvestment(address,address,uint256,uint256,address[])", 
             address(_wallet), 
             _token,
             _amount,
