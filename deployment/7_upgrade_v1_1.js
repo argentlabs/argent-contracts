@@ -8,7 +8,7 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.1.1";
+const TARGET_VERSION = "1.1.2";
 const MODULES_TO_ENABLE = ["NftTransfer"];
 const MODULES_TO_DISABLE = [];
 const BACKWARD_COMPATIBILITY = 2;
