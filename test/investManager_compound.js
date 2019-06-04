@@ -124,7 +124,7 @@ describe("Invest Manager with Compound", function () {
         });
     });
 
-    describe("Add investment", () => {
+    describe("Investment", () => {
 
         async function addInvestment(tokenAddress, amount, days, relay = false) {
 
@@ -143,13 +143,45 @@ describe("Invest Manager with Compound", function () {
                 txReceipt = await manager.relay(investManager, 'addInvestment', params, wallet, [owner]);
             }
             else { 
-                tx = await investManager.from(owner).addInvestment(...params, {gasLimit: 300000});
-                txReceipt = await investManager.verboseWaitForTransaction(tx);
+                tx = await investManager.from(owner).addInvestment(...params, {gasLimit: 400000});
+                txReceipt = await investManager.verboseWaitForTransaction(tx); 
             } 
             assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentAdded"), "should have generated InvestmentAdded event"); 
+            
+            await accrueInterests(days, investInEth);
+            
+            let output = await investManager.getInvestment(wallet.contractAddress, compoundProvider.contractAddress, tokenAddress); 
+            assert.isTrue(output._tokenValue > amount, 'investment should have gained value');
+            return output._tokenValue;
+        }
 
+        async function removeInvestment(tokenAddress, fraction, relay = false) {
+
+            let investmentValue = await addInvestment(tokenAddress, parseEther('1'), 365, false); 
+            let before = await cToken.balanceOf(wallet.contractAddress);
+            console.log(before);
+
+            const params = [wallet.contractAddress, compoundProvider.contractAddress, tokenAddress, fraction];
+            if(relay) { 
+                txReceipt = await manager.relay(investManager, 'removeInvestment', params, wallet, [owner]);
+            }
+            else { 
+                tx = await investManager.from(owner).removeInvestment(...params, {gasLimit: 400000});
+                txReceipt = await investManager.verboseWaitForTransaction(tx); 
+            } console.log(txReceipt);
+            assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved"), "should have generated InvestmentRemoved event"); 
+
+            let remainingInvestment = await investManager.getInvestment(wallet.contractAddress, compoundProvider.contractAddress, tokenAddress); 
+            let after = await cToken.balanceOf(wallet.contractAddress);
+            console.log(after);
+
+            assert.isTrue(remainingInvestment._tokenValue == investmentValue * (10000 - fraction) / 10000, "should have removed the correct fraction");
+        }
+
+        async function accrueInterests(days, investInEth) {
+            let tx, txReceipt;
             // genrate borrows to create interests
-            await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress]); 
+            await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress], {gasLimit: 200000}); 
             if(investInEth) { 
                 await token.from(borrower).approve(cToken.contractAddress, parseEther('10'));
                 await cToken.from(borrower).mint(parseEther('10'));
@@ -157,7 +189,7 @@ describe("Invest Manager with Compound", function () {
                 txReceipt = await cEther.verboseWaitForTransaction(tx);
                 assert.isTrue(await utils.hasEvent(txReceipt, cEther, "Borrow"), "should have generated Borrow event"); 
             }
-            else {
+            else { 
                 await cEther.from(borrower).mint({value: parseEther('10')});
                 tx = await cToken.from(borrower).borrow(parseEther('1'));
                 txReceipt = await cToken.verboseWaitForTransaction(tx);
@@ -167,19 +199,45 @@ describe("Invest Manager with Compound", function () {
             await manager.increaseTime(3600 * 24 * days); 
             await cToken.accrueInterest();
             await cEther.accrueInterest();
-            
-            let output = await investManager.getInvestment(wallet.contractAddress, compoundProvider.contractAddress, tokenAddress); 
-            assert.isTrue(output._tokenValue > amount, 'investment should have gained value');
-            return output._tokenValue;
         }
 
-        it('should invest in ETH for 1 year and gain interests (blockchain tx)', async () => {
-            await addInvestment(ETH_TOKEN, parseEther('1'), 365, false);
-        });
+        // describe("Add Investment", () => {
 
-        it('should invest in ERC20 for 1 year and gain interests (blockchain tx)', async () => {
-            await addInvestment(token.contractAddress, parseEther('1'), 365, false);
+        //     it('should invest in ERC20 for 1 year and gain interests (blockchain tx)', async () => {
+        //         await addInvestment(token.contractAddress, parseEther('1'), 365, false);
+        //     });
+
+        //     it('should invest in ERC20 for 1 year and gain interests (relay tx)', async () => {
+        //         await addInvestment(token.contractAddress, parseEther('1'), 365, true);
+        //     });
+
+        //     it('should invest in ETH for 1 year and gain interests (blockchain tx)', async () => {
+        //         await addInvestment(ETH_TOKEN, parseEther('1'), 365, false);
+        //     });
+
+        //     it('should invest in ETH for 1 year and gain interests (relay tx)', async () => {
+        //         await addInvestment(ETH_TOKEN, parseEther('1'), 365, true);
+        //     });
+
+        //     it('should invest ETH and increase interests with time (blockchain tx)', async () => {
+        //         let prevTokenValue = 0;
+        //         for (i = 1; i <= 12; i++) {
+        //             let tokenValue = await addInvestment(ETH_TOKEN, parseEther('1'), i * 30, false);
+        //             assert.isTrue(tokenValue > prevTokenValue, 'investment should have gained value');
+        //         }
+        //     });
+        // });
+
+        describe("Remove Investment", () => {
+            it('should remove fractions of an ERC20 investment (blockchain tx)', async () => {
+                //for(i = 0; i < 11; i++) {
+                    let fraction = 1000;
+                    await removeInvestment(token.contractAddress, fraction, false);
+                //}
+                
+            });
         });
+    
     });
 
 });

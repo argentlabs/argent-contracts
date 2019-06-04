@@ -77,6 +77,7 @@ contract CompoundV2Provider is Invest, Loan {
         external 
     {
         require(_oracles.length == 2, "CompoundV2: invalid oracles length");
+        require(_fraction <= 10000, "CompoundV2: invalid fraction value");
         address cToken = CompoundRegistry(_oracles[1]).getCToken(_token);
         uint shares = CToken(cToken).balanceOf(address(_wallet));
         redeem(_wallet, cToken, shares.mul(_fraction).div(10000));
