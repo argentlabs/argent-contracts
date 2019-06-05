@@ -117,13 +117,15 @@ contract UniswapProvider is Invest {
         require(tokenPool != address(0), "Uniswap: target token is not traded on Uniswap");
 
         uint256 tokenBalance = ERC20(_token).balanceOf(address(_wallet));
-        if(_amount < tokenBalance) {
-            uint256 ethToSwap = UniswapExchange(tokenPool).getEthToTokenOutputPrice(_amount - tokenBalance);
+        if(_amount > tokenBalance) {
+            uint256 ethToSwap = UniswapExchange(tokenPool).getEthToTokenOutputPrice(tokenBalance - _amount);
             require(ethToSwap <= address(_wallet).balance, "Uniswap: not enough ETH to swap");
             _wallet.invoke(tokenPool, ethToSwap, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _amount - tokenBalance, block.timestamp));
         }
 
-        uint256 ethToPool = UniswapExchange(tokenPool).getTokenToEthInputPrice(_amount);
+        uint256 tokenLiquidity = ERC20(_token).balanceOf(tokenPool);
+        uint256 ethLiquidity = tokenPool.balance;
+        uint256 ethToPool = (_amount - 1).mul(ethLiquidity).div(tokenLiquidity);
         require(ethToPool <= address(_wallet).balance, "Uniswap: not enough ETH to pool");
         _wallet.invoke(_token, 0, abi.encodeWithSignature("approve(address,uint256)", tokenPool, _amount));
         _wallet.invoke(tokenPool, ethToPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, _amount, block.timestamp + 1));

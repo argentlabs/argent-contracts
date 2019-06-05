@@ -9,6 +9,7 @@ const InvestManager = require("../build/InvestManager");
 const ERC20 = require("../build/TestERC20");
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const TestManager = require("../utils/test-manager");
+const { parseEther, formatBytes32String, bigNumberify } = require('ethers').utils;
 
 describe("Invest Manager with Uniswap", function () {
     this.timeout(1000000);
@@ -38,6 +39,7 @@ describe("Invest Manager with Uniswap", function () {
         wallet = await deployer.deploy(Wallet);
         await wallet.init(owner.address, [investManager.contractAddress]);
         token = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000, 18); 
+        await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther('1') });
     });
 
     async function testCreatePool(initialEthLiquidity, initialTokenPrice) {
@@ -56,37 +58,33 @@ describe("Invest Manager with Uniswap", function () {
         return liquidityPool;
     };
 
-    async function testAddInvestment(initialEthLiquidity, initialTokenPrice, ethToAdd, tokenToAdd, relay = false) {
-        if(ethToAdd > 0) {
-            await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethToAdd });
-        }
-        if(tokenToAdd > 0) {
-            await token.from(infrastructure).transfer(wallet.contractAddress, tokenToAdd);
-        }
+    async function testAddInvestment(initialEthLiquidity, initialTokenPrice, amount, relay = false) {
+        
+        await token.from(infrastructure).transfer(wallet.contractAddress, amount);
         
         let ethBefore = await deployer.provider.getBalance(wallet.contractAddress);
         let tokenBefore = await token.balanceOf(wallet.contractAddress);
         let pool = await testCreatePool(initialEthLiquidity, initialTokenPrice);
         
         let txReceipt;
-        const params = [wallet.contractAddress, uniswapProvider.contractAddress, [ETH_TOKEN, token.contractAddress], [ethToAdd, tokenToAdd], 0];
+        const params = [wallet.contractAddress, uniswapProvider.contractAddress, token.contractAddress, amount, 0];
         if(relay) {
             txReceipt = await manager.relay(investManager, 'addInvestment', params, wallet, [owner]);
         }
         else {
             const tx = await investManager.from(owner).addInvestment(...params, {gasLimit: 300000});
             txReceipt = await investManager.verboseWaitForTransaction(tx);
-        }
+        } 
+        assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentAdded"), "should have generated InvestmentAdded event"); 
         
-        let logs = utils.parseLogs(txReceipt, investManager, "InvestmentAdded");
         let shares = await pool.balanceOf(wallet.contractAddress);
         let ethAfter = await deployer.provider.getBalance(wallet.contractAddress);
-        let tokenAfter = await token.balanceOf(wallet.contractAddress);
+        let tokenAfter = await token.balanceOf(wallet.contractAddress); 
 
         assert.isTrue(shares.gt(0), "should have received shares");
-        assert.isTrue(ethers.utils.bigNumberify(ethToAdd).eq(0) || ethBefore.sub(ethAfter).gte(Math.floor(0.95 * ethToAdd)), "should have pooled at least 95% of the eth value provided"); 
-        assert.isTrue(ethers.utils.bigNumberify(tokenToAdd).eq(0) || tokenBefore.sub(tokenAfter).gte(Math.floor(0.95 * tokenToAdd)), "should have pooled at least 95% of the token value provided");
-        
+        assert.isTrue(tokenAfter - tokenBefore.sub(amount) <= initialTokenPrice, "Should have invested the correct amount of tokens");
+        assert.isTrue(ethAfter - ethBefore.sub(amount.div(initialTokenPrice)) <= initialTokenPrice, "Should have taken the correct amount of ETH");
+
         return [pool, shares];
     };
 
@@ -120,8 +118,8 @@ describe("Invest Manager with Uniswap", function () {
             await assert.revert(investManager.from(owner).addInvestment(
                 wallet.contractAddress, 
                 uniswapFactory.contractAddress,
-                [ETH_TOKEN, token.contractAddress], 
-                [5000000, 20000000], 
+                token.contractAddress, 
+                20000000, 
                 0,
                 {gasLimit: 300000}
             ),"should throw when the provider is unknown");
@@ -140,9 +138,25 @@ describe("Invest Manager with Uniswap", function () {
         });
     });
 
-    describe("Add investment with edge parameters", () => {
-        it('should add liquidity to the pool whith ETH only when the pool is small (100X)', async () => {
-            await testAddInvestment(ethers.utils.bigNumberify('10000000000'), 2, 100000000, 0);
+    describe("Add investment", () => {
+        it('should invest when the user has enough tokens and ETH', async () => {
+            await testAddInvestment(parseEther('1'), 2, parseEther('0.02'), 0);
+        });
+
+        it('should invest when the user has enough tokens and ETH', async () => {
+            await testAddInvestment(parseEther('1'), 3, parseEther('0.02'), 0);
+        });
+
+        it('should invest when the user has enough tokens and ETH', async () => {
+            await testAddInvestment(parseEther('1'), 4, parseEther('0.02'), 0);
+        });
+
+        it('should invest when the user has enough tokens and ETH', async () => {
+            await testAddInvestment(parseEther('1'), 11, parseEther('0.02'), 0);
+        });
+
+        it('should invest when the user has enough tokens and ETH', async () => {
+            await testAddInvestment(parseEther('1'), 27, parseEther('0.02'), 0);
         });
 
         it('should add liquidity to the pool whith ETH only when the pool is large (100MX)', async () => {
@@ -175,13 +189,12 @@ describe("Invest Manager with Uniswap", function () {
     });
 
     describe("Add investment with random parameters", () => {
-        for(i = 0; i < 20; i++) {
-            it('should add liquidity to the pool whith random token, random ETH and random liquidity ', async () => {
-                let pool = Math.floor(Math.random() * 1000000000000000) + 1000000000; 
-                let tokenPrice = Math.floor(Math.random() * 10) + 1;
-                let eth = Math.floor(Math.random() * 10000000) + 1;
-                let token = (Math.floor(Math.random() * 10000000) + 1) * tokenPrice;
-                await testAddInvestment(ethers.utils.bigNumberify(pool), tokenPrice, eth, token);
+        for(i = 0; i < 10; i++) {
+            it(`should invest liquidity ${tokenPrice} `, async () => {
+                let pool = parseEther('0.1').mul(Math.floor(Math.random() * 10) + 1); 
+                let tokenPrice = Math.floor(Math.random() * 100) + 1;
+                let amount = pool.div(1000).mul(Math.floor(Math.random() * 10) + 1).mul(tokenPrice);
+                await testAddInvestment(bigNumberify(pool), tokenPrice, amount);
             });
         }
 
