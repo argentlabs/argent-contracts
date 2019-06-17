@@ -20,6 +20,7 @@ interface CToken {
     function exchangeRateStored() external view returns (uint256);
     function balanceOf(address _account) external view returns (uint256);
     function borrowBalanceCurrent(address _account) external view returns (uint256);
+    function borrowBalanceStored(address _account) external view returns (uint256);
 }
 
 /**
@@ -131,12 +132,13 @@ contract CompoundV2Provider is Invest, Loan {
         returns (bytes32 _loanId) 
     {
         require(_oracles.length == 2, "CompoundV2: invalid oracles length");
-        address cToken = CompoundRegistry(_oracles[1]).getCToken(_collateral);
-        address dToken = CompoundRegistry(_oracles[1]).getCToken(_debtToken);
+        address[] memory markets = new address[](2);
+        markets[0] = CompoundRegistry(_oracles[1]).getCToken(_collateral);
+        markets[1] = CompoundRegistry(_oracles[1]).getCToken(_debtToken);
         address comptroller = _oracles[0];
-        _wallet.invoke(comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", [cToken, dToken]));
-        mint(_wallet, cToken, _collateral, _collateralAmount);
-        borrow(_wallet, dToken, _debtAmount);
+        _wallet.invoke(comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", markets));
+        mint(_wallet, markets[0], _collateral, _collateralAmount);
+        borrow(_wallet, markets[1], _debtAmount);
     }
 
     /**
@@ -380,7 +382,9 @@ contract CompoundV2Provider is Invest, Loan {
     function enterMarketIfNeeded(BaseWallet _wallet, address _cToken, address _comptroller) internal {
         bool isEntered = Comptroller(_comptroller).checkMembership(address(_wallet), CToken(_cToken));
         if(!isEntered) {
-            _wallet.invoke(_comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", [_cToken]));
+            address[] memory market = new address[](1);
+            market[0] = _cToken;
+            _wallet.invoke(_comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", market));
         }
     }
 
@@ -392,7 +396,7 @@ contract CompoundV2Provider is Invest, Loan {
      */
     function exitMarketIfNeeded(BaseWallet _wallet, address _cToken, address _comptroller) internal {
         uint collateral = CToken(_cToken).balanceOf(address(_wallet));
-        uint debt = CToken(_cToken).borrowBalanceCurrent(address(_wallet));
+        uint debt = CToken(_cToken).borrowBalanceStored(address(_wallet));
         if(collateral == 0 && debt == 0) {
             _wallet.invoke(_comptroller, 0, abi.encodeWithSignature("exitMarket(address)", _cToken));
         }

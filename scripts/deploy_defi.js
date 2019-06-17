@@ -32,39 +32,40 @@ async function deploy() {
 
     const tub = await deployer.wrapDeployedContract(Tub, "0x8d6C08617b3F10F9bCd26BD8a5791e588cb00725");
 
-    // const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
-    // const sai = await deployer.deploy(DSToken, {}, formatBytes32String("DAI"));
-    // const gov = await deployer.deploy(DSToken, {}, formatBytes32String("MKR"));
-    // const sin = await deployer.deploy(DSToken, {}, formatBytes32String("SIN"));
-    // const skr = await deployer.deploy(DSToken, {}, formatBytes32String("PETH"));
-    // const gem = await deployer.deploy(WETH);
-    // const pip = await deployer.deploy(DSValue);
-    // const pep = await deployer.deploy(DSValue);
-    // const tub = await deployer.deploy(Tub, {},
-    //     sai.contractAddress,
-    //     sin.contractAddress,
-    //     skr.contractAddress,
-    //     gem.contractAddress,
-    //     gov.contractAddress,
-    //     pip.contractAddress,
-    //     pep.contractAddress,
-    //     vox.contractAddress,
-    //     manager.address);
+    const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
+    const sai = await deployer.deploy(DSToken, {}, formatBytes32String("DAI"));
+    const gov = await deployer.deploy(DSToken, {}, formatBytes32String("MKR"));
+    const sin = await deployer.deploy(DSToken, {}, formatBytes32String("SIN"));
+    const skr = await deployer.deploy(DSToken, {}, formatBytes32String("PETH"));
+    const gem = await deployer.deploy(WETH);
+    const pip = await deployer.deploy(DSValue);
+    const pep = await deployer.deploy(DSValue);
+    const tub = await deployer.deploy(Tub, {},
+        sai.contractAddress,
+        sin.contractAddress,
+        skr.contractAddress,
+        gem.contractAddress,
+        gov.contractAddress,
+        pip.contractAddress,
+        pep.contractAddress,
+        vox.contractAddress,
+        manager.address);
 
-    // // let the Tub mint PETH and DAI
-    // await skr.setOwner(tub.contractAddress);
-    // await sai.setOwner(tub.contractAddress);
-    // // setup USD/ETH oracle with a convertion rate of 100 USD/ETH
-    // await pip.poke('0x' + USD_PER_ETH.toHexString().slice(2).padStart(64, '0'));
-    // // setup USD/MKR oracle with a convertion rate of 400 USD/MKR
-    // await pep.poke('0x' + USD_PER_MKR.toHexString().slice(2).padStart(64, '0'));
-    // // set the total DAI debt ceiling to 50,000 DAI
-    // await tub.mold(formatBytes32String('cap'), parseEther('50000'));
-    // // set the liquidity ratio to 150%
-    // await tub.mold(formatBytes32String('mat'), RAY.mul(3).div(2));
+    // let the Tub mint PETH and DAI
+    await skr.setOwner(tub.contractAddress);
+    await sai.setOwner(tub.contractAddress);
+    // setup USD/ETH oracle with a convertion rate of 100 USD/ETH
+    await pip.poke('0x' + USD_PER_ETH.toHexString().slice(2).padStart(64, '0'));
+    // setup USD/MKR oracle with a convertion rate of 400 USD/MKR
+    await pep.poke('0x' + USD_PER_MKR.toHexString().slice(2).padStart(64, '0'));
+    // set the total DAI debt ceiling to 50,000 DAI
+    await tub.mold(formatBytes32String('cap'), parseEther('50000'));
+    // set the liquidity ratio to 150%
+    await tub.mold(formatBytes32String('mat'), RAY.mul(3).div(2));
     // set the governance fee to 7.5% APR
     await tub.mold(formatBytes32String('fee'), '1000000002293273137447730714', {gasLimit: 150000});
-    return;
+    // set the liquidation penalty to 13%
+    await tub.mold(formatBytes32String('axe'), '1130000000000000000000000000', {gasLimit: 150000});
 
     /* ************* Deploy Uniswap ****************** */
 

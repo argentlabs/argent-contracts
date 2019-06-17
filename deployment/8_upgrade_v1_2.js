@@ -1,5 +1,8 @@
 const LoanManager = require('../build/LoanManager');
+const InvestManager = require('../build/InvestManager');
 const MakerProvider = require('../build/MakerProvider');
+const CompoundProvider = require('../build/CompoundV2Provider');
+const CompoundRegistry = require('../build/CompoundRegistry');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
@@ -9,10 +12,10 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.2.0";
-const MODULES_TO_ENABLE = ["LoanManager"];
+const TARGET_VERSION = "1.2.1";
+const MODULES_TO_ENABLE = ["InvestManager", "LoanManager"];
 const MODULES_TO_DISABLE = [];
-const BACKWARD_COMPATIBILITY = 2;
+const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {
 
@@ -39,50 +42,88 @@ const deploy = async (network) => {
 
     console.log('Config:', config);
 
+    const LoanManagerWrapper = await deployer.wrapDeployedContract(LoanManager, config.modules.LoanManager);
+    const InvestManagerWrapper = await deployer.wrapDeployedContract(InvestManager, config.modules.InvestManager);
+
     ////////////////////////////////////
     // Deploy utility contracts
     ////////////////////////////////////
 
-    const MakerProviderWrapper = await deployer.deploy(MakerProvider);
+    // const MakerProviderWrapper = await deployer.deploy(MakerProvider);
+    // const CompoundProviderWrapper = await deployer.deploy(CompoundProvider);
+    // const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
 
-    ////////////////////////////////////
-    // Deploy new modules
-    ////////////////////////////////////
+    // // configure Compound Registry
+    // for (let underlying in config.defi.compound.markets) {
+    //     const cToken = config.defi.compound.markets[underlying];
+    //     const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
+    //     await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
+    // }
+    // const changeCompoundRegistryOwnerTx = await CompoundRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
+    // await CompoundRegistryWrapper.verboseWaitForTransaction(changeCompoundRegistryOwnerTx, `Set the MultiSig as the owner of the CompoundRegistry`);
 
-    const LoanManagerWrapper = await deployer.deploy(
-        LoanManager,
-        {},
-        config.contracts.ModuleRegistry,
-        config.modules.GuardianStorage
-    );
-    await LoanManagerWrapper.addProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory], {gasLimit: 150000});
+    // ////////////////////////////////////
+    // // Deploy new modules
+    // ////////////////////////////////////
+
+    // const LoanManagerWrapper = await deployer.deploy(
+    //     LoanManager,
+    //     {},
+    //     config.contracts.ModuleRegistry,
+    //     config.modules.GuardianStorage
+    // );
+
+    // const InvestManagerWrapper = await deployer.deploy(
+    //     InvestManager,
+    //     {},
+    //     config.contracts.ModuleRegistry,
+    //     config.modules.GuardianStorage
+    // );
+
+    // // configure modules
+    // const setLoanProviderTx = await LoanManagerWrapper.addProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory], {gasLimit: 150000});
+    // await LoanManagerWrapper.verboseWaitForTransaction(setLoanProviderTx, `Adding MakerProvider to LoanManager`);
+    // const changeLoanManagerOwnerTx = await LoanManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
+    // await LoanManagerWrapper.verboseWaitForTransaction(changeLoanManagerOwnerTx, `Set the MultiSig as the owner of the LoanManager`);
+
+    // const setInvestProviderTx = await InvestManagerWrapper.addProvider(CompoundProviderWrapper.contractAddress, [config.defi.compound.comptroller, CompoundRegistryWrapper.contractAddress], {gasLimit: 150000});
+    // await InvestManagerWrapper.verboseWaitForTransaction(setInvestProviderTx, `Adding CompoundProvider to InvestManager`);
+    // const changeInvestManagerOwnerTx = await InvestManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
+    // await InvestManagerWrapper.verboseWaitForTransaction(changeInvestManagerOwnerTx, `Set the MultiSig as the owner of the InvestManager`);
 
     newModuleWrappers.push(LoanManagerWrapper);  
+    newModuleWrappers.push(InvestManagerWrapper);  
     
-    ///////////////////////////////////////////////////
-    // Update config and Upload new module ABIs
-    ///////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////
+    // // Update config and Upload new module ABIs
+    // ///////////////////////////////////////////////////
 
-    configurator.updateModuleAddresses({
-        LoanManager: LoanManagerWrapper.contractAddress
-    });
+    // configurator.updateModuleAddresses({
+    //     LoanManager: LoanManagerWrapper.contractAddress,
+    //     InvestManager: InvestManagerWrapper.contractAddress
+    // });
 
-    configurator.updateInfrastructureAddresses({
-        MakerProvider: MakerProviderWrapper.contractAddress
-    });
+    // configurator.updateInfrastructureAddresses({
+    //     MakerProvider: MakerProviderWrapper.contractAddress,
+    //     CompoundProvider : CompoundProviderWrapper.contractAddress,
+    //     CompoundRegistry : CompoundRegistryWrapper.contractAddress
+    // });
 
-    const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
-    configurator.updateGitHash(gitHash);
-    await configurator.save();
+    // const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
+    // configurator.updateGitHash(gitHash);
+    // await configurator.save();
 
-    await Promise.all([
-        abiUploader.upload(LoanManagerWrapper, "modules"),
-        abiUploader.upload(MakerProviderWrapper, "contracts")
-    ]);
+    // await Promise.all([
+    //     abiUploader.upload(LoanManagerWrapper, "modules"),
+    //     abiUploader.upload(InvestManagerWrapper, "modules"),
+    //     abiUploader.upload(MakerProviderWrapper, "contracts"),
+    //     abiUploader.upload(CompoundProviderWrapper, "contracts"),
+    //     abiUploader.upload(CompoundRegistryWrapper, "contracts")
+    // ]);
 
-    ////////////////////////////////////
-    // Register new modules
-    ////////////////////////////////////
+    // ////////////////////////////////////
+    // // Register new modules
+    // ////////////////////////////////////
 
     for (let idx = 0; idx < newModuleWrappers.length; idx++) {
         let wrapper = newModuleWrappers[idx];

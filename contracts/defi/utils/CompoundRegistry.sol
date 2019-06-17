@@ -8,7 +8,15 @@ import "../../base/Owned.sol";
  */
 contract CompoundRegistry is Owned {
 
-    mapping (address => address) internal cToken;
+    address[] tokens;
+
+    mapping (address => CTokenInfo) internal cToken;
+
+    struct CTokenInfo {
+        bool exists;
+        uint128 index;
+        address market;
+    }
 
     event CTokenAdded(address indexed _underlying, address indexed _cToken);
     event CTokenRemoved(address indexed _underlying);
@@ -19,8 +27,10 @@ contract CompoundRegistry is Owned {
      * @param _cToken The cToken.
      */
     function addCToken(address _underlying, address _cToken) external onlyOwner {
-        require(cToken[_underlying] == address(0), "CR: cToken already added");
-        cToken[_underlying] = _cToken;
+        require(!cToken[_underlying].exists, "CR: cToken already added");
+        cToken[_underlying].exists = true;
+        cToken[_underlying].index = uint128(tokens.push(_underlying) - 1);
+        cToken[_underlying].market = _cToken;
         emit CTokenAdded(_underlying, _cToken);
     }
 
@@ -29,7 +39,14 @@ contract CompoundRegistry is Owned {
      * @param _underlying The underlying asset.
      */
     function removeCToken(address _underlying) external onlyOwner {
-        require(cToken[_underlying] != address(0), "CR: cToken does not exists");
+        require(cToken[_underlying].exists, "CR: cToken does not exists");
+        address last = tokens[tokens.length - 1];
+        if(_underlying != last) {
+            uint128 targetIndex = cToken[_underlying].index;
+            tokens[targetIndex] = last;
+            cToken[last].index = targetIndex;
+        }
+        tokens.length --;
         delete cToken[_underlying];
         emit CTokenRemoved(_underlying);
     }
@@ -39,6 +56,17 @@ contract CompoundRegistry is Owned {
      * @param _underlying The underlying asset.
      */
     function getCToken(address _underlying) external view returns (address) {
-        return cToken[_underlying];
+        return cToken[_underlying].market;
+    }
+
+    /**
+    * @dev Gets the list of supported underlyings.
+    */
+    function listUnderlyings() external view returns (address[] memory) {
+        address[] memory underlyings = new address[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            underlyings[i] = tokens[i];
+        }
+        return underlyings;
     }
 }

@@ -72,13 +72,19 @@ module.exports = {
     versionFingerprint(modules) {
         let concat = modules.map((module) => {
 			return module.address;
-		}).sort((m1,m2) => {
-			const bn1 = ethers.utils.bigNumberify(m1);
+        }).sort((m1,m2) => {
+            const bn1 = ethers.utils.bigNumberify(m1);
 			const bn2 = ethers.utils.bigNumberify(m2);
-			return bn1.lt(bn2);
-		}).reduce((prevValue, currentValue) => {
+            if (bn1.lt(bn2)) {
+                return 1;
+            }
+            if (bn1.gt(bn2)) {
+                return -1;
+            }
+            return 0;
+        }).reduce((prevValue, currentValue) => {
 			return prevValue + currentValue.slice(2);
-		}, "0x");
+		}, "0x"); 
 		return ethers.utils.keccak256(concat).slice(0,10);
     }
 }

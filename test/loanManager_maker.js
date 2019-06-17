@@ -145,10 +145,10 @@ describe("Test CDP Module", function () {
         }
 
         describe("Open Loan", () => {
-            it('should open a CDP (blockchain tx)', async () => {
+            it('should open a Loan (blockchain tx)', async () => {
                 await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('6.6'), relayed: false })
             });
-            it('should open a CDP (relayed tx)', async () => {
+            it('should open a Loan (relayed tx)', async () => {
                 await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('6.6'), relayed: true })
             });
         });
