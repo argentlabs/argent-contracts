@@ -60,8 +60,8 @@ describe("Test Loan Module", function () {
             comptroller.contractAddress,
             interestModel.contractAddress,
             ETH_EXCHANGE_RATE,
-            formatBytes32String("Compound Ether"),
-            formatBytes32String("cETH"),
+            "Compound Ether",
+            "cETH",
             8); 
         // deploy token
         token1 = await deployer.deploy(ERC20, {}, [infrastructure.address, liquidityProvider.address, borrower.address], 10000000, 18);
@@ -89,7 +89,7 @@ describe("Test Loan Module", function () {
             18);
         // add price to Oracle
         await oracle.setUnderlyingPrice(cToken1.contractAddress, WAD.div(10));
-        await oracle.setUnderlyingPrice(cToken2.contractAddress, WAD.div(5));
+        await oracle.setUnderlyingPrice(cToken2.contractAddress, WAD.div(10));
         // list cToken in Comptroller
         await comptroller._supportMarket(cEther.contractAddress);
         await comptroller._supportMarket(cToken1.contractAddress);
@@ -133,8 +133,8 @@ describe("Test Loan Module", function () {
         if(token2Amount > 0) await token2.from(infrastructure).transfer(wallet.contractAddress, token2Amount);
     }
 
-
     describe("Loan", () => {
+
         async function testOpenLoan({ collateral, collateralAmount, debt, debtAmount, relayed }) {
 
             const collateralBefore = (collateral == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
@@ -167,173 +167,156 @@ describe("Test Loan Module", function () {
             return loanId;
         }
 
-        // describe("Open Loan", () => {
-        //     it('should borrow token with ETH as collateral (blockchain tx)', async () => {
-        //         let collateralAmount = parseEther('0.1');
-        //         let debtAmount = parseEther('0.05');
-        //         await fundWallet({ethAmount : collateralAmount, token1Amount: debtAmount});
-        //         await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false });
-        //     });
+        async function testChangeCollateral({ loanId, collateral, amount, add, relayed }) {
+            
+            const collateralBalanceBefore = (collateral == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
 
-        //     it('should borrow ETH with token as collateral (blockchain tx)', async () => {
-        //         let collateralAmount = parseEther('0.1');
-        //         let debtAmount = parseEther('0.001');
-        //         await fundWallet({ethAmount : debtAmount, token1Amount: collateralAmount});
-        //         await testOpenLoan({ collateral: token1, collateralAmount, debt: ETH_TOKEN, debtAmount, relayed: false });
-        //     });
+            const method = add ? 'addCollateral' : 'removeCollateral';
+            const params = [
+                wallet.contractAddress, 
+                compoundProvider.contractAddress, 
+                loanId, 
+                (collateral == ETH_TOKEN)? ETH_TOKEN : collateral.contractAddress, 
+                amount];
+            let txReceipt;
+            if (relayed) {
+                txReceipt = await manager.relay(loanManager, method, params, wallet, [owner]);
+            } else {
+                let tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
+                txReceipt = await loanManager.verboseWaitForTransaction(tx);
+            } 
+            const collateralBalanceAfter = (collateral == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
+            if(add) { 
+                assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralAdded"), "should have generated CollateralAdded event"); 
+                assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.sub(amount)), `wallet collateral should have decreased by ${amount} (relayed: ${relayed})`);
+            }
+            else { 
+                assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralRemoved"), "should have generated CollateralRemoved event"); 
+                assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.add(amount)), `wallet collateral should have invcreased by ${amount} (relayed: ${relayed})`);
+            }
+        }
 
-        //     it('should borrow token with ETH as collateral (relay tx)', async () => {
-        //         let collateralAmount = parseEther('0.1');
-        //         let debtAmount = parseEther('0.05');
-        //         await fundWallet({ethAmount : collateralAmount, token1Amount: debtAmount});
-        //         await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: true });
-        //     });
+        async function testChangeDebt({ loanId, debtToken, amount, add, relayed }) {
 
-        //     it('should borrow ETH with token as collateral (relay tx)', async () => {
-        //         let collateralAmount = parseEther('0.1');
-        //         let debtAmount = parseEther('0.001');
-        //         await fundWallet({ethAmount : debtAmount, token1Amount: collateralAmount});
-        //         await testOpenLoan({ collateral: token1, collateralAmount, debt: ETH_TOKEN, debtAmount, relayed: true });
-        //     });
+            const debtBalanceBefore = (debtToken == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await debtToken.balanceOf(wallet.contractAddress);
+            
+            const method = add ? 'addDebt' : 'removeDebt';
+            const params = [
+                wallet.contractAddress, 
+                compoundProvider.contractAddress, 
+                loanId, 
+                (debtToken == ETH_TOKEN)? ETH_TOKEN : debtToken.contractAddress, 
+                amount];
+            let txReceipt;
+            if (relayed) {
+                txReceipt = await manager.relay(loanManager, method, params, wallet, [owner]);
+            } else {
+                let tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
+                txReceipt = await loanManager.verboseWaitForTransaction(tx);
+            }
+            const debtBalanceAfter = (debtToken == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await debtToken.balanceOf(wallet.contractAddress);
+            if(add) { 
+                assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtAdded"), "should have generated DebtAdded event"); 
+                assert.isTrue(debtBalanceAfter.eq(debtBalanceBefore.add(amount)), `wallet debt should have increase by ${amount} (relayed: ${relayed})`);
+            }
+            else { 
+                assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtRemoved"), "should have generated DebtRemoved event"); 
+                assert.isTrue(debtBalanceAfter.eq(debtBalanceBefore.sub(amount)), `wallet debt should have decreased by ${amount} (relayed: ${relayed})`);
+            }
+        }
 
-        //     it('should get the info of a loan', async () => {
-        //         let collateralAmount = parseEther('0.1');
-        //         let debtAmount = parseEther('0.01');
-        //         await fundWallet({ethAmount : collateralAmount, token1Amount: debtAmount});
-        //         await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false });
-        //         let loan = await loanManager.getLoan(wallet.contractAddress, compoundProvider.contractAddress, ZERO_BYTES32);
-        //         assert.isTrue(loan._status == 1 && loan._ethValue > 0, "should have obtained the info of the loan");
-        //     });
-        // });
+        describe("Open Loan", () => {
+
+            it('should borrow token with ETH as collateral (blockchain tx)', async () => {
+                let collateralAmount = parseEther('0.1');
+                let debtAmount = parseEther('0.05');
+                await fundWallet({ethAmount : collateralAmount, token1Amount: 0});
+                await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false });
+            });
+
+            it('should borrow ETH with token as collateral (blockchain tx)', async () => {
+                let collateralAmount = parseEther('0.5');
+                let debtAmount = parseEther('0.001');
+                await fundWallet({ethAmount : 0, token1Amount: collateralAmount});
+                await testOpenLoan({ collateral: token1, collateralAmount, debt: ETH_TOKEN, debtAmount, relayed: false });
+            });
+
+            it('should borrow token with ETH as collateral (relay tx)', async () => {
+                let collateralAmount = parseEther('0.1');
+                let debtAmount = parseEther('0.05');
+                await fundWallet({ethAmount : collateralAmount, token1Amount: 0});
+                await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: true });
+            });
+
+            it('should borrow ETH with token as collateral (relay tx)', async () => {
+                let collateralAmount = parseEther('0.5');
+                let debtAmount = parseEther('0.001');
+                await fundWallet({ethAmount : 0, token1Amount: collateralAmount});
+                await testOpenLoan({ collateral: token1, collateralAmount, debt: ETH_TOKEN, debtAmount, relayed: true });
+            });
+
+            it('should get the info of a loan', async () => {
+                let collateralAmount = parseEther('0.1');
+                let debtAmount = parseEther('0.01');
+                await fundWallet({ethAmount : collateralAmount, token1Amount: 0});
+                await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false });
+                let loan = await loanManager.getLoan(wallet.contractAddress, compoundProvider.contractAddress, ZERO_BYTES32);
+                assert.isTrue(loan._status == 1 && loan._ethValue > 0, "should have obtained the info of the loan");
+            });
+        });
 
         describe("Add/Remove Collateral", () => {
 
-            async function testChangeCollateral({ loanId, collateral, amount, add, relayed }) {
-                
-                const collateralBalanceBefore = (collateral == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
+            it('should add ETH collateral to a loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.2'), token1Amount: 0});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.1'), debt: token1, debtAmount: parseEther('0.05'), relayed: false }); 
+                await testChangeCollateral({ loanId: loanId, collateral: ETH_TOKEN, amount: parseEther('0.1'), add: true, relayed: false });
+            });
 
-                const method = add ? 'addCollateral' : 'removeCollateral';
-                const params = [
-                    wallet.contractAddress, 
-                    compoundProvider.contractAddress, 
-                    loanId, 
-                    (collateral == ETH_TOKEN)? ETH_TOKEN : collateral.contractAddress, 
-                    amount];
-                let txReceipt;
-                if (relayed) {
-                    txReceipt = await manager.relay(loanManager, method, params, wallet, [owner]);
-                } else {
-                    let tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
-                    txReceipt = await loanManager.verboseWaitForTransaction(tx);
-                } 
-                const collateralBalanceAfter = (collateral == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
-                if(add) { 
-                    assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralAdded"), "should have generated CollateralAdded event"); 
-                    assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.sub(amount)), `wallet collateral should have decreased by ${amount} (relayed: ${relayed})`);
-                }
-                else { 
-                    assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralRemoved"), "should have generated CollateralRemoved event"); 
-                    assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.add(amount)), `wallet collateral should have invcreased by ${amount} (relayed: ${relayed})`);
-                }
-            }
+            it('should add ETH collateral to a loan (relayed tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.2'), token1Amount: 0});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.1'), debt: token1, debtAmount: parseEther('0.01'), relayed: false });
+                await testChangeCollateral({ loanId: loanId, collateral: ETH_TOKEN, amount: parseEther('0.1'), add: true, relayed: true });
+            });
 
-            // it('should add ETH collateral to a loan (blockchain tx)', async () => {
-            //     await fundWallet({ethAmount : parseEther('0.2'), token1Amount: 0});
-            //     const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.1'), debt: token1, debtAmount: parseEther('0.05'), relayed: false }); 
-            //     await testChangeCollateral({ loanId: loanId, collateral: ETH_TOKEN, amount: parseEther('0.1'), add: true, relayed: false });
-            // });
+            it('should remove ETH collateral from a loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.2'), token1Amount: 0});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.2'), debt: token1, debtAmount: parseEther('0.01'), relayed: false });
+                await testChangeCollateral({ loanId: loanId, collateral: ETH_TOKEN, amount: parseEther('0.001'), add: false, relayed: false });
+            });
 
-            // it('should add ETH collateral to a loan (relayed tx)', async () => {
-            //     await fundWallet({ethAmount : parseEther('0.2'), token1Amount: 0});
-            //     const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.1'), debt: token1, debtAmount: parseEther('0.01'), relayed: false });
-            //     await testChangeCollateral({ loanId: loanId, collateral: ETH_TOKEN, amount: parseEther('0.1'), add: true, relayed: true });
-            // });
+            it('should remove ETH collateral from a loan (relayed tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.2'), token1Amount: 0});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.1'), debt: token1, debtAmount: parseEther('0.01'), relayed: false });
+                await testChangeCollateral({ loanId: loanId, collateral: ETH_TOKEN, amount: parseEther('0.001'), add: false, relayed: true });
+            });
 
-            // it('should remove ETH collateral from a loan (blockchain tx)', async () => {
-            //     await fundWallet({ethAmount : parseEther('0.2'), token1Amount: 0});
-            //     const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.2'), debt: token1, debtAmount: parseEther('0.01'), relayed: false });
-            //     await testChangeCollateral({ loanId: loanId, collateral: ETH_TOKEN, amount: parseEther('0.001'), add: false, relayed: false });
-            // });
+            it('should add token collateral to a loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : 0, token1Amount: parseEther('0.6')});
+                const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false }); 
+                await testChangeCollateral({ loanId: loanId, collateral: token1, amount: parseEther('0.1'), add: true, relayed: false });
+            });
 
-            // it('should remove ETH collateral from a loan (relayed tx)', async () => {
-            //     await fundWallet({ethAmount : parseEther('0.2'), token1Amount: 0});
-            //     const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.1'), debt: token1, debtAmount: parseEther('0.01'), relayed: false });
-            //     await testChangeCollateral({ loanId: loanId, collateral: ETH_TOKEN, amount: parseEther('0.001'), add: false, relayed: true });
-            // });
+            it('should add token collateral to a loan (relayed tx)', async () => {
+                await fundWallet({ethAmount : 0, token1Amount: parseEther('0.6')});
+                const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false });
+                await testChangeCollateral({ loanId: loanId, collateral: token1, amount: parseEther('0.1'), add: true, relayed: true });
+            });
 
-            // it('should add token collateral to a loan (blockchain tx)', async () => {
-            //     await fundWallet({ethAmount : 0, token1Amount: parseEther('0.6')});
-            //     const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false }); 
-            //     await testChangeCollateral({ loanId: loanId, collateral: token1, amount: parseEther('0.1'), add: true, relayed: false });
-            // });
+            it('should remove token collateral from a loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : 0, token1Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false });
+                await testChangeCollateral({ loanId: loanId, collateral: token1, amount: parseEther('0.1'), add: false, relayed: false });
+            });
 
-            // it('should add token collateral to a loan (relayed tx)', async () => {
-            //     await fundWallet({ethAmount : 0, token1Amount: parseEther('0.6')});
-            //     const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false });
-            //     await testChangeCollateral({ loanId: loanId, collateral: token1, amount: parseEther('0.1'), add: true, relayed: true });
-            // });
-
-            // it('should remove token collateral from a loan (blockchain tx)', async () => {
-            //     await fundWallet({ethAmount : 0, token1Amount: parseEther('0.5')});
-            //     const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false });
-            //     await testChangeCollateral({ loanId: loanId, collateral: token1, amount: parseEther('0.1'), add: false, relayed: false });
-            // });
-
-            // it('should remove token collateral from a loan (relayed tx)', async () => {
-            //     await fundWallet({ethAmount : 0, token1Amount: parseEther('0.5')});
-            //     const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false });
-            //     await testChangeCollateral({ loanId: loanId, collateral: token1, amount: parseEther('0.1'), add: false, relayed: true });
-            // });
+            it('should remove token collateral from a loan (relayed tx)', async () => {
+                await fundWallet({ethAmount : 0, token1Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false });
+                await testChangeCollateral({ loanId: loanId, collateral: token1, amount: parseEther('0.1'), add: false, relayed: true });
+            });
         });
 
         describe("Increase/Decrease Debt", () => {
-
-            async function testChangeDebt({ loanId, debtToken, amount, add, relayed }) {
-
-                const debtBalanceBefore = (debtToken == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await debtToken.balanceOf(wallet.contractAddress);
-                
-                const method = add ? 'addDebt' : 'removeDebt';
-                const params = [
-                    wallet.contractAddress, 
-                    compoundProvider.contractAddress, 
-                    loanId, 
-                    (debtToken == ETH_TOKEN)? ETH_TOKEN : debtToken.contractAddress, 
-                    amount];
-                let txReceipt;
-                if (relayed) {
-                    txReceipt = await manager.relay(loanManager, method, params, wallet, [owner]);
-                } else {
-                    let tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
-                    txReceipt = await loanManager.verboseWaitForTransaction(tx);
-                }
-                const debtBalanceAfter = (debtToken == ETH_TOKEN)? await deployer.provider.getBalance(wallet.contractAddress) : await debtToken.balanceOf(wallet.contractAddress);
-                if(add) { 
-                    assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtAdded"), "should have generated DebtAdded event"); 
-                    assert.isTrue(debtBalanceAfter.eq(debtBalanceBefore.add(amount)), `wallet debt should have increase by ${amount} (relayed: ${relayed})`);
-                }
-                else { 
-                    assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtRemoved"), "should have generated DebtRemoved event"); 
-                    assert.isTrue(debtBalanceAfter.eq(debtBalanceBefore.sub(amount)), `wallet debt should have decreased by ${amount} (relayed: ${relayed})`);
-                }
-            }
-
-            // async function testRepayDebt({ useOwnMKR, relayed }) {
-            //     if (useOwnMKR) {
-            //         await gov['mint(address,uint256)'](wallet.contractAddress, parseEther('0.1'));
-            //     }
-            //     const loanId = await testOpenLoan({ ethAmount: parseEther('0.0100'), daiAmount: parseEther('0.1'), relayed: relayed })
-            //     await manager.increaseTime(3600 * 24 * 365); // wait one year
-            //     const beforeMKR = await gov.balanceOf(wallet.contractAddress);
-            //     const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
-            //     await testChangeDebt({ loanId: loanId, daiAmount: parseEther('0.00000005'), add: false, relayed: relayed })
-            //     const afterMKR = await gov.balanceOf(wallet.contractAddress);
-            //     const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
-    
-            //     if (useOwnMKR)
-            //         assert.isTrue(afterMKR.lt(beforeMKR) && afterETH.eq(beforeETH), 'governance fee should have been paid in MKR')
-            //     else
-            //         assert.isTrue(afterMKR.eq(beforeMKR) && afterETH.lt(beforeETH), 'governance fee should have been paid in ETH')
-            // }
 
             it('should increase ETH debt to a token1/ETH loan (blockchain tx)', async () => {
                 await fundWallet({ethAmount : 0, token1Amount: parseEther('0.5')});
@@ -370,120 +353,90 @@ describe("Test Loan Module", function () {
                 const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.5'), debt: token1, debtAmount: parseEther('0.01'), relayed: false }); 
                 await testChangeDebt({ loanId: loanId, debtToken: token2, amount: parseEther('0.01'), add: true, relayed: true });
             });
+
+            it('should repay ETH debt to a token1/ETH loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : 0, token1Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false }); 
+                await testChangeDebt({ loanId: loanId, debtToken: ETH_TOKEN, amount: parseEther('0.0005'), add: false, relayed: false });
+            });
+
+            it('should repay ETH debt to a token1/ETH loan (relay tx)', async () => {
+                await fundWallet({ethAmount : 0, token1Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false }); 
+                await testChangeDebt({ loanId: loanId, debtToken: ETH_TOKEN, amount: parseEther('0.0005'), add: false, relayed: true });
+            });
+
+            it('should repay token1 debt to a ETH/token1 loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.5'), token1Amount: 0});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.5'), debt: token1, debtAmount: parseEther('0.01'), relayed: false }); 
+                await testChangeDebt({ loanId: loanId, debtToken: token1, amount: parseEther('0.005'), add: true, relayed: false });
+            });
+
+            it('should repay token1 debt to a ETH/token1 loan (relayed tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.5'), token1Amount: 0});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.5'), debt: token1, debtAmount: parseEther('0.01'), relayed: false }); 
+                await testChangeDebt({ loanId: loanId, debtToken: token1, amount: parseEther('0.005'), add: true, relayed: true });
+            });
         });
 
-    //     async function testChangeDebt({ loanId, daiAmount, add, relayed }) {
-    //         const beforeDAI = await sai.balanceOf(wallet.contractAddress); 
-    //         const beforeDAISupply = await sai.totalSupply();
-    //         const method = add ? 'addDebt' : 'removeDebt';
-    //         const params = [wallet.contractAddress, makerProvider.contractAddress, loanId, sai.contractAddress, daiAmount];
-    //         if (relayed) {
-    //             await manager.relay(loanManager, method, params, wallet, [owner]);
-    //         } else {
-    //             await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
-    //         }
-    //         const afterDAI = await sai.balanceOf(wallet.contractAddress);
-    //         const afterDAISupply = await sai.totalSupply();
-    //         const expectedDAIChange = daiAmount.mul(add ? 1 : -1).toString()
-    //         assert.equal(afterDAI.sub(beforeDAI).toString(), expectedDAIChange, `wallet DAI should have changed by ${expectedDAIChange} (relayed: ${relayed})`);
-    //         assert.equal(afterDAISupply.sub(beforeDAISupply).toString(), expectedDAIChange, `total DAI supply should have changed by ${expectedDAIChange} (relayed: ${relayed})`);
-    //     }
+        describe("Close Loan", () => {
 
-    //     describe("Increase Debt", () => {
-    //         it('should increase debt (blockchain tx)', async () => {
-    //             const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('1'), relayed: false })
-    //             await testChangeDebt({ loanId: loanId, daiAmount: parseEther('0.5'), add: true, relayed: false })
-    //         });
-    //         it('should increase debt (relayed tx)', async () => {
-    //             const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('1'), relayed: true })
-    //             await testChangeDebt({ loanId: loanId, daiAmount: parseEther('0.5'), add: true, relayed: true })
-    //         });
-    //     });
+            async function testCloseLoan({ loanId, relayed, debtMarkets = 1 }) {
+                
+                let marketsBefore = await comptroller.getAssetsIn(wallet.contractAddress); 
+                const method = 'closeLoan'
+                const params = [wallet.contractAddress, compoundProvider.contractAddress, loanId];
+                let txReceipt;
+                if (relayed) {
+                    txReceipt = await manager.relay(loanManager, method, params, wallet, [owner], accounts[9].signer, false, 2000000);
+                } else {
+                    let tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
+                    txReceipt = await loanManager.verboseWaitForTransaction(tx);
+                } 
+                assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanClosed"), "should have generated LoanClosed event"); 
+    
+                let marketsAfter = await comptroller.getAssetsIn(wallet.contractAddress); 
+                assert.isTrue(marketsAfter.length == marketsBefore.length - debtMarkets, `should have exited ${debtMarkets} market (relayed: ${relayed})`);
+            }
 
-    //     async function testRepayDebt({ useOwnMKR, relayed }) {
-    //         if (useOwnMKR) {
-    //             await gov['mint(address,uint256)'](wallet.contractAddress, parseEther('0.1'));
-    //         }
-    //         const loanId = await testOpenLoan({ ethAmount: parseEther('0.0100'), daiAmount: parseEther('0.1'), relayed: relayed })
-    //         await manager.increaseTime(3600 * 24 * 365); // wait one year
-    //         const beforeMKR = await gov.balanceOf(wallet.contractAddress);
-    //         const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
-    //         await testChangeDebt({ loanId: loanId, daiAmount: parseEther('0.00000005'), add: false, relayed: relayed })
-    //         const afterMKR = await gov.balanceOf(wallet.contractAddress);
-    //         const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
+            it('should close an ETH/token1 loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.5'), token1Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.1'), debt: token1, debtAmount: parseEther('0.01'), relayed: false }); 
+                await testCloseLoan({ loanId, relayed: false });
+            });
 
-    //         if (useOwnMKR)
-    //             assert.isTrue(afterMKR.lt(beforeMKR) && afterETH.eq(beforeETH), 'governance fee should have been paid in MKR')
-    //         else
-    //             assert.isTrue(afterMKR.eq(beforeMKR) && afterETH.lt(beforeETH), 'governance fee should have been paid in ETH')
-    //     }
+            it('should close an ETH/token1 loan (relayed tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.5'), token1Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.1'), debt: token1, debtAmount: parseEther('0.01'), relayed: false }); 
+                await testCloseLoan({ loanId, relayed: true });
+            });
 
-    //     describe("Repay Debt", () => {
-    //         it('should repay debt when paying fee in MKR (blockchain tx)', async () => {
-    //             await testRepayDebt({ useOwnMKR: true, relayed: false });
-    //         });
-    //         it('should repay debt when paying fee in MKR (relayed tx)', async () => {
-    //             await testRepayDebt({ useOwnMKR: true, relayed: true });
-    //         });
-    //         it('should repay debt when paying fee in ETH (blockchain tx)', async () => {
-    //             await testRepayDebt({ useOwnMKR: false, relayed: false });
-    //         });
-    //         it('should repay debt when paying fee in ETH (relayed tx)', async () => {
-    //             await testRepayDebt({ useOwnMKR: false, relayed: true });
-    //         });
-    //     });
+            it('should close an token1/ETH loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.1'), token1Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false }); 
+                await testCloseLoan({ loanId, relayed: false });
+            });
 
-    //     async function testCloseLoan({ useOwnMKR, relayed }) {
-    //         if (useOwnMKR) {
-    //             await gov['mint(address,uint256)'](wallet.contractAddress, parseEther('0.1'));
-    //         }
+            it('should close an token1/ETH loan (relayed tx)', async () => {
+                await fundWallet({ethAmount : parseEther('0.1'), token1Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: token1, collateralAmount: parseEther('0.5'), debt: ETH_TOKEN, debtAmount: parseEther('0.001'), relayed: false }); 
+                await testCloseLoan({ loanId, relayed: true });
+            });
 
-    //         const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
-    //         const beforeMKR = await gov.balanceOf(wallet.contractAddress);
-    //         const beforeDAI = await sai.balanceOf(wallet.contractAddress);
-    //         const beforeDAISupply = await sai.totalSupply();
+            it('should close an ETH/token1+token2 loan (blockchain tx)', async () => {
+                await fundWallet({ethAmount : parseEther('1'), token1Amount: parseEther('0.5'), token2Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.2'), debt: token1, debtAmount: parseEther('0.01'), relayed: false }); 
+                await testChangeDebt({ loanId: loanId, debtToken: token2, amount: parseEther('0.001'), add: true, relayed: false });
+                await testCloseLoan({ loanId, relayed: false, debtMarkets: 2 });
+            });
 
-    //         const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('1'), relayed: relayed });
-    //         await manager.increaseTime(3600 * 24 * 365); // wait one year
+            it('should close an ETH/token1+token2 loan (relayed tx)', async () => {
+                await fundWallet({ethAmount : parseEther('1'), token1Amount: parseEther('0.5'), token2Amount: parseEther('0.5')});
+                const loanId = await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount: parseEther('0.2'), debt: token1, debtAmount: parseEther('0.01'), relayed: false }); 
+                await testChangeDebt({ loanId: loanId, debtToken: token2, amount: parseEther('0.001'), add: true, relayed: false });
+                await testCloseLoan({ loanId, relayed: true, debtMarkets: 2 });
+            });
 
-    //         const method = 'closeLoan'
-    //         const params = [wallet.contractAddress, makerProvider.contractAddress, loanId];
-    //         if (relayed) {
-    //             await manager.relay(loanManager, method, params, wallet, [owner]);
-    //         } else {
-    //             await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
-    //         }
-
-    //         const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
-    //         const afterMKR = await gov.balanceOf(wallet.contractAddress);
-    //         const afterDAI = await sai.balanceOf(wallet.contractAddress);
-    //         const afterDAISupply = await sai.totalSupply();
-
-    //         assert.isTrue(afterDAI.eq(beforeDAI), `wallet DAI should not have changed (relayed: ${relayed})`);
-    //         assert.isTrue(afterDAISupply.eq(beforeDAISupply), `total DAI supply should not have changed (relayed: ${relayed})`);
-
-    //         if (useOwnMKR)
-    //             assert.isTrue(afterMKR.lt(beforeMKR) && afterETH.eq(beforeETH), 'governance fee should have been paid in MKR')
-    //         else
-    //             assert.isTrue(afterMKR.eq(beforeMKR) && afterETH.lt(beforeETH), 'governance fee should have been paid in ETH')
-    //         assert.equal(await tub.lad(loanId), '0x0000000000000000000000000000000000000000', 'CDP should have been wiped');
-    //     }
-
-    //     describe("Close CDP", () => {
-    //         it('should close CDP when paying fee in MKR (blockchain tx)', async () => {
-    //             await testCloseLoan({ useOwnMKR: true, relayed: false });
-    //         });
-    //         it('should close CDP when paying fee in MKR (relayed tx)', async () => {
-    //             await testCloseLoan({ useOwnMKR: true, relayed: true });
-    //         });
-    //         it('should close CDP when paying fee in ETH (blockchain tx)', async () => {
-    //             await testCloseLoan({ useOwnMKR: false, relayed: false });
-    //         });
-    //         it('should close CDP when paying fee in ETH (relayed tx)', async () => {
-    //             await testCloseLoan({ useOwnMKR: false, relayed: true });
-    //         });
-    //     });
-
+        });
     });
-
 });

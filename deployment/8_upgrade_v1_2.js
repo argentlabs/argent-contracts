@@ -42,88 +42,85 @@ const deploy = async (network) => {
 
     console.log('Config:', config);
 
-    const LoanManagerWrapper = await deployer.wrapDeployedContract(LoanManager, config.modules.LoanManager);
-    const InvestManagerWrapper = await deployer.wrapDeployedContract(InvestManager, config.modules.InvestManager);
-
     ////////////////////////////////////
     // Deploy utility contracts
     ////////////////////////////////////
 
-    // const MakerProviderWrapper = await deployer.deploy(MakerProvider);
-    // const CompoundProviderWrapper = await deployer.deploy(CompoundProvider);
-    // const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
+    const MakerProviderWrapper = await deployer.deploy(MakerProvider);
+    const CompoundProviderWrapper = await deployer.deploy(CompoundProvider);
+    const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
 
-    // // configure Compound Registry
-    // for (let underlying in config.defi.compound.markets) {
-    //     const cToken = config.defi.compound.markets[underlying];
-    //     const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
-    //     await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
-    // }
-    // const changeCompoundRegistryOwnerTx = await CompoundRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
-    // await CompoundRegistryWrapper.verboseWaitForTransaction(changeCompoundRegistryOwnerTx, `Set the MultiSig as the owner of the CompoundRegistry`);
+    // configure Compound Registry
+    for (let underlying in config.defi.compound.markets) {
+        const cToken = config.defi.compound.markets[underlying];
+        const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
+        await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
+    }
+    const changeCompoundRegistryOwnerTx = await CompoundRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
+    await CompoundRegistryWrapper.verboseWaitForTransaction(changeCompoundRegistryOwnerTx, `Set the MultiSig as the owner of the CompoundRegistry`);
 
-    // ////////////////////////////////////
-    // // Deploy new modules
-    // ////////////////////////////////////
+    ////////////////////////////////////
+    // Deploy new modules
+    ////////////////////////////////////
 
-    // const LoanManagerWrapper = await deployer.deploy(
-    //     LoanManager,
-    //     {},
-    //     config.contracts.ModuleRegistry,
-    //     config.modules.GuardianStorage
-    // );
+    const LoanManagerWrapper = await deployer.deploy(
+        LoanManager,
+        {},
+        config.contracts.ModuleRegistry,
+        config.modules.GuardianStorage
+    );
 
-    // const InvestManagerWrapper = await deployer.deploy(
-    //     InvestManager,
-    //     {},
-    //     config.contracts.ModuleRegistry,
-    //     config.modules.GuardianStorage
-    // );
+    const InvestManagerWrapper = await deployer.deploy(
+        InvestManager,
+        {},
+        config.contracts.ModuleRegistry,
+        config.modules.GuardianStorage
+    );
 
-    // // configure modules
-    // const setLoanProviderTx = await LoanManagerWrapper.addProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory], {gasLimit: 150000});
-    // await LoanManagerWrapper.verboseWaitForTransaction(setLoanProviderTx, `Adding MakerProvider to LoanManager`);
-    // const changeLoanManagerOwnerTx = await LoanManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
-    // await LoanManagerWrapper.verboseWaitForTransaction(changeLoanManagerOwnerTx, `Set the MultiSig as the owner of the LoanManager`);
+    // configure modules
+    const setLoanProviderTx = await LoanManagerWrapper.addProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory], {gasLimit: 150000});
+    await LoanManagerWrapper.verboseWaitForTransaction(setLoanProviderTx, `Adding MakerProvider to LoanManager`);
+    const changeLoanManagerOwnerTx = await LoanManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
+    await LoanManagerWrapper.verboseWaitForTransaction(changeLoanManagerOwnerTx, `Set the MultiSig as the owner of the LoanManager`);
 
-    // const setInvestProviderTx = await InvestManagerWrapper.addProvider(CompoundProviderWrapper.contractAddress, [config.defi.compound.comptroller, CompoundRegistryWrapper.contractAddress], {gasLimit: 150000});
-    // await InvestManagerWrapper.verboseWaitForTransaction(setInvestProviderTx, `Adding CompoundProvider to InvestManager`);
-    // const changeInvestManagerOwnerTx = await InvestManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
-    // await InvestManagerWrapper.verboseWaitForTransaction(changeInvestManagerOwnerTx, `Set the MultiSig as the owner of the InvestManager`);
+    const setInvestProviderTx = await InvestManagerWrapper.addProvider(CompoundProviderWrapper.contractAddress, [config.defi.compound.comptroller, CompoundRegistryWrapper.contractAddress], {gasLimit: 150000});
+    await InvestManagerWrapper.verboseWaitForTransaction(setInvestProviderTx, `Adding CompoundProvider to InvestManager`);
+    const changeInvestManagerOwnerTx = await InvestManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
+    await InvestManagerWrapper.verboseWaitForTransaction(changeInvestManagerOwnerTx, `Set the MultiSig as the owner of the InvestManager`);
 
     newModuleWrappers.push(LoanManagerWrapper);  
     newModuleWrappers.push(InvestManagerWrapper);  
     
-    // ///////////////////////////////////////////////////
-    // // Update config and Upload new module ABIs
-    // ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    // Update config and Upload new module ABIs
+    ///////////////////////////////////////////////////
 
-    // configurator.updateModuleAddresses({
-    //     LoanManager: LoanManagerWrapper.contractAddress,
-    //     InvestManager: InvestManagerWrapper.contractAddress
-    // });
+    configurator.updateModuleAddresses({
+        LoanManager: LoanManagerWrapper.contractAddress,
+        InvestManager: InvestManagerWrapper.contractAddress
+    });
 
-    // configurator.updateInfrastructureAddresses({
-    //     MakerProvider: MakerProviderWrapper.contractAddress,
-    //     CompoundProvider : CompoundProviderWrapper.contractAddress,
-    //     CompoundRegistry : CompoundRegistryWrapper.contractAddress
-    // });
+    configurator.updateInfrastructureAddresses({
+        MakerProvider: MakerProviderWrapper.contractAddress,
+        CompoundProvider : CompoundProviderWrapper.contractAddress,
+        CompoundRegistry : CompoundRegistryWrapper.contractAddress
+    });
 
-    // const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
-    // configurator.updateGitHash(gitHash);
-    // await configurator.save();
+    const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
+    configurator.updateGitHash(gitHash);
+    await configurator.save();
 
-    // await Promise.all([
-    //     abiUploader.upload(LoanManagerWrapper, "modules"),
-    //     abiUploader.upload(InvestManagerWrapper, "modules"),
-    //     abiUploader.upload(MakerProviderWrapper, "contracts"),
-    //     abiUploader.upload(CompoundProviderWrapper, "contracts"),
-    //     abiUploader.upload(CompoundRegistryWrapper, "contracts")
-    // ]);
+    await Promise.all([
+        abiUploader.upload(LoanManagerWrapper, "modules"),
+        abiUploader.upload(InvestManagerWrapper, "modules"),
+        abiUploader.upload(MakerProviderWrapper, "contracts"),
+        abiUploader.upload(CompoundProviderWrapper, "contracts"),
+        abiUploader.upload(CompoundRegistryWrapper, "contracts")
+    ]);
 
-    // ////////////////////////////////////
-    // // Register new modules
-    // ////////////////////////////////////
+    ////////////////////////////////////
+    // Register new modules
+    ////////////////////////////////////
 
     for (let idx = 0; idx < newModuleWrappers.length; idx++) {
         let wrapper = newModuleWrappers[idx];
@@ -134,52 +131,52 @@ const deploy = async (network) => {
     // Deploy and Register upgraders
     ////////////////////////////////////
 
-    // const toAdd = newModuleWrappers.map((wrapper) => {
-    //     return {
-    //         'address': wrapper.contractAddress,
-    //         'name': wrapper._contract.contractName
-    //     };
-    // });
-    // let fingerprint; 
+    const toAdd = newModuleWrappers.map((wrapper) => {
+        return {
+            'address': wrapper.contractAddress,
+            'name': wrapper._contract.contractName
+        };
+    });
+    let fingerprint; 
 
-    // const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
-    // for (let idx = 0; idx < versions.length; idx++) {
-    //     const version = versions[idx];
-    //     const moduleNames = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
-    //     const toRemove = version.modules.filter(module => moduleNames.includes(module.name));
-    //     const toKeep = version.modules.filter(module => !moduleNames.includes(module.name));
-    //     if(idx == 0) {
-    //         let modules = toKeep.concat(toAdd);
-    //         fingerprint = utils.versionFingerprint(modules);
-    //         newVersion.version = semver.lt(version.version, TARGET_VERSION)? TARGET_VERSION : semver.inc(version.version, 'patch');
-    //         newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
-    //         newVersion.modules = modules;
-    //         newVersion.fingerprint = fingerprint;
+    const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
+    for (let idx = 0; idx < versions.length; idx++) {
+        const version = versions[idx];
+        const moduleNames = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
+        const toRemove = version.modules.filter(module => moduleNames.includes(module.name));
+        const toKeep = version.modules.filter(module => !moduleNames.includes(module.name));
+        if(idx == 0) {
+            let modules = toKeep.concat(toAdd);
+            fingerprint = utils.versionFingerprint(modules);
+            newVersion.version = semver.lt(version.version, TARGET_VERSION)? TARGET_VERSION : semver.inc(version.version, 'patch');
+            newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
+            newVersion.modules = modules;
+            newVersion.fingerprint = fingerprint;
 
-    //         ////////////////////////////////////
-    //         // Deregister old modules
-    //         ////////////////////////////////////
+            ////////////////////////////////////
+            // Deregister old modules
+            ////////////////////////////////////
 
-    //         for (let i = 0; i < toRemove.length; i++) {
-    //             await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
-    //         }
-    //     }
+            for (let i = 0; i < toRemove.length; i++) {
+                await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
+            }
+        }
         
-    //     const UpgraderWrapper = await deployer.deploy(
-    //         Upgrader,
-    //         {},
-    //         toRemove.map((module) => {return module.address;}),
-    //         toAdd.map((module) => {return module.address;})
-    //     );
-    //     const upgraderName = version.fingerprint + '_' + fingerprint; 
-    //     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
-    // };
+        const UpgraderWrapper = await deployer.deploy(
+            Upgrader,
+            {},
+            toRemove.map((module) => {return module.address;}),
+            toAdd.map((module) => {return module.address;})
+        );
+        const upgraderName = version.fingerprint + '_' + fingerprint; 
+        await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+    };
 
-    // ////////////////////////////////////
-    // // Upload Version
-    // ////////////////////////////////////
+    ////////////////////////////////////
+    // Upload Version
+    ////////////////////////////////////
 
-    // await versionUploader.upload(newVersion);
+    await versionUploader.upload(newVersion);
 
 }
 

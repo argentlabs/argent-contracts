@@ -190,7 +190,6 @@ contract CToken is EIP20Interface, Exponential, TokenErrorReporter, ReentrancyGu
      */
     event ReservesReduced(address admin, uint reduceAmount, uint newTotalReserves);
 
-
     /**
      * @notice Construct a new money market
      * @param comptroller_ The address of the Comptroller

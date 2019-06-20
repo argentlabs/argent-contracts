@@ -8,6 +8,7 @@ import "./CToken.sol";
  * @author Compound
  */
 contract CEther is CToken {
+
     /**
      * @notice Construct a new CEther money market
      * @param comptroller_ The address of the Comptroller

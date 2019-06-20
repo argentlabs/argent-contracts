@@ -16,10 +16,11 @@ interface Comptroller {
 interface CToken {
     function comptroller() external view returns (address);
     function underlying() external view returns (address);
+    function symbol() external view returns (string memory);
     function exchangeRateCurrent() external returns (uint256);
     function exchangeRateStored() external view returns (uint256);
     function balanceOf(address _account) external view returns (uint256);
-    function borrowBalanceCurrent(address _account) external view returns (uint256);
+    function borrowBalanceCurrent(address _account) external returns (uint256);
     function borrowBalanceStored(address _account) external view returns (uint256);
 }
 
@@ -30,9 +31,9 @@ interface CToken {
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract CompoundV2Provider is Invest, Loan {
-
+    
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
+    
     using SafeMath for uint256;
 
     /* ********************************** Implementation of Invest ************************************* */
@@ -142,7 +143,7 @@ contract CompoundV2Provider is Invest, Loan {
     }
 
     /**
-     * @dev Closes a collateralized loan by repaying all debts (plus interest) and redeeming all collateral (plus interest).
+     * @dev Closes a collateralized loan by repaying all debts (plus interest). Note that it does not redeem the collateral.
      * @param _wallet The target wallet.
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
@@ -159,15 +160,14 @@ contract CompoundV2Provider is Invest, Loan {
         address[] memory markets = Comptroller(comptroller).getAssetsIn(address(_wallet));
         for(uint i = 0; i < markets.length; i++) {
             address cToken = markets[i];
-            uint collateral = CToken(cToken).balanceOf(address(_wallet));
             uint debt = CToken(cToken).borrowBalanceCurrent(address(_wallet));
-            if(collateral > 0) {
-                redeem(_wallet, cToken, collateral);
+            if(debt > 0) { 
+                repayBorrow(_wallet, cToken, debt);
+                uint collateral = CToken(cToken).balanceOf(address(_wallet));
+                if(collateral == 0) { 
+                    _wallet.invoke(comptroller, 0, abi.encodeWithSignature("exitMarket(address)", address(cToken)));
+                }
             }
-            if(debt > 0) {
-                repayBorrow(_wallet, cToken, CToken(cToken).underlying(), debt);
-            }
-            _wallet.invoke(comptroller, 0, abi.encodeWithSignature("exitMarket(address)", cToken));
         }
     }
 
@@ -262,7 +262,7 @@ contract CompoundV2Provider is Invest, Loan {
     {
         require(_oracles.length == 2, "CompoundV2: invalid oracles length");
         address dToken = CompoundRegistry(_oracles[1]).getCToken(_debtToken);
-        repayBorrow(_wallet, dToken, _debtToken, _debtAmount);
+        repayBorrow(_wallet, dToken, _debtAmount);
         address comptroller = _oracles[0];
         exitMarketIfNeeded(_wallet, dToken, comptroller);
     }
@@ -358,17 +358,18 @@ contract CompoundV2Provider is Invest, Loan {
      * @dev Repays some borrowed underlying tokens to a cToken contract.
      * @param _wallet The target wallet.
      * @param _cToken The cToken contract.
-     * @param _token The underlying token.
-     * @param _amount The amount of tokens to repay.
+     * @param _amount The amount of underlying to repay.
      */
-    function repayBorrow(BaseWallet _wallet, address _cToken, address _token, uint256 _amount) internal {
+    function repayBorrow(BaseWallet _wallet, address _cToken, uint256 _amount) internal {
         require(_cToken != address(0), "Compound: No market for target token");
         require(_amount > 0, "Compound: amount cannot be 0");
-        if(_token == ETH_TOKEN_ADDRESS) {
+        string memory symbol = CToken(_cToken).symbol();
+        if(keccak256(abi.encodePacked(symbol)) == keccak256(abi.encodePacked("cETH"))) {
             _wallet.invoke(_cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
         }
-        else {
-            _wallet.invoke(_token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
+        else { 
+            address token = CToken(_cToken).underlying();
+            _wallet.invoke(token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
             _wallet.invoke(_cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
         }
     }
