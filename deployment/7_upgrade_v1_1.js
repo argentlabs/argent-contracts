@@ -8,10 +8,10 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.1.0";
+const TARGET_VERSION = "1.1.2";
 const MODULES_TO_ENABLE = ["NftTransfer"];
 const MODULES_TO_DISABLE = [];
-const BACKWARD_COMPATIBILITY = 1;
+const BACKWARD_COMPATIBILITY = 2;
 
 const deploy = async (network) => {
 
@@ -46,7 +46,8 @@ const deploy = async (network) => {
         NftTransfer,
         {},
         config.contracts.ModuleRegistry,
-        config.modules.GuardianStorage
+        config.modules.GuardianStorage,
+        config.CryptoKitties.contract
     );
     newModuleWrappers.push(NftTransferWrapper);  
     

@@ -19,6 +19,8 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     // The Guardian storage 
     GuardianStorage public guardianStorage;
+    // The address of the CryptoKitties contract
+    address public ckAddress;
 
     // *************** Events *************************** //
 
@@ -39,12 +41,14 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     constructor(
         ModuleRegistry _registry,
-        GuardianStorage _guardianStorage
-    ) 
+        GuardianStorage _guardianStorage,
+        address _ckAddress
+    )
         BaseModule(_registry, NAME)
-        public 
+        public
     {
         guardianStorage = _guardianStorage;
+        ckAddress = _ckAddress;
     }
 
     // *************** External/Public Functions ********************* //
@@ -85,29 +89,55 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     * @param _safe Whether to execute a safe transfer or not
     * @param _data The data to pass with the transfer.
     */
-    function transferNFT(
-        BaseWallet _wallet, 
-        address _nftContract, 
-        address _to, 
+function transferNFT(
+        BaseWallet _wallet,
+        address _nftContract,
+        address _to,
         uint256 _tokenId,
         bool _safe,
         bytes calldata _data
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;
-        if(_safe) {
-            methodData = abi.encodeWithSignature(
-                "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
+        if(_nftContract == ckAddress) {
+            methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _tokenId);
         } else {
-            methodData = abi.encodeWithSignature(
-                "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
+           if(_safe) {
+               methodData = abi.encodeWithSignature(
+                   "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
+           } else {
+               require(isERC721(_nftContract, _tokenId), "NT: Non-compliant NFT contract");
+               methodData = abi.encodeWithSignature(
+                   "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
+           }
         }
-
         _wallet.invoke(_nftContract, 0, methodData);
         emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
+    }
+
+    // *************** Internal Functions ********************* //
+
+    /**
+    * @dev Check whether a given contract complies with ERC721.
+    * @param _nftContract The contract to check.
+    * @param _tokenId The tokenId to use for the check.
+    * @return true if the contract is an ERC721, false otherwise.
+    */
+    function isERC721(address _nftContract, uint256 _tokenId) internal returns (bool) {
+        // solium-disable-next-line security/no-low-level-calls
+        (bool success, bytes memory result) = _nftContract.call(abi.encodeWithSignature('supportsInterface(bytes4)', 0x80ac58cd));
+        if(success && result[0] != 0x0) return true;
+
+        // solium-disable-next-line security/no-low-level-calls
+        (success, result) = _nftContract.call(abi.encodeWithSignature('supportsInterface(bytes4)', 0x6466353c));
+        if(success && result[0] != 0x0) return true;
+
+        // solium-disable-next-line security/no-low-level-calls
+        (success,) = _nftContract.call(abi.encodeWithSignature('ownerOf(uint256)', _tokenId));
+        return success;
     }
 
 }
