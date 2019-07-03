@@ -30,7 +30,7 @@ contract ProviderModule is Owned {
     }
 
     function delegateToProvider(address _provider, bytes memory _methodData) internal returns (bool, bytes memory) {
-        require(_provider != address(0), "ProviderModule: Unknown provider");
+        require(isProvider(_provider), "ProviderModule: Invalid provider");
         return _provider.delegatecall(_methodData);
     }
 }

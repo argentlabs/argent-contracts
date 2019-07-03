@@ -62,7 +62,6 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
         external
         returns (bytes32 _leverageId)
     {
-        require(isProvider(_provider), "LeverageManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "openLeveragedPosition(address,address,uint256,uint256,uint8,address[])", 
             address(_wallet), 
@@ -94,7 +93,6 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
     ) 
         external
     {
-        require(isProvider(_provider), "LeverageManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "closeLeveragedPosition(address,bytes32,uint256,address[])", 
             address(_wallet), 

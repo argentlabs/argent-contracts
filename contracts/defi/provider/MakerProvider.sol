@@ -57,7 +57,7 @@ interface IDSValue {
  * that may be used to orchestrate the exchange of tokens.
  * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
-contract MakerProvider is Loan, Leverage {
+contract MakerProvider is Loan { //}, Leverage {
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -66,13 +66,13 @@ contract MakerProvider is Loan, Leverage {
     bytes4 constant internal CDP_DRAW = bytes4(keccak256("draw(bytes32,uint256)"));
     bytes4 constant internal CDP_WIPE = bytes4(keccak256("wipe(bytes32,uint256)"));
     bytes4 constant internal CDP_SHUT = bytes4(keccak256("shut(bytes32)"));
-    bytes4 constant internal CDP_DEPOSIT = bytes4(keccak256("deposit"));
     bytes4 constant internal CDP_JOIN = bytes4(keccak256("join(uint256)"));
     bytes4 constant internal CDP_LOCK = bytes4(keccak256("lock(bytes32,uint256)"));
     bytes4 constant internal CDP_FREE = bytes4(keccak256("free(bytes32,uint256)"));
     bytes4 constant internal CDP_EXIT = bytes4(keccak256("exit(uint256)"));
+    bytes4 constant internal WETH_DEPOSIT = bytes4(keccak256("deposit"));
+    bytes4 constant internal WETH_WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
     bytes4 constant internal ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
-    bytes4 constant internal ERC20_WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
     bytes4 constant internal ETH_TOKEN_SWAP_OUTPUT = bytes4(keccak256("ethToTokenSwapOutput(uint256,uint256)"));
     bytes4 constant internal ETH_TOKEN_SWAP_INPUT = bytes4(keccak256("ethToTokenSwapInput(uint256,uint256)"));
     bytes4 constant internal TOKEN_ETH_SWAP_INPUT = bytes4(keccak256("tokenToEthSwapInput(uint256,uint256,uint256)"));
@@ -90,12 +90,12 @@ contract MakerProvider is Loan, Leverage {
    /**
      * @dev Opens a collateralized loan.
      * @param _wallet The target wallet.
-     * @param _collateral The token used as a collateral.
+     * @param _collateral The token used as a collateral (must be 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE).
      * @param _collateralAmount The amount of collateral token provided.
-     * @param _debtToken The token borrowed.
+     * @param _debtToken The token borrowed (must be the address of the DAI contract).
      * @param _debtAmount The amount of tokens borrowed.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
-     * @return (optional) An ID for the loan when the provider enables users to create multiple distinct loans.
+     * @param _oracles An array containing the address of MakerDAO's Tub contract as first element.
+     * @return The ID of the created CDP.
      */
     function openLoan(
         BaseWallet _wallet, 
@@ -117,8 +117,8 @@ contract MakerProvider is Loan, Leverage {
     /**
      * @dev Closes a collateralized loan by repaying all debts (plus interest) and redeeming all collateral (plus interest).
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _loanId The ID of the target CDP.
+     * @param _oracles An array containing the address of MakerDAO's Tub contract as first element and Uniswap's Factory as second.
      */
     function closeLoan(
         BaseWallet _wallet, 
@@ -133,10 +133,10 @@ contract MakerProvider is Loan, Leverage {
     /**
      * @dev Adds collateral to a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _collateral The token used as a collateral.
+     * @param _loanId The ID of the target CDP.
+     * @param _collateral The token used as a collateral (must be 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE).
      * @param _collateralAmount The amount of collateral to add.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles (An array containing the address of MakerDAO's Tub contract as first element.
      */
     function addCollateral(
         BaseWallet _wallet, 
@@ -154,10 +154,10 @@ contract MakerProvider is Loan, Leverage {
     /**
      * @dev Removes collateral from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _collateral The token used as a collateral.
+     * @param _loanId The ID of the target CDP.
+     * @param _collateral The token used as a collateral (must be 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE).
      * @param _collateralAmount The amount of collateral to remove.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of MakerDAO's Tub contract as first element.
      */
     function removeCollateral(
         BaseWallet _wallet, 
@@ -175,10 +175,10 @@ contract MakerProvider is Loan, Leverage {
     /**
      * @dev Increases the debt by borrowing more token from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _debtToken The token borrowed.
+     * @param _loanId The ID of the target CDP.
+     * @param _debtToken The token borrowed (must be the address of the DAI contract).
      * @param _debtAmount The amount of token to borrow.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of MakerDAO's Tub contract as first element.
      */
     function addDebt(
         BaseWallet _wallet, 
@@ -197,10 +197,10 @@ contract MakerProvider is Loan, Leverage {
     /**
      * @dev Decreases the debt by repaying some token from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _debtToken The token to repay.
+     * @param _loanId The ID of the target CDP.
+     * @param _debtToken The token to repay (must be the address of the DAI contract).
      * @param _debtAmount The amount of token to repay.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of MakerDAO's Tub contract as first element and Uniswap's Factory as second.
      */
     function removeDebt(
         BaseWallet _wallet, 
@@ -219,9 +219,9 @@ contract MakerProvider is Loan, Leverage {
     /**
      * @dev Gets information about a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
-     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: unable to provide info] and the estimated ETH value of the loan
+     * @param _loanId The ID of the target CDP.
+     * @param _oracles An array containing the address of MakerDAO's Tub contract as first element.
+     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: loan exists but we are unable to provide info] and the estimated ETH value of the loan
      * combining all collaterals and all debts. When status = 1 it represents the value that could still be borrowed, while with status = 2
      * it represents the value of collateral that should be added to avoid liquidation.      
      */
@@ -243,101 +243,102 @@ contract MakerProvider is Loan, Leverage {
 
     /* ***************************************************************************************** */
 
-    /**
-     * @dev Lets the owner of a wallet open a new Leveraged Position to increase their exposure to ETH by means of a CDP. 
-     * The owner must have enough ether in their wallet to cover the purchase of `_collateralAmount` PETH. 
-     * This amount of PETH will be locked as collateral in the CDP. The method will then draw an amount of DAI from the CDP
-     * given by the DAI value of the PETH collateral divided by `_conversionRatio` (which must be greater than 1.5). 
-     * This DAI will be converted into PETH and added as collateral to the CDP. This operation (drawing DAI,
-     * converting DAI to PETH and locking the additional PETH into the CDP) is repeated `_iterations` times.
-     * The wallet owner can increase its leverage by increasing the number of `_iterations` or by decreasing 
-     * the `_converstionRatio`, resulting in both cases in a lower liquidation ratio for the CDP. 
-     * @param _wallet The target wallet
-     * @param _collateral The token used as a collateral.
-     * @param _collateralAmount The amount of collateral token provided.
-     * @param _conversionRatio The ratio of "additional collateral" to "additional debt" to use at each iteration
-     * @param _iterations The number of times the operation "draw more DAI, convert this DAI to PETH, lock this PETH" should be repeated
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
-     */
-    function openLeveragedPosition(
-        BaseWallet _wallet,
-        address _collateral, 
-        uint256 _collateralAmount, 
-        uint256 _conversionRatio,
-        uint8 _iterations,
-        address[] calldata _oracles
-    ) 
-        external
-        returns (bytes32 _leverageId, uint256 _totalCollateral, uint256 _totalDebt)
-    {
-        require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
-        IMakerCdp makerCdp = IMakerCdp(_oracles[0]);
-        _leverageId = openCdp(_wallet, _collateralAmount, 0, makerCdp);
-        uint256 daiPerPethRatio = availableDaiPerPeth(_conversionRatio, makerCdp);
-        uint256 availableCollateral = _collateralAmount;
-        _totalCollateral = availableCollateral;
-        uint256 drawnDai;
+    // ************* Leverage is not part of the current release for Maker ************************* //
+    // /**
+    //  * @dev Lets the owner of a wallet open a new Leveraged Position to increase their exposure to ETH by means of a CDP. 
+    //  * The owner must have enough ether in their wallet to cover the purchase of `_collateralAmount` PETH. 
+    //  * This amount of PETH will be locked as collateral in the CDP. The method will then draw an amount of DAI from the CDP
+    //  * given by the DAI value of the PETH collateral divided by `_conversionRatio` (which must be greater than 1.5). 
+    //  * This DAI will be converted into PETH and added as collateral to the CDP. This operation (drawing DAI,
+    //  * converting DAI to PETH and locking the additional PETH into the CDP) is repeated `_iterations` times.
+    //  * The wallet owner can increase its leverage by increasing the number of `_iterations` or by decreasing 
+    //  * the `_converstionRatio`, resulting in both cases in a lower liquidation ratio for the CDP. 
+    //  * @param _wallet The target wallet
+    //  * @param _collateral The token used as a collateral.
+    //  * @param _collateralAmount The amount of collateral token provided.
+    //  * @param _conversionRatio The ratio of "additional collateral" to "additional debt" to use at each iteration
+    //  * @param _iterations The number of times the operation "draw more DAI, convert this DAI to PETH, lock this PETH" should be repeated
+    //  * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+    //  */
+    // function openLeveragedPosition(
+    //     BaseWallet _wallet,
+    //     address _collateral, 
+    //     uint256 _collateralAmount, 
+    //     uint256 _conversionRatio,
+    //     uint8 _iterations,
+    //     address[] calldata _oracles
+    // ) 
+    //     external
+    //     returns (bytes32 _leverageId, uint256 _totalCollateral, uint256 _totalDebt)
+    // {
+    //     require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
+    //     IMakerCdp makerCdp = IMakerCdp(_oracles[0]);
+    //     _leverageId = openCdp(_wallet, _collateralAmount, 0, makerCdp);
+    //     uint256 daiPerPethRatio = availableDaiPerPeth(_conversionRatio, makerCdp);
+    //     uint256 availableCollateral = _collateralAmount;
+    //     _totalCollateral = availableCollateral;
+    //     uint256 drawnDai;
 
-        for(uint8 i = 0; i < _iterations; i++) {
-            (availableCollateral, drawnDai) = drawMoreDai(_wallet, _leverageId, availableCollateral, daiPerPethRatio, makerCdp, UniswapFactory(_oracles[1]));
-            _totalDebt += drawnDai;
-            _totalCollateral += availableCollateral;
-        }
-    }
+    //     for(uint8 i = 0; i < _iterations; i++) {
+    //         (availableCollateral, drawnDai) = drawMoreDai(_wallet, _leverageId, availableCollateral, daiPerPethRatio, makerCdp, UniswapFactory(_oracles[1]));
+    //         _totalDebt += drawnDai;
+    //         _totalCollateral += availableCollateral;
+    //     }
+    // }
 
-    /**
-     * @dev Lets the owner of a wallet close a previously opened Leveraged Position. 
-     * The owner must have enough DAI & MKR (or alternatively ETH) in their wallet to cover the initial `_daiPayment` debt repayment.
-     * After this initial debt repayment, the method tries to "unwind" the CDP by iteratively removing as much collateral as possible,
-     * converting this collateral into DAI & MKR and repaying the DAI debt (and MKR fee). 
-     * When the CDP no longer holds any collateral or debt, it is closed.
-     * @param _wallet The target wallet
-     * @param _leverageId The id of the CDP used to open the Leveraged Position.
-     * @param _daiPayment The amount of DAI debt to repay before "unwinding" the CDP.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
-     */
-    function closeLeveragedPosition(
-        BaseWallet _wallet,
-        bytes32 _leverageId,
-        uint256 _daiPayment,
-        address[] calldata _oracles
-    ) 
-        external
-    {
-        IMakerCdp makerCdp = IMakerCdp(_oracles[0]);
-        UniswapFactory uniswapFactory = UniswapFactory(_oracles[1]);
-        if (_daiPayment > 0) {
-            // Cap the amount being repaid
-            uint256 daiRepaid = (_daiPayment > daiDebt(_leverageId, makerCdp)) ? daiDebt(_leverageId, makerCdp) : _daiPayment;
-            // (Partially) repay debt
-            removeDebt(_wallet, _leverageId, daiRepaid, makerCdp, uniswapFactory);
-        }
+    // /**
+    //  * @dev Lets the owner of a wallet close a previously opened Leveraged Position. 
+    //  * The owner must have enough DAI & MKR (or alternatively ETH) in their wallet to cover the initial `_daiPayment` debt repayment.
+    //  * After this initial debt repayment, the method tries to "unwind" the CDP by iteratively removing as much collateral as possible,
+    //  * converting this collateral into DAI & MKR and repaying the DAI debt (and MKR fee). 
+    //  * When the CDP no longer holds any collateral or debt, it is closed.
+    //  * @param _wallet The target wallet
+    //  * @param _leverageId The id of the CDP used to open the Leveraged Position.
+    //  * @param _daiPayment The amount of DAI debt to repay before "unwinding" the CDP.
+    //  * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+    //  */
+    // function closeLeveragedPosition(
+    //     BaseWallet _wallet,
+    //     bytes32 _leverageId,
+    //     uint256 _daiPayment,
+    //     address[] calldata _oracles
+    // ) 
+    //     external
+    // {
+    //     IMakerCdp makerCdp = IMakerCdp(_oracles[0]);
+    //     UniswapFactory uniswapFactory = UniswapFactory(_oracles[1]);
+    //     if (_daiPayment > 0) {
+    //         // Cap the amount being repaid
+    //         uint256 daiRepaid = (_daiPayment > daiDebt(_leverageId, makerCdp)) ? daiDebt(_leverageId, makerCdp) : _daiPayment;
+    //         // (Partially) repay debt
+    //         removeDebt(_wallet, _leverageId, daiRepaid, makerCdp, uniswapFactory);
+    //     }
 
-        uint256 collateral = makerCdp.ink(_leverageId);
-        while(collateral > 0) {
-            // Remove some collateral
-            uint256 removedCollateral = collateral - minRequiredCollateral(_leverageId, makerCdp); // in PETH
-            removeCollateral(_wallet, _leverageId, removedCollateral, makerCdp);
-            collateral -= removedCollateral;
+    //     uint256 collateral = makerCdp.ink(_leverageId);
+    //     while(collateral > 0) {
+    //         // Remove some collateral
+    //         uint256 removedCollateral = collateral - minRequiredCollateral(_leverageId, makerCdp); // in PETH
+    //         removeCollateral(_wallet, _leverageId, removedCollateral, makerCdp);
+    //         collateral -= removedCollateral;
 
-            // Check if there is more debt to pay
-            uint256 tab = daiDebt(_leverageId, makerCdp);
-            if(tab == 0) break; // no more debt (and no more collateral) left in the CDP. We are done
+    //         // Check if there is more debt to pay
+    //         uint256 tab = daiDebt(_leverageId, makerCdp);
+    //         if(tab == 0) break; // no more debt (and no more collateral) left in the CDP. We are done
 
-            // Convert removedCollateral into DAI and MKR
-            (uint256 convertedDai) = convertEthCollateralToDaiAndMkr(
-                _wallet, 
-                _leverageId, 
-                removedCollateral.rmul(makerCdp.per()), // in ETH
-                tab, 
-                makerCdp,
-                uniswapFactory
-            );
+    //         // Convert removedCollateral into DAI and MKR
+    //         (uint256 convertedDai) = convertEthCollateralToDaiAndMkr(
+    //             _wallet, 
+    //             _leverageId, 
+    //             removedCollateral.rmul(makerCdp.per()), // in ETH
+    //             tab, 
+    //             makerCdp,
+    //             uniswapFactory
+    //         );
 
-            removeDebt(_wallet, _leverageId, convertedDai, makerCdp, uniswapFactory);
-        }
-        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _leverageId));
-    }
+    //         removeDebt(_wallet, _leverageId, convertedDai, makerCdp, uniswapFactory);
+    //     }
+    //     invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _leverageId));
+    // }
 
     /* *********************************** Maker wrappers ************************************* */
 
@@ -554,8 +555,8 @@ contract MakerProvider is Loan, Leverage {
     /**
      * @dev Checks if a CDP exists.
      * @param _cup The id of the CDP.
-     * @return false if the CDP is in danger of being liquidated.
      * @param _makerCdp The Maker CDP contract
+     * @return true if the CDP exists, false otherwise.
      */
     function exists(bytes32 _cup, IMakerCdp _makerCdp) public view returns (bool) { 
         return _makerCdp.ink(_cup) != 0;
@@ -642,7 +643,7 @@ contract MakerProvider is Loan, Leverage {
         // Get WETH/PETH rate
         uint ethAmount = _makerCdp.ask(_pethAmount);
         // ETH to WETH
-        invokeWallet(_wallet, wethToken, ethAmount, abi.encodeWithSelector(CDP_DEPOSIT));
+        invokeWallet(_wallet, wethToken, ethAmount, abi.encodeWithSelector(WETH_DEPOSIT));
         // Approve WETH
         invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), ethAmount));
         // WETH to PETH
@@ -686,7 +687,7 @@ contract MakerProvider is Loan, Leverage {
         // Get WETH/PETH rate
         uint ethAmount = _makerCdp.bid(_pethAmount);
         // WETH to ETH
-        invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(ERC20_WITHDRAW, ethAmount));
+        invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(WETH_WITHDRAW, ethAmount));
     }
 
     /**
@@ -697,7 +698,7 @@ contract MakerProvider is Loan, Leverage {
      * @param _daiPerPethRatio The ratio of DAI that can be drawn from 1 PETH.
      * @param _makerCdp The Maker CDP contract
      * @param _uniswapFactory The Uniswap Factory contract used for the exchange.
-     * @return the amount of DAI that where drawn from the CDP and the amount of collateral that where added
+     * @return the amount of DAI that was drawn from the CDP and the amount of collateral that was added.
      */
     function drawMoreDai(
         BaseWallet _wallet, 

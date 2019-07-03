@@ -68,7 +68,6 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         onlyWhenUnlocked(_wallet) 
         returns (bytes32 _loanId)
     {
-        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "openLoan(address,address,uint256,address,uint256,address[])", 
             address(_wallet), 
@@ -98,7 +97,6 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet) 
     {
-        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "closeLoan(address,bytes32,address[])", 
             address(_wallet), 
@@ -128,7 +126,6 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet) 
     {
-        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "addCollateral(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
@@ -160,7 +157,6 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet) 
     {
-        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "removeCollateral(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
@@ -192,7 +188,6 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet) 
     {
-        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "addDebt(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
@@ -224,7 +219,6 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         external
         onlyWhenUnlocked(_wallet)
     {
-        require(isProvider(_provider), "LoanManager: Not a valid provider");
         bytes memory methodData = abi.encodeWithSignature(
             "removeDebt(address,bytes32,address,uint256,address[])", 
             address(_wallet), 
