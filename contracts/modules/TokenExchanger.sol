@@ -78,7 +78,7 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
         uint256 _minConversionRate
     )
         external 
-        onlyOwner(_wallet)
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
         returns(uint256)
     {    

@@ -98,7 +98,7 @@ function transferNFT(
         bytes calldata _data
     )
         external
-        onlyOwner(_wallet)
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;

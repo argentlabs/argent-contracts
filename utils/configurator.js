@@ -18,7 +18,8 @@ class Configurator {
     }
 
     updateInfrastructureAddresses(contracts) {
-        this._config.contracts = contracts;
+        if (!this._config.contracts) this._config.contracts = {};
+        Object.assign(this._config.contracts, contracts);
     }
 
     updateModuleAddresses(modules) {

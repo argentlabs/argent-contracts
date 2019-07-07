@@ -134,7 +134,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         bytes4[] calldata _signatures
     ) 
         external 
-        onlyOwner(_wallet) 
+        onlyWalletOwner(_wallet) 
         onlyWhenUnlocked(_wallet)
     {
         require(_contract != address(0), "DM: Contract address cannot be null");
@@ -164,7 +164,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         bytes4[] calldata _signatures
     ) 
         external 
-        onlyOwner(_wallet) 
+        onlyWalletOwner(_wallet) 
         onlyWhenUnlocked(_wallet)
     {
         dappStorage.setMethodAuthorization(_wallet, _dapp, _contract, _signatures, false);
@@ -211,7 +211,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         bytes4[] memory _signatures
     )
         public 
-        onlyOwner(_wallet) 
+        onlyWalletOwner(_wallet) 
         onlyWhenUnlocked(_wallet) 
     {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _dapp, _contract, _signatures, true));
@@ -243,7 +243,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(BaseWallet _wallet, uint256 _newLimit) public onlyOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(BaseWallet _wallet, uint256 _newLimit) public onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         changeLimit(_wallet, _newLimit, securityPeriod);
     }
 
@@ -252,7 +252,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
      * The limit is disabled by setting it to an arbitrary large value.
      * @param _wallet The target wallet.
      */
-    function disableLimit(BaseWallet _wallet) external onlyOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function disableLimit(BaseWallet _wallet) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         changeLimit(_wallet, LIMIT_DISABLED, securityPeriod);
     }
 
