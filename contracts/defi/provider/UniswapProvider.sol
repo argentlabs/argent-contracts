@@ -23,8 +23,6 @@ interface UniswapExchange {
  */
 contract UniswapProvider is Invest {
 
-    address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     using SafeMath for uint256;
 
     /* ********************************** Implementation of Invest ************************************* */
@@ -91,7 +89,8 @@ contract UniswapProvider is Invest {
         address tokenPool = UniswapFactory(_oracles[0]).getExchange(_token);
         uint256 tokenPoolSize = ERC20(_token).balanceOf(tokenPool);
         uint shares = ERC20(tokenPool).balanceOf(address(_wallet));
-        _tokenValue = shares.mul(tokenPoolSize).mul(2);
+        uint totalSupply = ERC20(tokenPool).totalSupply();
+        _tokenValue = shares.mul(tokenPoolSize).mul(2).div(totalSupply);
         _periodEnd = 0;
     }
 
@@ -118,7 +117,7 @@ contract UniswapProvider is Invest {
 
         uint256 tokenBalance = ERC20(_token).balanceOf(address(_wallet));
         if(_amount > tokenBalance) {
-            uint256 ethToSwap = UniswapExchange(tokenPool).getEthToTokenOutputPrice(tokenBalance - _amount);
+            uint256 ethToSwap = UniswapExchange(tokenPool).getEthToTokenOutputPrice(_amount - tokenBalance);
             require(ethToSwap <= address(_wallet).balance, "Uniswap: not enough ETH to swap");
             _wallet.invoke(tokenPool, ethToSwap, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _amount - tokenBalance, block.timestamp));
         }

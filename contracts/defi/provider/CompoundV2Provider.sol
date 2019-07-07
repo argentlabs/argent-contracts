@@ -44,7 +44,7 @@ contract CompoundV2Provider is Invest, Loan {
      * @param _token The token address.
      * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
      * @return The exact amount of tokens that have been invested. 
      */
     function addInvestment(
@@ -65,10 +65,10 @@ contract CompoundV2Provider is Invest, Loan {
 
     /**
      * @dev Exit invested postions.
-     * @param _wallet The target wallet.s
+     * @param _wallet The target wallet.
      * @param _token The token address.
      * @param _fraction The fraction of invested tokens to exit in per 10000. 
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
      */
     function removeInvestment(
         BaseWallet _wallet, 
@@ -89,7 +89,7 @@ contract CompoundV2Provider is Invest, Loan {
      * @dev Get the amount of investment in a given token.
      * @param _wallet The target wallet.
      * @param _token The token address.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
      * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
      */
     function getInvestment(
@@ -118,8 +118,8 @@ contract CompoundV2Provider is Invest, Loan {
      * @param _collateralAmount The amount of collateral token provided.
      * @param _debtToken The token borrowed.
      * @param _debtAmount The amount of tokens borrowed.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
-     * @return (optional) An ID for the loan when the provider enables users to create multiple distinct loans.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
+     * @return bytes32(0) as Compound does not allow the creation of multiple loans.
      */
     function openLoan(
         BaseWallet _wallet, 
@@ -143,10 +143,10 @@ contract CompoundV2Provider is Invest, Loan {
     }
 
     /**
-     * @dev Closes a collateralized loan by repaying all debts (plus interest). Note that it does not redeem the collateral.
+     * @dev Closes the collateralized loan in all markets by repaying all debts (plus interest). Note that it does not redeem the collateral.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
      */
     function closeLoan(
         BaseWallet _wallet, 
@@ -174,10 +174,10 @@ contract CompoundV2Provider is Invest, Loan {
     /**
      * @dev Adds collateral to a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral to add.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
      */
     function addCollateral(
         BaseWallet _wallet, 
@@ -198,10 +198,10 @@ contract CompoundV2Provider is Invest, Loan {
     /**
      * @dev Removes collateral from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral to remove.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
      */
     function removeCollateral(
         BaseWallet _wallet, 
@@ -222,10 +222,10 @@ contract CompoundV2Provider is Invest, Loan {
     /**
      * @dev Increases the debt by borrowing more token from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      * @param _debtToken The token borrowed.
      * @param _debtAmount The amount of token to borrow.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
      */
     function addDebt(
         BaseWallet _wallet, 
@@ -246,10 +246,10 @@ contract CompoundV2Provider is Invest, Loan {
     /**
      * @dev Decreases the debt by repaying some token from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
+     * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      * @param _debtToken The token to repay.
      * @param _debtAmount The amount of token to repay.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
      */
     function removeDebt(
         BaseWallet _wallet, 
@@ -270,11 +270,11 @@ contract CompoundV2Provider is Invest, Loan {
     /**
      * @dev Gets information about a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
-     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated] and the estimated ETH value of the loan
-     * combining all collaterals and all debts. When status = 1 it represents the value that could still be borrowed, while with status = 2
-     * it represents the value of collateral that should be added to avoid liquidation.      
+     * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
+     * @param _oracles An array containing the address of the Comptroller as first element and the CompoundRegistry as second.
+     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated]
+     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral 
+     * that should be added to avoid liquidation when status = 2.  
      */
     function getLoan(
         BaseWallet _wallet, 

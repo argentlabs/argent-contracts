@@ -237,9 +237,9 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
      * @param _wallet The target wallet.
      * @param _provider The address of the provider to use.
      * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: unable to provide info] and the estimated ETH value of the loan
-     * combining all collaterals and all debts. When status = 1 it represents the value that could still be borrowed, while with status = 2
-     * it represents the value of collateral that should be added to avoid liquidation.      
+     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: unable to provide info] 
+     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral 
+     * that should be added to avoid liquidation when status = 2.
      */
     function getLoan(
         BaseWallet _wallet, 
