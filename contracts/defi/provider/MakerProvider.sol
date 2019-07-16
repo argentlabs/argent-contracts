@@ -470,7 +470,7 @@ contract MakerProvider is Loan { //}, Leverage {
             uint256 etherValueOfMKR = UniswapExchange(mkrUniswap).getEthToTokenOutputPrice(mkrFee - mkrBalance);
             invokeWallet(_wallet, mkrUniswap, etherValueOfMKR, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee - mkrBalance, block.timestamp));
         }
-
+        
         // get DAI balance
         address daiToken =_makerCdp.sai();
         uint256 daiBalance = ERC20(daiToken).balanceOf(address(_wallet));
@@ -498,7 +498,7 @@ contract MakerProvider is Loan { //}, Leverage {
      * @param _uniswapFactory The Uniswap Factory contract.
      */
     function closeCdp(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _cup,
         IMakerCdp _makerCdp,
         UniswapFactory _uniswapFactory
@@ -506,9 +506,11 @@ contract MakerProvider is Loan { //}, Leverage {
         internal
     {
         // repay all debt (in DAI) + stability fee (in DAI) + governance fee (in MKR)
-        removeDebt(_wallet, _cup, daiDebt(_cup, _makerCdp), _makerCdp, _uniswapFactory);
+        uint debt = daiDebt(_cup, _makerCdp);
+        if(debt > 0) removeDebt(_wallet, _cup, debt, _makerCdp, _uniswapFactory);
         // free all ETH collateral
-        removeCollateral(_wallet, _cup, pethCollateral(_cup, _makerCdp), _makerCdp);
+        uint collateral = pethCollateral(_cup, _makerCdp);
+        if(collateral > 0) removeCollateral(_wallet, _cup, collateral, _makerCdp);
         // shut the CDP
         invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _cup));
     }
@@ -585,7 +587,9 @@ contract MakerProvider is Loan { //}, Leverage {
      * @return the governance fee in MKR
      */
     function governanceFeeInMKR(bytes32 _cup, uint256 _daiRefund, IMakerCdp _makerCdp) public returns (uint256 _fee) { 
-        uint256 feeInDAI = _daiRefund.rmul(_makerCdp.rap(_cup).rdiv(daiDebt(_cup, _makerCdp)));
+        uint debt = daiDebt(_cup, _makerCdp);
+        if (debt == 0) return 0;
+        uint256 feeInDAI = _daiRefund.rmul(_makerCdp.rap(_cup).rdiv(debt));
         (bytes32 daiPerMKR, bool ok) = _makerCdp.pep().peek();
         if (ok && daiPerMKR != 0) _fee = feeInDAI.wdiv(uint(daiPerMKR));
     }

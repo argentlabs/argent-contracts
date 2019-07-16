@@ -65,6 +65,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         uint256 _debtAmount
     )  
         external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet) 
         returns (bytes32 _loanId)
     {
@@ -95,6 +96,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         bytes32 _loanId
     ) 
         external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet) 
     {
         bytes memory methodData = abi.encodeWithSignature(
@@ -124,6 +126,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         uint256 _collateralAmount
     ) 
         external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet) 
     {
         bytes memory methodData = abi.encodeWithSignature(
@@ -155,6 +158,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         uint256 _collateralAmount
     ) 
         external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet) 
     {
         bytes memory methodData = abi.encodeWithSignature(
@@ -186,6 +190,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         uint256 _debtAmount
     ) 
         external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet) 
     {
         bytes memory methodData = abi.encodeWithSignature(
@@ -217,6 +222,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         uint256 _debtAmount 
     ) 
         external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData = abi.encodeWithSignature(
