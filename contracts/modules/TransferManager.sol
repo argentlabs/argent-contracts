@@ -18,6 +18,9 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
 
     bytes4 constant internal EXECUTE_PENDING_PREFIX = bytes4(keccak256("executePendingTransfer(address,address,address,uint256,bytes,uint256)"));
 
+    bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
+    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
+
     bytes constant internal EMPTY_BYTES = "";
 
     using SafeMath for uint256;
@@ -145,6 +148,34 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
             }
         }
     }
+
+    function approveERC20Tranfer(
+        BaseWallet _wallet, 
+        address _token, 
+        address _spender, 
+        uint256 _amount
+    ) 
+        external 
+        onlyWalletOwner(_wallet) 
+        onlyWhenUnlocked(_wallet)
+    {
+        if(isWhitelisted(_wallet, _spender)) {
+            approveERC20(_wallet, _token, _spender, _amount);
+        }
+        else {
+            uint256 etherAmount = priceProvider.getEtherValue(_amount, _token);
+            // erc20 transfer under the limit
+            if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
+                approveERC20(_wallet, _token, _spender, _amount);
+            }
+            // erc20 transfer above the limit
+            else {
+                //addPendingTransfer(_wallet, _token, _to, _amount, _data); 
+            }
+        }
+    }
+
+
 
     /**
      * @dev Adds an address to the whitelist of a wallet. 
@@ -319,7 +350,16 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         emit ApprovedERC20(address(_wallet), _token, _value, _spender);
     }
 
+    /**
+    * @dev Helper method to call an external contract.
+    * @param _wallet The target wallet.
+    * @param _to The contract address.
+    * @param _value The ETH value to transfer.
+    * @param _data The method data.
+    */
     function callContract(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
+        bytes4 methodId = functionPrefix(_data);
+        require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
         _wallet.invoke(_to, _value, _data);
         emit CalledContract(address(_wallet), _to, _value, _data);
     }
