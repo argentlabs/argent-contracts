@@ -18,6 +18,7 @@ const DSToken = require("../build/DSToken");
 const WETH = require("../build/WETH9");
 const DSValue = require("../build/DSValue");
 const { parseEther, formatBytes32String, bigNumberify } = require('ethers').utils;
+const { bigNumToBytes32 } = require('../utils/utilities.js');
 
 const RAY = bigNumberify('1000000000000000000000000000') // 10**27
 const WAD = bigNumberify('1000000000000000000') // 10**18
@@ -37,7 +38,7 @@ describe("Test CDP Module", function () {
     const owner = accounts[1].signer;
     const pit = accounts[2].signer;
 
-    let deployer, loanManager, makerProvider, wallet, sai, gov, tub, uniswapFactory;
+    let deployer, loanManager, makerProvider, wallet, sai, gov, tub, uniswapFactory, pip;
 
     before(async () => {
         deployer = manager.newDeployer();
@@ -52,7 +53,7 @@ describe("Test CDP Module", function () {
         const sin = await deployer.deploy(DSToken, {}, formatBytes32String("SIN"));
         const skr = await deployer.deploy(DSToken, {}, formatBytes32String("PETH"));
         const gem = await deployer.deploy(WETH);
-        const pip = await deployer.deploy(DSValue);
+        pip = await deployer.deploy(DSValue);
         const pep = await deployer.deploy(DSValue);
         tub = await deployer.deploy(Tub, {},
             sai.contractAddress,
@@ -82,27 +83,27 @@ describe("Test CDP Module", function () {
         // setup Uniswap for purchase of MKR and DAI
         uniswapFactory = await deployer.deploy(UniswapFactory);
         const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
-        await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress); 
+        await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress);
         let ethLiquidity = parseEther('10');
         // MKR
-        await uniswapFactory.from(infrastructure).createExchange(gov.contractAddress); 
+        await uniswapFactory.from(infrastructure).createExchange(gov.contractAddress);
         const mkrExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(gov.contractAddress));
         let mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
         await gov['mint(address,uint256)'](infrastructure.address, mkrLiquidity);
-        await gov.from(infrastructure).approve(mkrExchange.contractAddress, mkrLiquidity); 
-        let currentBlock = await manager.getCurrentBlock(); 
-        let timestamp = await manager.getTimestamp(currentBlock); 
-        await mkrExchange.from(infrastructure).addLiquidity(1, mkrLiquidity, timestamp + 300, {value: ethLiquidity, gasLimit: 150000});
+        await gov.from(infrastructure).approve(mkrExchange.contractAddress, mkrLiquidity);
+        let currentBlock = await manager.getCurrentBlock();
+        let timestamp = await manager.getTimestamp(currentBlock);
+        await mkrExchange.from(infrastructure).addLiquidity(1, mkrLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
         // DAI
-        await uniswapFactory.from(infrastructure).createExchange(sai.contractAddress); 
+        await uniswapFactory.from(infrastructure).createExchange(sai.contractAddress);
         const saiExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(sai.contractAddress));
         let saiLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_DAI);
         await sai['mint(address,uint256)'](infrastructure.address, saiLiquidity);
-        await sai.from(infrastructure).approve(saiExchange.contractAddress, saiLiquidity); 
-        currentBlock = await manager.getCurrentBlock(); 
-        timestamp = await manager.getTimestamp(currentBlock); 
-        await saiExchange.from(infrastructure).addLiquidity(1, saiLiquidity, timestamp + 300, {value: ethLiquidity, gasLimit: 150000});
-        
+        await sai.from(infrastructure).approve(saiExchange.contractAddress, saiLiquidity);
+        currentBlock = await manager.getCurrentBlock();
+        timestamp = await manager.getTimestamp(currentBlock);
+        await saiExchange.from(infrastructure).addLiquidity(1, saiLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
+
         makerProvider = await deployer.deploy(MakerProvider);
         loanManager = await deployer.deploy(LoanManager, {}, registry.contractAddress, guardianStorage.contractAddress);
         await loanManager.addProvider(makerProvider.contractAddress, [tub.contractAddress, uniswapFactory.contractAddress]);
@@ -187,7 +188,7 @@ describe("Test CDP Module", function () {
         });
 
         async function testChangeDebt({ loanId, daiAmount, add, relayed }) {
-            const beforeDAI = await sai.balanceOf(wallet.contractAddress); 
+            const beforeDAI = await sai.balanceOf(wallet.contractAddress);
             const beforeDAISupply = await sai.totalSupply();
             const method = add ? 'addDebt' : 'removeDebt';
             const params = [wallet.contractAddress, makerProvider.contractAddress, loanId, sai.contractAddress, daiAmount];
@@ -247,7 +248,7 @@ describe("Test CDP Module", function () {
             });
         });
 
-        async function testCloseLoan({ useOwnMKR, relayed }) {
+        async function testCloseLoan({ useOwnMKR, relayed, biteBeforeClose = false }) {
             if (useOwnMKR) {
                 await gov['mint(address,uint256)'](wallet.contractAddress, parseEther('0.1'));
             }
@@ -259,6 +260,14 @@ describe("Test CDP Module", function () {
 
             const loanId = await testOpenLoan({ ethAmount: parseEther('0.100'), daiAmount: parseEther('1'), relayed: relayed });
             await manager.increaseTime(3600 * 24 * 365); // wait one year
+
+            if (biteBeforeClose) {
+                const feed = bigNumberify(await pip.read())
+                const newFeed = bigNumToBytes32(feed.div(10))
+                await pip.poke(newFeed);
+                await tub.bite(loanId);
+                await pip.poke(feed);
+            }
 
             const method = 'closeLoan'
             const params = [wallet.contractAddress, makerProvider.contractAddress, loanId];
@@ -273,8 +282,10 @@ describe("Test CDP Module", function () {
             const afterDAI = await sai.balanceOf(wallet.contractAddress);
             const afterDAISupply = await sai.totalSupply();
 
-            assert.isTrue(afterDAI.eq(beforeDAI), `wallet DAI should not have changed (relayed: ${relayed})`);
-            assert.isTrue(afterDAISupply.eq(beforeDAISupply), `total DAI supply should not have changed (relayed: ${relayed})`);
+            if (!biteBeforeClose) { // Note that the DAI will still be in the wallet if the wallet was bitten before the closing of the cdp
+                assert.isTrue(afterDAI.eq(beforeDAI), `wallet DAI should not have changed (relayed: ${relayed})`);
+                assert.isTrue(afterDAISupply.eq(beforeDAISupply), `total DAI supply should not have changed (relayed: ${relayed})`);
+            }
 
             if (useOwnMKR)
                 assert.isTrue(afterMKR.lt(beforeMKR) && afterETH.eq(beforeETH), 'governance fee should have been paid in MKR')
@@ -296,6 +307,12 @@ describe("Test CDP Module", function () {
             it('should close CDP when paying fee in ETH (relayed tx)', async () => {
                 await testCloseLoan({ useOwnMKR: false, relayed: true });
             });
+            it('should close CDP after it got liquidated (blockchain tx)', async () => {
+                await testCloseLoan({ useOwnMKR: false, relayed: false, biteBeforeClose: true });
+            })
+            it('should close CDP after it got liquidated (relayed tx)', async () => {
+                await testCloseLoan({ useOwnMKR: false, relayed: true, biteBeforeClose: true });
+            })
         });
 
     });

@@ -60,6 +60,8 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
         uint8 _iterations
     ) 
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
         returns (bytes32 _leverageId)
     {
         bytes memory methodData = abi.encodeWithSignature(
@@ -92,6 +94,8 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
         uint256 _debtPayment
     ) 
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData = abi.encodeWithSignature(
             "closeLeveragedPosition(address,bytes32,uint256,address[])", 

@@ -58,7 +58,8 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         uint256 _period
     ) 
         external
-        onlyWhenUnlocked(_wallet) 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData = abi.encodeWithSignature(
             "addInvestment(address,address,uint256,uint256,address[])", 
@@ -87,7 +88,8 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         address _token, 
         uint256 _fraction
     ) 
-        external 
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet) 
     {
         bytes memory methodData = abi.encodeWithSignature(
