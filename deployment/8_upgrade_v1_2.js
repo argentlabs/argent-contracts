@@ -27,10 +27,10 @@ const deploy = async (network) => {
     ////////////////////////////////////
 
     const manager = new DeployManager(network);
-	await manager.setup();
+    await manager.setup();
 
-	const configurator = manager.configurator;
-	const deployer = manager.deployer;
+    const configurator = manager.configurator;
+    const deployer = manager.deployer;
     const abiUploader = manager.abiUploader;
     const versionUploader = manager.versionUploader;
     const deploymentWallet = deployer.signer;
@@ -78,19 +78,19 @@ const deploy = async (network) => {
     );
 
     // configure modules
-    const setLoanProviderTx = await LoanManagerWrapper.addProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory], {gasLimit: 150000});
+    const setLoanProviderTx = await LoanManagerWrapper.addDefaultProvider(MakerProviderWrapper.contractAddress, [config.defi.maker.tub, config.defi.uniswap.factory], { gasLimit: 150000 });
     await LoanManagerWrapper.verboseWaitForTransaction(setLoanProviderTx, `Adding MakerProvider to LoanManager`);
     const changeLoanManagerOwnerTx = await LoanManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
     await LoanManagerWrapper.verboseWaitForTransaction(changeLoanManagerOwnerTx, `Set the MultiSig as the owner of the LoanManager`);
 
-    const setInvestProviderTx = await InvestManagerWrapper.addProvider(CompoundProviderWrapper.contractAddress, [config.defi.compound.comptroller, CompoundRegistryWrapper.contractAddress], {gasLimit: 150000});
+    const setInvestProviderTx = await InvestManagerWrapper.addDefaultProvider(CompoundProviderWrapper.contractAddress, [config.defi.compound.comptroller, CompoundRegistryWrapper.contractAddress], { gasLimit: 150000 });
     await InvestManagerWrapper.verboseWaitForTransaction(setInvestProviderTx, `Adding CompoundProvider to InvestManager`);
     const changeInvestManagerOwnerTx = await InvestManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
     await InvestManagerWrapper.verboseWaitForTransaction(changeInvestManagerOwnerTx, `Set the MultiSig as the owner of the InvestManager`);
 
-    newModuleWrappers.push(LoanManagerWrapper);  
-    newModuleWrappers.push(InvestManagerWrapper);  
-    
+    newModuleWrappers.push(LoanManagerWrapper);
+    newModuleWrappers.push(InvestManagerWrapper);
+
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
@@ -102,8 +102,8 @@ const deploy = async (network) => {
 
     configurator.updateInfrastructureAddresses({
         MakerProvider: MakerProviderWrapper.contractAddress,
-        CompoundProvider : CompoundProviderWrapper.contractAddress,
-        CompoundRegistry : CompoundRegistryWrapper.contractAddress
+        CompoundProvider: CompoundProviderWrapper.contractAddress,
+        CompoundRegistry: CompoundRegistryWrapper.contractAddress
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -137,7 +137,7 @@ const deploy = async (network) => {
             'name': wrapper._contract.contractName
         };
     });
-    let fingerprint; 
+    let fingerprint;
 
     const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
     for (let idx = 0; idx < versions.length; idx++) {
@@ -145,10 +145,10 @@ const deploy = async (network) => {
         const moduleNames = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
         const toRemove = version.modules.filter(module => moduleNames.includes(module.name));
         const toKeep = version.modules.filter(module => !moduleNames.includes(module.name));
-        if(idx == 0) {
+        if (idx == 0) {
             let modules = toKeep.concat(toAdd);
             fingerprint = utils.versionFingerprint(modules);
-            newVersion.version = semver.lt(version.version, TARGET_VERSION)? TARGET_VERSION : semver.inc(version.version, 'patch');
+            newVersion.version = semver.lt(version.version, TARGET_VERSION) ? TARGET_VERSION : semver.inc(version.version, 'patch');
             newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
             newVersion.modules = modules;
             newVersion.fingerprint = fingerprint;
@@ -161,14 +161,14 @@ const deploy = async (network) => {
                 await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
             }
         }
-        
+
         const UpgraderWrapper = await deployer.deploy(
             Upgrader,
             {},
-            toRemove.map((module) => {return module.address;}),
-            toAdd.map((module) => {return module.address;})
+            toRemove.map((module) => { return module.address; }),
+            toAdd.map((module) => { return module.address; })
         );
-        const upgraderName = version.fingerprint + '_' + fingerprint; 
+        const upgraderName = version.fingerprint + '_' + fingerprint;
         await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
     };
 
@@ -181,5 +181,5 @@ const deploy = async (network) => {
 }
 
 module.exports = {
-	deploy
+    deploy
 };

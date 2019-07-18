@@ -106,7 +106,7 @@ describe("Test CDP Module", function () {
 
         makerProvider = await deployer.deploy(MakerProvider);
         loanManager = await deployer.deploy(LoanManager, {}, registry.contractAddress, guardianStorage.contractAddress);
-        await loanManager.addProvider(makerProvider.contractAddress, [tub.contractAddress, uniswapFactory.contractAddress]);
+        await loanManager.addDefaultProvider(makerProvider.contractAddress, [tub.contractAddress, uniswapFactory.contractAddress]);
     });
 
     beforeEach(async () => {
