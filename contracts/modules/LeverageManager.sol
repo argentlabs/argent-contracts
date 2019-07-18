@@ -71,7 +71,7 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
             _collateralAmount,
             _conversionRatio,
             _iterations,
-            getProviderOracles(_wallet, _provider)
+            getProviderOracles(_provider)
         );
         (bool success, bytes memory data) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LeverageManager: request to provider failed");
@@ -102,7 +102,7 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
             address(_wallet), 
             _leverageId,
             _debtPayment,
-            getProviderOracles(_wallet, _provider)
+            getProviderOracles(_provider)
             );
         (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LeverageManager: request to provider failed");

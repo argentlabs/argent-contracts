@@ -11,12 +11,12 @@ import "./BaseModule.sol";
  */
 contract ProviderModule is BaseModule, Owned {
 
-    // providers supported by the wallet [wallet][provider] => Provider
-    mapping (address => mapping(address => Provider)) public providers;
+    // providers supported by the wallet [wallet][provider] => bool
+    mapping (address => mapping(address => bool)) public providers;
     // providers supported by default (added in Module.init()) [provider] => Provider
-    mapping(address => Provider) public defaultProviders;
+    mapping(address => Provider) public possibleProviders;
     // providers supported by default (as an array)
-    address[] public allDefaultProviders;
+    address[] public allPossibleProviders;
 
     struct Provider {
         bool exists;
@@ -34,9 +34,9 @@ contract ProviderModule is BaseModule, Owned {
      * @param _wallet The target wallet.
      */
     function init(BaseWallet _wallet) external onlyWallet(_wallet) {
-        for(uint i = 0; i < allDefaultProviders.length; i++) {
-            address provider = allDefaultProviders[i];
-            providers[address(_wallet)][provider] = Provider(true, defaultProviders[provider].oracles);
+        for(uint i = 0; i < allPossibleProviders.length; i++) {
+            address provider = allPossibleProviders[i];
+            providers[address(_wallet)][provider] = true;
         }
     }
 
@@ -44,16 +44,17 @@ contract ProviderModule is BaseModule, Owned {
         external
         onlyOwner
     {
-        require(!defaultProviders[_provider].exists, "PM: Provider already added");
-        defaultProviders[_provider] = Provider(true, _oracles);
-        allDefaultProviders.push(_provider);
+        require(!possibleProviders[_provider].exists, "PM: Provider already added");
+        possibleProviders[_provider] = Provider(true, _oracles);
+        allPossibleProviders.push(_provider);
     }
 
     function addProvider(BaseWallet _wallet, address _provider, address[] calldata _oracles)
         external
         onlyWalletOwner(_wallet)
     {
-        providers[address(_wallet)][_provider] = Provider(true, _oracles);
+        require(possibleProviders[_provider].exists, "PM: Provider doesn't exist");
+        providers[address(_wallet)][_provider] = true;
     }
 
     function removeProvider(BaseWallet _wallet, address _provider)
@@ -64,11 +65,11 @@ contract ProviderModule is BaseModule, Owned {
     }
 
     function isProvider(BaseWallet _wallet, address _provider) public view returns (bool) {
-        return providers[address(_wallet)][_provider].exists;
+        return providers[address(_wallet)][_provider];
     }
 
-    function getProviderOracles(BaseWallet _wallet, address _provider) public view returns (address[] memory) {
-        return providers[address(_wallet)][_provider].oracles;
+    function getProviderOracles(address _provider) public view returns (address[] memory) {
+        return possibleProviders[_provider].oracles;
     }
 
     function delegateToProvider(BaseWallet _wallet, address _provider, bytes memory _methodData) internal returns (bool, bytes memory) {

@@ -67,7 +67,7 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
             _token,
             _amount,
             _period,
-            getProviderOracles(_wallet, _provider)
+            getProviderOracles(_provider)
             );
         (bool success, bytes memory data) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "InvestManager: request to provider failed");
@@ -97,7 +97,7 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
             address(_wallet), 
             _token,
             _fraction,
-            getProviderOracles(_wallet, _provider)
+            getProviderOracles(_provider)
             );
         (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "InvestManager: request to provider failed");
@@ -121,6 +121,6 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         returns (uint256 _tokenValue, uint256 _periodEnd) 
     {
         require(isProvider(_wallet, _provider), "InvestManager: Not a valid provider");
-        (_tokenValue, _periodEnd) = Invest(_provider).getInvestment(_wallet, _token, getProviderOracles(_wallet, _provider));
+        (_tokenValue, _periodEnd) = Invest(_provider).getInvestment(_wallet, _token, getProviderOracles(_provider));
     }
 }

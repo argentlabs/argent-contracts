@@ -11,7 +11,7 @@ const Unitroller = require("../build/Unitroller");
 const PriceOracle = require("../build/SimplePriceOracle");
 const PriceOracleProxy = require("../build/PriceOracleProxy");
 const Comptroller = require("../build/Comptroller");
-const InterestModel = require("../build/StableCoinInterestRateModel");
+const InterestModel = require("../build/WhitePaperInterestRateModel");
 const CEther = require("../build/CEther");
 const CErc20 = require("../build/CErc20");
 const CompoundProvider = require("../build/CompoundV2Provider");
@@ -51,7 +51,7 @@ describe("Invest Manager with Compound", function () {
         await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false);
         comptroller = deployer.wrapDeployedContract(Comptroller, comptrollerProxy.contractAddress);
         // deploy Interest rate model
-        const interestModel = await deployer.deploy(InterestModel);
+        const interestModel = await deployer.deploy(InterestModel, 250 * 10 ** 14, 2000 * 10 ** 14);
         // deploy CEther
         cEther = await deployer.deploy(
             CEther,
