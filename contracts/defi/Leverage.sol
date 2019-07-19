@@ -13,6 +13,10 @@ import "../wallet/BaseWallet.sol";
  */
 interface Leverage {
 
+    event LeverageOpened(address indexed _wallet, bytes32 indexed _leverageId, address _collateral, uint256 _totalCollateral, uint256 _totalDebt);    
+    event LeverageClosed(address indexed _wallet, bytes32 indexed _leverageId, uint256 _debtPayment);   
+
+
     /**
      * @dev Lets the owner of a wallet open a new Leveraged Position to increase their exposure to a collateral token. 
      * @param _wallet The target wallet

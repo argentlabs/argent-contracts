@@ -7,6 +7,13 @@ import "../wallet/BaseWallet.sol";
  */
 interface Loan {
 
+    event LoanOpened(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount, address _debtToken, uint256 _debtAmount);
+    event LoanClosed(address indexed _wallet, bytes32 indexed _loanId);
+    event CollateralAdded(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
+    event CollateralRemoved(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
+    event DebtAdded(address indexed _wallet, bytes32 indexed _loanId, address _debtToken, uint256 _debtAmount);
+    event DebtRemoved(address indexed _wallet, bytes32 indexed _loanId, address _debtToken, uint256 _debtAmount);
+
     /**
      * @dev Opens a collateralized loan.
      * @param _wallet The target wallet.
@@ -14,7 +21,6 @@ interface Loan {
      * @param _collateralAmount The amount of collateral token provided.
      * @param _debtToken The token borrowed.
      * @param _debtAmount The amount of tokens borrowed.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      * @return (optional) An ID for the loan when the provider enables users to create multiple distinct loans.
      */
     function openLoan(
@@ -22,8 +28,7 @@ interface Loan {
         address _collateral, 
         uint256 _collateralAmount, 
         address _debtToken, 
-        uint256 _debtAmount, 
-        address[] calldata _oracles
+        uint256 _debtAmount
     ) 
         external 
         returns (bytes32 _loanId);
@@ -32,12 +37,10 @@ interface Loan {
      * @dev Closes a collateralized loan by repaying all debts (plus interest) and redeeming all collateral (plus interest).
      * @param _wallet The target wallet.
      * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function closeLoan(
         BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address[] calldata _oracles
+        bytes32 _loanId
     ) 
         external;
 
@@ -47,14 +50,12 @@ interface Loan {
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral to add.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function addCollateral(
         BaseWallet _wallet, 
         bytes32 _loanId, 
         address _collateral, 
-        uint256 _collateralAmount, 
-        address[] calldata _oracles
+        uint256 _collateralAmount
     ) 
         external;
 
@@ -64,14 +65,12 @@ interface Loan {
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral to remove.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function removeCollateral(
         BaseWallet _wallet, 
         bytes32 _loanId, 
         address _collateral, 
-        uint256 _collateralAmount, 
-        address[] calldata _oracles
+        uint256 _collateralAmount
     ) 
         external;
 
@@ -81,14 +80,12 @@ interface Loan {
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _debtToken The token borrowed.
      * @param _debtAmount The amount of token to borrow.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function addDebt(
         BaseWallet _wallet, 
         bytes32 _loanId, 
         address _debtToken, 
-        uint256 _debtAmount, 
-        address[] calldata _oracles
+        uint256 _debtAmount
     ) 
         external;
 
@@ -98,14 +95,12 @@ interface Loan {
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @param _debtToken The token to repay.
      * @param _debtAmount The amount of token to repay.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function removeDebt(
         BaseWallet _wallet, 
         bytes32 _loanId, 
         address _debtToken, 
-        uint256 _debtAmount, 
-        address[] calldata _oracles
+        uint256 _debtAmount
     ) 
         external;
 
@@ -113,15 +108,13 @@ interface Loan {
      * @dev Gets information about a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId The ID of the loan if any, 0 otherwise.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: unable to provide info]
      * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral 
      * that should be added to avoid liquidation when status = 2.     
      */
     function getLoan(
         BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address[] calldata _oracles
+        bytes32 _loanId
     ) 
         external 
         view 

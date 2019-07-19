@@ -4,7 +4,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
 
 const Wallet = require("../build/BaseWallet");
-const InvestManager = require("../build/InvestManager");
+const CompoundInvestManager = require("../build/CompoundInvestManager");
 
 // Compound
 const Unitroller = require("../build/Unitroller");
@@ -14,7 +14,6 @@ const Comptroller = require("../build/Comptroller");
 const InterestModel = require("../build/WhitePaperInterestRateModel");
 const CEther = require("../build/CEther");
 const CErc20 = require("../build/CErc20");
-const CompoundProvider = require("../build/CompoundV2Provider");
 const CompoundRegistry = require("../build/CompoundRegistry");
 
 const WAD = bigNumberify('1000000000000000000') // 10**18
@@ -35,7 +34,7 @@ describe("Invest Manager with Compound", function () {
     let liquidityProvider = accounts[2].signer;
     let borrower = accounts[3].signer;
 
-    let wallet, investManager, compoundProvider, compoundRegistry, token, cToken, cEther, comptroller, oracleProxy;
+    let wallet, investManager, compoundRegistry, token, cToken, cEther, comptroller, oracleProxy;
 
     before(async () => {
         deployer = manager.newDeployer();
@@ -51,7 +50,8 @@ describe("Invest Manager with Compound", function () {
         await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false);
         comptroller = deployer.wrapDeployedContract(Comptroller, comptrollerProxy.contractAddress);
         // deploy Interest rate model
-        const interestModel = await deployer.deploy(InterestModel, 250 * 10 ** 14, 2000 * 10 ** 14);
+
+        const interestModel = await deployer.deploy(InterestModel, {}, WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
         // deploy CEther
         cEther = await deployer.deploy(
             CEther,
@@ -75,6 +75,7 @@ describe("Invest Manager with Compound", function () {
             "Compound Token",
             "cTOKEN",
             18);
+
         // add price to Oracle
         await oracle.setUnderlyingPrice(cToken.contractAddress, WAD.div(10));
         // list cToken in Comptroller
@@ -94,14 +95,19 @@ describe("Invest Manager with Compound", function () {
 
         /* Deploy Argent Architecture */
 
-        compoundProvider = await deployer.deploy(CompoundProvider);
         compoundRegistry = await deployer.deploy(CompoundRegistry);
         await compoundRegistry.addCToken(ETH_TOKEN, cEther.contractAddress);
         await compoundRegistry.addCToken(token.contractAddress, cToken.contractAddress);
         const registry = await deployer.deploy(Registry);
         const guardianStorage = await deployer.deploy(GuardianStorage);
-        investManager = await deployer.deploy(InvestManager, {}, registry.contractAddress, guardianStorage.contractAddress);
-        await investManager.addDefaultProvider(compoundProvider.contractAddress, [comptroller.contractAddress, compoundRegistry.contractAddress]);
+        investManager = await deployer.deploy(
+            CompoundInvestManager,
+            {},
+            registry.contractAddress,
+            guardianStorage.contractAddress,
+            comptroller.contractAddress,
+            compoundRegistry.contractAddress
+        );
     });
 
     beforeEach(async () => {
@@ -138,7 +144,7 @@ describe("Invest Manager with Compound", function () {
                 await token.from(infrastructure).transfer(wallet.contractAddress, amount);
             }
 
-            const params = [wallet.contractAddress, compoundProvider.contractAddress, tokenAddress, amount, 0];
+            const params = [wallet.contractAddress, tokenAddress, amount, 0];
             if (relay) {
                 txReceipt = await manager.relay(investManager, 'addInvestment', params, wallet, [owner]);
             }
@@ -150,7 +156,7 @@ describe("Invest Manager with Compound", function () {
 
             await accrueInterests(days, investInEth);
 
-            let output = await investManager.getInvestment(wallet.contractAddress, compoundProvider.contractAddress, tokenAddress);
+            let output = await investManager.getInvestment(wallet.contractAddress, tokenAddress);
             assert.isTrue(output._tokenValue > amount, 'investment should have gained value');
             return output._tokenValue;
         }
@@ -163,7 +169,7 @@ describe("Invest Manager with Compound", function () {
             await addInvestment(tokenAddress, parseEther('0.1'), 365, false);
             let before = investInEth ? await cEther.balanceOf(wallet.contractAddress) : await cToken.balanceOf(wallet.contractAddress);
 
-            const params = [wallet.contractAddress, compoundProvider.contractAddress, tokenAddress, fraction];
+            const params = [wallet.contractAddress, tokenAddress, fraction];
             if (relay) {
                 txReceipt = await manager.relay(investManager, 'removeInvestment', params, wallet, [owner]);
             }

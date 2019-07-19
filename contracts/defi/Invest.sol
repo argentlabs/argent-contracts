@@ -7,6 +7,9 @@ import "../wallet/BaseWallet.sol";
  */
 interface Invest {
 
+    event InvestmentAdded(address indexed _wallet, address _token, uint256 _invested, uint256 _period);
+    event InvestmentRemoved(address indexed _wallet, address _token, uint256 _fraction);
+
     /**
      * @dev Invest tokens for a given period.
      * @param _wallet The target wallet.
@@ -49,11 +52,11 @@ interface Invest {
      * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
      */
     function getInvestment(
-        BaseWallet _wallet, 
-        address _token, 
+        BaseWallet _wallet,
+        address _token,
         address[] calldata _oracles
-    ) 
-        external 
+    )
+        external
         view
         returns (uint256 _tokenValue, uint256 _periodEnd);
 }
