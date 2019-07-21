@@ -35,8 +35,8 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         ModuleRegistry _registry, 
         GuardianStorage _guardianStorage
     ) 
-        BaseModule(_registry, NAME) 
-        public 
+        ProviderModule(_registry, NAME)
+        public
     {
         guardianStorage = _guardianStorage;
 
@@ -67,9 +67,9 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
             _token,
             _amount,
             _period,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, bytes memory data) = delegateToProvider(_provider, methodData);
+        (bool success, bytes memory data) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "InvestManager: request to provider failed");
         (uint256 invested) = abi.decode(data,(uint256));
         emit InvestmentAdded(address(_wallet), _provider, _token, invested, _period);
@@ -97,9 +97,9 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
             address(_wallet), 
             _token,
             _fraction,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, ) = delegateToProvider(_provider, methodData);
+        (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "InvestManager: request to provider failed");
         emit InvestmentRemoved(address(_wallet), _provider, _token, _fraction);
     }
@@ -120,7 +120,7 @@ contract InvestManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderMo
         view
         returns (uint256 _tokenValue, uint256 _periodEnd) 
     {
-        require(isProvider(_provider), "InvestManager: Not a valid provider");
-        (_tokenValue, _periodEnd) = Invest(_provider).getInvestment(_wallet, _token, providers[_provider].oracles);
+        require(isProvider(_wallet, _provider), "InvestManager: Not a valid provider");
+        (_tokenValue, _periodEnd) = Invest(_provider).getInvestment(_wallet, _token, getProviderOracles(_provider));
     }
 }
