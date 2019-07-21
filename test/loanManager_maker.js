@@ -4,11 +4,10 @@ const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 
 const GuardianStorage = require("../build/GuardianStorage");
-const LoanManager = require("../build/LoanManager");
+const MakerLoanManager = require("../build/MakerLoanManager");
 
 const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
 const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
-const MakerProvider = require("../build/MakerProvider");
 
 const TestManager = require("../utils/test-manager");
 
@@ -38,7 +37,7 @@ describe("Test CDP Module", function () {
     const owner = accounts[1].signer;
     const pit = accounts[2].signer;
 
-    let deployer, loanManager, makerProvider, wallet, sai, gov, tub, uniswapFactory, pip;
+    let deployer, loanManager, wallet, sai, gov, tub, uniswapFactory, pip;
 
     before(async () => {
         deployer = manager.newDeployer();
@@ -104,9 +103,14 @@ describe("Test CDP Module", function () {
         timestamp = await manager.getTimestamp(currentBlock);
         await saiExchange.from(infrastructure).addLiquidity(1, saiLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
 
-        makerProvider = await deployer.deploy(MakerProvider);
-        loanManager = await deployer.deploy(LoanManager, {}, registry.contractAddress, guardianStorage.contractAddress);
-        await loanManager.addProvider(makerProvider.contractAddress, [tub.contractAddress, uniswapFactory.contractAddress]);
+        loanManager = await deployer.deploy(
+            MakerLoanManager,
+            {},
+            registry.contractAddress,
+            guardianStorage.contractAddress,
+            tub.contractAddress,
+            uniswapFactory.contractAddress
+        );
     });
 
     beforeEach(async () => {
@@ -115,14 +119,13 @@ describe("Test CDP Module", function () {
         await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther('5') });
     });
 
-
     describe("Loan", () => {
         async function testOpenLoan({ ethAmount, daiAmount, relayed }) {
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             const beforeDAI = await sai.balanceOf(wallet.contractAddress);
             const beforeDAISupply = await sai.totalSupply();
 
-            const params = [wallet.contractAddress, makerProvider.contractAddress, ETH_TOKEN, ethAmount, sai.contractAddress, daiAmount];
+            const params = [wallet.contractAddress, ETH_TOKEN, ethAmount, sai.contractAddress, daiAmount];
             let txReceipt;
             if (relayed) {
                 txReceipt = await manager.relay(loanManager, 'openLoan', params, wallet, [owner]);
@@ -130,7 +133,6 @@ describe("Test CDP Module", function () {
                 const tx = await loanManager.from(owner).openLoan(...params, { gasLimit: 2000000 });
                 txReceipt = await loanManager.verboseWaitForTransaction(tx);
             }
-
             const loanId = txReceipt.events.find(e => e.event === 'LoanOpened').args._loanId;
             assert.isDefined(loanId, 'Loan ID should be defined')
 
@@ -157,7 +159,7 @@ describe("Test CDP Module", function () {
         async function testChangeCollateral({ loanId, ethAmount, add, relayed }) {
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             const method = add ? 'addCollateral' : 'removeCollateral';
-            const params = [wallet.contractAddress, makerProvider.contractAddress, loanId, ETH_TOKEN, ethAmount];
+            const params = [wallet.contractAddress, loanId, ETH_TOKEN, ethAmount];
             if (relayed) {
                 await manager.relay(loanManager, method, params, wallet, [owner]);
             } else {
@@ -191,7 +193,7 @@ describe("Test CDP Module", function () {
             const beforeDAI = await sai.balanceOf(wallet.contractAddress);
             const beforeDAISupply = await sai.totalSupply();
             const method = add ? 'addDebt' : 'removeDebt';
-            const params = [wallet.contractAddress, makerProvider.contractAddress, loanId, sai.contractAddress, daiAmount];
+            const params = [wallet.contractAddress, loanId, sai.contractAddress, daiAmount];
             if (relayed) {
                 await manager.relay(loanManager, method, params, wallet, [owner]);
             } else {
@@ -270,7 +272,7 @@ describe("Test CDP Module", function () {
             }
 
             const method = 'closeLoan'
-            const params = [wallet.contractAddress, makerProvider.contractAddress, loanId];
+            const params = [wallet.contractAddress, loanId];
             if (relayed) {
                 await manager.relay(loanManager, method, params, wallet, [owner]);
             } else {

@@ -36,14 +36,13 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
     }
 
     constructor(
-        ModuleRegistry _registry, 
+        ModuleRegistry _registry,
         GuardianStorage _guardianStorage
-    ) 
-        BaseModule(_registry, NAME) 
-        public 
+    )
+        ProviderModule(_registry, NAME)
+        public
     {
         guardianStorage = _guardianStorage;
-
     }
 
     /**
@@ -76,9 +75,9 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             _collateralAmount,
             _debtToken,
             _debtAmount,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, bytes memory data) = delegateToProvider(_provider, methodData);
+        (bool success, bytes memory data) = delegateToProvider(_wallet, _provider, methodData);
         (_loanId) = abi.decode(data,(bytes32));
         require(success, "LoanManager: request to provider failed");
         emit LoanOpened(address(_wallet), _provider, _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
@@ -103,9 +102,9 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             "closeLoan(address,bytes32,address[])", 
             address(_wallet), 
             _loanId,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, ) = delegateToProvider(_provider, methodData);
+        (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LoanManager: request to provider failed");
         emit LoanClosed(address(_wallet), _provider, _loanId);
     }
@@ -135,9 +134,9 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             _loanId,
             _collateral,
             _collateralAmount,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, ) = delegateToProvider(_provider, methodData);
+        (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LoanManager: request to provider failed");
         emit CollateralAdded(address(_wallet), _provider, _loanId, _collateral, _collateralAmount);
     }
@@ -167,9 +166,9 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             _loanId,
             _collateral,
             _collateralAmount,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, ) = delegateToProvider(_provider, methodData);
+        (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LoanManager: request to provider failed");
         emit CollateralRemoved(address(_wallet), _provider, _loanId, _collateral, _collateralAmount);
     }
@@ -199,9 +198,9 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             _loanId,
             _debtToken,
             _debtAmount,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, ) = delegateToProvider(_provider, methodData);
+        (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LoanManager: request to provider failed");
         emit DebtAdded(address(_wallet), _provider, _loanId, _debtToken, _debtAmount);
     }
@@ -231,9 +230,9 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
             _loanId,
             _debtToken,
             _debtAmount,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, ) = delegateToProvider(_provider, methodData);
+        (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LoanManager: request to provider failed");
         emit DebtRemoved(address(_wallet), _provider, _loanId, _debtToken, _debtAmount);
     }
@@ -256,7 +255,7 @@ contract LoanManager is BaseModule, RelayerModule, OnlyOwnerModule, ProviderModu
         view 
         returns (uint8 _status, uint256 _ethValue)
     {
-        (_status, _ethValue) = Loan(_provider).getLoan(_wallet, _loanId, providers[_provider].oracles);
-    }   
+        (_status, _ethValue) = Loan(_provider).getLoan(_wallet, _loanId, getProviderOracles(_provider));
+    }
 
 }

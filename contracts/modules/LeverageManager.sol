@@ -35,7 +35,7 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
         ModuleRegistry _registry, 
         GuardianStorage _guardianStorage
     ) 
-        BaseModule(_registry, NAME) 
+        ProviderModule(_registry, NAME) 
         public 
     {
         guardianStorage = _guardianStorage;
@@ -66,14 +66,14 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
     {
         bytes memory methodData = abi.encodeWithSignature(
             "openLeveragedPosition(address,address,uint256,uint256,uint8,address[])", 
-            address(_wallet), 
+            address(_wallet),
             _collateral,
             _collateralAmount,
             _conversionRatio,
             _iterations,
-            providers[_provider].oracles
-            );
-        (bool success, bytes memory data) = delegateToProvider(_provider, methodData);
+            getProviderOracles(_provider)
+        );
+        (bool success, bytes memory data) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LeverageManager: request to provider failed");
         uint256 totalCollateral;
         uint256 totalDebt;
@@ -102,9 +102,9 @@ contract LeverageManager is BaseModule, RelayerModule, OnlyOwnerModule, Provider
             address(_wallet), 
             _leverageId,
             _debtPayment,
-            providers[_provider].oracles
+            getProviderOracles(_provider)
             );
-        (bool success, ) = delegateToProvider(_provider, methodData);
+        (bool success, ) = delegateToProvider(_wallet, _provider, methodData);
         require(success, "LeverageManager: request to provider failed");
         emit LeverageClosed(address(_wallet), _provider, _leverageId, _debtPayment);   
     }
