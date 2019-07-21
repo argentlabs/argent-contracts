@@ -12,10 +12,10 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.2.1";
+const TARGET_VERSION = "1.2.2";
 const MODULES_TO_ENABLE = ["InvestManager", "LoanManager"];
 const MODULES_TO_DISABLE = [];
-const BACKWARD_COMPATIBILITY = 3;
+const BACKWARD_COMPATIBILITY = 1;
 
 const deploy = async (network) => {
 
@@ -41,6 +41,16 @@ const deploy = async (network) => {
     const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
     console.log('Config:', config);
+
+    ///////////////////////////////////
+    //      On Error                 //
+    ///////////////////////////////////
+
+ //   const MakerProviderWrapper = await deployer.wrapDeployedContract(MakerProvider, "0x84C79EBef8133AE3A860B5D23dC210375EF8771F");
+ //   const CompoundProviderWrapper = await deployer.wrapDeployedContract(CompoundProvider, "0x589De66185a83AB571639F2dB1bba57bCEf5D8bB");
+ //   const CompoundRegistryWrapper = await deployer.wrapDeployedContract(CompoundRegistry, "0xe78E72Be169D76d9588A33F4185081b69e0940b1");
+ //   const LoanManagerWrapper = await deployer.wrapDeployedContract(LoanManager, "0x88586a04cd92921256D068E019799d8874134912");
+ //   const InvestManagerWrapper = await deployer.wrapDeployedContract(InvestManager, "0x086EB5b7397c8F4A1FBcE9c7C03327685Af4b9A4");
 
     ////////////////////////////////////
     // Deploy utility contracts

@@ -9,7 +9,7 @@ const ABIUploader = require('./abi-uploader.js');
 const VersionUploader = require('./version-uploader.js');
 
 const defaultConfigs = {
-    gasPrice: 10000000000, // 10 Gwei
+    gasPrice: 20000000000, // 20 Gwei
     gasLimit: 6000000
 }
 
