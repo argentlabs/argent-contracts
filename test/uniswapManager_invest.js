@@ -3,9 +3,8 @@ const Wallet = require("../build/BaseWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
 const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
-const UniswapProvider = require("../build/UniswapProvider");
+const UniswapManager = require("../build/UniswapManager");
 const GuardianStorage = require("../build/GuardianStorage");
-const InvestManager = require("../build/InvestManager");
 const ERC20 = require("../build/TestERC20");
 const TestManager = require("../utils/test-manager");
 const { parseEther, bigNumberify } = require('ethers').utils;
@@ -18,7 +17,7 @@ describe("Invest Manager with Uniswap", function () {
     let infrastructure = accounts[0].signer;
     let owner = accounts[1].signer;
 
-    let wallet, uniswapFactory, uniswapProvider, investManager, token;
+    let wallet, uniswapFactory, investManager, token;
 
     before(async () => {
         deployer = manager.newDeployer();
@@ -27,11 +26,14 @@ describe("Invest Manager with Uniswap", function () {
         const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
         await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress);
         // deploy Argent contracts
-        uniswapProvider = await deployer.deploy(UniswapProvider);
         const registry = await deployer.deploy(ModuleRegistry);
         const guardianStorage = await deployer.deploy(GuardianStorage);
-        investManager = await deployer.deploy(InvestManager, {}, registry.contractAddress, guardianStorage.contractAddress);
-        await investManager.addDefaultProvider(uniswapProvider.contractAddress, [uniswapFactory.contractAddress]);
+        investManager = await deployer.deploy(
+            UniswapManager, 
+            {}, 
+            registry.contractAddress, 
+            guardianStorage.contractAddress, 
+            uniswapFactory.contractAddress);
     });
 
     beforeEach(async () => {
@@ -63,7 +65,7 @@ describe("Invest Manager with Uniswap", function () {
         let pool = await testCreatePool(ethLiquidity, tokenPrice);
 
         let txReceipt;
-        const params = [wallet.contractAddress, uniswapProvider.contractAddress, token.contractAddress, amount, 0];
+        const params = [wallet.contractAddress, token.contractAddress, amount, 0];
         if (relay) {
             txReceipt = await manager.relay(investManager, 'addInvestment', params, wallet, [owner]);
         }
@@ -95,7 +97,7 @@ describe("Invest Manager with Uniswap", function () {
         let sharesBefore = result[1];
 
         let txReceipt;
-        const params = [wallet.contractAddress, uniswapProvider.contractAddress, token.contractAddress, fraction];
+        const params = [wallet.contractAddress, token.contractAddress, fraction];
         if (relay) {
             txReceipt = await manager.relay(investManager, 'removeInvestment', params, wallet, [owner]);
         }
@@ -112,31 +114,6 @@ describe("Invest Manager with Uniswap", function () {
     describe("Basic framework", () => {
         it('should create a liquidity pool with the correct supply', async () => {
             await testCreatePool(bigNumberify('10000000000000000'), 2);
-        });
-
-        it('should fail to add investment when the provider is unknown', async () => {
-            await testCreatePool(parseEther('0.1'), 2);
-            await assert.revert(investManager.from(owner).addInvestment(
-                wallet.contractAddress,
-                uniswapFactory.contractAddress,
-                token.contractAddress,
-                20000000,
-                0,
-                { gasLimit: 300000 }
-            ), "should throw when the provider is unknown");
-        });
-
-        it('should fail to remove investment when the provider is unknown', async () => {
-            await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther('0.1') });
-            await token.from(infrastructure).transfer(wallet.contractAddress, parseEther('0.00001'));
-            await addInvestment(parseEther('0.1'), 2, parseEther('0.00001'), false);
-            await assert.revert(investManager.from(owner).removeInvestment(
-                wallet.contractAddress,
-                uniswapFactory.contractAddress,
-                token.contractAddress,
-                5000,
-                { gasLimit: 100000 }
-            ), "should throw when the provider is unknown");
         });
     });
 

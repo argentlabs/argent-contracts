@@ -4,7 +4,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
 
 const Wallet = require("../build/BaseWallet");
-const CompoundInvestManager = require("../build/CompoundInvestManager");
+const CompoundManager = require("../build/CompoundManager");
 
 // Compound
 const Unitroller = require("../build/Unitroller");
@@ -101,7 +101,7 @@ describe("Invest Manager with Compound", function () {
         const registry = await deployer.deploy(Registry);
         const guardianStorage = await deployer.deploy(GuardianStorage);
         investManager = await deployer.deploy(
-            CompoundInvestManager,
+            CompoundManager,
             {},
             registry.contractAddress,
             guardianStorage.contractAddress,

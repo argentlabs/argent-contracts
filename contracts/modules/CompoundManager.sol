@@ -38,23 +38,24 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
 
     bytes32 constant NAME = "CompoundManager";
 
-    // The Guardian storage 
+    // The Guardian storage contract
     GuardianStorage public guardianStorage;
+    // The Compound Comptroller contract
+    Comptroller public comptroller;
+    // The registry mapping underlying with cTokens
+    CompoundRegistry public compoundRegistry;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     using SafeMath for uint256;
 
-    Comptroller public comptroller;
-    CompoundRegistry public compoundRegistry;
-
     /**
      * @dev Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(BaseWallet _wallet) {
         // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "LoanManager: wallet must be unlocked");
+        require(!guardianStorage.isLocked(_wallet), "CompoundManager: wallet must be unlocked");
         _;
     }
 
@@ -91,6 +92,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         uint256 _debtAmount
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId) 
     {
         address[] memory markets = new address[](2);
@@ -112,6 +115,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         bytes32 _loanId
     )
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         address[] memory markets = comptroller.getAssetsIn(address(_wallet));
         for(uint i = 0; i < markets.length; i++) {
@@ -142,6 +147,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         uint256 _collateralAmount
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         address cToken = compoundRegistry.getCToken(_collateral);
         enterMarketIfNeeded(_wallet, cToken, address(comptroller));
@@ -163,6 +170,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         uint256 _collateralAmount
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         address cToken = compoundRegistry.getCToken(_collateral);
         redeemUnderlying(_wallet, cToken, _collateralAmount);
@@ -184,6 +193,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         uint256 _debtAmount
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
         enterMarketIfNeeded(_wallet, dToken, address(comptroller));
@@ -205,6 +216,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         uint256 _debtAmount
     ) 
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
         repayBorrow(_wallet, dToken, _debtAmount);
@@ -238,7 +251,6 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         }
         return (0,0);
     }
-    /* ***************************************************************************************** */
 
     /* ********************************** Implementation of Invest ************************************* */
 
@@ -257,6 +269,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         uint256 _period
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
         address cToken = compoundRegistry.getCToken(_token);
@@ -277,6 +291,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         uint256 _fraction
     )
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_fraction <= 10000, "CompoundV2: invalid fraction value");
         address cToken = compoundRegistry.getCToken(_token);

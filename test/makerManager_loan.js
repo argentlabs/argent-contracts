@@ -4,7 +4,7 @@ const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 
 const GuardianStorage = require("../build/GuardianStorage");
-const MakerLoanManager = require("../build/MakerLoanManager");
+const MakerManager = require("../build/MakerManager");
 
 const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
 const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
@@ -104,7 +104,7 @@ describe("Test CDP Module", function () {
         await saiExchange.from(infrastructure).addLiquidity(1, saiLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
 
         loanManager = await deployer.deploy(
-            MakerLoanManager,
+            MakerManager,
             {},
             registry.contractAddress,
             guardianStorage.contractAddress,
