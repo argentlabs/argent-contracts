@@ -23,6 +23,8 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
 
     bytes constant internal EMPTY_BYTES = "";
 
+    enum ActionType { Transfer, Approve, CallContract }
+
     using SafeMath for uint256;
 
     // Mock token address for ETH
@@ -30,19 +32,19 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     // large limit when the limit can be considered disabled
     uint128 constant internal LIMIT_DISABLED = uint128(-1); // 3.40282366920938463463374607431768211455e+38
 
-    struct TokenTransferConfig {
-        // Mapping between pending transfer hash and their timestamp
-        mapping (bytes32 => uint256) pendingTransfers;
+    struct TokenManagerConfig {
+        // Mapping between pending action hash and their timestamp
+        mapping (bytes32 => uint256) pendingActions;
     }
 
     // wallet specific storage
-    mapping (address => TokenTransferConfig) internal configs;
+    mapping (address => TokenManagerConfig) internal configs;
 
     // The security period
     uint256 public securityPeriod;
     // The execution window
     uint256 public securityWindow;
-    // The Guardian storage 
+    // The Guardian storage
     GuardianStorage public guardianStorage;
     // The Token storage
     TransferStorage public transferStorage;
@@ -51,14 +53,22 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
 
     // *************** Events *************************** //
 
-    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);  
-    event ApprovedERC20(address indexed wallet, address indexed token, uint256 indexed amount, address spender);    
+    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
+    event ApprovedERC20(address indexed wallet, address indexed token, uint256 indexed amount, address spender);
     event CalledContract(address indexed wallet, address indexed to, uint256 indexed amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
-    event PendingTransferCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter, address token, address to, uint256 amount, bytes data);
-    event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
-    event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
+    event PendingActionCreated(
+        address indexed wallet,
+        bytes32 indexed id,
+        ActionType indexed action,
+        uint256 executeAfter,
+        address token,
+        address to,
+        uint256 amount,
+        bytes data);
+    event PendingActionExecuted(address indexed wallet, bytes32 indexed id, ActionType indexed action);
+    event PendingActionCanceled(address indexed wallet, bytes32 indexed id);
 
     // *************** Modifiers *************************** //
 
@@ -75,16 +85,16 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
 
     constructor(
         ModuleRegistry _registry,
-        TransferStorage _transferStorage, 
-        GuardianStorage _guardianStorage, 
+        TransferStorage _transferStorage,
+        GuardianStorage _guardianStorage,
         address _priceProvider,
         uint256 _securityPeriod,
-        uint256 _securityWindow, 
+        uint256 _securityWindow,
         uint256 _defaultLimit
-    ) 
+    )
         BaseModule(_registry, NAME)
         LimitManager(_defaultLimit)
-        public 
+        public
     {
         transferStorage = _transferStorage;
         guardianStorage = _guardianStorage;
@@ -104,90 +114,71 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _data The data for the transaction
     */
     function transferToken(
-        BaseWallet _wallet, 
-        address _token, 
-        address _to, 
-        uint256 _amount, 
+        BaseWallet _wallet,
+        address _token,
+        address _to,
+        uint256 _amount,
         bytes calldata _data
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if(isWhitelisted(_wallet, _to)) {
-            // eth transfer to whitelist
-            if(_token == ETH_TOKEN) {
-                transferETH(_wallet, _to, _amount, _data);
-            }
-            // erc20 transfer to whitelist
-            else {
-                transferERC20(_wallet, _token, _to, _amount, _data);
-            }
+            // transfer to whitelist
+            transfer(_wallet, _token, _to, _amount, _data);
         }
         else {
-            if(_token == ETH_TOKEN) {
-                // eth transfer under the limit
-                if (checkAndUpdateDailySpent(_wallet, _amount)) {
-                    transferETH(_wallet, _to, _amount, _data);
-                }
-                // eth transfer above the limit
-                else {
-                    addPendingTransfer(_wallet, ETH_TOKEN, _to, _amount, _data); 
-                }
+            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : priceProvider.getEtherValue(_amount, _token);
+            if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
+                // transfer under the limit
+                transfer(_wallet, _token, _to, _amount, _data);
             }
             else {
-                uint256 etherAmount = priceProvider.getEtherValue(_amount, _token);
-                // erc20 transfer under the limit
-                if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
-                    transferERC20(_wallet, _token, _to, _amount, _data);
-                }
-                // erc20 transfer above the limit
-                else {
-                    addPendingTransfer(_wallet, _token, _to, _amount, _data); 
-                }
+                // transfer above the limit
+                addPendingAction(ActionType.Transfer, _wallet, _token, _to, _amount, _data);
             }
         }
     }
 
     function approveERC20Tranfer(
-        BaseWallet _wallet, 
-        address _token, 
-        address _spender, 
+        BaseWallet _wallet,
+        address _token,
+        address _spender,
         uint256 _amount
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if(isWhitelisted(_wallet, _spender)) {
+            // approve to whitelist
             approveERC20(_wallet, _token, _spender, _amount);
         }
         else {
             uint256 etherAmount = priceProvider.getEtherValue(_amount, _token);
-            // erc20 transfer under the limit
             if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
+                // approve under the limit
                 approveERC20(_wallet, _token, _spender, _amount);
             }
-            // erc20 transfer above the limit
             else {
-                //addPendingTransfer(_wallet, _token, _to, _amount, _data); 
+                // approve above the limit
+                addPendingAction(ActionType.Approve, _wallet, _token, _spender, _amount, EMPTY_BYTES);
             }
         }
     }
 
-
-
     /**
-     * @dev Adds an address to the whitelist of a wallet. 
+     * @dev Adds an address to the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
     function addToWhitelist(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _target
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
@@ -198,16 +189,16 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-     * @dev Removes an address from the whitelist of a wallet. 
+     * @dev Removes an address from the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
     function removeFromWhitelist(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _target
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(isWhitelisted(_wallet, _target), "TT: target not whitelisted");
@@ -216,60 +207,62 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-    * @dev Executes a pending transfer for a wallet. 
+    * @dev Executes a pending transfer for a wallet.
     * The destination address is automatically added to the whitelist.
     * The method can be called by anyone to enable orchestration.
     * @param _wallet The target wallet.
-    * @param _token The token of the pending transfer. 
+    * @param _action The target action.
+    * @param _token The token of the pending transfer.
     * @param _to The destination address of the pending transfer.
     * @param _amount The amount of token to transfer of the pending transfer.
     * @param _block The block at which the pending transfer was created.
     */
-    function executePendingTransfer(
+    function executePendingAction(
         BaseWallet _wallet,
-        address _token, 
-        address _to, 
-        uint _amount, 
+        ActionType _action,
+        address _token,
+        address _to,
+        uint _amount,
         bytes memory _data,
-        uint _block 
-    ) 
-        public 
+        uint _block
+    )
+        public
         onlyWhenUnlocked(_wallet)
     {
-        bytes32 id = keccak256(abi.encodePacked(_token, _to, _amount, _data, _block));
+        bytes32 id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, _block));
         uint executeAfter = configs[address(_wallet)].pendingTransfers[id];
         uint executeBefore = executeAfter.add(securityWindow);
-        require(executeAfter <= now && now <= executeBefore, "TT: outside of the execution window");
-        removePendingTransfer(_wallet, id);
-        if(_token == ETH_TOKEN) {
-            transferETH(_wallet, _to, _amount, _data);
+        require(executeAfter <= now && now <= executeBefore, "TT: action outside of the execution window");
+        removePendingAction(_wallet, id);
+        if(_action == ActionType.Transfer) {
+            transfer(_wallet, _token, _to, _amount, _data);
         }
-        else {
-            transferERC20(_wallet, _token, _to, _amount, _data);
+        else if(_action == ActionType.Approve) {
+            approveERC20(_wallet, _token, _to, _amount);
         }
-        emit PendingTransferExecuted(address(_wallet), id);
+        emit PendingActionExecuted(address(_wallet), id, _action);
     }
 
     /**
-    * @dev Cancels a pending transfer for a wallet. 
+    * @dev Cancels a pending action for a wallet.
     * @param _wallet The target wallet.
-    * @param _id the pending transfer Id. 
+    * @param _id the pending action ID.
     */
-    function cancelPendingTransfer(
-        BaseWallet _wallet, 
+    function cancelPendingAction(
+        BaseWallet _wallet,
         bytes32 _id
-    ) 
-        public 
-        onlyWalletOwner(_wallet) 
-        onlyWhenUnlocked(_wallet) 
+    )
+        public
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
-        require(configs[address(_wallet)].pendingTransfers[_id] > 0, "TT: unknown pending transfer");
-        removePendingTransfer(_wallet, _id);
-        emit PendingTransferCanceled(address(_wallet), _id);
+        require(configs[address(_wallet)].pendingActions[_id] > 0, "TT: unknown pending action");
+        removePendingAction(_wallet, _id);
+        emit PendingActionCanceled(address(_wallet), _id);
     }
 
     /**
-     * @dev Lets the owner of a wallet change its global limit. 
+     * @dev Lets the owner of a wallet change its global limit.
      * The limit is expressed in ETH. Changes to the limit take 24 hours.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
@@ -290,7 +283,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     /**
     * @dev Checks if an address is whitelisted for a wallet.
     * @param _wallet The target wallet.
-    * @param _target The address. 
+    * @param _target The address.
     * @return true if the address is whitelisted.
     */
     function isWhitelisted(BaseWallet _wallet, address _target) public view returns (bool _isWhitelisted) {
@@ -300,40 +293,33 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-    * @dev Gets the info of a pending transfer for a wallet.
+    * @dev Gets the info of a pending action for a wallet.
     * @param _wallet The target wallet.
-    * @param _id The pending transfer Id.
-    * @return the epoch time at which the pending transfer can be executed.
+    * @param _id The pending action ID.
+    * @return the epoch time at which the pending action can be executed.
     */
-    function getPendingTransfer(BaseWallet _wallet, bytes32 _id) external view returns (uint64 _executeAfter) {
+    function getPendingAction(BaseWallet _wallet, bytes32 _id) external view returns (uint64 _executeAfter) {
         _executeAfter = uint64(configs[address(_wallet)].pendingTransfers[_id]);
     }
 
     // *************** Internal Functions ********************* //
 
     /**
-    * @dev Helper method to transfer ETH for a wallet.
+    * @dev Helper method to transfer ETH or ERC20 for a wallet.
     * @param _wallet The target wallet.
+    * @param _token The ERC20 address.
     * @param _to The recipient.
     * @param _value The amount of ETH to transfer
     * @param _data The data to *log* with the transfer.
     */
-    function transferETH(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
-        _wallet.invoke(_to, _value, EMPTY_BYTES);
-        emit Transfer(address(_wallet), ETH_TOKEN, _value, _to, _data);
-    }
-
-    /**
-    * @dev Helper method to transfer ERC20 for a wallet.
-    * @param _wallet The target wallet.
-    * @param _token The ERC20 address.
-    * @param _to The recipient.
-    * @param _value The amount of token to transfer
-    * @param _data The data to pass with the trnasfer.
-    */
-    function transferERC20(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
-        bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
-        _wallet.invoke(_token, 0, methodData);
+    function transfer(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
+        if(_token == ETH_TOKEN) {
+            _wallet.invoke(_to, _value, EMPTY_BYTES);
+        }
+        else {
+            bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
+            _wallet.invoke(_token, 0, methodData);
+        }
         emit Transfer(address(_wallet), _token, _value, _to, _data);
     }
 
@@ -365,19 +351,30 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-     * @dev Creates a new pending transfer for a wallet.
+     * @dev Creates a new pending action for a wallet.
+     * @param _action The target action.
      * @param _wallet The target wallet.
-     * @param _token The token for the transfer.
-     * @param _to The recipient for the transfer.
-     * @param _amount The amount of token to transfer.
-     * @param _data The data associated to the transfer.
-     * @return the identifier for the new pending transfer.
+     * @param _token The target token for the action.
+     * @param _to The recipient of the action.
+     * @param _amount The amount of token associated to the action.
+     * @param _data The data associated to the action.
+     * @return the identifier for the new pending action.
      */
-    function addPendingTransfer(BaseWallet _wallet, address _token, address _to, uint _amount, bytes memory _data) internal returns (bytes32) {
-        bytes32 id = keccak256(abi.encodePacked(_token, _to, _amount, _data, block.number));
+    function addPendingAction(
+        ActionType _action,
+        BaseWallet _wallet,
+        address _token,
+        address _to,
+        uint _amount,
+        bytes memory _data
+    )
+        internal
+        returns (bytes32)
+    {
+        bytes32 id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, block.number));
         uint executeAfter = now.add(securityPeriod);
-        configs[address(_wallet)].pendingTransfers[id] = executeAfter;
-        emit PendingTransferCreated(address(_wallet), id, executeAfter, _token, _to, _amount, _data);
+        configs[address(_wallet)].pendingActions[id] = executeAfter;
+        emit PendingActionCreated(address(_wallet), id, _action, executeAfter, _token, _to, _amount, _data);
     }
 
     /**
@@ -385,8 +382,8 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _wallet The target wallet
     * @param _id The id of the transfer to remove.
     */
-    function removePendingTransfer(BaseWallet _wallet, bytes32 _id) internal {
-        delete configs[address(_wallet)].pendingTransfers[_id];
+    function removePendingAction(BaseWallet _wallet, bytes32 _id) internal {
+        delete configs[address(_wallet)].pendingActions[_id];
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
@@ -394,7 +391,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     // Overrides refund to add the refund in the daily limit.
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
         // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
-        uint256 amount = 36616 + _gasUsed; 
+        uint256 amount = 36616 + _gasUsed;
         if(_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
@@ -403,14 +400,14 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
                 amount = amount * _gasPrice;
             }
             updateDailySpent(_wallet, uint128(getCurrentLimit(_wallet)), amount);
-            _wallet.invoke(_relayer, amount, "");
+            _wallet.invoke(_relayer, amount, EMPTY_BYTES);
         }
     }
 
     // Overrides verifyRefund to add the refund in the daily limit.
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
         if(_gasPrice > 0 && _signatures > 0 && (
-            address(_wallet).balance < _gasUsed * _gasPrice 
+            address(_wallet).balance < _gasUsed * _gasPrice
             || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
             || _wallet.authorised(address(_wallet)) == false
         ))
@@ -425,7 +422,16 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory _data,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
         address signer = recoverSigner(_signHash, _signatures, 0);
         return isOwner(_wallet, signer); // "TT: signer must be owner"
     }
