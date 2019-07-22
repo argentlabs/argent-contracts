@@ -1,8 +1,12 @@
 pragma solidity ^0.5.4;
-import "../../wallet/BaseWallet.sol";
-import "../../exchange/ERC20.sol";
-import "../../utils/SafeMath.sol";
-import "../Invest.sol";
+
+import "../utils/SafeMath.sol";
+import "../wallet/BaseWallet.sol";
+import "./common/BaseModule.sol";
+import "./common/RelayerModule.sol";
+import "./common/OnlyOwnerModule.sol";
+import "../storage/GuardianStorage.sol";
+import "../defi/Invest.sol";
 
 interface UniswapFactory {
     function getExchange(address _token) external view returns(address);
@@ -16,14 +20,44 @@ interface UniswapExchange {
 }
 
 /**
- * @title Uniswap
- * @dev Wrapper contract to integrate Uniswap.
- * The first item of the oracles array is the Uniswap Factory contract.
+ * @title UniswapInvestManager
+ * @dev Module to invest tokens with Uniswap in order to earn an interest
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract UniswapProvider is Invest {
+contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
+
+    bytes32 constant NAME = "UniswapInvestManager";
+
+    // The Guardian storage
+    GuardianStorage public guardianStorage;
+    // The Uniswap Factory contract
+    UniswapFactory public uniswapFactory;
+
+    // Mock token address for ETH
+    address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     using SafeMath for uint256;
+
+    /**
+     * @dev Throws if the wallet is locked.
+     */
+    modifier onlyWhenUnlocked(BaseWallet _wallet) {
+        // solium-disable-next-line security/no-block-members
+        require(!guardianStorage.isLocked(_wallet), "UniswapManager: wallet must be unlocked");
+        _;
+    }
+
+    constructor(
+        ModuleRegistry _registry,
+        GuardianStorage _guardianStorage,
+        UniswapFactory _uniswapFactory
+    )
+        BaseModule(_registry, NAME)
+        public
+    {
+        guardianStorage = _guardianStorage;
+        uniswapFactory = _uniswapFactory;
+    }
 
     /* ********************************** Implementation of Invest ************************************* */
 
@@ -33,21 +67,21 @@ contract UniswapProvider is Invest {
      * @param _token The token address.
      * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      * @return The amount of tokens that have been invested. 
      */
     function addInvestment(
         BaseWallet _wallet, 
         address _token, 
         uint256 _amount, 
-        uint256 _period, 
-        address[] calldata _oracles
+        uint256 _period
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
-        require(_oracles.length == 1, "Uniswap: invalid oracles length");
-        _invested = addLiquidity(_wallet, _oracles[0], _token, _amount);
+        _invested = addLiquidity(_wallet, address(uniswapFactory), _token, _amount);
+        emit InvestmentAdded(address(_wallet), _token, _amount, _period);
     }
 
     /**
@@ -55,38 +89,36 @@ contract UniswapProvider is Invest {
      * @param _wallet The target wallet.s
      * @param _token The array of token address.
      * @param _fraction The fraction of invested tokens to exit in per 10000. 
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      */
     function removeInvestment(
         BaseWallet _wallet, 
         address _token, 
-        uint256 _fraction, 
-        address[] calldata _oracles
+        uint256 _fraction
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_fraction <= 10000, "Uniswap: _fraction must be expressed in 1 per 10000");
-        require(_oracles.length == 1, "Uniswap: invalid oracles length");
-        removeLiquidity(_wallet, _oracles[0], _token, _fraction);
+        removeLiquidity(_wallet, address(uniswapFactory), _token, _fraction);
+        emit InvestmentRemoved(address(_wallet), _token, _fraction);
     }
 
     /**
      * @dev Get the amount of investment in a given token.
      * @param _wallet The target wallet.
      * @param _token The token address.
-     * @param _oracles (optional) The address of one or more oracles contracts that may be used by the provider to query information on-chain.
      * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
      */
     function getInvestment(
         BaseWallet _wallet, 
-        address _token, 
-        address[] calldata _oracles
-    ) 
-        external 
+        address _token
+    )
+        external
         view
-        returns (uint256 _tokenValue, uint256 _periodEnd) 
+        returns (uint256 _tokenValue, uint256 _periodEnd)
     {
-        address tokenPool = UniswapFactory(_oracles[0]).getExchange(_token);
+        address tokenPool = uniswapFactory.getExchange(_token);
         uint256 tokenPoolSize = ERC20(_token).balanceOf(tokenPool);
         uint shares = ERC20(tokenPool).balanceOf(address(_wallet));
         uint totalSupply = ERC20(tokenPool).totalSupply();
@@ -104,9 +136,9 @@ contract UniswapProvider is Invest {
      * @param _amount The amount of tokens to add to the pool.
      */
     function addLiquidity(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _factory,
-        address _token, 
+        address _token,
         uint256 _amount
     )
         internal 
@@ -138,17 +170,18 @@ contract UniswapProvider is Invest {
      * @param _token The address of the ERC20 token of the pair.
      * @param _fraction The fraction of pool shares to liquidate.
      */
-    function removeLiquidity(    
-        BaseWallet _wallet, 
+    function removeLiquidity(
+        BaseWallet _wallet,
         address _factory,
-        address _token, 
+        address _token,
         uint256 _fraction
     )
-        internal       
+        internal
     {
         address tokenPool = UniswapFactory(_factory).getExchange(_token);
         require(tokenPool != address(0), "Uniswap: The target token is not traded on Uniswap");
         uint256 shares = ERC20(tokenPool).balanceOf(address(_wallet));
         _wallet.invoke(tokenPool, 0, abi.encodeWithSignature("removeLiquidity(uint256,uint256,uint256,uint256)", shares.mul(_fraction).div(10000), 1, 1, block.timestamp + 1));
     }
-}
+} 
+
