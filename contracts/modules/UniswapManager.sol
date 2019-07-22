@@ -7,7 +7,6 @@ import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "../storage/GuardianStorage.sol";
 import "../defi/Invest.sol";
-import "../defi/utils/CompoundRegistry.sol";
 
 interface UniswapFactory {
     function getExchange(address _token) external view returns(address);
@@ -25,26 +24,26 @@ interface UniswapExchange {
  * @dev Module to invest tokens with Uniswap in order to earn an interest
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract UniswapInvestManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
+contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "UniswapInvestManager";
 
     // The Guardian storage
     GuardianStorage public guardianStorage;
+    // The Uniswap Factory contract
+    UniswapFactory public uniswapFactory;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     using SafeMath for uint256;
 
-    UniswapFactory public uniswapFactory;
-
     /**
      * @dev Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(BaseWallet _wallet) {
         // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "LoanManager: wallet must be unlocked");
+        require(!guardianStorage.isLocked(_wallet), "UniswapManager: wallet must be unlocked");
         _;
     }
 
@@ -77,6 +76,8 @@ contract UniswapInvestManager is Invest, BaseModule, RelayerModule, OnlyOwnerMod
         uint256 _period
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
         _invested = addLiquidity(_wallet, address(uniswapFactory), _token, _amount);
@@ -95,6 +96,8 @@ contract UniswapInvestManager is Invest, BaseModule, RelayerModule, OnlyOwnerMod
         uint256 _fraction
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_fraction <= 10000, "Uniswap: _fraction must be expressed in 1 per 10000");
         removeLiquidity(_wallet, address(uniswapFactory), _token, _fraction);

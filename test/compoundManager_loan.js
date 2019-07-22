@@ -4,7 +4,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
 
 const Wallet = require("../build/BaseWallet");
-const CompoundLoanManager = require("../build/CompoundLoanManager");
+const CompoundManager = require("../build/CompoundManager");
 
 // Compound
 const Unitroller = require("../build/Unitroller");
@@ -121,7 +121,7 @@ describe("Test Loan Module", function () {
         const guardianStorage = await deployer.deploy(GuardianStorage);
 
         loanManager = await deployer.deploy(
-            CompoundLoanManager,
+            CompoundManager,
             {},
             registry.contractAddress,
             guardianStorage.contractAddress,
@@ -131,7 +131,6 @@ describe("Test Loan Module", function () {
     });
 
     beforeEach(async () => {
-        return
         wallet = await deployer.deploy(Wallet);
         await wallet.init(owner.address, [loanManager.contractAddress]);
     });
@@ -233,13 +232,12 @@ describe("Test Loan Module", function () {
         describe("Open Loan", () => {
 
             it('should borrow token with ETH as collateral (blockchain tx)', async () => {
-                return
                 let collateralAmount = parseEther('0.1');
                 let debtAmount = parseEther('0.05');
                 await fundWallet({ ethAmount: collateralAmount, token1Amount: 0 });
                 await testOpenLoan({ collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false });
             });
-            return
+
             it('should borrow ETH with token as collateral (blockchain tx)', async () => {
                 let collateralAmount = parseEther('0.5');
                 let debtAmount = parseEther('0.001');
@@ -270,7 +268,7 @@ describe("Test Loan Module", function () {
                 assert.isTrue(loan._status == 1 && loan._ethValue > 0, "should have obtained the info of the loan");
             });
         });
-        return
+
         describe("Add/Remove Collateral", () => {
 
             it('should add ETH collateral to a loan (blockchain tx)', async () => {

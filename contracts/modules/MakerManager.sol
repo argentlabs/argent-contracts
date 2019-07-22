@@ -7,7 +7,6 @@ import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "../storage/GuardianStorage.sol";
 import "../defi/Loan.sol";
-// import "../defi/Leverage.sol";
 
 // Interface to MakerDAO's Tub contract, used to manage CDPs
 contract IMakerCdp {
@@ -71,12 +70,16 @@ interface UniswapExchange {
  * @dev Module to borrow tokens with MakerDAO
  * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
-contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwnerModule {
+contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
 
-    bytes32 constant NAME = "MakerLoanManager";
+    bytes32 constant NAME = "MakerManager";
 
     // The Guardian storage 
     GuardianStorage public guardianStorage;
+    // The Maker Tub contract
+    IMakerCdp public makerCdp;
+    // The Uniswap Factory contract
+    UniswapFactory public uniswapFactory;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -98,15 +101,12 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
 
     using SafeMath for uint256;
 
-    IMakerCdp public makerCdp;
-    UniswapFactory public uniswapFactory;
-
     /**
      * @dev Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(BaseWallet _wallet) {
         // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "LoanManager: wallet must be unlocked");
+        require(!guardianStorage.isLocked(_wallet), "MakerManager: wallet must be unlocked");
         _;
     }
 
@@ -143,6 +143,8 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         uint256 _debtAmount
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
         require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
@@ -161,6 +163,8 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         bytes32 _loanId
     ) 
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         closeCdp(_wallet, _loanId, makerCdp, uniswapFactory);
         emit LoanClosed(address(_wallet), _loanId);
@@ -180,6 +184,8 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         uint256 _collateralAmount
     ) 
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
         addCollateral(_wallet, _loanId, _collateralAmount, makerCdp);
@@ -200,6 +206,8 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         uint256 _collateralAmount
     ) 
         external 
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
         removeCollateral(_wallet, _loanId, _collateralAmount, makerCdp);
@@ -220,6 +228,8 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         uint256 _debtAmount
     )
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_debtToken == makerCdp.sai(), "Maker: debt token must be DAI");
         addDebt(_wallet, _loanId, _debtAmount, makerCdp);
@@ -240,6 +250,8 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         uint256 _debtAmount
     )
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_debtToken == makerCdp.sai(), "Maker: debt token must be DAI");
         removeDebt(_wallet, _loanId, _debtAmount, makerCdp, uniswapFactory);
@@ -267,103 +279,6 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         }
         return (0,0);
     }
-
-    /* ***************************************************************************************** */
-
-    /* ***************************************************************************************** */
-
-    // ************* Leverage is not part of the current release for Maker ************************* //
-    // /**
-    //  * @dev Lets the owner of a wallet open a new Leveraged Position to increase their exposure to ETH by means of a CDP. 
-    //  * The owner must have enough ether in their wallet to cover the purchase of `_collateralAmount` PETH. 
-    //  * This amount of PETH will be locked as collateral in the CDP. The method will then draw an amount of DAI from the CDP
-    //  * given by the DAI value of the PETH collateral divided by `_conversionRatio` (which must be greater than 1.5). 
-    //  * This DAI will be converted into PETH and added as collateral to the CDP. This operation (drawing DAI,
-    //  * converting DAI to PETH and locking the additional PETH into the CDP) is repeated `_iterations` times.
-    //  * The wallet owner can increase its leverage by increasing the number of `_iterations` or by decreasing 
-    //  * the `_converstionRatio`, resulting in both cases in a lower liquidation ratio for the CDP. 
-    //  * @param _wallet The target wallet
-    //  * @param _collateral The token used as a collateral.
-    //  * @param _collateralAmount The amount of collateral token provided.
-    //  * @param _conversionRatio The ratio of "additional collateral" to "additional debt" to use at each iteration
-    //  * @param _iterations The number of times the operation "draw more DAI, convert this DAI to PETH, lock this PETH" should be repeated
-    //  */
-    // function openLeveragedPosition(
-    //     BaseWallet _wallet,
-    //     address _collateral, 
-    //     uint256 _collateralAmount, 
-    //     uint256 _conversionRatio,
-    //     uint8 _iterations
-    // ) 
-    //     external
-    //     returns (bytes32 _leverageId, uint256 _totalCollateral, uint256 _totalDebt)
-    // {
-    //     require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
-    //     _leverageId = openCdp(_wallet, _collateralAmount, 0, makerCdp);
-    //     uint256 daiPerPethRatio = availableDaiPerPeth(_conversionRatio, makerCdp);
-    //     uint256 availableCollateral = _collateralAmount;
-    //     _totalCollateral = availableCollateral;
-    //     uint256 drawnDai;
-
-    //     for(uint8 i = 0; i < _iterations; i++) {
-    //         (availableCollateral, drawnDai) = drawMoreDai(_wallet, _leverageId, availableCollateral, daiPerPethRatio, makerCdp, uniswapFactory);
-    //         _totalDebt += drawnDai;
-    //         _totalCollateral += availableCollateral;
-    //     }
-
-    //     emit LeverageOpened(address(_wallet), _leverageId, _collateral, totalCollateral, totalDebt); 
-    // }
-
-    // /**
-    //  * @dev Lets the owner of a wallet close a previously opened Leveraged Position. 
-    //  * The owner must have enough DAI & MKR (or alternatively ETH) in their wallet to cover the initial `_daiPayment` debt repayment.
-    //  * After this initial debt repayment, the method tries to "unwind" the CDP by iteratively removing as much collateral as possible,
-    //  * converting this collateral into DAI & MKR and repaying the DAI debt (and MKR fee). 
-    //  * When the CDP no longer holds any collateral or debt, it is closed.
-    //  * @param _wallet The target wallet
-    //  * @param _leverageId The id of the CDP used to open the Leveraged Position.
-    //  * @param _daiPayment The amount of DAI debt to repay before "unwinding" the CDP.
-    //  */
-    // function closeLeveragedPosition(
-    //     BaseWallet _wallet,
-    //     bytes32 _leverageId,
-    //     uint256 _daiPayment
-    // ) 
-    //     external
-    // {
-    //     if (_daiPayment > 0) {
-    //         // Cap the amount being repaid
-    //         uint256 daiRepaid = (_daiPayment > daiDebt(_leverageId, makerCdp)) ? daiDebt(_leverageId, makerCdp) : _daiPayment;
-    //         // (Partially) repay debt
-    //         removeDebt(_wallet, _leverageId, daiRepaid, makerCdp, uniswapFactory);
-    //     }
-
-    //     uint256 collateral = makerCdp.ink(_leverageId);
-    //     while(collateral > 0) {
-    //         // Remove some collateral
-    //         uint256 removedCollateral = collateral - minRequiredCollateral(_leverageId, makerCdp); // in PETH
-    //         removeCollateral(_wallet, _leverageId, removedCollateral, makerCdp);
-    //         collateral -= removedCollateral;
-
-    //         // Check if there is more debt to pay
-    //         uint256 tab = daiDebt(_leverageId, makerCdp);
-    //         if(tab == 0) break; // no more debt (and no more collateral) left in the CDP. We are done
-
-    //         // Convert removedCollateral into DAI and MKR
-    //         (uint256 convertedDai) = convertEthCollateralToDaiAndMkr(
-    //             _wallet, 
-    //             _leverageId, 
-    //             removedCollateral.rmul(makerCdp.per()), // in ETH
-    //             tab, 
-    //             makerCdp,
-    //             uniswapFactory
-    //         );
-
-    //         removeDebt(_wallet, _leverageId, convertedDai, makerCdp, uniswapFactory);
-    //     }
-    //     invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _leverageId));
-    //     emit LeverageClosed(address(_wallet), _leverageId, _debtPayment);   
-    // }
 
     /* *********************************** Maker wrappers ************************************* */
 
@@ -711,43 +626,6 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(WETH_WITHDRAW, ethAmount));
     }
 
-    
-    // /**
-    //  * @dev Draw more DAI from the CDP and exchange it to collateral.
-    //  * @param _wallet The target wallet
-    //  * @param _leverageId The id of the CDP.
-    //  * @param _availableCollateral The amount of collateral available in the CDP.
-    //  * @param _daiPerPethRatio The ratio of DAI that can be drawn from 1 PETH.
-    //  * @param _makerCdp The Maker CDP contract
-    //  * @param _uniswapFactory The Uniswap Factory contract used for the exchange.
-    //  * @return the amount of DAI that was drawn from the CDP and the amount of collateral that was added.
-    //  */
-    // function drawMoreDai(
-    //     BaseWallet _wallet, 
-    //     bytes32 _leverageId, 
-    //     uint256 _availableCollateral,
-    //     uint256 _daiPerPethRatio,
-    //     IMakerCdp _makerCdp,
-    //     UniswapFactory _uniswapFactory
-    // ) 
-    //     internal 
-    //     returns (uint256 _nextAvailableCollateral, uint256 _drawnDai)
-    // {
-    //     // Draw DAI
-    //     _drawnDai = _availableCollateral.rmul(_daiPerPethRatio); 
-    //     addDebt(_wallet, _leverageId, _drawnDai, _makerCdp);
-
-    //     // Exchange drawn DAI for ETH
-    //     address daiToken = _makerCdp.sai();
-    //     address daiExchange = _uniswapFactory.getExchange(daiToken);
-    //     _nextAvailableCollateral = UniswapExchange(daiExchange).getTokenToEthInputPrice(_drawnDai);
-    //     invokeWallet(_wallet, daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, daiExchange, _drawnDai));
-    //     invokeWallet(_wallet, daiExchange, 0, abi.encodeWithSelector(TOKEN_ETH_SWAP_INPUT, _drawnDai, 1, block.timestamp));
-
-    //     // Add ETH as collateral
-    //     addCollateral(_wallet, _leverageId, _nextAvailableCollateral, _makerCdp);
-    // }
-
     /**
      * @dev Conversion rate between DAI and MKR
      * @param _makerCdp The Maker CDP contract
@@ -758,73 +636,6 @@ contract MakerManager is Loan, /*Leverage,*/ BaseModule, RelayerModule, OnlyOwne
         require(ok && daiPerMKR_ != 0, "LM: invalid DAI/MKR rate");
         _daiPerMKR = uint256(daiPerMKR_);
     }
-
-    // /**
-    //  * @dev Gives the additional amount of DAI that can be drawn from a CDP, given an additional amount of PETH collateral
-    //  * @param _conversionRatio The conversion ratio to use (must be greater than 1.5)
-    //  * @param _makerCdp The Maker CDP contract
-    //  * @return The amount of DAI that can be drawn from the CDP per unit of PETH
-    //  */
-    // function availableDaiPerPeth(uint256 _conversionRatio, IMakerCdp _makerCdp) internal returns (uint256 _availableDaiPerPeth) {
-    //     return _makerCdp.tag()           //   USD/PETH
-    //         .rdiv(_makerCdp.vox().par()) // ÷ USD/DAI
-    //         .rdiv(_conversionRatio);    // ÷ 1.5 (or more)
-    // }
-
-    // /**
-    //  * @dev Converts a given amount of ETH collateral into DAI and MKR in proportion 
-    //  * to their requirements as debt and fee repayments
-    //  * @param _wallet The target wallet
-    //  * @param _cup The id of the CDP.
-    //  * @param _collateralAmount The amount of ETH collateral to convert
-    //  * @param _tab The total amount of DAI debt in the CDP
-    //  * @param _makerCdp The Maker CDP contract
-    //  * @return the amount of converted DAI
-    //  */
-    // function convertEthCollateralToDaiAndMkr(
-    //     BaseWallet _wallet,
-    //     bytes32 _cup,
-    //     uint256 _collateralAmount, 
-    //     uint256 _tab, 
-    //     IMakerCdp _makerCdp,
-    //     UniswapFactory _uniswapFactory
-    // ) 
-    //     internal 
-    //     returns (uint256 _convertedDai) 
-    // {
-    //     address exchange;
-    //     uint256 expectedToken;
-    //     // Convert a portion of _collateral into DAI
-    //     uint256 rap = _makerCdp.rap(_cup); // total MKR governance fee left to pay, converted to DAI
-    //     uint256 collateralForDai = _collateralAmount.wmul(_tab).wdiv(_tab + rap);
-    //     exchange = _uniswapFactory.getExchange(_makerCdp.sai());
-    //     expectedToken = UniswapExchange(exchange).getEthToTokenInputPrice(collateralForDai);
-    //     if(expectedToken > _tab) {
-    //         invokeWallet(_wallet, exchange, collateralForDai, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, _tab, block.timestamp));
-    //         _convertedDai = _tab;
-    //     }
-    //     else {
-    //         invokeWallet(_wallet, exchange, collateralForDai, abi.encodeWithSelector(ETH_TOKEN_SWAP_INPUT, 1, block.timestamp));
-    //         _convertedDai = expectedToken;
-    //     }
-        
-    //     // Convert the remaining portion of removedCollateral into MKR
-    //     if(rap > 0) {
-    //         // Compute MKR fee to pay when repaying _convertedDai DAI
-    //         uint256 mkrFee = _convertedDai.rmul(rap.rdiv(_tab)).wdiv(daiPerMkr(_makerCdp));
-    //         // Convert the remaining portion of _collateral into MKR
-    //         address mkrToken = _makerCdp.gov();
-    //         uint256 collateralForMkr = _collateralAmount - collateralForDai;
-    //         exchange = _uniswapFactory.getExchange(mkrToken);
-    //         expectedToken = UniswapExchange(exchange).getEthToTokenInputPrice(collateralForMkr);
-    //         if(expectedToken > mkrFee) {
-    //             invokeWallet(_wallet, exchange, collateralForMkr, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee, block.timestamp));
-    //         }
-    //         else {
-    //             invokeWallet(_wallet, exchange, collateralForMkr, abi.encodeWithSelector(ETH_TOKEN_SWAP_INPUT, 1, block.timestamp));
-    //         }
-    //     }
-    // }
 
     /**
      * @dev Utility method to invoke a wallet
