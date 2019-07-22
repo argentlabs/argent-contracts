@@ -126,13 +126,13 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     {
         if(isWhitelisted(_wallet, _to)) {
             // transfer to whitelist
-            transfer(_wallet, _token, _to, _amount, _data);
+            doTransfer(_wallet, _token, _to, _amount, _data);
         }
         else {
             uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : priceProvider.getEtherValue(_amount, _token);
             if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
                 // transfer under the limit
-                transfer(_wallet, _token, _to, _amount, _data);
+                doTransfer(_wallet, _token, _to, _amount, _data);
             }
             else {
                 // transfer above the limit
@@ -153,17 +153,43 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     {
         if(isWhitelisted(_wallet, _spender)) {
             // approve to whitelist
-            approveERC20(_wallet, _token, _spender, _amount);
+            doApproveERC20(_wallet, _token, _spender, _amount);
         }
         else {
             uint256 etherAmount = priceProvider.getEtherValue(_amount, _token);
             if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
                 // approve under the limit
-                approveERC20(_wallet, _token, _spender, _amount);
+                doApproveERC20(_wallet, _token, _spender, _amount);
             }
             else {
                 // approve above the limit
                 addPendingAction(ActionType.Approve, _wallet, _token, _spender, _amount, EMPTY_BYTES);
+            }
+        }
+    }
+
+    function callContract(
+        BaseWallet _wallet,
+        address _contract,
+        uint256 _value,
+        bytes calldata _data
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        if(isWhitelisted(_wallet, _contract)) {
+            // call to whitelist
+            doCallContract(_wallet, _contract, _value, _data);
+        }
+        else {
+            if (checkAndUpdateDailySpent(_wallet, _value)) {
+                // call under the limit
+                doCallContract(_wallet, _contract, _value, _data);
+            }
+            else {
+                // call above the limit
+                addPendingAction(ActionType.CallContract, _wallet, address(0), _contract, _value, _data);
             }
         }
     }
@@ -230,15 +256,21 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, _block));
-        uint executeAfter = configs[address(_wallet)].pendingTransfers[id];
+        uint executeAfter = configs[address(_wallet)].pendingActions[id];
         uint executeBefore = executeAfter.add(securityWindow);
         require(executeAfter <= now && now <= executeBefore, "TT: action outside of the execution window");
         removePendingAction(_wallet, id);
         if(_action == ActionType.Transfer) {
-            transfer(_wallet, _token, _to, _amount, _data);
+            doTransfer(_wallet, _token, _to, _amount, _data);
         }
         else if(_action == ActionType.Approve) {
-            approveERC20(_wallet, _token, _to, _amount);
+            doApproveERC20(_wallet, _token, _to, _amount);
+        }
+        else if(_action == ActionType.CallContract) {
+            doCallContract(_wallet, _to, _amount, _data);
+        }
+        else {
+            revert("TM: unknown action");
         }
         emit PendingActionExecuted(address(_wallet), id, _action);
     }
@@ -299,7 +331,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @return the epoch time at which the pending action can be executed.
     */
     function getPendingAction(BaseWallet _wallet, bytes32 _id) external view returns (uint64 _executeAfter) {
-        _executeAfter = uint64(configs[address(_wallet)].pendingTransfers[_id]);
+        _executeAfter = uint64(configs[address(_wallet)].pendingActions[_id]);
     }
 
     // *************** Internal Functions ********************* //
@@ -312,7 +344,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _value The amount of ETH to transfer
     * @param _data The data to *log* with the transfer.
     */
-    function transfer(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
+    function doTransfer(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
         if(_token == ETH_TOKEN) {
             _wallet.invoke(_to, _value, EMPTY_BYTES);
         }
@@ -330,7 +362,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _spender The spender address.
     * @param _value The amount of token to transfer.
     */
-    function approveERC20(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
+    function doApproveERC20(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _value);
         _wallet.invoke(_token, 0, methodData);
         emit ApprovedERC20(address(_wallet), _token, _value, _spender);
@@ -343,7 +375,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _value The ETH value to transfer.
     * @param _data The method data.
     */
-    function callContract(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
+    function doCallContract(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
         bytes4 methodId = functionPrefix(_data);
         require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
         _wallet.invoke(_to, _value, _data);
