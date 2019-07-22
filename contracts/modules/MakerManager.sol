@@ -92,7 +92,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     bytes4 constant internal CDP_LOCK = bytes4(keccak256("lock(bytes32,uint256)"));
     bytes4 constant internal CDP_FREE = bytes4(keccak256("free(bytes32,uint256)"));
     bytes4 constant internal CDP_EXIT = bytes4(keccak256("exit(uint256)"));
-    bytes4 constant internal WETH_DEPOSIT = bytes4(keccak256("deposit"));
+    bytes4 constant internal WETH_DEPOSIT = bytes4(keccak256("deposit()"));
     bytes4 constant internal WETH_WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
     bytes4 constant internal ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
     bytes4 constant internal ETH_TOKEN_SWAP_OUTPUT = bytes4(keccak256("ethToTokenSwapOutput(uint256,uint256)"));
