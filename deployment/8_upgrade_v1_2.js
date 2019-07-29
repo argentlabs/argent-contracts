@@ -11,9 +11,9 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.2.3";
+const TARGET_VERSION = "1.2.6";
 const MODULES_TO_ENABLE = ["MakerManager"];
-const MODULES_TO_DISABLE = ["InvestManager", "LoanManager"];
+const MODULES_TO_DISABLE = ["LoanManager", "InvestManager"];
 const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {

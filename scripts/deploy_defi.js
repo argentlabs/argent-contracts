@@ -30,8 +30,6 @@ async function deploy() {
 
     /* ************* Deploy Maker *************** */ 
 
-    const tub = await deployer.wrapDeployedContract(Tub, "0x8d6C08617b3F10F9bCd26BD8a5791e588cb00725");
-
     const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
     const sai = await deployer.deploy(DSToken, {}, formatBytes32String("DAI"));
     const gov = await deployer.deploy(DSToken, {}, formatBytes32String("MKR"));

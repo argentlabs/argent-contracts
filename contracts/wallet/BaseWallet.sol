@@ -100,14 +100,12 @@ contract BaseWallet {
      * @param _target The address for the transaction.
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
-     * @return the result data of the forwarded call.
      */
-    function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly returns (bytes memory) {
+    function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly {
         // solium-disable-next-line security/no-call-value
-        (bool success, bytes memory result) = _target.call.value(_value)(_data);
+        (bool success, ) = _target.call.value(_value)(_data);
         require(success, "BW: call to target failed");
         emit Invoked(msg.sender, _target, _value, _data);
-        return result;
     }
 
     /**
