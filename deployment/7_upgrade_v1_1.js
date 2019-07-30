@@ -91,8 +91,7 @@ const deploy = async (network) => {
     const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
     for (let idx = 0; idx < versions.length; idx++) {
         const version = versions[idx];
-        let toAdd = null;
-        let toRemove = null;
+        let toAdd, toRemove;
         if (idx == 0) {
             const moduleNamesToRemove = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
             toRemove = version.modules.filter(module => moduleNamesToRemove.includes(module.name));
