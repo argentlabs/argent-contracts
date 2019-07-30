@@ -122,8 +122,10 @@ contract LimitManager is BaseModule {
             _periodEnd = uint64(now + 24 hours);
         }
         else {
-            _unspent = globalLimit - expense.alreadySpent;
             _periodEnd = expense.periodEnd;
+            if(expense.alreadySpent < globalLimit) {
+                _unspent = globalLimit - expense.alreadySpent;
+            }
         }
     }
 
