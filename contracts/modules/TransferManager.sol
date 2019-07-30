@@ -8,18 +8,21 @@ import "../storage/GuardianStorage.sol";
 import "../storage/TransferStorage.sol";
 
 /**
- * @title TokenTransfer
- * @dev Module to transfer tokens (ETH or ERC20) based on a security context (daily limit, whitelist, etc).
- * @author Julien Niset - <julien@argent.im>
+ * @title TransferManager
+ * @dev Module to transfer tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract TransferManager is BaseModule, RelayerModule, LimitManager {
 
-    bytes32 constant NAME = "TokenTransfer";
+    bytes32 constant NAME = "TransferManager";
+    
 
     bytes4 constant internal EXECUTE_PENDING_PREFIX = bytes4(keccak256("executePendingTransfer(address,address,address,uint256,bytes,uint256)"));
 
     bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
+    bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
+    bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
     bytes constant internal EMPTY_BYTES = "";
 
@@ -29,8 +32,6 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    // large limit when the limit can be considered disabled
-    uint128 constant internal LIMIT_DISABLED = uint128(-1); // 3.40282366920938463463374607431768211455e+38
 
     struct TokenManagerConfig {
         // Mapping between pending action hash and their timestamp
@@ -50,11 +51,13 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     TransferStorage public transferStorage;
     // The Token price provider
     TokenPriceProvider public priceProvider;
+    // The previous limit manager needed to migrate the limits
+    LimitManager public oldLimitManager;
 
     // *************** Events *************************** //
 
     event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
-    event ApprovedERC20(address indexed wallet, address indexed token, uint256 indexed amount, address spender);
+    event Approved(address indexed wallet, address indexed token, uint256 indexed amount, address spender);
     event CalledContract(address indexed wallet, address indexed to, uint256 indexed amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
@@ -90,7 +93,8 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         address _priceProvider,
         uint256 _securityPeriod,
         uint256 _securityWindow,
-        uint256 _defaultLimit
+        uint256 _defaultLimit,
+        LimitManager _oldLimitManager
     )
         BaseModule(_registry, NAME)
         LimitManager(_defaultLimit)
@@ -101,6 +105,36 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         priceProvider = TokenPriceProvider(_priceProvider);
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
+        oldLimitManager = _oldLimitManager;
+    }
+
+    /**
+     * @dev Inits the module for a wallet by setting up the isValidSignature (EIP 1271)
+     * static call redirection from the wallet to the module and copying all the parameters
+     * of the daily limit from the previous implementation of the LimitManager module.
+     * @param _wallet The target wallet.
+     */
+    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+        // setup static calls
+        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES);
+        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES32);
+        // copy limit parameters
+        if(address(oldLimitManager) != address(0)) {
+            uint256 currentLimit = oldLimitManager.getCurrentLimit(_wallet);
+            (uint256 pendingLimit, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
+            (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
+            // check if there is a pending limit
+            if(currentLimit == pendingLimit) {
+                limits[address(_wallet)].limit.current = uint128(currentLimit);
+            }
+            else {
+                limits[address(_wallet)].limit = Limit(uint128(currentLimit), uint128(pendingLimit), changeAfter);
+            }
+            // check if we are within a rolling period
+            if(periodEnd > now) {
+                limits[address(_wallet)].dailySpent = DailySpent(uint128(currentLimit.sub(unspent)), periodEnd);
+            }
+        }
     }
 
     // *************** External/Public Functions ********************* //
@@ -141,7 +175,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         }
     }
 
-    function approveERC20Tranfer(
+    function approveTranfer(
         BaseWallet _wallet,
         address _token,
         address _spender,
@@ -153,13 +187,13 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     {
         if(isWhitelisted(_wallet, _spender)) {
             // approve to whitelist
-            doApproveERC20(_wallet, _token, _spender, _amount);
+            doApproveTransfer(_wallet, _token, _spender, _amount);
         }
         else {
             uint256 etherAmount = priceProvider.getEtherValue(_amount, _token);
             if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
                 // approve under the limit
-                doApproveERC20(_wallet, _token, _spender, _amount);
+                doApproveTransfer(_wallet, _token, _spender, _amount);
             }
             else {
                 // approve above the limit
@@ -264,7 +298,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
             doTransfer(_wallet, _token, _to, _amount, _data);
         }
         else if(_action == ActionType.Approve) {
-            doApproveERC20(_wallet, _token, _to, _amount);
+            doApproveTransfer(_wallet, _token, _to, _amount);
         }
         else if(_action == ActionType.CallContract) {
             doCallContract(_wallet, _to, _amount, _data);
@@ -334,6 +368,31 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         _executeAfter = uint64(configs[address(_wallet)].pendingActions[_id]);
     }
 
+    /**
+    * @dev Implementation of EIP 1271.
+    * Should return whether the signature provided is valid for the provided data.
+    * @param _data Arbitrary length data signed on the behalf of address(this)
+    * @param _signature Signature byte array associated with _data
+    */
+    function isValidSignature(bytes memory _data, bytes memory _signature) public view returns (bytes4) {
+        bytes32 msgHash = keccak256(abi.encodePacked(_data));
+        isValidSignature(msgHash, _signature);
+        return ERC721_ISVALIDSIGNATURE_BYTES;
+    }
+
+    /**
+    * @dev Implementation of EIP 1271.
+    * Should return whether the signature provided is valid for the provided data.
+    * @param _msgHash Hash of a message signed on the behalf of address(this)
+    * @param _signature Signature byte array associated with _msgHash
+    */
+    function isValidSignature(bytes32 _msgHash, bytes memory _signature) public view returns (bytes4) {
+        require(_signature.length == 65, "TM: invalid signature length");
+        address signer = recoverSigner(_msgHash, _signature, 0);
+        require(isOwner(BaseWallet(msg.sender), signer), "TM: Invalid signer");
+        return ERC721_ISVALIDSIGNATURE_BYTES32;
+    }
+
     // *************** Internal Functions ********************* //
 
     /**
@@ -362,24 +421,24 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _spender The spender address.
     * @param _value The amount of token to transfer.
     */
-    function doApproveERC20(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
+    function doApproveTransfer(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _value);
         _wallet.invoke(_token, 0, methodData);
-        emit ApprovedERC20(address(_wallet), _token, _value, _spender);
+        emit Approved(address(_wallet), _token, _value, _spender);
     }
 
     /**
     * @dev Helper method to call an external contract.
     * @param _wallet The target wallet.
-    * @param _to The contract address.
+    * @param _contract The contract address.
     * @param _value The ETH value to transfer.
     * @param _data The method data.
     */
-    function doCallContract(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
+    function doCallContract(BaseWallet _wallet, address _contract, uint256 _value, bytes memory _data) internal {
         bytes4 methodId = functionPrefix(_data);
         require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
-        _wallet.invoke(_to, _value, _data);
-        emit CalledContract(address(_wallet), _to, _value, _data);
+        _wallet.invoke(_contract, _value, _data);
+        emit CalledContract(address(_wallet), _contract, _value, _data);
     }
 
     /**
@@ -404,6 +463,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         returns (bytes32)
     {
         bytes32 id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, block.number));
+        require(configs[address(_wallet)].pendingActions[id] == 0, "TM: duplicate pending action");
         uint executeAfter = now.add(securityPeriod);
         configs[address(_wallet)].pendingActions[id] = executeAfter;
         emit PendingActionCreated(address(_wallet), id, _action, executeAfter, _token, _to, _amount, _data);
