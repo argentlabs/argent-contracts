@@ -12,7 +12,7 @@ const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
 const DECIMALS = 12; // number of decimal for TOKN contract
-const KYBER_RATE = ethers.utils.bigNumberify(51 * 10**13); // 1 TOKN = 0.00051 ETH
+const KYBER_RATE = ethers.utils.bigNumberify(51 * 10 ** 13); // 1 TOKN = 0.00051 ETH
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const TestManager = require("../utils/test-manager");
@@ -34,6 +34,7 @@ describe("Test Token Transfer", function () {
         const registry = await deployer.deploy(Registry);
         kyber = await deployer.deploy(KyberNetwork);
         priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
+        await priceProvider.addManager(infrastructure.address);
         const transferStorage = await deployer.deploy(TransferStorage);
         const guardianStorage = await deployer.deploy(GuardianStorage);
         transferModule = await deployer.deploy(TransferModule, {},
@@ -48,11 +49,11 @@ describe("Test Token Transfer", function () {
     });
 
     beforeEach(async () => {
-        wallet = await deployer.deploy(Wallet); 
+        wallet = await deployer.deploy(Wallet);
         await wallet.init(owner.address, [transferModule.contractAddress]);
         erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
         await kyber.addToken(erc20.contractAddress, KYBER_RATE, DECIMALS);
-        await priceProvider.syncPrice(erc20.contractAddress);
+        await priceProvider.from(infrastructure).syncPrice(erc20.contractAddress);
         await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify('1000000000000000000') });
     });
 
@@ -69,25 +70,24 @@ describe("Test Token Transfer", function () {
             limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), 4000000, "limit should be changed");
         });
-        it('should change the global limit via relayed transaction', async () =>  {
+        it('should change the global limit via relayed transaction', async () => {
             await manager.relay(transferModule, 'changeLimit', [wallet.contractAddress, 4000000], wallet, [owner]);
             await manager.increaseTime(3);
             limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), 4000000, "limit should be changed");
         });
-        it('should add/remove an account to/from the whitelist', async () =>  {
+        it('should add/remove an account to/from the whitelist', async () => {
             await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
             let isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
-            assert.equal(isTrusted,false, "should not be trusted during the security period");
+            assert.equal(isTrusted, false, "should not be trusted during the security period");
             await manager.increaseTime(3);
             isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
-            assert.equal(isTrusted,true, "should be trusted after the security period");
+            assert.equal(isTrusted, true, "should be trusted after the security period");
             await transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address);
             isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
-            assert.equal(isTrusted,false, "should no removed from whitemist immediately");
+            assert.equal(isTrusted, false, "should no removed from whitemist immediately");
         });
     });
-
     describe("Small ETH transfers ", () => {
         it('should only allow ETH transfer from the owner', async () => {
             let amountToTransfer = 10000;
@@ -190,12 +190,12 @@ describe("Test Token Transfer", function () {
             executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
             assert.equal(executeAfter, 0, 'should have cancelled the pending transfer');
         });
-        it('should send immediately to a whitelisted address', async () =>  {
+        it('should send immediately to a whitelisted address', async () => {
             let amountToTransfer = ETH_LIMIT + 10000;
             await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
             await manager.increaseTime(3);
             let isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
-            assert.equal(isTrusted,true, "should be trusted");
+            assert.equal(isTrusted, true, "should be trusted");
             let before = await deployer.provider.getBalance(recipient.address);
             await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32);
             let after = await deployer.provider.getBalance(recipient.address);
@@ -211,7 +211,7 @@ describe("Test Token Transfer", function () {
             let executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
             assert.equal(executeAfter > 0, true, 'should have created a pending transfer');
             await manager.increaseTime(3);
-            await manager.relay(transferModule, 'executePendingTransfer' ,[wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32, block], wallet, []);
+            await manager.relay(transferModule, 'executePendingTransfer', [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32, block], wallet, []);
             let after = await deployer.provider.getBalance(recipient.address);
             assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have executed the transfer');
         });

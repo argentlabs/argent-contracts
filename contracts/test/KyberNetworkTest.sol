@@ -43,7 +43,7 @@ contract KyberNetworkTest is KyberNetwork {
     )
         public
         view
-        returns (uint expectedRate, uint slippageRate) 
+        returns (uint expectedRate, uint slippageRate)
     {
         if(address(_src) == ETH_TOKEN_ADDRESS) {
             expectedRate = 10**36 / tokens[address(_dest)].rate;

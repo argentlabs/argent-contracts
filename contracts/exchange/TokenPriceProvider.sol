@@ -2,8 +2,9 @@ pragma solidity ^0.5.4;
 import "../utils/SafeMath.sol";
 import "./ERC20.sol";
 import "./KyberNetwork.sol";
+import "../base/Managed.sol";
 
-contract TokenPriceProvider {
+contract TokenPriceProvider is Managed {
 
     using SafeMath for uint256;
 
@@ -14,19 +15,17 @@ contract TokenPriceProvider {
 
     mapping(address => uint256) public cachedPrices;
 
-    function syncPrice(ERC20 token) public {
-        uint256 expectedRate;
-        (expectedRate,) = kyberNetwork().getExpectedRate(token, ERC20(ETH_TOKEN_ADDRESS), 10000);
-        cachedPrices[address(token)] = expectedRate;
+    function setPrice(ERC20 _token, uint256 _price) external onlyManager {
+        cachedPrices[address(_token)] = _price;
     }
 
-    //
-    // Convenience functions
-    //
+    function syncPrice(ERC20 _token) external onlyManager {
+        _syncPrice(_token);
+    }
 
-    function syncPriceForTokenList(ERC20[] memory tokens) public {
-        for(uint16 i = 0; i < tokens.length; i++) {
-            syncPrice(tokens[i]);
+    function syncPriceForTokenList(ERC20[] calldata _tokens) external onlyManager {
+        for(uint16 i = 0; i < _tokens.length; i++) {
+            _syncPrice(_tokens[i]);
         }
     }
 
@@ -46,7 +45,13 @@ contract TokenPriceProvider {
     // Internal
     //
 
-    function kyberNetwork() internal view returns (KyberNetwork) {
+    function _kyberNetwork() internal view returns (KyberNetwork) {
         return KyberNetwork(KYBER_NETWORK_ADDRESS);
+    }
+
+    function _syncPrice(ERC20 _token) internal {
+        uint256 expectedRate;
+        (expectedRate,) = _kyberNetwork().getExpectedRate(_token, ERC20(ETH_TOKEN_ADDRESS), 10000);
+        cachedPrices[address(_token)] = expectedRate;
     }
 }

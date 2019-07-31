@@ -9,7 +9,7 @@ contract TokenPriceProviderTest is TokenPriceProvider {
         kyberNetworkContract = _kyberNetwork;	
     }	
     
-    function kyberNetwork() internal view returns (KyberNetwork) {	
+    function _kyberNetwork() internal view returns (KyberNetwork) {	
         return kyberNetworkContract;	
     }	
 }

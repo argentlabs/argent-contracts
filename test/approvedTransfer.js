@@ -12,7 +12,7 @@ const { sortWalletByAddress, parseRelayReceipt } = require("../utils/utilities.j
 
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 const DECIMALS = 12; // number of decimal for TOKN contract
-const KYBER_RATE = 51 * 10**13; // 1 TOKN = 0.00051 ETH
+const KYBER_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -37,6 +37,7 @@ describe("Test Approved Transfer", function () {
         const guardianStorage = await deployer.deploy(GuardianStorage);
         kyber = await deployer.deploy(KyberNetwork);
         priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
+        await priceProvider.addManager(infrastructure.address);
         guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
         transferModule = await deployer.deploy(TransferModule, {}, registry.contractAddress, guardianStorage.contractAddress);
     });
@@ -53,7 +54,7 @@ describe("Test Approved Transfer", function () {
     async function addGuardians(guardians) {
         // guardians can be Wallet or ContractWrapper objects
         let guardianAddresses = guardians.map(guardian => {
-            if(guardian.address)
+            if (guardian.address)
                 return guardian.address;
             return guardian.contractAddress;
         });
@@ -72,7 +73,7 @@ describe("Test Approved Transfer", function () {
 
     async function createSmartContractGuardians(guardians) {
         const wallets = []
-        for(g of guardians) {
+        for (g of guardians) {
             const wallet = await deployer.deploy(Wallet);
             await wallet.init(g.address, [guardianManager.contractAddress]);
             wallets.push(wallet)
