@@ -95,7 +95,7 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         address _token, 
         uint256 _fraction
     ) 
-        external 
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
@@ -144,6 +144,7 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         internal 
         returns (uint256)
     {
+        require(_amount > 0, "Uniswap: can't add 0 liquidity");
         address tokenPool = UniswapFactory(_factory).getExchange(_token);
         require(tokenPool != address(0), "Uniswap: target token is not traded on Uniswap");
 
