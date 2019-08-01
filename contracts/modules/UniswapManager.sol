@@ -80,7 +80,7 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
-        _invested = addLiquidity(_wallet, address(uniswapFactory), _token, _amount);
+        _invested = addLiquidity(_wallet, _token, _amount);
         emit InvestmentAdded(address(_wallet), _token, _amount, _period);
     }
 
@@ -95,12 +95,12 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         address _token, 
         uint256 _fraction
     ) 
-        external 
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(_fraction <= 10000, "Uniswap: _fraction must be expressed in 1 per 10000");
-        removeLiquidity(_wallet, address(uniswapFactory), _token, _fraction);
+        removeLiquidity(_wallet, _token, _fraction);
         emit InvestmentRemoved(address(_wallet), _token, _fraction);
     }
 
@@ -131,20 +131,19 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
     /**
      * @dev Adds liquidity to a Uniswap ETH-ERC20 pair.
      * @param _wallet The target wallet
-     * @param _factory The address of the Uniswap Factory contract.
      * @param _token The address of the ERC20 token of the pair.
      * @param _amount The amount of tokens to add to the pool.
      */
     function addLiquidity(
         BaseWallet _wallet,
-        address _factory,
         address _token,
         uint256 _amount
     )
         internal 
         returns (uint256)
     {
-        address tokenPool = UniswapFactory(_factory).getExchange(_token);
+        require(_amount > 0, "Uniswap: can't add 0 liquidity");
+        address tokenPool = uniswapFactory.getExchange(_token);
         require(tokenPool != address(0), "Uniswap: target token is not traded on Uniswap");
 
         uint256 tokenBalance = ERC20(_token).balanceOf(address(_wallet));
@@ -166,22 +165,20 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
     /**
      * @dev Removes liquidity from a Uniswap ETH-ERC20 pair.
      * @param _wallet The target wallet
-     * @param _factory The address of the Uniswap Factory contract.
      * @param _token The address of the ERC20 token of the pair.
      * @param _fraction The fraction of pool shares to liquidate.
      */
     function removeLiquidity(
         BaseWallet _wallet,
-        address _factory,
         address _token,
         uint256 _fraction
     )
         internal
     {
-        address tokenPool = UniswapFactory(_factory).getExchange(_token);
+        address tokenPool = uniswapFactory.getExchange(_token);
         require(tokenPool != address(0), "Uniswap: The target token is not traded on Uniswap");
         uint256 shares = ERC20(tokenPool).balanceOf(address(_wallet));
         _wallet.invoke(tokenPool, 0, abi.encodeWithSignature("removeLiquidity(uint256,uint256,uint256,uint256)", shares.mul(_fraction).div(10000), 1, 1, block.timestamp + 1));
     }
-} 
+}
 
