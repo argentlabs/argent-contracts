@@ -103,7 +103,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * The method is public and callable by anyone to enable orchestration.
      * @param _wallet The target wallet.
      */
-    function finalizeRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
+    function finalizeRecovery(BaseWallet _wallet) external onlyWhenRecovery(_wallet) {
         RecoveryManagerConfig storage config = configs[address(_wallet)];
         require(uint64(now) > config.executeAfter, "RM: the recovery period is not over yet");
         _wallet.setOwner(config.recovery); 

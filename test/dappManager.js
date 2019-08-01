@@ -68,9 +68,7 @@ describe("DappManager", function () {
                 assert.equal(limit.toNumber(), dappLimit, "dapp limit should be the one set");
             });
             it('should not let a non owner set the dapp limit (relayed transaction)', async () => {
-                let txReceipt = await manager.relay(dappManager, "changeLimit", [wallet.contractAddress, dappLimit], wallet, [nonowner]);
-                const success = parseRelayReceipt(txReceipt);
-                assert.isNotOk(success, "non-owner changing the limit should throw");
+                await assert.revert(manager.relay(dappManager, "changeLimit", [wallet.contractAddress, dappLimit], wallet, [nonowner]), "non-owner changing the limit should throw");
                 const limit = await dappManager.getCurrentLimit(wallet.contractAddress);
                 assert.equal(limit.toNumber(), ETH_LIMIT, "dapp limit should be zero");
             });
@@ -94,7 +92,7 @@ describe("DappManager", function () {
         describe("Authorized Dapp", () => {
             describe("Calling Third party contracts", () => {
 
-                const targetState =  2;
+                const targetState = 2;
                 let registeredContract, dataToTransfer, setStateSignature;
 
                 beforeEach(async () => {

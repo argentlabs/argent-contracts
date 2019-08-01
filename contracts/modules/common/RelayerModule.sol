@@ -77,16 +77,13 @@ contract RelayerModule is Module {
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
         require(verifyData(address(_wallet), _data), "RM: the wallet authorized is different then the target of the relayed data");
         uint256 requiredSignatures = getRequiredSignatures(_wallet, _data);
-        if((requiredSignatures * 65) == _signatures.length) {
-            if(verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
-                if(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures)) {
-                    // solium-disable-next-line security/no-call-value
-                    (success,) = address(this).call(_data);
-                    refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
-                }
-            }
-        }
-        emit TransactionExecuted(address(_wallet), success, signHash); 
+        require((requiredSignatures * 65) == _signatures.length, "RM: Invalid Signature Count");
+        require(verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures), "RM: Impossible refund");
+        require(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures), "RM: Invalid signatures");
+        // solium-disable-next-line security/no-call-value
+        (success,) = address(this).call(_data);
+        refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
+        emit TransactionExecuted(address(_wallet), success, signHash);
     }
 
     /**
