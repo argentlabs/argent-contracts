@@ -149,7 +149,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     {
         require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
         require(_debtToken == makerCdp.sai(), "Maker: debt token must be DAI");
-        _loanId = openCdp(_wallet, _collateralAmount, _debtAmount);
+        _loanId = openCdp(_wallet, _collateralAmount, _debtAmount, makerCdp);
         emit LoanOpened(address(_wallet), _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
     }
 
@@ -166,7 +166,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        closeCdp(_wallet, _loanId);
+        closeCdp(_wallet, _loanId, makerCdp, uniswapFactory);
         emit LoanClosed(address(_wallet), _loanId);
     }
 
@@ -188,7 +188,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
     {
         require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
-        addCollateral(_wallet, _loanId, _collateralAmount);
+        addCollateral(_wallet, _loanId, _collateralAmount, makerCdp);
         emit CollateralAdded(address(_wallet), _loanId, _collateral, _collateralAmount);
     }
 
@@ -210,7 +210,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
     {
         require(_collateral == ETH_TOKEN_ADDRESS, "Maker: collateral must be ETH");
-        removeCollateral(_wallet, _loanId, _collateralAmount);
+        removeCollateral(_wallet, _loanId, _collateralAmount, makerCdp);
         emit CollateralRemoved(address(_wallet), _loanId, _collateral, _collateralAmount);
     }
 
@@ -232,7 +232,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
     {
         require(_debtToken == makerCdp.sai(), "Maker: debt token must be DAI");
-        addDebt(_wallet, _loanId, _debtAmount);
+        addDebt(_wallet, _loanId, _debtAmount, makerCdp);
         emit DebtAdded(address(_wallet), _loanId, _debtToken, _debtAmount);
     }
 
@@ -254,7 +254,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
     {
         require(_debtToken == makerCdp.sai(), "Maker: debt token must be DAI");
-        removeDebt(_wallet, _loanId, _debtAmount);
+        removeDebt(_wallet, _loanId, _debtAmount, makerCdp, uniswapFactory);
         emit DebtRemoved(address(_wallet), _loanId, _debtToken, _debtAmount);
     }
 
@@ -274,7 +274,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         view 
         returns (uint8 _status, uint256 _ethValue)
     {
-        if(exists(_loanId)) {
+        if(exists(_loanId, makerCdp)) {
             return (3,0);
         }
         return (0,0);
@@ -291,25 +291,27 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet
      * @param _pethCollateral The amount of PETH to lock as collateral in the CDP.
      * @param _daiDebt The amount of DAI to draw from the CDP
+     * @param _makerCdp The Maker CDP contract
      * @return The id of the created CDP.
      */
     function openCdp(
         BaseWallet _wallet, 
         uint256 _pethCollateral, 
-        uint256 _daiDebt
+        uint256 _daiDebt,
+        IMakerCdp _makerCdp
     ) 
         internal 
         returns (bytes32 _cup)
     {
         // Open CDP (CDP owner will be module)
-        _cup = makerCdp.open();
+        _cup = _makerCdp.open();
         // Transfer CDP ownership to wallet
-        makerCdp.give(_cup, address(_wallet));
+        _makerCdp.give(_cup, address(_wallet));
         // Convert ETH to PETH & lock PETH into CDP
-        lockETH(_wallet, _cup, _pethCollateral);
+        lockETH(_wallet, _cup, _pethCollateral, _makerCdp);
         // Draw DAI from CDP
         if(_daiDebt > 0) {
-            invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _daiDebt));
+            invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _daiDebt));
         }
     }
 
@@ -320,18 +322,20 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
      * @param _amount The amount of additional PETH to lock as collateral in the CDP.
+     * @param _makerCdp The Maker CDP contract
      */
     function addCollateral(
         BaseWallet _wallet, 
         bytes32 _cup,
-        uint256 _amount
+        uint256 _amount,
+        IMakerCdp _makerCdp
     ) 
         internal
     {
         // _wallet must be owner of CDP
-        require(address(_wallet) == makerCdp.lad(_cup), "CM: not CDP owner");
+        require(address(_wallet) == _makerCdp.lad(_cup), "CM: not CDP owner");
         // convert ETH to PETH & lock PETH into CDP
-        lockETH(_wallet, _cup, _amount);  
+        lockETH(_wallet, _cup, _amount, _makerCdp);  
     }
 
     /**
@@ -339,16 +343,18 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
      * @param _amount The amount of PETH to remove from the CDP.
+     * @param _makerCdp The Maker CDP contract
      */
     function removeCollateral(
         BaseWallet _wallet, 
         bytes32 _cup,
-        uint256 _amount
+        uint256 _amount,
+        IMakerCdp _makerCdp
     ) 
         internal
     {
         // unlock PETH from CDP & convert PETH to ETH
-        freeETH(_wallet, _cup, _amount);
+        freeETH(_wallet, _cup, _amount, _makerCdp);
     }
 
     /**
@@ -356,16 +362,18 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
      * @param _amount The amount of additional DAI to draw from the CDP.
+     * @param _makerCdp The Maker CDP contract
      */
     function addDebt(
-        BaseWallet _wallet,
+        BaseWallet _wallet, 
         bytes32 _cup,
-        uint256 _amount
-    )
+        uint256 _amount,
+        IMakerCdp _makerCdp
+    ) 
         internal
     {
         // draw DAI from CDP
-        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _amount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _amount));
     }
 
     /**
@@ -376,44 +384,48 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
      * @param _amount The amount of DAI debt to repay.
+     * @param _makerCdp The Maker CDP contract
+     * @param _uniswapFactory The Uniswap Factory contract.
      */
     function removeDebt(
-        BaseWallet _wallet,
+        BaseWallet _wallet, 
         bytes32 _cup,
-        uint256 _amount
-    )
+        uint256 _amount,
+        IMakerCdp _makerCdp,
+        UniswapFactory _uniswapFactory
+    ) 
         internal
     {
         // _wallet must be owner of CDP
-        require(address(_wallet) == makerCdp.lad(_cup), "CM: not CDP owner");
+        require(address(_wallet) == _makerCdp.lad(_cup), "CM: not CDP owner");
         // get governance fee in MKR
-        uint256 mkrFee = governanceFeeInMKR(_cup, _amount);
+        uint256 mkrFee = governanceFeeInMKR(_cup, _amount, _makerCdp);
         // get MKR balance
-        address mkrToken = makerCdp.gov();
+        address mkrToken = _makerCdp.gov();
         uint256 mkrBalance = ERC20(mkrToken).balanceOf(address(_wallet));
         if (mkrBalance < mkrFee) {
             // Not enough MKR => Convert some ETH into MKR with Uniswap
-            address mkrUniswap = uniswapFactory.getExchange(mkrToken);
+            address mkrUniswap = _uniswapFactory.getExchange(mkrToken);
             uint256 etherValueOfMKR = UniswapExchange(mkrUniswap).getEthToTokenOutputPrice(mkrFee - mkrBalance);
             invokeWallet(_wallet, mkrUniswap, etherValueOfMKR, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee - mkrBalance, block.timestamp));
         }
         
         // get DAI balance
-        address daiToken =makerCdp.sai();
+        address daiToken =_makerCdp.sai();
         uint256 daiBalance = ERC20(daiToken).balanceOf(address(_wallet));
         if (daiBalance < _amount) {
             // Not enough DAI => Convert some ETH into DAI with Uniswap
-            address daiUniswap = uniswapFactory.getExchange(daiToken);
+            address daiUniswap = _uniswapFactory.getExchange(daiToken);
             uint256 etherValueOfDAI = UniswapExchange(daiUniswap).getEthToTokenOutputPrice(_amount - daiBalance);
             invokeWallet(_wallet, daiUniswap, etherValueOfDAI, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, _amount - daiBalance, block.timestamp));
         }
 
         // Approve DAI to let wipe() repay the DAI debt
-        invokeWallet(_wallet, daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(makerCdp), _amount));
+        invokeWallet(_wallet, daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _amount));
         // Approve MKR to let wipe() pay the MKR governance fee
-        invokeWallet(_wallet, mkrToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(makerCdp), mkrFee));
+        invokeWallet(_wallet, mkrToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), mkrFee));
         // repay DAI debt and MKR governance fee
-        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_WIPE, _cup, _amount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_WIPE, _cup, _amount));
     }
 
     /**
@@ -421,21 +433,25 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * and governance fee, 2) free all collateral, and 3) delete the CDP.
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
+     * @param _uniswapFactory The Uniswap Factory contract.
      */
     function closeCdp(
         BaseWallet _wallet,
-        bytes32 _cup
-    )
+        bytes32 _cup,
+        IMakerCdp _makerCdp,
+        UniswapFactory _uniswapFactory
+    ) 
         internal
     {
         // repay all debt (in DAI) + stability fee (in DAI) + governance fee (in MKR)
-        uint debt = daiDebt(_cup);
-        if(debt > 0) removeDebt(_wallet, _cup, debt);
+        uint debt = daiDebt(_cup, _makerCdp);
+        if(debt > 0) removeDebt(_wallet, _cup, debt, _makerCdp, _uniswapFactory);
         // free all ETH collateral
-        uint collateral = pethCollateral(_cup);
-        if(collateral > 0) removeCollateral(_wallet, _cup, collateral);
+        uint collateral = pethCollateral(_cup, _makerCdp);
+        if(collateral > 0) removeCollateral(_wallet, _cup, collateral, _makerCdp);
         // shut the CDP
-        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _cup));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _cup));
     }
 
     /* Convenience methods */
@@ -443,93 +459,102 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     /**
      * @dev Returns the amount of PETH collateral locked in a CDP.
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
      * @return the amount of PETH locked in the CDP.
      */
-    function pethCollateral(bytes32 _cup) public view returns (uint256) { 
-        return makerCdp.ink(_cup);
+    function pethCollateral(bytes32 _cup, IMakerCdp _makerCdp) public view returns (uint256) { 
+        return _makerCdp.ink(_cup);
     }
 
     /**
      * @dev Returns the amount of DAI debt (including the stability fee if non-zero) drawn from a CDP.
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
      * @return the amount of DAI drawn from the CDP.
      */
-    function daiDebt(bytes32 _cup) public returns (uint256) { 
-        return makerCdp.tab(_cup);
+    function daiDebt(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256) { 
+        return _makerCdp.tab(_cup);
     }
 
     /**
      * @dev Indicates whether a CDP is above the liquidation ratio.
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
      * @return false if the CDP is in danger of being liquidated.
      */
-    function isSafe(bytes32 _cup) public returns (bool) { 
-        return makerCdp.safe(_cup);
+    function isSafe(bytes32 _cup, IMakerCdp _makerCdp) public returns (bool) { 
+        return _makerCdp.safe(_cup);
     }
 
     /**
      * @dev Checks if a CDP exists.
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
      * @return true if the CDP exists, false otherwise.
      */
-    function exists(bytes32 _cup) public view returns (bool) { 
-        return makerCdp.lad(_cup) != address(0);
+    function exists(bytes32 _cup, IMakerCdp _makerCdp) public view returns (bool) { 
+        return _makerCdp.lad(_cup) != address(0);
     }
 
     /**
      * @dev Max amount of DAI that can still be drawn from a CDP while keeping it above the liquidation ratio. 
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
      * @return the amount of DAI that can still be drawn from a CDP while keeping it above the liquidation ratio. 
      */
-    function maxDaiDrawable(bytes32 _cup) public returns (uint256) {
-        uint256 maxTab = makerCdp.ink(_cup).rmul(makerCdp.tag()).rdiv(makerCdp.vox().par()).rdiv(makerCdp.mat());
-        return maxTab.sub(makerCdp.tab(_cup));
+    function maxDaiDrawable(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256) {
+        uint256 maxTab = _makerCdp.ink(_cup).rmul(_makerCdp.tag()).rdiv(_makerCdp.vox().par()).rdiv(_makerCdp.mat());
+        return maxTab.sub(_makerCdp.tab(_cup));
     }
 
     /**
      * @dev Min amount of collateral that needs to be added to a CDP to bring it above the liquidation ratio. 
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
      * @return the amount of collateral that needs to be added to a CDP to bring it above the liquidation ratio.
      */
-    function minCollateralRequired(bytes32 _cup) public returns (uint256) {
-        uint256 minInk = makerCdp.tab(_cup).rmul(makerCdp.mat()).rmul(makerCdp.vox().par()).rdiv(makerCdp.tag());
-        return minInk.sub(makerCdp.ink(_cup));
+    function minCollateralRequired(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256) {
+        uint256 minInk = _makerCdp.tab(_cup).rmul(_makerCdp.mat()).rmul(_makerCdp.vox().par()).rdiv(_makerCdp.tag());
+        return minInk.sub(_makerCdp.ink(_cup));
     }
 
     /**
      * @dev Returns the governance fee in MKR.
      * @param _cup The id of the CDP.
      * @param _daiRefund The amount of DAI debt being repaid.
+     * @param _makerCdp The Maker CDP contract
      * @return the governance fee in MKR
      */
-    function governanceFeeInMKR(bytes32 _cup, uint256 _daiRefund) public returns (uint256 _fee) { 
-        uint debt = daiDebt(_cup);
+    function governanceFeeInMKR(bytes32 _cup, uint256 _daiRefund, IMakerCdp _makerCdp) public returns (uint256 _fee) { 
+        uint debt = daiDebt(_cup, _makerCdp);
         if (debt == 0) return 0;
-        uint256 feeInDAI = _daiRefund.rmul(makerCdp.rap(_cup).rdiv(debt));
-        (bytes32 daiPerMKR, bool ok) = makerCdp.pep().peek();
+        uint256 feeInDAI = _daiRefund.rmul(_makerCdp.rap(_cup).rdiv(debt));
+        (bytes32 daiPerMKR, bool ok) = _makerCdp.pep().peek();
         if (ok && daiPerMKR != 0) _fee = feeInDAI.wdiv(uint(daiPerMKR));
     }
 
     /**
      * @dev Returns the total MKR governance fee to be paid before this CDP can be closed.
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
      * @return the total governance fee in MKR
      */
-    function totalGovernanceFeeInMKR(bytes32 _cup) external returns (uint256 _fee) { 
-        return governanceFeeInMKR(_cup, daiDebt(_cup));
+    function totalGovernanceFeeInMKR(bytes32 _cup, IMakerCdp _makerCdp) external returns (uint256 _fee) { 
+        return governanceFeeInMKR(_cup, daiDebt(_cup, _makerCdp), _makerCdp);
     }
 
     /**
      * @dev Minimum amount of PETH that must be locked in a CDP for it to be deemed "safe"
      * @param _cup The id of the CDP.
+     * @param _makerCdp The Maker CDP contract
      * @return The minimum amount of PETH to lock in the CDP
      */
-    function minRequiredCollateral(bytes32 _cup) public returns (uint256 _minCollateral) { 
-        _minCollateral = daiDebt(_cup)    // DAI debt
-            .rmul(makerCdp.vox().par())         // x ~1 USD/DAI 
-            .rmul(makerCdp.mat())               // x 1.5
+    function minRequiredCollateral(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256 _minCollateral) { 
+        _minCollateral = daiDebt(_cup, _makerCdp)    // DAI debt
+            .rmul(_makerCdp.vox().par())         // x ~1 USD/DAI 
+            .rmul(_makerCdp.mat())               // x 1.5
             .rmul(1010000000000000000000000000) // x (1+1%) cushion
-            .rdiv(makerCdp.tag());              // ÷ ~170 USD/PETH
+            .rdiv(_makerCdp.tag());              // ÷ ~170 USD/PETH
     }
 
     /* *********************************** Utilities ************************************* */
@@ -539,31 +564,33 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
      * @param _pethAmount The amount of PETH to buy and lock
+     * @param _makerCdp The Maker CDP contract
      */
     function lockETH(
         BaseWallet _wallet, 
         bytes32 _cup,
-        uint256 _pethAmount
+        uint256 _pethAmount,
+        IMakerCdp _makerCdp
     ) 
         internal 
     {
         // 1. Convert ETH to PETH
-        address wethToken = makerCdp.gem();
+        address wethToken = _makerCdp.gem();
         // Get WETH/PETH rate
-        uint ethAmount = makerCdp.ask(_pethAmount);
+        uint ethAmount = _makerCdp.ask(_pethAmount);
         // ETH to WETH
         invokeWallet(_wallet, wethToken, ethAmount, abi.encodeWithSelector(WETH_DEPOSIT));
         // Approve WETH
-        invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(makerCdp), ethAmount));
+        invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), ethAmount));
         // WETH to PETH
-        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_JOIN, _pethAmount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_JOIN, _pethAmount));
 
         // 2. Lock PETH into CDP
-        address pethToken = makerCdp.skr();
+        address pethToken = _makerCdp.skr();
         // Approve PETH
-        invokeWallet(_wallet, pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(makerCdp), _pethAmount));
+        invokeWallet(_wallet, pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
         // lock PETH into CDP
-        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_LOCK, _cup, _pethAmount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_LOCK, _cup, _pethAmount));
     }
 
     /**
@@ -571,38 +598,41 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
      * @param _pethAmount The amount of PETH to unlock and sell
+     * @param _makerCdp The Maker CDP contract
      */
     function freeETH(
-        BaseWallet _wallet,
+        BaseWallet _wallet, 
         bytes32 _cup,
-        uint256 _pethAmount
+        uint256 _pethAmount,
+        IMakerCdp _makerCdp
     ) 
         internal 
     {
         // 1. Unlock PETH
 
         // Unlock PETH from CDP
-        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_FREE, _cup, _pethAmount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_FREE, _cup, _pethAmount));
 
         // 2. Convert PETH to ETH
-        address wethToken = makerCdp.gem();
-        address pethToken = makerCdp.skr();
+        address wethToken = _makerCdp.gem();
+        address pethToken = _makerCdp.skr();
         // Approve PETH
-        invokeWallet(_wallet, pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(makerCdp), _pethAmount));
+        invokeWallet(_wallet, pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
         // PETH to WETH
-        invokeWallet(_wallet, address(makerCdp), 0, abi.encodeWithSelector(CDP_EXIT, _pethAmount));
+        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_EXIT, _pethAmount));
         // Get WETH/PETH rate
-        uint ethAmount = makerCdp.bid(_pethAmount);
+        uint ethAmount = _makerCdp.bid(_pethAmount);
         // WETH to ETH
         invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(WETH_WITHDRAW, ethAmount));
     }
 
     /**
      * @dev Conversion rate between DAI and MKR
+     * @param _makerCdp The Maker CDP contract
      * @return The amount of DAI per MKR
      */
-    function daiPerMkr() internal view returns (uint256 _daiPerMKR) {
-        (bytes32 daiPerMKR_, bool ok) = makerCdp.pep().peek();
+    function daiPerMkr(IMakerCdp _makerCdp) internal view returns (uint256 _daiPerMKR) {
+        (bytes32 daiPerMKR_, bool ok) = _makerCdp.pep().peek();
         require(ok && daiPerMKR_ != 0, "LM: invalid DAI/MKR rate");
         _daiPerMKR = uint256(daiPerMKR_);
     }
