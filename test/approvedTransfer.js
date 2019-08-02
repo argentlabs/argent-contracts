@@ -21,13 +21,13 @@ describe("Test Approved Transfer", function () {
 
     const manager = new TestManager(accounts);
 
-    let infrastructure = accounts[0].wallet;
-    let owner = accounts[1].wallet;
-    let nonowner = accounts[2].wallet;
-    let guardian1 = accounts[3].wallet;
-    let guardian2 = accounts[4].wallet;
-    let guardian3 = accounts[5].wallet;
-    let recipient = accounts[6].wallet;
+    let infrastructure = accounts[0].signer;
+    let owner = accounts[1].signer;
+    let nonowner = accounts[2].signer;
+    let guardian1 = accounts[3].signer;
+    let guardian2 = accounts[4].signer;
+    let guardian3 = accounts[5].signer;
+    let recipient = accounts[6].signer;
 
     let wallet, guardianManager, transferModule, priceProvider, kyber, erc20;
 

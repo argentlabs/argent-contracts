@@ -8,7 +8,7 @@ const Upgrader = require("../build/SimpleUpgrader");
 describe("Test ModuleManager", function () {
     this.timeout(10000);
 
-    let owner = accounts[1].wallet;
+    let owner = accounts[1].signer;
 
     let registry;
 

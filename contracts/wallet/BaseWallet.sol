@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../interfaces/Module.sol";
 
 /**
@@ -39,7 +39,7 @@ contract BaseWallet {
      * @param _owner The owner.
      * @param _modules The modules to authorise.
      */
-    function init(address _owner, address[] _modules) external {
+    function init(address _owner, address[] calldata _modules) external {
         require(owner == address(0) && modules == 0, "BW: wallet already initialised");
         require(_modules.length > 0, "BW: construction requires at least 1 module");
         owner = _owner;
@@ -101,9 +101,10 @@ contract BaseWallet {
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
      */
-    function invoke(address _target, uint _value, bytes _data) external moduleOnly {
+    function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly {
         // solium-disable-next-line security/no-call-value
-        require(_target.call.value(_value)(_data), "BW: call to target failed");
+        (bool success, ) = _target.call.value(_value)(_data);
+        require(success, "BW: call to target failed");
         emit Invoked(msg.sender, _target, _value, _data);
     }
 
@@ -112,7 +113,7 @@ contract BaseWallet {
      * implement specific static methods. It delegates the static call to a target contract if the data corresponds 
      * to an enabled method, or logs the call otherwise.
      */
-    function() public payable {
+    function() external payable {
         if(msg.data.length > 0) { 
             address module = enabled[msg.sig];
             if(module == address(0)) {

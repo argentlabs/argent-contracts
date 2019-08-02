@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -27,12 +27,13 @@ contract ModuleManager is BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _wallet The target wallet.
      * @param _upgrader The address of an implementation of the Upgrader interface.
      */
-    function upgrade(BaseWallet _wallet, Upgrader _upgrader) external onlyOwner(_wallet) {
-        require(registry.isRegisteredUpgrader(_upgrader), "MM: upgrader is not registered");
+    function upgrade(BaseWallet _wallet, Upgrader _upgrader) external onlyWalletOwner(_wallet) {
+        require(registry.isRegisteredUpgrader(address(_upgrader)), "MM: upgrader is not registered");
         address[] memory toDisable = _upgrader.toDisable();
         address[] memory toEnable = _upgrader.toEnable();
         bytes memory methodData = abi.encodeWithSignature("upgrade(address,address[],address[])", _wallet, toDisable, toEnable);
         // solium-disable-next-line security/no-low-level-calls
-        require(address(_upgrader).delegatecall(methodData), "MM: upgrade failed");
+        (bool success,) = address(_upgrader).delegatecall(methodData);
+        require(success, "MM: upgrade failed");
     }
 }

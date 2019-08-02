@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 
 /**
  * @title MultiSig
@@ -38,7 +38,7 @@ contract MultiSigWallet {
      * @param _threshold The threshold of the multisig.
      * @param _owners The owners of the multisig.
      */
-    constructor(uint256 _threshold, address[] _owners) public {
+    constructor(uint256 _threshold, address[] memory _owners) public {
         require(_owners.length > 0 && _owners.length <= MAX_OWNER_COUNT, "MSW: Not enough or too many owners");
         require(_threshold > 0 && _threshold <= _owners.length, "MSW: Invalid threshold");
         ownersCount = _owners.length;
@@ -58,7 +58,7 @@ contract MultiSigWallet {
      * @param _data The data parameter for the transaction to execute.
      * @param _signatures Concatenated signatures ordered based on increasing signer's address.
      */
-    function execute(address _to, uint _value, bytes _data, bytes _signatures) public {
+    function execute(address _to, uint _value, bytes memory _data, bytes memory _signatures) public {
         uint8 v;
         bytes32 r;
         bytes32 s;
@@ -67,7 +67,7 @@ contract MultiSigWallet {
         bytes32 txHash = keccak256(abi.encodePacked(byte(0x19), byte(0), address(this), _to, _value, _data, nonce));
         nonce += 1;
         uint256 valid;
-        address lastSigner = 0;
+        address lastSigner = address(0);
         for(uint256 i = 0; i < count; i++) {
             (v,r,s) = splitSignature(_signatures, i);
             address recovered = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",txHash)), v, r, s);
@@ -76,7 +76,8 @@ contract MultiSigWallet {
             if(isOwner[recovered]) {
                 valid += 1;
                 if(valid >= threshold) {
-                    require(_to.call.value(_value)(_data), "MSW: External call failed");
+                    (bool success,) = _to.call.value(_value)(_data);
+                    require(success, "MSW: External call failed");
                     emit Executed(_to, _value, _data);
                     return;
                 }
@@ -136,7 +137,7 @@ contract MultiSigWallet {
      * @param _signatures concatenated signatures
      * @param _index which signature to read (0, 1, 2, ...)
      */
-    function splitSignature(bytes _signatures, uint256 _index) internal pure returns (uint8 v, bytes32 r, bytes32 s) {
+    function splitSignature(bytes memory _signatures, uint256 _index) internal pure returns (uint8 v, bytes32 r, bytes32 s) {
         // we jump 32 (0x20) as the first slot of bytes contains the length
         // we jump 65 (0x41) per signature
         // for v we load 32 bytes ending with v (the first 31 come from s) tehn apply a mask

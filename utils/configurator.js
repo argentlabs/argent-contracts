@@ -18,11 +18,13 @@ class Configurator {
     }
 
     updateInfrastructureAddresses(contracts) {
-        this._config.contracts = contracts;
+        if (!this._config.contracts) this._config.contracts = {};
+        Object.assign(this._config.contracts, contracts);
     }
 
     updateModuleAddresses(modules) {
-        this._config.modules = modules;
+        if (!this._config.modules) this._config.modules = {};
+        Object.assign(this._config.modules, modules);
     }
 
     updateENSRegistry(address) {

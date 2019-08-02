@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -50,7 +50,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * @dev Throws if there is no ongoing recovery procedure.
      */
     modifier onlyWhenRecovery(BaseWallet _wallet) {
-        require(configs[_wallet].executeAfter > 0, "RM: there must be an ongoing recovery");
+        require(configs[address(_wallet)].executeAfter > 0, "RM: there must be an ongoing recovery");
         _;
     }
 
@@ -58,7 +58,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * @dev Throws if there is an ongoing recovery procedure.
      */
     modifier notWhenRecovery(BaseWallet _wallet) {
-        require(configs[_wallet].executeAfter == 0, "RM: there cannot be an ongoing recovery");
+        require(configs[address(_wallet)].executeAfter == 0, "RM: there cannot be an ongoing recovery");
         _;
     }
 
@@ -90,12 +90,12 @@ contract RecoveryManager is BaseModule, RelayerModule {
      */
     function executeRecovery(BaseWallet _wallet, address _recovery) external onlyExecute notWhenRecovery(_wallet) {
         require(_recovery != address(0), "RM: recovery address cannot be null");
-        RecoveryManagerConfig storage config = configs[_wallet];
+        RecoveryManagerConfig storage config = configs[address(_wallet)];
         config.recovery = _recovery;
         config.executeAfter = uint64(now + recoveryPeriod);
         config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
         guardianStorage.setLock(_wallet, now + lockPeriod);
-        emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
+        emit RecoveryExecuted(address(_wallet), _recovery, config.executeAfter);
     }
 
     /**
@@ -104,12 +104,12 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      */
     function finalizeRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
-        RecoveryManagerConfig storage config = configs[_wallet];
+        RecoveryManagerConfig storage config = configs[address(_wallet)];
         require(uint64(now) > config.executeAfter, "RM: the recovery period is not over yet");
         _wallet.setOwner(config.recovery); 
-        emit RecoveryFinalized(_wallet, config.recovery);
+        emit RecoveryFinalized(address(_wallet), config.recovery);
         guardianStorage.setLock(_wallet, 0);
-        delete configs[_wallet];
+        delete configs[address(_wallet)];
     }
 
     /**
@@ -118,10 +118,10 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      */
     function cancelRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
-        RecoveryManagerConfig storage config = configs[_wallet];
-        emit  RecoveryCanceled(_wallet, config.recovery);
+        RecoveryManagerConfig storage config = configs[address(_wallet)];
+        emit  RecoveryCanceled(address(_wallet), config.recovery);
         guardianStorage.setLock(_wallet, 0);
-        delete configs[_wallet];
+        delete configs[address(_wallet)];
     }
 
     /** 
@@ -129,13 +129,13 @@ contract RecoveryManager is BaseModule, RelayerModule {
     * @param _wallet The target wallet.
     */
     function getRecovery(BaseWallet _wallet) public view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
-        RecoveryManagerConfig storage config = configs[_wallet];
+        RecoveryManagerConfig storage config = configs[address(_wallet)];
         return (config.recovery, config.executeAfter, config.guardianCount);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(BaseWallet _wallet, bytes _data, bytes32 _signHash, bytes _signatures) internal view returns (bool) {
+    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
@@ -159,7 +159,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         return true;
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_PREFIX) {
             return SafeMath.ceil(guardianStorage.guardianCount(_wallet) + 1, 2);
@@ -168,7 +168,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
             return 0;
         }
         if(methodId == CANCEL_PREFIX) {
-            return SafeMath.ceil(configs[_wallet].guardianCount + 1, 2);
+            return SafeMath.ceil(configs[address(_wallet)].guardianCount + 1, 2);
         }
         revert("RM: unknown  method");
     }

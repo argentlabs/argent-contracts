@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../base/Owned.sol";
 import "../base/Managed.sol";
 import "./ENS.sol";
@@ -46,7 +46,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The node to update.
      * @param _name The name to set.
      */
-    function setName(bytes32 _node, string _name) public onlyManager {
+    function setName(bytes32 _node, string memory _name) public onlyManager {
         records[_node].name = _name;
         emit NameChanged(_node, _name);
     }
@@ -65,7 +65,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The target ENS node.
      * @return the name of the target ENS node.
      */
-    function name(bytes32 _node) public view returns (string) {
+    function name(bytes32 _node) public view returns (string memory) {
         return records[_node].name;
     }
 

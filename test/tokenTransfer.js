@@ -22,10 +22,10 @@ describe("Test Token Transfer", function () {
 
     const manager = new TestManager(accounts);
 
-    let infrastructure = accounts[0].wallet;
-    let owner = accounts[1].wallet;
-    let nonowner = accounts[2].wallet;
-    let recipient = accounts[3].wallet;
+    let infrastructure = accounts[0].signer;
+    let owner = accounts[1].signer;
+    let nonowner = accounts[2].signer;
+    let recipient = accounts[3].signer;
 
     let kyber, priceProvider, transferModule, wallet;
 
@@ -48,7 +48,7 @@ describe("Test Token Transfer", function () {
     });
 
     beforeEach(async () => {
-        wallet = await deployer.deploy(Wallet);
+        wallet = await deployer.deploy(Wallet); 
         await wallet.init(owner.address, [transferModule.contractAddress]);
         erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
         await kyber.addToken(erc20.contractAddress, KYBER_RATE, DECIMALS);

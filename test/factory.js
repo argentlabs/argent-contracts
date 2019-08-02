@@ -17,10 +17,10 @@ describe("Test Wallet Factory", function () {
 
     const manager = new TestManager(accounts);
 
-    let infrastructure = accounts[0].wallet;
-    let owner = accounts[1].wallet;
-    let amanager = accounts[2].wallet;
-    let anonmanager = accounts[3].wallet;
+    let infrastructure = accounts[0].signer;
+    let owner = accounts[1].signer;
+    let amanager = accounts[2].signer;
+    let anonmanager = accounts[3].signer;
 
     let root = "xyz";
     let subnameWallet = "argent";
@@ -79,7 +79,7 @@ describe("Test Wallet Factory", function () {
         it("should create with the correct owner", async () => {
             // we create the wallet
             let modules = [moduleManager.contractAddress];
-            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", {gasLimit: 200000});
+            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", {gasLimit: 300000});
             let txReceipt = await factory.verboseWaitForTransaction(tx);
             let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
             // we test that the wallet has the correct owner

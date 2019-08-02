@@ -12,9 +12,9 @@ describe("LockManager", function () {
 
     const manager = new TestManager(accounts);
 
-    let owner = accounts[1].wallet;
-    let guardian1 = accounts[2].wallet;
-    let nonguardian = accounts[3].wallet;
+    let owner = accounts[1].signer;
+    let guardian1 = accounts[2].signer;
+    let nonguardian = accounts[3].signer;
 
     let guardianManager, lockManager, wallet;
 

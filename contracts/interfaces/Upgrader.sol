@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 
 /**
  * @title Upgrader
@@ -11,9 +11,9 @@ interface Upgrader {
      * @dev Upgrades a wallet by enabling/disabling modules.
      * @param _wallet The owner.
      */
-    function upgrade(address _wallet, address[] _toDisable, address[] _toEnable) external;
+    function upgrade(address payable _wallet, address[] calldata _toDisable, address[] calldata _toEnable) external;
 
-    function toDisable() external view returns (address[]);
+    function toDisable() external view returns (address[] memory);
 
-    function toEnable() external view returns (address[]);
+    function toEnable() external view returns (address[] memory);
 }

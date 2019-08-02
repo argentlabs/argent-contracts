@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 
 /* The MIT License (MIT)
 
@@ -97,5 +97,23 @@ library SafeMath {
         else {
             return c + 1;
         }
+    }
+
+    // from DSMath - operations on fixed precision floats
+
+    uint256 constant WAD = 10 ** 18;
+    uint256 constant RAY = 10 ** 27;
+
+    function wmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = add(mul(x, y), WAD / 2) / WAD;
+    }
+    function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = add(mul(x, y), RAY / 2) / RAY;
+    }
+    function wdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = add(mul(x, WAD), y / 2) / y;
+    }
+    function rdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = add(mul(x, RAY), y / 2) / y;
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "../exchange/ERC20.sol";
 import "../exchange/KyberNetwork.sol";
 import "../utils/SafeMath.sol";
@@ -23,7 +23,7 @@ contract KyberNetworkTest is KyberNetwork {
         owner = msg.sender;
     }
 
-    function() public payable {}
+    function() external payable {}
 
     /**
     * @dev Adds a tradable token to the Kyber instance
@@ -46,11 +46,11 @@ contract KyberNetworkTest is KyberNetwork {
         returns (uint expectedRate, uint slippageRate) 
     {
         if(address(_src) == ETH_TOKEN_ADDRESS) {
-            expectedRate = 10**36 / tokens[_dest].rate;
+            expectedRate = 10**36 / tokens[address(_dest)].rate;
             slippageRate = expectedRate;
         }
         else if(address(_dest) == ETH_TOKEN_ADDRESS) {
-            expectedRate = tokens[_src].rate;
+            expectedRate = tokens[address(_src)].rate;
             slippageRate = expectedRate;
         }
         else {
@@ -62,7 +62,7 @@ contract KyberNetworkTest is KyberNetwork {
         ERC20 _src,
         uint _srcAmount,
         ERC20 _dest,
-        address _destAddress,
+        address payable _destAddress,
         uint _maxDestAmount,
         uint _minConversionRate,
         address _walletId
@@ -74,11 +74,11 @@ contract KyberNetworkTest is KyberNetwork {
         uint expectedRate;
         uint srcAmount;
         if(address(_src) == ETH_TOKEN_ADDRESS) {
-            expectedRate = 10**36 / tokens[_dest].rate;
-            destAmount = expectedRate.mul(_srcAmount).div(10**(36 - tokens[_dest].decimals));
+            expectedRate = 10**36 / tokens[address(_dest)].rate;
+            destAmount = expectedRate.mul(_srcAmount).div(10**(36 - tokens[address(_dest)].decimals));
             if(destAmount > _maxDestAmount) {
                 destAmount = _maxDestAmount;
-                srcAmount = _maxDestAmount.mul(10**(36 - tokens[_dest].decimals)).div(expectedRate);
+                srcAmount = _maxDestAmount.mul(10**(36 - tokens[address(_dest)].decimals)).div(expectedRate);
             }
             else {
                 srcAmount = _srcAmount;
@@ -91,16 +91,16 @@ contract KyberNetworkTest is KyberNetwork {
             require(ERC20(_dest).transfer(_destAddress, destAmount), "ERC20 transfer failed");
         }
         else if(address(_dest) == ETH_TOKEN_ADDRESS) {
-            expectedRate = tokens[_src].rate;
-            destAmount = expectedRate.mul(_srcAmount).div(10**tokens[_src].decimals);
+            expectedRate = tokens[address(_src)].rate;
+            destAmount = expectedRate.mul(_srcAmount).div(10**tokens[address(_src)].decimals);
             if(destAmount > _maxDestAmount) {
                 destAmount = _maxDestAmount;
-                srcAmount = _maxDestAmount.mul(10**tokens[_src].decimals).div(expectedRate);
+                srcAmount = _maxDestAmount.mul(10**tokens[address(_src)].decimals).div(expectedRate);
             }
             else {
                 srcAmount = _srcAmount;
             }
-            require(ERC20(_src).transferFrom(msg.sender, address(this), srcAmount), "not enough ERC20 provided");
+            require(_src.transferFrom(msg.sender, address(this), srcAmount), "not enough ERC20 provided");
             _destAddress.transfer(destAmount);
         }
         else {

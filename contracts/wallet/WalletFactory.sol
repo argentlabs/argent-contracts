@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.4;
 import "./Proxy.sol";
 import "./BaseWallet.sol";
 import "../base/Owned.sol";
@@ -60,13 +60,13 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
      * @param _modules The list of modules.
      * @param _label Optional ENS label of the new wallet (e.g. franck).
      */
-    function createWallet(address _owner, address[] _modules, string _label) external onlyManager {
+    function createWallet(address _owner, address[] calldata _modules, string calldata _label) external onlyManager {
         require(_owner != address(0), "WF: owner cannot be null");
         require(_modules.length > 0, "WF: cannot assign with less than 1 module");
         require(ModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
         // create the proxy
         Proxy proxy = new Proxy(walletImplementation);
-        address wallet = address(proxy);
+        address payable wallet = address(proxy);
         // check for ENS
         bytes memory labelBytes = bytes(_label);
         if (labelBytes.length != 0) {
@@ -134,10 +134,10 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
      * @param _wallet The wallet address.
      * @param _label ENS label of the new wallet (e.g. franck).
      */
-    function registerWalletENS(address _wallet, string _label) internal {
+    function registerWalletENS(address payable _wallet, string memory _label) internal {
         // claim reverse
         bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
-        BaseWallet(_wallet).invoke(getENSReverseRegistrar(), 0, methodData);
+        BaseWallet(_wallet).invoke(address(getENSReverseRegistrar()), 0, methodData);
         // register with ENS manager
         IENSManager(ensManager).register(_label, _wallet);
     }
