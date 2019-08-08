@@ -104,7 +104,12 @@ contract BaseWallet {
     function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly {
         // solium-disable-next-line security/no-call-value
         (bool success, ) = _target.call.value(_value)(_data);
-        require(success, "BW: call to target failed");
+        if(!success) {
+            assembly {
+                returndatacopy(0, 0, returndatasize)
+                revert(0, returndatasize)
+            }
+        }
         emit Invoked(msg.sender, _target, _value, _data);
     }
 
