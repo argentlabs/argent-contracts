@@ -20,15 +20,27 @@ const USD_PER_MKR = WAD.mul(700); // 1 MKR = 700 USD
 
 const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 2.8 ETH
 
-async function deploy() { 
+// dydx
+const AdminImpl = require("../build/AdminImpl");
+const OperationImpl = require("../build/OperationImpl");
+const SoloMargin = require("../build/TestSoloMargin");
+const PriceOracle = require("../build/TestPriceOracle");
+const InterestSetter = require("../build/PolynomialInterestSetter");
+const {
+    getPolynomialParams,
+    getRiskLimits,
+    getRiskParams
+} = require("../utils/defi/dydx/helpers");
+
+async function deploy() {
     const network = 'test';
 
     const deployManager = new DeployManager(network);
-	await deployManager.setup();
+    await deployManager.setup();
     const deployer = deployManager.deployer;
     const manager = deployer.signer; // the pit
 
-    /* ************* Deploy Maker *************** */ 
+    /* ************* Deploy Maker *************** */
 
     const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
     const sai = await deployer.deploy(DSToken, {}, formatBytes32String("DAI"));
@@ -61,52 +73,92 @@ async function deploy() {
     // set the liquidity ratio to 150%
     await tub.mold(formatBytes32String('mat'), RAY.mul(3).div(2));
     // set the governance fee to 7.5% APR
-    await tub.mold(formatBytes32String('fee'), '1000000002293273137447730714', {gasLimit: 150000});
+    await tub.mold(formatBytes32String('fee'), '1000000002293273137447730714', { gasLimit: 150000 });
     // set the liquidation penalty to 13%
-    await tub.mold(formatBytes32String('axe'), '1130000000000000000000000000', {gasLimit: 150000});
+    await tub.mold(formatBytes32String('axe'), '1130000000000000000000000000', { gasLimit: 150000 });
 
     /* ************* Deploy Uniswap ****************** */
 
     const uniswapFactory = await deployer.deploy(UniswapFactory);
     const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
-    await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress); 
+    await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress);
 
     /* *************** create MKR exchange ***************** */
 
     const ethLiquidity = parseEther('1');
-    const mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR); 
+    const mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
     await gov['mint(address,uint256)'](manager.address, mkrLiquidity);
 
-    await uniswapFactory.createExchange(gov.contractAddress, {gasLimit: 450000}); 
+    await uniswapFactory.createExchange(gov.contractAddress, { gasLimit: 450000 });
     let exchange = '0x0000000000000000000000000000000000000000';
-    while(exchange == '0x0000000000000000000000000000000000000000') {
+    while (exchange == '0x0000000000000000000000000000000000000000') {
         exchange = await uniswapFactory.getExchange(gov.contractAddress);
         console.log("exchange: ", exchange);
         await sleep(5000);
     }
     const mkrExchange = await deployer.wrapDeployedContract(UniswapExchange, exchange);
-    await gov.approve(mkrExchange.contractAddress, mkrLiquidity); 
-    const timestamp = await getTimestamp(deployer); 
-    await mkrExchange.addLiquidity(1, mkrLiquidity, timestamp + 300, {value: ethLiquidity, gasLimit: 250000});
+    await gov.approve(mkrExchange.contractAddress, mkrLiquidity);
+    const timestamp = await getTimestamp(deployer);
+    await mkrExchange.addLiquidity(1, mkrLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 250000 });
 
-    console.log(`******* contracts *******`);
+    /* ********************* Deploy dydx ********************* */
+
+    // deploy and setup oracle
+    const oracle = await deployer.deploy(PriceOracle);
+    await oracle.setPrice(sai.contractAddress, WAD);
+    await oracle.setPrice(gem.contractAddress, USD_PER_ETH);
+
+    // deploy and setup interest setter
+    const interestSetter = await deployer.deploy(
+        InterestSetter,
+        {},
+        await getPolynomialParams("mainnet")
+    );
+
+    // deploy solo
+    const adminImpl = await deployer.deploy(AdminImpl);
+    const opImpl = await deployer.deploy(OperationImpl);
+    const solo = await deployer.deploy(
+        SoloMargin,
+        {
+            AdminImpl: adminImpl.contractAddress,
+            OperationImpl: opImpl.contractAddress
+        },
+        await getRiskParams("mainnet"),
+        await getRiskLimits()
+    );
+
+    // add markets to solo
+    for (let token of [gem, sai]) {
+        await solo.ownerAddMarket(
+            token.contractAddress,
+            oracle.contractAddress,
+            interestSetter.contractAddress,
+            { value: "0" }, // marginPremium
+            { value: "0" } // spreadPremium
+        );
+    }
+
+    console.log(`********** contracts ***********`);
     console.log(`DAI: ${sai.contractAddress}`);
+    console.log(`WETH: ${gem.contractAddress}`);
     console.log(`MKR: ${gov.contractAddress}`);
     console.log(`MAKER TUB: ${tub.contractAddress}`);
     console.log(`UNISWAP FACTORY: ${uniswapFactory.contractAddress}`);
+    console.log(`DYDX SOLO: ${solo.contractAddress}`);
     console.log(`********************************`);
 }
 
 async function getTimestamp(deployer) {
-    let block = await deployer.provider.getBlock('latest'); 
+    let block = await deployer.provider.getBlock('latest');
     return block.timestamp;
 }
 
-function sleep(ms) { 
+function sleep(ms) {
     console.log("sleeping...");
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 module.exports = {
-	deploy
+    deploy
 };

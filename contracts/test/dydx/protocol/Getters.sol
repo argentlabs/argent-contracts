@@ -473,16 +473,6 @@ contract Getters is
         );
     }
 
-    function test_fetchNewIndex(
-        uint256 marketId
-    )
-        public
-        view
-        returns (Interest.Index memory)
-    {
-        return g_state.fetchNewIndex(marketId, g_state.getIndex(marketId));
-    }
-
     /**
      * Get the status of an account (Normal, Liquidating, or Vaporizing).
      *
