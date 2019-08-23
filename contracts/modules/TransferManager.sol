@@ -61,17 +61,15 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     event CalledContract(address indexed wallet, address indexed to, uint256 indexed amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
-    event PendingActionCreated(
-        address indexed wallet,
-        bytes32 indexed id,
-        ActionType indexed action,
-        uint256 executeAfter,
-        address token,
-        address to,
-        uint256 amount,
-        bytes data);
-    event PendingActionExecuted(address indexed wallet, bytes32 indexed id, ActionType indexed action);
-    event PendingActionCanceled(address indexed wallet, bytes32 indexed id);
+    event PendingTransferCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter, address token, address to, uint256 amount, bytes data);
+    event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
+    event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
+    event PendingApproveCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter, address token, address spender, uint256 amount);
+    event PendingApproveExecuted(address indexed wallet, bytes32 indexed id);
+    event PendingApproveCanceled(address indexed wallet, bytes32 indexed id);
+    event PendingCallContractCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter, address _contract, uint256 amount, bytes data);
+    event PendingCallContractExecuted(address indexed wallet, bytes32 indexed id);
+    event PendingCallContractCanceled(address indexed wallet, bytes32 indexed id);
 
     // *************** Modifiers *************************** //
 
@@ -170,7 +168,8 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
             }
             else {
                 // transfer above the limit
-                addPendingAction(ActionType.Transfer, _wallet, _token, _to, _amount, _data);
+                (bytes32 id, uint256 executeAfter) = addPendingAction(ActionType.Transfer, _wallet, _token, _to, _amount, _data);
+                emit PendingTransferCreated(address(_wallet), id, executeAfter, _token, _to, _amount, _data);
             }
         }
     }
@@ -197,7 +196,8 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
             }
             else {
                 // approve above the limit
-                addPendingAction(ActionType.Approve, _wallet, _token, _spender, _amount, EMPTY_BYTES);
+                (bytes32 id, uint256 executeAfter) = addPendingAction(ActionType.Approve, _wallet, _token, _spender, _amount, EMPTY_BYTES);
+                emit PendingApproveCreated(address(_wallet), id, executeAfter, _token, _spender, _amount);
             }
         }
     }
@@ -223,7 +223,8 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
             }
             else {
                 // call above the limit
-                addPendingAction(ActionType.CallContract, _wallet, address(0), _contract, _value, _data);
+                (bytes32 id, uint256 executeAfter) = addPendingAction(ActionType.CallContract, _wallet, address(0), _contract, _value, _data);
+                emit PendingCallContractCreated(address(_wallet), id, executeAfter, _contract, _value, _data);
             }
         }
     }
@@ -266,20 +267,8 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         emit RemovedFromWhitelist(address(_wallet), _target);
     }
 
-    /**
-    * @dev Executes a pending transfer for a wallet.
-    * The destination address is automatically added to the whitelist.
-    * The method can be called by anyone to enable orchestration.
-    * @param _wallet The target wallet.
-    * @param _action The target action.
-    * @param _token The token of the pending transfer.
-    * @param _to The destination address of the pending transfer.
-    * @param _amount The amount of token to transfer of the pending transfer.
-    * @param _block The block at which the pending transfer was created.
-    */
-    function executePendingAction(
+    function executePendingTransfer(
         BaseWallet _wallet,
-        ActionType _action,
         address _token,
         address _to,
         uint _amount,
@@ -289,32 +278,11 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         public
         onlyWhenUnlocked(_wallet)
     {
-        bytes32 id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, _block));
-        uint executeAfter = configs[address(_wallet)].pendingActions[id];
-        uint executeBefore = executeAfter.add(securityWindow);
-        require(executeAfter <= now && now <= executeBefore, "TT: action outside of the execution window");
-        removePendingAction(_wallet, id);
-        if(_action == ActionType.Transfer) {
-            doTransfer(_wallet, _token, _to, _amount, _data);
-        }
-        else if(_action == ActionType.Approve) {
-            doApproveTransfer(_wallet, _token, _to, _amount);
-        }
-        else if(_action == ActionType.CallContract) {
-            doCallContract(_wallet, _to, _amount, _data);
-        }
-        else {
-            revert("TM: unknown action");
-        }
-        emit PendingActionExecuted(address(_wallet), id, _action);
+        bytes32 id = executePendingAction(_wallet, ActionType.Transfer, _token, _to, _amount, _data, _block);
+        emit PendingTransferExecuted(address(_wallet), id);
     }
 
-    /**
-    * @dev Cancels a pending action for a wallet.
-    * @param _wallet The target wallet.
-    * @param _id the pending action ID.
-    */
-    function cancelPendingAction(
+    function cancelPendingTransfer(
         BaseWallet _wallet,
         bytes32 _id
     )
@@ -322,9 +290,60 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        require(configs[address(_wallet)].pendingActions[_id] > 0, "TT: unknown pending action");
-        removePendingAction(_wallet, _id);
-        emit PendingActionCanceled(address(_wallet), _id);
+        cancelPendingAction(_wallet, _id);
+        emit PendingTransferCanceled(address(_wallet), _id);
+    }
+
+    function executePendingApprove(
+        BaseWallet _wallet,
+        address _token,
+        address _spender,
+        uint _amount,
+        uint _block
+    )
+        public
+        onlyWhenUnlocked(_wallet)
+    {
+        bytes32 id = executePendingAction(_wallet, ActionType.Approve, _token, _spender, _amount, EMPTY_BYTES, _block);
+        emit PendingApproveExecuted(address(_wallet), id);
+    }
+
+    function cancelPendingApprove(
+        BaseWallet _wallet,
+        bytes32 _id
+    )
+        public
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        cancelPendingAction(_wallet, _id);
+        emit PendingApproveCanceled(address(_wallet), _id);
+    }
+
+    function executePendingCallContract(
+        BaseWallet _wallet,
+        address _contract,
+        uint _amount,
+        bytes memory _data,
+        uint _block
+    )
+        public
+        onlyWhenUnlocked(_wallet)
+    {
+        bytes32 id = executePendingAction(_wallet, ActionType.CallContract, address(0), _contract, _amount, _data, _block);
+        emit PendingCallContractExecuted(address(_wallet), id);
+    }
+
+    function cancelPendingCallContract(
+        BaseWallet _wallet,
+        bytes32 _id
+    )
+        public
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        cancelPendingAction(_wallet, _id);
+        emit PendingCallContractCanceled(address(_wallet), _id);
     }
 
     /**
@@ -449,7 +468,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
      * @param _to The recipient of the action.
      * @param _amount The amount of token associated to the action.
      * @param _data The data associated to the action.
-     * @return the identifier for the new pending action.
+     * @return the identifier for the new pending action and the time when the action can be executed
      */
     function addPendingAction(
         ActionType _action,
@@ -460,21 +479,68 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         bytes memory _data
     )
         internal
-        returns (bytes32)
+        returns (bytes32 id, uint256 executeAfter)
     {
-        bytes32 id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, block.number));
+        id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, block.number));
         require(configs[address(_wallet)].pendingActions[id] == 0, "TM: duplicate pending action");
-        uint executeAfter = now.add(securityPeriod);
+        executeAfter = now.add(securityPeriod);
         configs[address(_wallet)].pendingActions[id] = executeAfter;
-        emit PendingActionCreated(address(_wallet), id, _action, executeAfter, _token, _to, _amount, _data);
     }
 
     /**
-    * @dev Removes an existing pending transfer.
-    * @param _wallet The target wallet
-    * @param _id The id of the transfer to remove.
+    * @dev Executes a pending transfer for a wallet.
+    * The destination address is automatically added to the whitelist.
+    * The method can be called by anyone to enable orchestration.
+    * @param _wallet The target wallet.
+    * @param _action The target action.
+    * @param _token The token of the pending transfer.
+    * @param _to The destination address of the pending transfer.
+    * @param _amount The amount of token to transfer of the pending transfer.
+    * @param _block The block at which the pending transfer was created.
     */
-    function removePendingAction(BaseWallet _wallet, bytes32 _id) internal {
+    function executePendingAction(
+        BaseWallet _wallet,
+        ActionType _action,
+        address _token,
+        address _to,
+        uint _amount,
+        bytes memory _data,
+        uint _block
+    )
+        internal
+        returns (bytes32 id)
+    {
+        id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, _block));
+        uint executeAfter = configs[address(_wallet)].pendingActions[id];
+        uint executeBefore = executeAfter.add(securityWindow);
+        require(executeAfter <= now && now <= executeBefore, "TT: action outside of the execution window");
+        delete configs[address(_wallet)].pendingActions[id];
+        if(_action == ActionType.Transfer) {
+            doTransfer(_wallet, _token, _to, _amount, _data);
+        }
+        else if(_action == ActionType.Approve) {
+            doApproveTransfer(_wallet, _token, _to, _amount);
+        }
+        else if(_action == ActionType.CallContract) {
+            doCallContract(_wallet, _to, _amount, _data);
+        }
+        else {
+            revert("TM: unknown action");
+        }
+    }
+
+    /**
+    * @dev Cancels a pending action for a wallet.
+    * @param _wallet The target wallet.
+    * @param _id the pending action ID.
+    */
+    function cancelPendingAction(
+        BaseWallet _wallet,
+        bytes32 _id
+    )
+        internal
+    {
+        require(configs[address(_wallet)].pendingActions[_id] > 0, "TT: unknown pending action");
         delete configs[address(_wallet)].pendingActions[_id];
     }
 
