@@ -12,9 +12,12 @@ import "../exchange/ERC20.sol";
 contract ModuleRegistry is Owned {
 
     mapping (address => Info) internal modules;
+    mapping (address => Info) internal upgraders;
 
     event ModuleRegistered(address indexed module, bytes32 name);
     event ModuleDeRegistered(address module);
+    event UpgraderRegistered(address indexed upgrader, bytes32 name);
+    event UpgraderDeRegistered(address upgrader);
 
     struct Info {
         bool exists;
@@ -42,6 +45,27 @@ contract ModuleRegistry is Owned {
         emit ModuleDeRegistered(_module);
     }
 
+        /**
+     * @dev Registers an upgrader.
+     * @param _upgrader The upgrader.
+     * @param _name The unique name of the upgrader.
+     */
+    function registerUpgrader(address _upgrader, bytes32 _name) external onlyOwner {
+        require(!upgraders[_upgrader].exists, "MR: upgrader already exists");
+        upgraders[_upgrader] = Info({exists: true, name: _name});
+        emit UpgraderRegistered(_upgrader, _name);
+    }
+
+    /**
+     * @dev Deregisters an upgrader.
+     * @param _upgrader The _upgrader.
+     */
+    function deregisterUpgrader(address _upgrader) external onlyOwner {
+        require(upgraders[_upgrader].exists, "MR: upgrader does not exists");
+        delete upgraders[_upgrader];
+        emit UpgraderDeRegistered(_upgrader);
+    }
+
     /**
     * @dev Utility method enbaling the owner of the registry to claim any ERC20 token that was sent to the
     * registry.
@@ -59,6 +83,15 @@ contract ModuleRegistry is Owned {
      */
     function moduleInfo(address _module) external view returns (bytes32) {
         return modules[_module].name;
+    }
+
+    /**
+     * @dev Gets the name of an upgrader from its address.
+     * @param _upgrader The upgrader address.
+     * @return the name.
+     */
+    function upgraderInfo(address _upgrader) external view returns (bytes32) {
+        return upgraders[_upgrader].name;
     }
 
     /**
@@ -82,6 +115,15 @@ contract ModuleRegistry is Owned {
             }
         }
         return true;
-    }
+    }  
+
+    /**
+     * @dev Checks if an upgrader is registered.
+     * @param _upgrader The upgrader address.
+     * @return true if the upgrader is registered.
+     */
+    function isRegisteredUpgrader(address _upgrader) external view returns (bool) {
+        return upgraders[_upgrader].exists;
+    } 
 
 }

@@ -172,6 +172,7 @@ const deploy = async (network) => {
         );
         const upgraderName = version.fingerprint + '_' + fingerprint;
         await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+        await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
     };
 
     ////////////////////////////////////
