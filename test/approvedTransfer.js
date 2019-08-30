@@ -81,28 +81,28 @@ describe("Test Approved Transfer", function () {
     }
 
     describe("Transfer approved by EOA guardians", () => {
-        // it('should transfer ETH with 1 confirmations for 1 guardians', async () => {
-        //     let amountToTransfer = 10000;
-        //     await addGuardians([guardian1])
-        //     let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-        //     assert.equal(count, 1, '1 guardians should be active');
-        //     let before = await deployer.provider.getBalance(recipient.address);
-        //     // should succeed with one confirmation
-        //     await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
-        //     let after = await deployer.provider.getBalance(recipient.address);
-        //     assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
-        // });
-        // it('should transfer ETH with 1 confirmations for 2 guardians', async () => {
-        //     let amountToTransfer = 10000;
-        //     await addGuardians([guardian1, guardian2])
-        //     let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-        //     assert.equal(count, 2, '2 guardians should be active');
-        //     let before = await deployer.provider.getBalance(recipient.address);
-        //     // should succeed with one confirmation
-        //     await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
-        //     let after = await deployer.provider.getBalance(recipient.address);
-        //     assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
-        // });
+        it('should transfer ETH with 1 confirmations for 1 guardians', async () => {
+            let amountToTransfer = 10000;
+            await addGuardians([guardian1])
+            let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+            assert.equal(count, 1, '1 guardians should be active');
+            let before = await deployer.provider.getBalance(recipient.address);
+            // should succeed with one confirmation
+            await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+            let after = await deployer.provider.getBalance(recipient.address);
+            assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+        });
+        it('should transfer ETH with 1 confirmations for 2 guardians', async () => {
+            let amountToTransfer = 10000;
+            await addGuardians([guardian1, guardian2])
+            let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+            assert.equal(count, 2, '2 guardians should be active');
+            let before = await deployer.provider.getBalance(recipient.address);
+            // should succeed with one confirmation
+            await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+            let after = await deployer.provider.getBalance(recipient.address);
+            assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+        });
         it('should only transfer ETH with 2 confirmations for 3 guardians', async () => {
             let amountToTransfer = 10000;
             await addGuardians([guardian1, guardian2, guardian3])
