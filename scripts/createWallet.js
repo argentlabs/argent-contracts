@@ -44,7 +44,6 @@ async function main() {
     // Create Wallet
     console.log("Creating new wallet...");
     const modules = [
-        config.modules.ModuleManager,
         config.modules.GuardianManager,
         config.modules.LockManager,
         config.modules.RecoveryManager,
