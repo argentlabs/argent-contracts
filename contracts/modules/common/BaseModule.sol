@@ -91,13 +91,18 @@ contract BaseModule is Module {
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
      */
-    function invokeWallet(address _wallet, address _to, uint256 _value, bytes memory _data) internal returns (bool _success, bytes memory _res) {
+    function invokeWallet(address _wallet, address _to, uint256 _value, bytes memory _data) internal returns (bytes memory _res) {
+        bool success;
         // solium-disable-next-line security/no-call-value
-        (_success, _res) = _wallet.call.value(0)(
+        (success, _res) = _wallet.call.value(0)(
             abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data)
         );
-        if(_success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
+        if(success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
             (_res) = abi.decode(_res, (bytes));
+        } else if (_res.length > 0) {
+            revert(string(_res));
+        } else if(!success) {
+            revert("BM: wallet invoke reverted");
         }
     }
 }

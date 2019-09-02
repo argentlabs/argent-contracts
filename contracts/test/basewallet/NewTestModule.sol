@@ -32,15 +32,13 @@ contract NewTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
     function callDapp(address _wallet)
         external
     {
-        (bool success,) = invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("noReturn()"));
-        require(success, "NewTestModule: callDapp failed");
+        invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("noReturn()"));
     }
 
     function callDapp2(address _wallet, uint256 _val, bool _isNewWallet)
         external returns (uint256 _ret)
     {
-        (bool success, bytes memory result) = invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", _val));
-        require(success, "NewTestModule: callDapp2 failed");
+        bytes memory result = invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", _val));
         if(_isNewWallet) {
             require(result.length > 0, "NewTestModule: callDapp2 returned no result");
             (_ret) = abi.decode(result, (uint256));
@@ -51,9 +49,7 @@ contract NewTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     function fail(address _wallet, string calldata reason) external {
-        (bool success, bytes memory result) = invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
-        require(!success, "doFail() should have failed");
-        revert(string(result));
+        invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
     }
 
 }
