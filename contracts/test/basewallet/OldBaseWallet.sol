@@ -1,17 +1,40 @@
 pragma solidity ^0.5.4;
-import "../interfaces/Module.sol";
 
 /**
- * @title BaseWallet
+ * @title OldBaseWallet
  * @dev Simple modular wallet that authorises modules to call its invoke() method.
- * Based on https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 by 
+ * Based on https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 by
  * @author Julien Niset - <julien@argent.im>
  */
-contract BaseWallet {
+
+ interface OldModule {
+
+    /**
+     * @dev Inits a module for a wallet by e.g. setting some wallet specific parameters in storage.
+     * @param _wallet The wallet.
+     */
+    function init(OldBaseWallet _wallet) external;
+
+    /**
+     * @dev Adds a module to a wallet.
+     * @param _wallet The target wallet.
+     * @param _module The modules to authorise.
+     */
+    function addModule(OldBaseWallet _wallet, OldModule _module) external;
+
+    /**
+    * @dev Utility method to recover any ERC20 token that was sent to the
+    * module by mistake. 
+    * @param _token The token to recover.
+    */
+    function recoverToken(address _token) external;
+}
+
+contract OldBaseWallet {
 
     // The implementation of the proxy
     address public implementation;
-    // The owner 
+    // The owner of the wallet
     address public owner;
     // The authorised modules
     mapping (address => bool) public authorised;
@@ -47,7 +70,7 @@ contract BaseWallet {
         for(uint256 i = 0; i < _modules.length; i++) {
             require(authorised[_modules[i]] == false, "BW: module is already added");
             authorised[_modules[i]] = true;
-            Module(_modules[i]).init(this);
+            OldModule(_modules[i]).init(this);
             emit AuthorisedModule(_modules[i], true);
         }
     }
@@ -62,7 +85,7 @@ contract BaseWallet {
             if(_value == true) {
                 modules += 1;
                 authorised[_module] = true;
-                Module(_module).init(this);
+                OldModule(_module).init(this);
             }
             else {
                 modules -= 1;
@@ -101,17 +124,10 @@ contract BaseWallet {
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
      */
-    function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly returns (bytes memory _result) {
-        bool success;
+    function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly {
         // solium-disable-next-line security/no-call-value
-        (success, _result) = _target.call.value(_value)(_data);
-        if(!success) {
-            // solium-disable-next-line security/no-inline-assembly
-            assembly {
-                // _result = {result_length:32}{sig:4}{pos:32}{revert_reason_length:32}{revert_reason}
-                revert(add(_result, 0x64), add(_result, 0x44))
-            }
-        }
+        (bool success, ) = _target.call.value(_value)(_data);
+        require(success, "BW: call to target failed");
         emit Invoked(msg.sender, _target, _value, _data);
     }
 
@@ -121,11 +137,11 @@ contract BaseWallet {
      * to an enabled method, or logs the call otherwise.
      */
     function() external payable {
-        if(msg.data.length > 0) { 
+        if(msg.data.length > 0) {
             address module = enabled[msg.sig];
             if(module == address(0)) {
                 emit Received(msg.value, msg.sender, msg.data);
-            } 
+            }
             else {
                 require(authorised[module], "BW: must be an authorised module for static call");
                 // solium-disable-next-line security/no-inline-assembly
@@ -133,8 +149,8 @@ contract BaseWallet {
                     calldatacopy(0, 0, calldatasize())
                     let result := staticcall(gas, module, 0, calldatasize(), 0, 0)
                     returndatacopy(0, 0, returndatasize())
-                    switch result 
-                    case 0 {revert(0, returndatasize())} 
+                    switch result
+                    case 0 {revert(0, returndatasize())}
                     default {return (0, returndatasize())}
                 }
             }
