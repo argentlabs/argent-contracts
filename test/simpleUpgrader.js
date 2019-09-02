@@ -1,4 +1,4 @@
-const etherlime = require('etherlime');
+const etherlime = require('etherlime-lib');
 const Wallet = require("../build/BaseWallet");
 const Module = require("../build/BaseModule");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
