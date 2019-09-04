@@ -1,7 +1,6 @@
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const GuardianManager = require('../build/GuardianManager');
-const ModuleManager = require('../build/ModuleManager');
 const TokenExchanger = require('../build/TokenExchanger');
 const LockManager = require('../build/LockManager');
 const RecoveryManager = require('../build/RecoveryManager');
@@ -20,19 +19,18 @@ const deploy = async (network, secret) => {
     // Setup
     ////////////////////////////////////
 
-	const manager = new DeployManager(network);
-	await manager.setup();
+    const manager = new DeployManager(network);
+    await manager.setup();
 
-	const configurator = manager.configurator;
+    const configurator = manager.configurator;
     const deployer = manager.deployer;
     const versionUploader = manager.versionUploader;
 
     const deploymentWallet = deployer.signer;
 
-	const config = configurator.config;
+    const config = configurator.config;
     console.log('Config:', config);
 
-    const ModuleManagerWrapper = await deployer.wrapDeployedContract(ModuleManager, config.modules.ModuleManager);
     const GuardianManagerWrapper = await deployer.wrapDeployedContract(GuardianManager, config.modules.GuardianManager);
     const LockManagerWrapper = await deployer.wrapDeployedContract(LockManager, config.modules.LockManager);
     const RecoveryManagerWrapper = await deployer.wrapDeployedContract(RecoveryManager, config.modules.RecoveryManager);
@@ -45,7 +43,6 @@ const deploy = async (network, secret) => {
     const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
 
     const wrappers = [
-        ModuleManagerWrapper,
         GuardianManagerWrapper,
         LockManagerWrapper,
         RecoveryManagerWrapper,
@@ -69,11 +66,11 @@ const deploy = async (network, secret) => {
     // Upload Version
     ////////////////////////////////////
 
-    const modules = wrappers.map((wrapper) => { 
-        return {address: wrapper.contractAddress, name: wrapper._contract.contractName};
+    const modules = wrappers.map((wrapper) => {
+        return { address: wrapper.contractAddress, name: wrapper._contract.contractName };
     });
     const version = {
-        modules : modules,
+        modules: modules,
         fingerprint: utils.versionFingerprint(modules),
         version: "1.0.0",
         createdAt: Math.floor((new Date()).getTime() / 1000)
@@ -82,5 +79,5 @@ const deploy = async (network, secret) => {
 };
 
 module.exports = {
-	deploy
+    deploy
 };

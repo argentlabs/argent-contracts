@@ -11,22 +11,22 @@ async function main() {
 
     // Read Command Line Arguments
     let idx = process.argv.indexOf("--network");
-    const network = process.argv[idx+1];
+    const network = process.argv[idx + 1];
 
     const deployManager = new DeployManager(network);
-	await deployManager.setup();
+    await deployManager.setup();
 
-	const configurator = deployManager.configurator;
+    const configurator = deployManager.configurator;
     const deployer = deployManager.deployer;
-    const manager = deployer.wallet;
+    const manager = deployer.signer;
 
     idx = process.argv.indexOf("--ens");
-    const walletEns = idx > -1 ? process.argv[idx+1] : Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
+    const walletEns = idx > -1 ? process.argv[idx + 1] : Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
 
     idx = process.argv.indexOf("--owner");
-    const owner = idx > -1 ? process.argv[idx+1] : manager.address;
+    const owner = idx > -1 ? process.argv[idx + 1] : manager.address;
 
-	const config = configurator.config;
+    const config = configurator.config;
     console.log('Config:', config);
 
     const walletFactoryWrapper = await deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
@@ -44,7 +44,6 @@ async function main() {
     // Create Wallet
     console.log("Creating new wallet...");
     const modules = [
-        config.modules.ModuleManager,
         config.modules.GuardianManager,
         config.modules.LockManager,
         config.modules.RecoveryManager,

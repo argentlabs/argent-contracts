@@ -3,7 +3,6 @@ const TransferStorage = require('../build/TransferStorage');
 const DappStorage = require('../build/DappStorage');
 
 const GuardianManager = require('../build/GuardianManager');
-const ModuleManager = require('../build/ModuleManager');
 const TokenExchanger = require('../build/TokenExchanger');
 const LockManager = require('../build/LockManager');
 const RecoveryManager = require('../build/RecoveryManager');
@@ -19,12 +18,12 @@ const deploy = async (network, secret) => {
     // Setup
     ////////////////////////////////////
 
-	const manager = new DeployManager(network);
-	await manager.setup();
+    const manager = new DeployManager(network);
+    await manager.setup();
 
-	const configurator = manager.configurator;
-	const deployer = manager.deployer;
-	const abiUploader = manager.abiUploader;
+    const configurator = manager.configurator;
+    const deployer = manager.deployer;
+    const abiUploader = manager.abiUploader;
 
     const config = configurator.config;
     console.log(config);
@@ -44,11 +43,6 @@ const deploy = async (network, secret) => {
     // Deploy Modules
     ////////////////////////////////////
 
-    // Deploy the ModuleManager module
-    const ModuleManagerWrapper = await deployer.deploy(
-        ModuleManager,
-        {},
-        config.contracts.ModuleRegistry);
     // Deploy the GuardianManager module
     const GuardianManagerWrapper = await deployer.deploy(
         GuardianManager,
@@ -118,7 +112,6 @@ const deploy = async (network, secret) => {
         GuardianStorage: GuardianStorageWrapper.contractAddress,
         TransferStorage: TransferStorageWrapper.contractAddress,
         DappStorage: DappStorageWrapper.contractAddress,
-        ModuleManager: ModuleManagerWrapper.contractAddress,
         GuardianManager: GuardianManagerWrapper.contractAddress,
         LockManager: LockManagerWrapper.contractAddress,
         RecoveryManager: RecoveryManagerWrapper.contractAddress,
@@ -137,7 +130,6 @@ const deploy = async (network, secret) => {
         abiUploader.upload(GuardianStorageWrapper, "modules"),
         abiUploader.upload(TransferStorageWrapper, "modules"),
         abiUploader.upload(DappStorageWrapper, "modules"),
-        abiUploader.upload(ModuleManagerWrapper, "modules"),
         abiUploader.upload(GuardianManagerWrapper, "modules"),
         abiUploader.upload(LockManagerWrapper, "modules"),
         abiUploader.upload(RecoveryManagerWrapper, "modules"),
@@ -151,5 +143,5 @@ const deploy = async (network, secret) => {
 };
 
 module.exports = {
-	deploy
+    deploy
 };

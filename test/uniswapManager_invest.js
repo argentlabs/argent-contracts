@@ -1,4 +1,4 @@
-const etherlime = require('etherlime');
+const etherlime = require('etherlime-lib');
 const Wallet = require("../build/BaseWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
@@ -29,10 +29,10 @@ describe("Invest Manager with Uniswap", function () {
         const registry = await deployer.deploy(ModuleRegistry);
         const guardianStorage = await deployer.deploy(GuardianStorage);
         investManager = await deployer.deploy(
-            UniswapManager, 
-            {}, 
-            registry.contractAddress, 
-            guardianStorage.contractAddress, 
+            UniswapManager,
+            {},
+            registry.contractAddress,
+            guardianStorage.contractAddress,
             uniswapFactory.contractAddress);
     });
 
