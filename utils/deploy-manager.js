@@ -1,5 +1,5 @@
 require('dotenv').config();
-const etherlime = require('etherlime');
+const etherlime = require('etherlime-lib');
 const path = require("path");
 
 const Configurator = require('./configurator.js');

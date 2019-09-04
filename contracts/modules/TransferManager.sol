@@ -112,26 +112,35 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         // setup static calls
         _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES);
         _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES32);
-        // copy limit parameters
-        if(address(oldLimitManager) != address(0)) {
-            uint256 currentLimit = oldLimitManager.getCurrentLimit(_wallet);
-            (uint256 pendingLimit, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
-            (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
-            // check if there is a pending limit
-            if(currentLimit == pendingLimit) {
-                limits[address(_wallet)].limit.current = uint128(currentLimit);
-            }
-            else {
-                limits[address(_wallet)].limit = Limit(uint128(currentLimit), uint128(pendingLimit), changeAfter);
-            }
-            // check if we are within a rolling period
-            if(periodEnd > now) {
-                limits[address(_wallet)].dailySpent = DailySpent(uint128(currentLimit.sub(unspent)), periodEnd);
-            }
+        
+        // setup default limit for new deployment
+        if(address(oldLimitManager) == address(0)) {
+            super.init(_wallet);
+            return;
+        }
+        // get limit from previous LimitManager
+        uint256 currentLimit = oldLimitManager.getCurrentLimit(_wallet);
+        (uint256 pendingLimit, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
+        // setup default limit for new wallets
+        if(currentLimit == 0 && changeAfter == 0) {
+            super.init(_wallet);
+            return;
+        }
+        // migrate existing limit for existing wallets
+        if(currentLimit == pendingLimit) {
+            limits[address(_wallet)].limit.current = uint128(currentLimit);
+        }
+        else {
+            limits[address(_wallet)].limit = Limit(uint128(currentLimit), uint128(pendingLimit), changeAfter);
+        }
+        // migrate daily pending if we are within a rolling period
+        (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
+        if(periodEnd > now) {
+            limits[address(_wallet)].dailySpent = DailySpent(uint128(currentLimit.sub(unspent)), periodEnd);
         }
     }
 

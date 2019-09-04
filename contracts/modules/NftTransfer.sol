@@ -58,7 +58,7 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
      * static call redirection from the wallet to the module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         _wallet.enableStaticCall(address(this), ERC721_RECEIVED);
     }
 

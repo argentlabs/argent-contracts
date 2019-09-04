@@ -51,7 +51,7 @@ contract BaseModule is Module {
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
-    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         emit ModuleInitialised(address(_wallet));
     }
 

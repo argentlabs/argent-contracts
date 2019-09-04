@@ -19,7 +19,7 @@ contract TestModule is BaseModule {
         uintVal = _uintVal;
     }
 
-    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         _wallet.enableStaticCall(address(this), bytes4(keccak256("getBoolean()")));
         _wallet.enableStaticCall(address(this), bytes4(keccak256("getUint()")));
         _wallet.enableStaticCall(address(this), bytes4(keccak256("getAddress(address)")));
