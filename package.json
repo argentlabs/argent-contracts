@@ -23,7 +23,7 @@
     "aws-sdk": "^2.423.0",
     "cli-table2": "^0.2.0",
     "dotenv": "^6.2.0",
-    "etherlime": "^1.2.0",
+    "etherlime-lib": "^1.1.3",
     "ethers": "^4.0.28",
     "node-fetch": "^2.3.0",
     "solc": "0.5.4",
