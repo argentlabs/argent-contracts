@@ -1,4 +1,4 @@
-const etherlime = require('etherlime');
+const etherlime = require('etherlime-lib');
 const Wallet = require("../build/BaseWallet");
 const Module = require("../build/BaseModule");
 const ModuleManager = require("../build/ModuleManager");
@@ -41,7 +41,7 @@ describe("Test ModuleManager", function () {
             let wallet = await deployer.deploy(Wallet);
             await wallet.init(owner.address, [moduleManager.contractAddress]);
             // add module to wallet
-            await moduleManager.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress, {gasLimit: 1000000});
+            await moduleManager.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress, { gasLimit: 1000000 });
             let isAuthorised = await wallet.authorised(moduleToAdd.contractAddress);
             assert.equal(isAuthorised, true, "module should be authorised");
         });
@@ -56,7 +56,7 @@ describe("Test ModuleManager", function () {
             let wallet = await deployer.deploy(Wallet);
             await wallet.init(owner.address, [moduleManager.contractAddress]);
             // add module to wallet
-            await assert.revert(moduleManager.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress, {gasLimit: 1000000}));
+            await assert.revert(moduleManager.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress, { gasLimit: 1000000 }));
         });
     });
 
@@ -81,7 +81,7 @@ describe("Test ModuleManager", function () {
             let upgrader = await deployer.deploy(Upgrader, {}, [moduleV1.contractAddress], [moduleV2.contractAddress]);
             await registry.registerUpgrader(upgrader.contractAddress, ethers.utils.formatBytes32String("V1toV2"));
             // upgrade from V1 to V2
-            await moduleManager.from(owner).upgrade(wallet.contractAddress, upgrader.contractAddress, {gasLimit: 1000000});
+            await moduleManager.from(owner).upgrade(wallet.contractAddress, upgrader.contractAddress, { gasLimit: 1000000 });
             //test if upgrade worked
             let isV1Authorised = await wallet.authorised(moduleV1.contractAddress);
             let isV2Authorised = await wallet.authorised(moduleV2.contractAddress);

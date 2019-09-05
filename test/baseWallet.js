@@ -78,6 +78,7 @@ describe("Test BaseWallet", function () {
         it("should work with old modules", async () => {
             await wallet.init(owner.address, [oldModule.contractAddress]);
             await oldModule.callDapp(wallet.contractAddress);
+            await oldModule.callDapp2(wallet.contractAddress);
         })
         it("should work with new modules", async () => {
             await wallet.init(owner.address, [newModule.contractAddress]);

@@ -36,4 +36,10 @@ contract OldTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
         _wallet.invoke(address(dapp), 0, abi.encodeWithSignature("noReturn()", 0));
     }
 
+    function callDapp2(OldBaseWallet _wallet)
+        external
+    {
+        _wallet.invoke(address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", 2));
+    }
+
 }
