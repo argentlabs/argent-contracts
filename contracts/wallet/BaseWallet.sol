@@ -108,8 +108,10 @@ contract BaseWallet {
         if(!success) {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
-                // _result = {result_length:32}{sig:4}{pos:32}{revert_reason_length:32}{revert_reason}
-                revert(add(_result, 0x64), add(_result, 0x44))
+                // returndata = {sig:4}{pos:32}{revert_reason_length:32}{revert_reason} as per EIP838
+                let len := sub(returndatasize, 0x44)
+                returndatacopy(0, 0x44, len)
+                revert(0, len)
             }
         }
         emit Invoked(msg.sender, _target, _value, _data);
