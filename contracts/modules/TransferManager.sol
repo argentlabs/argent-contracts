@@ -9,7 +9,8 @@ import "../storage/TransferStorage.sol";
 
 /**
  * @title TransferManager
- * @dev Module to transfer tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
+ * @dev Module to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
+ * This module is the V2 of TokenTransfer.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract TransferManager is BaseModule, RelayerModule, LimitManager {
@@ -183,7 +184,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         }
     }
 
-    function approveTranfer(
+    function approveToken(
         BaseWallet _wallet,
         address _token,
         address _spender,
@@ -195,13 +196,13 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     {
         if(isWhitelisted(_wallet, _spender)) {
             // approve to whitelist
-            doApproveTransfer(_wallet, _token, _spender, _amount);
+            doApproveToken(_wallet, _token, _spender, _amount);
         }
         else {
             uint256 etherAmount = priceProvider.getEtherValue(_amount, _token);
             if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
                 // approve under the limit
-                doApproveTransfer(_wallet, _token, _spender, _amount);
+                doApproveToken(_wallet, _token, _spender, _amount);
             }
             else {
                 // approve above the limit
@@ -449,7 +450,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _spender The spender address.
     * @param _value The amount of token to transfer.
     */
-    function doApproveTransfer(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
+    function doApproveToken(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _value);
         _wallet.invoke(_token, 0, methodData);
         emit Approved(address(_wallet), _token, _value, _spender);
@@ -521,6 +522,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     {
         id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, _block));
         uint executeAfter = configs[address(_wallet)].pendingActions[id];
+        require(executeAfter > 0, "TT: unknown pending action");
         uint executeBefore = executeAfter.add(securityWindow);
         require(executeAfter <= now && now <= executeBefore, "TT: action outside of the execution window");
         delete configs[address(_wallet)].pendingActions[id];
@@ -528,7 +530,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
             doTransfer(_wallet, _token, _to, _amount, _data);
         }
         else if(_action == ActionType.Approve) {
-            doApproveTransfer(_wallet, _token, _to, _amount);
+            doApproveToken(_wallet, _token, _to, _amount);
         }
         else if(_action == ActionType.CallContract) {
             doCallContract(_wallet, _to, _amount, _data);
