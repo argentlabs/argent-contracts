@@ -222,6 +222,11 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        // Make sure we don't call a module, the wallet itself, or an ERC20 method
+        require(_wallet.authorised(_contract) == false && _contract != address(_wallet), "TM: Forbidden contract");
+        bytes4 methodId = functionPrefix(_data);
+        require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
+        
         if(isWhitelisted(_wallet, _contract)) {
             // call to whitelist
             doCallContract(_wallet, _contract, _value, _data);
@@ -464,8 +469,6 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _data The method data.
     */
     function doCallContract(BaseWallet _wallet, address _contract, uint256 _value, bytes memory _data) internal {
-        bytes4 methodId = functionPrefix(_data);
-        require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
         _wallet.invoke(_contract, _value, _data);
         emit CalledContract(address(_wallet), _contract, _value, _data);
     }
