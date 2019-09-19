@@ -6,6 +6,7 @@ const TransferModule = require("../build/ApprovedTransfer");
 const KyberNetwork = require("../build/KyberNetworkTest");
 const TokenPriceProvider = require("../build/TokenPriceProviderTest");
 const ERC20 = require("../build/TestERC20");
+const TestContract = require('../build/TestContract');
 
 const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt } = require("../utils/utilities.js");
@@ -155,7 +156,7 @@ describe("Test Approved Transfer", function () {
         });
     });
 
-    describe("Transfer approved by smart-contract guardians", () => {
+    describe("Transfer approved by smart-contract guardians", () => { 
         it('should transfer ETH with 1 confirmations for 1 guardians', async () => {
             let amountToTransfer = 10000;
             await addGuardians(await createSmartContractGuardians([guardian1]));
@@ -263,6 +264,44 @@ describe("Test Approved Transfer", function () {
             await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
             after = await deployer.provider.getBalance(recipient.address);
             assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+        });
+    });
+
+    describe("Transfer with data approved by EOA and smart-contract guardians", () => {
+
+        let contract, dataToTransfer;
+
+        beforeEach(async () => {
+            contract = await deployer.deploy(TestContract);
+            assert.equal(await contract.state(), 0, "initial contract state should be 0");
+        });
+
+        it('should call a contract and transfer ETH with 1 EOA guardian and 2 smart-contract guardians', async () => {
+            let amountToTransfer = 10000;
+            await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
+            let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+            assert.equal(count, 3, '3 guardians should be active');
+            let before = await deployer.provider.getBalance(contract.contractAddress); 
+            // should succeed with 2 confirmations
+            dataToTransfer = contract.contract.interface.functions['setState'].encode([2]);
+            let txReceipt = await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, contract.contractAddress, amountToTransfer, dataToTransfer], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+            let after = await deployer.provider.getBalance(contract.contractAddress);
+            assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+            assert.equal((await contract.state()).toNumber(), 2, 'the state of the external contract should have been changed');
+            // should succeed with 2 confirmations
+            before = after;
+            dataToTransfer = contract.contract.interface.functions['setState'].encode([3]);
+            await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, contract.contractAddress, amountToTransfer, dataToTransfer], wallet, [owner, ...sortWalletByAddress([guardian1, guardian3])]);
+            after = await deployer.provider.getBalance(contract.contractAddress);
+            assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+            assert.equal((await contract.state()).toNumber(), 3, 'the state of the external contract should have been changed');
+            // should succeed with 2 confirmations
+            before = after;
+            dataToTransfer = contract.contract.interface.functions['setState'].encode([4]);
+            await manager.relay(transferModule, "transferToken", [wallet.contractAddress, ETH_TOKEN, contract.contractAddress, amountToTransfer, dataToTransfer], wallet, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
+            after = await deployer.provider.getBalance(contract.contractAddress);
+            assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+            assert.equal((await contract.state()).toNumber(), 4, 'the state of the external contract should have been changed');
         });
     });
 

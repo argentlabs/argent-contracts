@@ -7,6 +7,7 @@ const OldTransferModule = require("../build/TokenTransfer");
 const KyberNetwork = require("../build/KyberNetworkTest");
 const TokenPriceProvider = require("../build/TokenPriceProviderTest");
 const ERC20 = require("../build/TestERC20");
+const TestContract = require('../build/TestContract');
 
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const ETH_LIMIT = 1000000;
@@ -16,9 +17,7 @@ const DECIMALS = 12; // number of decimal for TOKN contract
 const KYBER_RATE = ethers.utils.bigNumberify(51 * 10**13); // 1 TOKN = 0.00051 ETH
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
-const ACTION_TRANFER = 0;
-const ACTION_APPROVE = 1;
-const ACTION_CALL_CONTRACT = 2;
+const ACTION_TRANSFER = 0;
 
 const TestManager = require("../utils/test-manager");
 
@@ -73,8 +72,8 @@ describe("Test TransferManager", function () {
         await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify('1000000000000000000') });
     });
 
-    describe("Managing limit and whitelist ", () => {
-        return;
+    describe("Managing limit and whitelist ", () => { return;
+        
         it('should migrate the limit for existing wallets', async () => {
             // create wallet with previous module and funds
             let existingWallet = await deployer.deploy(Wallet); 
@@ -126,8 +125,8 @@ describe("Test TransferManager", function () {
         });
     });
 
-    describe("Token transfers", () => {
-        return;
+    describe("Token transfers", () => { return;
+        
         async function doDirectTransfer({ token, signer = owner, to, amount, relayed = false }) {
             let fundsBefore = (token == ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
             let unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
@@ -165,7 +164,7 @@ describe("Test TransferManager", function () {
             let fundsAfter = (token == ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
             assert.equal(fundsAfter.sub(fundsBefore).toNumber(), 0, 'should not have transfered amount');
             if(delay == 0) {
-                let id = ethers.utils.solidityKeccak256(['uint8', 'address', 'address', 'uint256', 'bytes', 'uint256'], [ACTION_TRANFER, tokenAddress, recipient.address, amount, ZERO_BYTES32, txReceipt.blockNumber]);
+                let id = ethers.utils.solidityKeccak256(['uint8', 'address', 'address', 'uint256', 'bytes', 'uint256'], [ACTION_TRANSFER, tokenAddress, recipient.address, amount, ZERO_BYTES32, txReceipt.blockNumber]);
                 return id;
             }
             await manager.increaseTime(delay);
@@ -262,7 +261,7 @@ describe("Test TransferManager", function () {
                 let tx = await transferModule.from(owner).cancelPendingTransfer(wallet.contractAddress, id);
                 let txReceipt = await transferModule.verboseWaitForTransaction(tx);
                 assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferCanceled"), "should have generated PendingTransferCanceled event");
-                let executeAfter = await transferModule.getPendingAction(wallet.contractAddress, id);
+                let executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
                 assert.equal(executeAfter, 0, 'should have cancelled the pending transfer');
             }); 
             it('should cancel a pending ERC20 transfer', async () => {
@@ -271,7 +270,7 @@ describe("Test TransferManager", function () {
                 let tx = await transferModule.from(owner).cancelPendingTransfer(wallet.contractAddress, id);
                 let txReceipt = await transferModule.verboseWaitForTransaction(tx);
                 assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferCanceled"), "should have generated PendingTransferCanceled event");
-                let executeAfter = await transferModule.getPendingAction(wallet.contractAddress, id);
+                let executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
                 assert.equal(executeAfter, 0, 'should have cancelled the pending transfer');
             }); 
             it('should send immediately ETH to a whitelisted address', async () =>  {
@@ -287,7 +286,7 @@ describe("Test TransferManager", function () {
         }); 
     });
 
-    describe("Token Approvals", () => {
+    describe("Token Approvals", () => { return;
 
         async function doDirectApprove({ signer = owner, amount, relayed = false }) {
             let unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
@@ -309,36 +308,12 @@ describe("Test TransferManager", function () {
             assert.equal(approval.toNumber(), amount, "should have approved the amount");
             return txReceipt;
         }
-    
-        async function doPendingApprove({ amount, delay, relayed = false }) {
-            let tx, txReceipt;
-            const params = [wallet.contractAddress, erc20.contractAddress, spender.address, amount];
-            if (relayed) {
-                txReceipt = await manager.relay(transferModule, 'approveToken', params, wallet, [owner]);
-            } else {
-                tx = await transferModule.from(owner).approveToken(...params);
-                txReceipt = await transferModule.verboseWaitForTransaction(tx);
-            } 
-            assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingApproveCreated"), "should have generated PendingApproveCreated event");
-            let approval = await erc20.allowance(wallet.contractAddress, spender.address);
-            assert.equal(approval, 0, 'should not have approved the amount');
-            if(delay == 0) {
-                let id = ethers.utils.solidityKeccak256(['uint8', 'address', 'address', 'uint256', 'bytes', 'uint256'], [ACTION_APPROVE, erc20.contractAddress, spender.address, amount, ZERO_BYTES32, txReceipt.blockNumber]);
-                return id;
-            }
-            await manager.increaseTime(delay);
-            tx = await transferModule.executePendingApprove(wallet.contractAddress, erc20.contractAddress, recipient.address, amount, txReceipt.blockNumber);
-            txReceipt = await transferModule.verboseWaitForTransaction(tx);
-            assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingApproveExecuted"), "should have generated PendingApproveExecuted event");
-            approval = await erc20.allowance(wallet.contractAddress, spender.address);
-            assert.equal(approval, amount, 'should have approved the amount');
-        }
 
         it('should appprove an ERC20 immediately when the amount is under the limit ', async () =>  {
             await doDirectApprove({ amount: 10 });
         }); 
         it('should appprove an ERC20 immediately when the amount is under the limit (relayed) ', async () =>  {
-            await doDirectApprove({ amount: 10 });
+            await doDirectApprove({ amount: 10, relayed: true });
         }); 
         it('should not appprove an ERC20 transfer when the signer is not the owner ', async () =>  {
             try {
@@ -352,11 +327,61 @@ describe("Test TransferManager", function () {
             await manager.increaseTime(3);
             await doDirectApprove({ amount: ETH_LIMIT + 10000 });
         }); 
-        it('should create and execute a pending ERC20 approve', async () => {
-            await doPendingApprove({ amount: ETH_LIMIT + 10000, delay: 3, relayed: false });
+        it('should fail to appprove an ERC20 when the amount is above the daily limit ', async () =>  {
+            try {
+                await doDirectApprove({ amount: ETH_LIMIT + 10000 });
+            } catch (error) {
+                assert.ok(error.message.includes("above daily limit"));
+            }
         }); 
-        it('should create and execute a pending ERC20 approve (relayed)', async () => {
-            await doPendingApprove({ amount: ETH_LIMIT + 10000, delay: 3, relayed: false });
+    });
+
+    describe("Call contract", () => {
+
+        let contract, dataToTransfer;
+
+        beforeEach(async () => {
+            contract = await deployer.deploy(TestContract);
+            assert.equal(await contract.state(), 0, "initial contract state should be 0");
+        });
+
+        async function doCallContract({ signer = owner, value, state, relayed = false }) {
+            dataToTransfer = contract.contract.interface.functions['setState'].encode([state]);
+            let unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
+            const params = [wallet.contractAddress, contract.contractAddress, value, dataToTransfer];
+            let txReceipt;
+            if (relayed) {
+                txReceipt = await manager.relay(transferModule, 'callContract', params, wallet, [signer]);
+            } else {
+                const tx = await transferModule.from(signer).callContract(...params);
+                txReceipt = await transferModule.verboseWaitForTransaction(tx);
+            } 
+            assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "CalledContract"), "should have generated CalledContract event");
+            let unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
+            if(value < ETH_LIMIT) {
+                assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), value, 'should have updated the daily limit');
+            }
+            assert.equal((await contract.state()).toNumber(), state, 'the state of the external contract should have been changed');
+            return txReceipt;
+        }
+
+        it('should call a contract and transfer ETH under the limit', async () =>  {
+            await doCallContract({ value: 10, state: 3 });
+        }); 
+        it('should call a contract and transfer ETH under the limit (relayed) ', async () =>  {
+            await doCallContract({ value: 10, state: 3, relayed: true });
+        });  
+        it('should call a contract and transfer ETH above my limit value when the contract is whitelisted ', async () =>  {
+            await transferModule.from(owner).addToWhitelist(wallet.contractAddress, contract.contractAddress);
+            await manager.increaseTime(3);
+            await doCallContract({ value: ETH_LIMIT + 10000, state: 6 });
+        }); 
+        it('should fail to call a contract and transfer ETH when the amount is above the daily limit ', async () =>  {
+            try {
+                await doCallContract({ value: ETH_LIMIT + 10000, state: 6 });
+            } catch (error) {
+                assert.ok(error.message.includes("above daily limit"));
+            }
         }); 
     });
 
