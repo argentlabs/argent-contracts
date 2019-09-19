@@ -1,1 +1,39 @@
-{"version":"1.1.1","createdAt":1554995433,"modules":[{"address":"0x17433E17a8835b54b81E6B4827F06D5A9edf5539","name":"ModuleManager"},{"address":"0x79B960d71977082d1e273e9190a5EF9783fFa24d","name":"GuardianManager"},{"address":"0x776A4C0925C9F67ef4395238B22dc875fC88Dc0E","name":"LockManager"},{"address":"0x16DBb3F310960e13F2b80c3cc8166cF6D9FeDBf8","name":"RecoveryManager"},{"address":"0x963D5B228d5Fa7DE3d69F636704Cf5070d41A760","name":"ApprovedTransfer"},{"address":"0x38376A367fc2Ec806155dbDFf6c0A53E3a410102","name":"TokenTransfer"},{"address":"0x994cB812bE47CEA32542954A4E134Ba2C3a1DC54","name":"DappManager"},{"address":"0xA8Ea2087b79a3Df13506E705E5344676A9a005c7","name":"TokenExchanger"},{"name":"NftTransfer","address":"0x202d5eB0066713f03964e19BE705F864A2c829B0"}],"fingerprint":"0x6ced7a8e"}
+{
+    "version": "1.1.1",
+    "createdAt": 1554995433,
+    "modules": [
+        {
+            "address": "0x79B960d71977082d1e273e9190a5EF9783fFa24d",
+            "name": "GuardianManager"
+        },
+        {
+            "address": "0x776A4C0925C9F67ef4395238B22dc875fC88Dc0E",
+            "name": "LockManager"
+        },
+        {
+            "address": "0x16DBb3F310960e13F2b80c3cc8166cF6D9FeDBf8",
+            "name": "RecoveryManager"
+        },
+        {
+            "address": "0x963D5B228d5Fa7DE3d69F636704Cf5070d41A760",
+            "name": "ApprovedTransfer"
+        },
+        {
+            "address": "0x38376A367fc2Ec806155dbDFf6c0A53E3a410102",
+            "name": "TokenTransfer"
+        },
+        {
+            "address": "0x994cB812bE47CEA32542954A4E134Ba2C3a1DC54",
+            "name": "DappManager"
+        },
+        {
+            "address": "0xA8Ea2087b79a3Df13506E705E5344676A9a005c7",
+            "name": "TokenExchanger"
+        },
+        {
+            "name": "NftTransfer",
+            "address": "0x202d5eB0066713f03964e19BE705F864A2c829B0"
+        }
+    ],
+    "fingerprint": "0x6ced7a8e"
+}

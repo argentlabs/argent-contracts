@@ -33,8 +33,8 @@ class DeployManager {
     }
 
     async setup() {
-	    await this.configurator.load();
-	    const config = this.configurator.config;
+        await this.configurator.load();
+        const config = this.configurator.config;
 
         // deployer
         if (config.settings.deployer.type === 'ganache') {

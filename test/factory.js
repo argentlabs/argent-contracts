@@ -1,6 +1,5 @@
 const Wallet = require("../build/BaseWallet");
 const Module = require("../build/BaseModule");
-const ModuleManager = require("../build/ModuleManager");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const ENS = require('../build/TestENSRegistry');
 const ENSManager = require('../build/ArgentENSManager');
@@ -65,21 +64,19 @@ describe("Test Wallet Factory", function () {
 
     describe("Create wallets", () => {
 
-        let moduleManager, module1, module2;
+        let module1, module2;
 
         beforeEach(async () => {
-            moduleManager = await deployer.deploy(ModuleManager, {}, moduleRegistry.contractAddress);
             module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ZERO_BYTES32);
             module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ZERO_BYTES32);
-            await moduleRegistry.registerModule(moduleManager.contractAddress, ethers.utils.formatBytes32String("manager"));
             await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
             await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
         });
 
         it("should create with the correct owner", async () => {
             // we create the wallet
-            let modules = [moduleManager.contractAddress];
-            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", {gasLimit: 300000});
+            let modules = [module1.contractAddress];
+            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", { gasLimit: 300000 });
             let txReceipt = await factory.verboseWaitForTransaction(tx);
             let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
             // we test that the wallet has the correct owner
@@ -89,16 +86,14 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create with the correct modules", async () => {
-            let modules = [moduleManager.contractAddress, module1.contractAddress, module2.contractAddress];
+            let modules = [module1.contractAddress, module2.contractAddress];
             // we create the wallet
-            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", {gasLimit: 300000});
+            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, "", { gasLimit: 300000 });
             let txReceipt = await factory.verboseWaitForTransaction(tx);
             let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
             // we test that the wallet has the correct modules
             let wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
-            let isAuthorised = await wallet.authorised(moduleManager.contractAddress);
-            assert.equal(isAuthorised, true, 'module manager should be authorised');
-            isAuthorised = await wallet.authorised(module1.contractAddress);
+            let isAuthorised = await wallet.authorised(module1.contractAddress);
             assert.equal(isAuthorised, true, 'module1 should be authorised');
             isAuthorised = await wallet.authorised(module2.contractAddress);
             assert.equal(isAuthorised, true, 'module2 should be authorised');
@@ -112,9 +107,9 @@ describe("Test Wallet Factory", function () {
         it("should create with the correct ENS name", async () => {
             let label = "wallet";
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
-            let modules = [moduleManager.contractAddress, module1.contractAddress, module2.contractAddress];
+            let modules = [module1.contractAddress, module2.contractAddress];
             // we create the wallet
-            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, label, {gasLimit: 550000});
+            let tx = await factory.from(infrastructure).createWallet(owner.address, modules, label, { gasLimit: 550000 });
             let txReceipt = await factory.verboseWaitForTransaction(tx);
             let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
             // we test that the wallet has the correct ENS

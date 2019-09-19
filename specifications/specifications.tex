@@ -214,10 +214,6 @@ This module lets users exchange ETH or ERC20 tokens for ETH or other ERC20 token
 
 This module lets users authorize third-party Dapps to call third-party contracts or transfer ETH on behalf of the user within a fixed spending limit. The authorized Dapps interact with the same module to execute the operations they have been authorized to perform.
 
-\subsubsection{ModuleManager module}
-
-This module is used by users to authorize or deauthorize modules to control their wallets or to update their current modules. The updates can only be performed by executing a registered \emph{Upgrader} contract to perform the migration as described in Section~\ref{sec:upgradability}.
-
 \subsubsection{RelayerModule}
 
 This is an abstract contract from which all modules inherit. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding module methods to do so.

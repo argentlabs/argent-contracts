@@ -13,7 +13,7 @@ class TestManager {
     }
 
     newDeployer() {
-        if(this.network === 'ropsten') {
+        if (this.network === 'ropsten') {
             const defaultConfigs = {
                 gasPrice: 20000000000,
                 gasLimit: 4700000,
@@ -21,7 +21,7 @@ class TestManager {
             }
             return new etherlime.InfuraPrivateKeyDeployer(this.accounts[0].signer.privateKey, 'ropsten', APIKEY, defaultConfigs);
         }
-        return new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey, 8545, {gasLimit: 6700000});
+        return new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey, 8545, { gasLimit: 6700000 });
     }
 
     async getCurrentBlock() {
@@ -30,7 +30,7 @@ class TestManager {
     }
 
     async getTimestamp(blockNumber) {
-        let block = await this.provider.getBlock(blockNumber); 
+        let block = await this.provider.getBlock(blockNumber);
         return block.timestamp;
     }
 
@@ -47,7 +47,7 @@ class TestManager {
         if (_estimate === true) {
             const gasUsed = await _target.from(_relayer).estimate.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit);
             return gasUsed;
-        } 
+        }
         const tx = await _target.from(_relayer).execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit, { gasLimit: _gasLimit });
         const txReceipt = await _target.verboseWaitForTransaction(tx);
         return txReceipt;
@@ -55,7 +55,7 @@ class TestManager {
 
     async increaseTime(seconds) {
         await this.provider.send('evm_increaseTime', seconds);
-	    await this.provider.send('evm_mine');
+        await this.provider.send('evm_mine');
     }
 }
 

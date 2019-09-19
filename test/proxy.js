@@ -1,4 +1,4 @@
-const etherlime = require('etherlime');
+const etherlime = require('etherlime-lib');
 const Proxy = require('../build/Proxy');
 const Wallet = require('../build/BaseWallet');
 const Module = require('../build/BaseModule');
@@ -29,13 +29,13 @@ describe("Test Proxy", function () {
     it("should init the wallet with the correct owner", async () => {
         let walletOwner = await wallet.owner();
         assert.equal(walletOwner, "0x0000000000000000000000000000000000000000", "owner should be null before init");
-        await wallet.init(owner.address, [module1.contractAddress], {gasLimit: 1000000});
+        await wallet.init(owner.address, [module1.contractAddress], { gasLimit: 1000000 });
         walletOwner = await wallet.owner();
         assert.equal(walletOwner, owner.address, "owner should be the owner after init");
     });
 
     it("should init a wallet with the correct modules", async () => {
-        await wallet.init(owner.address, [module1.contractAddress, module2.contractAddress], {gasLimit: 1000000});
+        await wallet.init(owner.address, [module1.contractAddress, module2.contractAddress], { gasLimit: 1000000 });
         let module1IsAuthorised = await wallet.authorised(module1.contractAddress);
         let module2IsAuthorised = await wallet.authorised(module2.contractAddress);
         let module3IsAuthorised = await wallet.authorised(module3.contractAddress);

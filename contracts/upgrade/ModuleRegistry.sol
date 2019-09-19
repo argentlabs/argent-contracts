@@ -1,6 +1,5 @@
 pragma solidity ^0.5.4;
 import "../interfaces/Module.sol";
-import "../interfaces/Upgrader.sol";
 import "../base/Owned.sol";
 import "../exchange/ERC20.sol";
 
