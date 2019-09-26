@@ -41,7 +41,7 @@ contract ModuleRegistry is Owned {
      * @param _module The module.
      */
     function deregisterModule(address _module) external onlyOwner {
-        require(modules[_module].exists, "MR: module does not exists");
+        require(modules[_module].exists, "MR: module does not exist");
         delete modules[_module];
         emit ModuleDeRegistered(_module);
     }
@@ -62,7 +62,7 @@ contract ModuleRegistry is Owned {
      * @param _upgrader The _upgrader.
      */
     function deregisterUpgrader(address _upgrader) external onlyOwner {
-        require(upgraders[_upgrader].exists, "MR: upgrader does not exists");
+        require(upgraders[_upgrader].exists, "MR: upgrader does not exist");
         delete upgraders[_upgrader];
         emit UpgraderDeRegistered(_upgrader);
     }
