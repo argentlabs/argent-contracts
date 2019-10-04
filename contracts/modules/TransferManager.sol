@@ -17,7 +17,6 @@ import "../exchange/ERC20.sol";
 contract TransferManager is BaseModule, RelayerModule, LimitManager {
 
     bytes32 constant NAME = "TransferManager";
-    
 
     bytes4 constant internal EXECUTE_PENDING_PREFIX = bytes4(keccak256("executePendingTransfer(address,address,address,uint256,bytes,uint256)"));
 
@@ -58,9 +57,9 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
 
     // *************** Events *************************** //
 
-    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
-    event Approved(address indexed wallet, address indexed token, uint256 indexed amount, address spender);
-    event CalledContract(address indexed wallet, address indexed to, uint256 indexed amount, bytes data);
+    event Transfer(address indexed wallet, address indexed token, uint256 amount, address to, bytes data);
+    event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
+    event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event PendingTransferCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter, address token, address to, uint256 amount, bytes data);
@@ -411,11 +410,11 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     */
     function doTransfer(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
         if(_token == ETH_TOKEN) {
-            _wallet.invoke(_to, _value, EMPTY_BYTES);
+            invokeWallet(address(_wallet), _to, _value, EMPTY_BYTES);
         }
         else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
-            _wallet.invoke(_token, 0, methodData);
+            invokeWallet(address(_wallet), _token, 0, methodData);
         }
         emit Transfer(address(_wallet), _token, _value, _to, _data);
     }
@@ -429,7 +428,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     */
     function doApproveToken(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _value);
-        _wallet.invoke(_token, 0, methodData);
+        invokeWallet(address(_wallet), _token, 0, methodData);
         emit Approved(address(_wallet), _token, _value, _spender);
     }
 
@@ -441,7 +440,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     * @param _data The method data.
     */
     function doCallContract(BaseWallet _wallet, address _contract, uint256 _value, bytes memory _data) internal {
-        _wallet.invoke(_contract, _value, _data);
+        invokeWallet(address(_wallet), _contract, _value, _data);
         emit CalledContract(address(_wallet), _contract, _value, _data);
     }
 
@@ -486,7 +485,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
                 amount = amount * _gasPrice;
             }
             updateDailySpent(_wallet, uint128(getCurrentLimit(_wallet)), amount);
-            _wallet.invoke(_relayer, amount, EMPTY_BYTES);
+            invokeWallet(address(_wallet), _relayer, amount, EMPTY_BYTES);
         }
     }
 
