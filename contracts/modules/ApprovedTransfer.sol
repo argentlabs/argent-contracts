@@ -44,15 +44,15 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
     * @param _data  The data for the transaction (only for ETH transfers)
     */
     function transferToken(
-        BaseWallet _wallet, 
-        address _token, 
-        address _to, 
-        uint256 _amount, 
+        BaseWallet _wallet,
+        address _token,
+        address _to,
+        uint256 _amount,
         bytes calldata _data
-    ) 
-        external 
-        onlyExecute 
-        onlyWhenUnlocked(_wallet) 
+    )
+        external
+        onlyExecute
+        onlyWhenUnlocked(_wallet)
     {
         // eth transfer to whitelist
         if(_token == ETH_TOKEN) {
@@ -69,7 +69,16 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory /* _data */,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
@@ -77,19 +86,19 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
             address signer = recoverSigner(_signHash, _signatures, i);
             if(i == 0) {
                 // AT: first signer must be owner
-                if(!isOwner(_wallet, signer)) { 
+                if(!isOwner(_wallet, signer)) {
                     return false;
                 }
             }
             else {
                 // "AT: signers must be different"
-                if(signer <= lastSigner) { 
+                if(signer <= lastSigner) {
                     return false;
                 }
                 lastSigner = signer;
                 (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
                 // "AT: signatures not valid"
-                if(!isGuardian) { 
+                if(!isGuardian) {
                     return false;
                 }
             }
@@ -97,7 +106,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
         return true;
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) internal view returns (uint256) {
         // owner  + [n/2] guardians
         return  1 + SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
     }

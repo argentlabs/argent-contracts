@@ -503,13 +503,13 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
     }
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
     function validateSignatures(
         BaseWallet _wallet,
-        bytes memory _data,
+        bytes memory /* _data */,
         bytes32 _signHash,
         bytes memory _signatures
     )
@@ -521,7 +521,7 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
         return isOwner(_wallet, signer); // "TT: signer must be owner"
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_PENDING_PREFIX) {
             return 0;

@@ -45,7 +45,7 @@ const deploy = async (network) => {
     // Deploy utility contracts
     ////////////////////////////////////
 
-    /*     const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
+        const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
     
         // configure Compound Registry
         for (let underlying in config.defi.compound.markets) {
@@ -54,7 +54,7 @@ const deploy = async (network) => {
             await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
         }
         const changeCompoundRegistryOwnerTx = await CompoundRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
-        await CompoundRegistryWrapper.verboseWaitForTransaction(changeCompoundRegistryOwnerTx, `Set the MultiSig as the owner of the CompoundRegistry`); */
+        await CompoundRegistryWrapper.verboseWaitForTransaction(changeCompoundRegistryOwnerTx, `Set the MultiSig as the owner of the CompoundRegistry`);
 
     ////////////////////////////////////
     // Deploy new modules
@@ -70,7 +70,7 @@ const deploy = async (network) => {
     );
     newModuleWrappers.push(MakerManagerWrapper);
 
-    /*     const CompoundManagerWrapper = await deployer.deploy(
+        const CompoundManagerWrapper = await deployer.deploy(
             CompoundManager,
             {},
             config.contracts.ModuleRegistry,
@@ -87,31 +87,31 @@ const deploy = async (network) => {
             config.modules.GuardianStorage,
             config.defi.uniswap.factory
         );
-        newModuleWrappers.push(UniswapManagerWrapper);  */
+        newModuleWrappers.push(UniswapManagerWrapper); 
 
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        MakerManager: MakerManagerWrapper.contractAddress/* ,
+        MakerManager: MakerManagerWrapper.contractAddress,
         CompoundManager: CompoundManagerWrapper.contractAddress,
-        UniswapManager: UniswapManagerWrapper.contractAddress */
+        UniswapManager: UniswapManagerWrapper.contractAddress
     });
 
-    /*     configurator.updateInfrastructureAddresses({
+        configurator.updateInfrastructureAddresses({
             CompoundRegistry : CompoundRegistryWrapper.contractAddress
-        }); */
+        });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
     configurator.updateGitHash(gitHash);
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(MakerManagerWrapper, "modules")/* ,
+        abiUploader.upload(MakerManagerWrapper, "modules"),
         abiUploader.upload(CompoundManagerWrapper, "modules"),
         abiUploader.upload(UniswapManagerWrapper, "modules"),
-        abiUploader.upload(CompoundRegistryWrapper, "contracts") */
+        abiUploader.upload(CompoundRegistryWrapper, "contracts")
     ]);
 
     ////////////////////////////////////

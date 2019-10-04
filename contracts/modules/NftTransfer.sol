@@ -65,16 +65,17 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     /**
      * @notice Handle the receipt of an NFT
      * @dev An ERC721 smart contract calls this function on the recipient contract
-     * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received 
-     * will be forwarded to the method onERC721Received of the present module. 
-     * @param operator The address which called `safeTransferFrom` function
-     * @param from The address which previously owned the token
-     * @param tokenId The NFT identifier which is being transferred
-     * @param data Additional data with no specified format
+     * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received
+     * will be forwarded to the method onERC721Received of the present module.
      * @return bytes4 `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
      */
-    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
-        external 
+    function onERC721Received(
+        address /* operator */,
+        address /* from */,
+        uint256 /* tokenId */,
+        bytes calldata /* data*/
+    )
+        external
         returns (bytes4)
     {
         return ERC721_RECEIVED;

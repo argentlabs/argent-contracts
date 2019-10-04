@@ -59,11 +59,11 @@ describe("Test TransferManager", function () {
             SECURITY_WINDOW,
             ETH_LIMIT,
             previousTransferModule.contractAddress
-        );
+        ); 
         await registry.registerModule(transferModule.contractAddress, ethers.utils.formatBytes32String("TransferModule"));
     });
 
-    beforeEach(async () => {
+    beforeEach(async () => { 
         wallet = await deployer.deploy(Wallet); 
         await wallet.init(owner.address, [transferModule.contractAddress]);
         erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
@@ -72,7 +72,7 @@ describe("Test TransferManager", function () {
         await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify('1000000000000000000') });
     });
 
-    describe("Managing limit and whitelist ", () => { return;
+    describe("Managing limit and whitelist ", () => {  
         
         it('should migrate the limit for existing wallets', async () => {
             // create wallet with previous module and funds
@@ -93,7 +93,7 @@ describe("Test TransferManager", function () {
             assert.equal(limit.toNumber(), 4000000, "limit should have been migrated");
             let unspent = await transferModule.getDailyUnspent(existingWallet.contractAddress);
             assert.equal(unspent[0].toNumber(), 4000000 - 1000000, 'unspent should have been migrated');
-        });
+        }); 
         it('should set the default limit for new wallets', async () => {
             let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
@@ -125,7 +125,7 @@ describe("Test TransferManager", function () {
         });
     });
 
-    describe("Token transfers", () => { return;
+    describe("Token transfers", () => { 
         
         async function doDirectTransfer({ token, signer = owner, to, amount, relayed = false }) {
             let fundsBefore = (token == ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
@@ -286,7 +286,7 @@ describe("Test TransferManager", function () {
         }); 
     });
 
-    describe("Token Approvals", () => { return;
+    describe("Token Approvals", () => { 
 
         async function doDirectApprove({ signer = owner, amount, relayed = false }) {
             let unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
@@ -336,7 +336,7 @@ describe("Test TransferManager", function () {
         }); 
     });
 
-    describe("Call contract", () => {
+    describe("Call contract", () => { 
 
         let contract, dataToTransfer;
 
