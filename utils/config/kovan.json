@@ -6,12 +6,12 @@
     },
     "backend": {
         "accounts": [
-            "KOVAN_DEPLOY_ACCOUNT"
+            "0x0000000000000000000000000000000000000000"
         ]
     },
     "multisig": {
         "owners": [
-            "KOVAN_DEPLOY_ACCOUNT"
+            "0x0000000000000000000000000000000000000000"
         ],
         "threshold": 1,
         "autosign": true

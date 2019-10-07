@@ -1,5 +1,5 @@
 // Example Usage:
-// node dsr_demo.js [--to-dai 1.0] [--stake 10.0] [--unstake 5.0] [--unstake-all] [--to-sai 0.5] [--network kovan] [--wallet 0x62Da0Aca40650CB06361288FD0248Ad4eaB1d652]
+// node scripts/dsr_demo.js [--to-dai 1.0] [--stake 10.0] [--unstake 5.0] [--unstake-all] [--to-sai 0.5] [--network kovan] [--wallet 0x62Da0Aca40650CB06361288FD0248Ad4eaB1d652]
 
 const DeployManager = require('../utils/deploy-manager.js');
 const DsrManager = require('../build/DsrManager');
@@ -7,7 +7,7 @@ const DSToken = require('../build/DSToken');
 
 const { parseEther, formatEther } = require('ethers').utils;
 
-const defaultWalletAddress = '0x62Da0Aca40650CB06361288FD0248Ad4eaB1d652';
+const defaultWalletAddress = '0x779B2D281238993fD7276F2E13fA82db27AE72d9';
 const defaultNetwork = 'kovan';
 
 async function main() {
