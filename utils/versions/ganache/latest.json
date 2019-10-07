@@ -1,39 +1,43 @@
 {
-    "version": "1.1.1",
-    "createdAt": 1554995433,
+    "version": "1.2.6",
+    "createdAt": 1569402447,
     "modules": [
         {
-            "address": "0x79B960d71977082d1e273e9190a5EF9783fFa24d",
+            "address": "0x253155156f96F395dC131d2bef063164a85D3607",
             "name": "GuardianManager"
         },
         {
-            "address": "0x776A4C0925C9F67ef4395238B22dc875fC88Dc0E",
+            "address": "0x59f30a6703F8Af4FAeAe0e8AFaB14202222F335f",
             "name": "LockManager"
         },
         {
-            "address": "0x16DBb3F310960e13F2b80c3cc8166cF6D9FeDBf8",
+            "address": "0xD936431C8D29c7e0f793fb6184aa0fcC6b8d4E03",
             "name": "RecoveryManager"
         },
         {
-            "address": "0x963D5B228d5Fa7DE3d69F636704Cf5070d41A760",
+            "address": "0x3167fF663d21B47Bc9d6e331D96370fD921dAA4B",
             "name": "ApprovedTransfer"
         },
         {
-            "address": "0x38376A367fc2Ec806155dbDFf6c0A53E3a410102",
+            "address": "0x101b60626A8073271fE2eFE59FB8fD74c108c2eC",
             "name": "TokenTransfer"
         },
         {
-            "address": "0x994cB812bE47CEA32542954A4E134Ba2C3a1DC54",
+            "address": "0xeE20db41be0CB3D09C5557dDD99d95A4fFf15076",
             "name": "DappManager"
         },
         {
-            "address": "0xA8Ea2087b79a3Df13506E705E5344676A9a005c7",
+            "address": "0xF8E2BBA1AD8Fd1034DFA1b8Fb6bF5a724fa973ab",
             "name": "TokenExchanger"
         },
         {
-            "name": "NftTransfer",
-            "address": "0x202d5eB0066713f03964e19BE705F864A2c829B0"
+            "address": "0x42ecEbe8946c4954aFc0C2333977adCb243614ed",
+            "name": "NftTransfer"
+        },
+        {
+            "address": "0xA403649d49d0AAEAB6aEcc7bd0e6fE2f3b6Af84C",
+            "name": "MakerManager"
         }
     ],
-    "fingerprint": "0x6ced7a8e"
+    "fingerprint": "0xcbccb021"
 }
