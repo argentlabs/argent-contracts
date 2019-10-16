@@ -187,7 +187,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function executeTransferOwnership(
+    function executeOwnershipTransfer(
         BaseWallet _wallet,
         address _newOwner
     )

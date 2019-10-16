@@ -130,14 +130,14 @@ describe("GuardianManager", function () {
             it("should add many Guardians (blockchain transaction)", async () => {
                 const guardians = [guardian1, guardian2, guardian3, guardian4, guardian5];
                 let count, active;
-                for(let i = 1; i <= 5; i++) {
-                    await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardians[i-1].address);
-                    if(i > 1) {
+                for (let i = 1; i <= 5; i++) {
+                    await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardians[i - 1].address);
+                    if (i > 1) {
                         await manager.increaseTime(31);
-                        await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardians[i-1].address);
+                        await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardians[i - 1].address);
                     }
                     count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
-                    active = await guardianManager.isGuardian(wallet.contractAddress, guardians[i-1].address);
+                    active = await guardianManager.isGuardian(wallet.contractAddress, guardians[i - 1].address);
                     assert.equal(count, i, 'guardian ' + i + ' should be added');
                     assert.isTrue(active, 'guardian ' + i + ' should be active');
                 }
@@ -146,14 +146,14 @@ describe("GuardianManager", function () {
             it("should add many Guardians (relayed transaction)", async () => {
                 const guardians = [guardian1, guardian2, guardian3, guardian4, guardian5];
                 let count, active;
-                for(let i = 1; i <= 3; i++) {
-                    await manager.relay(guardianManager, 'addGuardian', [wallet.contractAddress, guardians[i-1].address], wallet, [owner]);
-                    if(i > 1) {
+                for (let i = 1; i <= 3; i++) {
+                    await manager.relay(guardianManager, 'addGuardian', [wallet.contractAddress, guardians[i - 1].address], wallet, [owner]);
+                    if (i > 1) {
                         await manager.increaseTime(30);
-                        await manager.relay(guardianManager, 'confirmGuardianAddition', [wallet.contractAddress, guardians[i-1].address], wallet, []);
+                        await manager.relay(guardianManager, 'confirmGuardianAddition', [wallet.contractAddress, guardians[i - 1].address], wallet, []);
                     }
                     count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
-                    active = await guardianManager.isGuardian(wallet.contractAddress, guardians[i-1].address);
+                    active = await guardianManager.isGuardian(wallet.contractAddress, guardians[i - 1].address);
                     assert.equal(count, i, 'guardian ' + i + ' should be added');
                     assert.isTrue(active, 'guardian ' + i + ' should be active');
                 }
@@ -211,6 +211,17 @@ describe("GuardianManager", function () {
 
             it("should not let owner add a Smart Contract guardian that does not have an owner manager", async () => {
                 await assert.revert(guardianManager.from(owner).addGuardian(wallet.contractAddress, dumbContract.contractAddress), "adding invalid guardian contract should throw");
+            });
+
+            describe("Non-Compliant Guardians", () => {
+                let nonCompliantGuardian;
+                beforeEach(async () => {
+                    await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+                    nonCompliantGuardian = await deployer.deploy(NonCompliantGuardian);
+                });
+                it("it should fail to add a non-compliant guardian", async () => {
+                    await assert.revert(guardianManager.from(owner).addGuardian(wallet.contractAddress, nonCompliantGuardian.contractAddress, { gasLimit: 2000000 }));
+                });
             });
         });
     });
@@ -339,17 +350,6 @@ describe("GuardianManager", function () {
             await manager.relay(guardianManager, 'cancelGuardianRevokation', [wallet.contractAddress, guardian1.address], wallet, [owner]);
             await manager.increaseTime(30);
             await assert.revert(guardianManager.confirmGuardianRevokation(wallet.contractAddress, guardian1.address), "confirmGuardianRevokation should throw");
-        });
-    });
-
-    describe("Cancelling Pending Guardians", () => {
-        let nonCompliantGuardian;
-        beforeEach(async () => {
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
-            nonCompliantGuardian = await deployer.deploy(NonCompliantGuardian);
-        });
-        it("it should fail to add a non-compliant guardian", async () => {
-            await assert.revert(guardianManager.from(owner).addGuardian(wallet.contractAddress, nonCompliantGuardian.contractAddress, {gasLimit: 2000000}));
         });
     });
 });

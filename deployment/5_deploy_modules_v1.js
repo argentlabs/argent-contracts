@@ -65,7 +65,9 @@ const deploy = async (network, secret) => {
         config.contracts.ModuleRegistry,
         GuardianStorageWrapper.contractAddress,
         config.settings.recoveryPeriod || 0,
-        config.settings.lockPeriod || 0);
+        config.settings.lockPeriod || 0,
+        config.settings.securityPeriod || 0,
+        config.settings.securityWindow || 0);
     // Deploy the ApprovedTransfer module
     const ApprovedTransferWrapper = await deployer.deploy(
         ApprovedTransfer,
