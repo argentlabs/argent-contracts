@@ -34,7 +34,7 @@ contract SimpleUpgrader is BaseModule {
      * when SimpleUpgrader is temporarily added as a module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         uint256 i;
         //remove old modules
         for(; i < toDisable.length; i++) {

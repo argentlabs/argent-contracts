@@ -20,7 +20,7 @@
   "homepage": "https://github.com/argentlabs/argent-contracts#readme",
   "dependencies": {
     "ajv": "^6.10.0",
-    "aws-sdk": "^2.423.0",
+    "aws-sdk": "^2.521.0",
     "cli-table2": "^0.2.0",
     "dotenv": "^6.2.0",
     "etherlime-lib": "^1.1.3",

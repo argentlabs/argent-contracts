@@ -74,7 +74,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "MakerManager";
 
-    // The Guardian storage 
+    // The Guardian storage
     GuardianStorage public guardianStorage;
     // The Maker Tub contract
     IMakerCdp public makerCdp;
@@ -136,13 +136,13 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @return The ID of the created CDP.
      */
     function openLoan(
-        BaseWallet _wallet, 
-        address _collateral, 
-        uint256 _collateralAmount, 
-        address _debtToken, 
+        BaseWallet _wallet,
+        address _collateral,
+        uint256 _collateralAmount,
+        address _debtToken,
         uint256 _debtAmount
-    ) 
-        external 
+    )
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
@@ -159,9 +159,9 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _loanId The ID of the target CDP.
      */
     function closeLoan(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _loanId
-    ) 
+    )
         external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
@@ -178,11 +178,11 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _collateralAmount The amount of collateral to add.
      */
     function addCollateral(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _collateral, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _collateral,
         uint256 _collateralAmount
-    ) 
+    )
         external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
@@ -200,12 +200,12 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _collateralAmount The amount of collateral to remove.
      */
     function removeCollateral(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _collateral, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _collateral,
         uint256 _collateralAmount
-    ) 
-        external 
+    )
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
@@ -260,18 +260,17 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
 
     /**
      * @dev Gets information about a loan identified by its ID.
-     * @param _wallet The target wallet.
      * @param _loanId The ID of the target CDP.
-     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: loan exists but we are unable to provide info] 
-     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral that should be added to 
-     * avoid liquidation when status = 2.      
+     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: loan exists but we are unable to provide info]
+     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral that should be added to
+     * avoid liquidation when status = 2.
      */
     function getLoan(
-        BaseWallet _wallet, 
+        BaseWallet /* _wallet */,
         bytes32 _loanId
-    ) 
-        external 
-        view 
+    )
+        external
+        view
         returns (uint8 _status, uint256 _ethValue)
     {
         if(exists(_loanId, makerCdp)) {
@@ -285,8 +284,8 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     /* CDP actions */
 
     /**
-     * @dev Lets the owner of a wallet open a new CDP. The owner must have enough ether 
-     * in their wallet. The required amount of ether will be automatically converted to 
+     * @dev Lets the owner of a wallet open a new CDP. The owner must have enough ether
+     * in their wallet. The required amount of ether will be automatically converted to
      * PETH and used as collateral in the CDP.
      * @param _wallet The target wallet
      * @param _pethCollateral The amount of PETH to lock as collateral in the CDP.
@@ -295,12 +294,12 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @return The id of the created CDP.
      */
     function openCdp(
-        BaseWallet _wallet, 
-        uint256 _pethCollateral, 
+        BaseWallet _wallet,
+        uint256 _pethCollateral,
         uint256 _daiDebt,
         IMakerCdp _makerCdp
-    ) 
-        internal 
+    )
+        internal
         returns (bytes32 _cup)
     {
         // Open CDP (CDP owner will be module)
@@ -316,8 +315,8 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /**
-     * @dev Lets the owner of a CDP add more collateral to their CDP. The owner must have enough ether 
-     * in their wallet. The required amount of ether will be automatically converted to 
+     * @dev Lets the owner of a CDP add more collateral to their CDP. The owner must have enough ether
+     * in their wallet. The required amount of ether will be automatically converted to
      * PETH and locked in the CDP.
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
@@ -325,17 +324,17 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      */
     function addCollateral(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _cup,
         uint256 _amount,
         IMakerCdp _makerCdp
-    ) 
+    )
         internal
     {
         // _wallet must be owner of CDP
         require(address(_wallet) == _makerCdp.lad(_cup), "CM: not CDP owner");
         // convert ETH to PETH & lock PETH into CDP
-        lockETH(_wallet, _cup, _amount, _makerCdp);  
+        lockETH(_wallet, _cup, _amount, _makerCdp);
     }
 
     /**
@@ -346,11 +345,11 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      */
     function removeCollateral(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _cup,
         uint256 _amount,
         IMakerCdp _makerCdp
-    ) 
+    )
         internal
     {
         // unlock PETH from CDP & convert PETH to ETH
@@ -365,11 +364,11 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      */
     function addDebt(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _cup,
         uint256 _amount,
         IMakerCdp _makerCdp
-    ) 
+    )
         internal
     {
         // draw DAI from CDP
@@ -377,9 +376,9 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /**
-     * @dev Lets the owner of a CDP partially repay their debt. The repayment is made up of 
+     * @dev Lets the owner of a CDP partially repay their debt. The repayment is made up of
      * the outstanding DAI debt (including the stability fee if non-zero) plus the MKR governance fee.
-     * The method will use the user's MKR tokens in priority and will, if needed, convert the required 
+     * The method will use the user's MKR tokens in priority and will, if needed, convert the required
      * amount of ETH to cover for any missing MKR tokens.
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
@@ -388,12 +387,12 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _uniswapFactory The Uniswap Factory contract.
      */
     function removeDebt(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _cup,
         uint256 _amount,
         IMakerCdp _makerCdp,
         UniswapFactory _uniswapFactory
-    ) 
+    )
         internal
     {
         // _wallet must be owner of CDP
@@ -429,7 +428,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /**
-     * @dev Lets the owner of a CDP close their CDP. The method will 1) repay all debt 
+     * @dev Lets the owner of a CDP close their CDP. The method will 1) repay all debt
      * and governance fee, 2) free all collateral, and 3) delete the CDP.
      * @param _wallet The target wallet
      * @param _cup The id of the CDP.
@@ -441,7 +440,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         bytes32 _cup,
         IMakerCdp _makerCdp,
         UniswapFactory _uniswapFactory
-    ) 
+    )
         internal
     {
         // repay all debt (in DAI) + stability fee (in DAI) + governance fee (in MKR)
@@ -462,7 +461,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      * @return the amount of PETH locked in the CDP.
      */
-    function pethCollateral(bytes32 _cup, IMakerCdp _makerCdp) public view returns (uint256) { 
+    function pethCollateral(bytes32 _cup, IMakerCdp _makerCdp) public view returns (uint256) {
         return _makerCdp.ink(_cup);
     }
 
@@ -472,7 +471,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      * @return the amount of DAI drawn from the CDP.
      */
-    function daiDebt(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256) { 
+    function daiDebt(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256) {
         return _makerCdp.tab(_cup);
     }
 
@@ -482,7 +481,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      * @return false if the CDP is in danger of being liquidated.
      */
-    function isSafe(bytes32 _cup, IMakerCdp _makerCdp) public returns (bool) { 
+    function isSafe(bytes32 _cup, IMakerCdp _makerCdp) public returns (bool) {
         return _makerCdp.safe(_cup);
     }
 
@@ -492,7 +491,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      * @return true if the CDP exists, false otherwise.
      */
-    function exists(bytes32 _cup, IMakerCdp _makerCdp) public view returns (bool) { 
+    function exists(bytes32 _cup, IMakerCdp _makerCdp) public view returns (bool) {
         return _makerCdp.lad(_cup) != address(0);
     }
 
@@ -508,7 +507,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /**
-     * @dev Min amount of collateral that needs to be added to a CDP to bring it above the liquidation ratio. 
+     * @dev Min amount of collateral that needs to be added to a CDP to bring it above the liquidation ratio.
      * @param _cup The id of the CDP.
      * @param _makerCdp The Maker CDP contract
      * @return the amount of collateral that needs to be added to a CDP to bring it above the liquidation ratio.
@@ -525,7 +524,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      * @return the governance fee in MKR
      */
-    function governanceFeeInMKR(bytes32 _cup, uint256 _daiRefund, IMakerCdp _makerCdp) public returns (uint256 _fee) { 
+    function governanceFeeInMKR(bytes32 _cup, uint256 _daiRefund, IMakerCdp _makerCdp) public returns (uint256 _fee) {
         uint debt = daiDebt(_cup, _makerCdp);
         if (debt == 0) return 0;
         uint256 feeInDAI = _daiRefund.rmul(_makerCdp.rap(_cup).rdiv(debt));
@@ -539,7 +538,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      * @return the total governance fee in MKR
      */
-    function totalGovernanceFeeInMKR(bytes32 _cup, IMakerCdp _makerCdp) external returns (uint256 _fee) { 
+    function totalGovernanceFeeInMKR(bytes32 _cup, IMakerCdp _makerCdp) external returns (uint256 _fee) {
         return governanceFeeInMKR(_cup, daiDebt(_cup, _makerCdp), _makerCdp);
     }
 
@@ -549,9 +548,9 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      * @return The minimum amount of PETH to lock in the CDP
      */
-    function minRequiredCollateral(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256 _minCollateral) { 
+    function minRequiredCollateral(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256 _minCollateral) {
         _minCollateral = daiDebt(_cup, _makerCdp)    // DAI debt
-            .rmul(_makerCdp.vox().par())         // x ~1 USD/DAI 
+            .rmul(_makerCdp.vox().par())         // x ~1 USD/DAI
             .rmul(_makerCdp.mat())               // x 1.5
             .rmul(1010000000000000000000000000) // x (1+1%) cushion
             .rdiv(_makerCdp.tag());              // ÷ ~170 USD/PETH
@@ -567,12 +566,12 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      */
     function lockETH(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _cup,
         uint256 _pethAmount,
         IMakerCdp _makerCdp
-    ) 
-        internal 
+    )
+        internal
     {
         // 1. Convert ETH to PETH
         address wethToken = _makerCdp.gem();
@@ -601,12 +600,12 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _makerCdp The Maker CDP contract
      */
     function freeETH(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _cup,
         uint256 _pethAmount,
         IMakerCdp _makerCdp
-    ) 
-        internal 
+    )
+        internal
     {
         // 1. Unlock PETH
 

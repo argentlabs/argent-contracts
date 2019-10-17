@@ -65,13 +65,13 @@ contract RecoveryManager is BaseModule, RelayerModule {
     // *************** Constructor ************************ //
 
     constructor(
-        ModuleRegistry _registry, 
-        GuardianStorage _guardianStorage, 
-        uint256 _recoveryPeriod, 
+        ModuleRegistry _registry,
+        GuardianStorage _guardianStorage,
+        uint256 _recoveryPeriod,
         uint256 _lockPeriod
-    ) 
-        BaseModule(_registry, NAME) 
-        public 
+    )
+        BaseModule(_registry, NAME)
+        public
     {
         guardianStorage = _guardianStorage;
         recoveryPeriod = _recoveryPeriod;
@@ -82,7 +82,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     
     /**
      * @dev Lets the guardians start the execution of the recovery procedure.
-     * Once triggered the recovery is pending for the security period before it can 
+     * Once triggered the recovery is pending for the security period before it can
      * be finalised.
      * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2).
      * @param _wallet The target wallet.
@@ -106,7 +106,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     function finalizeRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
         RecoveryManagerConfig storage config = configs[address(_wallet)];
         require(uint64(now) > config.executeAfter, "RM: the recovery period is not over yet");
-        _wallet.setOwner(config.recovery); 
+        _wallet.setOwner(config.recovery);
         emit RecoveryFinalized(address(_wallet), config.recovery);
         guardianStorage.setLock(_wallet, 0);
         delete configs[address(_wallet)];
@@ -124,7 +124,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         delete configs[address(_wallet)];
     }
 
-    /** 
+    /**
     * @dev Gets the details of the ongoing recovery procedure if any.
     * @param _wallet The target wallet.
     */
@@ -135,7 +135,16 @@ contract RecoveryManager is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory /* _data */,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;

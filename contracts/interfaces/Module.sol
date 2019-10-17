@@ -3,10 +3,10 @@ import "../wallet/BaseWallet.sol";
 
 /**
  * @title Module
- * @dev Interface for a module. 
+ * @dev Interface for a module.
  * A module MUST implement the addModule() method to ensure that a wallet with at least one module
  * can never end up in a "frozen" state.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 interface Module {
 
@@ -25,7 +25,7 @@ interface Module {
 
     /**
     * @dev Utility method to recover any ERC20 token that was sent to the
-    * module by mistake. 
+    * module by mistake.
     * @param _token The token to recover.
     */
     function recoverToken(address _token) external;
