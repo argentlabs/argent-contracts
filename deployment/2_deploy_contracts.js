@@ -43,8 +43,6 @@ const deploy = async (network, secret) => {
     // Deploy the MultiSig
     const MultiSigWrapper = await deployer.deploy(MultiSig, {}, newConfig.multisig.threshold, newConfig.multisig.owners);
     // Deploy TokenPriceProvider
-    console.log('KYBER??', newConfig.Kyber.contract);
-
     const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, newConfig.Kyber.contract);
     // Deploy Module Registry
     const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
