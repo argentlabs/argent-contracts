@@ -19,16 +19,16 @@ const deploy = async (network, secret) => {
     // Setup
     ////////////////////////////////////
 
-	const manager = new DeployManager(network);
-	await manager.setup();
+    const manager = new DeployManager(network);
+    await manager.setup();
 
-	const configurator = manager.configurator;
-	const deployer = manager.deployer;
-	const abiUploader = manager.abiUploader;
+    const configurator = manager.configurator;
+    const deployer = manager.deployer;
+    const abiUploader = manager.abiUploader;
 
-	const newConfig = configurator.config;
+    const newConfig = configurator.config;
     const prevConfig = configurator.copyConfig();
-	console.log('Previous Config:', prevConfig);
+    console.log('Previous Config:', prevConfig);
 
     const deploymentWallet = deployer.signer;
     const deploymentAccount = await deploymentWallet.getAddress();
@@ -38,21 +38,23 @@ const deploy = async (network, secret) => {
     // Deploy contracts
     ////////////////////////////////////
 
-	// Deploy the Base Wallet Library
-	const BaseWalletWrapper = await deployer.deploy(BaseWallet);
-	// Deploy the MultiSig
-	const MultiSigWrapper = await deployer.deploy(MultiSig, {}, newConfig.multisig.threshold, newConfig.multisig.owners);
-	// Deploy TokenPriceProvider
-	const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider);
-	// Deploy Module Registry
-	const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
-	// Deploy Dapp Registry
-	const DappRegistryWrapper = await deployer.deploy(DappRegistry);
-	// Deploy the ENS Resolver
-	const ENSResolverWrapper = await deployer.deploy(ENSResolver);
+    // Deploy the Base Wallet Library
+    const BaseWalletWrapper = await deployer.deploy(BaseWallet);
+    // Deploy the MultiSig
+    const MultiSigWrapper = await deployer.deploy(MultiSig, {}, newConfig.multisig.threshold, newConfig.multisig.owners);
+    // Deploy TokenPriceProvider
+    console.log('KYBER??', newConfig.Kyber.contract);
+
+    const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, newConfig.Kyber.contract);
+    // Deploy Module Registry
+    const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
+    // Deploy Dapp Registry
+    const DappRegistryWrapper = await deployer.deploy(DappRegistry);
+    // Deploy the ENS Resolver
+    const ENSResolverWrapper = await deployer.deploy(ENSResolver);
     // Deploy the ENS Manager
-	const ENSManagerWrapper = await deployer.deploy(ENSManager, {}, walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
-	// Deploy the Wallet Factory
+    const ENSManagerWrapper = await deployer.deploy(ENSManager, {}, walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
+    // Deploy the Wallet Factory
     const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {}, newConfig.ENS.ensRegistry, ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress, ENSResolverWrapper.contractAddress);
 
     ///////////////////////////////////////////////////
@@ -76,7 +78,7 @@ const deploy = async (network, secret) => {
 
         const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentWallet, prevConfig.multisig.autosign);
         console.log(`Owner of ${walletRootEns} changed from old ENSManager to new ENSManager...`)
-        await multisigExecutor.executeCall(previousENSManagerWrapper, "changeRootnodeOwner", [ ENSManagerWrapper.contractAddress ]);
+        await multisigExecutor.executeCall(previousENSManagerWrapper, "changeRootnodeOwner", [ENSManagerWrapper.contractAddress]);
     } else {
         throw new Error(`Ownership of ${walletRootEns} not changed`);
     }
@@ -110,5 +112,5 @@ const deploy = async (network, secret) => {
 };
 
 module.exports = {
-	deploy
+    deploy
 };

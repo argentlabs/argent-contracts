@@ -4,7 +4,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const GuardianManager = require("../build/GuardianManager");
 const TransferModule = require("../build/ApprovedTransfer");
 const KyberNetwork = require("../build/KyberNetworkTest");
-const TokenPriceProvider = require("../build/TokenPriceProviderTest");
+const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 
 const TestManager = require("../utils/test-manager");

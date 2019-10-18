@@ -4,7 +4,7 @@ const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferModule = require("../build/TokenTransfer");
 const KyberNetwork = require("../build/KyberNetworkTest");
-const TokenPriceProvider = require("../build/TokenPriceProviderTest");
+const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';

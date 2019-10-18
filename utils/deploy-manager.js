@@ -1,5 +1,5 @@
 require('dotenv').config();
-const etherlime = require('etherlime');
+const etherlime = require('etherlime-lib');
 const path = require("path");
 
 const Configurator = require('./configurator.js');
@@ -33,8 +33,8 @@ class DeployManager {
     }
 
     async setup() {
-	    await this.configurator.load();
-	    const config = this.configurator.config;
+        await this.configurator.load();
+        const config = this.configurator.config;
 
         // deployer
         if (config.settings.deployer.type === 'ganache') {
