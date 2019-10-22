@@ -1,6 +1,7 @@
-const MakerManager = require('../build/MakerManager');
+const TransferManager = require('../build/TransferManager');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
+const LegacyUpgrader = require('../build/LegacySimpleUpgrader');
 const Upgrader = require('../build/SimpleUpgrader');
 
 const utils = require('../utils/utilities.js');
@@ -8,12 +9,19 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.2.6";
-const MODULES_TO_ENABLE = ["MakerManager"];
-const MODULES_TO_DISABLE = ["LoanManager", "InvestManager"];
-const BACKWARD_COMPATIBILITY = 2;
+const TARGET_VERSION = "1.4.0";
+const MODULES_TO_ENABLE = ["TransferManager"];
+const MODULES_TO_DISABLE = ["DappManager", "TokenTransfer"];
+
+
+const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {
+
+    // Note (for test, staging and prod): this upgrade still uses the legacy upgrade mechanism (using the ModuleManager). 
+    // For the next update, we will be able to use TransferManager's addModule method for the upgrade and
+    // as part of that next upgrade we will be allowed to remove ModuleManager
+    const legacyUpdate = ['test', 'staging', 'prod'].includes(network);
 
     const newModuleWrappers = [];
     const newVersion = {};
@@ -42,22 +50,28 @@ const deploy = async (network) => {
     // Deploy new modules
     ////////////////////////////////////
 
-    const MakerManagerWrapper = await deployer.deploy(
-        MakerManager,
+    // TODO: Should deploy new Price Provider in the next iterations but keep current one for now until backend updates
+
+    const TransferManagerWrapper = await deployer.deploy(
+        TransferManager,
         {},
         config.contracts.ModuleRegistry,
+        config.modules.TransferStorage,
         config.modules.GuardianStorage,
-        config.defi.maker.tub,
-        config.defi.uniswap.factory
+        config.contracts.TokenPriceProvider,
+        config.settings.securityPeriod || 0,
+        config.settings.securityWindow || 0,
+        config.settings.defaultLimit || '1000000000000000000',
+        config.modules.TokenTransfer
     );
-    newModuleWrappers.push(MakerManagerWrapper);
+    newModuleWrappers.push(TransferManagerWrapper);
 
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        MakerManager: MakerManagerWrapper.contractAddress
+        TransferManager: TransferManagerWrapper.contractAddress
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -65,7 +79,7 @@ const deploy = async (network) => {
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(MakerManagerWrapper, "modules"),
+        abiUploader.upload(TransferManagerWrapper, "modules")
     ]);
 
     ////////////////////////////////////
@@ -117,15 +131,28 @@ const deploy = async (network) => {
             toRemove = version.modules.filter(module => !newVersion.modules.map(m => m.address).includes(module.address));
         }
 
-        const UpgraderWrapper = await deployer.deploy(
-            Upgrader,
-            {},
-            config.contracts.ModuleRegistry,
-            toRemove.map(module => module.address),
-            toAdd.map(module => module.address)
-        );
         const upgraderName = version.fingerprint + '_' + fingerprint;
-        await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+
+        let UpgraderWrapper;
+        if (legacyUpdate) {
+            // this is an "old-style" Upgrader (to be used with ModuleManager)
+            UpgraderWrapper = await deployer.deploy(
+                LegacyUpgrader,
+                {},
+                toRemove.map(module => module.address),
+                toAdd.map(module => module.address)
+            );
+        } else {
+            // this is a "new-style" Upgrader Module (to be used with the addModule method of TransferManager or any module deployed after it)
+            UpgraderWrapper = await deployer.deploy(
+                Upgrader,
+                {},
+                config.contracts.ModuleRegistry,
+                toRemove.map(module => module.address),
+                toAdd.map(module => module.address)
+            );
+            await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+        }
         await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
     };
 

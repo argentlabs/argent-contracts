@@ -39,14 +39,6 @@ contract BaseModule is Module {
     }
 
     /**
-     * @dev Throws if the sender is not the owner of the target wallet.
-     */
-    modifier strictOnlyWalletOwner(BaseWallet _wallet) {
-        require(isOwner(_wallet, msg.sender), "BM: msg.sender must be an owner for the wallet");
-        _;
-    }
-
-    /**
      * @dev Inits the module for a wallet by logging an event.
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
@@ -60,7 +52,7 @@ contract BaseModule is Module {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) external strictOnlyWalletOwner(_wallet) {
+    function addModule(BaseWallet _wallet, Module _module) external onlyWalletOwner(_wallet) {
         require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
         _wallet.authoriseModule(address(_module), true);
     }

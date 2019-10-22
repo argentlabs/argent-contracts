@@ -1,13 +1,14 @@
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "../modules/common/BaseModule.sol";
+import "../modules/common/RelayerModule.sol";
 
 /**
- * @title BaseModule
- * @dev Basic module that contains some methods common to all modules.
+ * @title TestModule
+ * @dev Basic test module.
  * @author Julien Niset - <julien@argent.im>
  */
-contract TestModule is BaseModule {
+contract TestModule is BaseModule, RelayerModule {
 
     bytes32 constant NAME = "TestModule";
 
@@ -35,6 +36,31 @@ contract TestModule is BaseModule {
 
     function getAddress(address _addr) public view returns (address) {
         return _addr;
+    }
+
+    // *************** Implementation of RelayerModule methods ********************* //
+
+    // Overrides to use the incremental nonce and save some gas
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
+        return checkAndUpdateNonce(_wallet, _nonce);
+    }
+
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory /* _data */,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
+        address signer = recoverSigner(_signHash, _signatures, 0);
+        return isOwner(_wallet, signer); // "GM: signer must be owner"
+    }
+
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /*_data */) internal view returns (uint256) {
+        return 1;
     }
 
 }

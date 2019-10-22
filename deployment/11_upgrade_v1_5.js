@@ -1,4 +1,3 @@
-const MakerManager = require('../build/MakerManager');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
@@ -8,10 +7,11 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.2.6";
-const MODULES_TO_ENABLE = ["MakerManager"];
-const MODULES_TO_DISABLE = ["LoanManager", "InvestManager"];
-const BACKWARD_COMPATIBILITY = 2;
+const TARGET_VERSION = "1.5.0";
+const MODULES_TO_ENABLE = [];
+const MODULES_TO_DISABLE = ["ModuleManager"];
+
+const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {
 
@@ -42,31 +42,28 @@ const deploy = async (network) => {
     // Deploy new modules
     ////////////////////////////////////
 
-    const MakerManagerWrapper = await deployer.deploy(
-        MakerManager,
-        {},
-        config.contracts.ModuleRegistry,
-        config.modules.GuardianStorage,
-        config.defi.maker.tub,
-        config.defi.uniswap.factory
-    );
-    newModuleWrappers.push(MakerManagerWrapper);
+    // const MyModuleWrapper = await deployer.deploy(
+    //     MyModule,
+    //     {},
+    //     ...
+    // );
+    // newModuleWrappers.push(MyModuleWrapper);
 
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
-    configurator.updateModuleAddresses({
-        MakerManager: MakerManagerWrapper.contractAddress
-    });
+    // configurator.updateModuleAddresses({
+    //     MyModule: MyModuleWrapper.contractAddress
+    // });
 
-    const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
-    configurator.updateGitHash(gitHash);
-    await configurator.save();
+    // const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
+    // configurator.updateGitHash(gitHash);
+    // await configurator.save();
 
-    await Promise.all([
-        abiUploader.upload(MakerManagerWrapper, "modules"),
-    ]);
+    // await Promise.all([
+    //     abiUploader.upload(MyModuleWrapper, "modules")
+    // ]);
 
     ////////////////////////////////////
     // Register new modules
@@ -107,6 +104,7 @@ const deploy = async (network) => {
             ////////////////////////////////////
             // Deregister old modules
             ////////////////////////////////////
+
             for (let i = 0; i < toRemove.length; i++) {
                 await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
             }
@@ -117,6 +115,7 @@ const deploy = async (network) => {
             toRemove = version.modules.filter(module => !newVersion.modules.map(m => m.address).includes(module.address));
         }
 
+        // this is a "new-style" Upgrader Module (to be used with the addModule method of TransferManager or any module deployed after it)
         const UpgraderWrapper = await deployer.deploy(
             Upgrader,
             {},
