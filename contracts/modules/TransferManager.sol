@@ -2,6 +2,7 @@ pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
+import "./common/OnlyOwnerModule.sol";
 import "./common/LimitManager.sol";
 import "../exchange/TokenPriceProvider.sol";
 import "../storage/GuardianStorage.sol";
@@ -14,7 +15,7 @@ import "../exchange/ERC20.sol";
  * This module is the V2 of TokenTransfer.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransferManager is BaseModule, RelayerModule, LimitManager {
+contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, LimitManager {
 
     bytes32 constant NAME = "TransferManager";
 
@@ -500,25 +501,6 @@ contract TransferManager is BaseModule, RelayerModule, LimitManager {
             return false;
         }
         return true;
-    }
-
-    // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
-        return checkAndUpdateNonce(_wallet, _nonce);
-    }
-
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory /* _data */,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal
-        view
-        returns (bool)
-    {
-        address signer = recoverSigner(_signHash, _signatures, 0);
-        return isOwner(_wallet, signer); // "TT: signer must be owner"
     }
 
     function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) internal view returns (uint256) {

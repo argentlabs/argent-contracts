@@ -19,7 +19,6 @@ const CompoundRegistry = require("../build/CompoundRegistry");
 const WAD = bigNumberify('1000000000000000000') // 10**18
 const ETH_EXCHANGE_RATE = bigNumberify('200000000000000000000000000');
 
-
 const ERC20 = require("../build/TestERC20");
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const TestManager = require("../utils/test-manager");
@@ -43,14 +42,15 @@ describe("Invest Manager with Compound", function () {
 
         // deploy price oracle
         const oracle = await deployer.deploy(PriceOracle);
+
         // deploy comptroller
         const comptrollerProxy = await deployer.deploy(Unitroller);
         const comptrollerImpl = await deployer.deploy(Comptroller);
         await comptrollerProxy._setPendingImplementation(comptrollerImpl.contractAddress);
-        await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false);
+        await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false, { gasLimit: 500000 });
+
         comptroller = deployer.wrapDeployedContract(Comptroller, comptrollerProxy.contractAddress);
         // deploy Interest rate model
-
         const interestModel = await deployer.deploy(InterestModel, {}, WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
         // deploy CEther
         cEther = await deployer.deploy(
@@ -75,18 +75,17 @@ describe("Invest Manager with Compound", function () {
             "Compound Token",
             "cTOKEN",
             18);
-
         // add price to Oracle
         await oracle.setUnderlyingPrice(cToken.contractAddress, WAD.div(10));
         // list cToken in Comptroller
-        await comptroller._supportMarket(cEther.contractAddress);
-        await comptroller._supportMarket(cToken.contractAddress);
+        await comptroller._supportMarket(cEther.contractAddress, { gasLimit: 500000 });
+        await comptroller._supportMarket(cToken.contractAddress, { gasLimit: 500000 });
         // deploy Price Oracle proxy
         oracleProxy = await deployer.deploy(PriceOracleProxy, {}, comptroller.contractAddress, oracle.contractAddress, cEther.contractAddress);
         await comptroller._setPriceOracle(oracleProxy.contractAddress, { gasLimit: 200000 });
         // set collateral factor
-        await comptroller._setCollateralFactor(cToken.contractAddress, WAD.div(10));
-        await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10));
+        await comptroller._setCollateralFactor(cToken.contractAddress, WAD.div(10), { gasLimit: 500000 });
+        await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10), { gasLimit: 500000 });
 
         // add liquidity to tokens
         await cEther.from(liquidityProvider).mint({ value: parseEther('100') });
@@ -133,7 +132,6 @@ describe("Invest Manager with Compound", function () {
     describe("Investment", () => {
 
         async function addInvestment(tokenAddress, amount, days, relay = false) {
-
             let tx, txReceipt;
             let investInEth = (tokenAddress == ETH_TOKEN) ? true : false;
 

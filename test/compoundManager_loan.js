@@ -48,11 +48,10 @@ describe("Test Loan Module", function () {
         const comptrollerProxy = await deployer.deploy(Unitroller);
         const comptrollerImpl = await deployer.deploy(Comptroller);
         await comptrollerProxy._setPendingImplementation(comptrollerImpl.contractAddress);
-        await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false);
+        await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false, { gasLimit: 500000 });
         comptroller = deployer.wrapDeployedContract(Comptroller, comptrollerProxy.contractAddress);
         // deploy Interest rate model
         const interestModel = await deployer.deploy(InterestModel, {}, WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
-
         // deploy CEther
         cEther = await deployer.deploy(
             CEther,
@@ -93,16 +92,16 @@ describe("Test Loan Module", function () {
         await oracle.setUnderlyingPrice(cToken1.contractAddress, WAD.div(10));
         await oracle.setUnderlyingPrice(cToken2.contractAddress, WAD.div(10));
         // list cToken in Comptroller
-        await comptroller._supportMarket(cEther.contractAddress);
-        await comptroller._supportMarket(cToken1.contractAddress);
-        await comptroller._supportMarket(cToken2.contractAddress);
+        await comptroller._supportMarket(cEther.contractAddress, { gasLimit: 500000 });
+        await comptroller._supportMarket(cToken1.contractAddress, { gasLimit: 500000 });
+        await comptroller._supportMarket(cToken2.contractAddress, { gasLimit: 500000 });
         // deploy Price Oracle proxy
         oracleProxy = await deployer.deploy(PriceOracleProxy, {}, comptroller.contractAddress, oracle.contractAddress, cEther.contractAddress);
         await comptroller._setPriceOracle(oracleProxy.contractAddress, { gasLimit: 200000 });
         // set collateral factor
-        await comptroller._setCollateralFactor(cToken1.contractAddress, WAD.div(10));
-        await comptroller._setCollateralFactor(cToken2.contractAddress, WAD.div(10));
-        await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10));
+        await comptroller._setCollateralFactor(cToken1.contractAddress, WAD.div(10), { gasLimit: 500000 });
+        await comptroller._setCollateralFactor(cToken2.contractAddress, WAD.div(10), { gasLimit: 500000 });
+        await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10), { gasLimit: 500000 });
 
         // add liquidity to tokens
         await cEther.from(liquidityProvider).mint({ value: parseEther('100') });

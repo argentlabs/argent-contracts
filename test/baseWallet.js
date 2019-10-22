@@ -77,8 +77,8 @@ describe("Test BaseWallet", function () {
     describe("New BaseWallet", () => {
         it("should work with old modules", async () => {
             await wallet.init(owner.address, [oldModule.contractAddress]);
-            await oldModule.callDapp(wallet.contractAddress);
-            await oldModule.callDapp2(wallet.contractAddress);
+            await oldModule.callDapp(wallet.contractAddress, { gasLimit: 500000 });
+            await oldModule.callDapp2(wallet.contractAddress, { gasLimit: 500000 });
         })
         it("should work with new modules", async () => {
             await wallet.init(owner.address, [newModule.contractAddress]);
