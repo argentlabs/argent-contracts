@@ -6,12 +6,28 @@ import "./KyberNetwork.sol";
 
 contract TokenPriceProvider is Managed {
 
+    // Mock token address for ETH
+    address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     using SafeMath for uint256;
 
     mapping(address => uint256) public cachedPrices;
 
-    function setPrice(ERC20 _token, uint256 _price) external onlyManager {
+    // Address of the KyberNetwork contract
+    KyberNetwork public kyberNetwork;
+
+    constructor(KyberNetwork _kyberNetwork) public {
+        kyberNetwork = _kyberNetwork;
+    }
+
+    function setPrice(ERC20 _token, uint256 _price) public onlyManager {
         cachedPrices[address(_token)] = _price;
+    }
+
+    function setPriceForTokenList(ERC20[] memory tokens, uint256[] memory _prices) public onlyManager {
+        for(uint16 i = 0; i < tokens.length; i++) {
+            setPrice(tokens[i], _prices[i]);
+        }
     }
 
     /**
@@ -30,29 +46,21 @@ contract TokenPriceProvider is Managed {
     // The following is added to be backward-compatible with Argent's old backend
     //
 
-    // Mock token address for ETH
-    address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    // Address of the KyberNetwork contract
-    KyberNetwork public kyberNetwork;
-
-    constructor(KyberNetwork _kyberNetwork) public {
-        kyberNetwork = _kyberNetwork;
-    }
-
     function setKyberNetwork(KyberNetwork _kyberNetwork) external onlyManager {
         kyberNetwork = _kyberNetwork;
     }
 
     function syncPrice(ERC20 token) public {
         require(address(kyberNetwork) != address(0), "Kyber sync is disabled");
-        uint256 expectedRate;
-        (expectedRate,) = kyberNetwork.getExpectedRate(token, ERC20(ETH_TOKEN_ADDRESS), 10000);
+        (uint256 expectedRate,) = kyberNetwork.getExpectedRate(token, ERC20(ETH_TOKEN_ADDRESS), 10000);
         cachedPrices[address(token)] = expectedRate;
     }
 
     function syncPriceForTokenList(ERC20[] memory tokens) public {
+        require(address(kyberNetwork) != address(0), "Kyber sync is disabled");
         for(uint16 i = 0; i < tokens.length; i++) {
-            syncPrice(tokens[i]);
+            (uint256 expectedRate,) = kyberNetwork.getExpectedRate(tokens[i], ERC20(ETH_TOKEN_ADDRESS), 10000);
+            cachedPrices[address(tokens[i])] = expectedRate;
         }
     }
 }
