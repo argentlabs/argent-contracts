@@ -1,32 +1,32 @@
 pragma solidity ^0.5.4;
 import "../utils/SafeMath.sol";
 import "./ERC20.sol";
+import "../base/Managed.sol";
 import "./KyberNetwork.sol";
 
-contract TokenPriceProvider {
-
-    using SafeMath for uint256;
+contract TokenPriceProvider is Managed {
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    // Address of Kyber's trading contract
-    address constant internal KYBER_NETWORK_ADDRESS = 0x818E6FECD516Ecc3849DAf6845e3EC868087B755;
+
+    using SafeMath for uint256;
 
     mapping(address => uint256) public cachedPrices;
 
-    function syncPrice(ERC20 token) public {
-        uint256 expectedRate;
-        (expectedRate,) = kyberNetwork().getExpectedRate(token, ERC20(ETH_TOKEN_ADDRESS), 10000);
-        cachedPrices[address(token)] = expectedRate;
+    // Address of the KyberNetwork contract
+    KyberNetwork public kyberNetwork;
+
+    constructor(KyberNetwork _kyberNetwork) public {
+        kyberNetwork = _kyberNetwork;
     }
 
-    //
-    // Convenience functions
-    //
+    function setPrice(ERC20 _token, uint256 _price) public onlyManager {
+        cachedPrices[address(_token)] = _price;
+    }
 
-    function syncPriceForTokenList(ERC20[] memory tokens) public {
+    function setPriceForTokenList(ERC20[] calldata tokens, uint256[] calldata _prices) external onlyManager {
         for(uint16 i = 0; i < tokens.length; i++) {
-            syncPrice(tokens[i]);
+            setPrice(tokens[i], _prices[i]);
         }
     }
 
@@ -36,17 +36,31 @@ contract TokenPriceProvider {
      * @param _token the ERC20 token contract
      * @return the ether value (in wei) of _amount tokens with contract _token
      */
-    function getEtherValue(uint256 _amount, address _token) public view returns (uint256) {
+    function getEtherValue(uint256 _amount, address _token) external view returns (uint256) {
         uint256 decimals = ERC20(_token).decimals();
         uint256 price = cachedPrices[_token];
         return price.mul(_amount).div(10**decimals);
     }
 
     //
-    // Internal
+    // The following is added to be backward-compatible with Argent's old backend
     //
 
-    function kyberNetwork() internal view returns (KyberNetwork) {
-        return KyberNetwork(KYBER_NETWORK_ADDRESS);
+    function setKyberNetwork(KyberNetwork _kyberNetwork) external onlyManager {
+        kyberNetwork = _kyberNetwork;
+    }
+
+    function syncPrice(ERC20 token) external {
+        require(address(kyberNetwork) != address(0), "Kyber sync is disabled");
+        (uint256 expectedRate,) = kyberNetwork.getExpectedRate(token, ERC20(ETH_TOKEN_ADDRESS), 10000);
+        cachedPrices[address(token)] = expectedRate;
+    }
+
+    function syncPriceForTokenList(ERC20[] calldata tokens) external {
+        require(address(kyberNetwork) != address(0), "Kyber sync is disabled");
+        for(uint16 i = 0; i < tokens.length; i++) {
+            (uint256 expectedRate,) = kyberNetwork.getExpectedRate(tokens[i], ERC20(ETH_TOKEN_ADDRESS), 10000);
+            cachedPrices[address(tokens[i])] = expectedRate;
+        }
     }
 }
