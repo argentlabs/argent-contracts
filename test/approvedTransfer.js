@@ -4,7 +4,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const GuardianManager = require("../build/GuardianManager");
 const TransferModule = require("../build/ApprovedTransfer");
 const KyberNetwork = require("../build/KyberNetworkTest");
-const TokenPriceProvider = require("../build/TokenPriceProviderTest");
+const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require('../build/TestContract');
 
@@ -38,6 +38,7 @@ describe("Test Approved Transfer", function () {
         const guardianStorage = await deployer.deploy(GuardianStorage);
         kyber = await deployer.deploy(KyberNetwork);
         priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
+        await priceProvider.addManager(infrastructure.address);
         guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
         transferModule = await deployer.deploy(TransferModule, {}, registry.contractAddress, guardianStorage.contractAddress);
     });

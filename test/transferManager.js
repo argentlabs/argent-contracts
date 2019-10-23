@@ -94,7 +94,6 @@ describe("Test TransferManager", function () {
             let unspent = await transferModule.getDailyUnspent(existingWallet.contractAddress);
             assert.equal(unspent[0].toNumber(), 4000000 - 1000000, 'unspent should have been migrated');
         });
-
         it('should set the default limit for new wallets', async () => {
             let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");

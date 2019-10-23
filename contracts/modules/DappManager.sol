@@ -4,7 +4,6 @@ import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/LimitManager.sol";
 import "./TokenTransfer.sol";
-import "../exchange/TokenPriceProvider.sol";
 import "../storage/GuardianStorage.sol";
 import "../storage/DappStorage.sol";
 import "../dapp/DappRegistry.sol";
