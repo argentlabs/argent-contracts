@@ -18,10 +18,6 @@ let modules = [
         "name": "LockManager"
     },
     {
-        "address": "0xF4a47cBf61C73a786af0F48df7016ccA5b2A52D7",
-        "name": "ModuleManager"
-    },
-    {
         "address": "0xa7939338f2921230aD801b73bfD7758cB09Bccc5",
         "name": "RecoveryManager"
     },
@@ -48,7 +44,7 @@ let modules = [
 ];
 
 describe("Utils", function () {
-    describe("It should produce the version", () => { 
+    describe("It should produce the version", () => {
         let version = utils.versionFingerprint(modules);
         console.log(version);
     });

@@ -39,7 +39,7 @@ contract KyberNetworkTest is KyberNetwork {
     function getExpectedRate(
         ERC20 _src,
         ERC20 _dest,
-        uint _srcQty
+        uint /* _srcQty */
     )
         public
         view
@@ -64,8 +64,8 @@ contract KyberNetworkTest is KyberNetwork {
         ERC20 _dest,
         address payable _destAddress,
         uint _maxDestAmount,
-        uint _minConversionRate,
-        address _walletId
+        uint /* _minConversionRate */,
+        address /* _walletId */
     )
         public
         payable

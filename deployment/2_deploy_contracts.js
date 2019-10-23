@@ -105,7 +105,7 @@ const deploy = async (network, secret) => {
         abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
         abiUploader.upload(ModuleRegistryWrapper, "contracts"),
         abiUploader.upload(DappRegistryWrapper, "contracts"),
-        abiUploader.upload(BaseWalletWrapper, "modules")
+        abiUploader.upload(BaseWalletWrapper, "contracts")
     ]);
 };
 

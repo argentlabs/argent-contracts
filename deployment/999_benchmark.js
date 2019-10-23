@@ -12,7 +12,6 @@ const WalletFactory = require('../build/WalletFactory');
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 const GuardianManager = require('../build/GuardianManager');
-const ModuleManager = require('../build/ModuleManager');
 const TokenExchanger = require('../build/TokenExchanger');
 const LockManager = require('../build/LockManager');
 const RecoveryManager = require('../build/RecoveryManager');
@@ -57,7 +56,6 @@ class Benchmark {
 
         this.testManager = new TestManager(this.accounts);
 
-        this.ModuleManagerWrapper = await this.deployer.wrapDeployedContract(ModuleManager, config.modules.ModuleManager);
         this.GuardianManagerWrapper = await this.deployer.wrapDeployedContract(GuardianManager, config.modules.GuardianManager);
         this.LockManagerWrapper = await this.deployer.wrapDeployedContract(LockManager, config.modules.LockManager);
         this.RecoveryManagerWrapper = await this.deployer.wrapDeployedContract(RecoveryManager, config.modules.RecoveryManager);
@@ -76,10 +74,9 @@ class Benchmark {
     }
 
     async setupWallet() {
-        this.oneModule = [this.ModuleManagerWrapper.contractAddress];
-        this.twoModules = [this.ModuleManagerWrapper.contractAddress, this.GuardianManagerWrapper.contractAddress];
+        this.oneModule = [this.GuardianManagerWrapper.contractAddress];
+        this.twoModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress,];
         this.allModules = [
-            this.ModuleManagerWrapper.contractAddress,
             this.GuardianManagerWrapper.contractAddress,
             this.LockManagerWrapper.contractAddress,
             this.RecoveryManagerWrapper.contractAddress,
@@ -135,7 +132,7 @@ class Benchmark {
         this._logger.addItem("Request add second guardian (direct)", gasUsed);
 
         await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[2]);
-        await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow/2);
+        await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow / 2);
 
         gasUsed = await this.GuardianManagerWrapper.estimate.confirmGuardianAddition(this.walletAddress, this.accounts[2]);
         this._logger.addItem("Confirm add second guardian (direct)", gasUsed);
@@ -148,7 +145,7 @@ class Benchmark {
         this._logger.addItem("Request revoke guardian (direct)", gasUsed);
 
         await this.GuardianManagerWrapper.revokeGuardian(this.walletAddress, this.accounts[1]);
-        await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow/2);
+        await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow / 2);
 
         gasUsed = await this.GuardianManagerWrapper.estimate.confirmGuardianRevokation(this.walletAddress, this.accounts[1]);
         this._logger.addItem("Confirm revoke guardian (direct)", gasUsed);
@@ -217,7 +214,7 @@ class Benchmark {
         // add guardians
         await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
         await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[2]);
-        await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow/2);
+        await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow / 2);
         await this.GuardianManagerWrapper.confirmGuardianAddition(this.walletAddress, this.accounts[2]);
 
         // estimate execute recovery
@@ -324,7 +321,7 @@ class Benchmark {
         await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[2]);
         await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[3]);
 
-        await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow/2);
+        await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow / 2);
 
         await this.GuardianManagerWrapper.confirmGuardianAddition(this.walletAddress, this.accounts[2]);
         await this.GuardianManagerWrapper.confirmGuardianAddition(this.walletAddress, this.accounts[3]);
@@ -390,7 +387,7 @@ class Logger {
     }
 
     addItem(key, value) {
-        this._items.push({key: key, value: value});
+        this._items.push({ key: key, value: value });
     }
 
     output() {
@@ -440,9 +437,9 @@ const deploy = async (network, secret) => {
     const output = await benchmark.output();
     console.log(output);
 
-//     await fs.writeFileSync(OUTPUT_FILE, output);
+    //     await fs.writeFileSync(OUTPUT_FILE, output);
 }
 
 module.exports = {
-	deploy
+    deploy
 };

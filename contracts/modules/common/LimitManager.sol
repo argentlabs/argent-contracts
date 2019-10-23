@@ -59,7 +59,7 @@ contract LimitManager is BaseModule {
      * @dev Inits the module for a wallet by setting the limit to the default value.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         Limit storage limit = limits[address(_wallet)].limit;
         if(limit.current == 0 && limit.changeAfter == 0) {
             limit.current = uint128(defaultLimit);
@@ -122,8 +122,10 @@ contract LimitManager is BaseModule {
             _periodEnd = uint64(now + 24 hours);
         }
         else {
-            _unspent = globalLimit - expense.alreadySpent;
             _periodEnd = expense.periodEnd;
+            if(expense.alreadySpent < globalLimit) {
+                _unspent = globalLimit - expense.alreadySpent;
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-const NftTransfer = require('../build/NftTransfer');
+const TransferManager = require('../build/TransferManager');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
@@ -8,10 +8,10 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.1.2";
-const MODULES_TO_ENABLE = ["NftTransfer"];
-const MODULES_TO_DISABLE = [];
-const BACKWARD_COMPATIBILITY = 1;
+const TARGET_VERSION = "1.3.0";
+const MODULES_TO_ENABLE = ["TransferManager"];
+const MODULES_TO_DISABLE = ["DappManager", "ModuleManager", "TokenTransfer"];
+const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {
 
@@ -42,21 +42,28 @@ const deploy = async (network) => {
     // Deploy new modules
     ////////////////////////////////////
 
-    const NftTransferWrapper = await deployer.deploy(
-        NftTransfer,
+    // TODO: Should deploy new Price Provider in the next iterations but keep current one for now until backend updates
+
+    const TransferManagerWrapper = await deployer.deploy(
+        TransferManager,
         {},
         config.contracts.ModuleRegistry,
+        config.modules.TransferStorage,
         config.modules.GuardianStorage,
-        config.CryptoKitties.contract
+        config.contracts.TokenPriceProvider,
+        config.settings.securityPeriod || 0,
+        config.settings.securityWindow || 0,
+        config.settings.defaultLimit || '1000000000000000000',
+        config.modules.TokenTransfer
     );
-    newModuleWrappers.push(NftTransferWrapper);
+    newModuleWrappers.push(TransferManagerWrapper);
 
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        NftTransfer: NftTransferWrapper.contractAddress
+        TransferManager: TransferManagerWrapper.contractAddress
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -64,7 +71,7 @@ const deploy = async (network) => {
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(NftTransferWrapper, "modules")
+        abiUploader.upload(TransferManagerWrapper, "modules")
     ]);
 
     ////////////////////////////////////

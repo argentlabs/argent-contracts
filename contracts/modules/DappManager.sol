@@ -76,15 +76,15 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
     constructor(
         ModuleRegistry _registry,
         DappRegistry _dappRegistry,
-        DappStorage _dappStorage, 
+        DappStorage _dappStorage,
         GuardianStorage _guardianStorage,
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit
-    ) 
+    )
         BaseModule(_registry, NAME)
         LimitManager(_defaultLimit)
-        public 
+        public
     {
         dappStorage = _dappStorage;
         guardianStorage = _guardianStorage;
@@ -106,11 +106,11 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
     function callContract(
         BaseWallet _wallet,
         address _dapp,
-        address _to, 
-        uint256 _amount, 
+        address _to,
+        uint256 _amount,
         bytes calldata _data
-    ) 
-        external 
+    )
+        external
         onlyExecuteOrDapp(_dapp)
         onlyWhenUnlocked(_wallet)
     {
@@ -127,13 +127,13 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
      * @param _signatures The method signatures.
      */
     function authorizeCall(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _dapp,
         address _contract,
         bytes4[] calldata _signatures
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(_contract != address(0), "DM: Contract address cannot be null");
@@ -157,13 +157,13 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
      * @param _signatures The method signatures.
      */
     function deauthorizeCall(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _dapp,
         address _contract,
         bytes4[] calldata _signatures
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         dappStorage.setMethodAuthorization(_wallet, _dapp, _contract, _signatures, false);
@@ -178,12 +178,12 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
      * @param _signatures The method signatures.
      */
     function confirmAuthorizeCall(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _dapp,
         address _contract,
         bytes4[] calldata _signatures
-    ) 
-        external 
+    )
+        external
         onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _dapp, _contract, _signatures, true));
@@ -204,14 +204,14 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
      * @param _signatures The method signatures.
      */
     function cancelAuthorizeCall(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _dapp,
         address _contract,
         bytes4[] memory _signatures
     )
-        public 
-        onlyWalletOwner(_wallet) 
-        onlyWhenUnlocked(_wallet) 
+        public
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _dapp, _contract, _signatures, true));
         DappManagerConfig storage config = configs[address(_wallet)];
@@ -237,7 +237,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-     * @dev Lets the owner of a wallet change its dapp limit. 
+     * @dev Lets the owner of a wallet change its dapp limit.
      * The limit is expressed in ETH. Changes to the limit take 24 hours.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
@@ -273,7 +273,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
     // Overrides refund to add the refund in the daily limit.
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
         // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
-        uint256 amount = 36616 + _gasUsed; 
+        uint256 amount = 36616 + _gasUsed;
         if(_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
@@ -300,11 +300,20 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
     }
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory _data,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
         address signer = recoverSigner(_signHash, _signatures, 0);
         if(functionPrefix(_data) == CALL_CONTRACT_PREFIX) {
             // "RM: Invalid dapp in data"
@@ -323,7 +332,7 @@ contract DappManager is BaseModule, RelayerModule, LimitManager {
         }
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == CONFIRM_AUTHORISATION_PREFIX) {
             return 0;

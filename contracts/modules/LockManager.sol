@@ -93,7 +93,7 @@ contract LockManager is BaseModule, RelayerModule {
      * @return The epoch time at which the lock will release (in seconds).
      */
     function getLock(BaseWallet _wallet) public view returns(uint64 _releaseAfter) {
-        uint256 lockEnd = guardianStorage.getLock(_wallet); 
+        uint256 lockEnd = guardianStorage.getLock(_wallet);
         if(lockEnd > now) {
             _releaseAfter = uint64(lockEnd);
         }
@@ -111,16 +111,25 @@ contract LockManager is BaseModule, RelayerModule {
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory /* _data */,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), recoverSigner(_signHash, _signatures, 0));
         return isGuardian; // "LM: must be a guardian to lock or unlock"
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) internal view returns (uint256) {
         return 1;
     }
 }

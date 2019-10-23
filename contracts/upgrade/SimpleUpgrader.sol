@@ -1,39 +1,50 @@
 pragma solidity ^0.5.4;
-import "../interfaces/Upgrader.sol";
-import "../interfaces/Module.sol";
+
+import "../modules/common/BaseModule.sol";
 
 /**
  * @title SimpleUpgrader
- * @dev Simple implementation for the Upgrader interface that just adds/removes modules.
- * @author Julien Niset - <julien@argent.im>
+ * @dev Temporary module used to add/remove other modules.
+ * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.im>
  */
-contract SimpleUpgrader is Upgrader {
+contract SimpleUpgrader is BaseModule {
 
-    address[] private disable;
-    address[] private enable;
+    bytes32 constant NAME = "SimpleUpgrader";
+    address[] public toDisable;
+    address[] public toEnable;
 
-    constructor(address[] memory _disable, address[] memory _enable) public {
-        disable = _disable;
-        enable = _enable;
+    // *************** Constructor ********************** //
+
+    constructor(
+        ModuleRegistry _registry,
+        address[] memory _toDisable,
+        address[] memory _toEnable
+    )
+        BaseModule(_registry, NAME)
+        public
+    {
+        toDisable = _toDisable;
+        toEnable = _toEnable;
     }
 
-    function upgrade(address payable _wallet, address[] calldata _toDisable, address[] calldata _toEnable) external {
-        uint256 i = 0;
+    // *************** External/Public Functions ********************* //
+
+    /**
+     * @dev Perform the upgrade for a wallet. This method gets called
+     * when SimpleUpgrader is temporarily added as a module.
+     * @param _wallet The target wallet.
+     */
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+        uint256 i;
         //remove old modules
-        for(i = 0; i < _toDisable.length; i++) {
-            BaseWallet(_wallet).authoriseModule(_toDisable[i], false);
+        for(; i < toDisable.length; i++) {
+            BaseWallet(_wallet).authoriseModule(toDisable[i], false);
         }
         //add new modules
-        for(i = 0; i < _toEnable.length; i++) {
-            BaseWallet(_wallet).authoriseModule(_toEnable[i], true);
+        for(i = 0; i < toEnable.length; i++) {
+            BaseWallet(_wallet).authoriseModule(toEnable[i], true);
         }
-    }
-
-    function toDisable() external view returns (address[] memory) {
-        return disable;
-    }
-
-    function toEnable() external view returns (address[] memory) {
-        return enable;
+        // SimpleUpgrader did its job, we no longer need it as a module
+        BaseWallet(_wallet).authoriseModule(address(this), false);
     }
 }

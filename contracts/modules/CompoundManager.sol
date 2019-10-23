@@ -90,11 +90,11 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         uint256 _collateralAmount,
         address _debtToken,
         uint256 _debtAmount
-    ) 
-        external 
+    )
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
-        returns (bytes32 _loanId) 
+        returns (bytes32 _loanId)
     {
         address[] memory markets = new address[](2);
         markets[0] = compoundRegistry.getCToken(_collateral);
@@ -141,12 +141,12 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _collateralAmount The amount of collateral to add.
      */
     function addCollateral(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _collateral, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _collateral,
         uint256 _collateralAmount
-    ) 
-        external 
+    )
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
@@ -164,12 +164,12 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _collateralAmount The amount of collateral to remove.
      */
     function removeCollateral(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _collateral, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _collateral,
         uint256 _collateralAmount
-    ) 
-        external 
+    )
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
@@ -187,12 +187,12 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _debtAmount The amount of token to borrow.
      */
     function addDebt(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _debtToken, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _debtToken,
         uint256 _debtAmount
-    ) 
-        external 
+    )
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
@@ -210,11 +210,11 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _debtAmount The amount of token to repay.
      */
     function removeDebt(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _debtToken, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _debtToken,
         uint256 _debtAmount
-    ) 
+    )
         external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
@@ -226,19 +226,18 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
     }
 
     /**
-     * @dev Gets information about a loan identified by its ID.
+     * @dev Gets information about the loan status on Compound.
      * @param _wallet The target wallet.
-     * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans
      * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated]
-     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral 
-     * that should be added to avoid liquidation when status = 2.  
+     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral
+     * that should be added to avoid liquidation when status = 2.
      */
     function getLoan(
-        BaseWallet _wallet, 
-        bytes32 _loanId
-    ) 
-        external 
-        view 
+        BaseWallet _wallet,
+        bytes32 /* _loanId */
+    )
+        external
+        view
         returns (uint8 _status, uint256 _ethValue)
     {
         (uint error, uint liquidity, uint shortfall) = comptroller.getAccountLiquidity(address(_wallet));
@@ -263,12 +262,12 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @return The exact amount of tokens that have been invested. 
      */
     function addInvestment(
-        BaseWallet _wallet, 
-        address _token, 
-        uint256 _amount, 
+        BaseWallet _wallet,
+        address _token,
+        uint256 _amount,
         uint256 _period
-    ) 
-        external 
+    )
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
@@ -286,8 +285,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _fraction The fraction of invested tokens to exit in per 10000. 
      */
     function removeInvestment(
-        BaseWallet _wallet, 
-        address _token, 
+        BaseWallet _wallet,
+        address _token,
         uint256 _fraction
     )
         external
@@ -308,12 +307,12 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
      */
     function getInvestment(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _token
-    ) 
-        external 
+    )
+        external
         view
-        returns (uint256 _tokenValue, uint256 _periodEnd) 
+        returns (uint256 _tokenValue, uint256 _periodEnd)
     {
         address cToken = compoundRegistry.getCToken(_token);
         uint amount = CToken(cToken).balanceOf(address(_wallet));
@@ -349,8 +348,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _cToken The cToken contract.
      * @param _amount The amount of cToken to redeem.
      */
-    function redeem(BaseWallet _wallet, address _cToken, uint256 _amount) internal {     
-        require(_cToken != address(0), "Compound: No market for target token");   
+    function redeem(BaseWallet _wallet, address _cToken, uint256 _amount) internal {
+        require(_cToken != address(0), "Compound: No market for target token");
         require(_amount > 0, "Compound: amount cannot be 0");
         _wallet.invoke(_cToken, 0, abi.encodeWithSignature("redeem(uint256)", _amount));
     }
@@ -361,8 +360,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _cToken The cToken contract.
      * @param _amount The amount of underlying token to redeem.
      */
-    function redeemUnderlying(BaseWallet _wallet, address _cToken, uint256 _amount) internal {     
-        require(_cToken != address(0), "Compound: No market for target token");   
+    function redeemUnderlying(BaseWallet _wallet, address _cToken, uint256 _amount) internal {
+        require(_cToken != address(0), "Compound: No market for target token");
         require(_amount > 0, "Compound: amount cannot be 0");
         _wallet.invoke(_cToken, 0, abi.encodeWithSignature("redeemUnderlying(uint256)", _amount));
     }
@@ -392,7 +391,7 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         if(keccak256(abi.encodePacked(symbol)) == keccak256(abi.encodePacked("cETH"))) {
             _wallet.invoke(_cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
         }
-        else { 
+        else {
             address token = CToken(_cToken).underlying();
             _wallet.invoke(token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
             _wallet.invoke(_cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));

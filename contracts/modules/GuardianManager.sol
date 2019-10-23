@@ -70,13 +70,13 @@ contract GuardianManager is BaseModule, RelayerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry, 
-        GuardianStorage _guardianStorage, 
+        ModuleRegistry _registry,
+        GuardianStorage _guardianStorage,
         uint256 _securityPeriod,
         uint256 _securityWindow
-    ) 
-        BaseModule(_registry, NAME) 
-        public 
+    )
+        BaseModule(_registry, NAME)
+        public
     {
         guardianStorage = _guardianStorage;
         securityPeriod = _securityPeriod;
@@ -88,14 +88,14 @@ contract GuardianManager is BaseModule, RelayerModule {
     /**
      * @dev Lets the owner add a guardian to its wallet.
      * The first guardian is added immediately. All following additions must be confirmed
-     * by calling the confirmGuardianAddition() method. 
+     * by calling the confirmGuardianAddition() method.
      * @param _wallet The target wallet.
      * @param _guardian The guardian to add.
      */
     function addGuardian(BaseWallet _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         require(!isOwner(_wallet, _guardian), "GM: target guardian cannot be owner");
-        require(!isGuardian(_wallet, _guardian), "GM: target is already a guardian"); 
-        // Guardians must either be an EOA or a contract with an owner() 
+        require(!isGuardian(_wallet, _guardian), "GM: target is already a guardian");
+        // Guardians must either be an EOA or a contract with an owner()
         // method that returns an address with a 5000 gas stipend.
         // Note that this test is not meant to be strict and can be bypassed by custom malicious contracts.
         // solium-disable-next-line security/no-low-level-calls
@@ -108,8 +108,8 @@ contract GuardianManager is BaseModule, RelayerModule {
             bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "addition"));
             GuardianManagerConfig storage config = configs[address(_wallet)];
             require(
-                config.pending[id] == 0 || now > config.pending[id] + securityWindow, 
-                "GM: addition of target as guardian is already pending"); 
+                config.pending[id] == 0 || now > config.pending[id] + securityWindow,
+                "GM: addition of target as guardian is already pending");
             config.pending[id] = now + securityPeriod;
             emit GuardianAdditionRequested(address(_wallet), _guardian, now + securityPeriod);
         }
@@ -117,7 +117,7 @@ contract GuardianManager is BaseModule, RelayerModule {
 
     /**
      * @dev Confirms the pending addition of a guardian to a wallet.
-     * The method must be called during the confirmation window and 
+     * The method must be called during the confirmation window and
      * can be called by anyone to enable orchestration.
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
@@ -148,7 +148,7 @@ contract GuardianManager is BaseModule, RelayerModule {
 
     /**
      * @dev Lets the owner revoke a guardian from its wallet.
-     * Revokation must be confirmed by calling the confirmGuardianRevokation() method. 
+     * Revokation must be confirmed by calling the confirmGuardianRevokation() method.
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
@@ -157,7 +157,7 @@ contract GuardianManager is BaseModule, RelayerModule {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[address(_wallet)];
         require(
-            config.pending[id] == 0 || now > config.pending[id] + securityWindow, 
+            config.pending[id] == 0 || now > config.pending[id] + securityWindow,
             "GM: revokation of target as guardian is already pending"); // TODO need to allow if confirmation window passed
         config.pending[id] = now + securityPeriod;
         emit GuardianRevokationRequested(address(_wallet), _guardian, now + securityPeriod);
@@ -165,7 +165,7 @@ contract GuardianManager is BaseModule, RelayerModule {
 
     /**
      * @dev Confirms the pending revokation of a guardian to a wallet.
-     * The method must be called during the confirmation window and 
+     * The method must be called during the confirmation window and
      * can be called by anyone to enable orchestration.
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
@@ -225,16 +225,25 @@ contract GuardianManager is BaseModule, RelayerModule {
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory /* _data */,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
         address signer = recoverSigner(_signHash, _signatures, 0);
         return isOwner(_wallet, signer); // "GM: signer must be owner"
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {
             return 0;
