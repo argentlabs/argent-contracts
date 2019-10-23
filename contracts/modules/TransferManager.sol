@@ -3,6 +3,7 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
+import "./common/BaseTransfer.sol";
 import "./common/LimitManager.sol";
 import "../exchange/TokenPriceProvider.sol";
 import "../storage/GuardianStorage.sol";
@@ -15,7 +16,7 @@ import "../exchange/ERC20.sol";
  * This module is the V2 of TokenTransfer.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, LimitManager {
+contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTransfer, LimitManager {
 
     bytes32 constant NAME = "TransferManager";
 
@@ -58,9 +59,9 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, LimitMan
 
     // *************** Events *************************** //
 
-    event Transfer(address indexed wallet, address indexed token, uint256 amount, address to, bytes data);
-    event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
-    event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
+    // event Transfer(address indexed wallet, address indexed token, uint256 amount, address to, bytes data);
+    // event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
+    // event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event PendingTransferCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter, address token, address to, uint256 amount, bytes data);
@@ -90,7 +91,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, LimitMan
         uint256 _defaultLimit,
         LimitManager _oldLimitManager
     )
-        BaseModule(_registry, NAME)
+        BaseTransfer(_registry, NAME)
         LimitManager(_defaultLimit)
         public
     {
@@ -401,49 +402,6 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, LimitMan
 
     // *************** Internal Functions ********************* //
 
-    /**
-    * @dev Helper method to transfer ETH or ERC20 for a wallet.
-    * @param _wallet The target wallet.
-    * @param _token The ERC20 address.
-    * @param _to The recipient.
-    * @param _value The amount of ETH to transfer
-    * @param _data The data to *log* with the transfer.
-    */
-    function doTransfer(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
-        if(_token == ETH_TOKEN) {
-            invokeWallet(address(_wallet), _to, _value, EMPTY_BYTES);
-        }
-        else {
-            bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
-            invokeWallet(address(_wallet), _token, 0, methodData);
-        }
-        emit Transfer(address(_wallet), _token, _value, _to, _data);
-    }
-
-    /**
-    * @dev Helper method to approve spending the ERC20 of a wallet.
-    * @param _wallet The target wallet.
-    * @param _token The ERC20 address.
-    * @param _spender The spender address.
-    * @param _value The amount of token to transfer.
-    */
-    function doApproveToken(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
-        bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _value);
-        invokeWallet(address(_wallet), _token, 0, methodData);
-        emit Approved(address(_wallet), _token, _value, _spender);
-    }
-
-    /**
-    * @dev Helper method to call an external contract.
-    * @param _wallet The target wallet.
-    * @param _contract The contract address.
-    * @param _value The ETH value to transfer.
-    * @param _data The method data.
-    */
-    function doCallContract(BaseWallet _wallet, address _contract, uint256 _value, bytes memory _data) internal {
-        invokeWallet(address(_wallet), _contract, _value, _data);
-        emit CalledContract(address(_wallet), _contract, _value, _data);
-    }
 
     /**
      * @dev Creates a new pending action for a wallet.

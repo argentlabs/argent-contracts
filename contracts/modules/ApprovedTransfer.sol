@@ -2,6 +2,7 @@ pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
+import "./common/BaseTransfer.sol";
 import "../storage/GuardianStorage.sol";
 import "../utils/SafeMath.sol";
 import "../utils/GuardianUtils.sol";
@@ -11,16 +12,14 @@ import "../utils/GuardianUtils.sol";
  * @dev Module to transfer tokens (ETH or ERC20) with the approval of guardians.
  * @author Julien Niset - <julien@argent.im>
  */
-contract ApprovedTransfer is BaseModule, RelayerModule {
+contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    // The Guardian storage 
+    // The Guardian storage
     GuardianStorage internal guardianStorage;
-    event Address(address _addr);
-    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);    
 
     /**
      * @dev Throws if the wallet is locked.
@@ -31,7 +30,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
         _;
     }
 
-    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage) BaseModule(_registry, NAME) public {
+    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage) BaseTransfer(_registry, NAME) public {
         guardianStorage = _guardianStorage;
     }
 
@@ -54,17 +53,27 @@ contract ApprovedTransfer is BaseModule, RelayerModule {
         onlyExecute
         onlyWhenUnlocked(_wallet)
     {
-        // eth transfer to whitelist
-        if(_token == ETH_TOKEN) {
-            _wallet.invoke(_to, _amount, _data);
-            emit Transfer(address(_wallet), ETH_TOKEN, _amount, _to, _data);
-        }
-        // erc20 transfer to whitelist
-        else {
-            bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _amount);
-            _wallet.invoke(_token, 0, methodData);
-            emit Transfer(address(_wallet), _token, _amount, _to, _data);
-        }
+        doTransfer(_wallet, _token, _to, _amount, _data);
+    }
+
+    /**
+    * @dev call a contract.
+    * @param _wallet The target wallet.
+    * @param _contract The address of the contract.
+    * @param _value The amount of ETH to transfer as part of call
+    * @param _data The encoded method data
+    */
+    function callContract(
+        BaseWallet _wallet,
+        address _contract,
+        uint256 _value,
+        bytes calldata _data
+    )
+        external
+        onlyExecute
+        onlyWhenUnlocked(_wallet)
+    {
+        doCallContract(_wallet, _contract, _value, _data);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
