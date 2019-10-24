@@ -20,10 +20,6 @@ contract BaseTransfer is BaseModule {
     event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
     event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
 
-    // *************** Constructor ********************** //
-
-    constructor(ModuleRegistry _registry, bytes32 _name) BaseModule(_registry, _name) public {}
-
     // *************** Internal Functions ********************* //
 
     /**

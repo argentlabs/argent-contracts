@@ -91,7 +91,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         uint256 _defaultLimit,
         LimitManager _oldLimitManager
     )
-        BaseTransfer(_registry, NAME)
+        BaseModule(_registry, NAME)
         LimitManager(_defaultLimit)
         public
     {

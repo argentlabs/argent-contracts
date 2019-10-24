@@ -30,7 +30,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
         _;
     }
 
-    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage) BaseTransfer(_registry, NAME) public {
+    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage) BaseModule(_registry, NAME) public {
         guardianStorage = _guardianStorage;
     }
 

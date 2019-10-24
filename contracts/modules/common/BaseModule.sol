@@ -60,7 +60,7 @@ contract BaseModule is Module {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) public strictOnlyWalletOwner(_wallet) {
+    function addModule(BaseWallet _wallet, Module _module) external strictOnlyWalletOwner(_wallet) {
         require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
         _wallet.authoriseModule(address(_module), true);
     }
