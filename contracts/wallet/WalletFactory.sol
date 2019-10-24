@@ -26,7 +26,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     // *************** Events *************************** //
 
     event ModuleRegistryChanged(address addr);
-    event WalletImplementationChanged(address addr);
     event ENSManagerChanged(address addr);
     event ENSResolverChanged(address addr);
     event WalletCreated(address indexed _wallet, address indexed _owner);
@@ -37,14 +36,14 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
      * @dev Default constructor.
      */
     constructor(
-        address _ensRegistry, 
+        address _ensRegistry,
         address _moduleRegistry,
-        address _walletImplementation, 
-        address _ensManager, 
+        address _walletImplementation,
+        address _ensManager,
         address _ensResolver
-    ) 
-        ENSConsumer(_ensRegistry) 
-        public 
+    )
+        ENSConsumer(_ensRegistry)
+        public
     {
         moduleRegistry = _moduleRegistry;
         walletImplementation = _walletImplementation;
@@ -61,31 +60,22 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
      * @param _label Optional ENS label of the new wallet (e.g. franck).
      */
     function createWallet(address _owner, address[] calldata _modules, string calldata _label) external onlyManager {
-        require(_owner != address(0), "WF: owner cannot be null");
-        require(_modules.length > 0, "WF: cannot assign with less than 1 module");
-        require(ModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
-        // create the proxy
         Proxy proxy = new Proxy(walletImplementation);
         address payable wallet = address(proxy);
-        // check for ENS
-        bytes memory labelBytes = bytes(_label);
-        if (labelBytes.length != 0) {
-            // add the factory to the modules so it can claim the reverse ENS
-            address[] memory extendedModules = new address[](_modules.length + 1);
-            extendedModules[0] = address(this);
-            for(uint i = 0; i < _modules.length; i++) {
-                extendedModules[i + 1] = _modules[i];
-            }
-            // initialise the wallet with the owner and the extended modules
-            BaseWallet(wallet).init(_owner, extendedModules);
-            // register ENS
-            registerWalletENS(wallet, _label);
-            // remove the factory from the authorised modules
-            BaseWallet(wallet).authoriseModule(address(this), false);
-        } else {
-            // initialise the wallet with the owner and the modules
-            BaseWallet(wallet).init(_owner, _modules);
+        configureWallet(wallet, _owner, _modules, _label);
+        emit WalletCreated(wallet, _owner);
+    }
+
+    function createWalletWithSalt(bytes32 _salt, address _owner, address[] calldata _modules, string calldata _label) external onlyManager {
+        bytes32 newsalt = keccak256(abi.encodePacked(_salt, _owner, _label));
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
+        address payable wallet;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            wallet := create2(0, add(code, 0x20), mload(code), newsalt)
         }
+        require(wallet != address(0), "WF: Failed to create wallet with Create2");
+        configureWallet(wallet, _owner, _modules, _label);
         emit WalletCreated(wallet, _owner);
     }
 
@@ -97,16 +87,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         require(_moduleRegistry != address(0), "WF: address cannot be null");
         moduleRegistry = _moduleRegistry;
         emit ModuleRegistryChanged(_moduleRegistry);
-    }
-
-    /**
-     * @dev Lets the owner change the address of the implementing contract.
-     * @param _walletImplementation The address of the implementing contract.
-     */
-    function changeWalletImplementation(address _walletImplementation) external onlyOwner {
-        require(_walletImplementation != address(0), "WF: address cannot be null");
-        walletImplementation = _walletImplementation;
-        emit WalletImplementationChanged(_walletImplementation);
     }
 
     /**
@@ -127,6 +107,38 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         require(_ensResolver != address(0), "WF: address cannot be null");
         ensResolver = _ensResolver;
         emit ENSResolverChanged(_ensResolver);
+    }
+
+    function calculateAddressForWallet(bytes32 _salt, address _owner, string memory _label) public view returns (address _wallet) {
+        bytes32 newsalt = keccak256(abi.encodePacked(_salt, _owner, _label));
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
+        _wallet = address(uint160(uint256(hash)));
+    }
+
+    function configureWallet(address payable _wallet, address _owner, address[] memory _modules, string memory _label) internal {
+        require(_owner != address(0), "WF: owner cannot be null");
+        require(_modules.length > 0, "WF: cannot assign with less than 1 module");
+        require(ModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
+        // check for ENS
+        bytes memory labelBytes = bytes(_label);
+        if (labelBytes.length != 0) {
+            // add the factory to the modules so it can claim the reverse ENS
+            address[] memory extendedModules = new address[](_modules.length + 1);
+            extendedModules[0] = address(this);
+            for(uint i = 0; i < _modules.length; i++) {
+                extendedModules[i + 1] = _modules[i];
+            }
+            // initialise the wallet with the owner and the extended modules
+            BaseWallet(_wallet).init(_owner, extendedModules);
+            // register ENS
+            registerWalletENS(_wallet, _label);
+            // remove the factory from the authorised modules
+            BaseWallet(_wallet).authoriseModule(address(this), false);
+        } else {
+            // initialise the wallet with the owner and the modules
+            BaseWallet(_wallet).init(_owner, _modules);
+        }
     }
 
     /**

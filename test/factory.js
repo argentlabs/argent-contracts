@@ -8,7 +8,7 @@ const ENSReverseRegistrar = require('../build/TestReverseRegistrar');
 const Factory = require('../build/WalletFactory');
 
 const TestManager = require("../utils/test-manager");
-
+const { randomBytes, formatBytes32String, bigNumberify } = require('ethers').utils;
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 describe("Test Wallet Factory", function () {
@@ -62,7 +62,7 @@ describe("Test Wallet Factory", function () {
         await ensManager.addManager(factory.contractAddress);
     });
 
-    describe("Create wallets", () => {
+    describe("Create wallets with CREATE", () => {
 
         let module1, module2;
 
@@ -118,7 +118,122 @@ describe("Test Wallet Factory", function () {
             let res = await ensRegistry.resolver(labelNode);
             assert.equal(res, ensResolver.contractAddress);
         });
+
+        it("should fail to create with an existing ENS", async () => {
+            let label = "wallet";
+            let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
+            let modules = [module1.contractAddress, module2.contractAddress];
+            await assert.revert(factory.from(infrastructure).createWallet(owner.address, modules, label, { gasLimit: 550000 }), "should fail when ENS is already used");
+            
+        });
     });
 
+
+    describe("Create wallets with CREATE2", () => {
+
+        let module1, module2;
+
+        beforeEach(async () => {
+            module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ZERO_BYTES32);
+            module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ZERO_BYTES32);
+            await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
+            await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
+        });
+
+        it("should create a wallet at the correct address", async () => {
+            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let label = "wallet2";
+            // we get the future address
+            let futureAddr = await factory.calculateAddressForWallet(salt, owner.address, label);
+            // we create the wallet
+            let modules = [module1.contractAddress];
+            let tx = await factory.from(infrastructure).createWalletWithSalt(salt, owner.address, modules, label, { gasLimit: 500000 });
+            let txReceipt = await factory.verboseWaitForTransaction(tx);
+            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
+            // we test that the wallet is at the correct address
+            assert.equal(futureAddr, walletAddr, 'should have the correct address');
+        });
+
+        it("should fail to create a wallet at an existing address", async () => {
+            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let label = "wallet8";
+            let modules = [module1.contractAddress];
+            // we get the future address
+            let futureAddr = await factory.calculateAddressForWallet(salt, owner.address, label);
+            // we create the first wallet
+            let tx = await factory.from(infrastructure).createWalletWithSalt(salt, owner.address, modules, label, { gasLimit: 500000 });
+            let txReceipt = await factory.verboseWaitForTransaction(tx);
+            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
+            // we test that the wallet is at the correct address
+            assert.equal(futureAddr, walletAddr, 'should have the correct address');
+            // we create the second wallet
+            await assert.revert(factory.from(infrastructure).createWalletWithSalt(salt, owner.address, modules, label, { gasLimit: 500000 }), "should fail when address is in use");
+        });
+
+        it("should create with the correct owner", async () => {
+            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let label = "";
+            // we get the future address
+            let futureAddr = await factory.calculateAddressForWallet(salt, owner.address, label);
+            // we create the wallet
+            let modules = [module1.contractAddress];
+            let tx = await factory.from(infrastructure).createWalletWithSalt(salt, owner.address, modules, label, { gasLimit: 500000 });
+            let txReceipt = await factory.verboseWaitForTransaction(tx);
+            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
+            // we test that the wallet is at the correct address
+            assert.equal(futureAddr, walletAddr, 'should have the correct address');
+            // we test that the wallet has the correct owner
+            let wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+            let walletOwner = await wallet.owner();
+            assert.equal(walletOwner, owner.address, 'should have the correct owner');
+        });
+
+        it("should create with the correct modules", async () => {
+            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let label = "";
+            let modules = [module1.contractAddress, module2.contractAddress];
+            // we get the future address
+            let futureAddr = await factory.calculateAddressForWallet(salt, owner.address, label);
+            // we create the wallet
+            let tx = await factory.from(infrastructure).createWalletWithSalt(salt, owner.address, modules, label, { gasLimit: 500000 });
+            let txReceipt = await factory.verboseWaitForTransaction(tx);
+            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
+            // we test that the wallet is at the correct address
+            assert.equal(futureAddr, walletAddr, 'should have the correct address');
+            // we test that the wallet has the correct modules
+            let wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+            let isAuthorised = await wallet.authorised(module1.contractAddress);
+            assert.equal(isAuthorised, true, 'module1 should be authorised');
+            isAuthorised = await wallet.authorised(module2.contractAddress);
+            assert.equal(isAuthorised, true, 'module2 should be authorised');
+        });
+
+        it("should fail to create when there is no modules", async () => {
+            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let label = "";
+            let modules = [];
+            await assert.revert(factory.from(deployer).createWalletWithSalt(salt, owner.address, modules, label, { gasLimit: 500000 }), "should fail when modules is empty");
+        });
+
+        it("should create with the correct ENS name", async () => {
+            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let label = "wallet3";
+            let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
+            let modules = [module1.contractAddress, module2.contractAddress];
+            // we get the future address
+            let futureAddr = await factory.calculateAddressForWallet(salt, owner.address, label);
+            // we create the wallet
+            let tx = await factory.from(infrastructure).createWalletWithSalt(salt, owner.address, modules, label, { gasLimit: 500000 });
+            let txReceipt = await factory.verboseWaitForTransaction(tx);
+            let walletAddr = txReceipt.events.filter(event => event.event == 'WalletCreated')[0].args._wallet;
+            // we test that the wallet is at the correct address
+            assert.equal(futureAddr, walletAddr, 'should have the correct address');
+            // we test that the wallet has the correct ENS
+            let nodeOwner = await ensRegistry.owner(labelNode);
+            assert.equal(nodeOwner, walletAddr);
+            let res = await ensRegistry.resolver(labelNode);
+            assert.equal(res, ensResolver.contractAddress);
+        });
+    });
 
 });
