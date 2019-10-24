@@ -4,9 +4,6 @@ const GuardianManager = require('../build/GuardianManager');
 const TokenExchanger = require('../build/TokenExchanger');
 const LockManager = require('../build/LockManager');
 const RecoveryManager = require('../build/RecoveryManager');
-const TokenTransfer = require('../build/TokenTransfer');
-const ApprovedTransfer = require('../build/ApprovedTransfer');
-const DappManager = require('../build/DappManager');
 
 const utils = require('../utils/utilities.js');
 
@@ -34,9 +31,6 @@ const deploy = async (network, secret) => {
     const GuardianManagerWrapper = await deployer.wrapDeployedContract(GuardianManager, config.modules.GuardianManager);
     const LockManagerWrapper = await deployer.wrapDeployedContract(LockManager, config.modules.LockManager);
     const RecoveryManagerWrapper = await deployer.wrapDeployedContract(RecoveryManager, config.modules.RecoveryManager);
-    const ApprovedTransferWrapper = await deployer.wrapDeployedContract(ApprovedTransfer, config.modules.ApprovedTransfer);
-    const TokenTransferWrapper = await deployer.wrapDeployedContract(TokenTransfer, config.modules.TokenTransfer);
-    const DappManagerWrapper = await deployer.wrapDeployedContract(DappManager, config.modules.DappManager);
     const TokenExchangerWrapper = await deployer.wrapDeployedContract(TokenExchanger, config.modules.TokenExchanger);
 
     const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
@@ -46,9 +40,6 @@ const deploy = async (network, secret) => {
         GuardianManagerWrapper,
         LockManagerWrapper,
         RecoveryManagerWrapper,
-        ApprovedTransferWrapper,
-        TokenTransferWrapper,
-        DappManagerWrapper,
         TokenExchangerWrapper];
 
     ////////////////////////////////////

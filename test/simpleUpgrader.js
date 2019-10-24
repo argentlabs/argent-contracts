@@ -116,11 +116,11 @@ describe("Test SimpleUpgrader", function () {
             await testUpgradeModule({ relayed: false, useOnlyOwnerModule: false })
         });
 
-        it("should upgrade modules (relayed tx)", async () => {
+        it("should upgrade modules (not using OnlyOwnerModule, relayed tx)", async () => {
             await testUpgradeModule({ relayed: true, useOnlyOwnerModule: false })
         });
 
-        it("should upgrade modules (relayed tx)", async () => {
+        it("should upgrade modules (using OnlyOwnerModule, relayed tx)", async () => {
             await testUpgradeModule({ relayed: true, useOnlyOwnerModule: true })
         });
     });
