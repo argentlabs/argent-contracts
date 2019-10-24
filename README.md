@@ -20,19 +20,19 @@ npm install etherlime@0.10.4 -g
 
 Compile the contracts:
 ```
-etherlime compile
+etherlime compile --runs=200
 ```
 
 ## Test
 
 Launch ganache:
 ```
-etherlime ganache
+etherlime ganache --gasLimit=10700000
 ```
 
 Run the tests:
 ```
-etherlime test
+etherlime test --skip-compilation
 ```
 
 ## License
