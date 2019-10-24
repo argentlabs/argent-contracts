@@ -1,4 +1,5 @@
 const TransferManager = require('../build/TransferManager');
+const ApprovedTransfer = require('../build/ApprovedTransfer');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const LegacyUpgrader = require('../build/LegacySimpleUpgrader');
@@ -10,8 +11,8 @@ const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
 const TARGET_VERSION = "1.4.0";
-const MODULES_TO_ENABLE = ["TransferManager"];
-const MODULES_TO_DISABLE = ["DappManager", "TokenTransfer"];
+const MODULES_TO_ENABLE = ["TransferManager", "ApprovedTransfer"];
+const MODULES_TO_DISABLE = ["DappManager", "TokenTransfer", "ModuleManager"];
 
 
 const BACKWARD_COMPATIBILITY = 3;
@@ -21,7 +22,6 @@ const deploy = async (network) => {
     // Note (for test, staging and prod): this upgrade still uses the legacy upgrade mechanism (using the ModuleManager). 
     // For the next update, we will be able to use TransferManager's addModule method for the upgrade and
     // as part of that next upgrade we will be allowed to remove ModuleManager
-    const legacyUpdate = ['test', 'staging', 'prod'].includes(network);
 
     const newModuleWrappers = [];
     const newVersion = {};
@@ -66,12 +66,20 @@ const deploy = async (network) => {
     );
     newModuleWrappers.push(TransferManagerWrapper);
 
+    const ApprovedTransferWrapper = await deployer.deploy(
+        ApprovedTransfer,
+        {},
+        config.contracts.ModuleRegistry,
+        GuardianStorageWrapper.contractAddress
+    );
+    newModuleWrappers.push(ApprovedTransferWrapper);
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        TransferManager: TransferManagerWrapper.contractAddress
+        TransferManager: TransferManagerWrapper.contractAddress,
+        ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -79,7 +87,8 @@ const deploy = async (network) => {
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(TransferManagerWrapper, "modules")
+        abiUploader.upload(TransferManagerWrapper, "modules"),
+        abiUploader.upload(ApprovedTransferWrapper, "modules")
     ]);
 
     ////////////////////////////////////
@@ -134,7 +143,7 @@ const deploy = async (network) => {
         const upgraderName = version.fingerprint + '_' + fingerprint;
 
         let UpgraderWrapper;
-        if (legacyUpdate) {
+        if (['test', 'staging', 'prod'].includes(network)) {
             // this is an "old-style" Upgrader (to be used with ModuleManager)
             UpgraderWrapper = await deployer.deploy(
                 LegacyUpgrader,

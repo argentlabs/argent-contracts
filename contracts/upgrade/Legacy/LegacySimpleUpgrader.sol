@@ -20,13 +20,13 @@ contract LegacySimpleUpgrader is LegacyUpgrader {
 
     function upgrade(address payable _wallet, address[] calldata _toDisable, address[] calldata _toEnable) external {
         uint256 i = 0;
-        //remove old modules
-        for(i = 0; i < _toDisable.length; i++) {
-            BaseWallet(_wallet).authoriseModule(_toDisable[i], false);
-        }
         //add new modules
         for(i = 0; i < _toEnable.length; i++) {
             BaseWallet(_wallet).authoriseModule(_toEnable[i], true);
+        }
+        //remove old modules
+        for(i = 0; i < _toDisable.length; i++) {
+            BaseWallet(_wallet).authoriseModule(_toDisable[i], false);
         }
     }
 
