@@ -13,7 +13,7 @@ npm install
 
 Install etherlime:
 ```
-npm install etherlime@0.10.4 -g
+npm install etherlime@2.2.1 -g
 ```
 
 ## Compile
