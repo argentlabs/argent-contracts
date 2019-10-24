@@ -20,8 +20,7 @@ const BACKWARD_COMPATIBILITY = 3;
 const deploy = async (network) => {
 
     // Note (for test, staging and prod): this upgrade still uses the legacy upgrade mechanism (using the ModuleManager). 
-    // For the next update, we will be able to use TransferManager's addModule method for the upgrade and
-    // as part of that next upgrade we will be allowed to remove ModuleManager
+    // For the next update, we will be able to use TransferManager's addModule method for the upgrade
 
     const newModuleWrappers = [];
     const newVersion = {};
