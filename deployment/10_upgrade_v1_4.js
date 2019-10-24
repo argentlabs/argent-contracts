@@ -69,7 +69,7 @@ const deploy = async (network) => {
         ApprovedTransfer,
         {},
         config.contracts.ModuleRegistry,
-        GuardianStorageWrapper.contractAddress
+        config.modules.GuardianStorage
     );
     newModuleWrappers.push(ApprovedTransferWrapper);
     ///////////////////////////////////////////////////
