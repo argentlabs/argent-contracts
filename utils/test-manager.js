@@ -66,15 +66,13 @@ class TestManager {
                 psargs: 'ux',
                 arguments: 'ganache'
             }, (err, processes) => {
-                let expectedReason = "revert"; // by default, match the error with a generic "revert" keyword
-                if (!err && processes.reduce((etherlimeGanacheFound, p) =>
+                const runningEtherlimeGanache = !err && processes.reduce((etherlimeGanacheFound, p) =>
                     etherlimeGanacheFound || (p.command + p.arguments.join('-')).includes('etherlime-ganache'),
                     false)
-                ) {
-                    // since we are running etherlime ganache (and not e.g. ganache-cli), 
+                // by default, we match the error with a generic "revert" keyword
+                // but if we are running etherlime ganache (and not e.g. ganache-cli), 
                     // we can match the error with the exact reason message
-                    expectedReason = reason;
-                }
+                const expectedReason = runningEtherlimeGanache ? reason : "revert";
                 return res((error.message || error.toString()).includes(expectedReason));
             });
         })

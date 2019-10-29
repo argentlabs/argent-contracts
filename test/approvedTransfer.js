@@ -61,7 +61,7 @@ describe("Test Approved Transfer", function () {
         });
 
         for (const address of guardianAddresses) {
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, address);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, address, { gasLimit: 500000 });
         }
 
         await manager.increaseTime(30);

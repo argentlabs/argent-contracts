@@ -30,7 +30,7 @@ describe("LockManager", function () {
 
     describe("(Un)Lock by EOA guardians", () => {
         beforeEach(async () => {
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address, { gasLimit: 500000 });
             const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
             assert.equal(count, 1, "1 guardian should be added");
             const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, guardian1.address);
@@ -79,7 +79,7 @@ describe("LockManager", function () {
         beforeEach(async () => {
             guardianWallet = await deployer.deploy(Wallet);
             await guardianWallet.init(guardian1.address, [guardianManager.contractAddress, lockManager.contractAddress]);
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress, { gasLimit: 500000 });
             const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
             assert.equal(count, 1, "1 guardian should be added");
             const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, guardianWallet.contractAddress);
@@ -107,7 +107,7 @@ describe("LockManager", function () {
 
     describe("Auto-unlock", () => {
         it("should auto-unlock after lock period", async () => {
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address, { gasLimit: 500000 });
             await lockManager.from(guardian1).lock(wallet.contractAddress);
             let state = await lockManager.isLocked(wallet.contractAddress);
             assert.isTrue(state, "should be locked by guardian");

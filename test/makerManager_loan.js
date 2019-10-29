@@ -266,11 +266,10 @@ describe("Test CDP Module", function () {
             if (biteBeforeClose) {
                 const feed = bigNumberify(await pip.read())
                 const newFeed = bigNumToBytes32(feed.div(10))
-                await pip.poke(newFeed);
+                await pip.poke(newFeed, { gasLimit: 500000 });
                 await tub.bite(loanId);
-                await pip.poke(feed);
+                await pip.poke(feed, { gasLimit: 500000 });
             }
-
             const method = 'closeLoan'
             const params = [wallet.contractAddress, loanId];
             if (relayed) {
