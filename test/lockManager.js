@@ -21,9 +21,9 @@ describe("LockManager", function () {
     beforeEach(async () => {
         deployer = manager.newDeployer();
         const registry = await deployer.deploy(Registry);
-        guardianStorage = await deployer.deploy(GuardianStorage);
+        let guardianStorage = await deployer.deploy(GuardianStorage);
         guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-        lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24*5);
+        lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
         wallet = await deployer.deploy(Wallet);
         await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress]);
     });
@@ -114,7 +114,7 @@ describe("LockManager", function () {
             let releaseTime = await lockManager.getLock(wallet.contractAddress);
             assert.isTrue(releaseTime > 0, "releaseTime should be positive");
 
-            manager.increaseTime(24*5+5);
+            await manager.increaseTime(24 * 5 + 5);
             state = await lockManager.isLocked(wallet.contractAddress);
             assert.isFalse(state, "should be unlocked by guardian");
             releaseTime = await lockManager.getLock(wallet.contractAddress);
