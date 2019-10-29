@@ -109,7 +109,7 @@ const deploy = async (network) => {
     for (let idx = 0; idx < versions.length; idx++) {
         const version = versions[idx];
         let toAdd, toRemove;
-        if (idx == 0) {
+        if (idx === 0) {
             const moduleNamesToRemove = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
             toRemove = version.modules.filter(module => moduleNamesToRemove.includes(module.name));
             toAdd = newModuleWrappers.map((wrapper) => {
@@ -143,6 +143,8 @@ const deploy = async (network) => {
 
         let UpgraderWrapper;
         if (['test', 'staging', 'prod'].includes(network)) {
+            // make sure ModuleManager is always the last to be removed if it needs to be removed
+            toRemove.push(toRemove.splice(toRemove.findIndex(({ name }) => name === 'ModuleManager'), 1)[0]);
             // this is an "old-style" Upgrader (to be used with ModuleManager)
             UpgraderWrapper = await deployer.deploy(
                 LegacyUpgrader,
