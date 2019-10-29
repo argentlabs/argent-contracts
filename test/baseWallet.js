@@ -91,7 +91,7 @@ describe("Test BaseWallet", function () {
             try {
                 await newModule.fail(wallet.contractAddress, reason);
             } catch (e) {
-                assert.isTrue(e.toString().includes(reason), "invalid reason message")
+                assert.isTrue(await manager.isRevertReason(e, reason), "invalid reason message");
             }
 
         })

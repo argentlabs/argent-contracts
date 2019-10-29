@@ -1,5 +1,6 @@
 const etherlime = require('etherlime-lib');
 const ethers = require('ethers');
+const ps = require('ps-node');
 const { signOffchain } = require("./utilities.js");
 
 const APIKEY = "41c41ec78ad0435982708754d5e8cc24";
@@ -56,6 +57,28 @@ class TestManager {
     async increaseTime(seconds) {
         await this.provider.send('evm_increaseTime', seconds);
         await this.provider.send('evm_mine');
+    }
+
+    async isRevertReason(error, reason) {
+        return new Promise((res, _) => {
+            ps.lookup({
+                command: 'node',
+                psargs: 'ux',
+                arguments: 'ganache'
+            }, (err, processes) => {
+                let expectedReason = "revert"; // by default, match the error with a generic "revert" keyword
+                if (!err && processes.reduce((etherlimeGanacheFound, p) =>
+                    etherlimeGanacheFound || (p.command + p.arguments.join('-')).includes('etherlime-ganache'),
+                    false)
+                ) {
+                    // since we are running etherlime ganache (and not e.g. ganache-cli), 
+                    // we can match the error with the exact reason message
+                    expectedReason = reason;
+                }
+                return res((error.message || error.toString()).includes(expectedReason));
+            });
+        })
+
     }
 }
 

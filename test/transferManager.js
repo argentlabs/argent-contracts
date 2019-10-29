@@ -193,7 +193,7 @@ describe("Test TransferManager", function () {
                 try {
                     await doDirectTransfer({ token: ETH_TOKEN, signer: nonowner, to: recipient, amount: 10000 });
                 } catch (error) {
-                    assert.ok(error.message.includes("must be an owner"));
+                    assert.ok(await manager.isRevertReason(error, "must be an owner"));
                 }
             });
             it('should calculate the daily unspent when the owner send ETH', async () => {
@@ -231,28 +231,28 @@ describe("Test TransferManager", function () {
                 try {
                     await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 1, relayed: false });
                 } catch (error) {
-                    assert.isTrue(error.toString().includes("outside of the execution window"), "should throw ")
+                    assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
                 }
             });
             it('should not execute a pending ETH transfer before the confirmation window (relayed)', async () => {
                 try {
                     await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 1, relayed: true });
                 } catch (error) {
-                    assert.isTrue(error.toString().includes("outside of the execution window"), "should throw ")
+                    assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
                 }
             });
             it('should not execute a pending ETH transfer after the confirmation window', async () => {
                 try {
                     await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 10, relayed: false });
                 } catch (error) {
-                    assert.isTrue(error.toString().includes("outside of the execution window"), "should throw ")
+                    assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
                 }
             });
             it('should not execute a pending ETH transfer after the confirmation window (relayed)', async () => {
                 try {
                     await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 10, relayed: true });
                 } catch (error) {
-                    assert.isTrue(error.toString().includes("outside of the execution window"), "should throw ")
+                    assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
                 }
             });
             it('should cancel a pending ETH transfer', async () => {
@@ -319,7 +319,7 @@ describe("Test TransferManager", function () {
             try {
                 await doDirectApprove({ signer: nonowner, amount: 10 });
             } catch (error) {
-                assert.ok(error.message.includes("must be an owner"));
+                assert.ok(await manager.isRevertReason(error, "must be an owner"));
             }
         });
         it('should appprove an ERC20 immediately when the spender is whitelisted ', async () => {
@@ -331,7 +331,7 @@ describe("Test TransferManager", function () {
             try {
                 await doDirectApprove({ amount: ETH_LIMIT + 10000 });
             } catch (error) {
-                assert.ok(error.message.includes("above daily limit"));
+                assert.ok(await manager.isRevertReason(error, "above daily limit"));
             }
         });
     });
@@ -380,7 +380,7 @@ describe("Test TransferManager", function () {
             try {
                 await doCallContract({ value: ETH_LIMIT + 10000, state: 6 });
             } catch (error) {
-                assert.ok(error.message.includes("above daily limit"));
+                assert.ok(await manager.isRevertReason(error, "above daily limit"));
             }
         });
     });
