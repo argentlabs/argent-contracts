@@ -15,7 +15,7 @@ const TestManager = require("../utils/test-manager");
 describe("Test Token Exchanger", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let infrastructure = accounts[0].signer;
     let owner = accounts[1].signer;
@@ -80,7 +80,7 @@ describe("Test Token Exchanger", function () {
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             assert.isTrue(beforeETH.gte(srcAmount), "wallet should have enough ether");
 
-            const txReceipt =  await manager.relay(exchanger, 'trade', [
+            const txReceipt = await manager.relay(exchanger, 'trade', [
                 wallet.contractAddress,
                 ETH_TOKEN,
                 srcAmount,
@@ -124,7 +124,7 @@ describe("Test Token Exchanger", function () {
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             assert.isTrue(beforeERC20.gte(srcAmount), "wallet should have enough ERC20");
 
-            const txReceipt =  await manager.relay(exchanger, 'trade', [
+            const txReceipt = await manager.relay(exchanger, 'trade', [
                 wallet.contractAddress,
                 erc20.contractAddress,
                 srcAmount,

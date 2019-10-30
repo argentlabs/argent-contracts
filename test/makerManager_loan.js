@@ -31,7 +31,7 @@ const ETH_PER_DAI = WAD.mul(USD_PER_DAI).div(RAY).mul(WAD).div(USD_PER_ETH); // 
 describe("Test CDP Module", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     const infrastructure = accounts[0].signer;
     const owner = accounts[1].signer;

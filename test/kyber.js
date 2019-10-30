@@ -13,7 +13,7 @@ const ERC20_RATE = 51 * 10 ** 13; // 1 ERC20 = 0.00051 ETH
 describe('Test Kyber', function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let trader = accounts[1].signer;
 

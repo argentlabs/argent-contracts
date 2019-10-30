@@ -16,7 +16,7 @@ const SECURITY_WINDOW = 10;
 describe("DappManager", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let infrastructure = accounts[0].signer;
     let owner = accounts[1].signer;
@@ -94,7 +94,7 @@ describe("DappManager", function () {
         describe("Authorized Dapp", () => {
             describe("Calling Third party contracts", () => {
 
-                const targetState =  2;
+                const targetState = 2;
                 let registeredContract, dataToTransfer, setStateSignature;
 
                 beforeEach(async () => {

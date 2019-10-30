@@ -10,7 +10,7 @@ const { parseRelayReceipt } = require("../utils/utilities.js");
 describe("LockManager", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let owner = accounts[1].signer;
     let guardian1 = accounts[2].signer;

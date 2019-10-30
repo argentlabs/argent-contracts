@@ -17,7 +17,7 @@ const { parseRelayReceipt } = require("../utils/utilities.js");
 describe("Test Token Transfer", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     const owner1 = accounts[1].signer;
     const owner2 = accounts[2].signer;

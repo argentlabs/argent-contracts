@@ -13,26 +13,26 @@ npm install
 
 Install etherlime:
 ```
-npm install etherlime@0.10.4 -g
+npm install etherlime@2.2.4
 ```
 
 ## Compile
 
 Compile the contracts:
 ```
-etherlime compile
+npx etherlime compile --runs=200
 ```
 
 ## Test
 
 Launch ganache:
 ```
-etherlime ganache
+npx etherlime ganache --gasLimit=10700000 -e 10000
 ```
 
 Run the tests:
 ```
-etherlime test
+npx etherlime test --skip-compilation
 ```
 
 ## License

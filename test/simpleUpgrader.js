@@ -13,7 +13,7 @@ const IS_ONLY_OWNER_MODULE = keccak256(toUtf8Bytes("isOnlyOwnerModule()")).slice
 describe("Test SimpleUpgrader", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let owner = accounts[1].signer;
     let registry;
