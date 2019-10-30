@@ -39,7 +39,7 @@ contract CompoundRegistry is Owned {
      * @param _underlying The underlying asset.
      */
     function removeCToken(address _underlying) external onlyOwner {
-        require(cToken[_underlying].exists, "CR: cToken does not exists");
+        require(cToken[_underlying].exists, "CR: cToken does not exist");
         address last = tokens[tokens.length - 1];
         if(_underlying != last) {
             uint128 targetIndex = cToken[_underlying].index;
