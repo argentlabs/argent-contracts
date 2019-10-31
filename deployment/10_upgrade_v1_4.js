@@ -4,6 +4,7 @@ const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const LegacyUpgrader = require('../build/LegacySimpleUpgrader');
 const Upgrader = require('../build/SimpleUpgrader');
+const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 const utils = require('../utils/utilities.js');
 const DeployManager = require('../utils/deploy-manager.js');
@@ -45,11 +46,26 @@ const deploy = async (network) => {
 
     console.log('Config:', config);
 
+    ////////////////////////////////////////
+    // Deploy new infrastructure contracts
+    ///////////////////////////////////////
+
+    // Deploy TokenPriceProvider
+    const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, config.Kyber.contract);
+
+
+    ////////////////////////////////////
+    // Set new contracts' managers
+    ////////////////////////////////////
+
+    for (const account of config.backend.accounts) {
+        const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account);
+        await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx, `Set ${account} as the manager of the TokenPriceProvider`);
+    }
+
     ////////////////////////////////////
     // Deploy new modules
     ////////////////////////////////////
-
-    // TODO: Should deploy new Price Provider in the next iterations but keep current one for now until backend updates
 
     const TransferManagerWrapper = await deployer.deploy(
         TransferManager,
@@ -57,7 +73,7 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.TransferStorage,
         config.modules.GuardianStorage,
-        config.contracts.TokenPriceProvider,
+        TokenPriceProviderWrapper.contractAddress,
         config.settings.securityPeriod || 0,
         config.settings.securityWindow || 0,
         config.settings.defaultLimit || '1000000000000000000',
@@ -72,13 +88,17 @@ const deploy = async (network) => {
         config.modules.GuardianStorage
     );
     newModuleWrappers.push(ApprovedTransferWrapper);
+
     ///////////////////////////////////////////////////
-    // Update config and Upload new module ABIs
+    // Update config and Upload new contract ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
         TransferManager: TransferManagerWrapper.contractAddress,
         ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
+    });
+    configurator.updateInfrastructureAddresses({
+        TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -87,7 +107,8 @@ const deploy = async (network) => {
 
     await Promise.all([
         abiUploader.upload(TransferManagerWrapper, "modules"),
-        abiUploader.upload(ApprovedTransferWrapper, "modules")
+        abiUploader.upload(ApprovedTransferWrapper, "modules"),
+        abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
     ]);
 
     ////////////////////////////////////
