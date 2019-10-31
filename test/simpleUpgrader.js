@@ -95,14 +95,29 @@ describe("Test SimpleUpgrader", function () {
             await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("V1toV2"));
             // check that module V1 can be used to add the upgrader module
             useOnlyOwnerModule && assert.equal(await moduleV1.isOnlyOwnerModule(), IS_ONLY_OWNER_MODULE);
+
             // upgrade from V1 to V2
+            let txReceipt;
             const params = [wallet.contractAddress, upgrader.contractAddress]
             if (relayed) {
-                const txReceipt = await manager.relay(moduleV1, 'addModule', params, wallet, [owner]);
+                txReceipt = await manager.relay(moduleV1, 'addModule', params, wallet, [owner]);
                 assert.equal(txReceipt.events.find(e => e.event === 'TransactionExecuted').args.success, useOnlyOwnerModule, "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
             } else {
-                await moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 });
+                const tx = await moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 });
+                txReceipt = await moduleV1.verboseWaitForTransaction(tx);
             }
+
+            // test event ordering
+            const logs = utils.parseLogs(txReceipt, wallet, 'AuthorisedModule');
+            const upgraderAuthorisedLogIndex = logs.findIndex(e => e.module === upgrader.contractAddress && e.value === true);
+            const upgraderUnauthorisedLogIndex = logs.findIndex(e => e.module === upgrader.contractAddress && e.value === false);
+            if (!relayed || useOnlyOwnerModule) {
+                assert.isBelow(upgraderAuthorisedLogIndex, upgraderUnauthorisedLogIndex, "AuthorisedModule(upgrader, false) should come after AuthorisedModule(upgrader, true)");
+            } else {
+                assert.equal(upgraderUnauthorisedLogIndex, -1, "AuthorisedModule(upgrader, false) should not have been emitted");
+                assert.equal(upgraderAuthorisedLogIndex, -1, "AuthorisedModule(upgrader, true) should not have been emitted");
+            }
+
             // test if the upgrade worked
             let isV1Authorised = await wallet.authorised(moduleV1.contractAddress);
             let isV2Authorised = await wallet.authorised(moduleV2.contractAddress);
