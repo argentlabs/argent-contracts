@@ -1,6 +1,7 @@
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
+const MakerV2Manager = require('../build/MakerV2Manager');
 
 const utils = require('../utils/utilities.js');
 const DeployManager = require('../utils/deploy-manager.js');
@@ -8,7 +9,7 @@ const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
 const TARGET_VERSION = "1.5.0";
-const MODULES_TO_ENABLE = [];
+const MODULES_TO_ENABLE = ["MakerV2Manager"];
 const MODULES_TO_DISABLE = [];
 
 const BACKWARD_COMPATIBILITY = 3;
@@ -42,28 +43,31 @@ const deploy = async (network) => {
     // Deploy new modules
     ////////////////////////////////////
 
-    // const MyModuleWrapper = await deployer.deploy(
-    //     MyModule,
-    //     {},
-    //     ...
-    // );
-    // newModuleWrappers.push(MyModuleWrapper);
+    const MakerV2ManagerWrapper = await deployer.deploy(
+        MakerV2Manager,
+        {},
+        config.contracts.ModuleRegistry,
+        config.modules.GuardianStorage,
+        config.defi.maker.migration,
+        config.defi.maker.pot
+    );
+    newModuleWrappers.push(MakerV2ManagerWrapper);
 
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
-    // configurator.updateModuleAddresses({
-    //     MyModule: MyModuleWrapper.contractAddress
-    // });
+    configurator.updateModuleAddresses({
+        MakerV2Manager: MakerV2ManagerWrapper.contractAddress
+    });
 
-    // const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
-    // configurator.updateGitHash(gitHash);
-    // await configurator.save();
+    const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
+    configurator.updateGitHash(gitHash);
+    await configurator.save();
 
-    // await Promise.all([
-    //     abiUploader.upload(MyModuleWrapper, "modules")
-    // ]);
+    await Promise.all([
+        abiUploader.upload(MakerV2ManagerWrapper, "modules")
+    ]);
 
     ////////////////////////////////////
     // Register new modules
