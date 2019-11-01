@@ -3,9 +3,9 @@ const Registry = require("../build/ModuleRegistry");
 const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferModule = require("../build/TransferManager");
-const OldTransferModule = require("../build/TokenTransfer");
+const OldTransferModule = require("../build/LegacyTokenTransfer");
 const KyberNetwork = require("../build/KyberNetworkTest");
-const TokenPriceProvider = require("../build/TokenPriceProviderTest");
+const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require('../build/TestContract');
 

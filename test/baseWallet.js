@@ -1,5 +1,5 @@
 const Wallet = require('../build/BaseWallet');
-const OldWallet = require('../build/OldBaseWallet');
+const OldWallet = require('../build/LegacyBaseWallet');
 const Module = require('../build/TestModule');
 const OldTestModule = require('../build/OldTestModule');
 const NewTestModule = require('../build/NewTestModule');
