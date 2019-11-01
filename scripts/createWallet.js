@@ -50,7 +50,7 @@ async function main() {
         config.modules.ApprovedTransfer,
         config.modules.TransferManager,
         config.modules.TokenExchanger,
-        config.modules.DsrManager
+        config.modules.MakerV2Manager
     ];
     const tx = await (walletFactoryWrapper.from && walletFactoryWrapper.from(manager) || walletFactoryWrapper).createWallet(owner, modules, walletEns);
     const txReceipt = await walletFactoryWrapper.verboseWaitForTransaction(tx);

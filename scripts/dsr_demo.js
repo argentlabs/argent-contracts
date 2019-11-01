@@ -2,7 +2,7 @@
 // node scripts/dsr_demo.js [--to-dai 1.0] [--stake 10.0] [--unstake 5.0] [--unstake-all] [--to-sai 0.5] [--network kovan] [--wallet 0x62Da0Aca40650CB06361288FD0248Ad4eaB1d652]
 
 const DeployManager = require('../utils/deploy-manager.js');
-const DsrManager = require('../build/DsrManager');
+const MakerV2Manager = require('../build/MakerV2Manager');
 const DSToken = require('../build/DSToken');
 
 const { parseEther, formatEther } = require('ethers').utils;
@@ -40,14 +40,14 @@ async function main() {
     idx = process.argv.indexOf("--to-sai");
     const toSai = parseEther(idx > -1 ? process.argv[idx + 1] : '0');
 
-    const dsrManager = await deployer.wrapDeployedContract(DsrManager, config.modules.DsrManager);
-    const saiToken = await deployer.wrapDeployedContract(DSToken, await dsrManager.saiToken());
-    const daiToken = await deployer.wrapDeployedContract(DSToken, await dsrManager.daiToken());
+    const makerV2 = await deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
+    const saiToken = await deployer.wrapDeployedContract(DSToken, await makerV2.saiToken());
+    const daiToken = await deployer.wrapDeployedContract(DSToken, await makerV2.daiToken());
 
     async function printBalances() {
         let walletSai = await saiToken.balanceOf(walletAddress);
         let walletDai = await daiToken.balanceOf(walletAddress);
-        let invested = (await dsrManager.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
+        let invested = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
         console.log('Balances:')
         console.log('SAI in the wallet:', formatEther(walletSai));
         console.log('DAI in the wallet:', formatEther(walletDai));
@@ -59,8 +59,8 @@ async function main() {
 
     // Swap SAI to DAI
     if (toDai.gt(0)) {
-        await dsrManager.verboseWaitForTransaction(
-            await dsrManager.swapSaiToDai(walletAddress, toDai)
+        await makerV2.verboseWaitForTransaction(
+            await makerV2.swapSaiToDai(walletAddress, toDai)
         );
         console.log(`Converted ${formatEther(toDai)} SAI to DAI.`)
         await printBalances()
@@ -68,8 +68,8 @@ async function main() {
 
     // Send DAI to the Pot
     if (staked.gt(0)) {
-        await dsrManager.verboseWaitForTransaction(
-            await dsrManager.joinDsr(walletAddress, staked, { 'gasLimit': 1000000 })
+        await makerV2.verboseWaitForTransaction(
+            await makerV2.joinDsr(walletAddress, staked, { 'gasLimit': 1000000 })
         );
         console.log(`Sent ${formatEther(staked)} DAI to the Pot.`)
         await printBalances()
@@ -77,8 +77,8 @@ async function main() {
 
     // Remove DAI from the Pot
     if (unstaked.gt(0)) {
-        await dsrManager.verboseWaitForTransaction(
-            await dsrManager.exitDsr(walletAddress, unstaked, { 'gasLimit': 1000000 })
+        await makerV2.verboseWaitForTransaction(
+            await makerV2.exitDsr(walletAddress, unstaked, { 'gasLimit': 1000000 })
         );
         console.log(`Removed ${formatEther(unstaked)} DAI from the Pot.`)
         await printBalances()
@@ -86,8 +86,8 @@ async function main() {
 
     // Remove DAI from the Pot
     if (unstakeAll) {
-        await dsrManager.verboseWaitForTransaction(
-            await dsrManager.exitAllDsr(walletAddress, { 'gasLimit': 1000000 })
+        await makerV2.verboseWaitForTransaction(
+            await makerV2.exitAllDsr(walletAddress, { 'gasLimit': 1000000 })
         );
         console.log(`Removed all DAI from the Pot.`)
         await printBalances()
@@ -95,8 +95,8 @@ async function main() {
 
     // Swap DAI to SAI
     if (toSai.gt(0)) {
-        await dsrManager.verboseWaitForTransaction(
-            await dsrManager.swapDaiToSai(walletAddress, toSai)
+        await makerV2.verboseWaitForTransaction(
+            await makerV2.swapDaiToSai(walletAddress, toSai)
         );
         console.log(`Converted ${formatEther(toSai)} DAI to SAI.`)
         await printBalances()

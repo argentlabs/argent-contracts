@@ -84,7 +84,7 @@
         "TokenExchanger": "0xBE29E9569b4a40aaC421599F8F61394c03B1C918",
         "NftTransfer": "0xEcE4e5209BEfF3B5E3b77985A84674f08B74B90B",
         "MakerManager": "0x0E1499B090A8791Ec29a9656Fb85122fF8BCbD5e",
-        "DsrManager": "0x0a78ECd7db74B00C010177E930EA429F0C7e0242"
+        "MakerV2Manager": "0x0a78ECd7db74B00C010177E930EA429F0C7e0242"
     },
     "gitCommit": "bdc11b5bfd49bf37dd5ba4f77288a25f2271e9d5"
 }

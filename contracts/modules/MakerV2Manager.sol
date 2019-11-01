@@ -41,13 +41,13 @@ contract GemLike {
 }
 
 /**
- * @title NftTransfer
- * @dev Module to lock MCD DAI into Maker's Pot,
+ * @title MakerV2Manager
+ * @dev Module to convert SAI <-> DAI and lock/unlock MCD DAI into/from Maker's Pot,
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract DsrManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
+contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
 
-    bytes32 constant NAME = "DsrTransfer";
+    bytes32 constant NAME = "MakerV2Manager";
 
     // The Guardian storage
     GuardianStorage public guardianStorage;

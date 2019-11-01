@@ -40,7 +40,7 @@
         },
         {
             "address": "0x0a78ECd7db74B00C010177E930EA429F0C7e0242",
-            "name": "DsrManager"
+            "name": "MakerV2Manager"
         }
     ],
     "fingerprint": "0x86a9153a"
