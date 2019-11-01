@@ -11,11 +11,6 @@ Install requirements with npm:
 npm install
 ```
 
-Install etherlime:
-```
-npm install etherlime@2.2.4
-```
-
 ## Compile
 
 Compile the contracts:
