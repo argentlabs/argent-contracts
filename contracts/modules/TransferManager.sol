@@ -20,8 +20,6 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
 
     bytes32 constant NAME = "TransferManager";
 
-    bytes4 constant internal EXECUTE_PENDING_PREFIX = bytes4(keccak256("executePendingTransfer(address,address,address,uint256,bytes,uint256)"));
-
     bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
     bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
@@ -459,13 +457,5 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
             return false;
         }
         return true;
-    }
-
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) internal view returns (uint256) {
-        bytes4 methodId = functionPrefix(_data);
-        if (methodId == EXECUTE_PENDING_PREFIX) {
-            return 0;
-        }
-        return 1;
     }
 }
