@@ -36,13 +36,13 @@ contract SimpleUpgrader is BaseModule {
      */
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         uint256 i;
-        //remove old modules
-        for(; i < toDisable.length; i++) {
-            BaseWallet(_wallet).authoriseModule(toDisable[i], false);
-        }
         //add new modules
-        for(i = 0; i < toEnable.length; i++) {
+        for(; i < toEnable.length; i++) {
             BaseWallet(_wallet).authoriseModule(toEnable[i], true);
+        }
+        //remove old modules
+        for(i = 0; i < toDisable.length; i++) {
+            BaseWallet(_wallet).authoriseModule(toDisable[i], false);
         }
         // SimpleUpgrader did its job, we no longer need it as a module
         BaseWallet(_wallet).authoriseModule(address(this), false);

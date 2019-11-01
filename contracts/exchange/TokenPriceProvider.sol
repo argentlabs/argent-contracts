@@ -24,9 +24,9 @@ contract TokenPriceProvider is Managed {
         cachedPrices[address(_token)] = _price;
     }
 
-    function setPriceForTokenList(ERC20[] calldata tokens, uint256[] calldata _prices) external onlyManager {
-        for(uint16 i = 0; i < tokens.length; i++) {
-            setPrice(tokens[i], _prices[i]);
+    function setPriceForTokenList(ERC20[] calldata _tokens, uint256[] calldata _prices) external onlyManager {
+        for(uint16 i = 0; i < _tokens.length; i++) {
+            setPrice(_tokens[i], _prices[i]);
         }
     }
 
@@ -50,17 +50,17 @@ contract TokenPriceProvider is Managed {
         kyberNetwork = _kyberNetwork;
     }
 
-    function syncPrice(ERC20 token) external {
+    function syncPrice(ERC20 _token) external {
         require(address(kyberNetwork) != address(0), "Kyber sync is disabled");
-        (uint256 expectedRate,) = kyberNetwork.getExpectedRate(token, ERC20(ETH_TOKEN_ADDRESS), 10000);
-        cachedPrices[address(token)] = expectedRate;
+        (uint256 expectedRate,) = kyberNetwork.getExpectedRate(_token, ERC20(ETH_TOKEN_ADDRESS), 10000);
+        cachedPrices[address(_token)] = expectedRate;
     }
 
-    function syncPriceForTokenList(ERC20[] calldata tokens) external {
+    function syncPriceForTokenList(ERC20[] calldata _tokens) external {
         require(address(kyberNetwork) != address(0), "Kyber sync is disabled");
-        for(uint16 i = 0; i < tokens.length; i++) {
-            (uint256 expectedRate,) = kyberNetwork.getExpectedRate(tokens[i], ERC20(ETH_TOKEN_ADDRESS), 10000);
-            cachedPrices[address(tokens[i])] = expectedRate;
+        for(uint16 i = 0; i < _tokens.length; i++) {
+            (uint256 expectedRate,) = kyberNetwork.getExpectedRate(_tokens[i], ERC20(ETH_TOKEN_ADDRESS), 10000);
+            cachedPrices[address(_tokens[i])] = expectedRate;
         }
     }
 }

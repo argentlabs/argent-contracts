@@ -1,5 +1,5 @@
 const Wallet = require('../build/BaseWallet');
-const OldWallet = require('../build/OldBaseWallet');
+const OldWallet = require('../build/LegacyBaseWallet');
 const Module = require('../build/TestModule');
 const OldTestModule = require('../build/OldTestModule');
 const NewTestModule = require('../build/NewTestModule');
@@ -10,7 +10,7 @@ const TestManager = require("../utils/test-manager");
 describe("Test BaseWallet", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let owner = accounts[1].signer;
     let nonowner = accounts[2].signer;
@@ -77,8 +77,8 @@ describe("Test BaseWallet", function () {
     describe("New BaseWallet", () => {
         it("should work with old modules", async () => {
             await wallet.init(owner.address, [oldModule.contractAddress]);
-            await oldModule.callDapp(wallet.contractAddress);
-            await oldModule.callDapp2(wallet.contractAddress);
+            await oldModule.callDapp(wallet.contractAddress, { gasLimit: 500000 });
+            await oldModule.callDapp2(wallet.contractAddress, { gasLimit: 500000 });
         })
         it("should work with new modules", async () => {
             await wallet.init(owner.address, [newModule.contractAddress]);
@@ -91,7 +91,7 @@ describe("Test BaseWallet", function () {
             try {
                 await newModule.fail(wallet.contractAddress, reason);
             } catch (e) {
-                assert.isTrue(e.toString().includes(reason), "invalid reason message")
+                assert.isTrue(await manager.isRevertReason(e, reason), "invalid reason message");
             }
 
         })

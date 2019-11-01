@@ -3,9 +3,9 @@ const Registry = require("../build/ModuleRegistry");
 const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferModule = require("../build/TransferManager");
-const OldTransferModule = require("../build/TokenTransfer");
+const OldTransferModule = require("../build/LegacyTokenTransfer");
 const KyberNetwork = require("../build/KyberNetworkTest");
-const TokenPriceProvider = require("../build/TokenPriceProviderTest");
+const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require('../build/TestContract');
 
@@ -24,7 +24,7 @@ const TestManager = require("../utils/test-manager");
 describe("Test TransferManager", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let infrastructure = accounts[0].signer;
     let owner = accounts[1].signer;
@@ -87,7 +87,7 @@ describe("Test TransferManager", function () {
             // transfer some funds
             await previousTransferModule.from(owner).transferToken(existingWallet.contractAddress, ETH_TOKEN, recipient.address, 1000000, ZERO_BYTES32);
             // add new module
-            await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress);
+            await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress, { gasLimit: 500000 });
             // check result
             limit = await transferModule.getCurrentLimit(existingWallet.contractAddress);
             assert.equal(limit.toNumber(), 4000000, "limit should have been migrated");
@@ -193,7 +193,7 @@ describe("Test TransferManager", function () {
                 try {
                     await doDirectTransfer({ token: ETH_TOKEN, signer: nonowner, to: recipient, amount: 10000 });
                 } catch (error) {
-                    assert.ok(error.message.includes("must be an owner"));
+                    assert.ok(await manager.isRevertReason(error, "must be an owner"));
                 }
             });
             it('should calculate the daily unspent when the owner send ETH', async () => {
@@ -231,28 +231,28 @@ describe("Test TransferManager", function () {
                 try {
                     await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 1, relayed: false });
                 } catch (error) {
-                    assert.isTrue(error.toString().includes("outside of the execution window"), "should throw ")
+                    assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
                 }
             });
             it('should not execute a pending ETH transfer before the confirmation window (relayed)', async () => {
                 try {
                     await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 1, relayed: true });
                 } catch (error) {
-                    assert.isTrue(error.toString().includes("outside of the execution window"), "should throw ")
+                    assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
                 }
             });
             it('should not execute a pending ETH transfer after the confirmation window', async () => {
                 try {
                     await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 10, relayed: false });
                 } catch (error) {
-                    assert.isTrue(error.toString().includes("outside of the execution window"), "should throw ")
+                    assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
                 }
             });
             it('should not execute a pending ETH transfer after the confirmation window (relayed)', async () => {
                 try {
                     await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 10, relayed: true });
                 } catch (error) {
-                    assert.isTrue(error.toString().includes("outside of the execution window"), "should throw ")
+                    assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
                 }
             });
             it('should cancel a pending ETH transfer', async () => {
@@ -319,7 +319,7 @@ describe("Test TransferManager", function () {
             try {
                 await doDirectApprove({ signer: nonowner, amount: 10 });
             } catch (error) {
-                assert.ok(error.message.includes("must be an owner"));
+                assert.ok(await manager.isRevertReason(error, "must be an owner"));
             }
         });
         it('should appprove an ERC20 immediately when the spender is whitelisted ', async () => {
@@ -331,7 +331,7 @@ describe("Test TransferManager", function () {
             try {
                 await doDirectApprove({ amount: ETH_LIMIT + 10000 });
             } catch (error) {
-                assert.ok(error.message.includes("above daily limit"));
+                assert.ok(await manager.isRevertReason(error, "above daily limit"));
             }
         });
     });
@@ -380,7 +380,7 @@ describe("Test TransferManager", function () {
             try {
                 await doCallContract({ value: ETH_LIMIT + 10000, state: 6 });
             } catch (error) {
-                assert.ok(error.message.includes("above daily limit"));
+                assert.ok(await manager.isRevertReason(error, "above daily limit"));
             }
         });
     });

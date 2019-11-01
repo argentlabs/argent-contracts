@@ -1,18 +1,18 @@
 pragma solidity ^0.5.4;
-import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
-import "./common/LimitManager.sol";
-import "../exchange/TokenPriceProvider.sol";
-import "../storage/GuardianStorage.sol";
-import "../storage/TransferStorage.sol";
+import "../../wallet/BaseWallet.sol";
+import "../../modules/common/BaseModule.sol";
+import "../../modules/common/RelayerModule.sol";
+import "../../modules/common/LimitManager.sol";
+import "../../exchange/TokenPriceProvider.sol";
+import "../../storage/GuardianStorage.sol";
+import "../../storage/TransferStorage.sol";
 
 /**
- * @title TokenTransfer
- * @dev Module to transfer tokens (ETH or ERC20) based on a security context (daily limit, whitelist, etc).
+ * @title LegacyTokenTransfer
+ * @dev Legacy Module to transfer tokens (ETH or ERC20) based on a security context (daily limit, whitelist, etc).
  * @author Julien Niset - <julien@argent.im>
  */
-contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
+contract LegacyTokenTransfer is BaseModule, RelayerModule, LimitManager {
 
     bytes32 constant NAME = "TokenTransfer";
 

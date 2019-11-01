@@ -59,6 +59,7 @@ contract BaseWallet {
      */
     function authoriseModule(address _module, bool _value) external moduleOnly {
         if (authorised[_module] != _value) {
+            emit AuthorisedModule(_module, _value);
             if(_value == true) {
                 modules += 1;
                 authorised[_module] = true;
@@ -69,7 +70,6 @@ contract BaseWallet {
                 require(modules > 0, "BW: wallet must have at least one module");
                 delete authorised[_module];
             }
-            emit AuthorisedModule(_module, _value);
         }
     }
 

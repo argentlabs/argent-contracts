@@ -1,4 +1,6 @@
-const TransferManager = require('../build/TransferManager');
+const CompoundManager = require('../build/CompoundManager');
+const UniswapManager = require('../build/UniswapManager');
+const CompoundRegistry = require('../build/CompoundRegistry');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
@@ -9,9 +11,9 @@ const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
 const TARGET_VERSION = "1.3.0";
-const MODULES_TO_ENABLE = ["TransferManager"];
-const MODULES_TO_DISABLE = ["DappManager", "ModuleManager", "TokenTransfer"];
-const BACKWARD_COMPATIBILITY = 3;
+const MODULES_TO_ENABLE = ["CompoundManager", "UniswapManager"];
+const MODULES_TO_DISABLE = [];
+const BACKWARD_COMPATIBILITY = 2;
 
 const deploy = async (network) => {
 
@@ -39,31 +41,54 @@ const deploy = async (network) => {
     console.log('Config:', config);
 
     ////////////////////////////////////
+    // Deploy utility contracts
+    ////////////////////////////////////
+
+    const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
+
+    // configure Compound Registry
+    for (let underlying in config.defi.compound.markets) {
+        const cToken = config.defi.compound.markets[underlying];
+        const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
+        await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
+    }
+    const changeCompoundRegistryOwnerTx = await CompoundRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
+    await CompoundRegistryWrapper.verboseWaitForTransaction(changeCompoundRegistryOwnerTx, `Set the MultiSig as the owner of the CompoundRegistry`);
+
+    ////////////////////////////////////
     // Deploy new modules
     ////////////////////////////////////
 
-    // TODO: Should deploy new Price Provider in the next iterations but keep current one for now until backend updates
-
-    const TransferManagerWrapper = await deployer.deploy(
-        TransferManager,
+    const CompoundManagerWrapper = await deployer.deploy(
+        CompoundManager,
         {},
         config.contracts.ModuleRegistry,
-        config.modules.TransferStorage,
         config.modules.GuardianStorage,
-        config.contracts.TokenPriceProvider,
-        config.settings.securityPeriod || 0,
-        config.settings.securityWindow || 0,
-        config.settings.defaultLimit || '1000000000000000000',
-        config.modules.TokenTransfer
+        config.defi.compound.comptroller,
+        CompoundRegistryWrapper.contractAddress
     );
-    newModuleWrappers.push(TransferManagerWrapper);
+    newModuleWrappers.push(CompoundManagerWrapper);
+
+    const UniswapManagerWrapper = await deployer.deploy(
+        UniswapManager,
+        {},
+        config.contracts.ModuleRegistry,
+        config.modules.GuardianStorage,
+        config.defi.uniswap.factory
+    );
+    newModuleWrappers.push(UniswapManagerWrapper);
 
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        TransferManager: TransferManagerWrapper.contractAddress
+        CompoundManager: CompoundManagerWrapper.contractAddress,
+        UniswapManager: UniswapManagerWrapper.contractAddress
+    });
+
+    configurator.updateInfrastructureAddresses({
+        CompoundRegistry: CompoundRegistryWrapper.contractAddress
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -71,7 +96,9 @@ const deploy = async (network) => {
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(TransferManagerWrapper, "modules")
+        abiUploader.upload(CompoundManagerWrapper, "modules"),
+        abiUploader.upload(UniswapManagerWrapper, "modules"),
+        abiUploader.upload(CompoundRegistryWrapper, "contracts")
     ]);
 
     ////////////////////////////////////
@@ -87,14 +114,8 @@ const deploy = async (network) => {
     // Deploy and Register upgraders
     ////////////////////////////////////
 
-    const toAdd = newModuleWrappers.map((wrapper) => {
-        return {
-            'address': wrapper.contractAddress,
-            'name': wrapper._contract.contractName
-        };
-    });
-    let fingerprint;
 
+    let fingerprint;
     const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
     for (let idx = 0; idx < versions.length; idx++) {
         const version = versions[idx];
