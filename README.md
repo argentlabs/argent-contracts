@@ -15,19 +15,19 @@ npm install
 
 Compile the contracts:
 ```
-npx etherlime compile --runs=200
+npm run compile
 ```
 
 ## Test
 
 Launch ganache:
 ```
-npx etherlime ganache --gasLimit=10700000 -e 10000
+npm run ganache
 ```
 
 Run the tests:
 ```
-npx etherlime test --skip-compilation
+npm run test
 ```
 
 ## License
