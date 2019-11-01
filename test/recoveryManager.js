@@ -11,7 +11,7 @@ const { sortWalletByAddress, parseRelayReceipt } = require("../utils/utilities.j
 describe("RecoveryManager", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let owner = accounts[1].signer;
     let guardian1 = accounts[2].signer;
@@ -26,8 +26,8 @@ describe("RecoveryManager", function () {
         const registry = await deployer.deploy(Registry);
         const guardianStorage = await deployer.deploy(GuardianStorage);
         guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-        lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24*5);
-        recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24*5);
+        lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
+        recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
         wallet = await deployer.deploy(Wallet);
         await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
     });
@@ -35,13 +35,13 @@ describe("RecoveryManager", function () {
     async function addGuardians(guardians) {
         // guardians can be Wallet or ContractWrapper objects
         let guardianAddresses = guardians.map(guardian => {
-            if(guardian.address)
+            if (guardian.address)
                 return guardian.address;
             return guardian.contractAddress;
         });
 
         for (const address of guardianAddresses) {
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, address);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, address, { gasLimit: 500000 });
         }
 
         await manager.increaseTime(30);
@@ -54,7 +54,7 @@ describe("RecoveryManager", function () {
 
     async function createSmartContractGuardians(guardians) {
         const wallets = []
-        for(g of guardians) {
+        for (g of guardians) {
             const wallet = await deployer.deploy(Wallet);
             await wallet.init(g.address, [guardianManager.contractAddress]);
             wallets.push(wallet)
@@ -64,14 +64,14 @@ describe("RecoveryManager", function () {
 
     function testExecuteRecovery(guardians) {
         it("should let a majority of guardians execute the recovery procedure (relayed transaction)", async () => {
-            let majority = guardians.slice(0, Math.ceil( (guardians.length + 1)/2 ) );
+            let majority = guardians.slice(0, Math.ceil((guardians.length + 1) / 2));
             await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress(majority));
             const isLocked = await lockManager.isLocked(wallet.contractAddress);
             assert.isTrue(isLocked, "should be locked by recovery");
         });
 
         it("should not let a minority of guardians execute the recovery procedure (relayed transaction)", async () => {
-            let minority = guardians.slice(0, Math.ceil( (guardians.length + 1)/2 ) - 1 );
+            let minority = guardians.slice(0, Math.ceil((guardians.length + 1) / 2) - 1);
             let txReceipt = await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress(minority));
             const success = parseRelayReceipt(txReceipt);
             assert.isNotOk(success, "executeRecovery should fail");

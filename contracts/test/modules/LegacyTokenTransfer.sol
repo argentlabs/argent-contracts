@@ -1,18 +1,18 @@
 pragma solidity ^0.5.4;
-import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
-import "./common/LimitManager.sol";
-import "../exchange/TokenPriceProvider.sol";
-import "../storage/GuardianStorage.sol";
-import "../storage/TransferStorage.sol";
+import "../../wallet/BaseWallet.sol";
+import "../../modules/common/BaseModule.sol";
+import "../../modules/common/RelayerModule.sol";
+import "../../modules/common/LimitManager.sol";
+import "../../exchange/TokenPriceProvider.sol";
+import "../../storage/GuardianStorage.sol";
+import "../../storage/TransferStorage.sol";
 
 /**
- * @title TokenTransfer
- * @dev Module to transfer tokens (ETH or ERC20) based on a security context (daily limit, whitelist, etc).
+ * @title LegacyTokenTransfer
+ * @dev Legacy Module to transfer tokens (ETH or ERC20) based on a security context (daily limit, whitelist, etc).
  * @author Julien Niset - <julien@argent.im>
  */
-contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
+contract LegacyTokenTransfer is BaseModule, RelayerModule, LimitManager {
 
     bytes32 constant NAME = "TokenTransfer";
 
@@ -48,7 +48,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
 
     // *************** Events *************************** //
 
-    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);    
+    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event PendingTransferCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter, address token, address to, uint256 amount, bytes data);
@@ -70,16 +70,16 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
 
     constructor(
         ModuleRegistry _registry,
-        TransferStorage _transferStorage, 
-        GuardianStorage _guardianStorage, 
+        TransferStorage _transferStorage,
+        GuardianStorage _guardianStorage,
         address _priceProvider,
         uint256 _securityPeriod,
-        uint256 _securityWindow, 
+        uint256 _securityWindow,
         uint256 _defaultLimit
-    ) 
+    )
         BaseModule(_registry, NAME)
         LimitManager(_defaultLimit)
-        public 
+        public
     {
         transferStorage = _transferStorage;
         guardianStorage = _guardianStorage;
@@ -99,14 +99,14 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     * @param _data The data for the transaction
     */
     function transferToken(
-        BaseWallet _wallet, 
-        address _token, 
-        address _to, 
-        uint256 _amount, 
+        BaseWallet _wallet,
+        address _token,
+        address _to,
+        uint256 _amount,
         bytes calldata _data
     ) 
-        external 
-        onlyWalletOwner(_wallet) 
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if(isWhitelisted(_wallet, _to)) {
@@ -127,7 +127,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
                 }
                 // eth transfer above the limit
                 else {
-                    addPendingTransfer(_wallet, ETH_TOKEN, _to, _amount, _data); 
+                    addPendingTransfer(_wallet, ETH_TOKEN, _to, _amount, _data);
                 }
             }
             else {
@@ -150,11 +150,11 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
      * @param _target The address to add.
      */
     function addToWhitelist(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _target
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
@@ -165,16 +165,16 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-     * @dev Removes an address from the whitelist of a wallet. 
+     * @dev Removes an address from the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
     function removeFromWhitelist(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _target
-    ) 
-        external 
-        onlyWalletOwner(_wallet) 
+    )
+        external
+        onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(isWhitelisted(_wallet, _target), "TT: target not whitelisted");
@@ -183,24 +183,24 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-    * @dev Executes a pending transfer for a wallet. 
+    * @dev Executes a pending transfer for a wallet.
     * The destination address is automatically added to the whitelist.
     * The method can be called by anyone to enable orchestration.
     * @param _wallet The target wallet.
-    * @param _token The token of the pending transfer. 
+    * @param _token The token of the pending transfer.
     * @param _to The destination address of the pending transfer.
     * @param _amount The amount of token to transfer of the pending transfer.
     * @param _block The block at which the pending transfer was created.
     */
     function executePendingTransfer(
         BaseWallet _wallet,
-        address _token, 
-        address _to, 
-        uint _amount, 
+        address _token,
+        address _to,
+        uint _amount,
         bytes memory _data,
-        uint _block 
-    ) 
-        public 
+        uint _block
+    )
+        public
         onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(_token, _to, _amount, _data, _block));
@@ -218,17 +218,17 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-    * @dev Cancels a pending transfer for a wallet. 
+    * @dev Cancels a pending transfer for a wallet.
     * @param _wallet The target wallet.
-    * @param _id the pending transfer Id. 
+    * @param _id the pending transfer Id.
     */
     function cancelPendingTransfer(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _id
-    ) 
-        public 
-        onlyWalletOwner(_wallet) 
-        onlyWhenUnlocked(_wallet) 
+    )
+        public
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(configs[address(_wallet)].pendingTransfers[_id] > 0, "TT: unknown pending transfer");
         removePendingTransfer(_wallet, _id);
@@ -236,7 +236,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     }
 
     /**
-     * @dev Lets the owner of a wallet change its global limit. 
+     * @dev Lets the owner of a wallet change its global limit.
      * The limit is expressed in ETH. Changes to the limit take 24 hours.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
@@ -257,7 +257,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     /**
     * @dev Checks if an address is whitelisted for a wallet.
     * @param _wallet The target wallet.
-    * @param _target The address. 
+    * @param _target The address.
     * @return true if the address is whitelisted.
     */
     function isWhitelisted(BaseWallet _wallet, address _target) public view returns (bool _isWhitelisted) {
@@ -334,7 +334,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     // Overrides refund to add the refund in the daily limit.
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
         // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
-        uint256 amount = 36616 + _gasUsed; 
+        uint256 amount = 36616 + _gasUsed;
         if(_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
             if(_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
@@ -350,7 +350,7 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     // Overrides verifyRefund to add the refund in the daily limit.
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
         if(_gasPrice > 0 && _signatures > 0 && (
-            address(_wallet).balance < _gasUsed * _gasPrice 
+            address(_wallet).balance < _gasUsed * _gasPrice
             || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
             || _wallet.authorised(address(_wallet)) == false
         ))
@@ -361,16 +361,25 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     }
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory /* _data */,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
         address signer = recoverSigner(_signHash, _signatures, 0);
         return isOwner(_wallet, signer); // "TT: signer must be owner"
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_PENDING_PREFIX) {
             return 0;

@@ -6,9 +6,6 @@ const GuardianManager = require('../build/GuardianManager');
 const TokenExchanger = require('../build/TokenExchanger');
 const LockManager = require('../build/LockManager');
 const RecoveryManager = require('../build/RecoveryManager');
-const TokenTransfer = require('../build/TokenTransfer');
-const ApprovedTransfer = require('../build/ApprovedTransfer');
-const DappManager = require('../build/DappManager');
 
 const DeployManager = require('../utils/deploy-manager.js');
 
@@ -66,34 +63,6 @@ const deploy = async (network, secret) => {
         GuardianStorageWrapper.contractAddress,
         config.settings.recoveryPeriod || 0,
         config.settings.lockPeriod || 0);
-    // Deploy the ApprovedTransfer module
-    const ApprovedTransferWrapper = await deployer.deploy(
-        ApprovedTransfer,
-        {},
-        config.contracts.ModuleRegistry,
-        GuardianStorageWrapper.contractAddress);
-    // Deploy the TokenTransfer module
-    const TokenTransferWrapper = await deployer.deploy(
-        TokenTransfer,
-        {},
-        config.contracts.ModuleRegistry,
-        TransferStorageWrapper.contractAddress,
-        GuardianStorageWrapper.contractAddress,
-        config.contracts.TokenPriceProvider,
-        config.settings.securityPeriod || 0,
-        config.settings.securityWindow || 0,
-        config.settings.defaultLimit || '1000000000000000000');
-    // Deploy the DappManager module
-    const DappManagerWrapper = await deployer.deploy(
-        DappManager,
-        {},
-        config.contracts.ModuleRegistry,
-        config.contracts.DappRegistry,
-        DappStorageWrapper.contractAddress,
-        GuardianStorageWrapper.contractAddress,
-        config.settings.securityPeriod || 0,
-        config.settings.securityWindow || 0,
-        config.settings.defaultLimit || '1000000000000000000');
     // Deploy the TokenExchanger module
     const TokenExchangerWrapper = await deployer.deploy(
         TokenExchanger,
@@ -115,9 +84,6 @@ const deploy = async (network, secret) => {
         GuardianManager: GuardianManagerWrapper.contractAddress,
         LockManager: LockManagerWrapper.contractAddress,
         RecoveryManager: RecoveryManagerWrapper.contractAddress,
-        ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
-        TokenTransfer: TokenTransferWrapper.contractAddress,
-        DappManager: DappManagerWrapper.contractAddress,
         TokenExchanger: TokenExchangerWrapper.contractAddress
     });
 
@@ -133,9 +99,6 @@ const deploy = async (network, secret) => {
         abiUploader.upload(GuardianManagerWrapper, "modules"),
         abiUploader.upload(LockManagerWrapper, "modules"),
         abiUploader.upload(RecoveryManagerWrapper, "modules"),
-        abiUploader.upload(ApprovedTransferWrapper, "modules"),
-        abiUploader.upload(TokenTransferWrapper, "modules"),
-        abiUploader.upload(DappManagerWrapper, "modules"),
         abiUploader.upload(TokenExchangerWrapper, "modules")
     ]);
 

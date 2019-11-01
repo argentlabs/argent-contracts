@@ -12,7 +12,7 @@ const { parseEther, bigNumberify } = require('ethers').utils;
 describe("Invest Manager with Uniswap", function () {
     this.timeout(1000000);
 
-    const manager = new TestManager(accounts, 'ganache');
+    const manager = new TestManager();
 
     let infrastructure = accounts[0].signer;
     let owner = accounts[1].signer;

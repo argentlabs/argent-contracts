@@ -11,28 +11,23 @@ Install requirements with npm:
 npm install
 ```
 
-Install etherlime:
-```
-npm install etherlime@0.10.4 -g
-```
-
 ## Compile
 
 Compile the contracts:
 ```
-etherlime compile
+npm run compile
 ```
 
 ## Test
 
 Launch ganache:
 ```
-etherlime ganache
+npm run ganache
 ```
 
 Run the tests:
 ```
-etherlime test
+npm run test
 ```
 
 ## License

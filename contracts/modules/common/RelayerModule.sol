@@ -63,9 +63,9 @@ contract RelayerModule is Module {
     */
     function execute(
         BaseWallet _wallet,
-        bytes calldata _data, 
-        uint256 _nonce, 
-        bytes calldata _signatures, 
+        bytes calldata _data,
+        uint256 _nonce,
+        bytes calldata _signatures,
         uint256 _gasPrice,
         uint256 _gasLimit
     )
@@ -86,7 +86,7 @@ contract RelayerModule is Module {
                 }
             }
         }
-        emit TransactionExecuted(address(_wallet), success, signHash); 
+        emit TransactionExecuted(address(_wallet), success, signHash);
     }
 
     /**
@@ -109,16 +109,16 @@ contract RelayerModule is Module {
     */
     function getSignHash(
         address _from,
-        address _to, 
-        uint256 _value, 
-        bytes memory _data, 
+        address _to,
+        uint256 _value,
+        bytes memory _data,
         uint256 _nonce,
         uint256 _gasPrice,
         uint256 _gasLimit
-    ) 
-        internal 
+    )
+        internal
         pure
-        returns (bytes32) 
+        returns (bytes32)
     {
         return keccak256(
             abi.encodePacked(
@@ -142,7 +142,7 @@ contract RelayerModule is Module {
     }
 
     /**
-    * @dev Checks that a nonce has the correct format and is valid. 
+    * @dev Checks that a nonce has the correct format and is valid.
     * It must be constructed as nonce = {block number}{timestamp} where each component is 16 bytes.
     * @param _wallet The target wallet.
     * @param _nonce The nonce
@@ -150,13 +150,13 @@ contract RelayerModule is Module {
     function checkAndUpdateNonce(BaseWallet _wallet, uint256 _nonce) internal returns (bool) {
         if(_nonce <= relayer[address(_wallet)].nonce) {
             return false;
-        }   
+        }
         uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
         if(nonceBlock > block.number + BLOCKBOUND) {
             return false;
         }
         relayer[address(_wallet)].nonce = _nonce;
-        return true;    
+        return true;
     }
 
     /**
@@ -178,7 +178,7 @@ contract RelayerModule is Module {
             s := mload(add(_signatures, add(0x40,mul(0x41,_index))))
             v := and(mload(add(_signatures, add(0x41,mul(0x41,_index)))), 0xff)
         }
-        require(v == 27 || v == 28); 
+        require(v == 27 || v == 28);
         return ecrecover(_signedHash, v, r, s);
     }
 
@@ -213,8 +213,8 @@ contract RelayerModule is Module {
     * @param _gasPrice The expected gas price for the refund.
     */
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if(_gasPrice > 0 
-            && _signatures > 1 
+        if(_gasPrice > 0
+            && _signatures > 1
             && (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(address(this)) == false)) {
             return false;
         }
@@ -238,7 +238,7 @@ contract RelayerModule is Module {
     }
 
     /**
-    * @dev Parses the data to extract the method signature. 
+    * @dev Parses the data to extract the method signature.
     */
     function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
         require(_data.length >= 4, "RM: Invalid functionPrefix");

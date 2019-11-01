@@ -1,26 +1,26 @@
 pragma solidity ^0.5.4;
 
 /**
- * @title OldBaseWallet
+ * @title LegacyBaseWallet
  * @dev Simple modular wallet that authorises modules to call its invoke() method.
  * Based on https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 by
  * @author Julien Niset - <julien@argent.im>
  */
 
- interface OldModule {
+ interface LegacyModule {
 
     /**
      * @dev Inits a module for a wallet by e.g. setting some wallet specific parameters in storage.
      * @param _wallet The wallet.
      */
-    function init(OldBaseWallet _wallet) external;
+    function init(LegacyBaseWallet _wallet) external;
 
     /**
      * @dev Adds a module to a wallet.
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(OldBaseWallet _wallet, OldModule _module) external;
+    function addModule(LegacyBaseWallet _wallet, LegacyModule _module) external;
 
     /**
     * @dev Utility method to recover any ERC20 token that was sent to the
@@ -30,7 +30,7 @@ pragma solidity ^0.5.4;
     function recoverToken(address _token) external;
 }
 
-contract OldBaseWallet {
+contract LegacyBaseWallet {
 
     // The implementation of the proxy
     address public implementation;
@@ -70,7 +70,7 @@ contract OldBaseWallet {
         for(uint256 i = 0; i < _modules.length; i++) {
             require(authorised[_modules[i]] == false, "BW: module is already added");
             authorised[_modules[i]] = true;
-            OldModule(_modules[i]).init(this);
+            LegacyModule(_modules[i]).init(this);
             emit AuthorisedModule(_modules[i], true);
         }
     }
@@ -85,7 +85,7 @@ contract OldBaseWallet {
             if(_value == true) {
                 modules += 1;
                 authorised[_module] = true;
-                OldModule(_module).init(this);
+                LegacyModule(_module).init(this);
             }
             else {
                 modules -= 1;

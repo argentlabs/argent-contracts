@@ -14,7 +14,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 describe("Test Wallet Factory", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let infrastructure = accounts[0].signer;
     let owner = accounts[1].signer;

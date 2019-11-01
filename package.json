@@ -6,7 +6,10 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "npx etherlime compile --runs=200",
+    "ganache": "npx etherlime ganache --gasLimit=10700000 -e 10000",
+    "test": "npx etherlime test --skip-compilation",
+    "ctest": "npm run compile && npm run test"
   },
   "repository": {
     "type": "git",
@@ -20,16 +23,18 @@
   "homepage": "https://github.com/argentlabs/argent-contracts#readme",
   "dependencies": {
     "ajv": "^6.10.0",
-    "aws-sdk": "^2.423.0",
+    "aws-sdk": "^2.521.0",
+    "bip39": "^3.0.2",
     "cli-table2": "^0.2.0",
     "dotenv": "^6.2.0",
+    "ethereumjs-wallet": "^0.6.3",
+    "etherlime": "^2.2.4",
     "etherlime-lib": "^1.1.3",
     "ethers": "^4.0.28",
     "node-fetch": "^2.3.0",
+    "openzeppelin-solidity": "^2.2.0",
+    "ps-node": "^0.1.6",
     "solc": "0.5.4",
     "tinyreq": "^3.4.1"
-  },
-  "devDependencies": {
-    "openzeppelin-solidity": "^2.2.0"
   }
 }

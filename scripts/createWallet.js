@@ -48,8 +48,7 @@ async function main() {
         config.modules.LockManager,
         config.modules.RecoveryManager,
         config.modules.ApprovedTransfer,
-        config.modules.TokenTransfer,
-        config.modules.DappManager,
+        config.modules.TransferManager,
         config.modules.TokenExchanger,
         config.modules.DsrManager
     ];
