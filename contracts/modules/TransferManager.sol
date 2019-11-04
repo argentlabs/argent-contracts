@@ -235,9 +235,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         onlyWhenUnlocked(_wallet)
     {
         // Make sure we don't call a module, the wallet itself, or an ERC20 method
-        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "TM: Forbidden contract");
-        bytes4 methodId = functionPrefix(_data);
-        require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
+        authoriseContractCall(_wallet, _contract, _data);
 
         if(isWhitelisted(_wallet, _contract)) {
             // call to whitelist
@@ -247,6 +245,52 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
             require(checkAndUpdateDailySpent(_wallet, _value), "TM: Call contract above daily limit");
             // call under the limit
             doCallContract(_wallet, _contract, _value, _data);
+        }
+    }
+
+    /**
+    * @dev lets the owner do an ERC20 approve followed by a call to a contract.
+    * We assume that the contract will pull the tokens and does not require ETH.
+    * @param _wallet The target wallet.
+    * @param _token The token to approve.
+    * @param _contract The address of the contract.
+    * @param _amount The amount of ERC20 tokens to approve.
+    * @param _data The encoded method data
+    */
+    function approveTokenAndCallContract(
+        BaseWallet _wallet,
+        address _token,
+        address _contract,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        // Make sure we don't call a module, the wallet itself, or an ERC20 method
+        authoriseContractCall(_wallet, _contract, _data);
+
+        if(isWhitelisted(_wallet, _contract)) {
+            doApproveToken(_wallet, _token, _contract, _amount);
+            doCallContract(_wallet, _contract, 0, _data);
+        }
+        else {
+            // get current alowance
+            uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _contract);
+            if(_amount <= currentAllowance) {
+                // no need to approve more
+                doCallContract(_wallet, _contract, 0, _data);
+            }
+            else {
+                // check if delta is under the limit
+                uint delta = _amount - currentAllowance;
+                uint256 deltaInEth = priceProvider.getEtherValue(delta, _token);
+                require(checkAndUpdateDailySpent(_wallet, deltaInEth), "TM: Approve above daily limit");
+                // approve if under the limit
+                doApproveToken(_wallet, _token, _contract, _amount);
+                doCallContract(_wallet, _contract, 0, _data);
+            }
         }
     }
 
@@ -400,7 +444,6 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
 
     // *************** Internal Functions ********************* //
 
-
     /**
      * @dev Creates a new pending action for a wallet.
      * @param _action The target action.
@@ -426,6 +469,18 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         require(configs[address(_wallet)].pendingActions[id] == 0, "TM: duplicate pending action");
         executeAfter = now.add(securityPeriod);
         configs[address(_wallet)].pendingActions[id] = executeAfter;
+    }
+
+    /**
+    * @dev Make sure a contract call is not trying to call a module, the wallet itself, or an ERC20 method.
+    * @param _wallet The target wallet.
+    * @param _contract The address of the contract.
+    * @param _data The encoded method data
+     */
+    function authoriseContractCall(BaseWallet _wallet, address _contract, bytes memory _data) internal view {
+        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "TM: Forbidden contract");
+        bytes4 methodId = functionPrefix(_data);
+        require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
     }
 
     // *************** Implementation of RelayerModule methods ********************* //

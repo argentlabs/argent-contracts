@@ -213,7 +213,7 @@ describe("Test TransferManager", function () {
             });
         });
 
-        describe("Large token transfers ", () => {
+        describe("Large token transfers ", () => { 
 
             it('should create and execute a pending ETH transfer', async () => {
                 await doPendingTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: false });
@@ -336,7 +336,7 @@ describe("Test TransferManager", function () {
         });
     });
 
-    describe("Call contract", () => {
+    describe("Call contract", () => { 
 
         let contract, dataToTransfer;
 
@@ -379,6 +379,58 @@ describe("Test TransferManager", function () {
         it('should fail to call a contract and transfer ETH when the amount is above the daily limit ', async () => {
             try {
                 await doCallContract({ value: ETH_LIMIT + 10000, state: 6 });
+            } catch (error) {
+                assert.ok(await manager.isRevertReason(error, "above daily limit"));
+            }
+        });
+    });
+
+    describe("Approve token and Call contract", () => {
+
+        let contract, dataToTransfer;
+
+        beforeEach(async () => {
+            contract = await deployer.deploy(TestContract);
+            assert.equal(await contract.state(), 0, "initial contract state should be 0");
+        });
+
+        async function doApproveTokenAndCallContract({ signer = owner, amount, state, relayed = false }) {
+            dataToTransfer = contract.contract.interface.functions['setStateAndPayToken'].encode([state, erc20.contractAddress, amount]);
+            let unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
+            const params = [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amount, dataToTransfer];
+            let txReceipt;
+            if (relayed) {
+                txReceipt = await manager.relay(transferModule, 'approveTokenAndCallContract', params, wallet, [signer]);
+            } else {
+                const tx = await transferModule.from(signer).approveTokenAndCallContract(...params);
+                txReceipt = await transferModule.verboseWaitForTransaction(tx);
+            }
+            assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "CalledContract"), "should have generated CalledContract event");
+            let unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
+            let amountInEth = await priceProvider.getEtherValue(amount, erc20.contractAddress);
+            if (amountInEth < ETH_LIMIT) {
+                assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, 'should have updated the daily limit');
+            }
+            assert.equal((await contract.state()).toNumber(), state, 'the state of the external contract should have been changed');
+            let erc20Balance = await erc20.balanceOf(contract.contractAddress);
+            assert.equal(erc20Balance.toNumber(), amount, 'the contract should have transfered the tokens');
+            return txReceipt;
+        }
+
+        it('should approve the token and call the contract when under the limit', async () => {
+            await doApproveTokenAndCallContract({ amount: 10, state: 3 });
+        });
+        it('should approve the token and call the contract when under the limit (relayed) ', async () => {
+            await doApproveTokenAndCallContract({ amount: 10, state: 3, relayed: true });
+        });
+        it('should approve the token and call the contract when the token is above the limit and the contract is whitelisted ', async () => {
+            await transferModule.from(owner).addToWhitelist(wallet.contractAddress, contract.contractAddress);
+            await manager.increaseTime(3);
+            await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6 });
+        });
+        it('should fail to approve the token and call the contract when the token is above the daily limit ', async () => {
+            try {
+                await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6 });
             } catch (error) {
                 assert.ok(await manager.isRevertReason(error, "above daily limit"));
             }
