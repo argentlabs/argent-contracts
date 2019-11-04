@@ -250,6 +250,44 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         }
     }
 
+    function approveTokenAndCallContract(
+        BaseWallet _wallet,
+        address _token,
+        address _contract,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "TM: Forbidden contract");
+        bytes4 methodId = functionPrefix(_data);
+        require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
+
+        if(isWhitelisted(_wallet, _contract)) {
+            doApproveToken(_wallet, _token, _contract, _amount);
+            doCallContract(_wallet, _contract, 0, _data);
+        }
+        else {
+            // get current alowance
+            uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _contract);
+            if(_amount <= currentAllowance) {
+                // no need to approve more
+                doCallContract(_wallet, _contract, 0, _data);
+            }
+            else {
+                // check if delta is under the limit
+                uint delta = _amount - currentAllowance;
+                uint256 deltaInEth = priceProvider.getEtherValue(delta, _token);
+                require(checkAndUpdateDailySpent(_wallet, deltaInEth), "TM: Approve above daily limit");
+                // approve if under the limit
+                doApproveToken(_wallet, _token, _contract, _amount);
+                doCallContract(_wallet, _contract, 0, _data);
+            }
+        }
+    }
+
     /**
      * @dev Adds an address to the whitelist of a wallet.
      * @param _wallet The target wallet.
