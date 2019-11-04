@@ -73,7 +73,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
         onlyExecute
         onlyWhenUnlocked(_wallet)
     {
-        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "TM: Forbidden contract");
+        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "AT: Forbidden contract");
         doCallContract(_wallet, _contract, _value, _data);
     }
 
