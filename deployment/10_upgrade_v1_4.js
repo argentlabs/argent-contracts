@@ -16,12 +16,12 @@ const MODULES_TO_ENABLE = ["TransferManager", "ApprovedTransfer"];
 const MODULES_TO_DISABLE = ["DappManager", "TokenTransfer", "ModuleManager"];
 
 
-const BACKWARD_COMPATIBILITY = 3;
+const BACKWARD_COMPATIBILITY = 4;
 
 const deploy = async (network) => {
 
     // Note (for test, staging and prod): this upgrade still uses the legacy upgrade mechanism (using the ModuleManager). 
-    // For the next update, we will be able to use TransferManager's addModule method for the upgrade
+    // For the next update, we will be able to use TransferManager's addModule method to update the most recent version to the new version
 
     const newModuleWrappers = [];
     const newVersion = {};

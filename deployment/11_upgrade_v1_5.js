@@ -12,7 +12,7 @@ const TARGET_VERSION = "1.5.0";
 const MODULES_TO_ENABLE = ["MakerV2Manager"];
 const MODULES_TO_DISABLE = [];
 
-const BACKWARD_COMPATIBILITY = 3;
+const BACKWARD_COMPATIBILITY = 5;
 
 const deploy = async (network) => {
 

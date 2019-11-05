@@ -13,7 +13,7 @@ const semver = require('semver');
 const TARGET_VERSION = "1.3.0";
 const MODULES_TO_ENABLE = ["CompoundManager", "UniswapManager"];
 const MODULES_TO_DISABLE = [];
-const BACKWARD_COMPATIBILITY = 2;
+const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {
 
