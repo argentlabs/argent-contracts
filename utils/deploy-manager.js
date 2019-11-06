@@ -1,5 +1,6 @@
-require("dotenv").config();
-const etherlime = require("etherlime-lib");
+require('dotenv').config();
+const etherlime = require('etherlime-lib');
+const { Wallet } = require('ethers')
 const path = require("path");
 
 const Configurator = require("./configurator.js");
@@ -40,28 +41,29 @@ class DeployManager {
     // deployer
     if (config.settings.deployer.type === "ganache") {
       this.deployer = new etherlime.EtherlimeGanacheDeployer();
-
-      // this need to be tested
       const account = await this.deployer.signer.getAddress();
       this.configurator.updateBackendAccounts([account]);
       this.configurator.updateMultisigOwner([account]);
     } else {
       let pkey;
-      if (config.settings.privateKey.type === "plain") {
-        const { options } = config.settings.privateKey;
-        pkey = options.value;
-      } else if (config.settings.privateKey.type === "s3") {
-        const { options } = config.settings.privateKey;
+      if (config.settings.privateKey.type === 'plain') {
+        const { value, envvar } = config.settings.privateKey.options;
+        pkey = value || process.env[envvar];
+        if (!config.multisig.owners || config.multisig.owners.length === 0) {
+            this.configurator.updateMultisigOwner([new Wallet("0x" + pkey).address]);
+        }
+      } else if (config.settings.privateKey.type === 's3') {
+        const options = config.settings.privateKey.options;
         const pkeyLoader = new PrivateKeyLoader(options.bucket, options.key);
         pkey = await pkeyLoader.fetch();
       }
 
-      if (config.settings.deployer.type === "infura") {
-        const { options } = config.settings.deployer;
-        this.deployer = new etherlime.InfuraPrivateKeyDeployer(pkey, options.network, options.key, defaultConfigs);
-      } else if (config.settings.deployer.type === "jsonrpc") {
-        const { options } = config.settings.deployer;
-        this.deployer = new etherlime.JSONRPCPrivateKeyDeployer(pkey, options.url, defaultConfigs);
+      if (config.settings.deployer.type === 'infura') {
+        const { network, key, envvar } = config.settings.deployer.options;
+        this.deployer = new etherlime.InfuraPrivateKeyDeployer(pkey, network, key || process.env[envvar], defaultConfigs);
+      } else if (config.settings.deployer.type === 'jsonrpc') {
+        const { url } = config.settings.deployer.options;
+        this.deployer = new etherlime.JSONRPCPrivateKeyDeployer(pkey, url, defaultConfigs);
       }
     }
 

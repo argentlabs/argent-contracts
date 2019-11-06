@@ -1,5 +1,5 @@
 // Example Usage:
-// node createWallet.js --network dev --ens john --owner 0x10391442e6ca847151372b6c7cbcc1fd06afda86
+// node scripts/createWallet.js --network kovan --ens john --owner 0x10391442e6ca847151372b6c7cbcc1fd06afda86
 
 const WalletFactory = require("../build/WalletFactory");
 const MultiSigWallet = require("../build/MultiSigWallet");

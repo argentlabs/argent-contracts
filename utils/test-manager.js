@@ -12,7 +12,8 @@ const USE_ETHERLIME_GANACHE_MNEMONIC = true;
 
 // this is the same mnemonic as that used by ganache-cli --deterministic
 // this mnemonic will not be used if `USE_ETHERLIME_GANACHE_MNEMONIC` is set to `true`
-const MNEMONIC = "myth like bonus scare over problem client lizard pioneer submit female collect";
+const MNEMONIC =
+  "myth like bonus scare over problem client lizard pioneer submit female collect";
 
 class TestManager {
   constructor(_accounts = null, network = "ganache") {
@@ -23,19 +24,25 @@ class TestManager {
     this.provider = this.deployer.provider;
   }
 
-  loadAccounts() { // eslint-disable-line class-methods-use-this
+  loadAccounts() {
+    // eslint-disable-line class-methods-use-this
     if (USE_ETHERLIME_GANACHE_MNEMONIC) return global.accounts;
 
     // ignore (global) accounts loaded from cli-commands/ganache/setup.json
     // and instead generate accounts matching those used by ganache-cli in determistic mode
     const hdWallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MNEMONIC));
-    const localNodeProvider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+    const localNodeProvider = new ethers.providers.JsonRpcProvider(
+      "http://localhost:8545"
+    );
     accounts = []; // eslint-disable-line no-global-assign
     for (let i = 0; i < 10; i += 1) {
-      const privKey = hdWallet.derivePath(`m/44'/60'/0'/0/${i}`).getWallet().getPrivateKeyString();
+      const privKey = hdWallet
+        .derivePath(`m/44'/60'/0'/0/${i}`)
+        .getWallet()
+        .getPrivateKeyString();
       accounts.push({
         secretKey: privKey,
-        signer: new ethers.Wallet(privKey, localNodeProvider),
+        signer: new ethers.Wallet(privKey, localNodeProvider)
       });
     }
     return accounts;
@@ -46,9 +53,14 @@ class TestManager {
       const defaultConfigs = {
         gasPrice: 20000000000,
         gasLimit: 4700000,
-        chainId: 3,
+        chainId: 3
       };
-      return new etherlime.InfuraPrivateKeyDeployer(this.accounts[0].signer.privateKey, "ropsten", APIKEY, defaultConfigs);
+      return new etherlime.InfuraPrivateKeyDeployer(
+        this.accounts[0].signer.privateKey,
+        "ropsten",
+        APIKEY,
+        defaultConfigs
+      );
     }
     return new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey);
   }
@@ -65,41 +77,56 @@ class TestManager {
 
   async getNonceForRelay() {
     const block = await this.provider.getBlockNumber();
-    const timestamp = (new Date()).getTime();
-    return `0x${ethers.utils.hexZeroPad(ethers.utils.hexlify(block), 16)
-      .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
+    const timestamp = new Date().getTime();
+    return `0x${ethers.utils
+      .hexZeroPad(ethers.utils.hexlify(block), 16)
+      .slice(2)}${ethers.utils
+      .hexZeroPad(ethers.utils.hexlify(timestamp), 16)
+      .slice(2)}`;
   }
 
   async relay(_target, _method, _params, _wallet, _signers, _relayer = this.accounts[9].signer, _estimate = false, _gasLimit = 2000000, _nonce) {
     const nonce = _nonce || await this.getNonceForRelay();
     const methodData = _target.contract.interface.functions[_method].encode(_params);
     const signatures = await signOffchain(_signers, _target.contractAddress, _wallet.contractAddress, 0, methodData, nonce, 0, _gasLimit);
+    const targetFrom = (_target.from && _target.from(_relayer)) || _target;
     if (_estimate === true) {
-      const gasUsed = await _target.from(_relayer).estimate.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit);
+      const gasUsed = await targetFrom.estimate.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit);
       return gasUsed;
     }
-    const tx = await _target.from(_relayer).execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit, { gasLimit: _gasLimit });
+    const tx = await targetFrom.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit, { gasLimit: _gasLimit });
     const txReceipt = await _target.verboseWaitForTransaction(tx);
     return txReceipt;
   }
-
 
   async increaseTime(seconds) {
     await this.provider.send("evm_increaseTime", seconds);
     await this.provider.send("evm_mine");
   }
 
-  async runningEtherlimeGanache() { // eslint-disable-line class-methods-use-this
-    return new Promise((res) => {
-      ps.lookup({
-        command: "node",
-        psargs: "ux",
-        arguments: "ganache",
-      }, (err, processes) => {
-        const runningEthGanache = !err && processes.reduce((etherlimeGanacheFound, p) => etherlimeGanacheFound
-        || (p.command + p.arguments.join("-")).includes("etherlime-ganache"), false);
-        return res(runningEthGanache);
-      });
+  async runningEtherlimeGanache() {
+    // eslint-disable-line class-methods-use-this
+    return new Promise(res => {
+      ps.lookup(
+        {
+          command: "node",
+          psargs: "ux",
+          arguments: "ganache"
+        },
+        (err, processes) => {
+          const runningEthGanache =
+            !err &&
+            processes.reduce(
+              (etherlimeGanacheFound, p) =>
+                etherlimeGanacheFound ||
+                (p.command + p.arguments.join("-")).includes(
+                  "etherlime-ganache"
+                ),
+              false
+            );
+          return res(runningEthGanache);
+        }
+      );
     });
   }
 

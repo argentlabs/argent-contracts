@@ -13,7 +13,7 @@ const TokenPriceProvider = require("../build/TokenPriceProvider");
 const utils = require("../utils/utilities.js");
 
 const TARGET_VERSION = "1.6.0";
-const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager"];
+const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager", "MakerV2Manager"];
 const MODULES_TO_DISABLE = ["UniswapManager"];
 
 const BACKWARD_COMPATIBILITY = 3;
@@ -51,7 +51,6 @@ const deploy = async (network) => {
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
   );
-
   newModuleWrappers.push(ApprovedTransferWrapper);
 
   const RecoveryManagerWrapper = await deployer.deploy(
@@ -64,8 +63,17 @@ const deploy = async (network) => {
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
   );
-
   newModuleWrappers.push(RecoveryManagerWrapper);
+
+  const MakerV2ManagerWrapper = await deployer.deploy(
+    MakerV2Manager,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.defi.maker.migration,
+    config.defi.maker.pot
+  );
+  newModuleWrappers.push(MakerV2ManagerWrapper);
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -74,6 +82,7 @@ const deploy = async (network) => {
   configurator.updateModuleAddresses({
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     RecoveryManager: RecoveryManagerWrapper.contractAddress,
+    MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -83,6 +92,7 @@ const deploy = async (network) => {
   await Promise.all([
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(RecoveryManagerWrapper, "modules"),
+    abiUploader.upload(MakerV2ManagerWrapper, "modules"),
   ]);
 
   // //////////////////////////////////
