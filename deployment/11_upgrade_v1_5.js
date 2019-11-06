@@ -122,7 +122,7 @@ const deploy = async (network) => {
         const upgraderName = version.fingerprint + '_' + fingerprint;
 
         let UpgraderWrapper;
-        if (idx > 0 && ['test', 'staging', 'prod'].includes(network)) {
+        if (version.modules.map(m => m.name).includes('ModuleManager')) {
             // make sure ModuleManager is always the last to be removed if it needs to be removed
             toRemove.push(toRemove.splice(toRemove.findIndex(({ name }) => name === 'ModuleManager'), 1)[0]);
             // this is an "old-style" Upgrader (to be used with ModuleManager)
