@@ -119,6 +119,7 @@ const deploy = async (network) => {
             toRemove = version.modules.filter(module => !newVersion.modules.map(m => m.address).includes(module.address));
         }
 
+        const upgraderName = version.fingerprint + '_' + fingerprint;
 
         let UpgraderWrapper;
         if (idx > 0 && ['test', 'staging', 'prod'].includes(network)) {

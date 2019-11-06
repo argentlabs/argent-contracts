@@ -72,11 +72,12 @@ class TestManager {
         const nonce = await this.getNonceForRelay();
         const methodData = _target.contract.interface.functions[_method].encode(_params);
         const signatures = await signOffchain(_signers, _target.contractAddress, _wallet.contractAddress, 0, methodData, nonce, 0, _gasLimit);
+        const targetFrom = (_target.from && _target.from(_relayer)) || _target;
         if (_estimate === true) {
-            const gasUsed = await _target.from(_relayer).estimate.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit);
+            const gasUsed = await targetFrom.estimate.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit);
             return gasUsed;
         }
-        const tx = await _target.from(_relayer).execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit, { gasLimit: _gasLimit });
+        const tx = await targetFrom.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit, { gasLimit: _gasLimit });
         const txReceipt = await _target.verboseWaitForTransaction(tx);
         return txReceipt;
     }
@@ -103,9 +104,9 @@ class TestManager {
 
     async isRevertReason(error, reason) {
         const runningEthGanache = await this.runningEtherlimeGanache();
-                // by default, we match the error with a generic "revert" keyword
-                // but if we are running etherlime ganache (and not e.g. ganache-cli), 
-                    // we can match the error with the exact reason message
+        // by default, we match the error with a generic "revert" keyword
+        // but if we are running etherlime ganache (and not e.g. ganache-cli), 
+        // we can match the error with the exact reason message
         const expectedReason = runningEthGanache ? reason : "revert";
         return (error.message || error.toString()).includes(expectedReason);
     }
