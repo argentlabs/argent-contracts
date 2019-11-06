@@ -27,6 +27,9 @@ bin
 *.sh
 utils/config/*.json
 !utils/config/ganache.json
+!utils/config/fuse.include.json
+
+!scripts/*.sh
 
 ## Etherlime
 **/.etherlime-store
