@@ -43,16 +43,16 @@ async function main() {
   // Create Wallet
   console.log("Creating new wallet...");
   const modules = [
-    config.modules.GuardianManager,
-    config.modules.LockManager,
-    config.modules.RecoveryManager,
-    config.modules.ApprovedTransfer,
-    config.modules.TransferManager,
-    config.modules.TokenExchanger,
-    config.modules.MakerV2Manager,
-  ];
+    'GuardianManager',
+    'LockManager',
+    'RecoveryManager',
+    'ApprovedTransfer',
+    'TransferManager',
+    'TokenExchanger',
+    'MakerV2Manager'
+  ].map(name => config.modules[name]).filter(x => x);
   const tx = await ((walletFactoryWrapper.from && walletFactoryWrapper.from(manager))
-   || walletFactoryWrapper).createWallet(owner, modules, walletEns);
+    || walletFactoryWrapper).createWallet(owner, modules, walletEns);
   const txReceipt = await walletFactoryWrapper.verboseWaitForTransaction(tx);
   const walletAddress = txReceipt.events.find((log) => log.event === "WalletCreated").args._wallet;
   console.log(`New wallet ${walletEns}.${config.ENS.domain} successfully created at address ${walletAddress} for owner ${owner}.`);
