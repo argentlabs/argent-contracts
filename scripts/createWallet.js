@@ -50,6 +50,7 @@ async function main() {
         config.modules.ApprovedTransfer,
         config.modules.TransferManager,
         config.modules.TokenExchanger,
+        config.modules.CommunityManager
         // config.modules.MakerV2Manager
     ];
     try {

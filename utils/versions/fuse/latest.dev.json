@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.4.1",
   "createdAt": 1573037830,
   "modules": [
     {
@@ -41,6 +41,10 @@
     {
       "address": "0x04E92d2ffBb51d53379b4754b3b92f879838902A",
       "name": "ApprovedTransfer"
+    },
+    {
+      "address": "0x42616C787e3D75aC29b9dCAB35131b585Eaa9837",
+      "name": "CommunityManager"
     }
   ],
   "fingerprint": "0xcd4d3699"

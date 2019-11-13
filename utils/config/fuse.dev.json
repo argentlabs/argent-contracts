@@ -91,7 +91,8 @@
     "MakerV2Manager": "0x0a78ECd7db74B00C010177E930EA429F0C7e0242",
     "CompoundManager": "0x2B2972E40261c335EaB47C176c94681785289280",
     "UniswapManager": "0x88F552609e96a7413f76E5992065043E49c2d8D3",
-    "TransferManager": "0x8527a2d3d5aC0411933d663b4dcE275a5b7f39D8"
+    "TransferManager": "0x8527a2d3d5aC0411933d663b4dcE275a5b7f39D8",
+    "CommunityManager": "0x42616C787e3D75aC29b9dCAB35131b585Eaa9837"
   },
-  "gitCommit": "11bcf028073edd44272c335e09660880322ec3f5"
+  "gitCommit": "199f2da4e72415d2f9f456584d89b4a12e9dfd17"
 }
