@@ -18,27 +18,18 @@ pragma solidity ^0.5.4;
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
+import "./storage/GuardianStorage.sol";
 import "../../lib/utils/SafeMath.sol";
+import "../defi/Loan.sol";
 import "../defi/Invest.sol";
+import "../infrastructure/MakerRegistry.sol";
 
-contract VatLike {
-    function can(address, address) public view returns (uint);
-    function dai(address) public view returns (uint);
-    function hope(address) public;
-}
-
-contract JoinLike {
-    function gem() public returns (GemLike);
-    function dai() public returns (GemLike);
-    function join(address, uint) public;
-    function exit(address, uint) public;
-    VatLike public vat;
-}
-
-contract PotLike {
-    function chi() public view returns (uint);
-    function pie(address) public view returns (uint);
-    function drip() public;
+contract ManagerLike {
+    function urns(uint) public view returns (address);
+    function open(bytes32, address) public returns (uint);
+    function frob(uint, int, int) public;
+    function give(uint, address) public;
+    function move(uint, address, uint) public;
 }
 
 contract ScdMcdMigration {
@@ -47,19 +38,22 @@ contract ScdMcdMigration {
     JoinLike public saiJoin;
     JoinLike public wethJoin;
     JoinLike public daiJoin;
+    ManagerLike public cdpManager;
 }
 
-contract GemLike {
-    function balanceOf(address) public view returns (uint);
-    function transferFrom(address, address, uint) public returns (bool);
+contract PotLike {
+    function chi() public view returns (uint);
+    function pie(address) public view returns (uint);
+    function drip() public;
 }
 
 /**
  * @title MakerV2Manager
- * @dev Module to convert SAI <-> DAI and lock/unlock MCD DAI into/from Maker's Pot,
+ * @dev Module to convert SAI <-> DAI, lock/unlock MCD DAI into/from Maker's Pot,
+ * migrate old CDPs and open and manage new CDPs.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
+contract MakerV2Manager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "MakerV2Manager";
 
@@ -67,6 +61,8 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
     GemLike public saiToken;
     // The address of the (MCD) DAI token
     GemLike public daiToken;
+    // The address of the WETH token
+    GemLike public wethToken;
     // The address of the SAI <-> DAI migration contract
     address public scdMcdMigration;
     // The address of the Pot
@@ -75,9 +71,19 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
     JoinLike public daiJoin;
     // The address of the Vat
     VatLike public vat;
+    // The address of the CDP Manager
+    ManagerLike public cdpManager;
+    // The Maker Registry in which all supported collateral tokens and their adapters are stored
+    MakerRegistry public makerRegistry;
+
+    // Mock token address for ETH
+    address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // Method signatures to reduce gas cost at depoyment
     bytes4 constant internal ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
+    bytes4 constant internal ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
+    bytes4 constant internal WETH_DEPOSIT = bytes4(keccak256("deposit()"));
+    bytes4 constant internal WETH_WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
     bytes4 constant internal SWAP_SAI_DAI = bytes4(keccak256("swapSaiToDai(uint256)"));
     bytes4 constant internal SWAP_DAI_SAI = bytes4(keccak256("swapDaiToSai(uint256)"));
     bytes4 constant internal ADAPTER_JOIN = bytes4(keccak256("join(address,uint256)"));
@@ -100,20 +106,58 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         ScdMcdMigration _scdMcdMigration,
-        PotLike _pot
+        PotLike _pot,
+        MakerRegistry _makerRegistry
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
         scdMcdMigration = address(_scdMcdMigration);
         saiToken = _scdMcdMigration.saiJoin().gem();
+        wethToken = _scdMcdMigration.wethJoin().gem();
         daiJoin = _scdMcdMigration.daiJoin();
         vat = daiJoin.vat();
         daiToken = daiJoin.dai();
+        cdpManager = _scdMcdMigration.cdpManager();
         pot = _pot;
+        makerRegistry = _makerRegistry;
+        // Authorize daiJoin to exit DAI from the module's internal balance in the vat
+        vat.hope(address(daiJoin));
     }
 
     // *************** External/Public Functions ********************* //
+
+    /* ********************************** Implementation of Loan ************************************* */
+
+   /**
+     * @dev Opens a collateralized loan.
+     * @param _wallet The target wallet.
+     * @param _collateral The token used as a collateral.
+     * @param _collateralAmount The amount of collateral token provided.
+     * @param _debtToken The token borrowed (must be the address of the DAI contract).
+     * @param _debtAmount The amount of tokens borrowed.
+     * @return The ID of the created CDP.
+     */
+    function openLoan(
+        BaseWallet _wallet,
+        address _collateral,
+        uint256 _collateralAmount,
+        address _debtToken,
+        uint256 _debtAmount
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+        returns (bytes32 _loanId)
+    {
+        if(_collateral != ETH_TOKEN_ADDRESS) {
+            (bool collateralSupported,,,) = makerRegistry.collaterals(_collateral);
+            require(collateralSupported, "MV2: collateral not supported");
+        }
+        require(_debtToken == address(daiToken), "MV2: debt token must be DAI");
+        _loanId = bytes32(openCdp(_wallet, _collateral, _collateralAmount, _debtAmount));
+        emit LoanOpened(address(_wallet), _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
+    }
 
     /* ********************************** Implementation of Invest ************************************* */
 
@@ -153,8 +197,8 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
     )
         external
     {
-        require(_token == address(daiToken), "DM: token should be DAI");
-        require(_fraction <= 10000, "DM: invalid fraction value");
+        require(_token == address(daiToken), "MV2: token should be DAI");
+        require(_fraction <= 10000, "MV2: invalid fraction value");
         exitDsr(_wallet, dsrBalance(_wallet).mul(_fraction) / 10000);
         emit InvestmentRemoved(address(_wallet), _token, _fraction);
     }
@@ -269,6 +313,8 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSelector(ADAPTER_EXIT, address(_wallet), withdrawn));
     }
 
+    /* **************************************** SAI <> DAI Conversion **************************************** */
+
     /**
     * @dev lets the owner convert SCD SAI into MCD DAI.
     * @param _wallet The target wallet.
@@ -282,7 +328,7 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        require(saiToken.balanceOf(address(_wallet)) >= _amount, "DM: insufficient SAI");
+        require(saiToken.balanceOf(address(_wallet)) >= _amount, "MV2: insufficient SAI");
         invokeWallet(address(_wallet), address(saiToken), 0, abi.encodeWithSelector(ERC20_APPROVE, scdMcdMigration, _amount));
         invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSelector(SWAP_SAI_DAI, _amount));
         emit TokenConverted(address(_wallet), address(saiToken), _amount, address(daiToken), _amount);
@@ -301,9 +347,62 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        require(daiToken.balanceOf(address(_wallet)) >= _amount, "DM: insufficient DAI");
+        require(daiToken.balanceOf(address(_wallet)) >= _amount, "MV2: insufficient DAI");
         invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSelector(ERC20_APPROVE, scdMcdMigration, _amount));
         invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSelector(SWAP_DAI_SAI, _amount));
         emit TokenConverted(address(_wallet), address(daiToken), _amount, address(saiToken), _amount);
     }
+
+    /* ********************************************* CDPs ********************************************* */
+
+    function toInt(uint x) internal pure returns (int y) {
+        y = int(x);
+        require(y >= 0, "int-overflow");
+    }
+
+     /**
+     * @dev Lets the owner of a wallet open a new CDP. The owner must have enough collateral
+     * in their wallet.
+     * @param _wallet The target wallet
+     * @param _collateral The token to use as collateral in the CDP.
+     * @param _collateralAmount The amount of collateral to lock in the CDP.
+     * @param _daiDebt The amount of DAI to draw from the CDP
+     * @return The id of the created CDP.
+     */
+     // solium-disable-next-line security/no-assign-params
+    function openCdp(
+        BaseWallet _wallet,
+        address _collateral,
+        uint256 _collateralAmount,
+        uint256 _daiDebt
+    )
+        internal
+        returns (uint256 _cdpId)
+    {
+        if(_collateral == ETH_TOKEN_ADDRESS) {
+            // Convert ETH to WETH
+            invokeWallet(address(_wallet), address(wethToken), _collateralAmount, abi.encodeWithSelector(WETH_DEPOSIT));
+            // Continue with WETH as collateral instead of ETH
+            _collateral = address(wethToken);
+        }
+        // Get the adapter and ilk for the collateral
+        (JoinLike gemJoin, bytes32 ilk) = makerRegistry.getCollateral(_collateral);
+        // Open a CDP (the CDP owner will effectively be the module)
+        _cdpId = cdpManager.open(ilk, address(this));
+        // Send the collateral to the module
+        invokeWallet(address(_wallet), _collateral, 0, abi.encodeWithSelector(ERC20_TRANSFER, address(this), _collateralAmount));
+        // Approve the adapter to transfer the collateral from the module to itself
+        GemLike(_collateral).approve(address(gemJoin), _collateralAmount);
+        // Join collateral to the adapter. The first argument to `join` is the address that *technically* owns the CDP
+        gemJoin.join(cdpManager.urns(_cdpId), _collateralAmount);
+        // Get the accumulated rate for the collateral type
+        (, uint rate,,,) = vat.ilks(ilk);
+        // Lock the collateral and draw the debt. To avoid rounding issues we add an extra wei of debt
+        cdpManager.frob(_cdpId, toInt(_collateralAmount), toInt(_daiDebt.mul(RAY).div(rate) + 1));
+        // Transfer the (internal) DAI debt from the cdp's urn to the module.
+        cdpManager.move(_cdpId, address(this), _daiDebt.mul(RAY));
+        // Mint the DAI token and exit it to the user's wallet
+        daiJoin.exit(address(_wallet), _daiDebt);
+    }
+
 }
