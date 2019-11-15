@@ -10,15 +10,15 @@ import "../defi/Loan.sol";
 import "../defi/Invest.sol";
 import "../defi/utils/CompoundRegistry.sol";
 
-interface Comptroller {
+interface IComptroller {
     function enterMarkets(address[] calldata _cTokens) external returns (uint[] memory);
     function exitMarket(address _cToken) external returns (uint);
     function getAssetsIn(address _account) external view returns (address[] memory);
     function getAccountLiquidity(address _account) external view returns (uint, uint, uint);
-    function checkMembership(address account, CToken cToken) external view returns (bool);
+    function checkMembership(address account, ICToken cToken) external view returns (bool);
 }
 
-interface CToken {
+interface ICToken {
     function comptroller() external view returns (address);
     function underlying() external view returns (address);
     function symbol() external view returns (string memory);
@@ -40,8 +40,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
 
     // The Guardian storage contract
     GuardianStorage public guardianStorage;
-    // The Compound Comptroller contract
-    Comptroller public comptroller;
+    // The Compound IComptroller contract
+    IComptroller public comptroller;
     // The registry mapping underlying with cTokens
     CompoundRegistry public compoundRegistry;
 
@@ -62,7 +62,7 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
     constructor(
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
-        Comptroller _comptroller,
+        IComptroller _comptroller,
         CompoundRegistry _compoundRegistry
     )
         BaseModule(_registry, NAME)
@@ -121,10 +121,10 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         address[] memory markets = comptroller.getAssetsIn(address(_wallet));
         for(uint i = 0; i < markets.length; i++) {
             address cToken = markets[i];
-            uint debt = CToken(cToken).borrowBalanceCurrent(address(_wallet));
+            uint debt = ICToken(cToken).borrowBalanceCurrent(address(_wallet));
             if(debt > 0) {
                 repayBorrow(_wallet, cToken, debt);
-                uint collateral = CToken(cToken).balanceOf(address(_wallet));
+                uint collateral = ICToken(cToken).balanceOf(address(_wallet));
                 if(collateral == 0) {
                     _wallet.invoke(address(comptroller), 0, abi.encodeWithSignature("exitMarket(address)", address(cToken)));
                 }
@@ -295,7 +295,7 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
     {
         require(_fraction <= 10000, "CompoundV2: invalid fraction value");
         address cToken = compoundRegistry.getCToken(_token);
-        uint shares = CToken(cToken).balanceOf(address(_wallet));
+        uint shares = ICToken(cToken).balanceOf(address(_wallet));
         redeem(_wallet, cToken, shares.mul(_fraction).div(10000));
         emit InvestmentRemoved(address(_wallet), _token, _fraction);
     }
@@ -315,8 +315,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         returns (uint256 _tokenValue, uint256 _periodEnd)
     {
         address cToken = compoundRegistry.getCToken(_token);
-        uint amount = CToken(cToken).balanceOf(address(_wallet));
-        uint exchangeRateMantissa = CToken(cToken).exchangeRateStored();
+        uint amount = ICToken(cToken).balanceOf(address(_wallet));
+        uint exchangeRateMantissa = ICToken(cToken).exchangeRateStored();
         _tokenValue = amount.mul(exchangeRateMantissa).div(10 ** 18);
         _periodEnd = 0;
     }
@@ -387,12 +387,12 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
     function repayBorrow(BaseWallet _wallet, address _cToken, uint256 _amount) internal {
         require(_cToken != address(0), "Compound: No market for target token");
         require(_amount > 0, "Compound: amount cannot be 0");
-        string memory symbol = CToken(_cToken).symbol();
+        string memory symbol = ICToken(_cToken).symbol();
         if(keccak256(abi.encodePacked(symbol)) == keccak256(abi.encodePacked("cETH"))) {
             _wallet.invoke(_cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
         }
         else {
-            address token = CToken(_cToken).underlying();
+            address token = ICToken(_cToken).underlying();
             _wallet.invoke(token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
             _wallet.invoke(_cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
         }
@@ -405,7 +405,7 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _comptroller The comptroller contract.
      */
     function enterMarketIfNeeded(BaseWallet _wallet, address _cToken, address _comptroller) internal {
-        bool isEntered = Comptroller(_comptroller).checkMembership(address(_wallet), CToken(_cToken));
+        bool isEntered = IComptroller(_comptroller).checkMembership(address(_wallet), ICToken(_cToken));
         if(!isEntered) {
             address[] memory market = new address[](1);
             market[0] = _cToken;
@@ -420,8 +420,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _comptroller The comptroller contract.
      */
     function exitMarketIfNeeded(BaseWallet _wallet, address _cToken, address _comptroller) internal {
-        uint collateral = CToken(_cToken).balanceOf(address(_wallet));
-        uint debt = CToken(_cToken).borrowBalanceStored(address(_wallet));
+        uint collateral = ICToken(_cToken).balanceOf(address(_wallet));
+        uint debt = ICToken(_cToken).borrowBalanceStored(address(_wallet));
         if(collateral == 0 && debt == 0) {
             _wallet.invoke(_comptroller, 0, abi.encodeWithSignature("exitMarket(address)", _cToken));
         }

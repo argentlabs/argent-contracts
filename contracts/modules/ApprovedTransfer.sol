@@ -16,8 +16,6 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     // The Guardian storage
     GuardianStorage internal guardianStorage;
 

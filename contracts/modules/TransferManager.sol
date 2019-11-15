@@ -25,14 +25,9 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
     bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
-    bytes constant internal EMPTY_BYTES = "";
-
     enum ActionType { Transfer }
 
     using SafeMath for uint256;
-
-    // Mock token address for ETH
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     struct TokenManagerConfig {
         // Mapping between pending action hash and their timestamp

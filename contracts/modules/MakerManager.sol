@@ -53,11 +53,11 @@ interface IDSValue {
     function void() external;
 } 
 
-interface UniswapFactory {
+interface IUniswapFactory {
     function getExchange(address _token) external view returns(address);
 }
 
-interface UniswapExchange {
+interface IUniswapExchange {
     function getEthToTokenOutputPrice(uint256 _tokens_bought) external view returns (uint256);
     function getEthToTokenInputPrice(uint256 _eth_sold) external view returns (uint256);
     function getTokenToEthOutputPrice(uint256 _eth_bought) external view returns (uint256);
@@ -79,7 +79,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     // The Maker Tub contract
     IMakerCdp public makerCdp;
     // The Uniswap Factory contract
-    UniswapFactory public uniswapFactory;
+    IUniswapFactory public uniswapFactory;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -114,7 +114,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         IMakerCdp _makerCdp,
-        UniswapFactory _uniswapFactory
+        IUniswapFactory _uniswapFactory
     )
         BaseModule(_registry, NAME)
         public
@@ -391,7 +391,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         bytes32 _cup,
         uint256 _amount,
         IMakerCdp _makerCdp,
-        UniswapFactory _uniswapFactory
+        IUniswapFactory _uniswapFactory
     )
         internal
     {
@@ -405,7 +405,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         if (mkrBalance < mkrFee) {
             // Not enough MKR => Convert some ETH into MKR with Uniswap
             address mkrUniswap = _uniswapFactory.getExchange(mkrToken);
-            uint256 etherValueOfMKR = UniswapExchange(mkrUniswap).getEthToTokenOutputPrice(mkrFee - mkrBalance);
+            uint256 etherValueOfMKR = IUniswapExchange(mkrUniswap).getEthToTokenOutputPrice(mkrFee - mkrBalance);
             invokeWallet(_wallet, mkrUniswap, etherValueOfMKR, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee - mkrBalance, block.timestamp));
         }
         
@@ -415,7 +415,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         if (daiBalance < _amount) {
             // Not enough DAI => Convert some ETH into DAI with Uniswap
             address daiUniswap = _uniswapFactory.getExchange(daiToken);
-            uint256 etherValueOfDAI = UniswapExchange(daiUniswap).getEthToTokenOutputPrice(_amount - daiBalance);
+            uint256 etherValueOfDAI = IUniswapExchange(daiUniswap).getEthToTokenOutputPrice(_amount - daiBalance);
             invokeWallet(_wallet, daiUniswap, etherValueOfDAI, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, _amount - daiBalance, block.timestamp));
         }
 
@@ -439,7 +439,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         BaseWallet _wallet,
         bytes32 _cup,
         IMakerCdp _makerCdp,
-        UniswapFactory _uniswapFactory
+        IUniswapFactory _uniswapFactory
     )
         internal
     {
