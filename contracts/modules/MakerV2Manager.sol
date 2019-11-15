@@ -75,6 +75,8 @@ contract MakerV2Manager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMod
     ManagerLike public cdpManager;
     // The Maker Registry in which all supported collateral tokens and their adapters are stored
     MakerRegistry public makerRegistry;
+    // Mapping loadId -> wallet
+    mapping(bytes32 => BaseWallet) public cdpOwners;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -150,13 +152,57 @@ contract MakerV2Manager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMod
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
-        if(_collateral != ETH_TOKEN_ADDRESS) {
-            (bool collateralSupported,,,) = makerRegistry.collaterals(_collateral);
-            require(collateralSupported, "MV2: collateral not supported");
-        }
+        verifySupportedCollateral(_collateral);
         require(_debtToken == address(daiToken), "MV2: debt token must be DAI");
         _loanId = bytes32(openCdp(_wallet, _collateral, _collateralAmount, _debtAmount));
+        cdpOwners[_loanId] = _wallet;
         emit LoanOpened(address(_wallet), _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
+    }
+
+    /**
+     * @dev Adds collateral to a loan identified by its ID.
+     * @param _wallet The target wallet.
+     * @param _loanId The ID of the target CDP.
+     * @param _collateral The token used as a collateral.
+     * @param _collateralAmount The amount of collateral to add.
+     */
+    function addCollateral(
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _collateral,
+        uint256 _collateralAmount
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        verifyAuthorizedLoanId(_loanId, _wallet);
+        verifySupportedCollateral(_collateral);
+        addCollateral(_wallet, uint256(_loanId), _collateral, _collateralAmount);
+        emit CollateralAdded(address(_wallet), _loanId, _collateral, _collateralAmount);
+    }
+
+    /**
+     * @dev Removes collateral from a loan identified by its ID.
+     * @param _wallet The target wallet.
+     * @param _loanId The ID of the target CDP.
+     * @param _collateral The token used as a collateral.
+     * @param _collateralAmount The amount of collateral to remove.
+     */
+    function removeCollateral(
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _collateral,
+        uint256 _collateralAmount
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        verifyAuthorizedLoanId(_loanId, _wallet);
+        verifySupportedCollateral(_collateral);
+        removeCollateral(_wallet, uint256(_loanId), _collateral, _collateralAmount);
+        emit CollateralRemoved(address(_wallet), _loanId, _collateral, _collateralAmount);
     }
 
     /* ********************************** Implementation of Invest ************************************* */
@@ -355,9 +401,35 @@ contract MakerV2Manager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMod
 
     /* ********************************************* CDPs ********************************************* */
 
-    function toInt(uint x) internal pure returns (int y) {
-        y = int(x);
-        require(y >= 0, "int-overflow");
+    function toInt(uint256 _x) internal pure returns (int _y) {
+        _y = int(_x);
+        require(_y >= 0, "int-overflow");
+    }
+
+    function verifyAuthorizedLoanId(bytes32 _loanId, BaseWallet _wallet) internal view {
+        require(cdpOwners[_loanId] == _wallet, "MV2: Unauthorized _loanId");
+    }
+
+    function verifySupportedCollateral(address _collateral) internal view {
+        if(_collateral != ETH_TOKEN_ADDRESS) {
+            (bool collateralSupported,,,) = makerRegistry.collaterals(_collateral);
+            require(collateralSupported, "MV2: collateral not supported");
+        }
+    }
+
+    function joinCollateral(
+        BaseWallet _wallet,
+        uint256 _cdpId,
+        address _collateral,
+        uint256 _collateralAmount,
+        JoinLike _gemJoin
+    ) internal {
+        // Send the collateral to the module
+        invokeWallet(address(_wallet), _collateral, 0, abi.encodeWithSelector(ERC20_TRANSFER, address(this), _collateralAmount));
+        // Approve the adapter to transfer the collateral from the module to itself
+        GemLike(_collateral).approve(address(_gemJoin), _collateralAmount);
+        // Join collateral to the adapter. The first argument to `join` is the address that *technically* owns the CDP
+        _gemJoin.join(cdpManager.urns(_cdpId), _collateralAmount);
     }
 
      /**
@@ -389,20 +461,80 @@ contract MakerV2Manager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMod
         (JoinLike gemJoin, bytes32 ilk) = makerRegistry.getCollateral(_collateral);
         // Open a CDP (the CDP owner will effectively be the module)
         _cdpId = cdpManager.open(ilk, address(this));
-        // Send the collateral to the module
-        invokeWallet(address(_wallet), _collateral, 0, abi.encodeWithSelector(ERC20_TRANSFER, address(this), _collateralAmount));
-        // Approve the adapter to transfer the collateral from the module to itself
-        GemLike(_collateral).approve(address(gemJoin), _collateralAmount);
-        // Join collateral to the adapter. The first argument to `join` is the address that *technically* owns the CDP
-        gemJoin.join(cdpManager.urns(_cdpId), _collateralAmount);
+        // Move the collateral from the wallet to the vat
+        joinCollateral(_wallet, _cdpId, _collateral, _collateralAmount, gemJoin);
         // Get the accumulated rate for the collateral type
         (, uint rate,,,) = vat.ilks(ilk);
+        // Express the debt in the RAD units used internally by the vat
+        uint daiDebtInRad = _daiDebt.mul(RAY);
         // Lock the collateral and draw the debt. To avoid rounding issues we add an extra wei of debt
-        cdpManager.frob(_cdpId, toInt(_collateralAmount), toInt(_daiDebt.mul(RAY).div(rate) + 1));
+        cdpManager.frob(_cdpId, toInt(_collateralAmount), toInt(daiDebtInRad.div(rate) + 1));
         // Transfer the (internal) DAI debt from the cdp's urn to the module.
-        cdpManager.move(_cdpId, address(this), _daiDebt.mul(RAY));
+        cdpManager.move(_cdpId, address(this), daiDebtInRad);
         // Mint the DAI token and exit it to the user's wallet
         daiJoin.exit(address(_wallet), _daiDebt);
+    }
+
+    /**
+     * @dev Lets the owner of a CDP add more collateral to their CDP. The owner must have enough of the
+     * collateral token in their wallet.
+     * @param _wallet The target wallet
+     * @param _cdpId The id of the CDP.
+     * @param _collateral The token to use as collateral in the CDP.
+     * @param _collateralAmount The amount of collateral to add to the CDP.
+     */
+    // solium-disable-next-line security/no-assign-params
+    function addCollateral(
+        BaseWallet _wallet,
+        uint256 _cdpId,
+        address _collateral,
+        uint256 _collateralAmount
+    )
+        internal
+    {
+        if(_collateral == ETH_TOKEN_ADDRESS) {
+            // Convert ETH to WETH
+            invokeWallet(address(_wallet), address(wethToken), _collateralAmount, abi.encodeWithSelector(WETH_DEPOSIT));
+            // Continue with WETH as collateral instead of ETH
+            _collateral = address(wethToken);
+        }
+        // Get the adapter for the collateral
+        (JoinLike gemJoin,) = makerRegistry.getCollateral(_collateral);
+        // Move the collateral from the wallet to the vat
+        joinCollateral(_wallet, _cdpId, _collateral, _collateralAmount, gemJoin);
+        // Lock the collateral
+        cdpManager.frob(_cdpId, toInt(_collateralAmount), 0);
+    }
+
+    /**
+     * @dev Lets the owner of a CDP remove some collateral from their CDP
+     * @param _wallet The target wallet
+     * @param _cdpId The id of the CDP.
+     * @param _collateral The token to use as collateral in the CDP.
+     * @param _collateralAmount The amount of collateral to remove from the CDP.
+     */
+    function removeCollateral(
+        BaseWallet _wallet,
+        uint256 _cdpId,
+        address _collateral,
+        uint256 _collateralAmount
+    )
+        internal
+    {
+        // Use WETH as collateral instead of ETH if required
+        address wrappedCollateral = (_collateral == ETH_TOKEN_ADDRESS) ? address(wethToken) : _collateral;
+        // Get the adapter and ilk for the collateral
+        (JoinLike gemJoin, bytes32 ilk) = makerRegistry.getCollateral(wrappedCollateral);
+        // Unlock the collateral
+        cdpManager.frob(_cdpId, -toInt(_collateralAmount), 0);
+        // Transfer the (internal) collateral from the cdp's urn to the module.
+        cdpManager.flux(ilk, _cdpId, address(this), _collateralAmount);
+        // Exit the collateral from the adapter.
+        gemJoin.exit(address(_wallet), _collateralAmount);
+        if(_collateral == ETH_TOKEN_ADDRESS) {
+            // Convert WETH to ETH
+            invokeWallet(address(_wallet), address(wethToken), 0, abi.encodeWithSelector(WETH_WITHDRAW, _collateralAmount));
+        }
     }
 
 }
