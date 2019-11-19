@@ -492,7 +492,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
             else {
                 amount = amount * _gasPrice;
             }
-            updateDailySpent(_wallet, uint128(getCurrentLimit(_wallet)), amount);
+            checkAndUpdateDailySpent(_wallet, amount);
             invokeWallet(address(_wallet), _relayer, amount, EMPTY_BYTES);
         }
     }
