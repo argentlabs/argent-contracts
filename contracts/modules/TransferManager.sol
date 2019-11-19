@@ -103,35 +103,36 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
      * @param _wallet The target wallet.
      */
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
-        // setup static calls
-        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES);
-        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES32);
-        
+
         // setup default limit for new deployment
         if(address(oldLimitManager) == address(0)) {
             super.init(_wallet);
             return;
         }
         // get limit from previous LimitManager
-        uint256 currentLimit = oldLimitManager.getCurrentLimit(_wallet);
-        (uint256 pendingLimit, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
+        uint256 current = oldLimitManager.getCurrentLimit(_wallet);
+        (uint256 pending, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
         // setup default limit for new wallets
-        if(currentLimit == 0 && changeAfter == 0) {
+        if(current == 0 && changeAfter == 0) {
             super.init(_wallet);
             return;
         }
         // migrate existing limit for existing wallets
-        if(currentLimit == pendingLimit) {
-            limits[address(_wallet)].limit.current = uint128(currentLimit);
+        if(current == pending) {
+            limits[address(_wallet)].limit.current = uint128(current);
         }
         else {
-            limits[address(_wallet)].limit = Limit(uint128(currentLimit), uint128(pendingLimit), changeAfter);
+            limits[address(_wallet)].limit = Limit(uint128(current), uint128(pending), changeAfter);
         }
         // migrate daily pending if we are within a rolling period
         (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
         if(periodEnd > now) {
-            limits[address(_wallet)].dailySpent = DailySpent(uint128(currentLimit.sub(unspent)), periodEnd);
+            limits[address(_wallet)].dailySpent = DailySpent(uint128(current.sub(unspent)), periodEnd);
         }
+
+        // setup static calls
+        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES);
+        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES32);
     }
 
     // *************** External/Public Functions ********************* //
@@ -342,10 +343,10 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         address _token,
         address _to,
         uint _amount,
-        bytes memory _data,
+        bytes calldata _data,
         uint _block
     )
-        public
+        external
         onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(ActionType.Transfer, _token, _to, _amount, _data, _block));
@@ -362,7 +363,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         BaseWallet _wallet,
         bytes32 _id
     )
-        public
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
@@ -377,7 +378,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(BaseWallet _wallet, uint256 _newLimit) public onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(BaseWallet _wallet, uint256 _newLimit) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         changeLimit(_wallet, _newLimit, securityPeriod);
     }
 
@@ -418,7 +419,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @param _data Arbitrary length data signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _data
     */
-    function isValidSignature(bytes memory _data, bytes memory _signature) public view returns (bytes4) {
+    function isValidSignature(bytes calldata _data, bytes calldata _signature) external view returns (bytes4) {
         bytes32 msgHash = keccak256(abi.encodePacked(_data));
         isValidSignature(msgHash, _signature);
         return ERC721_ISVALIDSIGNATURE_BYTES;
@@ -501,7 +502,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         if(_gasPrice > 0 && _signatures > 0 && (
             address(_wallet).balance < _gasUsed * _gasPrice
             || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
-            || _wallet.authorised(address(_wallet)) == false
+            || _wallet.authorised(address(this)) == false
         ))
         {
             return false;
