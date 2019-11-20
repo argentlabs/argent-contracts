@@ -75,6 +75,10 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
 
     using SafeMath for uint256;
 
+    // ****************** Events *************************** //
+
+    event TokenConverted(address indexed _wallet, address _srcToken, uint _srcAmount, address _destToken, uint _destAmount);
+
     // *************** Constructor ********************** //
 
     constructor(
@@ -266,6 +270,7 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         require(saiToken.balanceOf(address(_wallet)) >= _amount, "DM: insufficient SAI");
         invokeWallet(address(_wallet), address(saiToken), 0, abi.encodeWithSelector(ERC20_APPROVE, scdMcdMigration, _amount));
         invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSelector(SWAP_SAI_DAI, _amount));
+        emit TokenConverted(address(_wallet), address(saiToken), _amount, address(daiToken), _amount);
     }
 
     /**
@@ -284,5 +289,6 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         require(daiToken.balanceOf(address(_wallet)) >= _amount, "DM: insufficient DAI");
         invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSelector(ERC20_APPROVE, scdMcdMigration, _amount));
         invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSelector(SWAP_DAI_SAI, _amount));
+        emit TokenConverted(address(_wallet), address(daiToken), _amount, address(saiToken), _amount);
     }
 }
