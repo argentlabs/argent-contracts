@@ -1,5 +1,6 @@
 const TransferManager = require('../build/TransferManager');
 const ApprovedTransfer = require('../build/ApprovedTransfer');
+const MakerV2Manager = require('../build/MakerV2Manager');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const LegacyUpgrader = require('../build/LegacySimpleUpgrader');
@@ -11,9 +12,9 @@ const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.4.0";
-const MODULES_TO_ENABLE = ["TransferManager", "ApprovedTransfer"];
-const MODULES_TO_DISABLE = ["DappManager", "TokenTransfer", "ModuleManager"];
+const TARGET_VERSION = "1.4.5";
+const MODULES_TO_ENABLE = [/* "TransferManager", "ApprovedTransfer", */ "MakerV2Manager"];
+const MODULES_TO_DISABLE = [/* "DappManager", "TokenTransfer", "ModuleManager" */];
 
 
 const BACKWARD_COMPATIBILITY = 4;
@@ -51,7 +52,7 @@ const deploy = async (network) => {
     ///////////////////////////////////////
 
     // Deploy TokenPriceProvider
-    const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, config.Kyber.contract);
+/*     const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, config.Kyber.contract);
 
 
     ////////////////////////////////////
@@ -61,13 +62,13 @@ const deploy = async (network) => {
     for (const account of config.backend.accounts) {
         const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account);
         await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx, `Set ${account} as the manager of the TokenPriceProvider`);
-    }
+    } */
 
     ////////////////////////////////////
     // Deploy new modules
     ////////////////////////////////////
 
-    const TransferManagerWrapper = await deployer.deploy(
+/*     const TransferManagerWrapper = await deployer.deploy(
         TransferManager,
         {},
         config.contracts.ModuleRegistry,
@@ -87,28 +88,40 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.GuardianStorage
     );
-    newModuleWrappers.push(ApprovedTransferWrapper);
+    newModuleWrappers.push(ApprovedTransferWrapper); */
+
+    const MakerV2ManagerWrapper = await deployer.deploy(
+        MakerV2Manager,
+        {},
+        config.contracts.ModuleRegistry,
+        config.modules.GuardianStorage,
+        config.defi.maker.migration,
+        config.defi.maker.pot
+    );
+    newModuleWrappers.push(MakerV2ManagerWrapper);
 
     ///////////////////////////////////////////////////
     // Update config and Upload new contract ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        TransferManager: TransferManagerWrapper.contractAddress,
-        ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
+        /* TransferManager: TransferManagerWrapper.contractAddress,
+        ApprovedTransfer: ApprovedTransferWrapper.contractAddress, */
+        MakerV2Manager: MakerV2ManagerWrapper.contractAddress
     });
-    configurator.updateInfrastructureAddresses({
+/*     configurator.updateInfrastructureAddresses({
         TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
-    });
+    }); */
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
     configurator.updateGitHash(gitHash);
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(TransferManagerWrapper, "modules"),
+        /* abiUploader.upload(TransferManagerWrapper, "modules"),
         abiUploader.upload(ApprovedTransferWrapper, "modules"),
-        abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
+        abiUploader.upload(TokenPriceProviderWrapper, "contracts"), */
+        abiUploader.upload(MakerV2ManagerWrapper, "modules")
     ]);
 
     ////////////////////////////////////
