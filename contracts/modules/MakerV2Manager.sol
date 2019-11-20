@@ -3,7 +3,6 @@ pragma solidity ^0.5.4;
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../storage/GuardianStorage.sol";
 import "../utils/SafeMath.sol";
 import "../defi/Invest.sol";
 
@@ -49,8 +48,6 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "MakerV2Manager";
 
-    // The Guardian storage
-    GuardianStorage public guardianStorage;
     // The address of the SAI token
     GemLike public saiToken;
     // The address of the (MCD) DAI token
@@ -78,17 +75,6 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
 
     using SafeMath for uint256;
 
-    // *************** Modifiers *************************** //
-
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "NT: wallet must be unlocked");
-        _;
-    }
-
     // *************** Constructor ********************** //
 
     constructor(
@@ -97,10 +83,9 @@ contract MakerV2Manager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         ScdMcdMigration _scdMcdMigration,
         PotLike _pot
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        guardianStorage = _guardianStorage;
         scdMcdMigration = address(_scdMcdMigration);
         saiToken = _scdMcdMigration.saiJoin().gem();
         daiJoin = _scdMcdMigration.daiJoin();

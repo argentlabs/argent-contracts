@@ -5,7 +5,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../storage/GuardianStorage.sol";
 import "../defi/Loan.sol";
 import "../defi/Invest.sol";
 import "../defi/utils/CompoundRegistry.sol";
@@ -38,8 +37,6 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
 
     bytes32 constant NAME = "CompoundManager";
 
-    // The Guardian storage contract
-    GuardianStorage public guardianStorage;
     // The Compound IComptroller contract
     IComptroller public comptroller;
     // The registry mapping underlying with cTokens
@@ -50,25 +47,15 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
 
     using SafeMath for uint256;
 
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "CompoundManager: wallet must be unlocked");
-        _;
-    }
-
     constructor(
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         IComptroller _comptroller,
         CompoundRegistry _compoundRegistry
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        guardianStorage = _guardianStorage;
         comptroller = _comptroller;
         compoundRegistry = _compoundRegistry;
     }

@@ -5,7 +5,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../storage/GuardianStorage.sol";
 import "../defi/Loan.sol";
 
 // Interface to MakerDAO's Tub contract, used to manage CDPs
@@ -74,8 +73,6 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "MakerManager";
 
-    // The Guardian storage
-    GuardianStorage public guardianStorage;
     // The Maker Tub contract
     IMakerCdp public makerCdp;
     // The Uniswap Factory contract
@@ -101,25 +98,15 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
 
     using SafeMath for uint256;
 
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "MakerManager: wallet must be unlocked");
-        _;
-    }
-
     constructor(
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         IMakerCdp _makerCdp,
         IUniswapFactory _uniswapFactory
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        guardianStorage = _guardianStorage;
         makerCdp = _makerCdp;
         uniswapFactory = _uniswapFactory;
     }

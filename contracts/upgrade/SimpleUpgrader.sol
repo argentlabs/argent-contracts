@@ -20,7 +20,7 @@ contract SimpleUpgrader is BaseModule {
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, GuardianStorage(0), NAME)
         public
     {
         toDisable = _toDisable;

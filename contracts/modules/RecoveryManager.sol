@@ -2,7 +2,6 @@ pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
-import "../storage/GuardianStorage.sol";
 import "../utils/SafeMath.sol";
 import "../utils/GuardianUtils.sol";
 
@@ -31,12 +30,10 @@ contract RecoveryManager is BaseModule, RelayerModule {
 
     // the wallet specific storage
     mapping (address => RecoveryManagerConfig) internal configs;
-    // Recovery period   
-    uint256 public recoveryPeriod; 
+    // Recovery period
+    uint256 public recoveryPeriod;
     // Lock period
     uint256 public lockPeriod;
-    // location of the Guardian storage
-    GuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
 
@@ -70,10 +67,9 @@ contract RecoveryManager is BaseModule, RelayerModule {
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        guardianStorage = _guardianStorage;
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
     }

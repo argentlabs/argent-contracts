@@ -5,7 +5,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../storage/GuardianStorage.sol";
 import "../defi/Invest.sol";
 
 interface UniswapFactory {
@@ -28,8 +27,6 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "UniswapInvestManager";
 
-    // The Guardian storage
-    GuardianStorage public guardianStorage;
     // The Uniswap Factory contract
     UniswapFactory public uniswapFactory;
 
@@ -38,24 +35,14 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
 
     using SafeMath for uint256;
 
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "UniswapManager: wallet must be unlocked");
-        _;
-    }
-
     constructor(
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         UniswapFactory _uniswapFactory
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        guardianStorage = _guardianStorage;
         uniswapFactory = _uniswapFactory;
     }
 
