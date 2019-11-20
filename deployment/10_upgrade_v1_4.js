@@ -77,7 +77,7 @@ const deploy = async (network) => {
         config.settings.securityPeriod || 0,
         config.settings.securityWindow || 0,
         config.settings.defaultLimit || '1000000000000000000',
-        config.modules.TokenTransfer
+        ['test', 'staging', 'prod'].includes(network) ? config.modules.TokenTransfer : '0x0000000000000000000000000000000000000000'
     );
     newModuleWrappers.push(TransferManagerWrapper);
 
@@ -163,7 +163,7 @@ const deploy = async (network) => {
         const upgraderName = version.fingerprint + '_' + fingerprint;
 
         let UpgraderWrapper;
-        if (['test', 'staging', 'prod'].includes(network)) {
+        if (version.modules.map(m => m.name).includes('ModuleManager')) {
             // make sure ModuleManager is always the last to be removed if it needs to be removed
             toRemove.push(toRemove.splice(toRemove.findIndex(({ name }) => name === 'ModuleManager'), 1)[0]);
             // this is an "old-style" Upgrader (to be used with ModuleManager)

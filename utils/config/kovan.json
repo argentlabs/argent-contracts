@@ -47,8 +47,8 @@
     "defi": {
         "maker": {
             "tub": "0xa71937147b55deb8a530c7229c442fd3f31b7db2",
-            "migration": "0x786e119d9ee56ac6f5741ada57415cede8df75df",
-            "pot": "0x3d9afbed6ee2c2d17749b003875eaa38c0ce0c7f"
+            "migration": "0x411b2faa662c8e3e5cf8f01dfdae0aee482ca7b0",
+            "pot": "0xea190dbdc7adf265260ec4da6e9675fd4f5a78bb"
         },
         "uniswap": {
             "factory": "0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30"
