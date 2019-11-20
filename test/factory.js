@@ -67,8 +67,8 @@ describe("Test Wallet Factory", function () {
         let module1, module2;
 
         beforeEach(async () => {
-            module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ZERO_BYTES32);
-            module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ZERO_BYTES32);
+            module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ethers.constants.AddressZero, ZERO_BYTES32);
+            module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ethers.constants.AddressZero, ZERO_BYTES32);
             await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
             await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
         });

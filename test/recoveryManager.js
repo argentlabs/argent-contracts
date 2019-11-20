@@ -28,7 +28,7 @@ describe("RecoveryManager", function () {
         guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
         lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
         recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
-        wallet = await deployer.deploy(Wallet);
+        wallet = await deployer.deploy(Wallet); 
         await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
     });
 
@@ -65,7 +65,7 @@ describe("RecoveryManager", function () {
     function testExecuteRecovery(guardians) {
         it("should let a majority of guardians execute the recovery procedure (relayed transaction)", async () => {
             let majority = guardians.slice(0, Math.ceil((guardians.length + 1) / 2));
-            await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress(majority));
+            let txReceipt = await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress(majority));
             const isLocked = await lockManager.isLocked(wallet.contractAddress);
             assert.isTrue(isLocked, "should be locked by recovery");
         });
