@@ -39,8 +39,6 @@ contract LegacyTokenTransfer is BaseModule, RelayerModule, LimitManager {
     uint256 public securityPeriod;
     // The execution window
     uint256 public securityWindow;
-    // The Guardian storage 
-    GuardianStorage public guardianStorage;
     // The Token storage
     TransferStorage public transferStorage;
     // The Token price provider
@@ -55,17 +53,6 @@ contract LegacyTokenTransfer is BaseModule, RelayerModule, LimitManager {
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
 
-    // *************** Modifiers *************************** //
-
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "TT: wallet must be unlocked");
-        _;
-    }
-
     // *************** Constructor ********************** //
 
     constructor(
@@ -77,12 +64,11 @@ contract LegacyTokenTransfer is BaseModule, RelayerModule, LimitManager {
         uint256 _securityWindow,
         uint256 _defaultLimit
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         LimitManager(_defaultLimit)
         public
     {
         transferStorage = _transferStorage;
-        guardianStorage = _guardianStorage;
         priceProvider = TokenPriceProvider(_priceProvider);
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;

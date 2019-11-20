@@ -3,7 +3,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/BaseTransfer.sol";
-import "../storage/GuardianStorage.sol";
 import "../utils/SafeMath.sol";
 import "../utils/GuardianUtils.sol";
 
@@ -16,22 +15,8 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage) BaseModule(_registry, _guardianStorage, NAME) public {
 
-    // The Guardian storage
-    GuardianStorage internal guardianStorage;
-
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "AT: wallet must be unlocked");
-        _;
-    }
-
-    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage) BaseModule(_registry, NAME) public {
-        guardianStorage = _guardianStorage;
     }
 
     /**

@@ -20,7 +20,7 @@ contract SimpleUpgrader is BaseModule {
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, GuardianStorage(0), NAME)
         public
     {
         toDisable = _toDisable;
@@ -35,7 +35,7 @@ contract SimpleUpgrader is BaseModule {
      * @param _wallet The target wallet.
      */
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
-        uint256 i;
+        uint256 i = 0;
         //add new modules
         for(; i < toEnable.length; i++) {
             BaseWallet(_wallet).authoriseModule(toEnable[i], true);

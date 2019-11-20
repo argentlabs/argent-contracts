@@ -10,5 +10,5 @@ import "../../modules/common/OnlyOwnerModule.sol";
 contract TestOnlyOwnerModule is OnlyOwnerModule {
 
     bytes32 constant NAME = "TestOnlyOwnerModule";
-    constructor(ModuleRegistry _registry) BaseModule(_registry, NAME) public {}
+    constructor(ModuleRegistry _registry) BaseModule(_registry, GuardianStorage(0), NAME) public {}
 }

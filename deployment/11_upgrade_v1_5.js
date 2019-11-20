@@ -1,6 +1,9 @@
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
+const LegacyUpgrader = require('../build/LegacySimpleUpgrader');
+// const MakerRegistry = require('../build/MakerRegistry');
+// const ScdMcdMigration = require('../build/ScdMcdMigration');
 const MakerV2Manager = require('../build/MakerV2Manager');
 
 const utils = require('../utils/utilities.js');
@@ -15,6 +18,10 @@ const MODULES_TO_DISABLE = [];
 const BACKWARD_COMPATIBILITY = 5;
 
 const deploy = async (network) => {
+
+    if (!['kovan', 'kovan-fork', 'staging', 'prod'].includes(network)) {
+        throw new Error(`The MakerManagerV2 module cannot currently be deployed on ${network}`)
+    }
 
     const newModuleWrappers = [];
     const newVersion = {};
@@ -39,6 +46,19 @@ const deploy = async (network) => {
 
     console.log('Config:', config);
 
+    // ////////////////////////////////////
+    // // Deploy utility contracts
+    // ////////////////////////////////////
+
+    // // Deploy and configure Maker Registry
+    // const MakerRegistryWrapper = await deployer.deploy(MakerRegistry);
+    // const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
+    // const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
+    // const addCollateralTransaction = await MakerRegistryWrapper.addCollateral(wethJoinAddress);
+    // await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
+    // const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
+    // await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, `Set the MultiSig as the owner of the MakerRegistry`);
+
     ////////////////////////////////////
     // Deploy new modules
     ////////////////////////////////////
@@ -49,7 +69,8 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.GuardianStorage,
         config.defi.maker.migration,
-        config.defi.maker.pot
+        config.defi.maker.pot,
+        // MakerRegistryWrapper.contractAddress
     );
     newModuleWrappers.push(MakerV2ManagerWrapper);
 
@@ -61,12 +82,17 @@ const deploy = async (network) => {
         MakerV2Manager: MakerV2ManagerWrapper.contractAddress
     });
 
+    // configurator.updateInfrastructureAddresses({
+    //     MakerRegistry: MakerRegistryWrapper.contractAddress
+    // });
+
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
     configurator.updateGitHash(gitHash);
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(MakerV2ManagerWrapper, "modules")
+        abiUploader.upload(MakerV2ManagerWrapper, "modules"),
+        // abiUploader.upload(MakerRegistryWrapper, "contracts")
     ]);
 
     ////////////////////////////////////
@@ -119,9 +145,10 @@ const deploy = async (network) => {
             toRemove = version.modules.filter(module => !newVersion.modules.map(m => m.address).includes(module.address));
         }
 
+        const upgraderName = version.fingerprint + '_' + fingerprint;
 
         let UpgraderWrapper;
-        if (idx > 0 && ['test', 'staging', 'prod'].includes(network)) {
+        if (version.modules.map(m => m.name).includes('ModuleManager')) {
             // make sure ModuleManager is always the last to be removed if it needs to be removed
             toRemove.push(toRemove.splice(toRemove.findIndex(({ name }) => name === 'ModuleManager'), 1)[0]);
             // this is an "old-style" Upgrader (to be used with ModuleManager)

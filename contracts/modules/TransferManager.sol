@@ -6,7 +6,6 @@ import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitManager.sol";
 import "../exchange/TokenPriceProvider.sol";
-import "../storage/GuardianStorage.sol";
 import "../storage/TransferStorage.sol";
 import "../exchange/ERC20.sol";
 
@@ -25,14 +24,9 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
     bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
-    bytes constant internal EMPTY_BYTES = "";
-
     enum ActionType { Transfer }
 
     using SafeMath for uint256;
-
-    // Mock token address for ETH
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     struct TokenManagerConfig {
         // Mapping between pending action hash and their timestamp
@@ -46,8 +40,6 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     uint256 public securityPeriod;
     // The execution window
     uint256 public securityWindow;
-    // The Guardian storage
-    GuardianStorage public guardianStorage;
     // The Token storage
     TransferStorage public transferStorage;
     // The Token price provider
@@ -66,17 +58,6 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
 
-    // *************** Modifiers *************************** //
-
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "TT: wallet must be unlocked");
-        _;
-    }
-
     // *************** Constructor ********************** //
 
     constructor(
@@ -89,12 +70,11 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         uint256 _defaultLimit,
         LimitManager _oldLimitManager
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         LimitManager(_defaultLimit)
         public
     {
         transferStorage = _transferStorage;
-        guardianStorage = _guardianStorage;
         priceProvider = TokenPriceProvider(_priceProvider);
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
@@ -108,34 +88,35 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
      * @param _wallet The target wallet.
      */
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+
         // setup static calls
         _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES);
         _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES32);
-        
+
         // setup default limit for new deployment
         if(address(oldLimitManager) == address(0)) {
             super.init(_wallet);
             return;
         }
         // get limit from previous LimitManager
-        uint256 currentLimit = oldLimitManager.getCurrentLimit(_wallet);
-        (uint256 pendingLimit, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
+        uint256 current = oldLimitManager.getCurrentLimit(_wallet);
+        (uint256 pending, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
         // setup default limit for new wallets
-        if(currentLimit == 0 && changeAfter == 0) {
+        if(current == 0 && changeAfter == 0) {
             super.init(_wallet);
             return;
         }
         // migrate existing limit for existing wallets
-        if(currentLimit == pendingLimit) {
-            limits[address(_wallet)].limit.current = uint128(currentLimit);
+        if(current == pending) {
+            limits[address(_wallet)].limit.current = uint128(current);
         }
         else {
-            limits[address(_wallet)].limit = Limit(uint128(currentLimit), uint128(pendingLimit), changeAfter);
+            limits[address(_wallet)].limit = Limit(uint128(current), uint128(pending), changeAfter);
         }
         // migrate daily pending if we are within a rolling period
         (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
         if(periodEnd > now) {
-            limits[address(_wallet)].dailySpent = DailySpent(uint128(currentLimit.sub(unspent)), periodEnd);
+            limits[address(_wallet)].dailySpent = DailySpent(uint128(current.sub(unspent)), periodEnd);
         }
     }
 
@@ -347,10 +328,10 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         address _token,
         address _to,
         uint _amount,
-        bytes memory _data,
+        bytes calldata _data,
         uint _block
     )
-        public
+        external
         onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(ActionType.Transfer, _token, _to, _amount, _data, _block));
@@ -367,7 +348,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         BaseWallet _wallet,
         bytes32 _id
     )
-        public
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
@@ -382,7 +363,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(BaseWallet _wallet, uint256 _newLimit) public onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(BaseWallet _wallet, uint256 _newLimit) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         changeLimit(_wallet, _newLimit, securityPeriod);
     }
 
@@ -423,7 +404,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @param _data Arbitrary length data signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _data
     */
-    function isValidSignature(bytes memory _data, bytes memory _signature) public view returns (bytes4) {
+    function isValidSignature(bytes calldata _data, bytes calldata _signature) external view returns (bytes4) {
         bytes32 msgHash = keccak256(abi.encodePacked(_data));
         isValidSignature(msgHash, _signature);
         return ERC721_ISVALIDSIGNATURE_BYTES;
@@ -496,7 +477,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
             else {
                 amount = amount * _gasPrice;
             }
-            updateDailySpent(_wallet, uint128(getCurrentLimit(_wallet)), amount);
+            checkAndUpdateDailySpent(_wallet, amount);
             invokeWallet(address(_wallet), _relayer, amount, EMPTY_BYTES);
         }
     }
@@ -506,7 +487,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         if(_gasPrice > 0 && _signatures > 0 && (
             address(_wallet).balance < _gasUsed * _gasPrice
             || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
-            || _wallet.authorised(address(_wallet)) == false
+            || _wallet.authorised(address(this)) == false
         ))
         {
             return false;

@@ -2,7 +2,6 @@ pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
-import "../storage/GuardianStorage.sol";
 import "../utils/GuardianUtils.sol";
 
 /**
@@ -19,8 +18,6 @@ contract LockManager is BaseModule, RelayerModule {
 
     bytes32 constant NAME = "LockManager";
 
-    // the address of the Guardian storage
-    GuardianStorage public guardianStorage;
     // The lock period
     uint256 public lockPeriod;
 
@@ -41,15 +38,6 @@ contract LockManager is BaseModule, RelayerModule {
     }
 
     /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "GD: wallet must be unlocked");
-        _;
-    }
-
-    /**
      * @dev Throws if the caller is not a guardian for the wallet.
      */
     modifier onlyGuardian(BaseWallet _wallet) {
@@ -60,8 +48,12 @@ contract LockManager is BaseModule, RelayerModule {
 
     // *************** Constructor ************************ //
 
-    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage, uint256 _lockPeriod) BaseModule(_registry, NAME) public {
-        guardianStorage = _guardianStorage;
+    constructor(
+        ModuleRegistry _registry,
+        GuardianStorage _guardianStorage,
+        uint256 _lockPeriod
+    )
+        BaseModule(_registry, _guardianStorage, NAME) public {
         lockPeriod = _lockPeriod;
     }
 
