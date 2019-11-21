@@ -456,7 +456,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @param _contract The address of the contract.
     * @param _data The encoded method data
      */
-    function authoriseContractCall(BaseWallet _wallet, address _contract, bytes memory /*_data*/) internal view {
+    function authoriseContractCall(BaseWallet _wallet, address _contract, bytes memory _data) internal view {
         require(
             _contract != address(_wallet) && // not the wallet itself
             !_wallet.authorised(_contract) && // not an authorised module

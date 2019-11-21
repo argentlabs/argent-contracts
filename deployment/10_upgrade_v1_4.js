@@ -13,7 +13,7 @@ const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
 const TARGET_VERSION = "1.4.5";
-const MODULES_TO_ENABLE = [/* "TransferManager", "ApprovedTransfer", */ "MakerV2Manager"];
+const MODULES_TO_ENABLE = ["TransferManager", "ApprovedTransfer", "MakerV2Manager"];
 const MODULES_TO_DISABLE = [/* "DappManager", "TokenTransfer", "ModuleManager" */];
 
 
@@ -74,7 +74,8 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.TransferStorage,
         config.modules.GuardianStorage,
-        TokenPriceProviderWrapper.contractAddress,
+        /* TokenPriceProviderWrapper.contractAddress, */
+        config.contracts.TokenPriceProvider,
         config.settings.securityPeriod || 0,
         config.settings.securityWindow || 0,
         config.settings.defaultLimit || '1000000000000000000',
