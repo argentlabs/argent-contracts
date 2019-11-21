@@ -68,7 +68,7 @@ const deploy = async (network) => {
     // Deploy new modules
     ////////////////////////////////////
 
-/*     const TransferManagerWrapper = await deployer.deploy(
+    const TransferManagerWrapper = await deployer.deploy(
         TransferManager,
         {},
         config.contracts.ModuleRegistry,
@@ -88,7 +88,7 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.GuardianStorage
     );
-    newModuleWrappers.push(ApprovedTransferWrapper); */
+    newModuleWrappers.push(ApprovedTransferWrapper);
 
     const MakerV2ManagerWrapper = await deployer.deploy(
         MakerV2Manager,
@@ -105,8 +105,8 @@ const deploy = async (network) => {
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        /* TransferManager: TransferManagerWrapper.contractAddress,
-        ApprovedTransfer: ApprovedTransferWrapper.contractAddress, */
+        TransferManager: TransferManagerWrapper.contractAddress,
+        ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
         MakerV2Manager: MakerV2ManagerWrapper.contractAddress
     });
 /*     configurator.updateInfrastructureAddresses({
@@ -118,10 +118,10 @@ const deploy = async (network) => {
     await configurator.save();
 
     await Promise.all([
-        /* abiUploader.upload(TransferManagerWrapper, "modules"),
+        abiUploader.upload(TransferManagerWrapper, "modules"),
         abiUploader.upload(ApprovedTransferWrapper, "modules"),
-        abiUploader.upload(TokenPriceProviderWrapper, "contracts"), */
-        abiUploader.upload(MakerV2ManagerWrapper, "modules")
+        abiUploader.upload(MakerV2ManagerWrapper, "modules"),
+        /* abiUploader.upload(TokenPriceProviderWrapper, "contracts") */
     ]);
 
     ////////////////////////////////////
@@ -159,13 +159,6 @@ const deploy = async (network) => {
             newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
             newVersion.modules = modulesInNewVersion;
             newVersion.fingerprint = fingerprint;
-
-            ////////////////////////////////////
-            // Deregister old modules
-            ////////////////////////////////////
-            for (let i = 0; i < toRemove.length; i++) {
-                await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
-            }
         } else {
             // add all modules present in newVersion that are not present in version
             toAdd = newVersion.modules.filter(module => !version.modules.map(m => m.address).includes(module.address));
