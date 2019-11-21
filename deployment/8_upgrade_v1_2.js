@@ -103,13 +103,6 @@ const deploy = async (network) => {
             newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
             newVersion.modules = modulesInNewVersion;
             newVersion.fingerprint = fingerprint;
-
-            ////////////////////////////////////
-            // Deregister old modules
-            ////////////////////////////////////
-            for (let i = 0; i < toRemove.length; i++) {
-                await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
-            }
         } else {
             // add all modules present in newVersion that are not present in version
             toAdd = newVersion.modules.filter(module => !version.modules.map(m => m.address).includes(module.address));

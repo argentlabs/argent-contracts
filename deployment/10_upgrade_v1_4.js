@@ -13,8 +13,8 @@ const MultisigExecutor = require('../utils/multisigexecutor.js');
 const semver = require('semver');
 
 const TARGET_VERSION = "1.4.5";
-const MODULES_TO_ENABLE = [/* "TransferManager", "ApprovedTransfer", */ "MakerV2Manager"];
-const MODULES_TO_DISABLE = [/* "DappManager", "TokenTransfer", "ModuleManager" */];
+const MODULES_TO_ENABLE = ["TransferManager", "ApprovedTransfer", "MakerV2Manager"];
+const MODULES_TO_DISABLE = ["DappManager", "TokenTransfer", "ModuleManager"];
 
 
 const BACKWARD_COMPATIBILITY = 4;
@@ -52,7 +52,7 @@ const deploy = async (network) => {
     ///////////////////////////////////////
 
     // Deploy TokenPriceProvider
-/*     const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, config.Kyber.contract);
+    const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, config.Kyber.contract);
 
 
     ////////////////////////////////////
@@ -62,13 +62,13 @@ const deploy = async (network) => {
     for (const account of config.backend.accounts) {
         const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account);
         await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx, `Set ${account} as the manager of the TokenPriceProvider`);
-    } */
+    }
 
     ////////////////////////////////////
     // Deploy new modules
     ////////////////////////////////////
 
-/*     const TransferManagerWrapper = await deployer.deploy(
+    const TransferManagerWrapper = await deployer.deploy(
         TransferManager,
         {},
         config.contracts.ModuleRegistry,
@@ -88,7 +88,7 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.GuardianStorage
     );
-    newModuleWrappers.push(ApprovedTransferWrapper); */
+    newModuleWrappers.push(ApprovedTransferWrapper);
 
     const MakerV2ManagerWrapper = await deployer.deploy(
         MakerV2Manager,
@@ -105,23 +105,23 @@ const deploy = async (network) => {
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        /* TransferManager: TransferManagerWrapper.contractAddress,
-        ApprovedTransfer: ApprovedTransferWrapper.contractAddress, */
+        TransferManager: TransferManagerWrapper.contractAddress,
+        ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
         MakerV2Manager: MakerV2ManagerWrapper.contractAddress
     });
-/*     configurator.updateInfrastructureAddresses({
+    configurator.updateInfrastructureAddresses({
         TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
-    }); */
+    });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
     configurator.updateGitHash(gitHash);
     await configurator.save();
 
     await Promise.all([
-        /* abiUploader.upload(TransferManagerWrapper, "modules"),
+        abiUploader.upload(TransferManagerWrapper, "modules"),
         abiUploader.upload(ApprovedTransferWrapper, "modules"),
-        abiUploader.upload(TokenPriceProviderWrapper, "contracts"), */
-        abiUploader.upload(MakerV2ManagerWrapper, "modules")
+        abiUploader.upload(MakerV2ManagerWrapper, "modules"),
+        abiUploader.upload(TokenPriceProviderWrapper, "contracts")
     ]);
 
     ////////////////////////////////////
@@ -159,13 +159,6 @@ const deploy = async (network) => {
             newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
             newVersion.modules = modulesInNewVersion;
             newVersion.fingerprint = fingerprint;
-
-            ////////////////////////////////////
-            // Deregister old modules
-            ////////////////////////////////////
-            for (let i = 0; i < toRemove.length; i++) {
-                await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
-            }
         } else {
             // add all modules present in newVersion that are not present in version
             toAdd = newVersion.modules.filter(module => !version.modules.map(m => m.address).includes(module.address));
