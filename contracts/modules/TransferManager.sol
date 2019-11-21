@@ -19,8 +19,6 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
 
     bytes32 constant NAME = "TransferManager";
 
-    bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
-    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
     bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
     bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
@@ -458,10 +456,12 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @param _contract The address of the contract.
     * @param _data The encoded method data
      */
-    function authoriseContractCall(BaseWallet _wallet, address _contract, bytes memory _data) internal view {
-        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "TM: Forbidden contract");
-        bytes4 methodId = functionPrefix(_data);
-        require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
+    function authoriseContractCall(BaseWallet _wallet, address _contract, bytes memory /*_data*/) internal view {
+        require(
+            _contract != address(_wallet) && // not the wallet itself
+            !_wallet.authorised(_contract) && // not an authorised module
+            priceProvider.cachedPrices(_contract) == 0, // not an ERC20 token listed in the provider
+            "TM: Forbidden contract");
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
