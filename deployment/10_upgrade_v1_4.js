@@ -14,7 +14,7 @@ const semver = require('semver');
 
 const TARGET_VERSION = "1.4.5";
 const MODULES_TO_ENABLE = ["TransferManager", "ApprovedTransfer", "MakerV2Manager"];
-const MODULES_TO_DISABLE = [/* "DappManager", "TokenTransfer", "ModuleManager" */];
+const MODULES_TO_DISABLE = ["DappManager", "TokenTransfer", "ModuleManager"];
 
 
 const BACKWARD_COMPATIBILITY = 4;
@@ -52,7 +52,7 @@ const deploy = async (network) => {
     ///////////////////////////////////////
 
     // Deploy TokenPriceProvider
-/*     const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, config.Kyber.contract);
+    const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, config.Kyber.contract);
 
 
     ////////////////////////////////////
@@ -62,7 +62,7 @@ const deploy = async (network) => {
     for (const account of config.backend.accounts) {
         const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account);
         await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx, `Set ${account} as the manager of the TokenPriceProvider`);
-    } */
+    }
 
     ////////////////////////////////////
     // Deploy new modules
@@ -74,8 +74,7 @@ const deploy = async (network) => {
         config.contracts.ModuleRegistry,
         config.modules.TransferStorage,
         config.modules.GuardianStorage,
-        /* TokenPriceProviderWrapper.contractAddress, */
-        config.contracts.TokenPriceProvider,
+        TokenPriceProviderWrapper.contractAddress,
         config.settings.securityPeriod || 0,
         config.settings.securityWindow || 0,
         config.settings.defaultLimit || '1000000000000000000',
@@ -110,9 +109,9 @@ const deploy = async (network) => {
         ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
         MakerV2Manager: MakerV2ManagerWrapper.contractAddress
     });
-/*     configurator.updateInfrastructureAddresses({
+    configurator.updateInfrastructureAddresses({
         TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
-    }); */
+    });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
     configurator.updateGitHash(gitHash);
@@ -122,7 +121,7 @@ const deploy = async (network) => {
         abiUploader.upload(TransferManagerWrapper, "modules"),
         abiUploader.upload(ApprovedTransferWrapper, "modules"),
         abiUploader.upload(MakerV2ManagerWrapper, "modules"),
-        /* abiUploader.upload(TokenPriceProviderWrapper, "contracts") */
+        abiUploader.upload(TokenPriceProviderWrapper, "contracts")
     ]);
 
     ////////////////////////////////////
