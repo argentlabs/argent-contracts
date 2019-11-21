@@ -136,6 +136,7 @@ contract LimitManager is BaseModule {
     * @param _amount The amount for the transfer
     */
     function checkAndUpdateDailySpent(BaseWallet _wallet, uint _amount) internal returns (bool) {
+        if(_amount == 0) return true;
         Limit storage limit = limits[address(_wallet)].limit;
         uint128 current = currentLimit(limit.current, limit.pending, limit.changeAfter);
         if(isWithinDailyLimit(_wallet, current, _amount)) {
