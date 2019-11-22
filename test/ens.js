@@ -11,7 +11,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 describe("Test ENS contracts", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let infrastructure = accounts[0].signer;
     let owner = accounts[1].signer;
@@ -79,7 +79,7 @@ describe("Test ENS contracts", function () {
             let ensName = label + '.' + subnameWallet + "." + root;
             await ensManager.from(infrastructure).register(label, owner.address);
             let ensConsumer = await deployer.deploy(ENSConsumer, {}, ensRegistry.contractAddress);
-            let resolved =  await ensConsumer.resolveEns(ethers.utils.namehash(ensName));
+            let resolved = await ensConsumer.resolveEns(ethers.utils.namehash(ensName));
             assert.equal(resolved, owner.address, "should resolve to owner");
         });
     });

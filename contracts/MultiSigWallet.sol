@@ -66,7 +66,7 @@ contract MultiSigWallet {
         require(count >= threshold, "MSW: Not enough signatures");
         bytes32 txHash = keccak256(abi.encodePacked(byte(0x19), byte(0), address(this), _to, _value, _data, nonce));
         nonce += 1;
-        uint256 valid;
+        uint256 valid = 0;
         address lastSigner = address(0);
         for(uint256 i = 0; i < count; i++) {
             (v,r,s) = splitSignature(_signatures, i);

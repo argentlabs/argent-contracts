@@ -76,8 +76,8 @@ contract LimitManager is BaseModule {
     function changeLimit(BaseWallet _wallet, uint256 _newLimit, uint256 _securityPeriod) internal {
         Limit storage limit = limits[address(_wallet)].limit;
         // solium-disable-next-line security/no-block-members
-        uint128 currentLimit = (limit.changeAfter > 0 && limit.changeAfter < now) ? limit.pending : limit.current;
-        limit.current = currentLimit;
+        uint128 current = (limit.changeAfter > 0 && limit.changeAfter < now) ? limit.pending : limit.current;
+        limit.current = current;
         limit.pending = uint128(_newLimit);
         // solium-disable-next-line security/no-block-members
         limit.changeAfter = uint64(now.add(_securityPeriod));
@@ -136,6 +136,7 @@ contract LimitManager is BaseModule {
     * @param _amount The amount for the transfer
     */
     function checkAndUpdateDailySpent(BaseWallet _wallet, uint _amount) internal returns (bool) {
+        if(_amount == 0) return true;
         Limit storage limit = limits[address(_wallet)].limit;
         uint128 current = currentLimit(limit.current, limit.pending, limit.changeAfter);
         if(isWithinDailyLimit(_wallet, current, _amount)) {

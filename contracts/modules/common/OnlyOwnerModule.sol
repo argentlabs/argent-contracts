@@ -11,6 +11,28 @@ import "../../wallet/BaseWallet.sol";
  */
 contract OnlyOwnerModule is BaseModule, RelayerModule {
 
+    // bytes4 private constant IS_ONLY_OWNER_MODULE = bytes4(keccak256("isOnlyOwnerModule()"));
+
+   /**
+    * @dev Returns a constant that indicates that the module is an OnlyOwnerModule.
+    * @return The constant bytes4(keccak256("isOnlyOwnerModule()"))
+    */
+    function isOnlyOwnerModule() external pure returns (bytes4) {
+        // return IS_ONLY_OWNER_MODULE;
+        return this.isOnlyOwnerModule.selector;
+    }
+
+    /**
+     * @dev Adds a module to a wallet. First checks that the module is registered.
+     * Unlike its overrided parent, this method can be called via the RelayerModule's execute()
+     * @param _wallet The target wallet.
+     * @param _module The modules to authorise.
+     */
+    function addModule(BaseWallet _wallet, Module _module) external onlyWalletOwner(_wallet) {
+        require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
+        _wallet.authoriseModule(address(_module), true);
+    }
+
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides to use the incremental nonce and save some gas

@@ -1,7 +1,4 @@
 const MakerManager = require('../build/MakerManager');
-const CompoundManager = require('../build/CompoundManager');
-const UniswapManager = require('../build/UniswapManager');
-const CompoundRegistry = require('../build/CompoundRegistry');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
@@ -42,21 +39,6 @@ const deploy = async (network) => {
     console.log('Config:', config);
 
     ////////////////////////////////////
-    // Deploy utility contracts
-    ////////////////////////////////////
-
-        const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
-    
-        // configure Compound Registry
-        for (let underlying in config.defi.compound.markets) {
-            const cToken = config.defi.compound.markets[underlying];
-            const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
-            await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
-        }
-        const changeCompoundRegistryOwnerTx = await CompoundRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
-        await CompoundRegistryWrapper.verboseWaitForTransaction(changeCompoundRegistryOwnerTx, `Set the MultiSig as the owner of the CompoundRegistry`);
-
-    ////////////////////////////////////
     // Deploy new modules
     ////////////////////////////////////
 
@@ -70,38 +52,13 @@ const deploy = async (network) => {
     );
     newModuleWrappers.push(MakerManagerWrapper);
 
-        const CompoundManagerWrapper = await deployer.deploy(
-            CompoundManager,
-            {},
-            config.contracts.ModuleRegistry,
-            config.modules.GuardianStorage,
-            config.defi.compound.comptroller, 
-            CompoundRegistryWrapper.contractAddress
-        );
-        newModuleWrappers.push(CompoundManagerWrapper); 
-    
-        const UniswapManagerWrapper = await deployer.deploy(
-            UniswapManager,
-            {},
-            config.contracts.ModuleRegistry,
-            config.modules.GuardianStorage,
-            config.defi.uniswap.factory
-        );
-        newModuleWrappers.push(UniswapManagerWrapper); 
-
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        MakerManager: MakerManagerWrapper.contractAddress,
-        CompoundManager: CompoundManagerWrapper.contractAddress,
-        UniswapManager: UniswapManagerWrapper.contractAddress
+        MakerManager: MakerManagerWrapper.contractAddress
     });
-
-        configurator.updateInfrastructureAddresses({
-            CompoundRegistry : CompoundRegistryWrapper.contractAddress
-        });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
     configurator.updateGitHash(gitHash);
@@ -109,9 +66,6 @@ const deploy = async (network) => {
 
     await Promise.all([
         abiUploader.upload(MakerManagerWrapper, "modules"),
-        abiUploader.upload(CompoundManagerWrapper, "modules"),
-        abiUploader.upload(UniswapManagerWrapper, "modules"),
-        abiUploader.upload(CompoundRegistryWrapper, "contracts")
     ]);
 
     ////////////////////////////////////
@@ -149,13 +103,6 @@ const deploy = async (network) => {
             newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
             newVersion.modules = modulesInNewVersion;
             newVersion.fingerprint = fingerprint;
-
-            ////////////////////////////////////
-            // Deregister old modules
-            ////////////////////////////////////
-            for (let i = 0; i < toRemove.length; i++) {
-                await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
-            }
         } else {
             // add all modules present in newVersion that are not present in version
             toAdd = newVersion.modules.filter(module => !version.modules.map(m => m.address).includes(module.address));

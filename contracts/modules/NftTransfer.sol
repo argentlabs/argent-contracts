@@ -3,7 +3,6 @@ pragma solidity ^0.5.4;
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../storage/GuardianStorage.sol";
 
 /**
  * @title NftTransfer
@@ -17,25 +16,12 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     // Equals to `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
-    // The Guardian storage 
-    GuardianStorage public guardianStorage;
     // The address of the CryptoKitties contract
     address public ckAddress;
 
     // *************** Events *************************** //
 
-    event NonFungibleTransfer(address indexed wallet, address indexed nftContract, uint256 indexed tokenId, address to, bytes data);    
-
-    // *************** Modifiers *************************** //
-
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "NT: wallet must be unlocked");
-        _;
-    }
+    event NonFungibleTransfer(address indexed wallet, address indexed nftContract, uint256 indexed tokenId, address to, bytes data);
 
     // *************** Constructor ********************** //
 
@@ -44,10 +30,9 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
         GuardianStorage _guardianStorage,
         address _ckAddress
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        guardianStorage = _guardianStorage;
         ckAddress = _ckAddress;
     }
 

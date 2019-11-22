@@ -1,18 +1,18 @@
 pragma solidity ^0.5.4;
-import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
-import "./common/LimitManager.sol";
-import "../exchange/TokenPriceProvider.sol";
-import "../storage/GuardianStorage.sol";
-import "../storage/TransferStorage.sol";
+import "../../wallet/BaseWallet.sol";
+import "../../modules/common/BaseModule.sol";
+import "../../modules/common/RelayerModule.sol";
+import "../../modules/common/LimitManager.sol";
+import "../../exchange/TokenPriceProvider.sol";
+import "../../storage/GuardianStorage.sol";
+import "../../storage/TransferStorage.sol";
 
 /**
- * @title TokenTransfer
- * @dev Module to transfer tokens (ETH or ERC20) based on a security context (daily limit, whitelist, etc).
+ * @title LegacyTokenTransfer
+ * @dev Legacy Module to transfer tokens (ETH or ERC20) based on a security context (daily limit, whitelist, etc).
  * @author Julien Niset - <julien@argent.im>
  */
-contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
+contract LegacyTokenTransfer is BaseModule, RelayerModule, LimitManager {
 
     bytes32 constant NAME = "TokenTransfer";
 
@@ -39,8 +39,6 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     uint256 public securityPeriod;
     // The execution window
     uint256 public securityWindow;
-    // The Guardian storage 
-    GuardianStorage public guardianStorage;
     // The Token storage
     TransferStorage public transferStorage;
     // The Token price provider
@@ -55,17 +53,6 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
 
-    // *************** Modifiers *************************** //
-
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "TT: wallet must be unlocked");
-        _;
-    }
-
     // *************** Constructor ********************** //
 
     constructor(
@@ -77,12 +64,11 @@ contract TokenTransfer is BaseModule, RelayerModule, LimitManager {
         uint256 _securityWindow,
         uint256 _defaultLimit
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         LimitManager(_defaultLimit)
         public
     {
         transferStorage = _transferStorage;
-        guardianStorage = _guardianStorage;
         priceProvider = TokenPriceProvider(_priceProvider);
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;

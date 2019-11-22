@@ -6,10 +6,6 @@ let modules = [
         "name": "ApprovedTransfer"
     },
     {
-        "address": "0x54d705E6F49aef57B1718B3b8F45AB9A96D636DB",
-        "name": "DappManager"
-    },
-    {
         "address": "0x25BD64224b7534f7B9e3E16dd10b6dED1A412b90",
         "name": "GuardianManager"
     },
@@ -24,11 +20,7 @@ let modules = [
     {
         "address": "0xE0f4a78BbF24E9624989B9ef10A3B035cc46CE5B",
         "name": "TokenExchanger"
-    },
-    {
-        "address": "0x9C5826d868Ce00c5Eb615AAE71A8d7E67Ca87907",
-        "name": "TokenTransfer"
-    },
+    }, ,
     {
         "address": "0x624EbBd0f4169E2e11861618045491b6A4e29E77",
         "name": "NftTransfer"

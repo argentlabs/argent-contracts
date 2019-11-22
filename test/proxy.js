@@ -16,9 +16,9 @@ describe("Test Proxy", function () {
         deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);
         const registry = await deployer.deploy(Registry);
         walletImplementation = await deployer.deploy(Wallet);
-        module1 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero);
-        module2 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero);
-        module3 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.HashZero);
+        module1 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
+        module2 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
+        module3 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
     });
 
     beforeEach(async () => {
@@ -28,7 +28,7 @@ describe("Test Proxy", function () {
 
     it("should init the wallet with the correct owner", async () => {
         let walletOwner = await wallet.owner();
-        assert.equal(walletOwner, "0x0000000000000000000000000000000000000000", "owner should be null before init");
+        assert.equal(walletOwner, ethers.constants.AddressZero, "owner should be null before init");
         await wallet.init(owner.address, [module1.contractAddress], { gasLimit: 1000000 });
         walletOwner = await wallet.owner();
         assert.equal(walletOwner, owner.address, "owner should be the owner after init");

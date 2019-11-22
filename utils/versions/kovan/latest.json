@@ -1,0 +1,47 @@
+{
+    "version": "1.4.3",
+    "createdAt": 1569921953,
+    "modules": [
+        {
+            "address": "0xdca8F3833cE8f22F31C797515C02bDB91D9CC64c",
+            "name": "GuardianManager"
+        },
+        {
+            "address": "0x5E198b65195BA1670A8676c37D6CdDA06FBfFbB1",
+            "name": "LockManager"
+        },
+        {
+            "address": "0xc1F4D3ac03C3052dDD91D1Dd6B293A7004247983",
+            "name": "RecoveryManager"
+        },
+        {
+            "address": "0x040c604e6337cE17AcD3C124ad03594A94e50fdA",
+            "name": "ApprovedTransfer"
+        },
+        {
+            "address": "0xb81eC49d93Ed336771C1bC6448bFB262403fEef4",
+            "name": "TokenTransfer"
+        },
+        {
+            "address": "0x0cA65A4a7338Db5E94Aa083B3a60eEB75074f831",
+            "name": "DappManager"
+        },
+        {
+            "address": "0xBE29E9569b4a40aaC421599F8F61394c03B1C918",
+            "name": "TokenExchanger"
+        },
+        {
+            "address": "0xEcE4e5209BEfF3B5E3b77985A84674f08B74B90B",
+            "name": "NftTransfer"
+        },
+        {
+            "address": "0x0E1499B090A8791Ec29a9656Fb85122fF8BCbD5e",
+            "name": "MakerManager"
+        },
+        {
+            "address": "0x0a78ECd7db74B00C010177E930EA429F0C7e0242",
+            "name": "MakerV2Manager"
+        }
+    ],
+    "fingerprint": "0x86a9153a"
+}
