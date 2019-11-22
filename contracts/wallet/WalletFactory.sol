@@ -7,7 +7,7 @@ import "../ens/ENSConsumer.sol";
 import "../ens/ArgentENSManager.sol";
 import "../upgrade/ModuleRegistry.sol";
 
-interface IGuardianManager {
+interface IGuardianStorage{
     function addGuardian(BaseWallet _wallet, address _guardian) external;
 }
 
@@ -26,15 +26,15 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     address public ensManager;
     // The address of the ENS resolver
     address public ensResolver;
-    // The address of the GuardianManager
-    address public guardianManager;
+    // The address of the GuardianStorage
+    address public guardianStorage;
 
     // *************** Events *************************** //
 
     event ModuleRegistryChanged(address addr);
     event ENSManagerChanged(address addr);
     event ENSResolverChanged(address addr);
-    event GuardianManagerChanged(address addr);
+    event GuardianStorageChanged(address addr);
     event WalletCreated(address indexed _wallet, address indexed _owner);
 
     // *************** Constructor ********************** //
@@ -48,7 +48,7 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         address _walletImplementation,
         address _ensManager,
         address _ensResolver,
-        address _guardianManager
+        address _guardianStorage
     )
         ENSConsumer(_ensRegistry)
         public
@@ -57,7 +57,7 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         walletImplementation = _walletImplementation;
         ensManager = _ensManager;
         ensResolver = _ensResolver;
-        guardianManager = _guardianManager;
+        guardianStorage = _guardianStorage;
     }
 
     // *************** External Functions ********************* //
@@ -145,15 +145,15 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
      * @param _owner The account address.
      * @param _modules The list of modules.
      * @param _label (Optional) ENS label of the new wallet, e.g. franck.
-     * @param _salt The salt.
      * @param _guardian The guardian address.
+     * @param _salt The salt.
      */
     function createCounterfactualWalletWithGuardian(
         address _owner,
         address[] calldata _modules,
         string calldata _label,
-        bytes32 _salt,
-        address _guardian
+        address _guardian,
+        bytes32 _salt
     )
         external
         onlyManager
@@ -171,15 +171,15 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
 
     /**
      * @dev Gets the address of a counterfactual wallet.
-     * @param _salt The salt.
      * @param _owner The account address.
      * @param _modules The list of modules.
+     * @param _salt The salt.
      * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function getAddressForCounterfactualWallet(
-        bytes32 _salt,
         address _owner,
-        address[] calldata _modules
+        address[] calldata _modules,
+        bytes32 _salt
     )
         external
         view
@@ -222,13 +222,13 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     }
 
     /**
-     * @dev Lets the owner change the address of the GuardianManager contract.
-     * @param _guardianManager The address of the GuardianManager contract.
+     * @dev Lets the owner change the address of the GuardianStorage contract.
+     * @param _guardianStorage The address of the GuardianStorage contract.
      */
-    function changeGuardianManager(address _guardianManager) external onlyOwner {
-        require(_guardianManager != address(0), "WF: address cannot be null");
-        guardianManager = _guardianManager;
-        emit GuardianManagerChanged(_guardianManager);
+    function changeGuardianStorage(address _guardianStorage) external onlyOwner {
+        require(_guardianStorage != address(0), "WF: address cannot be null");
+        guardianStorage = _guardianStorage;
+        emit GuardianStorageChanged(_guardianStorage);
     }
 
     /**
@@ -261,8 +261,7 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         _wallet.init(_owner, extendedModules);
         // add guardian if needed
         if(_guardian != address(0)) {
-            // the call will revert if the !modules.contains(guardianManager)
-            IGuardianManager(guardianManager).addGuardian(_wallet, _guardian);
+            IGuardianStorage(guardianStorage).addGuardian(_wallet, _guardian);
         }
         // register ENS if needed
         bytes memory labelBytes = bytes(_label);

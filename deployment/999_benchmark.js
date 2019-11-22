@@ -3,7 +3,6 @@
 const BaseWallet = require('../build/BaseWallet');
 const Proxy = require('../build/Proxy');
 const ModuleRegistry = require('../build/ModuleRegistry');
-const DappRegistry = require('../build/DappRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const ENS = require('../build/TestENSRegistry');
 const ENSManager = require('../build/ArgentENSManager');
@@ -15,9 +14,8 @@ const GuardianManager = require('../build/GuardianManager');
 const TokenExchanger = require('../build/TokenExchanger');
 const LockManager = require('../build/LockManager');
 const RecoveryManager = require('../build/RecoveryManager');
-const TokenTransfer = require('../build/TokenTransfer');
+const TransferManager = require('../build/TransferManager');
 const ApprovedTransfer = require('../build/ApprovedTransfer');
-const DappManager = require('../build/DappManager');
 
 const ethers = require('ethers');
 const Table = require('cli-table2');
