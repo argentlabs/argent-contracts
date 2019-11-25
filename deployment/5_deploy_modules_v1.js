@@ -3,7 +3,7 @@ const TransferStorage = require('../build/TransferStorage');
 const DappStorage = require('../build/DappStorage');
 
 const GuardianManager = require('../build/GuardianManager');
-const TokenExchanger = require('../build/TokenExchanger');
+const TokenExchanger = require('../build/LegacyTokenTransfer');
 const LockManager = require('../build/LockManager');
 const RecoveryManager = require('../build/RecoveryManager');
 
