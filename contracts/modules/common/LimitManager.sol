@@ -5,22 +5,22 @@ import "./BaseModule.sol";
 
 /**
  * @title LimitManager
- * @dev Module to transfer tokens (ETH or ERC20) based on a security context (daily limit, whitelist, etc).
+ * @dev Module to manage a daily spending limit
  * @author Julien Niset - <julien@argent.im>
  */
 contract LimitManager is BaseModule {
 
     // large limit when the limit can be considered disabled
-    uint128 constant internal LIMIT_DISABLED = uint128(-1); // 3.40282366920938463463374607431768211455e+38
+    uint128 constant private LIMIT_DISABLED = uint128(-1); // 3.40282366920938463463374607431768211455e+38
 
     using SafeMath for uint256;
 
     struct LimitManagerConfig {
-        // The global limit
+        // The daily limit
         Limit limit;
-        // whitelist
+        // The current usage
         DailySpent dailySpent;
-    } 
+    }
 
     struct Limit {
         // the current limit
@@ -66,8 +66,10 @@ contract LimitManager is BaseModule {
         }
     }
 
+    // *************** Internal Functions ********************* //
+
     /**
-     * @dev Changes the global limit. 
+     * @dev Changes the daily limit.
      * The limit is expressed in ETH and the change is pending for the security period.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
@@ -85,16 +87,34 @@ contract LimitManager is BaseModule {
         emit LimitChanged(address(_wallet), _newLimit, uint64(now.add(_securityPeriod)));
     }
 
-    // *************** Internal Functions ********************* //
+     /**
+     * @dev Disable the daily limit.
+     * The change is pending for the security period.
+     * @param _wallet The target wallet.
+     * @param _securityPeriod The security period.
+     */
+    function disableLimit(BaseWallet _wallet, uint256 _securityPeriod) internal {
+        changeLimit(_wallet, LIMIT_DISABLED, _securityPeriod);
+    }
 
     /**
-    * @dev Gets the current global limit for a wallet.
+    * @dev Gets the current daily limit for a wallet.
     * @param _wallet The target wallet.
     * @return the current limit expressed in ETH.
     */
     function getCurrentLimit(BaseWallet _wallet) public view returns (uint256 _currentLimit) {
         Limit storage limit = limits[address(_wallet)].limit;
         _currentLimit = uint256(currentLimit(limit.current, limit.pending, limit.changeAfter));
+    }
+
+    /**
+    * @dev Returns whether the daily limit is disabled for a wallet.
+    * @param _wallet The target wallet.
+    * @return true if the daily limit is disabled, false otherwise.
+    */
+    function isLimitDisabled(BaseWallet _wallet) public view returns (bool _limitDisabled) {
+        uint256 currentLimit = getCurrentLimit(_wallet);
+        _limitDisabled = currentLimit == LIMIT_DISABLED;
     }
 
     /**
@@ -114,17 +134,18 @@ contract LimitManager is BaseModule {
     * @return the amount of tokens (in ETH) that has not been spent yet and the end of the period.
     */
     function getDailyUnspent(BaseWallet _wallet) external view returns (uint256 _unspent, uint64 _periodEnd) {
-        uint256 globalLimit = getCurrentLimit(_wallet);
+        uint256 limit = getCurrentLimit(_wallet);
         DailySpent storage expense = limits[address(_wallet)].dailySpent;
         // solium-disable-next-line security/no-block-members
         if(now > expense.periodEnd) {
-            _unspent = globalLimit;
+            _unspent = limit;
+            // solium-disable-next-line security/no-block-members
             _periodEnd = uint64(now + 24 hours);
         }
         else {
             _periodEnd = expense.periodEnd;
-            if(expense.alreadySpent < globalLimit) {
-                _unspent = globalLimit - expense.alreadySpent;
+            if(expense.alreadySpent < limit) {
+                _unspent = limit - expense.alreadySpent;
             }
         }
     }
@@ -155,7 +176,9 @@ contract LimitManager is BaseModule {
     function updateDailySpent(BaseWallet _wallet, uint128 _limit, uint _amount) internal {
         if(_limit != LIMIT_DISABLED) {
             DailySpent storage expense = limits[address(_wallet)].dailySpent;
+            // solium-disable-next-line security/no-block-members
             if (expense.periodEnd < now) {
+                // solium-disable-next-line security/no-block-members
                 expense.periodEnd = uint64(now + 24 hours);
                 expense.alreadySpent = uint128(_amount);
             }
@@ -177,6 +200,7 @@ contract LimitManager is BaseModule {
         if(_limit == LIMIT_DISABLED) {
             return true;
         }
+        // solium-disable-next-line security/no-block-members
         else if (expense.periodEnd < now) {
             return (_amount <= _limit);
         } else {
@@ -191,6 +215,7 @@ contract LimitManager is BaseModule {
     * @param _changeAfter The value of the changeAfter parameter
     */
     function currentLimit(uint128 _current, uint128 _pending, uint64 _changeAfter) internal view returns (uint128) {
+        // solium-disable-next-line security/no-block-members
         if(_changeAfter > 0 && _changeAfter < now) {
             return _pending;
         }

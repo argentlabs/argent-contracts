@@ -47,12 +47,10 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
 
     // *************** Events *************************** //
 
-    // event Transfer(address indexed wallet, address indexed token, uint256 amount, address to, bytes data);
-    // event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
-    // event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
-    event PendingTransferCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter, address token, address to, uint256 amount, bytes data);
+    event PendingTransferCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter,
+        address token, address to, uint256 amount, bytes data);
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
 
@@ -113,6 +111,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         }
         // migrate daily pending if we are within a rolling period
         (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
+        // solium-disable-next-line security/no-block-members
         if(periodEnd > now) {
             limits[address(_wallet)].dailySpent = DailySpent(uint128(current.sub(unspent)), periodEnd);
         }
@@ -213,8 +212,8 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        // Make sure we don't call a module, the wallet itself, or an ERC20 method
-        authoriseContractCall(_wallet, _contract, _data);
+        // Make sure we don't call a module, the wallet itself, or a supported ERC20
+        authoriseContractCall(_wallet, _contract);
 
         if(isWhitelisted(_wallet, _contract)) {
             // call to whitelist
@@ -247,8 +246,8 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        // Make sure we don't call a module, the wallet itself, or an ERC20 method
-        authoriseContractCall(_wallet, _contract, _data);
+        // Make sure we don't call a module, the wallet itself, or a supported ERC20
+        authoriseContractCall(_wallet, _contract);
 
         if(isWhitelisted(_wallet, _contract)) {
             doApproveToken(_wallet, _token, _contract, _amount);
@@ -336,6 +335,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         uint executeAfter = configs[address(_wallet)].pendingActions[id];
         require(executeAfter > 0, "TT: unknown pending transfer");
         uint executeBefore = executeAfter.add(securityWindow);
+        // solium-disable-next-line security/no-block-members
         require(executeAfter <= now && now <= executeBefore, "TT: transfer outside of the execution window");
         delete configs[address(_wallet)].pendingActions[id];
         doTransfer(_wallet, _token, _to, _amount, _data);
@@ -356,7 +356,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     }
 
     /**
-     * @dev Lets the owner of a wallet change its global limit.
+     * @dev Lets the owner of a wallet change its daily limit.
      * The limit is expressed in ETH. Changes to the limit take 24 hours.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
@@ -371,7 +371,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
      * @param _wallet The target wallet.
      */
     function disableLimit(BaseWallet _wallet) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
-        changeLimit(_wallet, LIMIT_DISABLED, securityPeriod);
+        disableLimit(_wallet, securityPeriod);
     }
 
     /**
@@ -446,21 +446,21 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     {
         id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, block.number));
         require(configs[address(_wallet)].pendingActions[id] == 0, "TM: duplicate pending action");
+        // solium-disable-next-line security/no-block-members
         executeAfter = now.add(securityPeriod);
         configs[address(_wallet)].pendingActions[id] = executeAfter;
     }
 
     /**
-    * @dev Make sure a contract call is not trying to call a module, the wallet itself, or an ERC20 method.
+    * @dev Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
-    * @param _data The encoded method data
      */
-    function authoriseContractCall(BaseWallet _wallet, address _contract, bytes memory _data) internal view {
+    function authoriseContractCall(BaseWallet _wallet, address _contract) internal view {
         require(
             _contract != address(_wallet) && // not the wallet itself
             !_wallet.authorised(_contract) && // not an authorised module
-            priceProvider.cachedPrices(_contract) == 0, // not an ERC20 token listed in the provider
+            (priceProvider.cachedPrices(_contract) == 0 || isLimitDisabled(_wallet)), // not an ERC20 listed in the provider (or limit disabled)
             "TM: Forbidden contract");
     }
 
@@ -485,9 +485,9 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     // Overrides verifyRefund to add the refund in the daily limit.
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
         if(_gasPrice > 0 && _signatures > 0 && (
-            address(_wallet).balance < _gasUsed * _gasPrice
-            || isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false
-            || _wallet.authorised(address(this)) == false
+            address(_wallet).balance < _gasUsed * _gasPrice ||
+            isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false ||
+            _wallet.authorised(address(this)) == false
         ))
         {
             return false;
