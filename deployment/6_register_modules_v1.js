@@ -39,7 +39,6 @@ const deploy = async (network, secret) => {
     const GuardianManagerWrapper = await deployer.wrapDeployedContract(GuardianManager, config.modules.GuardianManager);
     const LockManagerWrapper = await deployer.wrapDeployedContract(LockManager, config.modules.LockManager);
     const RecoveryManagerWrapper = await deployer.wrapDeployedContract(RecoveryManager, config.modules.RecoveryManager);
-
     const ApprovedTransferWrapper = await deployer.wrapDeployedContract(ApprovedTransfer, config.modules.ApprovedTransfer);
     const TransferManagerWrapper = await deployer.wrapDeployedContract(TransferManager, config.modules.TransferManager);
     const TokenExchangerWrapper = await deployer.wrapDeployedContract(TokenExchanger, config.modules.TokenExchanger);

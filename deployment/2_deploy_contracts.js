@@ -85,8 +85,8 @@ const deploy = async (network, secret) => {
     // Add token to the Compound Registry
     ///////////////////////////////////////////////////
     
-    for (let underlying in config.defi.compound.markets) {
-        const cToken = config.defi.compound.markets[underlying];
+    for (let underlying in newConfig.defi.compound.markets) {
+        const cToken = newConfig.defi.compound.markets[underlying];
         const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
         await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
     }

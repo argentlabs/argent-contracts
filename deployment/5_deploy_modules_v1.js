@@ -15,6 +15,10 @@ const MakerV2Manager = require('../build/MakerV2Manager');
 
 const DeployManager = require('../utils/deploy-manager.js');
 
+/////////////////////////////////////////////////////////
+//                 Version 1.4
+/////////////////////////////////////////////////////////
+
 const deploy = async (network, secret) => {
 
     ////////////////////////////////////
@@ -119,7 +123,7 @@ const deploy = async (network, secret) => {
         config.contracts.ModuleRegistry,
         config.modules.GuardianStorage,
         config.defi.compound.comptroller,
-        CompoundRegistryWrapper.contractAddress
+        config.contracts.CompoundRegistry
     );
     // Deploy the UniswapManager module
     const UniswapManagerWrapper = await deployer.deploy(
