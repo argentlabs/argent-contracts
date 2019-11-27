@@ -297,7 +297,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         lockETH(_wallet, _cup, _pethCollateral, _makerCdp);
         // Draw DAI from CDP
         if(_daiDebt > 0) {
-            invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _daiDebt));
+            invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _daiDebt));
         }
     }
 
@@ -359,7 +359,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         internal
     {
         // draw DAI from CDP
-        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _amount));
+        invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _amount));
     }
 
     /**
@@ -393,7 +393,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
             // Not enough MKR => Convert some ETH into MKR with Uniswap
             address mkrUniswap = _uniswapFactory.getExchange(mkrToken);
             uint256 etherValueOfMKR = IUniswapExchange(mkrUniswap).getEthToTokenOutputPrice(mkrFee - mkrBalance);
-            invokeWallet(_wallet, mkrUniswap, etherValueOfMKR, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee - mkrBalance, block.timestamp));
+            invokeWallet(address(_wallet), mkrUniswap, etherValueOfMKR, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee - mkrBalance, block.timestamp));
         }
         
         // get DAI balance
@@ -403,15 +403,15 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
             // Not enough DAI => Convert some ETH into DAI with Uniswap
             address daiUniswap = _uniswapFactory.getExchange(daiToken);
             uint256 etherValueOfDAI = IUniswapExchange(daiUniswap).getEthToTokenOutputPrice(_amount - daiBalance);
-            invokeWallet(_wallet, daiUniswap, etherValueOfDAI, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, _amount - daiBalance, block.timestamp));
+            invokeWallet(address(_wallet), daiUniswap, etherValueOfDAI, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, _amount - daiBalance, block.timestamp));
         }
 
         // Approve DAI to let wipe() repay the DAI debt
-        invokeWallet(_wallet, daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _amount));
+        invokeWallet(address(_wallet), daiToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _amount));
         // Approve MKR to let wipe() pay the MKR governance fee
-        invokeWallet(_wallet, mkrToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), mkrFee));
+        invokeWallet(address(_wallet), mkrToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), mkrFee));
         // repay DAI debt and MKR governance fee
-        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_WIPE, _cup, _amount));
+        invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_WIPE, _cup, _amount));
     }
 
     /**
@@ -437,7 +437,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         uint collateral = pethCollateral(_cup, _makerCdp);
         if(collateral > 0) removeCollateral(_wallet, _cup, collateral, _makerCdp);
         // shut the CDP
-        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _cup));
+        invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _cup));
     }
 
     /* Convenience methods */
@@ -565,18 +565,18 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         // Get WETH/PETH rate
         uint ethAmount = _makerCdp.ask(_pethAmount);
         // ETH to WETH
-        invokeWallet(_wallet, wethToken, ethAmount, abi.encodeWithSelector(WETH_DEPOSIT));
+        invokeWallet(address(_wallet), wethToken, ethAmount, abi.encodeWithSelector(WETH_DEPOSIT));
         // Approve WETH
-        invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), ethAmount));
+        invokeWallet(address(_wallet), wethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), ethAmount));
         // WETH to PETH
-        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_JOIN, _pethAmount));
+        invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_JOIN, _pethAmount));
 
         // 2. Lock PETH into CDP
         address pethToken = _makerCdp.skr();
         // Approve PETH
-        invokeWallet(_wallet, pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
+        invokeWallet(address(_wallet), pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
         // lock PETH into CDP
-        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_LOCK, _cup, _pethAmount));
+        invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_LOCK, _cup, _pethAmount));
     }
 
     /**
@@ -597,19 +597,19 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         // 1. Unlock PETH
 
         // Unlock PETH from CDP
-        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_FREE, _cup, _pethAmount));
+        invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_FREE, _cup, _pethAmount));
 
         // 2. Convert PETH to ETH
         address wethToken = _makerCdp.gem();
         address pethToken = _makerCdp.skr();
         // Approve PETH
-        invokeWallet(_wallet, pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
+        invokeWallet(address(_wallet), pethToken, 0, abi.encodeWithSelector(ERC20_APPROVE, address(_makerCdp), _pethAmount));
         // PETH to WETH
-        invokeWallet(_wallet, address(_makerCdp), 0, abi.encodeWithSelector(CDP_EXIT, _pethAmount));
+        invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_EXIT, _pethAmount));
         // Get WETH/PETH rate
         uint ethAmount = _makerCdp.bid(_pethAmount);
         // WETH to ETH
-        invokeWallet(_wallet, wethToken, 0, abi.encodeWithSelector(WETH_WITHDRAW, ethAmount));
+        invokeWallet(address(_wallet), wethToken, 0, abi.encodeWithSelector(WETH_WITHDRAW, ethAmount));
     }
 
     /**
@@ -621,17 +621,6 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         (bytes32 daiPerMKR_, bool ok) = _makerCdp.pep().peek();
         require(ok && daiPerMKR_ != 0, "LM: invalid DAI/MKR rate");
         _daiPerMKR = uint256(daiPerMKR_);
-    }
-
-    /**
-     * @dev Utility method to invoke a wallet
-     * @param _wallet The wallet to invoke.
-     * @param _to The target address.
-     * @param _value The value.
-     * @param _data The data.
-     */
-    function invokeWallet(BaseWallet _wallet, address _to, uint256 _value, bytes memory _data) internal {
-        _wallet.invoke(_to, _value, _data);
     }
 } 
 

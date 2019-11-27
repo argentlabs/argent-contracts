@@ -137,15 +137,15 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         if(_amount > tokenBalance) {
             uint256 ethToSwap = UniswapExchange(tokenPool).getEthToTokenOutputPrice(_amount - tokenBalance);
             require(ethToSwap <= address(_wallet).balance, "Uniswap: not enough ETH to swap");
-            _wallet.invoke(tokenPool, ethToSwap, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _amount - tokenBalance, block.timestamp));
+            invokeWallet(address(_wallet), tokenPool, ethToSwap, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _amount - tokenBalance, block.timestamp));
         }
 
         uint256 tokenLiquidity = ERC20(_token).balanceOf(tokenPool);
         uint256 ethLiquidity = tokenPool.balance;
         uint256 ethToPool = (_amount - 1).mul(ethLiquidity).div(tokenLiquidity);
         require(ethToPool <= address(_wallet).balance, "Uniswap: not enough ETH to pool");
-        _wallet.invoke(_token, 0, abi.encodeWithSignature("approve(address,uint256)", tokenPool, _amount));
-        _wallet.invoke(tokenPool, ethToPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, _amount, block.timestamp + 1));
+        invokeWallet(address(_wallet), _token, 0, abi.encodeWithSignature("approve(address,uint256)", tokenPool, _amount));
+        invokeWallet(address(_wallet), tokenPool, ethToPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, _amount, block.timestamp + 1));
         return _amount.mul(2);
     }
 
@@ -165,7 +165,7 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         address tokenPool = uniswapFactory.getExchange(_token);
         require(tokenPool != address(0), "Uniswap: The target token is not traded on Uniswap");
         uint256 shares = ERC20(tokenPool).balanceOf(address(_wallet));
-        _wallet.invoke(tokenPool, 0, abi.encodeWithSignature("removeLiquidity(uint256,uint256,uint256,uint256)", shares.mul(_fraction).div(10000), 1, 1, block.timestamp + 1));
+        invokeWallet(address(_wallet), tokenPool, 0, abi.encodeWithSignature("removeLiquidity(uint256,uint256,uint256,uint256)", shares.mul(_fraction).div(10000), 1, 1, block.timestamp + 1));
     }
 }
 

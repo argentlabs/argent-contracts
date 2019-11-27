@@ -9,8 +9,6 @@ import "./BaseModule.sol";
  */
 contract BaseTransfer is BaseModule {
 
-    // Empty calldata
-    bytes constant internal EMPTY_BYTES = "";
     // Mock token address for ETH
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 

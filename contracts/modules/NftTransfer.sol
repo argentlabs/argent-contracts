@@ -100,7 +100,7 @@ function transferNFT(
                    "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
            }
         }
-        _wallet.invoke(_nftContract, 0, methodData);
+        invokeWallet(address(_wallet), _nftContract, 0, methodData);
         emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
     }
 
