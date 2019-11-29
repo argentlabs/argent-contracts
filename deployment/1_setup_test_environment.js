@@ -1,6 +1,7 @@
 const ENS = require('../build/TestENSRegistry');
 const Kyber = require('../build/KyberNetworkTest');
 const ERC20 = require('../build/TestERC20');
+const MakerMigration = require('../build/MockScdMcdMigration');
 
 const utils = require('../utils/utilities.js');
 const DeployManager = require('../utils/deploy-manager.js');
@@ -65,7 +66,13 @@ const deploy = async (network, secret) => {
         // Deploy Kyber Network if needed
         const address = await deployKyber(deployer);
         configurator.updateKyberContract(address);
-    }
+	}
+	
+	if (config.defi.maker.deployOwn) {
+        // Deploy Maker's mock Migration contract if needed
+		const MakerMigrationWrapper = await deployer.deploy(MakerMigration);
+        configurator.updateMakerMigration(MakerMigrationWrapper.contractAddress);
+	}
 
     // save configuration
     await configurator.save();

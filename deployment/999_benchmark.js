@@ -15,9 +15,13 @@ const GuardianManager = require('../build/GuardianManager');
 const TokenExchanger = require('../build/TokenExchanger');
 const LockManager = require('../build/LockManager');
 const RecoveryManager = require('../build/RecoveryManager');
-const TokenTransfer = require('../build/TokenTransfer');
 const ApprovedTransfer = require('../build/ApprovedTransfer');
-const DappManager = require('../build/DappManager');
+const TransferManager = require('../build/TransferManager');
+const NftTransfer = require('../build/NftTransfer');
+const MakerManager = require('../build/MakerManager');
+const CompoundManager = require('../build/CompoundManager');
+const UniswapManager = require('../build/UniswapManager');
+const MakerV2Manager = require('../build/MakerV2Manager');
 
 const ethers = require('ethers');
 const Table = require('cli-table2');
@@ -47,7 +51,7 @@ class Benchmark {
         const configurator = manager.configurator;
 
         this.deployer = manager.deployer;
-        this.deploymentWallet = this.deployer.wallet;
+        this.deploymentWallet = this.deployer.signer;
         const config = configurator.config;
 
         this.accounts = await this.deployer.provider.listAccounts();
@@ -60,9 +64,13 @@ class Benchmark {
         this.LockManagerWrapper = await this.deployer.wrapDeployedContract(LockManager, config.modules.LockManager);
         this.RecoveryManagerWrapper = await this.deployer.wrapDeployedContract(RecoveryManager, config.modules.RecoveryManager);
         this.ApprovedTransferWrapper = await this.deployer.wrapDeployedContract(ApprovedTransfer, config.modules.ApprovedTransfer);
-        this.TokenTransferWrapper = await this.deployer.wrapDeployedContract(TokenTransfer, config.modules.TokenTransfer);
-        this.DappManagerWrapper = await this.deployer.wrapDeployedContract(DappManager, config.modules.DappManager);
+        this.TransferManagerWrapper = await this.deployer.wrapDeployedContract(TransferManager, config.modules.TransferManager);
         this.TokenExchangerWrapper = await this.deployer.wrapDeployedContract(TokenExchanger, config.modules.TokenExchanger);
+        this.NftTransferWrapper = await this.deployer.wrapDeployedContract(NftTransfer, config.modules.NftTransfer);
+        this.MakerManagerWrapper = await this.deployer.wrapDeployedContract(MakerManager, config.modules.MakerManager);
+        this.CompoundManagerWrapper = await this.deployer.wrapDeployedContract(CompoundManager, config.modules.CompoundManager);
+        this.UniswapManagerWrapper = await this.deployer.wrapDeployedContract(UniswapManager, config.modules.UniswapManager);
+        this.MakerV2ManagerWrapper = await this.deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
 
         this.ModuleRegistryWrapper = await this.deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
         this.DappRegistryWrapper = await this.deployer.wrapDeployedContract(DappRegistry, config.contracts.DappRegistry);
@@ -75,15 +83,20 @@ class Benchmark {
 
     async setupWallet() {
         this.oneModule = [this.GuardianManagerWrapper.contractAddress];
-        this.twoModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress,];
+        this.twoModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress];
+        this.threeModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress, this.RecoveryManagerWrapper.contractAddress];
         this.allModules = [
             this.GuardianManagerWrapper.contractAddress,
             this.LockManagerWrapper.contractAddress,
             this.RecoveryManagerWrapper.contractAddress,
-            this.TokenTransferWrapper.contractAddress,
             this.ApprovedTransferWrapper.contractAddress,
-            this.DappManagerWrapper.contractAddress,
-            this.TokenExchangerWrapper.contractAddress
+            this.TransferManagerWrapper.contractAddress,
+            this.TokenExchangerWrapper.contractAddress,
+            this.NftTransferWrapper.contractAddress,
+            this.MakerManagerWrapper.contractAddress,
+            this.CompoundManagerWrapper.contractAddress,
+            this.UniswapManagerWrapper.contractAddress,
+            this.MakerV2ManagerWrapper.contractAddress
         ];
 
         const proxy = await this.deployer.deploy(Proxy, {}, this.BaseWalletWrapper.contractAddress);
@@ -100,7 +113,7 @@ class Benchmark {
     ///// use cases /////
     /////////////////////
 
-    async estimateCreateWalletWithoutENSOneModule() {
+    async estimateCreateWalletWithoutENSOneModule() { 
         const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.oneModule, "");
         this._logger.addItem("Create a wallet without ENS (1 module)", gasUsed);
     }
@@ -108,6 +121,11 @@ class Benchmark {
     async estimateCreateWalletWithoutENSTwoModules() {
         const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.twoModules, "");
         this._logger.addItem("Create a wallet without ENS (2 module)", gasUsed);
+    }
+
+    async estimateCreateWalletWithoutENSThreeModules() {
+        const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.threeModules, "");
+        this._logger.addItem("Create a wallet without ENS (3 module)", gasUsed);
     }
 
     async estimateCreateWalletWithoutENSAllModules() {
@@ -225,73 +243,64 @@ class Benchmark {
     }
 
     async estimateChangeLimitDirect() {
-        const gasUsed = await this.TokenTransferWrapper.estimate.changeLimit(this.walletAddress, 4000000);
+        const gasUsed = await this.TransferManagerWrapper.estimate.changeLimit(this.walletAddress, 4000000);
         this._logger.addItem("Change limit (direct)", gasUsed);
     }
 
     async estimateChangeLimitRelayed() {
-        const gasUsed = await this.relayEstimate(this.TokenTransferWrapper, "changeLimit", [this.walletAddress, 67000000], this.wallet, [this.signers[0]]);
+        const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "changeLimit", [this.walletAddress, 67000000], this.wallet, [this.signers[0]]);
         this._logger.addItem("Change limit (relayed)", gasUsed);
     }
 
     async estimateETHTransferNoLimitDirect() {
         // disable limit
-        await this.TokenTransferWrapper.disableLimit(this.walletAddress);
+        await this.TransferManagerWrapper.disableLimit(this.walletAddress);
         await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
         // transfer
-        const gasUsed = await this.TokenTransferWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x");
+        const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x");
         this._logger.addItem("ETH transfer, limit disabled (direct)", gasUsed);
     }
 
     async estimateTransferNoLimitRelayed() {
         // disable limit
-        await this.TokenTransferWrapper.disableLimit(this.walletAddress);
+        await this.TransferManagerWrapper.disableLimit(this.walletAddress);
         await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
         // transfer
-        const gasUsed = await this.relayEstimate(this.TokenTransferWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x"], this.wallet, [this.signers[0]]);
+        const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x"], this.wallet, [this.signers[0]]);
         this._logger.addItem("ETH transfer, limit disabled (relayed)", gasUsed);
     }
 
     async estimateETHSmallTransferDirect() {
-        await this.TokenTransferWrapper.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[5], 200, "0x");
-        const gasUsed = await this.TokenTransferWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[5], 200, "0x");
+        await this.TransferManagerWrapper.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[5], 200, "0x");
+        const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[5], 200, "0x");
         this._logger.addItem("ETH small transfer (direct)", gasUsed);
     }
 
     async estimateSmallTransferRelayed() {
-        const gasUsed = await this.relayEstimate(this.TokenTransferWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000, "0x"], this.wallet, [this.signers[0]])
+        const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000, "0x"], this.wallet, [this.signers[0]])
         this._logger.addItem("ETH small transfer (relayed)", gasUsed);
     }
 
-    async estimateSmallTransferRelayedFromAuthorizedDapp() {
-        this.multisigExecutor.executeCall(this.DappRegistryWrapper, "register", [this.accounts[2], ['0x12121212']]);
-
-        await this.DappManagerWrapper.authorizeCall(this.walletAddress, this.accounts[1], this.accounts[2], ['0x12121212'])
-
-        const gasUsed = await this.relayEstimate(this.DappManagerWrapper, "callContract", [this.walletAddress, this.accounts[1], this.accounts[2], 2000, "0x12121212"], this.wallet, [this.signers[1]]);
-        this._logger.addItem("ETH small transfer from authorized dapp (relayed)", gasUsed);
-    }
-
     async estimateETHTransferToWhitelistedAccountDirect() {
-        await this.TokenTransferWrapper.addToWhitelist(this.walletAddress, this.accounts[3]);
+        await this.TransferManagerWrapper.addToWhitelist(this.walletAddress, this.accounts[3]);
         await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
-        const gasUsed = await this.TokenTransferWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x");
+        const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x");
         this._logger.addItem("ETH transfer to whitelisted account (direct)", gasUsed);
     }
 
     async estimateTransferToWhitelistedAccountRelayed() {
-        await this.TokenTransferWrapper.addToWhitelist(this.walletAddress, this.accounts[3]);
+        await this.TransferManagerWrapper.addToWhitelist(this.walletAddress, this.accounts[3]);
         await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
-        const gasUsed = await this.relayEstimate(this.TokenTransferWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"], this.wallet, [this.signers[0]])
+        const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"], this.wallet, [this.signers[0]])
         this._logger.addItem("ETH transfer to whitelisted account (relayed)", gasUsed);
     }
 
     async estimateETHLargeTransferToUntrustedAccount() {
-        const gasUsed = await this.TokenTransferWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[2], 2000000, "0x");
+        const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[2], 2000000, "0x");
         this._logger.addItem("ETH large transfer to untrusted account", gasUsed);
     }
 
@@ -419,7 +428,7 @@ class Logger {
 const deploy = async (network, secret) => {
 
     let benchmark = new Benchmark(network);
-    await benchmark.setup();
+    await benchmark.setup(); 
 
     var methods = benchmark.getAllEstimateMethods();
     let argv_methods = process.argv.filter(x => x.startsWith("estimate"));
