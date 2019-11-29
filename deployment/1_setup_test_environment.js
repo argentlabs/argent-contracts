@@ -69,7 +69,7 @@ const deploy = async (network, secret) => {
 	}
 	
 	if (config.defi.maker.deployOwn) {
-        // Deploy Kyber Network if needed
+        // Deploy Maker's mock Migration contract if needed
 		const MakerMigrationWrapper = await deployer.deploy(MakerMigration);
         configurator.updateMakerMigration(MakerMigrationWrapper.contractAddress);
 	}
