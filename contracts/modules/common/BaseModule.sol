@@ -12,6 +12,9 @@ import "../../exchange/ERC20.sol";
  */
 contract BaseModule is Module {
 
+    // Empty calldata
+    bytes constant internal EMPTY_BYTES = "";
+
     // The adddress of the module registry.
     ModuleRegistry internal registry;
     // The address of the Guardian storage

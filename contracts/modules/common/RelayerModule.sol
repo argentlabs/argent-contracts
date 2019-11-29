@@ -8,7 +8,7 @@ import "./BaseModule.sol";
  * @dev Base module containing logic to execute transactions signed by eth-less accounts and sent by a relayer.
  * @author Julien Niset - <julien@argent.im>
  */
-contract RelayerModule is Module {
+contract RelayerModule is BaseModule {
 
     uint256 constant internal BLOCKBOUND = 10000;
 
@@ -202,7 +202,7 @@ contract RelayerModule is Module {
             else {
                 amount = amount * _gasPrice;
             }
-            _wallet.invoke(_relayer, amount, "");
+            invokeWallet(address(_wallet), _relayer, amount, EMPTY_BYTES);
         }
     }
 

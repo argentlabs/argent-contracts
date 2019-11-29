@@ -196,12 +196,12 @@ contract LimitManager is BaseModule {
     * @return true if the transfer amount is withing the daily limit.
     */
     function isWithinDailyLimit(BaseWallet _wallet, uint _limit, uint _amount) internal view returns (bool)  {
-        DailySpent storage expense = limits[address(_wallet)].dailySpent;
         if(_limit == LIMIT_DISABLED) {
             return true;
         }
+        DailySpent storage expense = limits[address(_wallet)].dailySpent;
         // solium-disable-next-line security/no-block-members
-        else if (expense.periodEnd < now) {
+        if (expense.periodEnd < now) {
             return (_amount <= _limit);
         } else {
             return (expense.alreadySpent + _amount <= _limit && expense.alreadySpent + _amount >= expense.alreadySpent);
