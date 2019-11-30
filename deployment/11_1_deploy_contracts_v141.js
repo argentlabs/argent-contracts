@@ -1,27 +1,18 @@
-const TransferManager = require('../build/TransferManager');
-const ApprovedTransfer = require('../build/ApprovedTransfer');
+const CommunityManager = require('../build/CommunityManager');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
-const LegacyUpgrader = require('../build/LegacySimpleUpgrader');
 const Upgrader = require('../build/SimpleUpgrader');
-const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 const utils = require('../utils/utilities.js');
 const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
-const semver = require('semver');
-
-const TARGET_VERSION = "1.4.0";
-const MODULES_TO_ENABLE = ["TransferManager", "ApprovedTransfer"];
-const MODULES_TO_DISABLE = ["DappManager", "TokenTransfer", "ModuleManager"];
-
-
-const BACKWARD_COMPATIBILITY = 4;
+const semver = require('semver')
+const TARGET_VERSION = "1.4.1";
+const MODULES_TO_ENABLE = ["CommunityManager"];
+const MODULES_TO_DISABLE = [];
+const BACKWARD_COMPATIBILITY = 1;
 
 const deploy = async (network) => {
-
-    // Note (for test, staging and prod): this upgrade still uses the legacy upgrade mechanism (using the ModuleManager). 
-    // For the next update, we will be able to use TransferManager's addModule method to update the most recent version to the new version
 
     const newModuleWrappers = [];
     const newVersion = {};
@@ -46,59 +37,23 @@ const deploy = async (network) => {
 
     console.log('Config:', config);
 
-    ////////////////////////////////////////
-    // Deploy new infrastructure contracts
-    ///////////////////////////////////////
-
-    // Deploy TokenPriceProvider
-    const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, config.Kyber.contract);
-
-
-    ////////////////////////////////////
-    // Set new contracts' managers
-    ////////////////////////////////////
-
-    for (const account of config.backend.accounts) {
-        const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account);
-        await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx, `Set ${account} as the manager of the TokenPriceProvider`);
-    }
-
     ////////////////////////////////////
     // Deploy new modules
     ////////////////////////////////////
 
-    const TransferManagerWrapper = await deployer.deploy(
-        TransferManager,
+    const CommunityManagerWrapper = await deployer.deploy(
+        CommunityManager,
         {},
-        config.contracts.ModuleRegistry,
-        config.modules.TransferStorage,
-        config.modules.GuardianStorage,
-        TokenPriceProviderWrapper.contractAddress,
-        config.settings.securityPeriod || 0,
-        config.settings.securityWindow || 0,
-        config.settings.defaultLimit || '1000000000000000000',
-        '0x0000000000000000000000000000000000000000'
+        config.contracts.ModuleRegistry
     );
-    newModuleWrappers.push(TransferManagerWrapper);
-
-    const ApprovedTransferWrapper = await deployer.deploy(
-        ApprovedTransfer,
-        {},
-        config.contracts.ModuleRegistry,
-        config.modules.GuardianStorage
-    );
-    newModuleWrappers.push(ApprovedTransferWrapper);
+    newModuleWrappers.push(CommunityManagerWrapper);
 
     ///////////////////////////////////////////////////
-    // Update config and Upload new contract ABIs
+    // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        TransferManager: TransferManagerWrapper.contractAddress,
-        ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
-    });
-    configurator.updateInfrastructureAddresses({
-        TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
+        CommunityManager: CommunityManagerWrapper.contractAddress
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -106,9 +61,7 @@ const deploy = async (network) => {
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(TransferManagerWrapper, "modules"),
-        abiUploader.upload(ApprovedTransferWrapper, "modules"),
-        abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
+        abiUploader.upload(CommunityManagerWrapper, "modules")
     ]);
 
     ////////////////////////////////////
@@ -124,13 +77,19 @@ const deploy = async (network) => {
     // Deploy and Register upgraders
     ////////////////////////////////////
 
-
+    const toAdd = newModuleWrappers.map((wrapper) => {
+        return {
+            'address': wrapper.contractAddress,
+            'name': wrapper._contract.contractName
+        };
+    });
     let fingerprint;
+
     const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
     for (let idx = 0; idx < versions.length; idx++) {
         const version = versions[idx];
         let toAdd, toRemove;
-        if (idx === 0) {
+        if (idx == 0) {
             const moduleNamesToRemove = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
             toRemove = version.modules.filter(module => moduleNamesToRemove.includes(module.name));
             toAdd = newModuleWrappers.map((wrapper) => {
@@ -150,6 +109,7 @@ const deploy = async (network) => {
             ////////////////////////////////////
             // Deregister old modules
             ////////////////////////////////////
+
             for (let i = 0; i < toRemove.length; i++) {
                 await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
             }
@@ -160,30 +120,15 @@ const deploy = async (network) => {
             toRemove = version.modules.filter(module => !newVersion.modules.map(m => m.address).includes(module.address));
         }
 
+        const UpgraderWrapper = await deployer.deploy(
+            Upgrader,
+            {},
+            config.contracts.ModuleRegistry,
+            toRemove.map(module => module.address),
+            toAdd.map(module => module.address)
+        );
         const upgraderName = version.fingerprint + '_' + fingerprint;
-
-        let UpgraderWrapper;
-        if (['test', 'staging', 'prod'].includes(network)) {
-            // make sure ModuleManager is always the last to be removed if it needs to be removed
-            toRemove.push(toRemove.splice(toRemove.findIndex(({ name }) => name === 'ModuleManager'), 1)[0]);
-            // this is an "old-style" Upgrader (to be used with ModuleManager)
-            UpgraderWrapper = await deployer.deploy(
-                LegacyUpgrader,
-                {},
-                toRemove.map(module => module.address),
-                toAdd.map(module => module.address)
-            );
-        } else {
-            // this is a "new-style" Upgrader Module (to be used with the addModule method of TransferManager or any module deployed after it)
-            UpgraderWrapper = await deployer.deploy(
-                Upgrader,
-                {},
-                config.contracts.ModuleRegistry,
-                toRemove.map(module => module.address),
-                toAdd.map(module => module.address)
-            );
-            await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
-        }
+        await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
         await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
     };
 

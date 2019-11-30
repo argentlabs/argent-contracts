@@ -1,0 +1,102 @@
+{
+  "ENS": {
+    "deployOwnRegistry": true,
+    "ensRegistry": "0xDA65AA66Cd77B699cDF81F6FfbFa930d598941f0",
+    "domain": "fuse.eth"
+  },
+  "backend": {
+    "accounts": [
+      "0x70696cCfBAa077898236f5488feBaE5003c7A1dE",
+      "0x451995E520445e9ce2aeEe3069284d366289f19A",
+      "0x928d07d6DC75A3B1f437B8a2e7377b15feA67c86",
+      "0x25Ef63d1fD416Ef76CAC77f85687c555a052e6F9",
+      "0x5d4A0CfAb91CF333E9622e68A4fB028dcdD46322"
+    ]
+  },
+  "multisig": {
+    "owners": [
+      "0x70696cCfBAa077898236f5488feBaE5003c7A1dE",
+      "0x451995E520445e9ce2aeEe3069284d366289f19A",
+      "0x928d07d6DC75A3B1f437B8a2e7377b15feA67c86",
+      "0x25Ef63d1fD416Ef76CAC77f85687c555a052e6F9",
+      "0x5d4A0CfAb91CF333E9622e68A4fB028dcdD46322"
+    ],
+    "threshold": 1,
+    "autosign": true
+  },
+  "settings": {
+    "deployer": {
+      "type": "jsonrpc",
+      "options": {
+        "url": "https://rpc.fusenet.io"
+      }
+    },
+    "privateKey": {
+      "type": "plain",
+      "options": {
+        "value": "ENTER_YOUR_PRIV_KEY_HERE"
+      }
+    },
+    "lockPeriod": 480,
+    "recoveryPeriod": 480,
+    "securityPeriod": 240,
+    "securityWindow": 240,
+    "feeRatio": 15,
+    "defaultLimit": "1000000000000000000"
+  },
+  "Kyber": {
+    "deployOwn": true,
+    "contract": "0x5765562714E083656e0d2D101EBB438F41282081"
+  },
+  "CryptoKitties": {
+    "contract": "0x0000000000000000000000000000000000000000"
+  },
+  "defi": {
+    "maker": {
+      "tub": "0xa71937147b55deb8a530c7229c442fd3f31b7db2",
+      "migration": "0x786e119d9ee56ac6f5741ada57415cede8df75df",
+      "pot": "0x3d9afbed6ee2c2d17749b003875eaa38c0ce0c7f"
+    },
+    "uniswap": {
+      "factory": "0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30"
+    },
+    "compound": {
+      "comptroller": "0x142d11cb90a2b40f7d0c55ed1804988dfc316fae",
+      "markets": {
+        "0xc4375b7de8af5a38a93548eb8453a498222c4ff2": "0x0a1e4d0b5c71b955c0a5993023fc48ba6e380496",
+        "0xd0a1e359811322d97991e03f863a0c30c2cf029c": "0xd83f707f003a1f0b1535028ab356fce2667ab855"
+      }
+    }
+  },
+  "contracts": {
+    "MultiSigWallet": "0xe776Da0037F913B8C65c56c1589BCfDa99f5c8E7",
+    "WalletFactory": "0xf25280D6cfbdF29a5F9bB206aa5A71dBD1f76FA2",
+    "ENSResolver": "0xa9031e07cE02a5827d544Ad4052BB7f647dc7f06",
+    "ENSManager": "0x073E0e3f6F50b84F82fB83d24fc8850718a1925D",
+    "TokenPriceProvider": "0xEeCFadF304086eFDBE94166Fe3B43D8766c0310b",
+    "ModuleRegistry": "0xDd1ADF9C9D63f5298087D13845624B41662005Cf",
+    "DappRegistry": "0xdABf6D1D3f1e3Fa3996eBFA32b4fF669775F5fCF",
+    "BaseWallet": "0x73eE7854C67d8755D71907e742ed97fa54D9DFfb",
+    "CompoundRegistry": "0x25807910C6323ac96EDd4fBDCa8E77Bbf1cee0B6"
+  },
+  "modules": {
+    "GuardianStorage": "0x66eccBf4d9030067E74e629545e72965c221bccE",
+    "TransferStorage": "0x5a2BB34c4d6293A194F62117438292823363E67e",
+    "DappStorage": "0xC73aF9168C585b18B6471f849AcAE1d1ABcb216B",
+    "GuardianManager": "0x9C1422A9b643531430114965De0152E94f0cB77F",
+    "LockManager": "0x322946550d30d5B50073BCE686637d099Bc7648C",
+    "RecoveryManager": "0x3D7746C816fA011A7C6d876a48D7ae0ff0532F6f",
+    "ApprovedTransfer": "0xD75AEad3975724BE7709C7519f1601F7fe173d5E",
+    "TokenTransfer": "0xb81eC49d93Ed336771C1bC6448bFB262403fEef4",
+    "DappManager": "0x0cA65A4a7338Db5E94Aa083B3a60eEB75074f831",
+    "TokenExchanger": "0xe9A473d4736F3F6FDc541420581050Bd91F126A8",
+    "NftTransfer": "0x9A6bc577d88C868c9CA1510B1F7838b1caF17f22",
+    "MakerManager": "0x9a15709B74433266094753F4cEE2422615f5bb83",
+    "MakerV2Manager": "0x0a78ECd7db74B00C010177E930EA429F0C7e0242",
+    "CompoundManager": "0x03f87d4bF327e0C47094638B2510Fc84780450C6",
+    "UniswapManager": "0xca6586daC8405109e832eE2Dd8BA45C7CaC392a5",
+    "TransferManager": "0xBbE1EcEE01bBa382088E243624aE69C4D7F378A8",
+    "CommunityManager": "0x306BB3f40BEa3710cAc4BD9F1Ef052aD999d7233"
+  },
+  "gitCommit": "199f2da4e72415d2f9f456584d89b4a12e9dfd17"
+}

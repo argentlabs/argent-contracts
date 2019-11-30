@@ -17,6 +17,10 @@ class DeployManager {
     constructor(network) {
         this.network = network;
 
+        if (network === 'fuse') {
+            defaultConfigs.gasPrice = 1000000000 //1 Gwei
+        }
+
         const suffixes = (process.env.S3_BUCKET_SUFFIXES || "").split(':');
 
         // config
