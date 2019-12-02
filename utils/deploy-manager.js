@@ -21,6 +21,7 @@ class DeployManager {
             defaultConfigs.gasPrice = 1000000000 //1 Gwei
         }
 
+        this.env = process.env.CONFIG_ENVIRONMENT
         const suffixes = (process.env.S3_BUCKET_SUFFIXES || "").split(':');
 
         // config
@@ -30,7 +31,8 @@ class DeployManager {
             const key = process.env.S3_CONFIG_KEY;
             configLoader = new ConfiguratorLoader.S3(bucket, key);
         } else {
-            const filePath = path.join(__dirname, './config', `${this.network}.json`)
+            const fileName = this.env ? `${this.network}.${this.env}.json` : `${this.network}.json`
+            const filePath = path.join(__dirname, './config', fileName)
             configLoader = new ConfiguratorLoader.Local(filePath)
         }
         this.configurator = new Configurator(configLoader);
@@ -80,7 +82,7 @@ class DeployManager {
             this.versionUploader = new VersionUploader.S3(config.settings.versionUpload.bucket, config.settings.versionUpload.url);
         } else {
             const dirPath = path.join(__dirname, './versions/', this.network);
-            this.versionUploader = new VersionUploader.Local(dirPath);
+            this.versionUploader = new VersionUploader.Local(dirPath, this.env);
         }
     }
 }
