@@ -52,7 +52,7 @@ class MultisigExecutor {
             console.log(`Required signatures: ${threshold}`)
             console.log(`********************************`);
 
-            const signatures_output = await inquirer.prompt(Array(threshold).fill(0).map(index => {
+            const signatures_output = await inquirer.prompt(Array(threshold).fill(0).map((value, index) => {
                 return {
                     type: 'input',
                     name: `signature_${index}`,
