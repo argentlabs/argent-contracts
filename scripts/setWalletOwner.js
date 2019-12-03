@@ -1,8 +1,10 @@
 // Example Usage:
-// node setWalletOwner.js --network fuse.dev --wallet 0x0B867891bC79F6BfB46E8cea4F4D2cB8A1F7AEcb --newOwner 0xF3a4C2862188781365966A040B1f47b9614b2DC7
+// node setWalletOwner.js --network fuse.dev --wallet 0xF3134e982bcf6FA1CA173f5361DB730DF43a9eEc --newOwner 0xB8Ce4A040E8aA33bBe2dE62E92851b7D7aFd52De
 
 const WalletOwnershipManager = require('../build/WalletOwnershipManager');
+const MultiSig = require('../build/MultiSigWallet');
 
+const MultisigExecutor = require('../utils/multisigexecutor.js');
 const DeployManager = require('../utils/deploy-manager.js');
 
 async function main() {
@@ -16,7 +18,6 @@ async function main() {
 
     const configurator = deployManager.configurator;
     const deployer = deployManager.deployer;
-    const manager = deployer.signer;
 
     idx = process.argv.indexOf("--wallet");
     const walletAddress = process.argv[idx + 1];
@@ -27,16 +28,11 @@ async function main() {
     const config = configurator.config;
     console.log('Config:', config);
 
-    const walletOwnershipManagerWrapper = await deployer.wrapDeployedContract(WalletOwnershipManager, config.modules.WalletOwnershipManager);
+    const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
+    const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deployer.signer, config.multisig.autosign);
 
-    console.log("Setting new wallet owner...");
-    try {
-        const tx = await walletOwnershipManagerWrapper.setOwner(walletAddress, newOwner);
-        const txReceipt = await walletOwnershipManagerWrapper.verboseWaitForTransaction(tx);
-        console.log(txReceipt)
-    } catch (e) {
-        console.log(e)
-    }
+    const walletOwnershipManagerWrapper = await deployer.wrapDeployedContract(WalletOwnershipManager, config.modules.WalletOwnershipManager);
+    await multisigExecutor.executeCall(walletOwnershipManagerWrapper, "setOwner", [walletAddress, newOwner]);
 }
 
 main().catch(err => {
