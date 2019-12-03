@@ -24,7 +24,7 @@
     "deployer": {
       "type": "jsonrpc",
       "options": {
-        "url": "https://rpc.fusenet.io"
+        "url": "https://rpc.fuse.io"
       }
     },
     "privateKey": {
