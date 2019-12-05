@@ -64,15 +64,15 @@ class MultisigExecutor {
             const sortedSignatures = parsedSignatures.sort((s1, s2) => {
                 const bn1 = ethers.utils.bigNumberify(s1.address);
                 const bn2 = ethers.utils.bigNumberify(s2.address);
-                if (bn1.lt(bn2)) return 1;
-                if (bn1.gt(bn2)) return -1;
+                if (bn1.lt(bn2)) return -1;
+                if (bn1.gt(bn2)) return 1;
                 return 0;
             });
 
             let signatures = '0x' + sortedSignatures.map(s => s.sig.slice(2)).join('');
 
             // Call "execute" on the Multisig wallet with data and signatures
-            const executeTransaction = await this._multisigWrapper.contract.execute(contract_address, 0, data, signatures);
+            const executeTransaction = await this._multisigWrapper.contract.execute(contract_address, 0, data, signatures, { gasLimit: 300000 });
             const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, 'Multisig Execute Transaction');
 
             return result;
