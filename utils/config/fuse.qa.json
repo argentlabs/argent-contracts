@@ -96,7 +96,8 @@
     "CompoundManager": "0x03f87d4bF327e0C47094638B2510Fc84780450C6",
     "UniswapManager": "0xca6586daC8405109e832eE2Dd8BA45C7CaC392a5",
     "TransferManager": "0xBbE1EcEE01bBa382088E243624aE69C4D7F378A8",
-    "CommunityManager": "0x306BB3f40BEa3710cAc4BD9F1Ef052aD999d7233"
+    "CommunityManager": "0x306BB3f40BEa3710cAc4BD9F1Ef052aD999d7233",
+    "WalletOwnershipManager": "0xD97348bde11442c1d35CfF678ECb4EdCa49fEAa0"
   },
-  "gitCommit": "199f2da4e72415d2f9f456584d89b4a12e9dfd17"
+  "gitCommit": "81af86f9647c924c886255eb31498a7dd78d21ae"
 }
