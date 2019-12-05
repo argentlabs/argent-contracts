@@ -50,12 +50,11 @@ async function main() {
         config.modules.ApprovedTransfer,
         config.modules.TransferManager,
         config.modules.TokenExchanger,
-        config.modules.CommunityManager
+        config.modules.CommunityManager,
+        config.modules.WalletOwnershipManager
         // config.modules.MakerV2Manager
     ];
     try {
-
-    
         const tx = await (walletFactoryWrapper.from && walletFactoryWrapper.from(manager) || walletFactoryWrapper).createWallet(owner, modules, walletEns);
         const txReceipt = await walletFactoryWrapper.verboseWaitForTransaction(tx);
         const walletAddress = txReceipt.events.find(log => log.event === "WalletCreated").args["_wallet"];

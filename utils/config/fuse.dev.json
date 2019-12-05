@@ -24,7 +24,7 @@
     "deployer": {
       "type": "jsonrpc",
       "options": {
-        "url": "https://rpc.fusenet.io"
+        "url": "https://rpc.fuse.io"
       }
     },
     "privateKey": {
@@ -92,7 +92,8 @@
     "CompoundManager": "0x2B2972E40261c335EaB47C176c94681785289280",
     "UniswapManager": "0x88F552609e96a7413f76E5992065043E49c2d8D3",
     "TransferManager": "0x8527a2d3d5aC0411933d663b4dcE275a5b7f39D8",
-    "CommunityManager": "0x42616C787e3D75aC29b9dCAB35131b585Eaa9837"
+    "CommunityManager": "0x42616C787e3D75aC29b9dCAB35131b585Eaa9837",
+    "WalletOwnershipManager": "0x7C38a5E6c0822623392847f6B827E8ADd75130ae"
   },
-  "gitCommit": "199f2da4e72415d2f9f456584d89b4a12e9dfd17"
+  "gitCommit": "03dd8cab15c4b19fc0fc335dd3a9b47cc1ed795c"
 }
