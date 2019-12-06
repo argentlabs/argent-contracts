@@ -65,7 +65,9 @@ module.exports = {
         return wallets.sort((s1, s2) => {
             const bn1 = ethers.utils.bigNumberify(s1.address);
             const bn2 = ethers.utils.bigNumberify(s2.address);
-            return bn1.gt(bn2);
+            if (bn1.lt(bn2)) return -1;
+            if (bn1.gt(bn2)) return 1;
+            return 0;
         });
     },
 
