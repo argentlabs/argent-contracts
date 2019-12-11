@@ -11,6 +11,10 @@
 const TestManager = require("../utils/test-manager");
 const DeployManager = require('../utils/deploy-manager.js');
 
+const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
+const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
+const ScdMcdMigration = require('../build/ScdMcdMigration');
+const Join = require("../build/JoinLike");
 const MakerV2Manager = require('../build/MakerV2Manager');
 const MakerRegistry = require('../build/MakerRegistry');
 const Wallet = require("../build/BaseWallet");
@@ -31,7 +35,7 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
         return;
     }
 
-    let testManager, makerV2, saiToken, daiToken, walletAddress, owner;
+    let testManager, makerV2, saiToken, daiToken, walletAddress, owner, deployer;
 
     before(async () => {
         let idx = process.argv.indexOf("--network");
@@ -41,7 +45,7 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
         const deployManager = new DeployManager(network);
         await deployManager.setup();
         const configurator = deployManager.configurator;
-        const deployer = deployManager.deployer;
+        deployer = deployManager.deployer;
         testManager = new TestManager([...Array(10)].map(() => deployer), network);
         owner = deployer.signer;
         const config = configurator.config;
@@ -54,34 +58,48 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
             config.modules.GuardianStorage,
             config.defi.maker.migration,
             config.defi.maker.pot,
-            makerRegistry.contractAddress
+            config.defi.maker.jug,
+            makerRegistry.contractAddress,
+            config.defi.uniswap.factory,
+            { gasLimit: 8000000 }
         );
 
-        saiToken = await deployer.wrapDeployedContract(DSToken, await makerV2.saiToken());
-        daiToken = await deployer.wrapDeployedContract(DSToken, await makerV2.daiToken());
+        const migration = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
+        const daiJoin = await deployer.wrapDeployedContract(Join, await migration.daiJoin());
+        const saiJoin = await deployer.wrapDeployedContract(Join, await migration.saiJoin());
+        daiToken = await deployer.wrapDeployedContract(DSToken, await daiJoin.dai());
+        saiToken = await deployer.wrapDeployedContract(DSToken, await saiJoin.gem());
 
-        idx = process.argv.indexOf("--wallet");
-        walletAddress = idx > -1 && process.argv[idx + 1];
-        if (!walletAddress) { // create a new wallet
-            wallet = await deployer.deploy(Wallet);
-            await wallet.init(owner.address, [makerV2.contractAddress]);
-            walletAddress = wallet.contractAddress;
+        const daiBalance = await daiToken.balanceOf(owner.address);
+        if (daiBalance.lt(parseEther('1'))) {
+            const uniswapFactory = await deployer.wrapDeployedContract(UniswapFactory, config.defi.uniswap.factory);
+            const daiExchange = await deployer.wrapDeployedContract(UniswapExchange, await uniswapFactory.getExchange(daiToken.contractAddress));
+            await (await owner.sendTransaction({ to: daiExchange.contractAddress, value: parseEther('0.02'), gasLimit: 3000000 })).wait();
         }
+
+        const saiBalance = await saiToken.balanceOf(owner.address);
+        if (saiBalance.lt(parseEther('1'))) {
+            const convertedToSai = (await daiToken.balanceOf(owner.address)).div(2);
+            await (await daiToken.approve(migration.contractAddress, convertedToSai)).wait();
+            await (await migration.swapDaiToSai(convertedToSai)).wait();
+        }
+
+        wallet = await deployer.deploy(Wallet);
+        await (await wallet.init(owner.address, [makerV2.contractAddress])).wait();
+        walletAddress = wallet.contractAddress;
     });
 
     async function topUpDai() {
         const walletDai = await daiToken.balanceOf(walletAddress);
         if (walletDai.lt(SENT_AMOUNT)) {
-            // console.log("Topping up wallet DAI...");
-            await daiToken.verboseWaitForTransaction(await daiToken.transfer(walletAddress, SENT_AMOUNT))
+            await (await daiToken.transfer(walletAddress, SENT_AMOUNT)).wait()
         }
     }
 
     async function topUpSai() {
         const walletSai = await saiToken.balanceOf(walletAddress);
         if (walletSai.lt(SENT_AMOUNT)) {
-            // console.log("Topping up wallet SAI...");
-            await saiToken.verboseWaitForTransaction(await saiToken.transfer(walletAddress, SENT_AMOUNT))
+            await (await saiToken.transfer(walletAddress, SENT_AMOUNT)).wait()
         }
     }
 
@@ -89,9 +107,8 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
         const invested = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
         if (invested.lt(SENT_AMOUNT)) {
             await topUpDai();
-            // console.log("Topping up wallet Pot balance...");
-            await daiToken.verboseWaitForTransaction(await daiToken.transfer(walletAddress, SENT_AMOUNT))
-            await makerV2.verboseWaitForTransaction(await makerV2.joinDsr(walletAddress, SENT_AMOUNT, { gasLimit: 2000000 }));
+            await (await daiToken.transfer(walletAddress, SENT_AMOUNT)).wait();
+            await (await makerV2.joinDsr(walletAddress, SENT_AMOUNT, { gasLimit: 2000000 })).wait();
         }
     }
 
@@ -103,11 +120,13 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
             const destinationBefore = await destinationToken.balanceOf(walletAddress);
             const method = toDai ? 'swapSaiToDai' : 'swapDaiToSai';
             const params = [walletAddress, SENT_AMOUNT];
+
             if (relayed) {
                 await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
             } else {
-                await makerV2.verboseWaitForTransaction(await makerV2[method](...params, { gasLimit: 2000000 }));
+                await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
             }
+
             const originAfter = await originToken.balanceOf(walletAddress);
             const destinationAfter = await destinationToken.balanceOf(walletAddress);
             assert.isTrue(destinationAfter.sub(destinationBefore).eq(SENT_AMOUNT), `wallet should have received ${toDai ? 'DAI' : 'SAI'}`);
@@ -147,7 +166,7 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
             if (relayed) {
                 await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
             } else {
-                await makerV2.verboseWaitForTransaction(await makerV2[method](...params, { gasLimit: 2000000 }));
+                await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
             }
             const walletAfter = (await daiToken.balanceOf(walletAddress)).add(await saiToken.balanceOf(walletAddress));
             const investedAfter = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
@@ -214,7 +233,7 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
             if (relayed) {
                 await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
             } else {
-                await makerV2.verboseWaitForTransaction(await makerV2[method](...params, { gasLimit: 2000000 }));
+                await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
             }
             const walletAfter = await daiToken.balanceOf(walletAddress);
             const investedAfter = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;

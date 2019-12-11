@@ -65,7 +65,8 @@ contract BaseModule is Module {
      * @dev Throws if the sender is not the owner of the target wallet or the module itself.
      */
     modifier onlyWalletOwner(BaseWallet _wallet) {
-        require(msg.sender == address(this) || isOwner(_wallet, msg.sender), "BM: must be an owner for the wallet");
+        // Wrapping in an internal method reduces deployment cost by avoiding duplication of inlined code
+        verifyWalletOwner(_wallet);
         _;
     }
 
@@ -104,6 +105,14 @@ contract BaseModule is Module {
     function recoverToken(address _token) external {
         uint total = ERC20(_token).balanceOf(address(this));
         ERC20(_token).transfer(address(registry), total);
+    }
+
+    /**
+     * @dev Verify that the caller is the module or the wallet owner.
+     * @param _wallet The target wallet.
+     */
+    function verifyWalletOwner(BaseWallet _wallet) internal view {
+        require(msg.sender == address(this) || isOwner(_wallet, msg.sender), "BM: must be wallet owner");
     }
 
     /**

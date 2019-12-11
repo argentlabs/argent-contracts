@@ -44,10 +44,14 @@
         "maker": {
             "tub": "0xa71937147b55deb8a530c7229c442fd3f31b7db2",
             "migration": "0x411b2faa662c8e3e5cf8f01dfdae0aee482ca7b0",
-            "pot": "0xea190dbdc7adf265260ec4da6e9675fd4f5a78bb"
+            "pot": "0xea190dbdc7adf265260ec4da6e9675fd4f5a78bb",
+            "jug": "0xcbb7718c9f39d05aeede1c472ca8bf804b2f1ead",
+            "batJoin": "0x2a4c485b1b8dfb46accfbecaf75b6188a59dbd0a",
+            "batFaucet": "0x94598157fcf0715c3bc9b4a35450cce82ac57b20",
+            "mkrFaucet": "0xCbd3e165cE589657feFd2D38Ad6B6596A1f734F6"
         },
         "uniswap": {
-            "factory": "0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30"
+            "factory": "0x944365B2980cB75D5C540b44D9e3e63CF0fb2111"
         },
         "compound": {
             "comptroller": "0x142d11cb90a2b40f7d0c55ed1804988dfc316fae",
