@@ -1,3 +1,5 @@
+// Usage: ./execute.sh register.js staging --module 0x9ABb5Db4B23A866ffd649716c6ce2674b2C28C17abc --name GuardianManager
+
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 
