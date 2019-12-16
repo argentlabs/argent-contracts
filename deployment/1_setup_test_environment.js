@@ -81,7 +81,11 @@ const deploy = async (network) => {
 
 	if (config.defi.maker.deployOwn) {
 		// Deploy Maker's mock Migration contract if needed
-		const MakerMigrationWrapper = await deployer.deploy(MakerMigration);
+		const MakerMigrationWrapper = await deployer.deploy(
+			MakerMigration,
+			{},
+			config.defi.maker.daiJoin || '0x0000000000000000000000000000000000000000'
+		);
 		configurator.updateMakerMigration(MakerMigrationWrapper.contractAddress);
 	}
 

@@ -28,9 +28,9 @@ contract MockScdMcdMigration {
     MockTub public tub;
     ManagerLike public cdpManager;
 
-    constructor () public {
+    constructor (address _daiJoin) public {
+        daiJoin = (_daiJoin != address(0)) ? MockJoin(daiJoin) : new MockJoin();
         saiJoin = new MockJoin();
-        daiJoin = new MockJoin();
         wethJoin = new MockJoin();
         tub = new MockTub();
     }
