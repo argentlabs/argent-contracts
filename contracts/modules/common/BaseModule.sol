@@ -35,15 +35,6 @@ contract BaseModule is Module {
     // The address of the Guardian storage
     GuardianStorage internal guardianStorage;
 
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "BM: wallet must be unlocked");
-        _;
-    }
-
     event ModuleCreated(bytes32 name);
     event ModuleInitialised(address wallet);
 
@@ -51,6 +42,14 @@ contract BaseModule is Module {
         registry = _registry;
         guardianStorage = _guardianStorage;
         emit ModuleCreated(_name);
+    }
+
+    /**
+     * @dev Throws if the wallet is locked.
+     */
+    modifier onlyWhenUnlocked(BaseWallet _wallet) {
+        verifyUnlocked(_wallet);
+        _;
     }
 
     /**
@@ -106,6 +105,14 @@ contract BaseModule is Module {
         uint total = ERC20(_token).balanceOf(address(this));
         ERC20(_token).transfer(address(registry), total);
     }
+
+    /**
+     * @dev Verify that the wallet is unlocked.
+     * @param _wallet The target wallet.
+     */
+     function verifyUnlocked(BaseWallet _wallet) internal view {
+        require(!guardianStorage.isLocked(_wallet), "MV2: wallet locked");
+     }
 
     /**
      * @dev Verify that the caller is the module or the wallet owner.

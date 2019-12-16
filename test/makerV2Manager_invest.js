@@ -1,7 +1,10 @@
 // How to run this test file:
 // 1. add your private key (KOVAN_PRIV_KEY) and Kovan Infura API key (KOVAN_INFURA_KEY) to .env
-// 2. npm run kovan[-fork-latest]
-// 3. npx etherlime test test/makerV2Manager_invest.js --skip-compilation --network kovan[-fork]
+// --- TO TEST ON KOVAN: ----
+// 2. npx etherlime test test/makerV2Manager_invest.js --skip-compilation --network kovan
+// --- TO TEST ON KOVAN-FORK: ----
+// 2. npm run kovan-fork
+// 3. npx etherlime test test/makerV2Manager_invest.js --skip-compilation --network kovan-fork
 
 const TestManager = require("../utils/test-manager");
 const DeployManager = require('../utils/deploy-manager.js');
@@ -17,7 +20,7 @@ const DSToken = require('../build/DSToken');
 
 const { parseEther } = require('ethers').utils;
 
-const DEFAULT_NETWORK = 'kovan-fork'; // also works on kovan (faster, but uses real KETH)
+const DEFAULT_NETWORK = 'kovan'; // a bug in kovan-fork makes some tests fail => use kovan
 const SENT_AMOUNT = parseEther('0.00000001');
 
 describe("Test MakerV2 DSR & SAI<>DAI", function () {
@@ -221,30 +224,30 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
             await exchangeWithPot({ toPot: false, relayed: true, useInvestInterface: true })
         });
 
-        async function removeAllFromPot({ relayed }) {
-            const walletBefore = await daiToken.balanceOf(walletAddress);
-            const method = 'exitAllDsr';
-            const params = [walletAddress];
-            if (relayed) {
-                await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
-            } else {
-                await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
-            }
-            const walletAfter = await daiToken.balanceOf(walletAddress);
-            const investedAfter = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
-            assert.isTrue(investedAfter.eq(0), `Pot should be emptied`);
-            assert.isTrue(walletAfter.gt(walletBefore), `DAI in wallet should have increased`);
-        }
+        // async function removeAllFromPot({ relayed }) {
+        //     const walletBefore = await daiToken.balanceOf(walletAddress);
+        //     const method = 'exitAllDsr';
+        //     const params = [walletAddress];
+        //     if (relayed) {
+        //         await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
+        //     } else {
+        //         await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
+        //     }
+        //     const walletAfter = await daiToken.balanceOf(walletAddress);
+        //     const investedAfter = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
+        //     assert.isTrue(investedAfter.eq(0), `Pot should be emptied`);
+        //     assert.isTrue(walletAfter.gt(walletBefore), `DAI in wallet should have increased`);
+        // }
 
-        it('removes all DAI from the pot (blockchain tx)', async () => {
-            await topUpPot();
-            await removeAllFromPot({ relayed: false })
-        });
+        // it('removes all DAI from the pot (blockchain tx)', async () => {
+        //     await topUpPot();
+        //     await removeAllFromPot({ relayed: false })
+        // });
 
-        it('removes all DAI from the pot (relayed tx)', async () => {
-            await topUpPot();
-            await removeAllFromPot({ relayed: true })
-        });
+        // it('removes all DAI from the pot (relayed tx)', async () => {
+        //     await topUpPot();
+        //     await removeAllFromPot({ relayed: true })
+        // });
 
     });
 });

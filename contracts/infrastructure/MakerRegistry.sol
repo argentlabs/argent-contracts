@@ -1,40 +1,6 @@
 pragma solidity ^0.5.4;
 import "../base/Owned.sol";
-
-contract GemLike {
-    function balanceOf(address) public view returns (uint);
-    function transferFrom(address, address, uint) public returns (bool);
-    function approve(address, uint) public returns (bool success);
-}
-
-contract VatLike {
-    struct Ilk {
-        uint256 Art;   // Total Normalised Debt     [wad]
-        uint256 rate;  // Accumulated Rates         [ray]
-        uint256 spot;  // Price with Safety Margin  [ray]
-        uint256 line;  // Debt Ceiling              [rad]
-        uint256 dust;  // Urn Debt Floor            [rad]
-    }
-    struct Urn {
-        uint256 ink;   // Locked Collateral  [wad]
-        uint256 art;   // Normalised Debt    [wad]
-    }
-    mapping (bytes32 => Ilk) public ilks;
-    mapping (bytes32 => mapping (address => Urn )) public urns;
-    function can(address, address) public view returns (uint);
-    function dai(address) public view returns (uint);
-    function hope(address) public;
-}
-
-contract JoinLike {
-    function ilk() public view returns (bytes32);
-    function gem() public view returns (GemLike);
-    function dai() public view returns (GemLike);
-    function join(address, uint) public;
-    function exit(address, uint) public;
-    VatLike public vat;
-    uint    public live;
-}
+import "../modules/MakerV2Base.sol";
 
 /**
  * @title MakerRegistry

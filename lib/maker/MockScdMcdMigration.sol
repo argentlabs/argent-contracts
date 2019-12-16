@@ -1,21 +1,15 @@
 pragma solidity ^0.5.4;
 
-contract JoinLike {
-    function gem() public returns (GemLike) {
+import "../../contracts/modules/MakerV2Base.sol";
+
+contract MockJoin {
+    function gem() public pure returns (GemLike) {
         return GemLike(address(0));
     }
-    function dai() public returns (GemLike) {
+    function dai() public pure returns (GemLike) {
         return GemLike(address(0));
     }
     VatLike public vat;
-}
-
-contract VatLike {
-
-}
-
-contract GemLike {
-
 }
 
 /**
@@ -24,11 +18,11 @@ contract GemLike {
  */
 contract MockScdMcdMigration {
 
-    JoinLike public saiJoin;
-    JoinLike public daiJoin;
+    MockJoin public saiJoin;
+    MockJoin public daiJoin;
 
     constructor () public {
-        saiJoin = new JoinLike();
-        daiJoin = new JoinLike();
+        saiJoin = new MockJoin();
+        daiJoin = new MockJoin();
     }
 }

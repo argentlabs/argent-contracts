@@ -88,7 +88,9 @@ const deploy = async (network) => {
     config.modules.GuardianStorage,
     config.defi.maker.migration,
     config.defi.maker.pot,
+    config.defi.maker.jug,
     MakerRegistryWrapper.contractAddress,
+    config.defi.uniswap.factory,
   );
   newModuleWrappers.push(MakerV2ManagerWrapper);
 
