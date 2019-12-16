@@ -1,7 +1,7 @@
 pragma solidity ^0.5.4;
 
 import "./MakerV2Base.sol";
-import "../defi/Invest.sol";
+import "../../defi/Invest.sol";
 
 contract PotLike {
     function chi() public view returns (uint);

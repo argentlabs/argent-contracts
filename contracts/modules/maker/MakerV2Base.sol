@@ -1,10 +1,10 @@
 pragma solidity ^0.5.4;
 
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
-import "./common/OnlyOwnerModule.sol";
-import "../../lib/utils/SafeMath.sol";
-import "../infrastructure/MakerRegistry.sol";
+import "../common/BaseModule.sol";
+import "../common/RelayerModule.sol";
+import "../common/OnlyOwnerModule.sol";
+import "../../../lib/utils/SafeMath.sol";
+import "../../infrastructure/MakerRegistry.sol";
 
 contract GemLike {
     function balanceOf(address) public view returns (uint);

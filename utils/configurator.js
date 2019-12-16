@@ -39,10 +39,14 @@ class Configurator {
     this._config.defi.maker.migration = address;
   }
 
+  updateUniswapFactory(address) {
+    this._config.defi.uniswap.factory = address;
+  }
+
   updateBackendAccounts(accounts) {
     this._config.backend.accounts = accounts;
   }
-
+  
   updateMultisigOwner(owners) {
     if (this._config.multisig.autosign === false) return;
     this._config.multisig.owners = owners;

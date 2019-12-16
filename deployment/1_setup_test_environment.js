@@ -1,8 +1,10 @@
 const ENSRegistry = require("../build/ENSRegistry");
 const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
-const Kyber = require("../build/KyberNetworkTest");
-const ERC20 = require("../build/TestERC20");
-const MakerMigration = require("../build/MockScdMcdMigration");
+const Kyber = require('../build/KyberNetworkTest');
+const ERC20 = require('../build/TestERC20');
+const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
+const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
+const MakerMigration = require('../build/MockScdMcdMigration');
 
 const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");
@@ -63,20 +65,28 @@ const deploy = async (network) => {
     configurator.updateENSRegistry(address);
   }
 
-  if (config.Kyber.deployOwn) {
-    // Deploy Kyber Network if needed
-    const address = await deployKyber(deployer);
-    configurator.updateKyberContract(address);
-  }
+	if (config.Kyber.deployOwn) {
+		// Deploy Kyber Network if needed
+		const address = await deployKyber(deployer);
+		configurator.updateKyberContract(address);
+	}
 
-  if (config.defi.maker.deployOwn) {
-    // Deploy Maker's mock Migration contract if needed
-    const MakerMigrationWrapper = await deployer.deploy(MakerMigration);
-    configurator.updateMakerMigration(MakerMigrationWrapper.contractAddress);
-  }
+	if (config.defi.uniswap.deployOwn) {
+		const UniswapFactoryWrapper = await deployer.deploy(UniswapFactory);
+		configurator.updateUniswapFactory(UniswapFactoryWrapper.contractAddress);
+		const UniswapExchangeTemplateWrapper = await deployer.deploy(UniswapExchange);
+		const initializeFactoryTx = await UniswapFactoryWrapper.initializeFactory(UniswapExchangeTemplateWrapper.contractAddress);
+		await UniswapFactoryWrapper.verboseWaitForTransaction(initializeFactoryTx, `Initializing UniswapFactory`);
+	}
 
-  // save configuration
-  await configurator.save();
+	if (config.defi.maker.deployOwn) {
+		// Deploy Maker's mock Migration contract if needed
+		const MakerMigrationWrapper = await deployer.deploy(MakerMigration);
+		configurator.updateMakerMigration(MakerMigrationWrapper.contractAddress);
+	}
+
+	// save configuration
+	await configurator.save();
 };
 
 module.exports = {

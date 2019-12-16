@@ -1,8 +1,8 @@
 pragma solidity ^0.5.4;
 
 import "./MakerV2Base.sol";
-import "../defi/Loan.sol";
-import "../infrastructure/MakerRegistry.sol";
+import "../../defi/Loan.sol";
+import "../../infrastructure/MakerRegistry.sol";
 
 contract JugLike {
     function drip(bytes32) external;
