@@ -1,12 +1,7 @@
 // How to run this test file:
 // 1. add your private key (KOVAN_PRIV_KEY) and Kovan Infura API key (KOVAN_INFURA_KEY) to .env
-// --- TO TEST ON KOVAN: ----
-// 2. npx etherlime test test/makerV2Manager_invest.js --skip-compilation --network kovan [--wallet 0xAB3f50Ff1e4a516ef494b9C226ef0a26065766df]
-// Note: you can create your own kovan wallet with: node scripts/createWallet.js --network kovan --ens yourens
-// If you don't specify a wallet, a new one will be created for you.
-// --- TO TEST ON KOVAN-FORK: ----
-// 2. npm run kovan-fork
-// 3. npx etherlime test test/makerV2Manager_invest.js --skip-compilation --network kovan-fork [--wallet 0xAB3f50Ff1e4a516ef494b9C226ef0a26065766df]
+// 2. npm run kovan[-fork-latest]
+// 3. npx etherlime test test/makerV2Manager_invest.js --skip-compilation --network kovan[-fork]
 
 const TestManager = require("../utils/test-manager");
 const DeployManager = require('../utils/deploy-manager.js');
