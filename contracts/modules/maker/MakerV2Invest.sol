@@ -54,6 +54,8 @@ contract MakerV2Invest is Invest, MakerV2Base {
         uint256 _period
     )
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
         require(_token == address(daiToken), "DM: token should be DAI");
@@ -74,6 +76,8 @@ contract MakerV2Invest is Invest, MakerV2Base {
         uint256 _fraction
     )
         external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_token == address(daiToken), "MV2: token not DAI");
         require(_fraction <= 10000, "MV2: invalid fraction");
@@ -124,9 +128,7 @@ contract MakerV2Invest is Invest, MakerV2Base {
         BaseWallet _wallet,
         uint256 _amount
     )
-        public
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
+        internal
     {
         if (daiToken.balanceOf(address(_wallet)) < _amount) {
             swapSaiToDai(_wallet, _amount - daiToken.balanceOf(address(_wallet)));
@@ -155,9 +157,7 @@ contract MakerV2Invest is Invest, MakerV2Base {
         BaseWallet _wallet,
         uint256 _amount
     )
-        public
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
+        internal
     {
         // Execute drip to count the savings accumulated until this moment
         pot.drip();
