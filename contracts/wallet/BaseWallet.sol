@@ -4,14 +4,13 @@ import "../interfaces/Module.sol";
 /**
  * @title BaseWallet
  * @dev Simple modular wallet that authorises modules to call its invoke() method.
- * Based on https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 by 
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract BaseWallet {
 
     // The implementation of the proxy
     address public implementation;
-    // The owner 
+    // The owner
     address public owner;
     // The authorised modules
     mapping (address => bool) public authorised;
@@ -49,6 +48,9 @@ contract BaseWallet {
             authorised[_modules[i]] = true;
             Module(_modules[i]).init(this);
             emit AuthorisedModule(_modules[i], true);
+        }
+        if(address(this).balance > 0) {
+            emit Received(address(this).balance, address(0), "");
         }
     }
     
@@ -121,11 +123,11 @@ contract BaseWallet {
      * to an enabled method, or logs the call otherwise.
      */
     function() external payable {
-        if(msg.data.length > 0) { 
+        if(msg.data.length > 0) {
             address module = enabled[msg.sig];
             if(module == address(0)) {
                 emit Received(msg.value, msg.sender, msg.data);
-            } 
+            }
             else {
                 require(authorised[module], "BW: must be an authorised module for static call");
                 // solium-disable-next-line security/no-inline-assembly
@@ -133,8 +135,8 @@ contract BaseWallet {
                     calldatacopy(0, 0, calldatasize())
                     let result := staticcall(gas, module, 0, calldatasize(), 0, 0)
                     returndatacopy(0, 0, returndatasize())
-                    switch result 
-                    case 0 {revert(0, returndatasize())} 
+                    switch result
+                    case 0 {revert(0, returndatasize())}
                     default {return (0, returndatasize())}
                 }
             }

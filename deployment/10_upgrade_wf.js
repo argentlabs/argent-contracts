@@ -22,11 +22,11 @@ const deploy = async (network) => {
     const configurator = manager.configurator;
     const deployer = manager.deployer;
     const deploymentWallet = deployer.signer;
+    const abiUploader = manager.abiUploader;
 
     const config = configurator.config;
     console.log('Config:', config);
 
-    const BaseWalletWrapper = await deployer.wrapDeployedContract(BaseWallet, config.contracts.BaseWallet);
     const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
     const ENSResolverWrapper = await deployer.wrapDeployedContract(ENSResolver, config.contracts.ENSResolver);
     const ENSManagerWrapper = await deployer.wrapDeployedContract(ENSManager, config.contracts.ENSManager);
@@ -39,7 +39,10 @@ const deploy = async (network) => {
     // Deploy contract
     ////////////////////////////////////
 
+    // Deploy new BaseWallet
+    const BaseWalletWrapper = await deployer.deploy(BaseWallet);
 
+    // Deply Factory
     const WalletFactoryWrapper = await deployer.deploy(
         WalletFactory, {}, 
         config.ENS.ensRegistry, 
@@ -48,6 +51,21 @@ const deploy = async (network) => {
         ENSManagerWrapper.contractAddress, 
         ENSResolverWrapper.contractAddress,
         GuardianStorageWrapper.contractAddress);
+
+    ///////////////////////////////////////////////////
+    // Update config and Upload ABIs
+    ///////////////////////////////////////////////////
+
+    configurator.updateInfrastructureAddresses({
+        WalletFactory: WalletFactoryWrapper.contractAddress,
+        BaseWallet: BaseWalletWrapper.contractAddress
+    });
+    await configurator.save();
+
+    await Promise.all([
+        abiUploader.upload(WalletFactoryWrapper, "contracts"),
+        abiUploader.upload(BaseWalletWrapper, "contracts")
+    ]);
 
     ////////////////////////////////////
     // Set authorisations
