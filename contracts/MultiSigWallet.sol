@@ -1,22 +1,37 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 
 /**
  * @title MultiSig
  * @dev Simple MultiSig using off-chain signing.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract MultiSigWallet {
 
     uint constant public MAX_OWNER_COUNT = 10;
 
     // Incrementing counter to prevent replay attacks
-    uint256 public nonce;   
-    // The threshold           
-    uint256 public threshold; 
+    uint256 public nonce;
+    // The threshold
+    uint256 public threshold;
     // The number of owners
     uint256 public ownersCount;
     // Mapping to check if an address is an owner
-    mapping (address => bool) public isOwner; 
+    mapping (address => bool) public isOwner;
 
     // Events
     event OwnerAdded(address indexed owner);
@@ -51,8 +66,8 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Only entry point of the multisig. The method will execute any transaction provided that it 
-     * receieved enough signatures from the wallet owners.  
+     * @dev Only entry point of the multisig. The method will execute any transaction provided that it
+     * receieved enough signatures from the wallet owners.
      * @param _to The destination address for the transaction to execute.
      * @param _value The value parameter for the transaction to execute.
      * @param _data The data parameter for the transaction to execute.
@@ -88,7 +103,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Adds an owner to the multisig. This method can only be called by the multisig itself 
+     * @dev Adds an owner to the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
      * @param _owner The address of the new owner.
      */
@@ -101,7 +116,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Removes an owner from the multisig. This method can only be called by the multisig itself 
+     * @dev Removes an owner from the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
      * @param _owner The address of the removed owner.
      */
@@ -114,7 +129,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Changes the threshold of the multisig. This method can only be called by the multisig itself 
+     * @dev Changes the threshold of the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
      * @param _newThreshold The new threshold.
      */
@@ -128,7 +143,7 @@ contract MultiSigWallet {
      * @dev Makes it possible for the multisig to receive ETH.
      */
     function () external payable {
-        emit Received(msg.value, msg.sender);        
+        emit Received(msg.value, msg.sender);
     }
 
         /**
@@ -146,7 +161,7 @@ contract MultiSigWallet {
             s := mload(add(_signatures, add(0x40,mul(0x41,_index))))
             v := and(mload(add(_signatures, add(0x41,mul(0x41,_index)))), 0xff)
         }
-        require(v == 27 || v == 28, "MSW: Invalid v"); 
+        require(v == 27 || v == 28, "MSW: Invalid v");
     }
 
 }
