@@ -106,7 +106,7 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
         if (invested.lt(SENT_AMOUNT)) {
             await topUpDai();
             await (await daiToken.transfer(walletAddress, SENT_AMOUNT)).wait();
-            await (await makerV2.joinDsr(walletAddress, SENT_AMOUNT, { gasLimit: 2000000 })).wait();
+            await (await makerV2.addInvestment(walletAddress, daiToken.contractAddress, SENT_AMOUNT, 0, { gasLimit: 2000000 })).wait();
         }
     }
 
@@ -149,18 +149,12 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
     })
 
     describe("DSR", () => {
-        async function exchangeWithPot({ toPot, relayed, useInvestInterface = false }) {
+        async function exchangeWithPot({ toPot, relayed, all = false }) {
             const walletBefore = (await daiToken.balanceOf(walletAddress)).add(await saiToken.balanceOf(walletAddress));
             const investedBefore = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
-            const fraction = !toPot && useInvestInterface && SENT_AMOUNT.mul(10000).div(investedBefore);
-            let method, params;
-            if (useInvestInterface) {
-                method = toPot ? 'addInvestment' : 'removeInvestment';
-                params = [walletAddress, daiToken.contractAddress].concat(toPot ? [SENT_AMOUNT, 0] : [fraction]);
-            } else {
-                method = toPot ? 'joinDsr' : 'exitDsr';
-                params = [walletAddress, SENT_AMOUNT];
-            }
+            const fraction = !toPot && (all ? 10000 : SENT_AMOUNT.mul(10000).div(investedBefore));
+            const method = toPot ? 'addInvestment' : 'removeInvestment';
+            const params = [walletAddress, daiToken.contractAddress].concat(toPot ? [SENT_AMOUNT, 0] : [fraction]);
             if (relayed) {
                 await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
             } else {
@@ -172,6 +166,11 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
             const deltaWallet = toPot ? walletBefore.sub(walletAfter) : walletAfter.sub(walletBefore);
             assert.isTrue(deltaInvested.gt(0), `DAI in DSR should have changed.`);
             assert.isTrue(deltaWallet.gt(0), `DAI in wallet should have changed.`);
+
+            if (all) {
+                assert.isTrue(investedAfter.eq(0), `Pot should be emptied`);
+                assert.isTrue(walletAfter.gt(walletBefore), `DAI in wallet should have increased`);
+            }
         }
 
         it('sends DAI to the pot (blockchain tx)', async () => {
@@ -182,16 +181,6 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
         it('sends DAI to the pot (relayed tx)', async () => {
             await topUpDai();
             await exchangeWithPot({ toPot: true, relayed: true })
-        });
-
-        it('sends DAI to the pot via the Invest interface (blockchain tx)', async () => {
-            await topUpDai();
-            await exchangeWithPot({ toPot: true, relayed: false, useInvestInterface: true })
-        });
-
-        it('sends DAI to the pot via the Invest interface (relayed tx)', async () => {
-            await topUpDai();
-            await exchangeWithPot({ toPot: true, relayed: true, useInvestInterface: true })
         });
 
         it('sends DAI to the pot when only having SAI (blockchain tx)', async () => {
@@ -214,40 +203,14 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
             await exchangeWithPot({ toPot: false, relayed: true })
         });
 
-        it('withdraw DAI from the pot via the Invest interface (blockchain tx)', async () => {
+        it('withdraw ALL DAI from the pot (blockchain tx)', async () => {
             await topUpPot();
-            await exchangeWithPot({ toPot: false, relayed: false, useInvestInterface: true })
+            await exchangeWithPot({ toPot: false, relayed: false, all: true })
         });
 
-        it('withdraw DAI from the pot via the Invest interface (relayed tx)', async () => {
+        it('withdraw ALL DAI from the pot (relayed tx)', async () => {
             await topUpPot();
-            await exchangeWithPot({ toPot: false, relayed: true, useInvestInterface: true })
+            await exchangeWithPot({ toPot: false, relayed: true, all: true })
         });
-
-        // async function removeAllFromPot({ relayed }) {
-        //     const walletBefore = await daiToken.balanceOf(walletAddress);
-        //     const method = 'exitAllDsr';
-        //     const params = [walletAddress];
-        //     if (relayed) {
-        //         await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
-        //     } else {
-        //         await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
-        //     }
-        //     const walletAfter = await daiToken.balanceOf(walletAddress);
-        //     const investedAfter = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
-        //     assert.isTrue(investedAfter.eq(0), `Pot should be emptied`);
-        //     assert.isTrue(walletAfter.gt(walletBefore), `DAI in wallet should have increased`);
-        // }
-
-        // it('removes all DAI from the pot (blockchain tx)', async () => {
-        //     await topUpPot();
-        //     await removeAllFromPot({ relayed: false })
-        // });
-
-        // it('removes all DAI from the pot (relayed tx)', async () => {
-        //     await topUpPot();
-        //     await removeAllFromPot({ relayed: true })
-        // });
-
     });
 });

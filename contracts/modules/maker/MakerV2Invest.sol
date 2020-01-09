@@ -81,7 +81,7 @@ contract MakerV2Invest is Invest, MakerV2Base {
     {
         require(_token == address(daiToken), "MV2: token not DAI");
         require(_fraction <= 10000, "MV2: invalid fraction");
-        exitDsr(_wallet, dsrBalance(_wallet).mul(_fraction) / 10000);
+        exitDsr(_wallet, _fraction);
         emit InvestmentRemoved(address(_wallet), _token, _fraction);
     }
 
@@ -151,48 +151,28 @@ contract MakerV2Invest is Invest, MakerV2Base {
     /**
     * @dev lets the owner withdraw MCD DAI from the DSR Pot.
     * @param _wallet The target wallet.
-    * @param _amount The amount of DAI to withdraw
+    * @param _fraction The fraction of invested tokens to exit in per 10000.
     */
     function exitDsr(
         BaseWallet _wallet,
-        uint256 _amount
+        uint256 _fraction
     )
         internal
     {
         // Execute drip to count the savings accumulated until this moment
         pot.drip();
-        // Calculates the pie value in the pot equivalent to the DAI wad amount
-        uint256 pie = _amount.mul(RAY) / pot.chi();
+        // Calculate the pie wad amount corresponding to the fraction
+        uint256 pie = pot.pie(address(_wallet)).mul(_fraction) / 10000;
         // Exit DAI from the pot
         invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSelector(POT_EXIT, pie));
         // Allow adapter to access the _wallet's DAI balance in the vat
         grantVatAccess(_wallet, address(daiJoin));
         // Check the actual balance of DAI in the vat after the pot exit
         uint bal = vat.dai(address(_wallet));
-        // It is necessary to check if due to rounding the exact _amount can be exited by the adapter.
+        // It is necessary to check if due to rounding the exact amount can be exited by the adapter.
         // Otherwise it will do the maximum DAI balance in the vat
-        uint256 withdrawn = bal >= _amount.mul(RAY) ? _amount : bal / RAY;
+        uint256 amount = pot.chi().mul(pie) / RAY;
+        uint256 withdrawn = bal >= amount.mul(RAY) ? amount : bal / RAY;
         invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSelector(ADAPTER_EXIT, address(_wallet), withdrawn));
     }
-
-    // function exitAllDsr(
-    //     BaseWallet _wallet
-    // )
-    //     external
-    //     onlyWalletOwner(_wallet)
-    //     onlyWhenUnlocked(_wallet)
-    // {
-    //     // Execute drip to count the savings accumulated until this moment
-    //     pot.drip();
-    //     // Gets the total pie belonging to the _wallet
-    //     uint256 pie = pot.pie(address(_wallet));
-    //     // Exit DAI from the pot
-    //     invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSelector(POT_EXIT, pie));
-    //     // Allow adapter to access the _wallet's DAI balance in the vat
-    //     grantVatAccess(_wallet, address(daiJoin));
-    //     // Exits the DAI amount corresponding to the value of pie
-    //     uint256 withdrawn = pot.chi().mul(pie) / RAY;
-    //     invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSelector(ADAPTER_EXIT, address(_wallet), withdrawn));
-    // }
-
 }
