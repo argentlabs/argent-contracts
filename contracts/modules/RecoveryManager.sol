@@ -96,15 +96,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
         _;
     }
 
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "GM: wallet must be unlocked");
-        _;
-    }
-
     // *************** Constructor ************************ //
 
     constructor(
@@ -115,7 +106,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         uint256 _securityPeriod,
         uint256 _securityWindow
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         public
     {
         guardianStorage = _guardianStorage;
