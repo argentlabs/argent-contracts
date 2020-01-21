@@ -14,7 +14,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 describe("Test Wallet Factory", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let infrastructure = accounts[0].signer;
     let owner = accounts[1].signer;
@@ -67,8 +67,8 @@ describe("Test Wallet Factory", function () {
         let module1, module2;
 
         beforeEach(async () => {
-            module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ZERO_BYTES32);
-            module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ZERO_BYTES32);
+            module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ethers.constants.AddressZero, ZERO_BYTES32);
+            module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, ethers.constants.AddressZero, ZERO_BYTES32);
             await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
             await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
         });

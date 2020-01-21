@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../interfaces/Module.sol";
@@ -5,14 +20,14 @@ import "./BaseModule.sol";
 
 /**
  * @title RelayerModule
- * @dev Base module containing logic to execute transactions signed by eth-less accounts and sent by a relayer. 
+ * @dev Base module containing logic to execute transactions signed by eth-less accounts and sent by a relayer.
  * @author Julien Niset - <julien@argent.im>
  */
-contract RelayerModule is Module {
+contract RelayerModule is BaseModule {
 
     uint256 constant internal BLOCKBOUND = 10000;
 
-    mapping (address => RelayerConfig) public relayer; 
+    mapping (address => RelayerConfig) public relayer;
 
     struct RelayerConfig {
         uint256 nonce;
@@ -63,9 +78,9 @@ contract RelayerModule is Module {
     */
     function execute(
         BaseWallet _wallet,
-        bytes calldata _data, 
-        uint256 _nonce, 
-        bytes calldata _signatures, 
+        bytes calldata _data,
+        uint256 _nonce,
+        bytes calldata _signatures,
         uint256 _gasPrice,
         uint256 _gasLimit
     )
@@ -86,7 +101,7 @@ contract RelayerModule is Module {
                 }
             }
         }
-        emit TransactionExecuted(address(_wallet), success, signHash); 
+        emit TransactionExecuted(address(_wallet), success, signHash);
     }
 
     /**
@@ -109,16 +124,16 @@ contract RelayerModule is Module {
     */
     function getSignHash(
         address _from,
-        address _to, 
-        uint256 _value, 
-        bytes memory _data, 
+        address _to,
+        uint256 _value,
+        bytes memory _data,
         uint256 _nonce,
         uint256 _gasPrice,
         uint256 _gasLimit
-    ) 
-        internal 
+    )
+        internal
         pure
-        returns (bytes32) 
+        returns (bytes32)
     {
         return keccak256(
             abi.encodePacked(
@@ -142,7 +157,7 @@ contract RelayerModule is Module {
     }
 
     /**
-    * @dev Checks that a nonce has the correct format and is valid. 
+    * @dev Checks that a nonce has the correct format and is valid.
     * It must be constructed as nonce = {block number}{timestamp} where each component is 16 bytes.
     * @param _wallet The target wallet.
     * @param _nonce The nonce
@@ -150,13 +165,13 @@ contract RelayerModule is Module {
     function checkAndUpdateNonce(BaseWallet _wallet, uint256 _nonce) internal returns (bool) {
         if(_nonce <= relayer[address(_wallet)].nonce) {
             return false;
-        }   
+        }
         uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
         if(nonceBlock > block.number + BLOCKBOUND) {
             return false;
         }
         relayer[address(_wallet)].nonce = _nonce;
-        return true;    
+        return true;
     }
 
     /**
@@ -178,7 +193,7 @@ contract RelayerModule is Module {
             s := mload(add(_signatures, add(0x40,mul(0x41,_index))))
             v := and(mload(add(_signatures, add(0x41,mul(0x41,_index)))), 0xff)
         }
-        require(v == 27 || v == 28); 
+        require(v == 27 || v == 28);
         return ecrecover(_signedHash, v, r, s);
     }
 
@@ -202,7 +217,7 @@ contract RelayerModule is Module {
             else {
                 amount = amount * _gasPrice;
             }
-            _wallet.invoke(_relayer, amount, "");
+            invokeWallet(address(_wallet), _relayer, amount, EMPTY_BYTES);
         }
     }
 
@@ -213,8 +228,8 @@ contract RelayerModule is Module {
     * @param _gasPrice The expected gas price for the refund.
     */
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if(_gasPrice > 0 
-            && _signatures > 1 
+        if(_gasPrice > 0
+            && _signatures > 1
             && (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(address(this)) == false)) {
             return false;
         }
@@ -238,7 +253,7 @@ contract RelayerModule is Module {
     }
 
     /**
-    * @dev Parses the data to extract the method signature. 
+    * @dev Parses the data to extract the method signature.
     */
     function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
         require(_data.length >= 4, "RM: Invalid functionPrefix");

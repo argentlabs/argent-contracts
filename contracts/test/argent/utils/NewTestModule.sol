@@ -1,8 +1,8 @@
 pragma solidity ^0.5.4;
 
-import "../../modules/common/BaseModule.sol";
-import "../../modules/common/RelayerModule.sol";
-import "../../modules/common/OnlyOwnerModule.sol";
+import "../../../modules/common/BaseModule.sol";
+import "../../../modules/common/RelayerModule.sol";
+import "../../../modules/common/OnlyOwnerModule.sol";
 import "./TestDapp.sol";
 
 /**
@@ -21,7 +21,7 @@ contract NewTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
     constructor(
         ModuleRegistry _registry
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, GuardianStorage(0), NAME)
         public
     {
         dapp = new TestDapp();

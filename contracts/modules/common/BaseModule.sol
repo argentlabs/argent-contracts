@@ -1,6 +1,22 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../upgrade/ModuleRegistry.sol";
+import "../../storage/GuardianStorage.sol";
 import "../../interfaces/Module.sol";
 import "../../exchange/ERC20.sol";
 
@@ -11,14 +27,29 @@ import "../../exchange/ERC20.sol";
  */
 contract BaseModule is Module {
 
+    // Empty calldata
+    bytes constant internal EMPTY_BYTES = "";
+
     // The adddress of the module registry.
     ModuleRegistry internal registry;
+    // The address of the Guardian storage
+    GuardianStorage internal guardianStorage;
+
+    /**
+     * @dev Throws if the wallet is locked.
+     */
+    modifier onlyWhenUnlocked(BaseWallet _wallet) {
+        // solium-disable-next-line security/no-block-members
+        require(!guardianStorage.isLocked(_wallet), "BM: wallet must be unlocked");
+        _;
+    }
 
     event ModuleCreated(bytes32 name);
     event ModuleInitialised(address wallet);
 
-    constructor(ModuleRegistry _registry, bytes32 _name) public {
+    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage, bytes32 _name) public {
         registry = _registry;
+        guardianStorage = _guardianStorage;
         emit ModuleCreated(_name);
     }
 
@@ -51,7 +82,7 @@ contract BaseModule is Module {
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
-    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         emit ModuleInitialised(address(_wallet));
     }
 

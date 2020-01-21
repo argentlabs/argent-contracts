@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../interfaces/Module.sol";
 import "../base/Owned.sol";
@@ -40,7 +55,7 @@ contract ModuleRegistry is Owned {
      * @param _module The module.
      */
     function deregisterModule(address _module) external onlyOwner {
-        require(modules[_module].exists, "MR: module does not exists");
+        require(modules[_module].exists, "MR: module does not exist");
         delete modules[_module];
         emit ModuleDeRegistered(_module);
     }
@@ -61,7 +76,7 @@ contract ModuleRegistry is Owned {
      * @param _upgrader The _upgrader.
      */
     function deregisterUpgrader(address _upgrader) external onlyOwner {
-        require(upgraders[_upgrader].exists, "MR: upgrader does not exists");
+        require(upgraders[_upgrader].exists, "MR: upgrader does not exist");
         delete upgraders[_upgrader];
         emit UpgraderDeRegistered(_upgrader);
     }

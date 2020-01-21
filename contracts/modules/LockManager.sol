@@ -1,8 +1,22 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
-import "../storage/GuardianStorage.sol";
 import "../utils/GuardianUtils.sol";
 
 /**
@@ -19,8 +33,6 @@ contract LockManager is BaseModule, RelayerModule {
 
     bytes32 constant NAME = "LockManager";
 
-    // the address of the Guardian storage
-    GuardianStorage public guardianStorage;
     // The lock period
     uint256 public lockPeriod;
 
@@ -41,15 +53,6 @@ contract LockManager is BaseModule, RelayerModule {
     }
 
     /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "GD: wallet must be unlocked");
-        _;
-    }
-
-    /**
      * @dev Throws if the caller is not a guardian for the wallet.
      */
     modifier onlyGuardian(BaseWallet _wallet) {
@@ -60,8 +63,12 @@ contract LockManager is BaseModule, RelayerModule {
 
     // *************** Constructor ************************ //
 
-    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage, uint256 _lockPeriod) BaseModule(_registry, NAME) public {
-        guardianStorage = _guardianStorage;
+    constructor(
+        ModuleRegistry _registry,
+        GuardianStorage _guardianStorage,
+        uint256 _lockPeriod
+    )
+        BaseModule(_registry, _guardianStorage, NAME) public {
         lockPeriod = _lockPeriod;
     }
 
@@ -93,7 +100,7 @@ contract LockManager is BaseModule, RelayerModule {
      * @return The epoch time at which the lock will release (in seconds).
      */
     function getLock(BaseWallet _wallet) public view returns(uint64 _releaseAfter) {
-        uint256 lockEnd = guardianStorage.getLock(_wallet); 
+        uint256 lockEnd = guardianStorage.getLock(_wallet);
         if(lockEnd > now) {
             _releaseAfter = uint64(lockEnd);
         }
@@ -111,16 +118,25 @@ contract LockManager is BaseModule, RelayerModule {
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory /* _data */,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), recoverSigner(_signHash, _signatures, 0));
         return isGuardian; // "LM: must be a guardian to lock or unlock"
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) internal view returns (uint256) {
         return 1;
     }
 }

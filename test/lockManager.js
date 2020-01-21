@@ -10,7 +10,7 @@ const { parseRelayReceipt } = require("../utils/utilities.js");
 describe("LockManager", function () {
     this.timeout(10000);
 
-    const manager = new TestManager(accounts);
+    const manager = new TestManager();
 
     let owner = accounts[1].signer;
     let guardian1 = accounts[2].signer;
@@ -21,16 +21,16 @@ describe("LockManager", function () {
     beforeEach(async () => {
         deployer = manager.newDeployer();
         const registry = await deployer.deploy(Registry);
-        guardianStorage = await deployer.deploy(GuardianStorage);
+        let guardianStorage = await deployer.deploy(GuardianStorage);
         guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-        lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24*5);
+        lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
         wallet = await deployer.deploy(Wallet);
         await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress]);
     });
 
     describe("(Un)Lock by EOA guardians", () => {
         beforeEach(async () => {
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address, { gasLimit: 500000 });
             const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
             assert.equal(count, 1, "1 guardian should be added");
             const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, guardian1.address);
@@ -79,7 +79,7 @@ describe("LockManager", function () {
         beforeEach(async () => {
             guardianWallet = await deployer.deploy(Wallet);
             await guardianWallet.init(guardian1.address, [guardianManager.contractAddress, lockManager.contractAddress]);
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress, { gasLimit: 500000 });
             const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
             assert.equal(count, 1, "1 guardian should be added");
             const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, guardianWallet.contractAddress);
@@ -107,14 +107,14 @@ describe("LockManager", function () {
 
     describe("Auto-unlock", () => {
         it("should auto-unlock after lock period", async () => {
-            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+            await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address, { gasLimit: 500000 });
             await lockManager.from(guardian1).lock(wallet.contractAddress);
             let state = await lockManager.isLocked(wallet.contractAddress);
             assert.isTrue(state, "should be locked by guardian");
             let releaseTime = await lockManager.getLock(wallet.contractAddress);
             assert.isTrue(releaseTime > 0, "releaseTime should be positive");
 
-            manager.increaseTime(24*5+5);
+            await manager.increaseTime(24 * 5 + 5);
             state = await lockManager.isLocked(wallet.contractAddress);
             assert.isFalse(state, "should be unlocked by guardian");
             releaseTime = await lockManager.getLock(wallet.contractAddress);

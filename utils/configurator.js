@@ -35,6 +35,10 @@ class Configurator {
         this._config.Kyber.contract = address;
     }
 
+    updateMakerMigration(address) {
+        this._config.defi.maker.migration = address;
+    }
+
     updateBackendAccounts(accounts) {
         this._config.backend.accounts = accounts;
     }

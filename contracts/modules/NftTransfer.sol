@@ -1,9 +1,23 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../storage/GuardianStorage.sol";
 
 /**
  * @title NftTransfer
@@ -17,25 +31,12 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     // Equals to `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
-    // The Guardian storage 
-    GuardianStorage public guardianStorage;
     // The address of the CryptoKitties contract
     address public ckAddress;
 
     // *************** Events *************************** //
 
-    event NonFungibleTransfer(address indexed wallet, address indexed nftContract, uint256 indexed tokenId, address to, bytes data);    
-
-    // *************** Modifiers *************************** //
-
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "NT: wallet must be unlocked");
-        _;
-    }
+    event NonFungibleTransfer(address indexed wallet, address indexed nftContract, uint256 indexed tokenId, address to, bytes data);
 
     // *************** Constructor ********************** //
 
@@ -44,10 +45,9 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
         GuardianStorage _guardianStorage,
         address _ckAddress
     )
-        BaseModule(_registry, NAME)
+        BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        guardianStorage = _guardianStorage;
         ckAddress = _ckAddress;
     }
 
@@ -58,23 +58,24 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
      * static call redirection from the wallet to the module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) external onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         _wallet.enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
     /**
      * @notice Handle the receipt of an NFT
      * @dev An ERC721 smart contract calls this function on the recipient contract
-     * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received 
-     * will be forwarded to the method onERC721Received of the present module. 
-     * @param operator The address which called `safeTransferFrom` function
-     * @param from The address which previously owned the token
-     * @param tokenId The NFT identifier which is being transferred
-     * @param data Additional data with no specified format
+     * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received
+     * will be forwarded to the method onERC721Received of the present module.
      * @return bytes4 `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
      */
-    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
-        external 
+    function onERC721Received(
+        address /* operator */,
+        address /* from */,
+        uint256 /* tokenId */,
+        bytes calldata /* data*/
+    )
+        external
         returns (bytes4)
     {
         return ERC721_RECEIVED;
@@ -114,7 +115,7 @@ function transferNFT(
                    "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
            }
         }
-        _wallet.invoke(_nftContract, 0, methodData);
+        invokeWallet(address(_wallet), _nftContract, 0, methodData);
         emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
     }
 

@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
@@ -7,7 +22,6 @@ import "../utils/SafeMath.sol";
 import "../exchange/ERC20.sol";
 import "../utils/SafeMath.sol";
 import "../exchange/KyberNetwork.sol";
-import "../storage/GuardianStorage.sol";
 
 /**
  * @title TokenExchanger
@@ -29,34 +43,22 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
     address public feeCollector;
     // The Argent fee in 1-per-10000.
     uint256 public feeRatio;
-    // The Guardian storage 
-    GuardianStorage public guardianStorage;
 
     event TokenExchanged(address indexed wallet, address srcToken, uint srcAmount, address destToken, uint destAmount);
 
-    /**
-     * @dev Throws if the wallet is locked.
-     */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(!guardianStorage.isLocked(_wallet), "TT: wallet must be unlocked");
-        _;
-    }
-
     constructor(
-        ModuleRegistry _registry, 
-        GuardianStorage _guardianStorage, 
-        address _kyber, 
-        address _feeCollector, 
+        ModuleRegistry _registry,
+        GuardianStorage _guardianStorage,
+        address _kyber,
+        address _feeCollector,
         uint _feeRatio
-    ) 
-        BaseModule(_registry, NAME) 
-        public 
+    )
+        BaseModule(_registry, _guardianStorage, NAME)
+        public
     {
         kyber = _kyber;
         feeCollector = _feeCollector;
         feeRatio = _feeRatio;
-        guardianStorage = _guardianStorage;
     }
 
     /**
@@ -101,12 +103,12 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
                 _minConversionRate,
                 feeCollector
                 );
-            _wallet.invoke(kyber, srcTradable, methodData);
+            invokeWallet(address(_wallet), kyber, srcTradable, methodData);
         }
         else {
             // approve kyber on erc20 
             methodData = abi.encodeWithSignature("approve(address,uint256)", kyber, _srcAmount);
-            _wallet.invoke(_srcToken, 0, methodData);
+            invokeWallet(address(_wallet), _srcToken, 0, methodData);
             // transfer erc20
             methodData = abi.encodeWithSignature(
                 "trade(address,uint256,address,address,uint256,uint256,address)", 
@@ -118,11 +120,11 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
                 _minConversionRate,
                 feeCollector
                 );
-            _wallet.invoke(kyber, 0, methodData);
+            invokeWallet(address(_wallet), kyber, 0, methodData);
         }
 
         if (fee > 0) {
-            _wallet.invoke(feeCollector, fee, "");
+            invokeWallet(address(_wallet), feeCollector, fee, "");
         }
         emit TokenExchanged(address(_wallet), _srcToken, _srcAmount, _destToken, destAmount);
         return destAmount;
