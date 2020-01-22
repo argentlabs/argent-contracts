@@ -34,8 +34,8 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
 
     bytes32 constant NAME = "TransferManager";
 
-    bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
-    bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
+    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
+    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
     enum ActionType { Transfer }
 
@@ -101,8 +101,8 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
 
         // setup static calls
-        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES);
-        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES32);
+        _wallet.enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
+        _wallet.enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
 
         // setup default limit for new deployment
         if(address(oldLimitManager) == address(0)) {
@@ -420,7 +420,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     function isValidSignature(bytes calldata _data, bytes calldata _signature) external view returns (bytes4) {
         bytes32 msgHash = keccak256(abi.encodePacked(_data));
         isValidSignature(msgHash, _signature);
-        return ERC721_ISVALIDSIGNATURE_BYTES;
+        return ERC1271_ISVALIDSIGNATURE_BYTES;
     }
 
     /**
@@ -433,7 +433,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         require(_signature.length == 65, "TM: invalid signature length");
         address signer = recoverSigner(_msgHash, _signature, 0);
         require(isOwner(BaseWallet(msg.sender), signer), "TM: Invalid signer");
-        return ERC721_ISVALIDSIGNATURE_BYTES32;
+        return ERC1271_ISVALIDSIGNATURE_BYTES32;
     }
 
     // *************** Internal Functions ********************* //
