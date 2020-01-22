@@ -77,6 +77,31 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
         doCallContract(_wallet, _contract, _value, _data);
     }
 
+    /**
+    * @dev lets the owner do an ERC20 approve followed by a call to a contract.
+    * We assume that the contract will pull the tokens and does not require ETH.
+    * @param _wallet The target wallet.
+    * @param _token The token to approve.
+    * @param _contract The address of the contract.
+    * @param _amount The amount of ERC20 tokens to approve.
+    * @param _data The encoded method data
+    */
+    function approveTokenAndCallContract(
+        BaseWallet _wallet,
+        address _token,
+        address _contract,
+        uint256 _amount,
+        bytes calldata _data
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "AT: Forbidden contract");
+        doApproveToken(_wallet, _token, _contract, _amount);
+        doCallContract(_wallet, _contract, 0, _data);
+    }
+    
     // *************** Implementation of RelayerModule methods ********************* //
 
     function validateSignatures(

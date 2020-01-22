@@ -268,7 +268,7 @@ describe("Test Approved Transfer", function () {
         });
     });
 
-    describe("Transfer with data approved by EOA and smart-contract guardians", () => {
+    describe("Contract call approved by EOA and smart-contract guardians", () => {
 
         let contract, dataToTransfer;
 
@@ -302,6 +302,44 @@ describe("Test Approved Transfer", function () {
             await manager.relay(transferModule, "callContract", [wallet.contractAddress, contract.contractAddress, amountToTransfer, dataToTransfer], wallet, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
             after = await deployer.provider.getBalance(contract.contractAddress);
             assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+            assert.equal((await contract.state()).toNumber(), 4, 'the state of the external contract should have been changed');
+        });
+    });
+
+    describe("Approve token and Contract call approved by EOA and smart-contract guardians", () => {
+
+        let contract, dataToTransfer;
+
+        beforeEach(async () => {
+            contract = await deployer.deploy(TestContract);
+            assert.equal(await contract.state(), 0, "initial contract state should be 0");
+        });
+
+        it('should approve a token and call a contract with 1 EOA guardian and 2 smart-contract guardians', async () => {
+            let amountToApprove = 10000;
+            await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
+            let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+            assert.equal(count, 3, '3 guardians should be active');
+            let before = await erc20.balanceOf(contract.contractAddress);
+            // should succeed with 2 confirmations
+            dataToTransfer = contract.contract.interface.functions['setStateAndPayToken'].encode([2, erc20.contractAddress, amountToApprove]);
+            let txReceipt = await manager.relay(transferModule, "approveTokenAndCallContract", [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, dataToTransfer], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+            let after = await erc20.balanceOf(contract.contractAddress);
+            assert.equal(after.sub(before).toNumber(), amountToApprove, 'should have approved and transfered the token amount');
+            assert.equal((await contract.state()).toNumber(), 2, 'the state of the external contract should have been changed');
+            // should succeed with 2 confirmations
+            before = after;
+            dataToTransfer = contract.contract.interface.functions['setStateAndPayToken'].encode([3, erc20.contractAddress, amountToApprove]);
+            await manager.relay(transferModule, "approveTokenAndCallContract", [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, dataToTransfer], wallet, [owner, ...sortWalletByAddress([guardian1, guardian3])]);
+            after = await erc20.balanceOf(contract.contractAddress);
+            assert.equal(after.sub(before).toNumber(), amountToApprove, 'should have approved and transfered the token amount');
+            assert.equal((await contract.state()).toNumber(), 3, 'the state of the external contract should have been changed');
+            // should succeed with 2 confirmations
+            before = after;
+            dataToTransfer = contract.contract.interface.functions['setStateAndPayToken'].encode([4, erc20.contractAddress, amountToApprove]);
+            await manager.relay(transferModule, "approveTokenAndCallContract", [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, dataToTransfer], wallet, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
+            after = await erc20.balanceOf(contract.contractAddress);
+            assert.equal(after.sub(before).toNumber(), amountToApprove, 'should have approved and transfered the token amount');
             assert.equal((await contract.state()).toNumber(), 4, 'the state of the external contract should have been changed');
         });
     });
