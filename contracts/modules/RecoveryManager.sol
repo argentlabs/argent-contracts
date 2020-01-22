@@ -124,6 +124,8 @@ contract RecoveryManager is BaseModule, RelayerModule {
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
+        require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow,
+            "RM: insecure security periods");
         guardianStorage = _guardianStorage;
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
@@ -156,7 +158,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * The method is public and callable by anyone to enable orchestration.
      * @param _wallet The target wallet.
      */
-    function finalizeRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
+    function finalizeRecovery(BaseWallet _wallet) external onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         require(uint64(now) > config.executeAfter, "RM: the recovery period is not over yet");
         _wallet.setOwner(config.recovery);
@@ -203,7 +205,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
         notWhenOwnershipTransfer(_wallet)
     {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
-        require(!isOwner(_wallet, _newOwner), "RM: new owner address already owner");
         OwnershipTransferConfig storage config = ownershipTransferConfigs[address(_wallet)];
         config.newOwner = _newOwner;
         config.executeAfter = uint64(now + securityPeriod);
