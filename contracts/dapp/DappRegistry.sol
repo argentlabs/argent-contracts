@@ -56,10 +56,10 @@ contract DappRegistry is Owned {
     }
 
     /**
-     * @dev Checks if a list of methods are registered for a dapp contract.
+     * @dev Checks if a method is registered for a dapp contract.
      * @param _contract The dapp contract.
-     * @param _method The dapp methods.
-     * @return true if all the methods are registered.
+     * @param _method The dapp method.
+     * @return true if the method is registered.
      */
     function isRegistered(address _contract, bytes4 _method) external view returns (bool) {
         return authorised[_contract][_method];
