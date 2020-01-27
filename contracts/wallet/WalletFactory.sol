@@ -132,8 +132,8 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             wallet := create2(0, add(code, 0x20), mload(code), newsalt)
+            if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
         }
-        require(wallet != address(0), "WF: Failed to create wallet with Create2");
         configureWallet(BaseWallet(wallet), _owner, _modules, _label, address(0));
         emit WalletCreated(wallet, _owner);
     }
