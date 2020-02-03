@@ -54,7 +54,6 @@ describe("Test ENS contracts", function () {
             let nodeOwner = await ensRegistry.owner(labelNode);
             assert.equal(nodeOwner, owner.address);
             let res = await ensRegistry.resolver(labelNode);
-            assert.equal(res, ensResolver.contractAddress);
         });
 
         it("should add a new manager and register an ENS name", async () => {
@@ -69,6 +68,21 @@ describe("Test ENS contracts", function () {
         it("should fail to register an ENS name when the caller is not a manager", async () => {
             let label = "wallet";
             await assert.revert(ensManager.from(anonmanager).register(label, owner.address), "registering should throw");
+        });
+    });
+
+    describe("ENS Resolver", () => {
+        it("should return correct ENS interface support responses", async () => {
+            const SUPPORT_INTERFACE_ID = "0x01ffc9a7"; // EIP 165
+            const ADDR_INTERFACE_ID = "0x3b3b57de";    // EIP 137
+            const NAME_INTERFACE_ID = "0x691f3431";    // EIP 181
+
+            let support = await ensResolver.supportsInterface(SUPPORT_INTERFACE_ID);
+            assert.isTrue(support);
+            support = await ensResolver.supportsInterface(ADDR_INTERFACE_ID);
+            assert.isTrue(support);
+            support = await ensResolver.supportsInterface(NAME_INTERFACE_ID);
+            assert.isTrue(support);
         });
     });
 
