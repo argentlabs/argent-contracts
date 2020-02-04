@@ -14,7 +14,7 @@ interface IGuardianStorage{
 /**
  * @title WalletFactory
  * @dev The WalletFactory contract creates and assigns wallets to accounts.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract WalletFactory is Owned, Managed, ENSConsumer {
 
@@ -35,7 +35,7 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     event ENSManagerChanged(address addr);
     event ENSResolverChanged(address addr);
     event GuardianStorageChanged(address addr);
-    event WalletCreated(address indexed _wallet, address indexed _owner);
+    event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
 
     // *************** Constructor ********************** //
 
@@ -81,7 +81,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         Proxy proxy = new Proxy(walletImplementation);
         address payable wallet = address(proxy);
         configureWallet(BaseWallet(wallet), _owner, _modules, _label, address(0));
-        emit WalletCreated(wallet, _owner);
     }
 
     /**
@@ -105,7 +104,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         Proxy proxy = new Proxy(walletImplementation);
         address payable wallet = address(proxy);
         configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
-        emit WalletCreated(wallet, _owner);
     }
 
     /**
@@ -135,7 +133,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
             if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
         }
         configureWallet(BaseWallet(wallet), _owner, _modules, _label, address(0));
-        emit WalletCreated(wallet, _owner);
     }
 
     /**
@@ -157,16 +154,16 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     )
         external
         onlyManager
-    {        bytes32 newsalt = keccak256(abi.encodePacked(_salt, _owner, _modules));
+    {
+        bytes32 newsalt = keccak256(abi.encodePacked(_salt, _owner, _modules));
         bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
         address payable wallet;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             wallet := create2(0, add(code, 0x20), mload(code), newsalt)
+            if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
         }
-        require(wallet != address(0), "WF: Failed to create wallet with Create2");
         configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
-        emit WalletCreated(wallet, _owner);
     }
 
     /**
@@ -270,6 +267,8 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         }
         // remove the factory from the authorised modules
         _wallet.authoriseModule(address(this), false);
+        // emit event
+        emit WalletCreated(address(_wallet), _owner, _guardian);
     }
 
     /**

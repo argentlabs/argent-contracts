@@ -5,7 +5,7 @@ import "../utils/strings.sol";
 /**
  * @title ENSConsumer
  * @dev Helper contract to resolve ENS names.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract ENSConsumer {
 
@@ -18,7 +18,7 @@ contract ENSConsumer {
     address ensRegistry;
 
     /**
-    * @dev No address should be provided when deploying on Mainnet to avoid storage cost. The 
+    * @dev No address should be provided when deploying on Mainnet to avoid storage cost. The
     * contract will use the hardcoded value.
     */
     constructor(address _ensRegistry) public {
@@ -27,7 +27,7 @@ contract ENSConsumer {
 
     /**
     * @dev Resolves an ENS name to an address.
-    * @param _node The namehash of the ENS name. 
+    * @param _node The namehash of the ENS name.
     */
     function resolveEns(bytes32 _node) public view returns (address) {
         address resolver = getENSRegistry().resolver(_node);
@@ -42,7 +42,7 @@ contract ENSConsumer {
     }
 
     /**
-    * @dev Gets the official ENS reverse registrar. 
+    * @dev Gets the official ENS reverse registrar.
     */
     function getENSReverseRegistrar() public view returns (ENSReverseRegistrar) {
         return ENSReverseRegistrar(getENSRegistry().owner(ADDR_REVERSE_NODE));
