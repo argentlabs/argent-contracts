@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
@@ -88,12 +103,12 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
                 _minConversionRate,
                 feeCollector
                 );
-            _wallet.invoke(kyber, srcTradable, methodData);
+            invokeWallet(address(_wallet), kyber, srcTradable, methodData);
         }
         else {
             // approve kyber on erc20 
             methodData = abi.encodeWithSignature("approve(address,uint256)", kyber, _srcAmount);
-            _wallet.invoke(_srcToken, 0, methodData);
+            invokeWallet(address(_wallet), _srcToken, 0, methodData);
             // transfer erc20
             methodData = abi.encodeWithSignature(
                 "trade(address,uint256,address,address,uint256,uint256,address)", 
@@ -105,11 +120,11 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
                 _minConversionRate,
                 feeCollector
                 );
-            _wallet.invoke(kyber, 0, methodData);
+            invokeWallet(address(_wallet), kyber, 0, methodData);
         }
 
         if (fee > 0) {
-            _wallet.invoke(feeCollector, fee, "");
+            invokeWallet(address(_wallet), feeCollector, fee, "");
         }
         emit TokenExchanged(address(_wallet), _srcToken, _srcAmount, _destToken, destAmount);
         return destAmount;

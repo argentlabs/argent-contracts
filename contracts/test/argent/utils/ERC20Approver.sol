@@ -14,7 +14,7 @@ contract ERC20Approver is BaseModule, OnlyOwnerModule {
         external
         onlyWalletOwner(_wallet)
     {
-        _wallet.invoke(_erc20Contract, 0, abi.encodeWithSignature("approve(address,uint256)", _spender, _amount));
+        invokeWallet(address(_wallet), _erc20Contract, 0, abi.encodeWithSignature("approve(address,uint256)", _spender, _amount));
     }
 
 }

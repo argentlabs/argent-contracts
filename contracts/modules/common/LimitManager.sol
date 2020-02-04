@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../utils/SafeMath.sol";
@@ -196,12 +211,12 @@ contract LimitManager is BaseModule {
     * @return true if the transfer amount is withing the daily limit.
     */
     function isWithinDailyLimit(BaseWallet _wallet, uint _limit, uint _amount) internal view returns (bool)  {
-        DailySpent storage expense = limits[address(_wallet)].dailySpent;
         if(_limit == LIMIT_DISABLED) {
             return true;
         }
+        DailySpent storage expense = limits[address(_wallet)].dailySpent;
         // solium-disable-next-line security/no-block-members
-        else if (expense.periodEnd < now) {
+        if (expense.periodEnd < now) {
             return (_amount <= _limit);
         } else {
             return (expense.alreadySpent + _amount <= _limit && expense.alreadySpent + _amount >= expense.alreadySpent);

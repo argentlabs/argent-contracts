@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../base/Owned.sol";
 
@@ -41,10 +56,10 @@ contract DappRegistry is Owned {
     }
 
     /**
-     * @dev Checks if a list of methods are registered for a dapp contract.
+     * @dev Checks if a method is registered for a dapp contract.
      * @param _contract The dapp contract.
-     * @param _method The dapp methods.
-     * @return true if all the methods are registered.
+     * @param _method The dapp method.
+     * @return true if the method is registered.
      */
     function isRegistered(address _contract, bytes4 _method) external view returns (bool) {
         return authorised[_contract][_method];

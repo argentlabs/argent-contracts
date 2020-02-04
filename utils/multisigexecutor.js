@@ -1,4 +1,6 @@
 const ethers = require('ethers');
+const inquirer = require("inquirer");
+
 const utils = require('./utilities.js');
 
 class MultisigExecutor {
@@ -36,17 +38,44 @@ class MultisigExecutor {
             return result;
 
         } else {
+            // Get the threshold
+            const threshold = (await this._multisigWrapper.contract.threshold()).toNumber();
+
             console.log(`******* MultisigExecutor *******`);
             console.log(`Signing data for transaction to ${contractWrapper._contract.contractName} located at ${contract_address}:`);
-            console.log(`multisig:          ${this._multisigWrapper.contractAddress}`);
-            console.log(`to:                ${contract_address}`);
-            console.log(`value:             0`);
-            console.log(`data:              ${data}`);
-            console.log(`nonce:             ${nonce}`);
-            console.log(`SignHash:          ${signHash}`);
+            console.log(`multisig: ${this._multisigWrapper.contractAddress}`);
+            console.log(`to:       ${contract_address}`);
+            console.log(`value:    0`);
+            console.log(`data:     ${data}`);
+            console.log(`nonce:    ${nonce}`);
+            console.log(`SignHash: ${signHash}`);
+            console.log(`Required signatures: ${threshold}`)
             console.log(`********************************`);
 
-            await utils.waitForUserInput('Press Enter once transaction is excuted...');
+            const signatures_output = await inquirer.prompt(Array(threshold).fill(0).map((value, index) => {
+                return {
+                    type: 'input',
+                    name: `signature_${index}`,
+                    message: `Please provide signature ${index+1}/${threshold}`
+                };
+            }));
+
+            const parsedSignatures = Object.values(signatures_output).map(signature => JSON.parse(signature));
+            const sortedSignatures = parsedSignatures.sort((s1, s2) => {
+                const bn1 = ethers.utils.bigNumberify(s1.address);
+                const bn2 = ethers.utils.bigNumberify(s2.address);
+                if (bn1.lt(bn2)) return -1;
+                if (bn1.gt(bn2)) return 1;
+                return 0;
+            });
+
+            let signatures = '0x' + sortedSignatures.map(s => s.sig.slice(2)).join('');
+
+            // Call "execute" on the Multisig wallet with data and signatures
+            const executeTransaction = await this._multisigWrapper.contract.execute(contract_address, 0, data, signatures, { gasLimit: 300000 });
+            const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, 'Multisig Execute Transaction');
+
+            return result;
         }
     }
 

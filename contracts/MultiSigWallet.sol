@@ -1,22 +1,37 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 
 /**
  * @title MultiSig
  * @dev Simple MultiSig using off-chain signing.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract MultiSigWallet {
 
     uint constant public MAX_OWNER_COUNT = 10;
 
     // Incrementing counter to prevent replay attacks
-    uint256 public nonce;   
-    // The threshold           
-    uint256 public threshold; 
+    uint256 public nonce;
+    // The threshold
+    uint256 public threshold;
     // The number of owners
     uint256 public ownersCount;
     // Mapping to check if an address is an owner
-    mapping (address => bool) public isOwner; 
+    mapping (address => bool) public isOwner;
 
     // Events
     event OwnerAdded(address indexed owner);
@@ -26,7 +41,8 @@ contract MultiSigWallet {
     event Received(uint256 indexed value, address indexed from);
 
     /**
-     * @dev Throws is the calling account is not the multisig.
+     * @dev Throws if the calling account is not the multisig.
+     * @dev Mainly used for enforcing the use of internal functions through the "execute" function
      */
     modifier onlyWallet() {
         require(msg.sender == address(this), "MSW: Calling account is not wallet");
@@ -36,7 +52,7 @@ contract MultiSigWallet {
     /**
      * @dev Constructor.
      * @param _threshold The threshold of the multisig.
-     * @param _owners The owners of the multisig.
+     * @param _owners The initial set of owners of the multisig.
      */
     constructor(uint256 _threshold, address[] memory _owners) public {
         require(_owners.length > 0 && _owners.length <= MAX_OWNER_COUNT, "MSW: Not enough or too many owners");
@@ -51,8 +67,8 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Only entry point of the multisig. The method will execute any transaction provided that it 
-     * receieved enough signatures from the wallet owners.  
+     * @dev Only entry point of the multisig. The method will execute any transaction provided that it
+     * receieved enough signatures from the wallet owners.
      * @param _to The destination address for the transaction to execute.
      * @param _value The value parameter for the transaction to execute.
      * @param _data The data parameter for the transaction to execute.
@@ -76,6 +92,7 @@ contract MultiSigWallet {
             if(isOwner[recovered]) {
                 valid += 1;
                 if(valid >= threshold) {
+                    // solium-disable-next-line security/no-call-value
                     (bool success,) = _to.call.value(_value)(_data);
                     require(success, "MSW: External call failed");
                     emit Executed(_to, _value, _data);
@@ -83,12 +100,12 @@ contract MultiSigWallet {
                 }
             }
         }
-        // If we reach that point then the transaction is not executed
+        // If not enough signatures for threshold, then the transaction is not executed
         revert("MSW: Not enough valid signatures");
     }
 
     /**
-     * @dev Adds an owner to the multisig. This method can only be called by the multisig itself 
+     * @dev Adds an owner to the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
      * @param _owner The address of the new owner.
      */
@@ -101,9 +118,9 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Removes an owner from the multisig. This method can only be called by the multisig itself 
+     * @dev Removes an owner from the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
-     * @param _owner The address of the removed owner.
+     * @param _owner The address of the owner to be removed.
      */
     function removeOwner(address _owner) public onlyWallet {
         require(ownersCount > threshold, "MSW: Too few owners left");
@@ -114,7 +131,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Changes the threshold of the multisig. This method can only be called by the multisig itself 
+     * @dev Changes the threshold of the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
      * @param _newThreshold The new threshold.
      */
@@ -125,15 +142,8 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Makes it possible for the multisig to receive ETH.
-     */
-    function () external payable {
-        emit Received(msg.value, msg.sender);        
-    }
-
-        /**
      * @dev Parses the signatures and extract (r, s, v) for a signature at a given index.
-     * A signature is {bytes32 r}{bytes32 s}{uint8 v} in compact form and signatures are concatenated.
+     * A signature is {bytes32 r}{bytes32 s}{uint8 v} in compact form where the signatures are concatenated.
      * @param _signatures concatenated signatures
      * @param _index which signature to read (0, 1, 2, ...)
      */
@@ -141,12 +151,20 @@ contract MultiSigWallet {
         // we jump 32 (0x20) as the first slot of bytes contains the length
         // we jump 65 (0x41) per signature
         // for v we load 32 bytes ending with v (the first 31 come from s) tehn apply a mask
+        // solium-disable-next-line security/no-inline-assembly
         assembly {
             r := mload(add(_signatures, add(0x20,mul(0x41,_index))))
             s := mload(add(_signatures, add(0x40,mul(0x41,_index))))
             v := and(mload(add(_signatures, add(0x41,mul(0x41,_index)))), 0xff)
         }
-        require(v == 27 || v == 28, "MSW: Invalid v"); 
+        require(v == 27 || v == 28, "MSW: Invalid v");
+    }
+
+    /**
+     * @dev Fallback function to allow the multisig to receive ETH, which will fail if not implemented
+     */
+    function () external payable {
+        emit Received(msg.value, msg.sender);
     }
 
 }
