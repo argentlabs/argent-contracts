@@ -3,6 +3,7 @@ import "../ens/ENS.sol";
 
 /**
  * ENS registry test contract.
+ * For brevity we've omitted the `operators` logic and allow for just a single owner 
  */
 contract TestENSRegistry is ENSRegistry {
 
@@ -13,18 +14,6 @@ contract TestENSRegistry is ENSRegistry {
     }
 
     mapping(bytes32=>Record) records;
-
-    // Logged when the owner of a node assigns a new owner to a subnode.
-    event NewOwner(bytes32 indexed _node, bytes32 indexed _label, address _owner);
-
-    // Logged when the owner of a node transfers ownership to a new account.
-    event Transfer(bytes32 indexed _node, address _owner);
-
-    // Logged when the resolver for a node changes.
-    event NewResolver(bytes32 indexed _node, address _resolver);
-
-    // Logged when the TTL of a node changes
-    event NewTTL(bytes32 indexed _node, uint64 _ttl);
 
     // Permits modifications only by the owner of the specified node.
     modifier only_owner(bytes32 _node) {
@@ -78,10 +67,45 @@ contract TestENSRegistry is ENSRegistry {
      * @param _label The hash of the label specifying the subnode.
      * @param _owner The address of the new owner.
      */
-    function setSubnodeOwner(bytes32 _node, bytes32 _label, address _owner) public only_owner(_node) {
+    function setSubnodeOwner(bytes32 _node, bytes32 _label, address _owner) public only_owner(_node) returns (bytes32) {
         bytes32 subnode = keccak256(abi.encodePacked(_node, _label));
         emit NewOwner(_node, _label, _owner);
         records[subnode].owner = _owner;
+        return subnode;
+    }
+
+    /**
+     * @dev Sets the record for a node.
+     * @param _node The node to update.
+     * @param _owner The address of the new owner.
+     * @param _resolver The address of the resolver.
+     * @param _ttl The TTL in seconds.
+     */
+    function setRecord(bytes32 _node, address _owner, address _resolver, uint64 _ttl) external {
+        setOwner(_node, _owner);
+        _setResolverAndTTL(_node, _resolver, _ttl);
+    }
+
+    /**
+     * @dev Sets the record for a subnode.
+     * @param _node The parent node.
+     * @param _label The hash of the label specifying the subnode.
+     * @param _owner The address of the new owner.
+     * @param _resolver The address of the resolver.
+     * @param _ttl The TTL in seconds.
+     */
+    function setSubnodeRecord(bytes32 _node, bytes32 _label, address _owner, address _resolver, uint64 _ttl) external {
+        bytes32 subnode = setSubnodeOwner(_node, _label, _owner);
+        _setResolverAndTTL(subnode, _resolver, _ttl);
+    }
+
+    /**
+     * @dev Returns whether a record has been imported to the registry.
+     * @param node The specified node.
+     * @return Bool if record exists
+     */
+    function recordExists(bytes32 node) public view returns (bool) {
+        return records[node].owner != address(0x0);
     }
 
     /**
@@ -102,6 +126,18 @@ contract TestENSRegistry is ENSRegistry {
     function setTTL(bytes32 _node, uint64 _ttl) public only_owner(_node) {
         emit NewTTL(_node, _ttl);
         records[_node].ttl = _ttl;
+    }
+
+    function _setResolverAndTTL(bytes32 _node, address _resolver, uint64 _ttl) internal {
+        if(_resolver != records[_node].resolver) {
+            records[_node].resolver = _resolver;
+            emit NewResolver(_node, _resolver);
+        }
+
+        if(_ttl != records[_node].ttl) {
+            records[_node].ttl = _ttl;
+            emit NewTTL(_node, _ttl);
+        }
     }
 }
 
