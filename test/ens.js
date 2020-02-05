@@ -41,7 +41,6 @@ describe("Test ENS contracts", function () {
     });
 
     describe("ENS Manager", () => {
-
         it("should be the owner of the wallet root", async () => {
             var owner = await ensRegistry.owner(walletNode);
             assert.equal(owner, ensManager.contractAddress, "ens manager should be the owner of the wallet root node");
@@ -51,9 +50,13 @@ describe("Test ENS contracts", function () {
             let label = "wallet";
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
             await ensManager.from(infrastructure).register(label, owner.address);
-            let nodeOwner = await ensRegistry.owner(labelNode);
+
+            const recordExists = await ensRegistry.recordExists(labelNode);
+            assert.isTrue(recordExists);
+            const nodeOwner = await ensRegistry.owner(labelNode);
             assert.equal(nodeOwner, owner.address);
-            let res = await ensRegistry.resolver(labelNode);
+            const res = await ensRegistry.resolver(labelNode);
+            assert.equal(res, ensResolver.contractAddress);
         });
 
         it("should add a new manager and register an ENS name", async () => {
@@ -93,7 +96,6 @@ describe("Test ENS contracts", function () {
     });
 
     describe("ENS Consumer", () => {
-
         it("ENSUser should resolve a name", async () => {
             let label = "wallet";
             let ensName = label + '.' + subnameWallet + "." + root;
