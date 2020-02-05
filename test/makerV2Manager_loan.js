@@ -120,7 +120,7 @@ describe("Test MakerV2 CDPs", function () {
             await (await daiToken.approve(daiExchange.contractAddress, afterDAI)).wait();
             const currentBlock = await testManager.getCurrentBlock();
             const timestamp = await testManager.getTimestamp(currentBlock);
-            await (await daiExchange.tokenToEthSwapInput(afterDAI, 1, timestamp + 300, { gasLimit: 3000000 })).wait();
+            await (await daiExchange.tokenToEthSwapInput(afterDAI, 1, timestamp + 24*3600, { gasLimit: 3000000 })).wait();
         }
     }
 
