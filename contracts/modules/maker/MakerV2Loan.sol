@@ -21,7 +21,10 @@ interface IUniswapExchange {
 
 /**
  * @title MakerV2Loan
- * @dev Module to migrate old CDPs and open and manage new CDPs.
+ * @dev Module to migrate old CDPs and open and manage new vaults. The vaults managed by
+ * this module are directly owned by the module. This is to prevent a compromised wallet owner
+ * from being able to use `TransferManager.callContract()` to transfer ownership of a vault
+ * (a type of asset NOT protected by a wallet's daily limit) to another account.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract MakerV2Loan is Loan, MakerV2Base {
@@ -34,7 +37,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
     JoinLike internal wethJoin;
     // The address of the Jug
     JugLike internal jug;
-    // The address of the CDP Manager
+    // The address of the Vault Manager (referred to as 'CdpManager' to match Maker's naming)
     ManagerLike internal cdpManager;
     // The address of the SCD Tub
     SaiTubLike internal tub;
@@ -63,7 +66,8 @@ contract MakerV2Loan is Loan, MakerV2Base {
 
     // ****************** Events *************************** //
 
-    event CdpMigrated(address indexed _wallet, bytes32 _oldCdpId, bytes32 _newCdpId);
+    // Emitted when an SCD CDP is converted into an MCD vault
+    event CdpMigrated(address indexed _wallet, bytes32 _oldCdpId, bytes32 _newVaultId);
 
     // *************** Modifiers *************************** //
 
@@ -108,7 +112,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
      * @param _collateralAmount The amount of collateral token provided.
      * @param _debtToken The token borrowed (must be the address of the DAI contract).
      * @param _debtAmount The amount of tokens borrowed.
-     * @return The ID of the created CDP.
+     * @return The ID of the created vault.
      */
     function openLoan(
         BaseWallet _wallet,
@@ -124,14 +128,14 @@ contract MakerV2Loan is Loan, MakerV2Base {
     {
         verifySupportedCollateral(_collateral);
         require(_debtToken == address(daiToken), "MV2: debt token not DAI");
-        _loanId = bytes32(openCdp(_wallet, _collateral, _collateralAmount, _debtAmount));
+        _loanId = bytes32(openVault(_wallet, _collateral, _collateralAmount, _debtAmount));
         emit LoanOpened(address(_wallet), _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
     }
 
     /**
      * @dev Adds collateral to a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the target CDP.
+     * @param _loanId The ID of the target vault.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral to add.
      */
@@ -153,7 +157,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
     /**
      * @dev Removes collateral from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the target CDP.
+     * @param _loanId The ID of the target vault.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral to remove.
      */
@@ -175,7 +179,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
     /**
      * @dev Increases the debt by borrowing more token from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the target CDP.
+     * @param _loanId The ID of the target vault.
      * @param _debtToken The token borrowed (must be the address of the DAI contract).
      * @param _debtAmount The amount of token to borrow.
      */
@@ -196,7 +200,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
     /**
      * @dev Decreases the debt by repaying some token from a loan identified by its ID.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the target CDP.
+     * @param _loanId The ID of the target vault.
      * @param _debtToken The token to repay (must be the address of the DAI contract).
      * @param _debtAmount The amount of token to repay.
      */
@@ -219,7 +223,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
     /**
      * @dev Closes a collateralized loan by repaying all debts (plus interest) and redeeming all collateral.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the target CDP.
+     * @param _loanId The ID of the target vault.
      */
     function closeLoan(
         BaseWallet _wallet,
@@ -231,13 +235,13 @@ contract MakerV2Loan is Loan, MakerV2Base {
     {
         verifyLoanOwner(_wallet, _loanId);
         updateStabilityFee(uint256(_loanId));
-        closeCdp(_wallet, uint256(_loanId));
+        closeVault(_wallet, uint256(_loanId));
         emit LoanClosed(address(_wallet), _loanId);
     }
 
     /**
      * @dev Gets information about a loan identified by its ID.
-     * @param _loanId The ID of the target CDP.
+     * @param _loanId The ID of the target vault.
      * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: loan exists but we are unable to provide info]
      * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral that should be added to
      * avoid liquidation when status = 2.
@@ -256,13 +260,13 @@ contract MakerV2Loan is Loan, MakerV2Base {
         return (0,0);
     }
 
-    /* *************************************** Other CDP methods ***************************************** */
+    /* *************************************** Other vault methods ***************************************** */
 
     /**
-     * @dev Lets a CDP owner transfer their CDP from their wallet to the present module so the CDP
+     * @dev Lets a vault owner transfer their vault from their wallet to the present module so the vault
      * can be managed by the module.
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the target CDP.
+     * @param _loanId The ID of the target vault.
      */
     function acquireLoan(
         BaseWallet _wallet,
@@ -306,18 +310,18 @@ contract MakerV2Loan is Loan, MakerV2Base {
         jug.drip(wethJoin.ilk());
         // Execute the CDP migration
         _loanId = bytes32(ScdMcdMigration(scdMcdMigration).migrate(_cup));
-        // Record the CDP as belonging to the wallet
+        // Record the new vault as belonging to the wallet
         saveLoanOwner(_wallet, _loanId);
 
         emit CdpMigrated(address(_wallet), _cup, _loanId);
     }
 
     /**
-     * @dev Lets a future upgrade of this module transfer a CDP to itself
+     * @dev Lets a future upgrade of this module transfer a vault to itself
      * @param _wallet The target wallet.
-     * @param _loanId The ID of the target CDP.
+     * @param _loanId The ID of the target vault.
      */
-    function giveCdp(
+    function giveVault(
         BaseWallet _wallet,
         bytes32 _loanId
     )
@@ -381,7 +385,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
     )
         internal
     {
-        // Get the adapter and collateral token for the CDP
+        // Get the adapter and collateral token for the vault
         (JoinLike gemJoin, GemLike collateral) = makerRegistry.getCollateral(_ilk);
         // Convert ETH to WETH if needed
         if(gemJoin == wethJoin) {
@@ -391,7 +395,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
         invokeWallet(address(_wallet), address(collateral), 0, abi.encodeWithSelector(ERC20_TRANSFER, address(this), _collateralAmount));
         // Approve the adapter to pull the collateral from the module
         collateral.approve(address(gemJoin), _collateralAmount);
-        // Join collateral to the adapter. The first argument to `join` is the address that *technically* owns the CDP
+        // Join collateral to the adapter. The first argument to `join` is the address that *technically* owns the vault
         gemJoin.join(cdpManager.urns(_cdpId), _collateralAmount);
     }
 
@@ -404,7 +408,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
         invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSelector(ERC20_TRANSFER, address(this), _debtAmount));
         // Approve the DAI adapter to burn DAI from the module
         daiToken.approve(address(daiJoin), _debtAmount);
-        // Join DAI to the adapter. The first argument to `join` is the address that *technically* owns the CDP
+        // Join DAI to the adapter. The first argument to `join` is the address that *technically* owns the vault
         // To avoid rounding issues, we substract one wei to the amount joined
         daiJoin.join(cdpManager.urns(_cdpId), _debtAmount.sub(1));
     }
@@ -478,16 +482,16 @@ contract MakerV2Loan is Loan, MakerV2Base {
     }
 
      /**
-     * @dev Lets the owner of a wallet open a new CDP. The owner must have enough collateral
+     * @dev Lets the owner of a wallet open a new vault. The owner must have enough collateral
      * in their wallet.
      * @param _wallet The target wallet
-     * @param _collateral The token to use as collateral in the CDP.
-     * @param _collateralAmount The amount of collateral to lock in the CDP.
-     * @param _debtAmount The amount of DAI to draw from the CDP
-     * @return The id of the created CDP.
+     * @param _collateral The token to use as collateral in the vault.
+     * @param _collateralAmount The amount of collateral to lock in the vault.
+     * @param _debtAmount The amount of DAI to draw from the vault
+     * @return The id of the created vault.
      */
     // solium-disable-next-line security/no-assign-params
-    function openCdp(
+    function openVault(
         BaseWallet _wallet,
         address _collateral,
         uint256 _collateralAmount,
@@ -500,23 +504,23 @@ contract MakerV2Loan is Loan, MakerV2Base {
         if(_collateral == ETH_TOKEN_ADDRESS) _collateral = address(wethToken);
         // Get the ilk for the collateral
         bytes32 ilk = makerRegistry.getIlk(_collateral);
-        // Open a CDP if there isn't already one for the collateral type (the CDP owner will effectively be the module)
+        // Open a vault if there isn't already one for the collateral type (the vault owner will effectively be the module)
         _cdpId = uint256(loanIds[address(_wallet)][ilk]);
         if(_cdpId == 0) _cdpId = cdpManager.open(ilk, address(this));
         // Move the collateral from the wallet to the vat
         joinCollateral(_wallet, _cdpId, _collateralAmount, ilk);
         // Draw the debt and exit it to the wallet
         if(_debtAmount > 0) drawAndExitDebt(_wallet, _cdpId, _debtAmount, _collateralAmount, ilk);
-        // Mark the CDP as belonging to the wallet
+        // Mark the vault as belonging to the wallet
         saveLoanOwner(_wallet, bytes32(_cdpId));
     }
 
     /**
-     * @dev Lets the owner of a CDP add more collateral to their CDP. The owner must have enough of the
+     * @dev Lets the owner of a vault add more collateral to their vault. The owner must have enough of the
      * collateral token in their wallet.
      * @param _wallet The target wallet
-     * @param _cdpId The id of the CDP.
-     * @param _collateralAmount The amount of collateral to add to the CDP.
+     * @param _cdpId The id of the vault.
+     * @param _collateralAmount The amount of collateral to add to the vault.
      */
     function addCollateral(
         BaseWallet _wallet,
@@ -532,10 +536,10 @@ contract MakerV2Loan is Loan, MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a CDP remove some collateral from their CDP
+     * @dev Lets the owner of a vault remove some collateral from their vault
      * @param _wallet The target wallet
-     * @param _cdpId The id of the CDP.
-     * @param _collateralAmount The amount of collateral to remove from the CDP.
+     * @param _cdpId The id of the vault.
+     * @param _collateralAmount The amount of collateral to remove from the vault.
      */
     function removeCollateral(
         BaseWallet _wallet,
@@ -559,10 +563,10 @@ contract MakerV2Loan is Loan, MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a CDP draw more DAI from their CDP.
+     * @dev Lets the owner of a vault draw more DAI from their vault.
      * @param _wallet The target wallet
-     * @param _cdpId The id of the CDP.
-     * @param _amount The amount of additional DAI to draw from the CDP.
+     * @param _cdpId The id of the vault.
+     * @param _amount The amount of additional DAI to draw from the vault.
      */
     function addDebt(
         BaseWallet _wallet,
@@ -576,12 +580,12 @@ contract MakerV2Loan is Loan, MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a CDP partially repay their debt. The repayment is made up of
+     * @dev Lets the owner of a vault partially repay their debt. The repayment is made up of
      * the outstanding DAI debt plus the DAI stability fee.
      * The method will use the user's DAI tokens in priority and will, if needed, convert the required
      * amount of ETH to cover for any missing DAI tokens.
      * @param _wallet The target wallet
-     * @param _cdpId The id of the CDP.
+     * @param _cdpId The id of the vault.
      * @param _amount The amount of DAI debt to repay.
      */
     function removeDebt(
@@ -603,13 +607,13 @@ contract MakerV2Loan is Loan, MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a CDP close their CDP. The method will:
+     * @dev Lets the owner of a vault close their vault. The method will:
      * 1) repay all debt and fee
      * 2) free all collateral
      * @param _wallet The target wallet
      * @param _cdpId The id of the CDP.
      */
-    function closeCdp(
+    function closeVault(
         BaseWallet _wallet,
         uint256 _cdpId
     )

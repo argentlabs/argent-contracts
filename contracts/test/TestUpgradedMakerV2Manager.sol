@@ -41,7 +41,7 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
         for (uint256 i = 0; i < tokens.length; i++) {
             bytes32 loanId = previousMakerV2Manager.loanIds(address(_wallet), makerRegistry.getIlk(tokens[i]));
             if(loanId != 0) {
-                previousMakerV2Manager.giveCdp(_wallet, loanId);
+                previousMakerV2Manager.giveVault(_wallet, loanId);
                 saveLoanOwner(_wallet, loanId);
             }
         }

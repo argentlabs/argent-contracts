@@ -36,7 +36,7 @@ const DEFAULT_NETWORK = 'kovan-fork'; // also works on kovan (faster, but uses r
 const ETH_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 const RAY = bigNumberify('1000000000000000000000000000') // 10**27
 
-describe("Test MakerV2 CDPs", function () {
+describe("Test MakerV2 Vaults", function () {
     this.timeout(1000000);
 
     if (!process.argv.join(' ').includes(__filename.slice(__dirname.length + 1))) {
@@ -361,17 +361,17 @@ describe("Test MakerV2 CDPs", function () {
             if (!useDai) await (await daiToken.transfer(walletAddress, daiAmount)).wait();
         }
 
-        describe("Close CDP", () => {
-            it('should close CDP when paying fee in DAI + ETH (blockchain tx)', async () => {
+        describe("Close Vaults", () => {
+            it('should close a vault when paying fee in DAI + ETH (blockchain tx)', async () => {
                 await testCloseLoan({ useDai: true, relayed: false });
             });
-            it('should close CDP when paying fee in DAI + ETH (relayed tx)', async () => {
+            it('should close a vault when paying fee in DAI + ETH (relayed tx)', async () => {
                 await testCloseLoan({ useDai: true, relayed: true });
             });
-            it('should close CDP when paying fee in ETH (blockchain tx)', async () => {
+            it('should close a vault when paying fee in ETH (blockchain tx)', async () => {
                 await testCloseLoan({ useDai: false, relayed: false });
             });
-            it('should close CDP when paying fee in ETH (relayed tx)', async () => {
+            it('should close a vault when paying fee in ETH (relayed tx)', async () => {
                 await testCloseLoan({ useDai: false, relayed: true });
             });
         });
@@ -398,17 +398,17 @@ describe("Test MakerV2 CDPs", function () {
             });
         });
 
-        describe("Acquiring a wallet's CDP", () => {
-            async function testAcquireCdp({ relayed }) {
-                // Create the CDP with `owner` as owner
+        describe("Acquiring a wallet's vault", () => {
+            async function testAcquireVault({ relayed }) {
+                // Create the vault with `owner` as owner
                 const cdpManager = await deployer.wrapDeployedContract(CdpManager, await migration.cdpManager());
                 const ilk = (await makerRegistry.collaterals(wethToken.contractAddress)).ilk;
                 const txR = await (await cdpManager.open(ilk, owner.address)).wait();
-                const cdpId = txR.events.find(e => e.event === 'NewCdp').args.cdp;
-                // Transfer the CDP to the wallet
-                await (await cdpManager.give(cdpId, walletAddress)).wait();
-                // Transfer the CDP to the module
-                const loanId = bigNumToBytes32(cdpId);
+                const vaultId = txR.events.find(e => e.event === 'NewCdp').args.cdp;
+                // Transfer the vault to the wallet
+                await (await cdpManager.give(vaultId, walletAddress)).wait();
+                // Transfer the vault to the module
+                const loanId = bigNumToBytes32(vaultId);
                 const method = 'acquireLoan';
                 const params = [walletAddress, loanId]
                 if (relayed) {
@@ -421,20 +421,20 @@ describe("Test MakerV2 CDPs", function () {
                 const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
                 await testChangeCollateral({ loanId, collateralAmount, add: true, relayed, makerV2 });
                 await testChangeDebt({ loanId, daiAmount, add: true, relayed });
-                // Make it so that afterEach can close the newly acquired CDP
+                // Make it so that afterEach can close the newly acquired vault
                 lastLoanId = loanId;
             }
 
-            it('should transfer a CDP from a wallet to the module (blockchain tx)', async () => {
-                await testAcquireCdp({ relayed: false });
+            it('should transfer a vault from a wallet to the module (blockchain tx)', async () => {
+                await testAcquireVault({ relayed: false });
             });
 
-            it('should transfer a CDP from a wallet to the module (relayed tx)', async () => {
-                await testAcquireCdp({ relayed: true });
+            it('should transfer a vault from a wallet to the module (relayed tx)', async () => {
+                await testAcquireVault({ relayed: true });
             });
         });
 
-        describe("Migrating a CDP", () => {
+        describe("Migrating an SCD CDP to an MCD vault", () => {
             let walletAddressToMigrate, oldCdpId;
             beforeEach(async () => {
                 if (network === 'kovan-fork') {
@@ -477,8 +477,8 @@ describe("Test MakerV2 CDPs", function () {
                 } else {
                     txR = await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
                 }
-                const loanId = txR.events.find(e => e.event === 'CdpMigrated').args._newCdpId;
-                assert.isDefined(loanId, 'The new CDP ID should be defined')
+                const loanId = txR.events.find(e => e.event === 'CdpMigrated').args._newVaultId;
+                assert.isDefined(loanId, 'The new vault ID should be defined')
             }
 
             it('should migrate a CDP (blockchain tx)', async () => {
@@ -526,13 +526,13 @@ describe("Test MakerV2 CDPs", function () {
                 }
             })
 
-            async function testUpgradeModule({ relayed, withBatCdp = false }) {
-                // Open a WETH CDP with the old MakerV2 module
+            async function testUpgradeModule({ relayed, withBatVault = false }) {
+                // Open a WETH vault with the old MakerV2 module
                 const loanId1 = await testOpenLoan({ collateralAmount, daiAmount, relayed })
 
                 let loanId2;
-                if (withBatCdp) {
-                    // Open a BAT CDP with the old MakerV2 module
+                if (withBatVault) {
+                    // Open a BAT vault with the old MakerV2 module
                     const batTestAmounts = await getTestAmounts(batToken.contractAddress);
                     await topupWalletToken(batToken, batTestAmounts.collateralAmount.add(parseEther('0.01')));
                     loanId2 = await testOpenLoan({
@@ -553,14 +553,14 @@ describe("Test MakerV2 CDPs", function () {
                     await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
                 }
 
-                // Make sure that the CDPs can be manipulated from the upgraded module
+                // Make sure that the vaults can be manipulated from the upgraded module
                 await testChangeCollateral({
                     loanId: loanId1, collateralAmount: parseEther('0.010'),
                     add: true, relayed, makerV2: upgradedMakerV2
                 })
                 await (await upgradedMakerV2.closeLoan(walletAddress, loanId1, { gasLimit: 4500000 })).wait();
 
-                if (withBatCdp) {
+                if (withBatVault) {
                     await testChangeCollateral({
                         loanId: loanId2, collateralAmount: parseEther('0.010'),
                         add: true, relayed, collateral: batToken, makerV2: upgradedMakerV2
@@ -572,20 +572,20 @@ describe("Test MakerV2 CDPs", function () {
                 lastLoanId = null;
             }
 
-            it('should move a CDP after a module upgrade (blockchain tx)', async () => {
+            it('should move a vault after a module upgrade (blockchain tx)', async () => {
                 await testUpgradeModule({ relayed: false })
             });
 
-            it('should move a CDP after a module upgrade (relayed tx)', async () => {
+            it('should move a vault after a module upgrade (relayed tx)', async () => {
                 await testUpgradeModule({ relayed: true })
             });
 
-            it('should move 2 CDPs after a module upgrade (blockchain tx)', async () => {
-                await testUpgradeModule({ withBatCdp: true, relayed: false })
+            it('should move 2 vaults after a module upgrade (blockchain tx)', async () => {
+                await testUpgradeModule({ withBatVault: true, relayed: false })
             });
 
-            it('should move 2 CDPs after a module upgrade (relayed tx)', async () => {
-                await testUpgradeModule({ withBatCdp: true, relayed: true })
+            it('should move 2 vaults after a module upgrade (relayed tx)', async () => {
+                await testUpgradeModule({ withBatVault: true, relayed: true })
             });
         });
 
