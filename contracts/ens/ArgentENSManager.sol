@@ -102,9 +102,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
         require(currentOwner == address(0), "AEM: _label is alrealdy owned");
 
         // Forward ENS
-        getENSRegistry().setSubnodeOwner(rootNode, labelNode, address(this));
-        getENSRegistry().setResolver(node, ensResolver);
-        getENSRegistry().setOwner(node, _owner);
+        getENSRegistry().setSubnodeRecord(rootNode, labelNode, _owner, ensResolver, 0);
         ENSResolver(ensResolver).setAddr(node, _owner);
 
         // Reverse ENS
