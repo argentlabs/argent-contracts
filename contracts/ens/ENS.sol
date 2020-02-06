@@ -44,8 +44,8 @@ contract ENSResolver {
  * ENS Reverse Registrar interface.
  */
 contract ENSReverseRegistrar {
-    function claim(address _owner) public returns (bytes32 _node);
+    function claim(address _owner) public returns (bytes32);
     function claimWithResolver(address _owner, address _resolver) public returns (bytes32);
     function setName(string memory _name) public returns (bytes32);
-    function node(address _addr) public returns (bytes32);
+    function node(address _addr) public pure returns (bytes32);
 }
