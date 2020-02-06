@@ -459,7 +459,7 @@ describe("Test MakerV2 CDPs", function () {
                     const txReceipt = await (await makerV1.openLoan(...params, { gasLimit: 2000000 })).wait();
                     oldCdpId = txReceipt.events.find(e => e.event === 'LoanOpened').args._loanId;
                     assert.isDefined(oldCdpId, 'The old CDP ID should be defined')
-                    walletAddressToMigrate = walletAddresss;
+                    walletAddressToMigrate = walletAddress;
                 }
 
             });
