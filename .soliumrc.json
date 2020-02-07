@@ -1,0 +1,12 @@
+{
+    "extends": "solium:all",
+    "plugins": ["security"],
+    "rules": {
+      "variable-declarations": "error",
+      "security/no-inline-assembly": 0,
+      "error-reason": "error",
+      "max-len": "error",
+      "no-trailing-whitespace": "error"
+    }
+  }
+  
