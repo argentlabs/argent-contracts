@@ -17,16 +17,8 @@ pragma solidity ^0.5.4;
 import "../utils/strings.sol";
 import "./ENS.sol";
 import "./ENSConsumer.sol";
+import "./IENSManager.sol";
 import "../base/Managed.sol";
-
-/**
- * @dev Interface for an ENS Mananger.
- */
-interface IENSManager {
-    function changeRootnodeOwner(address _newOwner) external;
-    function register(string calldata _label, address _owner) external;
-    function isAvailable(bytes32 _subnode) external view returns(bool);
-}
 
 /**
  * @title ArgentENSManager
