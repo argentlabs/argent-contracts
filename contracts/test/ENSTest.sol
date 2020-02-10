@@ -141,7 +141,7 @@ contract TestENSRegistry is ENSRegistry {
     }
 }
 
-contract ENSRegistryWithFallback is ENSRegistry {
+contract ENSRegistryWithFallback is TestENSRegistry {
 
     ENSRegistry public old;
 

@@ -1,4 +1,3 @@
-const ENSRegistryWithFallback = require('../build/ENSRegistryWithFallback');
 const ENSManager = require('../build/ENSManager');
 const WalletFactory = require('../build/WalletFactory');
 
@@ -13,9 +12,8 @@ const deploy = async (network) => {
     const domain = config.ENS.domain;
 
     // Instantiate the ENS Registry and existing WalletFactory and ENSManager
-    const ENSRegistryWithFallback = await deployer.wrapDeployedContract(ENSRegistryWithFallback, config.ENS.ensRegistry);
-    const WalletFactory = await deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
-    const ENSManager = await deployer.wrapDeployedContract(ENSManager, config.contracts.ENSManager);
+    const WalletFactoryWrapper = await deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
+    const ENSManagerWrapper = await deployer.wrapDeployedContract(ENSManager, config.contracts.ENSManager);
 
     // Deploy the updated ENSManager
     const ENSManagerNew = await deployer.deploy(ENSManager, {}, domain, utils.namehash(domain), config.ENS.ensRegistry, config.contracts.ENSResolver);
@@ -29,8 +27,8 @@ const deploy = async (network) => {
     const ChangeENSManagerOwnerTx = await ENSManagerNew.contract.changeOwner(config.contracts.MultiSigWallet);
     await ENSManagerNew.verboseWaitForTransaction(ChangeENSManagerOwnerTx, `Set the MultiSig as the owner of ENSManager}`);
 
-    const ChangeDomainOwnerTx = await ENSManager.contract.changeRootnodeOwner("0x0000000000000000000000000000000000000000");
-    await ENSManager.verboseWaitForTransaction(ChangeDomainOwnerTx, `Throw away domain ownership in the old ENSRegistry to avoid legacy updates`);
+    const ChangeDomainOwnerTx = await ENSManagerWrapper.contract.changeRootnodeOwner("0x0000000000000000000000000000000000000000");
+    await ENSManagerWrapper.verboseWaitForTransaction(ChangeDomainOwnerTx, `Throw away domain ownership in the old ENSRegistry to avoid legacy updates`);
 
     configurator.updateInfrastructureAddresses({
         ENSManager: ENSManagerNew.contractAddress
