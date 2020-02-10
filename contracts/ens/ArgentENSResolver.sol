@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 import "../base/Owned.sol";
 import "../base/Managed.sol";
-import "./ENS.sol";
+import "./ENSResolver.sol";
 
 /**
  * @title ArgentENSResolver
@@ -38,11 +38,6 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
         address addr;
         string name;
     }
-
-    // *************** Events *************************** //
-
-    event AddrChanged(bytes32 indexed _node, address _addr);
-    event NameChanged(bytes32 indexed _node, string _name);
 
     // *************** Public Functions ********************* //
 

@@ -27,6 +27,9 @@ jobs:
       - <<: *step_restore_cache
       - <<: *step_setup_global_packages
       - run:
+          name: "Compiling external library contracts"
+          command: npm run compile:lib
+      - run:
           name: "Compiling contracts"
           command: npm run compile
       - run:

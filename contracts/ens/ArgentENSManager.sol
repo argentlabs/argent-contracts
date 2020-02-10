@@ -15,9 +15,9 @@
 
 pragma solidity ^0.5.4;
 import "../utils/strings.sol";
-import "./ENS.sol";
 import "./ENSConsumer.sol";
 import "./IENSManager.sol";
+import "./ENSResolver.sol";
 import "../base/Managed.sol";
 
 /**
@@ -38,13 +38,6 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
     bytes32 public rootNode;
     // The address of the ENS resolver
     address public ensResolver;
-
-    // *************** Events *************************** //
-
-    event RootnodeOwnerChange(bytes32 indexed _rootnode, address indexed _newOwner);
-    event ENSResolverChanged(address addr);
-    event Registered(address indexed _owner, string _ens);
-    event Unregistered(string _ens);
 
     // *************** Constructor ********************** //
 

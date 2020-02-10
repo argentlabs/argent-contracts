@@ -16,15 +16,14 @@
 pragma solidity ^0.5.4;
 
 /**
- * @dev Interface for an ENS Mananger.
+ * @dev ENS Resolver interface.
  */
-interface IENSManager {
-    event RootnodeOwnerChange(bytes32 indexed _rootnode, address indexed _newOwner);
-    event ENSResolverChanged(address addr);
-    event Registered(address indexed _owner, string _ens);
-    event Unregistered(string _ens);
+contract ENSResolver {
+    event AddrChanged(bytes32 indexed _node, address _addr);
+    event NameChanged(bytes32 indexed _node, string _name);
 
-    function changeRootnodeOwner(address _newOwner) external;
-    function register(string calldata _label, address _owner) external;
-    function isAvailable(bytes32 _subnode) external view returns(bool);
+    function addr(bytes32 _node) public view returns (address);
+    function setAddr(bytes32 _node, address _addr) public;
+    function name(bytes32 _node) public view returns (string memory);
+    function setName(bytes32 _node, string memory _name) public;
 }

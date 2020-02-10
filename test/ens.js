@@ -1,7 +1,8 @@
-const ENS = require('../build/TestENSRegistry');
+const ENSRegistry = require('../build/ENSRegistry');
+const ENSRegistryWithFallback = require('../build/ENSRegistryWithFallback');
 const ENSManager = require('../build/ArgentENSManager');
 const ENSResolver = require('../build/ArgentENSResolver');
-const ENSReverseRegistrar = require('../build/TestReverseRegistrar');
+const ENSReverseRegistrar = require('../build/ReverseRegistrar');
 const ENSConsumer = require('../build/ENSConsumer');
 
 const TestManager = require("../utils/test-manager");
@@ -26,7 +27,8 @@ describe("Test ENS contracts", function () {
 
     beforeEach(async () => {
         deployer = manager.newDeployer();
-        ensRegistry = await deployer.deploy(ENS);
+        const ensRegistryWithoutFallback = await deployer.deploy(ENSRegistry);
+        ensRegistry = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
         ensResolver = await deployer.deploy(ENSResolver);
         ensReverse = await deployer.deploy(ENSReverseRegistrar, {}, ensRegistry.contractAddress, ensResolver.contractAddress);
         ensManager = await deployer.deploy(ENSManager, {}, subnameWallet + '.' + root, walletNode, ensRegistry.contractAddress, ensResolver.contractAddress);
