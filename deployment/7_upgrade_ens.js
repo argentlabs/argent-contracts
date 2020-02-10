@@ -29,8 +29,8 @@ const deploy = async (network) => {
     const ChangeENSManagerOwnerTx = await ENSManagerNew.contract.changeOwner(config.contracts.MultiSigWallet);
     await ENSManagerNew.verboseWaitForTransaction(ChangeENSManagerOwnerTx, `Set the MultiSig as the owner of ENSManager}`);
 
-    const ChangeDomainOwnerTx = await ENSManager.contract.changeRootnodeOwner(ENSManagerNew.contractAddress);
-    await ENSManager.verboseWaitForTransaction(ChangeDomainOwnerTx, `Transfer domain ownership in the ENSRegistry to the new ENSManager`);
+    const ChangeDomainOwnerTx = await ENSManager.contract.changeRootnodeOwner("0x0000000000000000000000000000000000000000");
+    await ENSManager.verboseWaitForTransaction(ChangeDomainOwnerTx, `Throw away domain ownership in the old ENSRegistry to avoid legacy updates`);
 
     configurator.updateInfrastructureAddresses({
         ENSManager: ENSManagerNew.contractAddress
