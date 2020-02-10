@@ -1,4 +1,4 @@
-const ENSRegistry = require('../build/ENSRegistryWithFallback');
+const ENSRegistryWithFallback = require('../build/ENSRegistryWithFallback');
 const ENSManager = require('../build/ENSManager');
 const WalletFactory = require('../build/WalletFactory');
 
@@ -13,7 +13,7 @@ const deploy = async (network) => {
     const domain = config.ENS.domain;
 
     // Instantiate the ENS Registry and existing WalletFactory and ENSManager
-    const ENSRegistryWithFallback = await deployer.wrapDeployedContract(ENSRegistry, config.ENS.ensRegistry);
+    const ENSRegistryWithFallback = await deployer.wrapDeployedContract(ENSRegistryWithFallback, config.ENS.ensRegistry);
     const WalletFactory = await deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
     const ENSManager = await deployer.wrapDeployedContract(ENSManager, config.contracts.ENSManager);
 

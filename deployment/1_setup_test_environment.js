@@ -1,4 +1,4 @@
-const ENS = require('../build/TestENSRegistry');
+const ENSRegistryWithFallback = require('../build/ENSRegistryWithFallback');
 const Kyber = require('../build/KyberNetworkTest');
 const ERC20 = require('../build/TestERC20');
 const MakerMigration = require('../build/MockScdMcdMigration');
@@ -15,7 +15,7 @@ const BYTES32_NULL = '0x00000000000000000000000000000000000000000000000000000000
 // For development purpose
 async function deployENSRegistry(deployer, owner, domain) {
     // Deploy the public ENS registry
-    const ENSWrapper = await deployer.deploy(ENS);
+    const ENSWrapper = await deployer.deploy(ENSRegistryWithFallback);
 
 	// ENS domain
 	const parts = domain.split('.');
