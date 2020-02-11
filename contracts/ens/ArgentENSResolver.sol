@@ -84,7 +84,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _interfaceID The ID of the interface to check for.
      * @return True if the contract implements the requested interface.
      */
-    function supportsInterface(bytes4 _interfaceID) public view returns (bool) {
+    function supportsInterface(bytes4 _interfaceID) public pure returns (bool) {
         return _interfaceID == SUPPORT_INTERFACE_ID || _interfaceID == ADDR_INTERFACE_ID || _interfaceID == NAME_INTERFACE_ID;
     }
 
