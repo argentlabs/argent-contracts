@@ -27,4 +27,5 @@ interface IENSManager {
     function changeRootnodeOwner(address _newOwner) external;
     function register(string calldata _label, address _owner) external;
     function isAvailable(bytes32 _subnode) external view returns(bool);
+    function getENSReverseRegistrar() external view returns (address);
 }

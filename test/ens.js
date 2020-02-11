@@ -3,7 +3,6 @@ const ENSRegistryWithFallback = require('../build/ENSRegistryWithFallback');
 const ENSManager = require('../build/ArgentENSManager');
 const ENSResolver = require('../build/ArgentENSResolver');
 const ENSReverseRegistrar = require('../build/ReverseRegistrar');
-const ENSConsumer = require('../build/ENSConsumer');
 
 const TestManager = require("../utils/test-manager");
 
@@ -95,15 +94,12 @@ describe("Test ENS contracts", function () {
             const nonExistentRecord = await ensResolver.addr(labelNode);
             assert.equal(nonExistentRecord, ethers.constants.AddressZero);
         });
-    });
 
-    describe("ENS Consumer", () => {
-        it("ENSUser should resolve a name", async () => {
+        it("should resolve a name", async () => {
             let label = "wallet";
             let ensName = label + '.' + subnameWallet + "." + root;
             await ensManager.from(infrastructure).register(label, owner.address);
-            let ensConsumer = await deployer.deploy(ENSConsumer, {}, ensRegistry.contractAddress);
-            let resolved = await ensConsumer.resolveEns(ethers.utils.namehash(ensName));
+            let resolved = await ensResolver.addr(ethers.utils.namehash(ensName));
             assert.equal(resolved, owner.address, "should resolve to owner");
         });
     });
