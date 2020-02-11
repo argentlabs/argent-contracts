@@ -6,6 +6,7 @@
     "test": "test"
   },
   "scripts": {
+    "compile:lib": "npx etherlime compile --workingDirectory lib --runs=200",
     "compile": "npx etherlime compile --runs=999",
     "ganache": "npx etherlime ganache --gasLimit=10700000 -e 10000",
     "test": "npx etherlime test --skip-compilation",

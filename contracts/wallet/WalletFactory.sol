@@ -19,7 +19,7 @@ import "./BaseWallet.sol";
 import "../base/Owned.sol";
 import "../base/Managed.sol";
 import "../ens/ENSConsumer.sol";
-import "../ens/ArgentENSManager.sol";
+import "../ens/IENSManager.sol";
 import "../upgrade/ModuleRegistry.sol";
 
 /**
