@@ -37,10 +37,9 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     string public rootName;
     // The managed root node
     bytes32 public rootNode;
-    // The address of the ENS resolver
-    address public ensResolver;
-    // The ENS registry
+    
     ENS public ensRegistry;
+    ENSResolver public ensResolver;
 
     // namehash('addr.reverse')
     bytes32 constant public ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
@@ -51,12 +50,14 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
      * @dev Constructor that sets the ENS root name and root node to manage.
      * @param _rootName The root name (e.g. argentx.eth).
      * @param _rootNode The node of the root name (e.g. namehash(argentx.eth)).
+     * @param _ensRegistry The address of the ENS registry
+     * @param _ensResolver The address of the ENS resolver
      */
     constructor(string memory _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) public {
         rootName = _rootName;
         rootNode = _rootNode;
-        ensResolver = _ensResolver;
         ensRegistry = ENS(_ensRegistry);
+        ensResolver = ENSResolver(_ensResolver);
     }
 
     // *************** External Functions ********************* //
@@ -77,7 +78,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
      */
     function changeENSResolver(address _ensResolver) external onlyOwner {
         require(_ensResolver != address(0), "WF: address cannot be null");
-        ensResolver = _ensResolver;
+        ensResolver = ENSResolver(_ensResolver);
         emit ENSResolverChanged(_ensResolver);
     }
 
@@ -94,8 +95,8 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
         require(currentOwner == address(0), "AEM: _label is alrealdy owned");
 
         // Forward ENS
-        ensRegistry.setSubnodeRecord(rootNode, labelNode, _owner, ensResolver, 0);
-        ENSResolver(ensResolver).setAddr(node, _owner);
+        ensRegistry.setSubnodeRecord(rootNode, labelNode, _owner, address(ensResolver), 0);
+        ensResolver.setAddr(node, _owner);
 
         // Reverse ENS
         strings.slice[] memory parts = new strings.slice[](2);
@@ -104,7 +105,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
         string memory name = ".".toSlice().join(parts);
         ENSReverseRegistrar reverseRegistrar = ENSReverseRegistrar(this.getENSReverseRegistrar());
         bytes32 reverseNode = reverseRegistrar.node(_owner);
-        ENSResolver(ensResolver).setName(reverseNode, name);
+        ensResolver.setName(reverseNode, name);
 
         emit Registered(_owner, name);
     }
@@ -127,6 +128,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
 
     /**
     * @dev Gets the official ENS reverse registrar. 
+    * @return Address of the ENS reverse registrar.
     */
     function getENSReverseRegistrar() external view returns (address) {
         return ensRegistry.owner(ADDR_REVERSE_NODE);
