@@ -103,7 +103,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
         parts[0] = _label.toSlice();
         parts[1] = rootName.toSlice();
         string memory name = ".".toSlice().join(parts);
-        ENSReverseRegistrar reverseRegistrar = ENSReverseRegistrar(this.getENSReverseRegistrar());
+        ENSReverseRegistrar reverseRegistrar = ENSReverseRegistrar(_getENSReverseRegistrar());
         bytes32 reverseNode = reverseRegistrar.node(_owner);
         ensResolver.setName(reverseNode, name);
 
@@ -131,6 +131,10 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     * @return Address of the ENS reverse registrar.
     */
     function getENSReverseRegistrar() external view returns (address) {
-        return ensRegistry.owner(ADDR_REVERSE_NODE);
+        return _getENSReverseRegistrar();
     }
+
+    function _getENSReverseRegistrar() internal view returns (address) {
+        return ensRegistry.owner(ADDR_REVERSE_NODE);
+    } 
 }
