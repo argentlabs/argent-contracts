@@ -12,6 +12,10 @@ npm install
 ```
 
 ## Compile
+Compile the external contracts:
+```
+npm run compile:lib
+```
 
 Compile the contracts:
 ```
