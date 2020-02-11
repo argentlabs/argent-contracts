@@ -14,8 +14,9 @@ const BYTES32_NULL = '0x00000000000000000000000000000000000000000000000000000000
 
 // For development purpose
 async function deployENSRegistry(deployer, owner, domain) {
-    // Deploy the public ENS registry
-    const ENSWrapper = await deployer.deploy(ENSRegistryWithFallback);
+	// Deploy the public ENS registry
+	const ensRegistryWithoutFallback = await deployer.deploy(ENSRegistry);
+    const ENSWrapper = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
 
 	// ENS domain
 	const parts = domain.split('.');
