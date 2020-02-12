@@ -45,11 +45,9 @@ const deploy = async (network) => {
     // Deply Factory
     const WalletFactoryWrapper = await deployer.deploy(
         WalletFactory, {}, 
-        config.ENS.ensRegistry, 
         ModuleRegistryWrapper.contractAddress, 
         BaseWalletWrapper.contractAddress, 
         ENSManagerWrapper.contractAddress, 
-        ENSResolverWrapper.contractAddress,
         GuardianStorageWrapper.contractAddress);
 
     ///////////////////////////////////////////////////
