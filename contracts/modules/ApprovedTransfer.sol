@@ -94,7 +94,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyExecute
         onlyWhenUnlocked(_wallet)
     {
         require(!_wallet.authorised(_contract) && _contract != address(_wallet), "AT: Forbidden contract");
