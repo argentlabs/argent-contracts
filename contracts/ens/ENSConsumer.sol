@@ -14,7 +14,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../ens/ENS.sol";
+import "../../lib/ens/ENS.sol";
+import "./ENSResolver.sol";
+import "./ENSReverseRegistrar.sol";
 import "../utils/strings.sol";
 
 /**
@@ -52,8 +54,8 @@ contract ENSConsumer {
     /**
     * @dev Gets the official ENS registry.
     */
-    function getENSRegistry() public view returns (ENSRegistry) {
-        return ENSRegistry(ensRegistry);
+    function getENSRegistry() public view returns (ENS) {
+        return ENS(ensRegistry);
     }
 
     /**

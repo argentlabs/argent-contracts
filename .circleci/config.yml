@@ -1,0 +1,50 @@
+version: 2
+
+job_common: &job_common
+  docker:
+    - image: circleci/node:10.12-stretch
+  working_directory: ~/argent-contracts
+step_save_cache: &step_save_cache
+  save_cache:
+    paths:
+      - ~/.cache/package-lock
+    key: node-modules-{{ checksum "package-lock.json" }}
+step_restore_cache: &step_restore_cache
+  restore_cache:
+    keys:
+      - node-modules-{{ checksum "package-lock.json" }}
+step_setup_global_packages: &step_setup_global_packages
+  run:
+    name: "Set up global packages"
+    command: |
+      npm install
+
+jobs:
+  unit-test:
+    <<: *job_common
+    steps:
+      - checkout
+      - <<: *step_restore_cache
+      - <<: *step_setup_global_packages
+      - run:
+          name: "Compiling external library contracts"
+          command: npm run compile:lib
+      - run:
+          name: "Compiling contracts"
+          command: npm run compile
+      - run:
+          name: "Running unit tests"
+          command: npm run ganache >/dev/null 2>&1 & npm run test
+
+      - <<: *step_save_cache
+      # Save test results to artifacts
+      - store_test_results:
+          path: test-results.xml
+      - store_artifacts:
+          path: test-results.xml
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - unit-test

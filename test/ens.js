@@ -1,8 +1,8 @@
-const ENS = require('../build/TestENSRegistry');
+const ENSRegistry = require('../build/ENSRegistry');
+const ENSRegistryWithFallback = require('../build/ENSRegistryWithFallback');
 const ENSManager = require('../build/ArgentENSManager');
 const ENSResolver = require('../build/ArgentENSResolver');
-const ENSReverseRegistrar = require('../build/TestReverseRegistrar');
-const ENSConsumer = require('../build/ENSConsumer');
+const ENSReverseRegistrar = require('../build/ReverseRegistrar');
 
 const TestManager = require("../utils/test-manager");
 
@@ -26,7 +26,8 @@ describe("Test ENS contracts", function () {
 
     beforeEach(async () => {
         deployer = manager.newDeployer();
-        ensRegistry = await deployer.deploy(ENS);
+        const ensRegistryWithoutFallback = await deployer.deploy(ENSRegistry);
+        ensRegistry = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
         ensResolver = await deployer.deploy(ENSResolver);
         ensReverse = await deployer.deploy(ENSReverseRegistrar, {}, ensRegistry.contractAddress, ensResolver.contractAddress);
         ensManager = await deployer.deploy(ENSManager, {}, subnameWallet + '.' + root, walletNode, ensRegistry.contractAddress, ensResolver.contractAddress);
@@ -41,7 +42,6 @@ describe("Test ENS contracts", function () {
     });
 
     describe("ENS Manager", () => {
-
         it("should be the owner of the wallet root", async () => {
             var owner = await ensRegistry.owner(walletNode);
             assert.equal(owner, ensManager.contractAddress, "ens manager should be the owner of the wallet root node");
@@ -51,9 +51,12 @@ describe("Test ENS contracts", function () {
             let label = "wallet";
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
             await ensManager.from(infrastructure).register(label, owner.address);
-            let nodeOwner = await ensRegistry.owner(labelNode);
+
+            const recordExists = await ensRegistry.recordExists(labelNode);
+            assert.isTrue(recordExists);
+            const nodeOwner = await ensRegistry.owner(labelNode);
             assert.equal(nodeOwner, owner.address);
-            let res = await ensRegistry.resolver(labelNode);
+            const res = await ensRegistry.resolver(labelNode);
             assert.equal(res, ensResolver.contractAddress);
         });
 
@@ -72,14 +75,31 @@ describe("Test ENS contracts", function () {
         });
     });
 
-    describe("ENS Consumer", () => {
+    describe("ENS Resolver", () => {
+        it("should return correct ENS interface support responses", async () => {
+            const SUPPORT_INTERFACE_ID = "0x01ffc9a7"; // EIP 165
+            const ADDR_INTERFACE_ID = "0x3b3b57de";    // EIP 137
+            const NAME_INTERFACE_ID = "0x691f3431";    // EIP 181
 
-        it("ENSUser should resolve a name", async () => {
+            let support = await ensResolver.supportsInterface(SUPPORT_INTERFACE_ID);
+            assert.isTrue(support);
+            support = await ensResolver.supportsInterface(ADDR_INTERFACE_ID);
+            assert.isTrue(support);
+            support = await ensResolver.supportsInterface(NAME_INTERFACE_ID);
+            assert.isTrue(support);
+        });
+
+        it("should return 0 address for a non-existent record", async () => {
+            const labelNode = ethers.utils.namehash('missingnode' + '.' + subnameWallet + "." + root);
+            const nonExistentRecord = await ensResolver.addr(labelNode);
+            assert.equal(nonExistentRecord, ethers.constants.AddressZero);
+        });
+
+        it("should resolve a name", async () => {
             let label = "wallet";
             let ensName = label + '.' + subnameWallet + "." + root;
             await ensManager.from(infrastructure).register(label, owner.address);
-            let ensConsumer = await deployer.deploy(ENSConsumer, {}, ensRegistry.contractAddress);
-            let resolved = await ensConsumer.resolveEns(ethers.utils.namehash(ensName));
+            let resolved = await ensResolver.addr(ethers.utils.namehash(ensName));
             assert.equal(resolved, owner.address, "should resolve to owner");
         });
     });

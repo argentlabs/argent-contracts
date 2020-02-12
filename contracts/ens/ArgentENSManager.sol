@@ -14,19 +14,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
+import "../../lib/ens/ENS.sol";
 import "../utils/strings.sol";
-import "./ENS.sol";
-import "./ENSConsumer.sol";
+import "./IENSManager.sol";
+import "./ENSResolver.sol";
+import "./ENSReverseRegistrar.sol";
 import "../base/Managed.sol";
-
-/**
- * @dev Interface for an ENS Mananger.
- */
-interface IENSManager {
-    function changeRootnodeOwner(address _newOwner) external;
-    function register(string calldata _label, address _owner) external;
-    function isAvailable(bytes32 _subnode) external view returns(bool);
-}
 
 /**
  * @title ArgentENSManager
@@ -36,7 +29,7 @@ interface IENSManager {
  * a new subdomain.
  * @author Julien Niset - <julien@argent.im>
  */
-contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
+contract ArgentENSManager is IENSManager, Owned, Managed {
     
     using strings for *;
 
@@ -44,15 +37,12 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
     string public rootName;
     // The managed root node
     bytes32 public rootNode;
-    // The address of the ENS resolver
-    address public ensResolver;
+    
+    ENS public ensRegistry;
+    ENSResolver public ensResolver;
 
-    // *************** Events *************************** //
-
-    event RootnodeOwnerChange(bytes32 indexed _rootnode, address indexed _newOwner);
-    event ENSResolverChanged(address addr);
-    event Registered(address indexed _owner, string _ens);
-    event Unregistered(string _ens);
+    // namehash('addr.reverse')
+    bytes32 constant public ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
     // *************** Constructor ********************** //
 
@@ -60,11 +50,14 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
      * @dev Constructor that sets the ENS root name and root node to manage.
      * @param _rootName The root name (e.g. argentx.eth).
      * @param _rootNode The node of the root name (e.g. namehash(argentx.eth)).
+     * @param _ensRegistry The address of the ENS registry
+     * @param _ensResolver The address of the ENS resolver
      */
-    constructor(string memory _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) ENSConsumer(_ensRegistry) public {
+    constructor(string memory _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) public {
         rootName = _rootName;
         rootNode = _rootNode;
-        ensResolver = _ensResolver;
+        ensRegistry = ENS(_ensRegistry);
+        ensResolver = ENSResolver(_ensResolver);
     }
 
     // *************** External Functions ********************* //
@@ -75,7 +68,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
      * @param _newOwner The address of the new ENS manager that will manage the root node.
      */
     function changeRootnodeOwner(address _newOwner) external onlyOwner {
-        getENSRegistry().setOwner(rootNode, _newOwner);
+        ensRegistry.setOwner(rootNode, _newOwner);
         emit RootnodeOwnerChange(rootNode, _newOwner);
     }
 
@@ -85,7 +78,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
      */
     function changeENSResolver(address _ensResolver) external onlyOwner {
         require(_ensResolver != address(0), "WF: address cannot be null");
-        ensResolver = _ensResolver;
+        ensResolver = ENSResolver(_ensResolver);
         emit ENSResolverChanged(_ensResolver);
     }
 
@@ -98,22 +91,21 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
     function register(string calldata _label, address _owner) external onlyManager {
         bytes32 labelNode = keccak256(abi.encodePacked(_label));
         bytes32 node = keccak256(abi.encodePacked(rootNode, labelNode));
-        address currentOwner = getENSRegistry().owner(node);
+        address currentOwner = ensRegistry.owner(node);
         require(currentOwner == address(0), "AEM: _label is alrealdy owned");
 
         // Forward ENS
-        getENSRegistry().setSubnodeOwner(rootNode, labelNode, address(this));
-        getENSRegistry().setResolver(node, ensResolver);
-        getENSRegistry().setOwner(node, _owner);
-        ENSResolver(ensResolver).setAddr(node, _owner);
+        ensRegistry.setSubnodeRecord(rootNode, labelNode, _owner, address(ensResolver), 0);
+        ensResolver.setAddr(node, _owner);
 
         // Reverse ENS
         strings.slice[] memory parts = new strings.slice[](2);
         parts[0] = _label.toSlice();
         parts[1] = rootName.toSlice();
         string memory name = ".".toSlice().join(parts);
-        bytes32 reverseNode = getENSReverseRegistrar().node(_owner);
-        ENSResolver(ensResolver).setName(reverseNode, name);
+        ENSReverseRegistrar reverseRegistrar = ENSReverseRegistrar(_getENSReverseRegistrar());
+        bytes32 reverseNode = reverseRegistrar.node(_owner);
+        ensResolver.setName(reverseNode, name);
 
         emit Registered(_owner, name);
     }
@@ -127,10 +119,22 @@ contract ArgentENSManager is IENSManager, Owned, Managed, ENSConsumer {
      */
     function isAvailable(bytes32 _subnode) public view returns (bool) {
         bytes32 node = keccak256(abi.encodePacked(rootNode, _subnode));
-        address currentOwner = getENSRegistry().owner(node);
+        address currentOwner = ensRegistry.owner(node);
         if(currentOwner == address(0)) {
             return true;
         }
         return false;
     }
+
+    /**
+    * @dev Gets the official ENS reverse registrar. 
+    * @return Address of the ENS reverse registrar.
+    */
+    function getENSReverseRegistrar() external view returns (address) {
+        return _getENSReverseRegistrar();
+    }
+
+    function _getENSReverseRegistrar() internal view returns (address) {
+        return ensRegistry.owner(ADDR_REVERSE_NODE);
+    } 
 }
