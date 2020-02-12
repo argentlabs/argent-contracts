@@ -61,11 +61,9 @@ describe("Test Wallet Factory", function () {
         guardianStorage = await deployer.deploy(GuardianStorage);
 
         factory = await deployer.deploy(Factory, {},
-            ensRegistry.contractAddress,
             moduleRegistry.contractAddress,
             implementation.contractAddress,
             ensManager.contractAddress,
-            ensResolver.contractAddress, 
             guardianStorage.contractAddress);
         await factory.addManager(infrastructure.address);
         await ensManager.addManager(factory.contractAddress);

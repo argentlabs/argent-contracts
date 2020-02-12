@@ -18,7 +18,6 @@ import "./Proxy.sol";
 import "./BaseWallet.sol";
 import "../base/Owned.sol";
 import "../base/Managed.sol";
-import "../ens/ENSConsumer.sol";
 import "../ens/IENSManager.sol";
 import "../upgrade/ModuleRegistry.sol";
 
@@ -31,7 +30,7 @@ interface IGuardianStorage{
  * @dev The WalletFactory contract creates and assigns wallets to accounts.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract WalletFactory is Owned, Managed, ENSConsumer {
+contract WalletFactory is Owned, Managed {
 
     // The address of the module dregistry
     address public moduleRegistry;
@@ -39,8 +38,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     address public walletImplementation;
     // The address of the ENS manager
     address public ensManager;
-    // The address of the ENS resolver
-    address public ensResolver;
     // The address of the GuardianStorage
     address public guardianStorage;
 
@@ -48,7 +45,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
 
     event ModuleRegistryChanged(address addr);
     event ENSManagerChanged(address addr);
-    event ENSResolverChanged(address addr);
     event GuardianStorageChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
 
@@ -58,20 +54,16 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
      * @dev Default constructor.
      */
     constructor(
-        address _ensRegistry,
         address _moduleRegistry,
         address _walletImplementation,
         address _ensManager,
-        address _ensResolver,
         address _guardianStorage
     )
-        ENSConsumer(_ensRegistry)
         public
     {
         moduleRegistry = _moduleRegistry;
         walletImplementation = _walletImplementation;
         ensManager = _ensManager;
-        ensResolver = _ensResolver;
         guardianStorage = _guardianStorage;
     }
 
@@ -224,16 +216,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     }
 
     /**
-     * @dev Lets the owner change the address of the ENS resolver contract.
-     * @param _ensResolver The address of the ENS resolver contract.
-     */
-    function changeENSResolver(address _ensResolver) external onlyOwner {
-        require(_ensResolver != address(0), "WF: address cannot be null");
-        ensResolver = _ensResolver;
-        emit ENSResolverChanged(_ensResolver);
-    }
-
-    /**
      * @dev Lets the owner change the address of the GuardianStorage contract.
      * @param _guardianStorage The address of the GuardianStorage contract.
      */
@@ -293,8 +275,10 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
      */
     function registerWalletENS(address payable _wallet, string memory _label) internal {
         // claim reverse
+        address ensResolver = IENSManager(ensManager).ensResolver();
+        address reverseRegistar = IENSManager(ensManager).getENSReverseRegistrar();
         bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
-        BaseWallet(_wallet).invoke(address(getENSReverseRegistrar()), 0, methodData);
+        BaseWallet(_wallet).invoke(reverseRegistar, 0, methodData);
         // register with ENS manager
         IENSManager(ensManager).register(_label, _wallet);
     }
