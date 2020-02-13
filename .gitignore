@@ -30,6 +30,7 @@ utils/config/*.json
 
 ## Etherlime
 **/.etherlime-store
+flat
 
 
 
