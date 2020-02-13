@@ -34,15 +34,12 @@ contract WalletFactory is Owned, Managed {
     address public walletImplementation;
     // The address of the ENS manager
     address public ensManager;
-    // The address of the ENS resolver
-    address public ensResolver;
 
     // *************** Events *************************** //
 
     event ModuleRegistryChanged(address addr);
     event WalletImplementationChanged(address addr);
     event ENSManagerChanged(address addr);
-    event ENSResolverChanged(address addr);
     event WalletCreated(address indexed _wallet, address indexed _owner);
 
     // *************** Constructor ********************** //
@@ -50,19 +47,10 @@ contract WalletFactory is Owned, Managed {
     /**
      * @dev Default constructor.
      */
-    constructor(
-        address _ensRegistry, 
-        address _moduleRegistry,
-        address _walletImplementation, 
-        address _ensManager, 
-        address _ensResolver
-    )
-        public 
-    {
+    constructor(address _moduleRegistry, address _walletImplementation, address _ensManager) public {
         moduleRegistry = _moduleRegistry;
         walletImplementation = _walletImplementation;
         ensManager = _ensManager;
-        ensResolver = _ensResolver;
     }
 
     // *************** External Functions ********************* //
@@ -139,6 +127,7 @@ contract WalletFactory is Owned, Managed {
      */
     function registerWalletENS(address payable _wallet, string memory _label) internal {
         // claim reverse
+        address ensResolver = IENSManager(ensManager).ensResolver();
         bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
         address ensReverseRegistrar = IENSManager(ensManager).getENSReverseRegistrar();
         BaseWallet(_wallet).invoke(ensReverseRegistrar, 0, methodData);
