@@ -408,6 +408,10 @@ describe("Test Wallet Factory", function () {
             let modules = [];
             await assert.revert(factory.from(deployer).createCounterfactualWalletWithGuardian(owner.address, modules, NO_ENS, guardian.address, salt, { gasLimit: 500000 }), "should fail when modules is empty");
         });
+        
+        it("should return the correct ENSManager", async () => {
+            const ensManagerOnFactory = await factory.ensManager();
+            assert.equal(ensManagerOnFactory, ensManager.contractAddress, 'should have the correct ENSManager addrress');
+        });
     });
-
 });

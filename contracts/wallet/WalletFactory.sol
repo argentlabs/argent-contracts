@@ -276,9 +276,9 @@ contract WalletFactory is Owned, Managed {
     function registerWalletENS(address payable _wallet, string memory _label) internal {
         // claim reverse
         address ensResolver = IENSManager(ensManager).ensResolver();
-        address reverseRegistar = IENSManager(ensManager).getENSReverseRegistrar();
         bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
-        BaseWallet(_wallet).invoke(reverseRegistar, 0, methodData);
+        address ensReverseRegistrar = IENSManager(ensManager).getENSReverseRegistrar();
+        BaseWallet(_wallet).invoke(ensReverseRegistrar, 0, methodData);
         // register with ENS manager
         IENSManager(ensManager).register(_label, _wallet);
     }
