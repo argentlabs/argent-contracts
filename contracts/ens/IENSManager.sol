@@ -28,4 +28,5 @@ interface IENSManager {
     function register(string calldata _label, address _owner) external;
     function isAvailable(bytes32 _subnode) external view returns(bool);
     function getENSReverseRegistrar() external view returns (address);
+    function ensResolver() external view returns (address);
 }
