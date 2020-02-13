@@ -18,7 +18,6 @@ import "./Proxy.sol";
 import "./BaseWallet.sol";
 import "../base/Owned.sol";
 import "../base/Managed.sol";
-import "../ens/ENSConsumer.sol";
 import "../ens/IENSManager.sol";
 import "../upgrade/ModuleRegistry.sol";
 
@@ -27,7 +26,7 @@ import "../upgrade/ModuleRegistry.sol";
  * @dev The WalletFactory contract creates and assigns wallets to accounts.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract WalletFactory is Owned, Managed, ENSConsumer {
+contract WalletFactory is Owned, Managed {
 
     // The address of the module dregistry
     address public moduleRegistry;
@@ -57,8 +56,7 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
         address _walletImplementation, 
         address _ensManager, 
         address _ensResolver
-    ) 
-        ENSConsumer(_ensRegistry) 
+    )
         public 
     {
         moduleRegistry = _moduleRegistry;
@@ -135,16 +133,6 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     }
 
     /**
-     * @dev Lets the owner change the address of the ENS resolver contract.
-     * @param _ensResolver The address of the ENS resolver contract.
-     */
-    function changeENSResolver(address _ensResolver) external onlyOwner {
-        require(_ensResolver != address(0), "WF: address cannot be null");
-        ensResolver = _ensResolver;
-        emit ENSResolverChanged(_ensResolver);
-    }
-
-    /**
      * @dev Register an ENS subname to a wallet.
      * @param _wallet The wallet address.
      * @param _label ENS label of the new wallet (e.g. franck).
@@ -152,7 +140,8 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
     function registerWalletENS(address payable _wallet, string memory _label) internal {
         // claim reverse
         bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
-        BaseWallet(_wallet).invoke(address(getENSReverseRegistrar()), 0, methodData);
+        address ensReverseRegistrar = IENSManager(ensManager).getENSReverseRegistrar();
+        BaseWallet(_wallet).invoke(ensReverseRegistrar, 0, methodData);
         // register with ENS manager
         IENSManager(ensManager).register(_label, _wallet);
     }
