@@ -1,3 +1,4 @@
+const ENSRegistry = require('../build/ENSRegistry');
 const ENSRegistryWithFallback = require('../build/ENSRegistryWithFallback');
 const Kyber = require('../build/KyberNetworkTest');
 const ERC20 = require('../build/TestERC20');
