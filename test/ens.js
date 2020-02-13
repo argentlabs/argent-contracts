@@ -47,6 +47,11 @@ describe("Test ENS contracts", function () {
             assert.equal(owner, ensManager.contractAddress, "ens manager should be the owner of the wallet root node");
         });
 
+        it("should return correct ENSResolver", async () => {
+            const ensResolverOnManager = await ensManager.ensResolver();
+            assert.equal(ensResolverOnManager, ensResolver.contractAddress, 'should have the correct ENSResolver addrress');
+        });
+
         it("should register an ENS name", async () => {
             let label = "wallet";
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);

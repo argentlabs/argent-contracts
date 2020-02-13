@@ -55,11 +55,9 @@ describe("Test Wallet Factory", function () {
         moduleRegistry = await deployer.deploy(ModuleRegistry);
 
         factory = await deployer.deploy(Factory, {},
-            ensRegistry.contractAddress,
             moduleRegistry.contractAddress,
             implementation.contractAddress,
-            ensManager.contractAddress,
-            ensResolver.contractAddress);
+            ensManager.contractAddress);
         await factory.addManager(infrastructure.address);
         await ensManager.addManager(factory.contractAddress);
     });
@@ -120,7 +118,10 @@ describe("Test Wallet Factory", function () {
             let res = await ensRegistry.resolver(labelNode);
             assert.equal(res, ensResolver.contractAddress);
         });
+
+        it("should return the correct ENSManager", async () => {
+            const ensManagerOnFactory = await factory.ensManager();
+            assert.equal(ensManagerOnFactory, ensManager.contractAddress, 'should have the correct ENSManager addrress');
+        });
     });
-
-
 });
