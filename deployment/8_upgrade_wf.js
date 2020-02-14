@@ -1,9 +1,7 @@
 const BaseWallet = require('../build/BaseWallet');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const ENSManager = require('../build/ArgentENSManager');
-const ENSResolver = require('../build/ArgentENSResolver');
 const WalletFactory = require('../build/WalletFactory');
-const GuardianStorage = require('../build/GuardianStorage');
 const MultiSig = require('../build/MultiSigWallet');
 
 const DeployManager = require('../utils/deploy-manager.js');
@@ -28,9 +26,7 @@ const deploy = async (network) => {
     console.log('Config:', config);
 
     const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
-    const ENSResolverWrapper = await deployer.wrapDeployedContract(ENSResolver, config.contracts.ENSResolver);
     const ENSManagerWrapper = await deployer.wrapDeployedContract(ENSManager, config.contracts.ENSManager);
-    const GuardianStorageWrapper = await deployer.wrapDeployedContract(GuardianStorage, config.modules.GuardianStorage);
     const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
 
     const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
@@ -42,13 +38,16 @@ const deploy = async (network) => {
     // Deploy new BaseWallet
     const BaseWalletWrapper = await deployer.deploy(BaseWallet);
 
-    // Deply Factory
+    // Deploy Factory
     const WalletFactoryWrapper = await deployer.deploy(
         WalletFactory, {}, 
         ModuleRegistryWrapper.contractAddress, 
         BaseWalletWrapper.contractAddress, 
-        ENSManagerWrapper.contractAddress, 
-        GuardianStorageWrapper.contractAddress);
+        ENSManagerWrapper.contractAddress);
+
+    //Set the GuardianStorage address
+    const setGuardianStorageTx = await WalletFactoryWrapper.contract.changeGuardianStorage(config.modules.GuardianStorage);
+    await WalletFactoryWrapper.verboseWaitForTransaction(setGuardianStorageTx, `Set the GuardianStorage address`);
 
     ///////////////////////////////////////////////////
     // Update config and Upload ABIs
