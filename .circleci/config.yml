@@ -38,7 +38,9 @@ jobs:
       - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
-
+      - run:
+          name: "Testing deployment scripts"
+          command: npm run ganache >/dev/null 2>&1 & npm run test:deployment
       - <<: *step_save_cache
       # Save test results to artifacts
       - store_test_results:
