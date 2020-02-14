@@ -53,7 +53,7 @@ const deploy = async (network, secret) => {
     // Deploy the ENS Manager
     const ENSManagerWrapper = await deployer.deploy(ENSManager, {}, walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
     // Deploy the Wallet Factory
-    const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {}, newConfig.ENS.ensRegistry, ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress, ENSResolverWrapper.contractAddress);
+    const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {}, ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
 
     ///////////////////////////////////////////////////
     // Making ENSManager owner of the root wallet ENS
