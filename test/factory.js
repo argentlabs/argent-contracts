@@ -87,7 +87,7 @@ describe("Test Wallet Factory", function () {
         index++;
     });
 
-    describe("Create wallets with CREATE", () => { return;
+    describe("Create wallets with CREATE", () => { 
 
         it("should create with the correct owner", async () => {
             // we create the wallet
@@ -150,7 +150,7 @@ describe("Test Wallet Factory", function () {
         });
     });
 
-    describe("Create wallets with CREATE and default guardian", () => { return;
+    describe("Create wallets with CREATE and default guardian", () => {
 
         it("should create with the correct owner", async () => {
             // we create the wallet
@@ -348,7 +348,7 @@ describe("Test Wallet Factory", function () {
         });
     });
 
-    describe("Create wallets with CREATE2 and default guardian", () => { return;
+    describe("Create wallets with CREATE2 and default guardian", () => {
 
         let module1, module2;
 
