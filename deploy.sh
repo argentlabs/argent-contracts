@@ -30,6 +30,9 @@ fi
 
 for IDX in "$@"
 do
-    FILE=`ls deployment/${IDX}_*.js`
+    FILE=`ls ./deployment/${IDX}_*.js`
     npx etherlime deploy --file $FILE --network $NETWORK --compile false
+    if [ $? -ne 0 ]; then
+        exit 1 # exit with failure status
+    fi
 done
