@@ -11,8 +11,12 @@
     "ganache": "npx etherlime ganache --gasLimit=10700000 -e 10000",
     "test": "npx etherlime test --skip-compilation",
     "ctest": "npm run compile && npm run test",
-    "lint:contracts": "npx ethlint --dir ."
+    "lint:contracts": "npx ethlint --dir .",
+    "ethlint-staged": "bash ./scripts/ethlint.sh"
   },
+  "pre-commit": [
+    "ethlint-staged"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/argentlabs/argent-contracts.git"
@@ -37,6 +41,7 @@
     "inquirer": "^7.0.0",
     "node-fetch": "^2.3.0",
     "openzeppelin-solidity": "2.3.0",
+    "pre-commit": "^1.2.2",
     "ps-node": "^0.1.6",
     "solc": "0.5.4",
     "tinyreq": "^3.4.1"
