@@ -231,6 +231,15 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
+     * @dev Inits the module for a wallet by logging an event.
+     * The method can only be called by the wallet itself.
+     * @param _wallet The wallet.
+     */
+    function init(BaseWallet _wallet) external pure { // solium-disable-line no-empty-blocks
+        //do nothing
+    }
+
+    /**
      * @dev Helper method to configure a wallet for a set of input parameters.
      * @param _wallet The target wallet
      * @param _owner The account address.
@@ -250,13 +259,13 @@ contract WalletFactory is Owned, Managed {
         // add the factory to modules so it can claim the reverse ENS or add a guardian
         address[] memory extendedModules = new address[](_modules.length + 1);
         extendedModules[0] = address(this);
-        for(uint i = 0; i < _modules.length; i++) {
+        for (uint i = 0; i < _modules.length; i++) {
             extendedModules[i + 1] = _modules[i];
         }
         // initialise the wallet with the owner and the extended modules
         _wallet.init(_owner, extendedModules);
         // add guardian if needed
-        if(_guardian != address(0)) {
+        if (_guardian != address(0)) {
             IGuardianStorage(guardianStorage).addGuardian(_wallet, _guardian);
         }
         // register ENS
@@ -293,14 +302,5 @@ contract WalletFactory is Owned, Managed {
         BaseWallet(_wallet).invoke(ensReverseRegistrar, 0, methodData);
         // register with ENS manager
         IENSManager(ensManager).register(_label, _wallet);
-    }
-
-    /**
-     * @dev Inits the module for a wallet by logging an event.
-     * The method can only be called by the wallet itself.
-     * @param _wallet The wallet.
-     */
-    function init(BaseWallet _wallet) external pure {
-        //do nothing
     }
 }
