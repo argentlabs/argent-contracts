@@ -4,8 +4,6 @@ openzeppelin-solidity
 lib
 contracts/Migrations.sol
 contracts/MultiSigWallet.sol
-contracts/base/Managed.sol
-contracts/base/Owned.sol
 contracts/dapp/DappRegistry.sol
 contracts/defi/Invest.sol
 contracts/defi/Leverage.sol
