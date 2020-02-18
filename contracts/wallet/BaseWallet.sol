@@ -19,7 +19,6 @@ import "../interfaces/Module.sol";
 /**
  * @title BaseWallet
  * @dev Simple modular wallet that authorises modules to call its invoke() method.
- * Based on https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 by
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract BaseWallet {
@@ -64,6 +63,9 @@ contract BaseWallet {
             authorised[_modules[i]] = true;
             Module(_modules[i]).init(this);
             emit AuthorisedModule(_modules[i], true);
+        }
+        if(address(this).balance > 0) {
+            emit Received(address(this).balance, address(0), "");
         }
     }
     

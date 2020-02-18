@@ -16,6 +16,7 @@
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./Storage.sol";
+import "./IGuardianStorage.sol";
 
 /**
  * @title GuardianStorage
@@ -25,7 +26,7 @@ import "./Storage.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract GuardianStorage is Storage {
+contract GuardianStorage is IGuardianStorage, Storage {
 
     struct GuardianStorageConfig {
         // the list of guardians
@@ -33,7 +34,7 @@ contract GuardianStorage is Storage {
         // the info about guardians
         mapping (address => GuardianInfo) info;
         // the lock's release timestamp
-        uint256 lock; 
+        uint256 lock;
         // the module that set the last lock
         address locker;
     }
