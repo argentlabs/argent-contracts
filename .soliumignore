@@ -89,6 +89,5 @@ contracts/upgrade/ModuleRegistry.sol
 contracts/upgrade/SimpleUpgrader.sol
 contracts/utils/GuardianUtils.sol
 contracts/utils/SafeMath.sol
-contracts/utils/strings.sol
 contracts/wallet/Proxy.sol
 lib/ens/ENS.sol

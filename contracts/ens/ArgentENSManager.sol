@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.4;
 import "../../lib/ens/ENS.sol";
-import "../utils/strings.sol";
+import "../../lib/utils/strings.sol";
 import "./IENSManager.sol";
 import "./ENSResolver.sol";
 import "./ENSReverseRegistrar.sol";
