@@ -2,7 +2,7 @@ version: 2
 
 job_common: &job_common
   docker:
-    - image: circleci/node:10.12-stretch
+    - image: circleci/node:8.12-stretch
   working_directory: ~/argent-contracts
 step_save_cache: &step_save_cache
   save_cache:
