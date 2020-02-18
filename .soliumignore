@@ -11,9 +11,6 @@ contracts/defi/Invest.sol
 contracts/defi/Leverage.sol
 contracts/defi/Loan.sol
 contracts/defi/utils/CompoundRegistry.sol
-contracts/ens/ArgentENSResolver.sol
-contracts/ens/ENSResolver.sol
-contracts/ens/ENSReverseRegistrar.sol
 contracts/exchange/ERC20.sol
 contracts/exchange/KyberNetwork.sol
 contracts/exchange/TokenPriceProvider.sol
