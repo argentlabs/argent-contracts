@@ -18,7 +18,7 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "../storage/GuardianStorage.sol";
-import "../utils/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "../utils/GuardianUtils.sol";
 
 /**
@@ -134,7 +134,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     }
 
     // *************** External functions ************************ //
-    
+
     /**
      * @dev Lets the guardians start the execution of the recovery procedure.
      * Once triggered the recovery is pending for the security period before it can
@@ -250,23 +250,29 @@ contract RecoveryManager is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool) {
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory _data,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal view returns (bool)
+    {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
         for (uint8 i = 0; i < _signatures.length / 65; i++) {
             address signer = recoverSigner(_signHash, _signatures, i);
-            if(i == 0 && isOwner(_wallet, signer)) {
+            if (i == 0 && isOwner(_wallet, signer)) {
                 // first signer can be owner
                 continue;
-            }
-            else {
-                if(signer <= lastSigner) {
+            } else {
+                if (signer <= lastSigner) {
                     return false;
                 } // "RM: signers must be different"
                 lastSigner = signer;
                 (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                if(!isGuardian) {
+                if (!isGuardian) {
                     return false;
                 } // "RM: signatures not valid"
             }
@@ -282,7 +288,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
             return 0;
         }
-        if(methodId == CANCEL_RECOVERY_PREFIX) {
+        if (methodId == CANCEL_RECOVERY_PREFIX) {
             return SafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
         }
         if (methodId == EXECUTE_OWNERSHIP_TRANSFER_PREFIX) {
@@ -291,7 +297,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         if (methodId == FINALIZE_OWNERSHIP_TRANSFER_PREFIX) {
             return 0;
         }
-        if(methodId == CANCEL_OWNERSHIP_TRANSFER_PREFIX) {
+        if (methodId == CANCEL_OWNERSHIP_TRANSFER_PREFIX) {
             return 1;
         }
         revert("RM: unknown  method");

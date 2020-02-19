@@ -18,7 +18,7 @@ pragma solidity ^0.5.4;
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../utils/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "../defi/Invest.sol";
 
 contract VatLike {

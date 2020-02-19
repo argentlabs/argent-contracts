@@ -10,7 +10,14 @@
     "compile": "npx etherlime compile --runs=999",
     "ganache": "npx etherlime ganache --gasLimit=10700000 -e 10000",
     "test": "npx etherlime test --skip-compilation",
-    "ctest": "npm run compile && npm run test"
+    "ctest": "npm run compile && npm run test",
+    "lint:contracts": "npx ethlint --dir .",
+    "ethlint-staged": "bash ./scripts/ethlint.sh"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run ethlint-staged"
+    }
   },
   "repository": {
     "type": "git",
@@ -32,6 +39,8 @@
     "etherlime": "2.2.4",
     "etherlime-lib": "1.1.3",
     "ethers": "^4.0.28",
+    "ethlint": "^1.2.5",
+    "husky": "^4.2.3",
     "inquirer": "^7.0.0",
     "node-fetch": "^2.3.0",
     "openzeppelin-solidity": "2.3.0",

@@ -22,8 +22,8 @@ import "../utils/GuardianUtils.sol";
 /**
  * @title LockManager
  * @dev Module to manage the state of a wallet's lock.
- * Other modules can use the state of the lock to determine if their operations 
- * should be authorised or blocked. Only the guardians of a wallet can lock and unlock it. 
+ * Other modules can use the state of the lock to determine if their operations
+ * should be authorised or blocked. Only the guardians of a wallet can lock and unlock it.
  * The lock automatically unlocks after a given period. The lock state is stored on a saparate
  * contract to facilitate its use by other modules.
  * @author Julien Niset - <julien@argent.im>
@@ -40,7 +40,7 @@ contract LockManager is BaseModule, RelayerModule {
 
     event Locked(address indexed wallet, uint64 releaseAfter);
     event Unlocked(address indexed wallet);
-    
+
     // *************** Modifiers ************************ //
 
     /**
@@ -101,7 +101,7 @@ contract LockManager is BaseModule, RelayerModule {
      */
     function getLock(BaseWallet _wallet) public view returns(uint64 _releaseAfter) {
         uint256 lockEnd = guardianStorage.getLock(_wallet);
-        if(lockEnd > now) {
+        if (lockEnd > now) {
             _releaseAfter = uint64(lockEnd);
         }
     }

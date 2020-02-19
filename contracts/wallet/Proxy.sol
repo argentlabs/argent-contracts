@@ -33,10 +33,9 @@ contract Proxy {
 
     function() external payable {
 
-        if(msg.data.length == 0 && msg.value > 0) {
+        if (msg.data.length == 0 && msg.value > 0) {
             emit Received(msg.value, msg.sender, msg.data);
-        }
-        else {
+        } else {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
                 let target := sload(0)

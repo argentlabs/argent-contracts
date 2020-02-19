@@ -22,7 +22,7 @@ import "./ENSResolver.sol";
  * @title ArgentENSResolver
  * @dev Basic implementation of a Resolver.
  * The contract defines a manager role who is the only role that can add a new name
- * to the list of resolved names. 
+ * to the list of resolved names.
  * @author Julien Niset - <julien@argent.im>
  */
 contract ArgentENSResolver is Owned, Managed, ENSResolver {

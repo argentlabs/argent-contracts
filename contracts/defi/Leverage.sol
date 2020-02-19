@@ -18,22 +18,27 @@ import "../wallet/BaseWallet.sol";
 
 /**
  * @title Interface for a contract that can open Leveraged positions.
- * A user may wish to open a Leveraged Position to increase its exposure to a token (typically ETH). 
- * It does so by providing an amount of ETH that will be locked as collateral and used to borrow another token 
- * (typically DAI) based on a `_conversionRatio`. The borrowed tokens will be exchanged and added to the locked collateral. 
+ * A user may wish to open a Leveraged Position to increase its exposure to a token (typically ETH).
+ * It does so by providing an amount of ETH that will be locked as collateral and used to borrow another token
+ * (typically DAI) based on a `_conversionRatio`. The borrowed tokens will be exchanged and added to the locked collateral.
  * This operation (borrowing tokens, converting and locking as additional collateral) is repeated `_iterations` times.
- * The wallet owner can increase its leverage by increasing the number of `_iterations` or by decreasing 
- * the `_converstionRatio`. 
+ * The wallet owner can increase its leverage by increasing the number of `_iterations` or by decreasing
+ * the `_converstionRatio`.
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
 interface Leverage {
 
-    event LeverageOpened(address indexed _wallet, bytes32 indexed _leverageId, address _collateral, uint256 _totalCollateral, uint256 _totalDebt);    
-    event LeverageClosed(address indexed _wallet, bytes32 indexed _leverageId, uint256 _debtPayment);   
+    event LeverageOpened(
+        address indexed _wallet,
+        bytes32 indexed _leverageId,
+        address _collateral,
+        uint256 _totalCollateral,
+        uint256 _totalDebt);
+    event LeverageClosed(address indexed _wallet, bytes32 indexed _leverageId, uint256 _debtPayment);
 
 
     /**
-     * @dev Lets the owner of a wallet open a new Leveraged Position to increase their exposure to a collateral token. 
+     * @dev Lets the owner of a wallet open a new Leveraged Position to increase their exposure to a collateral token.
      * @param _wallet The target wallet
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral token provided.
@@ -42,16 +47,16 @@ interface Leverage {
      */
     function openLeveragedPosition(
         BaseWallet _wallet,
-        address _collateral, 
-        uint256 _collateralAmount, 
+        address _collateral,
+        uint256 _collateralAmount,
         uint256 _conversionRatio,
         uint8 _iterations
-    ) 
+    )
         external
         returns (bytes32 _leverageId, uint256 _totalCollateral, uint256 _totalDebt);
 
     /**
-     * @dev Lets the owner of a wallet close a previously opened Leveraged Position. 
+     * @dev Lets the owner of a wallet close a previously opened Leveraged Position.
      * @param _wallet The target wallet
      * @param _leverageId The id of the CDP used to open the Leveraged Position.
      * @param _daiPayment The amount of DAI debt to repay before "unwinding" the position.
@@ -60,7 +65,7 @@ interface Leverage {
         BaseWallet _wallet,
         bytes32 _leverageId,
         uint256 _daiPayment
-    ) 
+    )
         external;
 
 }

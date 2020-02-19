@@ -22,9 +22,9 @@ import "./common/RelayerModule.sol";
 /**
  * @title GuardianManager
  * @dev Module to manage the guardians of wallets.
- * Guardians are accounts (EOA or contracts) that are authorized to perform specific 
+ * Guardians are accounts (EOA or contracts) that are authorized to perform specific
  * security operations on wallets such as toggle a safety lock, start a recovery procedure,
- * or confirm transactions. Addition or revokation of guardians is initiated by the owner 
+ * or confirm transactions. Addition or revokation of guardians is initiated by the owner
  * of a wallet and must be confirmed after a security period (e.g. 24 hours).
  * The list of guardians for a wallet is stored on a saparate
  * contract to facilitate its use by other modules.
@@ -58,7 +58,7 @@ contract GuardianManager is BaseModule, RelayerModule {
     event GuardianRevokationCancelled(address indexed wallet, address indexed guardian);
     event GuardianAdded(address indexed wallet, address indexed guardian);
     event GuardianRevoked(address indexed wallet, address indexed guardian);
-    
+
     // *************** Modifiers ************************ //
 
     /**
@@ -103,7 +103,7 @@ contract GuardianManager is BaseModule, RelayerModule {
         // solium-disable-next-line security/no-low-level-calls
         (bool success,) = _guardian.call.gas(5000)(abi.encodeWithSignature("owner()"));
         require(success, "GM: guardian must be EOA or implement owner()");
-        if(guardianStorage.guardianCount(_wallet) == 0) {
+        if (guardianStorage.guardianCount(_wallet) == 0) {
             guardianStorage.addGuardian(_wallet, _guardian);
             emit GuardianAdded(address(_wallet), _guardian);
         } else {

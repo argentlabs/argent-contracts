@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.4;
 
-import "../utils/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -65,7 +65,7 @@ interface IDSValue {
     function read() external view returns (bytes32);
     function poke(bytes32 wut) external;
     function void() external;
-} 
+}
 
 interface IUniswapFactory {
     function getExchange(address _token) external view returns(address);
@@ -275,7 +275,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         view
         returns (uint8 _status, uint256 _ethValue)
     {
-        if(exists(_loanId, makerCdp)) {
+        if (exists(_loanId, makerCdp)) {
             return (3,0);
         }
         return (0,0);
@@ -311,7 +311,7 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         // Convert ETH to PETH & lock PETH into CDP
         lockETH(_wallet, _cup, _pethCollateral, _makerCdp);
         // Draw DAI from CDP
-        if(_daiDebt > 0) {
+        if (_daiDebt > 0) {
             invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_DRAW, _cup, _daiDebt));
         }
     }
@@ -410,9 +410,9 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
             uint256 etherValueOfMKR = IUniswapExchange(mkrUniswap).getEthToTokenOutputPrice(mkrFee - mkrBalance);
             invokeWallet(address(_wallet), mkrUniswap, etherValueOfMKR, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, mkrFee - mkrBalance, block.timestamp));
         }
-        
+
         // get DAI balance
-        address daiToken =_makerCdp.sai();
+        address daiToken = _makerCdp.sai();
         uint256 daiBalance = ERC20(daiToken).balanceOf(address(_wallet));
         if (daiBalance < _amount) {
             // Not enough DAI => Convert some ETH into DAI with Uniswap
@@ -447,10 +447,12 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     {
         // repay all debt (in DAI) + stability fee (in DAI) + governance fee (in MKR)
         uint debt = daiDebt(_cup, _makerCdp);
-        if(debt > 0) removeDebt(_wallet, _cup, debt, _makerCdp, _uniswapFactory);
+        if (debt > 0)
+            removeDebt(_wallet, _cup, debt, _makerCdp, _uniswapFactory);
         // free all ETH collateral
         uint collateral = pethCollateral(_cup, _makerCdp);
-        if(collateral > 0) removeCollateral(_wallet, _cup, collateral, _makerCdp);
+        if (collateral > 0)
+            removeCollateral(_wallet, _cup, collateral, _makerCdp);
         // shut the CDP
         invokeWallet(address(_wallet), address(_makerCdp), 0, abi.encodeWithSelector(CDP_SHUT, _cup));
     }
@@ -498,10 +500,10 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /**
-     * @dev Max amount of DAI that can still be drawn from a CDP while keeping it above the liquidation ratio. 
+     * @dev Max amount of DAI that can still be drawn from a CDP while keeping it above the liquidation ratio.
      * @param _cup The id of the CDP.
      * @param _makerCdp The Maker CDP contract
-     * @return the amount of DAI that can still be drawn from a CDP while keeping it above the liquidation ratio. 
+     * @return the amount of DAI that can still be drawn from a CDP while keeping it above the liquidation ratio.
      */
     function maxDaiDrawable(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256) {
         uint256 maxTab = _makerCdp.ink(_cup).rmul(_makerCdp.tag()).rdiv(_makerCdp.vox().par()).rdiv(_makerCdp.mat());
@@ -528,10 +530,12 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
      */
     function governanceFeeInMKR(bytes32 _cup, uint256 _daiRefund, IMakerCdp _makerCdp) public returns (uint256 _fee) {
         uint debt = daiDebt(_cup, _makerCdp);
-        if (debt == 0) return 0;
+        if (debt == 0)
+            return 0;
         uint256 feeInDAI = _daiRefund.rmul(_makerCdp.rap(_cup).rdiv(debt));
         (bytes32 daiPerMKR, bool ok) = _makerCdp.pep().peek();
-        if (ok && daiPerMKR != 0) _fee = feeInDAI.wdiv(uint(daiPerMKR));
+        if (ok && daiPerMKR != 0)
+            _fee = feeInDAI.wdiv(uint(daiPerMKR));
     }
 
     /**
@@ -637,5 +641,4 @@ contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
         require(ok && daiPerMKR_ != 0, "LM: invalid DAI/MKR rate");
         _daiPerMKR = uint256(daiPerMKR_);
     }
-} 
-
+}

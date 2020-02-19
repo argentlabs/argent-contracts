@@ -59,7 +59,7 @@ contract MultiSigWallet {
         require(_threshold > 0 && _threshold <= _owners.length, "MSW: Invalid threshold");
         ownersCount = _owners.length;
         threshold = _threshold;
-        for(uint256 i = 0; i < _owners.length; i++) {
+        for (uint256 i = 0; i < _owners.length; i++) {
             isOwner[_owners[i]] = true;
             emit OwnerAdded(_owners[i]);
         }
@@ -84,14 +84,14 @@ contract MultiSigWallet {
         nonce += 1;
         uint256 valid = 0;
         address lastSigner = address(0);
-        for(uint256 i = 0; i < count; i++) {
+        for (uint256 i = 0; i < count; i++) {
             (v,r,s) = splitSignature(_signatures, i);
             address recovered = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",txHash)), v, r, s);
             require(recovered > lastSigner, "MSW: Badly ordered signatures"); // make sure signers are different
             lastSigner = recovered;
-            if(isOwner[recovered]) {
+            if (isOwner[recovered]) {
                 valid += 1;
-                if(valid >= threshold) {
+                if (valid >= threshold) {
                     // solium-disable-next-line security/no-call-value
                     (bool success,) = _to.call.value(_value)(_data);
                     require(success, "MSW: External call failed");

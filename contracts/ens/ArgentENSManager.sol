@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.4;
 import "../../lib/ens/ENS.sol";
-import "../utils/strings.sol";
+import "../../lib/utils/strings.sol";
 import "./IENSManager.sol";
 import "./ENSResolver.sol";
 import "./ENSReverseRegistrar.sol";
@@ -24,20 +24,20 @@ import "../base/Managed.sol";
 /**
  * @title ArgentENSManager
  * @dev Implementation of an ENS manager that orchestrates the complete
- * registration of subdomains for a single root (e.g. argent.eth). 
+ * registration of subdomains for a single root (e.g. argent.eth).
  * The contract defines a manager role who is the only role that can trigger the registration of
  * a new subdomain.
  * @author Julien Niset - <julien@argent.im>
  */
 contract ArgentENSManager is IENSManager, Owned, Managed {
-    
+
     using strings for *;
 
     // The managed root name
     string public rootName;
     // The managed root node
     bytes32 public rootNode;
-    
+
     ENS public ensRegistry;
     ENSResolver public ensResolver;
 
@@ -82,7 +82,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
         emit ENSResolverChanged(_ensResolver);
     }
 
-    /** 
+    /**
     * @dev Lets the manager assign an ENS subdomain of the root node to a target address.
     * Registers both the forward and reverse ENS.
     * @param _label The subdomain label.
@@ -110,6 +110,14 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
         emit Registered(_owner, name);
     }
 
+    /**
+    * @dev Gets the official ENS reverse registrar.
+    * @return Address of the ENS reverse registrar.
+    */
+    function getENSReverseRegistrar() external view returns (address) {
+        return _getENSReverseRegistrar();
+    }
+
     // *************** Public Functions ********************* //
 
     /**
@@ -120,21 +128,13 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     function isAvailable(bytes32 _subnode) public view returns (bool) {
         bytes32 node = keccak256(abi.encodePacked(rootNode, _subnode));
         address currentOwner = ensRegistry.owner(node);
-        if(currentOwner == address(0)) {
+        if (currentOwner == address(0)) {
             return true;
         }
         return false;
     }
 
-    /**
-    * @dev Gets the official ENS reverse registrar. 
-    * @return Address of the ENS reverse registrar.
-    */
-    function getENSReverseRegistrar() external view returns (address) {
-        return _getENSReverseRegistrar();
-    }
-
     function _getENSReverseRegistrar() internal view returns (address) {
         return ensRegistry.owner(ADDR_REVERSE_NODE);
-    } 
+    }
 }
