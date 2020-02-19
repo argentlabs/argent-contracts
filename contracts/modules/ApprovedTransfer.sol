@@ -18,7 +18,7 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/BaseTransfer.sol";
-import "../utils/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "../utils/GuardianUtils.sol";
 
 /**

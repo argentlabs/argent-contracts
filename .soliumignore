@@ -70,4 +70,3 @@ contracts/upgrade/Legacy/LegacySimpleUpgrader.sol
 contracts/upgrade/Legacy/LegacyUpgrader.sol
 contracts/upgrade/ModuleRegistry.sol
 contracts/upgrade/SimpleUpgrader.sol
-contracts/utils/SafeMath.sol

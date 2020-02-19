@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../utils/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "./ERC20.sol";
 import "../base/Managed.sol";
 import "./KyberNetwork.sol";
