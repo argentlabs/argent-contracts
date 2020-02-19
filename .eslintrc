@@ -1,0 +1,20 @@
+{
+  "extends": "airbnb-base",
+  "env": {
+    "commonjs": true,
+    "node": true,
+    "mocha": true
+  },
+  "globals": {
+    "web3": true,
+    "assert": true,
+    "contract": true
+  },
+  "rules": {
+    "max-len": [2, { "code": 150, "ignoreComments": true }],
+    "quotes": [2, "double", "avoid-escape"]
+  },
+  "parserOptions": {
+    "ecmaVersion": 2018
+  }
+}

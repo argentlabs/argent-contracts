@@ -14,12 +14,14 @@
     "provision:lib:artefacts": "bash ./scripts/provision_lib_artefacts.sh",
     "test:coverage": "bash ./scripts/provision_lib_artefacts.sh & npx etherlime coverage --solcVersion 0.5.4 && istanbul check-coverage --statements 74 --branches 62 --functions 77 --lines 74",
     "lint:contracts": "npx ethlint --dir .",
-    "ethlint-staged": "bash ./scripts/ethlint.sh",
-    "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`"
+    "lint:contracts:staged": "bash ./scripts/ethlint.sh",
+    "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`",
+    "lint:js": "eslint .",
+    "lint:js:staged": "bash ./scripts/ethlint.sh"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run ethlint-staged"
+      "pre-commit": "npm run lint:contracts:staged && npm run lint:js:staged"
     }
   },
   "repository": {
@@ -51,5 +53,10 @@
     "ps-node": "^0.1.6",
     "solc": "0.5.4",
     "tinyreq": "^3.4.1"
+  },
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.20.1"
   }
 }
