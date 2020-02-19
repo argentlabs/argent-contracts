@@ -20,7 +20,7 @@ import "../exchange/ERC20.sol";
 
 /**
  * @title ModuleRegistry
- * @dev Registry of authorised modules. 
+ * @dev Registry of authorised modules.
  * Modules must be registered before they can be authorised on a wallet.
  * @author Julien Niset - <julien@argent.im>
  */
@@ -89,7 +89,7 @@ contract ModuleRegistry is Owned {
     function recoverToken(address _token) external onlyOwner {
         uint total = ERC20(_token).balanceOf(address(this));
         ERC20(_token).transfer(msg.sender, total);
-    } 
+    }
 
     /**
      * @dev Gets the name of a module from its address.
@@ -124,13 +124,13 @@ contract ModuleRegistry is Owned {
      * @return true if all the modules are registered.
      */
     function isRegisteredModule(address[] calldata _modules) external view returns (bool) {
-        for(uint i = 0; i < _modules.length; i++) {
+        for (uint i = 0; i < _modules.length; i++) {
             if (!modules[_modules[i]].exists) {
                 return false;
             }
         }
         return true;
-    }  
+    }
 
     /**
      * @dev Checks if an upgrader is registered.
@@ -139,6 +139,5 @@ contract ModuleRegistry is Owned {
      */
     function isRegisteredUpgrader(address _upgrader) external view returns (bool) {
         return upgraders[_upgrader].exists;
-    } 
-
+    }
 }

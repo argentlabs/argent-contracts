@@ -66,7 +66,3 @@ contracts/test/maker/MockScdMcdMigration.sol
 contracts/test/maker/SaiTub.sol
 contracts/test/maker/SaiVox.sol
 contracts/test/maker/WETH9.sol
-contracts/upgrade/Legacy/LegacySimpleUpgrader.sol
-contracts/upgrade/Legacy/LegacyUpgrader.sol
-contracts/upgrade/ModuleRegistry.sol
-contracts/upgrade/SimpleUpgrader.sol
