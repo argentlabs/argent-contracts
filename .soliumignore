@@ -2,9 +2,6 @@ node_modules
 migrations
 openzeppelin-solidity
 lib
-contracts/Migrations.sol
-contracts/MultiSigWallet.sol
-contracts/modules/common/RelayerModule.sol
 contracts/test/CryptoKitties.sol
 contracts/test/KyberNetworkTest.sol
 contracts/test/TestContract.sol
