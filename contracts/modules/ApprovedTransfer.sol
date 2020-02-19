@@ -94,21 +94,20 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
         bool isGuardian = false;
         for (uint8 i = 0; i < _signatures.length / 65; i++) {
             address signer = recoverSigner(_signHash, _signatures, i);
-            if(i == 0) {
+            if (i == 0) {
                 // AT: first signer must be owner
-                if(!isOwner(_wallet, signer)) {
+                if (!isOwner(_wallet, signer)) {
                     return false;
                 }
-            }
-            else {
+            } else {
                 // "AT: signers must be different"
-                if(signer <= lastSigner) {
+                if (signer <= lastSigner) {
                     return false;
                 }
                 lastSigner = signer;
                 (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
                 // "AT: signatures not valid"
-                if(!isGuardian) {
+                if (!isGuardian) {
                     return false;
                 }
             }

@@ -9,18 +9,6 @@ contracts/defi/Invest.sol
 contracts/defi/Leverage.sol
 contracts/defi/Loan.sol
 contracts/defi/utils/CompoundRegistry.sol
-contracts/exchange/ERC20.sol
-contracts/exchange/KyberNetwork.sol
-contracts/exchange/TokenPriceProvider.sol
-contracts/interfaces/Module.sol
-contracts/modules/ApprovedTransfer.sol
-contracts/modules/CompoundManager.sol
-contracts/modules/GuardianManager.sol
-contracts/modules/LockManager.sol
-contracts/modules/MakerManager.sol
-contracts/modules/MakerV2Manager.sol
-contracts/modules/NftTransfer.sol
-contracts/modules/RecoveryManager.sol
 contracts/modules/TokenExchanger.sol
 contracts/modules/TransferManager.sol
 contracts/modules/UniswapManager.sol
@@ -82,7 +70,4 @@ contracts/upgrade/Legacy/LegacySimpleUpgrader.sol
 contracts/upgrade/Legacy/LegacyUpgrader.sol
 contracts/upgrade/ModuleRegistry.sol
 contracts/upgrade/SimpleUpgrader.sol
-contracts/utils/GuardianUtils.sol
 contracts/utils/SafeMath.sol
-contracts/wallet/Proxy.sol
-lib/ens/ENS.sol
