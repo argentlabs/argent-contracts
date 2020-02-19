@@ -85,7 +85,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     function guardianCount(BaseWallet _wallet) external view returns (uint256) {
         return configs[address(_wallet)].guardians.length;
     }
-    
+
     /**
      * @dev Gets the list of guaridans for a wallet.
      * @param _wallet The target wallet.
@@ -117,7 +117,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      */
     function setLock(BaseWallet _wallet, uint256 _releaseAfter) external onlyModule(_wallet) {
         configs[address(_wallet)].lock = _releaseAfter;
-        if(_releaseAfter != 0 && msg.sender != configs[address(_wallet)].locker) {
+        if (_releaseAfter != 0 && msg.sender != configs[address(_wallet)].locker) {
             configs[address(_wallet)].locker = msg.sender;
         }
     }

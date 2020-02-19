@@ -22,7 +22,13 @@ import "../wallet/BaseWallet.sol";
  */
 interface Loan {
 
-    event LoanOpened(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount, address _debtToken, uint256 _debtAmount);
+    event LoanOpened(
+        address indexed _wallet,
+        bytes32 indexed _loanId,
+        address _collateral,
+        uint256 _collateralAmount,
+        address _debtToken,
+        uint256 _debtAmount);
     event LoanClosed(address indexed _wallet, bytes32 indexed _loanId);
     event CollateralAdded(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
     event CollateralRemoved(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
@@ -39,13 +45,13 @@ interface Loan {
      * @return (optional) An ID for the loan when the provider enables users to create multiple distinct loans.
      */
     function openLoan(
-        BaseWallet _wallet, 
-        address _collateral, 
-        uint256 _collateralAmount, 
-        address _debtToken, 
+        BaseWallet _wallet,
+        address _collateral,
+        uint256 _collateralAmount,
+        address _debtToken,
         uint256 _debtAmount
-    ) 
-        external 
+    )
+        external
         returns (bytes32 _loanId);
 
     /**
@@ -54,9 +60,9 @@ interface Loan {
      * @param _loanId The ID of the loan if any, 0 otherwise.
      */
     function closeLoan(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _loanId
-    ) 
+    )
         external;
 
     /**
@@ -67,11 +73,11 @@ interface Loan {
      * @param _collateralAmount The amount of collateral to add.
      */
     function addCollateral(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _collateral, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _collateral,
         uint256 _collateralAmount
-    ) 
+    )
         external;
 
     /**
@@ -82,11 +88,11 @@ interface Loan {
      * @param _collateralAmount The amount of collateral to remove.
      */
     function removeCollateral(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _collateral, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _collateral,
         uint256 _collateralAmount
-    ) 
+    )
         external;
 
     /**
@@ -97,11 +103,11 @@ interface Loan {
      * @param _debtAmount The amount of token to borrow.
      */
     function addDebt(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _debtToken, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _debtToken,
         uint256 _debtAmount
-    ) 
+    )
         external;
 
     /**
@@ -112,11 +118,11 @@ interface Loan {
      * @param _debtAmount The amount of token to repay.
      */
     function removeDebt(
-        BaseWallet _wallet, 
-        bytes32 _loanId, 
-        address _debtToken, 
+        BaseWallet _wallet,
+        bytes32 _loanId,
+        address _debtToken,
         uint256 _debtAmount
-    ) 
+    )
         external;
 
     /**
@@ -124,14 +130,14 @@ interface Loan {
      * @param _wallet The target wallet.
      * @param _loanId The ID of the loan if any, 0 otherwise.
      * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: unable to provide info]
-     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral 
-     * that should be added to avoid liquidation when status = 2.     
+     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral
+     * that should be added to avoid liquidation when status = 2.
      */
     function getLoan(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         bytes32 _loanId
-    ) 
-        external 
-        view 
+    )
+        external
+        view
         returns (uint8 _status, uint256 _ethValue);
 }

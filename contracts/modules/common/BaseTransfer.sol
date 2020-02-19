@@ -44,10 +44,9 @@ contract BaseTransfer is BaseModule {
     * @param _data The data to *log* with the transfer.
     */
     function doTransfer(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
-        if(_token == ETH_TOKEN) {
+        if (_token == ETH_TOKEN) {
             invokeWallet(address(_wallet), _to, _value, EMPTY_BYTES);
-        }
-        else {
+        } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
             invokeWallet(address(_wallet), _token, 0, methodData);
         }

@@ -28,7 +28,7 @@ contract DappStorage is Storage {
 
     // [wallet][dappkey][contract][signature][bool]
     mapping (address => mapping (address => mapping (address => mapping (bytes4 => bool)))) internal whitelistedMethods;
-    
+
     // *************** External Functions ********************* //
 
     /**
@@ -40,16 +40,16 @@ contract DappStorage is Storage {
      * @param _authorized true to whitelist, false to blacklist.
      */
     function setMethodAuthorization(
-        BaseWallet _wallet, 
-        address _dapp, 
-        address _contract, 
-        bytes4[] calldata _signatures, 
+        BaseWallet _wallet,
+        address _dapp,
+        address _contract,
+        bytes4[] calldata _signatures,
         bool _authorized
-    ) 
-        external 
-        onlyModule(_wallet) 
+    )
+        external
+        onlyModule(_wallet)
     {
-        for(uint i = 0; i < _signatures.length; i++) {
+        for (uint i = 0; i < _signatures.length; i++) {
             whitelistedMethods[address(_wallet)][_dapp][_contract][_signatures[i]] = _authorized;
         }
     }

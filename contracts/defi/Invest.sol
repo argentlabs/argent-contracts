@@ -31,14 +31,14 @@ interface Invest {
      * @param _token The token address.
      * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @return The exact amount of tokens that have been invested. 
+     * @return The exact amount of tokens that have been invested.
      */
     function addInvestment(
-        BaseWallet _wallet, 
-        address _token, 
-        uint256 _amount, 
+        BaseWallet _wallet,
+        address _token,
+        uint256 _amount,
         uint256 _period
-    ) 
+    )
         external
         returns (uint256 _invested);
 
@@ -46,13 +46,13 @@ interface Invest {
      * @dev Exit invested postions.
      * @param _wallet The target wallet.
      * @param _token The token address.
-     * @param _fraction The fraction of invested tokens to exit in per 10000. 
+     * @param _fraction The fraction of invested tokens to exit in per 10000.
      */
     function removeInvestment(
-        BaseWallet _wallet, 
-        address _token, 
+        BaseWallet _wallet,
+        address _token,
         uint256 _fraction
-    ) 
+    )
         external;
 
     /**

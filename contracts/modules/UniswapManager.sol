@@ -69,15 +69,15 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _token The token address.
      * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @return The amount of tokens that have been invested. 
+     * @return The amount of tokens that have been invested.
      */
     function addInvestment(
-        BaseWallet _wallet, 
-        address _token, 
-        uint256 _amount, 
+        BaseWallet _wallet,
+        address _token,
+        uint256 _amount,
         uint256 _period
-    ) 
-        external 
+    )
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
@@ -90,13 +90,13 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
      * @dev Removes a fraction of the tokens from an investment.
      * @param _wallet The target wallet.s
      * @param _token The array of token address.
-     * @param _fraction The fraction of invested tokens to exit in per 10000. 
+     * @param _fraction The fraction of invested tokens to exit in per 10000.
      */
     function removeInvestment(
-        BaseWallet _wallet, 
-        address _token, 
+        BaseWallet _wallet,
+        address _token,
         uint256 _fraction
-    ) 
+    )
         external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
@@ -113,7 +113,7 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
      * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
      */
     function getInvestment(
-        BaseWallet _wallet, 
+        BaseWallet _wallet,
         address _token
     )
         external
@@ -129,7 +129,7 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /* ****************************************** Uniswap utilities ******************************************* */
- 
+
     /**
      * @dev Adds liquidity to a Uniswap ETH-ERC20 pair.
      * @param _wallet The target wallet
@@ -141,7 +141,7 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         address _token,
         uint256 _amount
     )
-        internal 
+        internal
         returns (uint256)
     {
         require(_amount > 0, "Uniswap: can't add 0 liquidity");
@@ -149,7 +149,7 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         require(tokenPool != address(0), "Uniswap: target token is not traded on Uniswap");
 
         uint256 tokenBalance = ERC20(_token).balanceOf(address(_wallet));
-        if(_amount > tokenBalance) {
+        if (_amount > tokenBalance) {
             uint256 ethToSwap = UniswapExchange(tokenPool).getEthToTokenOutputPrice(_amount - tokenBalance);
             require(ethToSwap <= address(_wallet).balance, "Uniswap: not enough ETH to swap");
             invokeWallet(address(_wallet), tokenPool, ethToSwap, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _amount - tokenBalance, block.timestamp));
@@ -160,7 +160,14 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         uint256 ethToPool = (_amount - 1).mul(ethLiquidity).div(tokenLiquidity);
         require(ethToPool <= address(_wallet).balance, "Uniswap: not enough ETH to pool");
         invokeWallet(address(_wallet), _token, 0, abi.encodeWithSignature("approve(address,uint256)", tokenPool, _amount));
-        invokeWallet(address(_wallet), tokenPool, ethToPool, abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",1, _amount, block.timestamp + 1));
+        invokeWallet(
+            address(_wallet),
+            tokenPool,
+            ethToPool,
+            abi.encodeWithSignature("addLiquidity(uint256,uint256,uint256)",
+            1,
+            _amount,
+            block.timestamp + 1));
         return _amount.mul(2);
     }
 
@@ -180,7 +187,15 @@ contract UniswapManager is Invest, BaseModule, RelayerModule, OnlyOwnerModule {
         address tokenPool = uniswapFactory.getExchange(_token);
         require(tokenPool != address(0), "Uniswap: The target token is not traded on Uniswap");
         uint256 shares = ERC20(tokenPool).balanceOf(address(_wallet));
-        invokeWallet(address(_wallet), tokenPool, 0, abi.encodeWithSignature("removeLiquidity(uint256,uint256,uint256,uint256)", shares.mul(_fraction).div(10000), 1, 1, block.timestamp + 1));
+        invokeWallet(
+            address(_wallet),
+            tokenPool,
+            0,
+            abi.encodeWithSignature("removeLiquidity(uint256,uint256,uint256,uint256)",
+            shares.mul(_fraction).div(10000),
+            1,
+            1,
+            block.timestamp + 1));
     }
 }
 

@@ -18,9 +18,9 @@ import "../base/Owned.sol";
 
 /**
  * @title DappRegistry
- * @dev Registry of dapp contracts and methods that have been authorised by Argent. 
- * Registered methods can be authorised immediately for a dapp key and a wallet while 
- * the authoirsation of unregistered methods is delayed for 24 hours. 
+ * @dev Registry of dapp contracts and methods that have been authorised by Argent.
+ * Registered methods can be authorised immediately for a dapp key and a wallet while
+ * the authoirsation of unregistered methods is delayed for 24 hours.
  * @author Julien Niset - <julien@argent.im>
  */
 contract DappRegistry is Owned {
@@ -37,7 +37,7 @@ contract DappRegistry is Owned {
      * @param _methods The dapp methods.
      */
     function register(address _contract, bytes4[] calldata _methods) external onlyOwner {
-        for(uint i = 0; i < _methods.length; i++) {
+        for (uint i = 0; i < _methods.length; i++) {
             authorised[_contract][_methods[i]] = true;
         }
         emit Registered(_contract, _methods);
@@ -49,7 +49,7 @@ contract DappRegistry is Owned {
      * @param _methods The dapp methods.
      */
     function deregister(address _contract, bytes4[] calldata _methods) external onlyOwner {
-        for(uint i = 0; i < _methods.length; i++) {
+        for (uint i = 0; i < _methods.length; i++) {
             authorised[_contract][_methods[i]] = false;
         }
         emit Deregistered(_contract, _methods);
@@ -63,7 +63,7 @@ contract DappRegistry is Owned {
      */
     function isRegistered(address _contract, bytes4 _method) external view returns (bool) {
         return authorised[_contract][_method];
-    }  
+    }
 
     /**
      * @dev Checks if a list of methods are registered for a dapp contract.
@@ -72,11 +72,11 @@ contract DappRegistry is Owned {
      * @return true if all the methods are registered.
      */
     function isRegistered(address _contract, bytes4[] calldata _methods) external view returns (bool) {
-        for(uint i = 0; i < _methods.length; i++) {
+        for (uint i = 0; i < _methods.length; i++) {
             if (!authorised[_contract][_methods[i]]) {
                 return false;
             }
         }
         return true;
-    }  
+    }
 }
