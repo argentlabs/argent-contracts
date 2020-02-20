@@ -101,7 +101,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
         doApproveToken(_wallet, _token, _contract, _amount);
         doCallContract(_wallet, _contract, 0, _data);
     }
-    
+
     // *************** Implementation of RelayerModule methods ********************* //
 
     function validateSignatures(
