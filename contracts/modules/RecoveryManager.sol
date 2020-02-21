@@ -173,12 +173,10 @@ contract RecoveryManager is BaseModule, RelayerModule {
     )
         external
         onlyExecute
-        //? onlyWhenUnlocked(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
-        OwnershipTransferConfig storage config = ownershipTransferConfigs[address(_wallet)];
-        config.newOwner = _newOwner;
-        config.executeAfter = uint64(now + securityPeriod);
+        _wallet.setOwner(_newOwner);
 
         emit OwnershipTransferExecuted(address(_wallet), _newOwner, config.executeAfter);
     }
@@ -227,7 +225,8 @@ contract RecoveryManager is BaseModule, RelayerModule {
             return SafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
         }
         if (methodId == EXECUTE_OWNERSHIP_TRANSFER_PREFIX) {
-            return 1;
+            uint majorityGuardians = SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            return 1 + majorityGuardians;
         }
         if (methodId == FINALIZE_OWNERSHIP_TRANSFER_PREFIX) {
             return 0;
