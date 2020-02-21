@@ -64,6 +64,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     event RecoveryExecuted(address indexed _wallet, address indexed _recovery, uint64 executeAfter);
     event RecoveryFinalized(address indexed _wallet, address indexed _recovery);
     event RecoveryCanceled(address indexed _wallet, address indexed _recovery);
+    event OwnershipTransfered(address indexed _wallet, address indexed _newOwner);
 
     // *************** Modifiers ************************ //
 
@@ -178,7 +179,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
         _wallet.setOwner(_newOwner);
 
-        emit OwnershipTransferExecuted(address(_wallet), _newOwner, config.executeAfter);
+        emit OwnershipTransfered(address(_wallet), _newOwner);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
