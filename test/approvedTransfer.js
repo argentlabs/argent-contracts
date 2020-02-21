@@ -62,6 +62,7 @@ describe("Test Approved Transfer", function () {
 
         for (const address of guardianAddresses) {
             await guardianManager.from(owner).addGuardian(wallet.contractAddress, address, { gasLimit: 500000 });
+            console.log("guardian added", address)
         }
 
         await manager.increaseTime(30);
@@ -70,6 +71,7 @@ describe("Test Approved Transfer", function () {
         }
         const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
         assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
+
     }
 
     async function createSmartContractGuardians(guardians) {
