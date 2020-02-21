@@ -38,8 +38,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
     bytes4 constant internal FINALIZE_RECOVERY_PREFIX = bytes4(keccak256("finalizeRecovery(address)"));
     bytes4 constant internal CANCEL_RECOVERY_PREFIX = bytes4(keccak256("cancelRecovery(address)"));
     bytes4 constant internal EXECUTE_OWNERSHIP_TRANSFER_PREFIX = bytes4(keccak256("executeOwnershipTransfer(address,address)"));
-    bytes4 constant internal FINALIZE_OWNERSHIP_TRANSFER_PREFIX = bytes4(keccak256("finalizeOwnershipTransfer(address)"));
-    bytes4 constant internal CANCEL_OWNERSHIP_TRANSFER_PREFIX = bytes4(keccak256("cancelOwnershipTransfer(address)"));
 
     struct RecoveryConfig {
         address recovery;
@@ -47,14 +45,8 @@ contract RecoveryManager is BaseModule, RelayerModule {
         uint32 guardianCount;
     }
 
-    struct OwnershipTransferConfig {
-        address newOwner;
-        uint64 executeAfter;
-    }
-
     // the wallet specific storage
     mapping (address => RecoveryConfig) internal recoveryConfigs;
-    mapping (address => OwnershipTransferConfig) internal ownershipTransferConfigs;
 
     // Recovery period
     uint256 public recoveryPeriod;
@@ -72,9 +64,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
     event RecoveryExecuted(address indexed _wallet, address indexed _recovery, uint64 executeAfter);
     event RecoveryFinalized(address indexed _wallet, address indexed _recovery);
     event RecoveryCanceled(address indexed _wallet, address indexed _recovery);
-    event OwnershipTransferExecuted(address indexed _wallet, address indexed _newOwner, uint64 executeAfter);
-    event OwnershipTransferFinalized(address indexed _wallet, address indexed _newOwner);
-    event OwnershipTransferCanceled(address indexed _wallet, address indexed _newOwner);
 
     // *************** Modifiers ************************ //
 
@@ -91,23 +80,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
      */
     modifier notWhenRecovery(BaseWallet _wallet) {
         require(recoveryConfigs[address(_wallet)].executeAfter == 0, "RM: there cannot be an ongoing recovery");
-        _;
-    }
-
-        /**
-     * @dev Throws if there is no ongoing ownership transfer procedure.
-     */
-    modifier onlyWhenOwnershipTransfer(BaseWallet _wallet) {
-        require(ownershipTransferConfigs[address(_wallet)].executeAfter > 0, "RM: there must be an ongoing ownership transfer");
-        _;
-    }
-
-    /**
-     * @dev Throws if there is an ongoing ownership transfer procedure.
-     */
-    modifier notWhenOwnershipTransfer(BaseWallet _wallet) {
-        require(now > ownershipTransferConfigs[address(_wallet)].executeAfter + securityWindow,
-            "RM: there cannot be an ongoing ownership transfer");
         _;
     }
 
@@ -200,52 +172,15 @@ contract RecoveryManager is BaseModule, RelayerModule {
         address _newOwner
     )
         external
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
-        notWhenOwnershipTransfer(_wallet)
+        onlyExecute
+        //? onlyWhenUnlocked(_wallet)
     {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
         OwnershipTransferConfig storage config = ownershipTransferConfigs[address(_wallet)];
         config.newOwner = _newOwner;
         config.executeAfter = uint64(now + securityPeriod);
+
         emit OwnershipTransferExecuted(address(_wallet), _newOwner, config.executeAfter);
-    }
-
-    /**
-     * @dev Finalizes an ongoing ownership transfer procedure if the security period is over.
-     * The method must be called during the confirmation window and
-     * can be called by anyone to enable orchestration.
-     * @param _wallet The target wallet.
-     */
-    function finalizeOwnershipTransfer(
-        BaseWallet _wallet
-    ) external
-        onlyWhenUnlocked(_wallet)
-        onlyWhenOwnershipTransfer(_wallet)
-    {
-        OwnershipTransferConfig storage config = ownershipTransferConfigs[address(_wallet)];
-        require(config.executeAfter < now, "RM: Too early to confirm ownership transfer");
-        require(now < config.executeAfter + securityWindow, "RM: Too late to confirm ownership transfer");
-        _wallet.setOwner(config.newOwner);
-        emit OwnershipTransferFinalized(address(_wallet), config.newOwner);
-        delete ownershipTransferConfigs[address(_wallet)];
-    }
-
-    /**
-     * @dev Lets the owner cancel an ongoing ownership transfer procedure.
-     * @param _wallet The target wallet.
-     */
-    function cancelOwnershipTransfer(
-        BaseWallet _wallet
-    )
-        external
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
-        onlyWhenOwnershipTransfer(_wallet)
-    {
-        OwnershipTransferConfig storage config = ownershipTransferConfigs[address(_wallet)];
-        emit  OwnershipTransferCanceled(address(_wallet), config.newOwner);
-        delete ownershipTransferConfigs[address(_wallet)];
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
@@ -300,6 +235,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
         if (methodId == CANCEL_OWNERSHIP_TRANSFER_PREFIX) {
             return 1;
         }
-        revert("RM: unknown  method");
+        revert("RM: unknown method");
     }
 }
