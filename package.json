@@ -12,7 +12,8 @@
     "test": "npx etherlime test --skip-compilation",
     "ctest": "npm run compile && npm run test",
     "lint:contracts": "npx ethlint --dir .",
-    "ethlint-staged": "bash ./scripts/ethlint.sh"
+    "ethlint-staged": "bash ./scripts/ethlint.sh",
+    "test:deployment": "./deploy.sh ganache `seq 1 7`"
   },
   "husky": {
     "hooks": {
