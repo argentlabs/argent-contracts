@@ -23,15 +23,10 @@ fi
 
 npx etherlime compile --runs 999
 
-if [ $NETWORK -ne 'ganache' ]; then
-    AWS_PROFILE=argent-$PROFILE
-    AWS_SDK_LOAD_CONFIG=true
-fi
-
 for IDX in "$@"
 do
     FILE=`ls ./deployment/${IDX}_*.js`
-    npx etherlime deploy --file $FILE --network $NETWORK --compile false
+    AWS_PROFILE=argent-$PROFILE AWS_SDK_LOAD_CONFIG=true npx etherlime deploy --file $FILE --network $NETWORK --compile false
     if [ $? -ne 0 ]; then
         exit 1 # exit with failure status
     fi
