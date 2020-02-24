@@ -262,7 +262,7 @@ describe("RecoveryManager", function () {
             testOwnershipTransfer([guardian1, guardian2]);
         });
 
-        describe.only("Guardians: G = 3", () => {
+        describe("Guardians: G = 3", () => {
             beforeEach(async () => {
                 await addGuardians([guardian1, guardian2, guardian3]);
             });
