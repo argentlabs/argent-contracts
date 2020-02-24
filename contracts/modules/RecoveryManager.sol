@@ -241,7 +241,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
-            return SafeMath.ceil(guardianStorage.guardianCount(_wallet) + 1, 2);
+            return SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
             return 0;
