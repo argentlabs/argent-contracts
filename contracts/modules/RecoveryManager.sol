@@ -198,6 +198,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
 
         bytes4 functionSignature = functionPrefix(_data);
         if (functionSignature == EXECUTE_OWNERSHIP_TRANSFER_PREFIX) {
+            // Owner SHOULD sign
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
                 if (i == 0) {
@@ -217,7 +218,22 @@ contract RecoveryManager is BaseModule, RelayerModule {
                 }
             }
             return true;
+        } else if (functionSignature == EXECUTE_RECOVERY_PREFIX) {
+            // Owner is NOT allowed to sign
+            for (uint8 i = 0; i < _signatures.length / 65; i++) {
+                address signer = recoverSigner(_signHash, _signatures, i);
+                if (signer <= lastSigner) {
+                    return false;
+                } // "RM: signers must be different"
+                lastSigner = signer;
+                (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+                if (!isGuardian) {
+                    return false;
+                } // "RM: signatures not valid"
+            }
+            return true;
         } else {
+            // Owner MIGHT sign
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
                 if (i == 0 && isOwner(_wallet, signer)) {

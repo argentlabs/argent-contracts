@@ -71,6 +71,15 @@ describe.only("RecoveryManager", function () {
             assert.isTrue(isLocked, "should be locked by recovery");
         });
 
+        it("should not let a majority of guardians and owner execute the recovery procedure", async () => {
+            let majority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
+            let txReceipt = await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, [owner, ...sortWalletByAddress(majority)]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "executeRecovery should fail");
+            const isLocked = await lockManager.isLocked(wallet.contractAddress);
+            assert.isFalse(isLocked, "should not be locked");
+        });
+
         it("should not let a minority of guardians execute the recovery procedure", async () => {
             let minority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
             let txReceipt = await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress(minority));
