@@ -147,7 +147,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
      */
     function cancelRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        emit  RecoveryCanceled(address(_wallet), config.recovery);
+        emit RecoveryCanceled(address(_wallet), config.recovery);
         guardianStorage.setLock(_wallet, 0);
         delete recoveryConfigs[address(_wallet)];
     }
@@ -232,7 +232,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
                 } // "RM: signatures not valid"
             }
             return true;
-        } else {
+        } else if (functionSignature == CANCEL_RECOVERY_PREFIX) {
             // Owner MIGHT sign
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
