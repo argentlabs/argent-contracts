@@ -8,7 +8,7 @@ const Registry = require("../build/ModuleRegistry");
 const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt } = require("../utils/utilities.js");
 
-describe.only("RecoveryManager", function () {
+describe("RecoveryManager", function () {
     this.timeout(10000);
 
     const manager = new TestManager(accounts);
