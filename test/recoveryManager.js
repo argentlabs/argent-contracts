@@ -143,6 +143,42 @@ describe("RecoveryManager", function () {
         });
     }
 
+    function testOwnershipTransfer(guardians) {
+        it("should let owner + the majority of guardians execute an ownership transfer", async () => {
+            const majority = guardians.slice(0, Math.ceil((guardians.length) / 2));
+            const gCount = await guardianStorage.guardianCount(wallet.contractAddress);
+            console.log("guardian count1", gCount.toString());
+
+            const count = await guardianManager.guardianCount(wallet.contractAddress);
+            console.log("guardian count2", count.toString());
+
+            await manager.relay(recoveryManager, 'executeOwnershipTransfer', [wallet.contractAddress, newowner.address], wallet, [owner, ...sortWalletByAddress(majority)]);
+            const walletOwner = await wallet.owner();
+            assert.equal(walletOwner, newowner.address, 'owner should have been changed');
+        });
+
+        it("should not let owner + minority of guardians execute an ownership transfer", async () => {
+            const minority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
+
+            let txReceipt = await manager.relay(recoveryManager, 'executeOwnershipTransfer', [wallet.contractAddress, newowner.address], wallet, [owner, ...minority]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "executeOwnershipTransfer should fail");
+
+            const walletOwner = await wallet.owner();
+            assert.equal(walletOwner, owner.address, 'owner should not have been changed');
+        });
+    }
+
+    describe("RecoveryManager high level logic", () => {
+        it("should not be able to instantiate the RecoveryManager with lock period shorter than the recovery period", async () => {
+            await assert.revertWith(deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 35, 24, 12), "RM: insecure security periods");
+        });
+
+        it("should not be able to instantiate the RecoveryManager with recovery period shorter than security period + security window", async () => {
+            await assert.revertWith(deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5, 24, 13), "RM: insecure security periods");
+        });
+    });
+
     describe("Execute Recovery", () => {
         describe("EOA Guardians: G = 2", () => {
             beforeEach(async () => {
@@ -209,27 +245,29 @@ describe("RecoveryManager", function () {
         });
     })
 
-    describe("Ownership Transfers", () => {
-        let guardians
-        let majority;
+    describe("Ownership Transfer", () => {
+        describe("Guardians: G = 1", () => {
+            beforeEach(async () => {
+                await addGuardians([guardian1]);
+            });
 
-        beforeEach(async () => {
-            guardians = await addGuardians([guardian1]);
+            testOwnershipTransfer([guardian1]);
         });
 
-        it("should let owner + the majority of guardians execute an ownership transfer", async () => {
-            await manager.relay(recoveryManager, 'executeOwnershipTransfer', [wallet.contractAddress, newowner.address], wallet, [owner, guardian1]);
-            const walletOwner = await wallet.owner();
-            assert.equal(walletOwner, newowner.address, 'owner should have been changed');
+        describe("Guardians: G = 2", () => {
+            beforeEach(async () => {
+                await addGuardians([guardian1, guardian2]);
+            });
+
+            testOwnershipTransfer([guardian1, guardian2]);
         });
 
-        it("should not let owner + minority of guardians execute an ownership transfer", async () => {
-            let txReceipt = await manager.relay(recoveryManager, 'executeOwnershipTransfer', [wallet.contractAddress, newowner.address], wallet, [owner]);
-            const success = parseRelayReceipt(txReceipt);
-            assert.isNotOk(success, "executeOwnershipTransfer should fail");
+        describe.only("Guardians: G = 3", () => {
+            beforeEach(async () => {
+                await addGuardians([guardian1, guardian2, guardian3]);
+            });
 
-            const walletOwner = await wallet.owner();
-            assert.equal(walletOwner, owner.address, 'owner should not have been changed');
+            testOwnershipTransfer([guardian1, guardian2, guardian3]);
         });
     });
 });
