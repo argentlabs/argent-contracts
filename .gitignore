@@ -2,6 +2,7 @@ node_modules
 build
 tmp
 bin
+.outputParameter
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
