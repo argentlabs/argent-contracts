@@ -195,23 +195,47 @@ contract RecoveryManager is BaseModule, RelayerModule {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
-        for (uint8 i = 0; i < _signatures.length / 65; i++) {
-            address signer = recoverSigner(_signHash, _signatures, i);
-            if (i == 0 && isOwner(_wallet, signer)) {
-                // first signer can be owner
-                continue;
-            } else {
-                if (signer <= lastSigner) {
-                    return false;
-                } // "RM: signers must be different"
-                lastSigner = signer;
-                (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                if (!isGuardian) {
-                    return false;
-                } // "RM: signatures not valid"
+
+        bytes4 functionSignature = functionPrefix(_data);
+        if (functionSignature == EXECUTE_OWNERSHIP_TRANSFER_PREFIX) {
+            for (uint8 i = 0; i < _signatures.length / 65; i++) {
+                address signer = recoverSigner(_signHash, _signatures, i);
+                if (i == 0) {
+                    // AT: first signer must be owner
+                    if (!isOwner(_wallet, signer)) {
+                        return false;
+                    }
+                } else {
+                    if (signer <= lastSigner) {
+                        return false;
+                    } // "RM: signers must be different"
+                    lastSigner = signer;
+                    (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+                    if (!isGuardian) {
+                        return false;
+                    } // "RM: signatures not valid"
+                }
             }
+            return true;
+        } else {
+            for (uint8 i = 0; i < _signatures.length / 65; i++) {
+                address signer = recoverSigner(_signHash, _signatures, i);
+                if (i == 0 && isOwner(_wallet, signer)) {
+                    // first signer can be owner
+                    continue;
+                } else {
+                    if (signer <= lastSigner) {
+                        return false;
+                    } // "RM: signers must be different"
+                    lastSigner = signer;
+                    (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+                    if (!isGuardian) {
+                        return false;
+                    } // "RM: signatures not valid"
+                }
+            }
+            return true;
         }
-        return true;
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
@@ -227,7 +251,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         }
         if (methodId == EXECUTE_OWNERSHIP_TRANSFER_PREFIX) {
             uint majorityGuardians = SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
-            return 1 + majorityGuardians;
+            return SafeMath.add(majorityGuardians, 1);
         }
         if (methodId == FINALIZE_OWNERSHIP_TRANSFER_PREFIX) {
             return 0;
