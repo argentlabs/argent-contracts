@@ -487,7 +487,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create with the correct modules", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = bigNumberify(randomBytes(32)).toHexString();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
