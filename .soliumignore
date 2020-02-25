@@ -16,14 +16,3 @@ contracts/test/argent/utils/OldTestModule.sol
 contracts/test/argent/utils/TestDapp.sol
 contracts/test/argent/utils/TestModule.sol
 contracts/test/argent/utils/TestOnlyOwnerModule.sol
-contracts/test/maker/DS/DSAuth.sol
-contracts/test/maker/DS/DSMath.sol
-contracts/test/maker/DS/DSNote.sol
-contracts/test/maker/DS/DSStop.sol
-contracts/test/maker/DS/DSThing.sol
-contracts/test/maker/DS/DSToken.sol
-contracts/test/maker/DS/DSValue.sol
-contracts/test/maker/MockScdMcdMigration.sol
-contracts/test/maker/SaiTub.sol
-contracts/test/maker/SaiVox.sol
-contracts/test/maker/WETH9.sol
