@@ -62,7 +62,7 @@ describe("Test MakerV2 Vaults", function () {
         testManager = new TestManager([...Array(10)].map(() => deployer), network);
         owner = deployer.signer;
         config = configurator.config;
-
+        
         migration = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
         daiJoin = await deployer.wrapDeployedContract(Join, await migration.daiJoin());
         daiToken = await deployer.wrapDeployedContract(DSToken, await daiJoin.dai());
@@ -72,13 +72,13 @@ describe("Test MakerV2 Vaults", function () {
         wethToken = await deployer.wrapDeployedContract(DSToken, await wethJoin.gem());
         batJoin = await deployer.wrapDeployedContract(Join, config.defi.maker.batJoin);
         batToken = await deployer.wrapDeployedContract(DSToken, await batJoin.gem());
-
+        
         const uniswapFactory = await deployer.wrapDeployedContract(UniswapFactory, config.defi.uniswap.factory);
         daiExchange = await deployer.wrapDeployedContract(UniswapExchange, await uniswapFactory.getExchange(daiToken.contractAddress));
-
+        
         makerRegistry = await deployer.deploy(MakerRegistry);
         await (await makerRegistry.addCollateral(wethJoin.contractAddress)).wait();
-
+        
         makerV2 = await deployer.deploy(
             MakerV2Manager,
             {},
@@ -299,7 +299,7 @@ describe("Test MakerV2 Vaults", function () {
                 // give some ETH to the wallet to be used for repayment
                 await (await owner.sendTransaction({ to: walletAddress, value: collateralAmount })).wait();
             }
-            await testManager.increaseTime(3600); // wait one hour
+            await testManager.increaseTime(3); // wait 3 seconds
             const beforeDAI = await daiToken.balanceOf(wallet.contractAddress);
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             await testChangeDebt({ loanId: loanId, daiAmount: parseEther('0.2'), add: false, relayed: relayed })
@@ -327,7 +327,7 @@ describe("Test MakerV2 Vaults", function () {
                 await testRepayDebt({ useDai: false, relayed: true });
             });
         });
-
+        
         async function testCloseLoan({ useDai, relayed }) {
             const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
             const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: relayed })
@@ -339,7 +339,7 @@ describe("Test MakerV2 Vaults", function () {
                     walletAddress, daiToken.contractAddress, owner.address, daiAmount, HashZero, { gasLimit: 3000000 }
                 )).wait();
             }
-            await testManager.increaseTime(3600); // wait one hour
+            await testManager.increaseTime(3); // wait 3 seconds
             const beforeDAI = await daiToken.balanceOf(wallet.contractAddress);
             const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
             const method = 'closeLoan'
@@ -354,8 +354,8 @@ describe("Test MakerV2 Vaults", function () {
             const afterDAI = await daiToken.balanceOf(wallet.contractAddress);
             const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
 
-            if (useDai) assert.isTrue(afterDAI.lt(beforeDAI) && afterETH.gt(beforeETH), 'should have less DAI and more ETH');
-            else assert.isTrue(afterDAI.eq(beforeDAI) && afterETH.lt(beforeETH), 'should have less ETH');
+            if (useDai) assert.isTrue(afterDAI.lt(beforeDAI) && afterETH.sub(collateralAmount).lt(beforeETH), 'should have spent some DAI and some ETH');
+            else assert.isTrue(afterDAI.eq(beforeDAI) && afterETH.sub(collateralAmount).lt(beforeETH), 'should have spent some ETH');
 
             // Send the borrowed DAI back to the wallet
             if (!useDai) await (await daiToken.transfer(walletAddress, daiAmount)).wait();
@@ -375,7 +375,7 @@ describe("Test MakerV2 Vaults", function () {
                 await testCloseLoan({ useDai: false, relayed: true });
             });
         });
-
+        
         async function topupWalletToken(token, amount) {
             while ((await token.balanceOf(owner.address)).lt(amount)) {
                 await deployer.deploy(
@@ -394,7 +394,7 @@ describe("Test MakerV2 Vaults", function () {
                 const { daiAmount, collateralAmount } = await getTestAmounts(batToken.contractAddress);
                 await topupWalletToken(batToken, collateralAmount);
                 await testOpenLoan({ collateralAmount, daiAmount, collateral: batToken, relayed: false })
-                await testManager.increaseTime(3600); // wait one hour
+                await testManager.increaseTime(3); // wait 3 seconds
             });
         });
 

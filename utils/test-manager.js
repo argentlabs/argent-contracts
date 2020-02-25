@@ -100,8 +100,12 @@ class TestManager {
   }
 
   async increaseTime(seconds) {
-    await this.provider.send("evm_increaseTime", seconds);
-    await this.provider.send("evm_mine");
+      if(this.network === 'ganache') {
+          await this.provider.send('evm_increaseTime', seconds);
+          await this.provider.send('evm_mine');
+      } else {
+          return new Promise(res => { setTimeout(res, seconds * 1000); });
+      }
   }
 
   async runningEtherlimeGanache() {
