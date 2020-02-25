@@ -2,8 +2,8 @@
 
 const DeployManager = require('../utils/deploy-manager.js');
 
-const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
-const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
+const UniswapFactory = require("../lib/uniswap/UniswapFactory");
+const UniswapExchange = require("../lib/uniswap/UniswapExchange");
 
 const Vox = require("../build/SaiVox");
 const Tub = require("../build/SaiTub");
