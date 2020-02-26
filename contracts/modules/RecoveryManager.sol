@@ -37,7 +37,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     bytes4 constant internal EXECUTE_RECOVERY_PREFIX = bytes4(keccak256("executeRecovery(address,address)"));
     bytes4 constant internal FINALIZE_RECOVERY_PREFIX = bytes4(keccak256("finalizeRecovery(address)"));
     bytes4 constant internal CANCEL_RECOVERY_PREFIX = bytes4(keccak256("cancelRecovery(address)"));
-    bytes4 constant internal EXECUTE_OWNERSHIP_TRANSFER_PREFIX = bytes4(keccak256("executeOwnershipTransfer(address,address)"));
+    bytes4 constant internal TRANSFER_OWNERSHIP_PREFIX = bytes4(keccak256("transferOwnership(address,address)"));
 
     struct RecoveryConfig {
         address recovery;
@@ -168,7 +168,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function executeOwnershipTransfer(
+    function transferOwnership(
         BaseWallet _wallet,
         address _newOwner
     )
@@ -197,7 +197,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         bool isGuardian = false;
 
         bytes4 functionSignature = functionPrefix(_data);
-        if (functionSignature == EXECUTE_OWNERSHIP_TRANSFER_PREFIX) {
+        if (functionSignature == TRANSFER_OWNERSHIP_PREFIX) {
             // Owner SHOULD sign
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
@@ -265,7 +265,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         if (methodId == CANCEL_RECOVERY_PREFIX) {
             return SafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
         }
-        if (methodId == EXECUTE_OWNERSHIP_TRANSFER_PREFIX) {
+        if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
             uint majorityGuardians = SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
             return SafeMath.add(majorityGuardians, 1);
         }

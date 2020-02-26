@@ -156,7 +156,7 @@ describe("RecoveryManager", function () {
         it("should let owner + the majority of guardians execute an ownership transfer", async () => {
             const majority = guardians.slice(0, Math.ceil((guardians.length) / 2));
 
-            await manager.relay(recoveryManager, 'executeOwnershipTransfer', [wallet.contractAddress, newowner.address], wallet, [owner, ...sortWalletByAddress(majority)]);
+            await manager.relay(recoveryManager, 'transferOwnership', [wallet.contractAddress, newowner.address], wallet, [owner, ...sortWalletByAddress(majority)]);
             const walletOwner = await wallet.owner();
             assert.equal(walletOwner, newowner.address, 'owner should have been changed');
         });
@@ -164,9 +164,9 @@ describe("RecoveryManager", function () {
         it("should not let owner + minority of guardians execute an ownership transfer", async () => {
             const minority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
 
-            let txReceipt = await manager.relay(recoveryManager, 'executeOwnershipTransfer', [wallet.contractAddress, newowner.address], wallet, [owner, ...minority]);
+            let txReceipt = await manager.relay(recoveryManager, 'transferOwnership', [wallet.contractAddress, newowner.address], wallet, [owner, ...minority]);
             const success = parseRelayReceipt(txReceipt);
-            assert.isNotOk(success, "executeOwnershipTransfer should fail");
+            assert.isNotOk(success, "transferOwnership should fail");
 
             const walletOwner = await wallet.owner();
             assert.equal(walletOwner, owner.address, 'owner should not have been changed');
@@ -175,9 +175,9 @@ describe("RecoveryManager", function () {
         it("should not let majority of guardians execute an ownership transfer without owner", async () => {
             const majority = guardians.slice(0, Math.ceil((guardians.length) / 2));
             
-            let txReceipt = await manager.relay(recoveryManager, 'executeOwnershipTransfer', [wallet.contractAddress, newowner.address], wallet, [...majority]);
+            let txReceipt = await manager.relay(recoveryManager, 'transferOwnership', [wallet.contractAddress, newowner.address], wallet, [...majority]);
             const success = parseRelayReceipt(txReceipt);
-            assert.isNotOk(success, "executeOwnershipTransfer should fail");
+            assert.isNotOk(success, "transferOwnership should fail");
 
             const walletOwner = await wallet.owner();
             assert.equal(walletOwner, owner.address, 'owner should not have been changed');
