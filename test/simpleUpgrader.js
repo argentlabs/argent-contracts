@@ -73,7 +73,7 @@ describe("Test SimpleUpgrader", function () {
     });
 
     describe("Upgrading modules", () => {
-        async function testUpgradeModule({ relayed, useOnlyOwnerModule }) {
+        async function testUpgradeModule({ relayed, useOnlyOwnerModule, modulesToAdd = moduleV2 => [moduleV2] }) {
             // create module V1
             let moduleV1;
             if (useOnlyOwnerModule) {
@@ -84,14 +84,15 @@ describe("Test SimpleUpgrader", function () {
             // register module V1
             await registry.registerModule(moduleV1.contractAddress, ethers.utils.formatBytes32String("V1"));
             // create wallet with module V1
-            let wallet = await deployer.deploy(Wallet);
+            const wallet = await deployer.deploy(Wallet);
             await wallet.init(owner.address, [moduleV1.contractAddress]);
             // create module V2
-            let moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
+            const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
             // register module V2
             await registry.registerModule(moduleV2.contractAddress, ethers.utils.formatBytes32String("V2"));
             // create upgrader
-            let upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], [moduleV2.contractAddress]);
+            const toAdd = modulesToAdd(moduleV2.contractAddress);
+            const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], toAdd);
             await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("V1toV2"));
             // check that module V1 can be used to add the upgrader module
             useOnlyOwnerModule && assert.equal(await moduleV1.isOnlyOwnerModule(), IS_ONLY_OWNER_MODULE);
@@ -99,6 +100,18 @@ describe("Test SimpleUpgrader", function () {
             // upgrade from V1 to V2
             let txReceipt;
             const params = [wallet.contractAddress, upgrader.contractAddress]
+
+            // if no module is added, the upgrade should fail
+            if(toAdd.length === 0) {
+                if (relayed) {
+                    txReceipt = await manager.relay(moduleV1, 'addModule', params, wallet, [owner]);
+                    assert.isTrue(!txReceipt.events.find(e => e.event === 'TransactionExecuted').args.success, "Relayed upgrade to 0 module should have failed.");
+                } else {
+                    assert.revert(moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 }))
+                }
+                return;
+            }
+
             if (relayed) {
                 txReceipt = await manager.relay(moduleV1, 'addModule', params, wallet, [owner]);
                 assert.equal(txReceipt.events.find(e => e.event === 'TransactionExecuted').args.success, useOnlyOwnerModule, "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
@@ -119,12 +132,14 @@ describe("Test SimpleUpgrader", function () {
             }
 
             // test if the upgrade worked
-            let isV1Authorised = await wallet.authorised(moduleV1.contractAddress);
-            let isV2Authorised = await wallet.authorised(moduleV2.contractAddress);
-            let isUpgraderAuthorised = await wallet.authorised(upgrader.contractAddress);
+            const isV1Authorised = await wallet.authorised(moduleV1.contractAddress);
+            const isV2Authorised = await wallet.authorised(moduleV2.contractAddress);
+            const isUpgraderAuthorised = await wallet.authorised(upgrader.contractAddress);
+            const numModules = await wallet.modules();
             assert.equal(isV1Authorised, relayed && !useOnlyOwnerModule, "moduleV1 should only be unauthorised if the upgrade went through");
-            assert.equal(isV2Authorised, !relayed || useOnlyOwnerModule, "module2 should only be authorised if the upgrade went through");
+            assert.equal(isV2Authorised, !relayed || useOnlyOwnerModule, "moduleV2 should only be authorised if the upgrade went through");
             assert.equal(isUpgraderAuthorised, false, "upgrader should not be authorised");
+            assert.equal(numModules, 1, "only one module (moduleV2) should be authorised");
         }
 
         it("should upgrade modules (blockchain tx)", async () => {
@@ -137,6 +152,20 @@ describe("Test SimpleUpgrader", function () {
 
         it("should upgrade modules (using OnlyOwnerModule, relayed tx)", async () => {
             await testUpgradeModule({ relayed: true, useOnlyOwnerModule: true })
+        });
+
+        it("should ignore duplicate modules in upgrader (blockchain tx)", async () => {
+            // we intentionally try to add moduleV2 twice to check that it will only be authorised once
+            await testUpgradeModule({ relayed: false, useOnlyOwnerModule: false, modulesToAdd: v2 => [v2, v2] })
+        });
+
+        it("should not upgrade to 0 module (blockchain tx)", async () => {
+            // we intentionally try to add 0 module, this should fail
+            await testUpgradeModule({ relayed: false, useOnlyOwnerModule: true, modulesToAdd: v2 => [] })
+        });
+        it("should not upgrade to 0 module (relayed tx)", async () => {
+            // we intentionally try to add 0 module, this should fail
+            await testUpgradeModule({ relayed: true, useOnlyOwnerModule: true, modulesToAdd: v2 => [] })
         });
     });
 })
