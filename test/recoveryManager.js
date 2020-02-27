@@ -6,9 +6,9 @@ const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 
 const TestManager = require("../utils/test-manager");
-const { sortWalletByAddress, parseRelayReceipt } = require("../utils/utilities.js");
+const { sortWalletByAddress, parseRelayReceipt, signOffchain } = require("../utils/utilities.js");
 
-describe.only("RecoveryManager", function () {
+describe("RecoveryManager", function () {
     this.timeout(10000);
 
     const manager = new TestManager(accounts);
@@ -19,13 +19,14 @@ describe.only("RecoveryManager", function () {
     let guardian3 = accounts[4].signer;
     let newowner = accounts[5].signer;
     let nonowner = accounts[6].signer;
+    let nonowner2 = accounts[9].signer;
 
-    let guardianManager, lockManager, recoveryManager, recoveryPeriod, wallet;
+    let registry, guardianManager, guardianStorage, lockManager, recoveryManager, recoveryPeriod, wallet;
 
     beforeEach(async () => {
         deployer = manager.newDeployer();
-        const registry = await deployer.deploy(Registry);
-        const guardianStorage = await deployer.deploy(GuardianStorage);
+        registry = await deployer.deploy(Registry);
+        guardianStorage = await deployer.deploy(GuardianStorage);
         guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
         lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
         recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5, 24, 12);
@@ -75,7 +76,7 @@ describe.only("RecoveryManager", function () {
 
             const recoveryConfig = await recoveryManager.getRecovery(wallet.contractAddress);
             assert.equal(recoveryConfig._address, newowner.address);
-            assert.equal(recoveryConfig._executeAfter.toNumber(), recoveryPeriod.add(timestamp).toNumber());
+            assert.closeTo(recoveryConfig._executeAfter.toNumber(), recoveryPeriod.add(timestamp).toNumber(), 1);
             assert.equal(recoveryConfig._guardianCount, guardians.length);
         });
 
@@ -276,6 +277,26 @@ describe.only("RecoveryManager", function () {
             });
 
             testExecuteRecovery([guardian1, guardian2, guardian3]);
+        });
+
+        describe("Safety checks", () => {
+            beforeEach(async () => {
+                await addGuardians([guardian1]);
+            });
+
+            it("should not be able to call ExecuteRecovery with an empty recovery address", async () => {
+                let txReceipt = await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, ethers.constants.AddressZero], wallet, [guardian1]);
+                const success = parseRelayReceipt(txReceipt);
+                assert.isNotOk(success, "executeRecovery should fail");
+            });
+
+            it("should not be able to call ExecuteRecovery if already in the process of Recovery", async () => {
+                await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress([guardian1]));
+
+                let txReceipt = await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, ethers.constants.AddressZero], wallet, [guardian1]);
+                const success = parseRelayReceipt(txReceipt);
+                assert.isNotOk(success, "executeRecovery should fail");
+            });
         });
     });
 
