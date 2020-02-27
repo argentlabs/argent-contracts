@@ -297,6 +297,23 @@ describe("RecoveryManager", function () {
                 const success = parseRelayReceipt(txReceipt);
                 assert.isNotOk(success, "executeRecovery should fail");
             });
+
+
+            it("should revert if an unknown method is executed", async () => {
+                const nonce = await manager.getNonceForRelay();
+                let methodData = recoveryManager.contract.interface.functions["executeRecovery"].encode([wallet.contractAddress, ethers.constants.AddressZero]);
+                // Replace the `executeRecovery` method signature: b0ba4da0 with a non-existent one: e0b6fcfc
+                methodData = methodData.replace("b0ba4da0", "e0b6fcfc");
+        
+                const signatures = await signOffchain([guardian1], recoveryManager.contractAddress, wallet.contractAddress, 0, methodData, nonce, 0, 700000);
+                let errorReason;
+                try {
+                    await recoveryManager.from(nonowner2).execute(wallet.contractAddress, methodData, nonce, signatures, 0, 700000, { gasLimit: 700000 });
+                } catch (err) {
+                    errorReason = err.data[err.transactionHash].reason;
+                }
+                assert.equal(errorReason, "RM: unknown method");
+            });
         });
     });
 
