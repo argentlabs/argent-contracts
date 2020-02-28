@@ -9,8 +9,9 @@ const ENSReverseRegistrar = require('../build/ReverseRegistrar');
 const Factory = require('../build/WalletFactory');
 const GuardianStorage = require("../build/GuardianStorage");
 
+const ethers = require('ethers');
 const TestManager = require("../utils/test-manager");
-const { randomBytes, bigNumberify } = require('ethers').utils;
+const { bigNumberify } = require('ethers').utils;
 const utilities = require('../utils/utilities.js');
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -164,7 +165,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create with the correct ENS name", async () => {
-            let label = "wallet" + index; 
+            let label = "wallet" + index;
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
             let modules = [module1.contractAddress, module2.contractAddress];
             // we create the wallet
@@ -305,7 +306,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create a wallet at the correct address", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString (); 
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress]; 
             // we get the future address
@@ -319,7 +320,7 @@ describe("Test Wallet Factory", function () {
         }); 
 
         it("should create with the correct owner", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
@@ -337,7 +338,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create with the correct modules", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
@@ -357,7 +358,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create with the correct ENS name", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
             let modules = [module1.contractAddress, module2.contractAddress];
@@ -377,7 +378,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should fail to create a wallet at an existing address", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
@@ -393,21 +394,21 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should fail to create when there is no modules", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [];
             await assert.revertWith(factory.from(deployer).createCounterfactualWallet(owner.address, modules, label, salt), "WF: cannot assign with less than 1 module");
         });
 
         it("should fail to create when there is no ENS", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = ""; 
             let modules = [module1.contractAddress, module2.contractAddress];
             await assert.revertWith(factory.from(deployer).createCounterfactualWallet(owner.address, modules, label, salt), "WF: ENS lable must be defined");
         });
 
         it("should emit and event when the balance is non zero at creation", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString (); 
+            let salt = utilities.generateSaltValue(); 
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress]; 
             let amount = bigNumberify('10000000000000');
@@ -438,7 +439,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create a wallet at the correct address", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString (); 
+            let salt = utilities.generateSaltValue(); 
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress]; 
             // we get the future address
@@ -452,7 +453,7 @@ describe("Test Wallet Factory", function () {
         }); 
 
         it("should create with the correct owner", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
@@ -470,7 +471,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create with the correct guardian", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
@@ -487,7 +488,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create with the correct modules", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
@@ -507,7 +508,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should create with the correct ENS name", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
             let modules = [module1.contractAddress, module2.contractAddress];
@@ -527,7 +528,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should fail to create a wallet at an existing address", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
@@ -543,7 +544,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should fail to create when there is no modules", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [];
             await assert.revertWith(factory.from(deployer).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt), "WF: cannot assign with less than 1 module");
@@ -556,7 +557,7 @@ describe("Test Wallet Factory", function () {
 
 
         it("should fail to create with a guardian when the guardian storage is not defined", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt), "GuardianStorage address not defined");
