@@ -102,10 +102,11 @@ describe("Test ENS contracts", function () {
 
         it("should resolve a name", async () => {
             let label = "wallet";
-            let ensName = label + '.' + subnameWallet + "." + root;
             await ensManager.from(infrastructure).register(label, owner.address);
-            let resolved = await ensResolver.addr(ethers.utils.namehash(ensName));
-            assert.equal(resolved, owner.address, "should resolve to owner");
+
+            const node = await ensReverse.node(owner.address);
+            const name = await ensResolver.name(node);
+            assert.equal(name, "wallet.argent.xyz");
         });
     });
 });
