@@ -5,6 +5,7 @@ const ENSResolver = require('../build/ArgentENSResolver');
 const ENSReverseRegistrar = require('../build/ReverseRegistrar');
 
 const TestManager = require("../utils/test-manager");
+const utilities = require('../utils/utilities.js');
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -77,6 +78,34 @@ describe("Test ENS contracts", function () {
         it("should fail to register an ENS name when the caller is not a manager", async () => {
             let label = "wallet";
             await assert.revert(ensManager.from(anonmanager).register(label, owner.address), "registering should throw");
+        });
+
+        it("should be able to change the root node owner", async () => {
+            const randomAddress = await utilities.getRandomAddress();
+            await ensManager.changeRootnodeOwner(randomAddress);
+            const rootNodeOwner = await ensRegistry.owner(walletNode);
+            assert.equal(rootNodeOwner, randomAddress);
+        });
+
+        it("should not be able to change the root node owner if not the owner", async () => {
+            const randomAddress = await utilities.getRandomAddress();
+            await assert.revertWith(ensManager.from(amanager).changeRootnodeOwner(randomAddress), "Must be owner");
+        });
+
+        it("should be able to change the ens resolver", async () => {
+            const randomAddress = await utilities.getRandomAddress();
+            await ensManager.changeENSResolver(randomAddress);
+            const resolver = await ensManager.ensResolver()
+            assert.equal(resolver, randomAddress);
+        });
+
+        it("should not be able to change the ens resolver if not owner", async () => {
+            const randomAddress = await utilities.getRandomAddress();
+            await assert.revertWith(ensManager.from(amanager).changeENSResolver(randomAddress), "Must be owner");
+        });
+
+        it("should not be able to change the ens resolver to an empty address", async () => {
+            await assert.revertWith(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");            
         });
     });
 
