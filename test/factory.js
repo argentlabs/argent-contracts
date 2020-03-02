@@ -434,7 +434,7 @@ describe("Test Wallet Factory", function () {
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress]; 
             // we get the future address
-            let futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, modules, salt); 
+            let futureAddr = await factory.getAddressForCounterfactualWalletWithGuardian(owner.address, modules, guardian.address, salt); 
             // we create the wallet
             let tx = await factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt);
             let txReceipt = await factory.verboseWaitForTransaction(tx);
@@ -448,7 +448,7 @@ describe("Test Wallet Factory", function () {
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
-            let futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, modules, salt);
+            let futureAddr = await factory.getAddressForCounterfactualWalletWithGuardian(owner.address, modules, guardian.address, salt); 
             // we create the wallet
             let tx = await factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt);
             let txReceipt = await factory.verboseWaitForTransaction(tx);
@@ -466,7 +466,7 @@ describe("Test Wallet Factory", function () {
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
-            let futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, modules, salt);
+            let futureAddr = await factory.getAddressForCounterfactualWalletWithGuardian(owner.address, modules, guardian.address, salt); 
             // we create the wallet
             let tx = await factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt);
             let txReceipt = await factory.verboseWaitForTransaction(tx);
@@ -483,7 +483,7 @@ describe("Test Wallet Factory", function () {
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
-            let futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, modules, salt);
+            let futureAddr = await factory.getAddressForCounterfactualWalletWithGuardian(owner.address, modules, guardian.address, salt); 
             // we create the wallet
             let tx = await factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt);
             let txReceipt = await factory.verboseWaitForTransaction(tx);
@@ -504,7 +504,7 @@ describe("Test Wallet Factory", function () {
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
-            let futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, modules, salt);
+            let futureAddr = await factory.getAddressForCounterfactualWalletWithGuardian(owner.address, modules, guardian.address, salt); 
             // we create the wallet
             let tx = await factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt);
             let txReceipt = await factory.verboseWaitForTransaction(tx);
@@ -523,7 +523,7 @@ describe("Test Wallet Factory", function () {
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             // we get the future address
-            let futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, modules, salt);
+            let futureAddr = await factory.getAddressForCounterfactualWalletWithGuardian(owner.address, modules, guardian.address, salt); 
             // we create the first wallet
             let tx = await factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt);
             let txReceipt = await factory.verboseWaitForTransaction(tx);

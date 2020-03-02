@@ -84,10 +84,7 @@ contract WalletFactory is Owned, Managed {
         external
         onlyManager
     {
-        validateInputs(_owner, _modules, _label);
-        Proxy proxy = new Proxy(walletImplementation);
-        address payable wallet = address(proxy);
-        configureWallet(BaseWallet(wallet), _owner, _modules, _label, address(0));
+        _createWallet(_owner, _modules, _label, address(0));
     }
 
     /**
@@ -109,10 +106,7 @@ contract WalletFactory is Owned, Managed {
         onlyManager
         guardianStorageDefined
     {
-        validateInputs(_owner, _modules, _label);
-        Proxy proxy = new Proxy(walletImplementation);
-        address payable wallet = address(proxy);
-        configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
+        _createWallet(_owner, _modules, _label, _guardian);
     }
 
     /**
@@ -133,16 +127,7 @@ contract WalletFactory is Owned, Managed {
         external
         onlyManager
     {
-        validateInputs(_owner, _modules, _label);
-        bytes32 newsalt = keccak256(abi.encodePacked(_salt, _owner, _modules));
-        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
-        address payable wallet;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            wallet := create2(0, add(code, 0x20), mload(code), newsalt)
-            if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
-        }
-        configureWallet(BaseWallet(wallet), _owner, _modules, _label, address(0));
+        _createCounterfactualWallet(_owner, _modules, _label, address(0), _salt);
     }
 
     /**
@@ -166,16 +151,7 @@ contract WalletFactory is Owned, Managed {
         onlyManager
         guardianStorageDefined
     {
-        validateInputs(_owner, _modules, _label);
-        bytes32 newsalt = keccak256(abi.encodePacked(_salt, _owner, _modules));
-        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
-        address payable wallet;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            wallet := create2(0, add(code, 0x20), mload(code), newsalt)
-            if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
-        }
-        configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
+        _createCounterfactualWallet(_owner, _modules, _label, _guardian, _salt);
     }
 
     /**
@@ -195,6 +171,30 @@ contract WalletFactory is Owned, Managed {
         returns (address _wallet)
     {
         bytes32 newsalt = keccak256(abi.encodePacked(_salt, _owner, _modules));
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
+        _wallet = address(uint160(uint256(hash)));
+    }
+
+    /**
+     * @dev Gets the address of a counterfactual wallet with a first default guardian.
+     * @param _owner The account address.
+     * @param _modules The list of modules.
+     * @param _guardian The guardian address.
+     * @param _salt The salt.
+     * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
+     */
+    function getAddressForCounterfactualWalletWithGuardian(
+        address _owner,
+        address[] calldata _modules,
+        address _guardian,
+        bytes32 _salt
+    )
+        external
+        view
+        returns (address _wallet)
+    {
+        bytes32 newsalt = keccak256(abi.encodePacked(_salt, _owner, _modules, _guardian));
         bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _wallet = address(uint160(uint256(hash)));
@@ -240,6 +240,58 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
+     * @dev Helper method to create a wallet for an owner account.
+     * The wallet is initialised with a list of modules, a first guardian, and an ENS..
+     * The wallet is created using the CREATE opcode.
+     * @param _owner The account address.
+     * @param _modules The list of modules.
+     * @param _label ENS label of the new wallet, e.g. franck.
+     * @param _guardian The guardian address.
+     */
+    function _createWallet(address _owner, address[] memory _modules, string memory _label, address _guardian) internal {
+        validateInputs(_owner, _modules, _label);
+        Proxy proxy = new Proxy(walletImplementation);
+        address payable wallet = address(proxy);
+        _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
+    }
+
+    /**
+     * @dev Helper method to create a wallet for an owner account at a specific address.
+     * The wallet is initialised with a list of modules, a first guardian, and an ENS.
+     * The wallet is created using the CREATE2 opcode.
+     * @param _owner The account address.
+     * @param _modules The list of modules.
+     * @param _label ENS label of the new wallet, e.g. franck.
+     * @param _guardian The guardian address.
+     * @param _salt The salt.
+     */
+    function _createCounterfactualWallet(
+        address _owner,
+        address[] memory _modules,
+        string memory _label,
+        address _guardian,
+        bytes32 _salt
+    )
+        internal
+    {
+        validateInputs(_owner, _modules, _label);
+        bytes32 newsalt;
+        if (_guardian == address(0)) {
+            newsalt = keccak256(abi.encodePacked(_salt, _owner, _modules));
+        } else {
+            newsalt = keccak256(abi.encodePacked(_salt, _owner, _modules, _guardian));
+        }
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
+        address payable wallet;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            wallet := create2(0, add(code, 0x20), mload(code), newsalt)
+            if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
+        }
+        _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
+    }
+
+    /**
      * @dev Helper method to configure a wallet for a set of input parameters.
      * @param _wallet The target wallet
      * @param _owner The account address.
@@ -247,7 +299,7 @@ contract WalletFactory is Owned, Managed {
      * @param _label ENS label of the new wallet, e.g. franck.
      * @param _guardian (Optional) The guardian address.
      */
-    function configureWallet(
+    function _configureWallet(
         BaseWallet _wallet,
         address _owner,
         address[] memory _modules,
