@@ -66,6 +66,25 @@ describe("Test ENS contracts", function () {
             assert.equal(res, ensResolver.contractAddress);
         });
 
+        it.skip("should return the correct availability for a subnode", async () => {
+            let label = "wallet";
+            let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
+            let labelNode1 = ethers.utils.namehash(label);
+            // Node is at first available
+            let available = await ensManager.isAvailable(labelNode1);
+            assert.isTrue(available);
+
+            // then we register it
+            await ensManager.from(infrastructure).register(label, owner.address);
+
+            const nodeOwner = await ensRegistry.owner(labelNode);
+            assert.equal(nodeOwner, owner.address);
+
+            // then the node is unavailable
+            available = await ensManager.isAvailable(labelNode1);
+            assert.isFalse(available);
+        });
+
         it("should add a new manager and register an ENS name", async () => {
             let label = "wallet";
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
