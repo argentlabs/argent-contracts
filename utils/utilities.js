@@ -1,5 +1,6 @@
 const ethers = require('ethers');
 const readline = require('readline');
+const ethereumUtil = require('ethereumjs-util');
 
 module.exports = {
 
@@ -92,5 +93,10 @@ module.exports = {
             return prevValue + currentValue.slice(2);
         }, "0x");
         return ethers.utils.keccak256(concat).slice(0, 10);
+    },
+    getRandomAddress() {
+        const addressBuffer = ethereumUtil.generateAddress(Math.floor(Math.random() * (100 - 0)));
+        const addressHex = ethereumUtil.bufferToHex(addressBuffer);
+        return ethereumUtil.toChecksumAddress(addressHex);
     }
 }
