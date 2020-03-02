@@ -11,7 +11,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 
 const TestManager = require("../utils/test-manager");
 const { randomBytes, bigNumberify } = require('ethers').utils;
-const utils = require('../utils/utilities.js');
+const utilities = require('../utils/utilities.js');
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const NO_ENS = "";
 
@@ -96,7 +96,7 @@ describe("Test Wallet Factory", function () {
 
     describe("Configure the factory", () => {
         it("should allow owner to change the module registry", async () => {
-            const randomAddress = utils.getRandomAddress();
+            const randomAddress = utilities.getRandomAddress();
             await factory.changeModuleRegistry(randomAddress);
             const updatedModuleRegistry = await factory.moduleRegistry();
             assert.equal(updatedModuleRegistry, randomAddress);
@@ -107,12 +107,12 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should not allow non-owner to change the module registry", async () => {
-            const randomAddress = utils.getRandomAddress();
+            const randomAddress = utilities.getRandomAddress();
             await assert.revertWith(factory.from(other).changeModuleRegistry(randomAddress), "Must be owner");
         });
 
         it("should allow owner to change the ens manager", async () => {
-            const randomAddress = utils.getRandomAddress();
+            const randomAddress = utilities.getRandomAddress();
             await factory.changeENSManager(randomAddress);
             const updatedEnsManager = await factory.ensManager();
             assert.equal(updatedEnsManager, randomAddress);
@@ -123,7 +123,7 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should not allow non-owner to change the ens manager", async () => {
-            const randomAddress = utils.getRandomAddress();
+            const randomAddress = utilities.getRandomAddress();
             await assert.revertWith(factory.from(other).changeENSManager(randomAddress), "Must be owner");
         });
 
@@ -209,7 +209,7 @@ describe("Test Wallet Factory", function () {
 
         it("should fail to create with unregistered module", async () => {
             let label = "wallet" + index;
-            const randomAddress = utils.getRandomAddress();
+            const randomAddress = utilities.getRandomAddress();
             let modules = [randomAddress];
             await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, label), "WF: one or more modules are not registered");     
         });
@@ -402,7 +402,7 @@ describe("Test Wallet Factory", function () {
             let salt = bigNumberify(randomBytes(32)).toHexString (); 
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress]; 
-            let amount = ethers.utils.bigNumberify('10000000000000');
+            let amount = bigNumberify('10000000000000');
             // we get the future address
             let futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, modules, salt); 
             // We send ETH to the address
