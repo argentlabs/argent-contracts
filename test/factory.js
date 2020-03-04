@@ -13,6 +13,7 @@ const TestManager = require("../utils/test-manager");
 const { randomBytes, bigNumberify } = require('ethers').utils;
 const utilities = require('../utils/utilities.js');
 const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_ADDRESS = ethers.constants.AddressZero;
 const NO_ENS = "";
 
 describe("Test Wallet Factory", function () {
@@ -283,6 +284,13 @@ describe("Test Wallet Factory", function () {
             let modules = [module1.contractAddress, module2.contractAddress];
             await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure).createWalletWithGuardian(owner.address, modules, label, guardian.address), "GuardianStorage address not defined");
         });
+
+        it("should fail to create when the guardian is empty", async () => {
+            // we create the wallet
+            let label = "wallet" + index; 
+            let modules = [module1.contractAddress];
+            await assert.revertWith(factory.from(infrastructure).createWalletWithGuardian(owner.address, modules, label, ZERO_ADDRESS), "WF: guardian cannot be null");
+        });
     });
 
     describe("Create wallets with CREATE2", () => { 
@@ -552,6 +560,20 @@ describe("Test Wallet Factory", function () {
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt), "GuardianStorage address not defined");
+        });
+
+        it("should fail to get an address when the guardian is empty", async () => {
+            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let label = "wallet" + index; 
+            let modules = [module1.contractAddress, module2.contractAddress];
+            await assert.revertWith(factory.from(infrastructure).getAddressForCounterfactualWalletWithGuardian(owner.address, modules, ZERO_ADDRESS, salt), "WF: guardian cannot be null");
+        });
+
+        it("should fail to create when the guardian is empty", async () => {
+            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let label = "wallet" + index; 
+            let modules = [module1.contractAddress, module2.contractAddress];
+            await assert.revertWith(factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, ZERO_ADDRESS, salt), "WF: guardian cannot be null");
         });
     });
 });

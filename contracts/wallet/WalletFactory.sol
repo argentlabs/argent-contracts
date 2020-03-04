@@ -106,6 +106,7 @@ contract WalletFactory is Owned, Managed {
         onlyManager
         guardianStorageDefined
     {
+        require(_guardian != (address(0)), "WF: guardian cannot be null");
         _createWallet(_owner, _modules, _label, _guardian);
     }
 
@@ -151,6 +152,7 @@ contract WalletFactory is Owned, Managed {
         onlyManager
         guardianStorageDefined
     {
+        require(_guardian != (address(0)), "WF: guardian cannot be null");
         _createCounterfactualWallet(_owner, _modules, _label, _guardian, _salt);
     }
 
@@ -191,6 +193,7 @@ contract WalletFactory is Owned, Managed {
         view
         returns (address _wallet)
     {
+        require(_guardian != (address(0)), "WF: guardian cannot be null");
         _wallet = _getAddressForCounterfactualWallet(_owner, _modules, _guardian, _salt);
     }
 
@@ -237,12 +240,12 @@ contract WalletFactory is Owned, Managed {
 
     /**
      * @dev Helper method to create a wallet for an owner account.
-     * The wallet is initialised with a list of modules, a first guardian, and an ENS..
+     * The wallet is initialised with a list of modules, a first guardian, and an ENS.
      * The wallet is created using the CREATE opcode.
      * @param _owner The account address.
      * @param _modules The list of modules.
      * @param _label ENS label of the new wallet, e.g. franck.
-     * @param _guardian The guardian address.
+     * @param _guardian (Optional) The guardian address.
      */
     function _createWallet(address _owner, address[] memory _modules, string memory _label, address _guardian) internal {
         _validateInputs(_owner, _modules, _label);
@@ -288,7 +291,7 @@ contract WalletFactory is Owned, Managed {
      * @param _owner The account address.
      * @param _modules The list of modules.
      * @param _label ENS label of the new wallet, e.g. franck.
-     * @param _guardian The guardian address.
+     * @param _guardian (Optional) The guardian address.
      */
     function _configureWallet(
         BaseWallet _wallet,
@@ -324,7 +327,7 @@ contract WalletFactory is Owned, Managed {
      * @param _owner The account address.
      * @param _modules The list of modules.
      * @param _salt The salt.
-     * @param _guardian The guardian address.
+     * @param _guardian (Optional) The guardian address.
      * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function _getAddressForCounterfactualWallet(
