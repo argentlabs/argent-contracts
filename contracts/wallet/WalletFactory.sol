@@ -60,10 +60,12 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
      * @param _modules The list of modules.
      * @param _label Optional ENS label of the new wallet (e.g. franck).
      */
-    function createWallet(address _owner, address[] calldata _modules, string calldata _label) external onlyManager {
-        require(_owner != address(0), "WF: owner cannot be null");
-        require(_modules.length > 0, "WF: cannot assign with less than 1 module");
-        require(ModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
+    function createWallet(
+        address _owner,
+        address[] calldata _modules,
+        string calldata _label
+    ) external onlyManager {
+        _validateInputs(_owner, _modules);
         // create the proxy
         Proxy proxy = new Proxy(walletImplementation);
         address payable wallet = address(proxy);
@@ -87,6 +89,99 @@ contract WalletFactory is Owned, Managed, ENSConsumer {
             BaseWallet(wallet).init(_owner, _modules);
         }
         emit WalletCreated(wallet, _owner);
+    }
+
+    /**
+     * @dev Gets the address of a counterfactual wallet.
+     * @param _owner The account address.
+     * @param _modules The list of modules.
+     * @param _salt The salt.
+     * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
+     */
+    function getAddressForCounterfactualWallet(
+        address _owner,
+        address[] calldata _modules,
+        bytes32 _salt
+    )
+        external
+        view
+        returns (address)
+    {
+        bytes32 newsalt = _newSalt(_salt, _owner, _modules);
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
+        return address(uint160(uint256(hash)));
+    }
+
+    /**
+     * @dev Lets the manager create a wallet for an account at a specific address.
+     * The wallet is initialised with a list of modules and salt.
+     * The wallet is created using the CREATE2 opcode.
+     * @param _owner The account address.
+     * @param _modules The list of modules.
+     * @param _label Optional ENS label of the new wallet (e.g. franck).
+     * @param _salt The salt.
+     */
+    function createCounterfactualWallet(
+        address _owner,
+        address[] calldata _modules,
+        string calldata _label,
+        bytes32 _salt
+    )
+        external
+        onlyManager
+    {
+        _validateInputs(_owner, _modules);
+        // create the salt
+        bytes32 newsalt = _newSalt(_salt, _owner, _modules);
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
+        address payable wallet;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            wallet := create2(0, add(code, 0x20), mload(code), newsalt)
+            if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
+        }
+        // check for ENS
+        bytes memory labelBytes = bytes(_label);
+        if (labelBytes.length != 0) {
+            // add the factory to the modules so it can claim the reverse ENS
+            address[] memory extendedModules = new address[](_modules.length + 1);
+            extendedModules[0] = address(this);
+            for(uint i = 0; i < _modules.length; i++) {
+                extendedModules[i + 1] = _modules[i];
+            }
+            // initialise the wallet with the owner and the extended modules
+            BaseWallet(wallet).init(_owner, extendedModules);
+            // register ENS
+            registerWalletENS(wallet, _label);
+            // remove the factory from the authorised modules
+            BaseWallet(wallet).authoriseModule(address(this), false);
+        } else {
+            // initialise the wallet with the owner and the modules
+            BaseWallet(wallet).init(_owner, _modules);
+        }
+        emit WalletCreated(wallet, _owner);
+    }
+
+    /**
+     * @dev Throws if the owner and the modules are not valid.
+     * @param _owner The owner address.
+     * @param _modules The list of modules.
+     */
+    function _validateInputs(address _owner, address[] memory _modules) internal view {
+        require(_owner != address(0), "WF: owner cannot be null");
+        require(_modules.length > 0, "WF: cannot assign with less than 1 module");
+        require(ModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
+    }
+
+    /**
+     * @dev Generates a new salt based on a provided salt, an owner and a list of modules.
+     * @param _salt The slat provided.
+     * @param _owner The owner address.
+     * @param _modules The list of modules.
+     */
+    function _newSalt(bytes32 _salt, address _owner, address[] memory _modules) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_salt, _owner, _modules));
     }
 
     /**

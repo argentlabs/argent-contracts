@@ -1,5 +1,5 @@
 // Example Usage:
-// node createWallet.js --network dev --ens john --owner 0x10391442e6ca847151372b6c7cbcc1fd06afda86
+// node createWallet.js --network dev --ens john --owner 0x10391442e6ca847151372b6c7cbcc1fd06afda86 (--salt abc123)
 
 const WalletFactory = require('../build/WalletFactory');
 const MultiSigWallet = require('../build/MultiSigWallet');
@@ -25,6 +25,9 @@ async function main() {
 
     idx = process.argv.indexOf("--owner");
     const owner = idx > -1 ? process.argv[idx + 1] : manager.address;
+
+    idx = process.argv.indexOf("--salt");
+    const salt = formatBytes32String(idx > -1 ? process.argv[idx + 1] : null);
 
     const config = configurator.config;
     console.log('Config:', config);
@@ -55,7 +58,12 @@ async function main() {
         // config.modules.MakerV2Manager
     ];
     try {
-        const tx = await (walletFactoryWrapper.from && walletFactoryWrapper.from(manager) || walletFactoryWrapper).createWallet(owner, modules, walletEns);
+        let tx
+        if (salt) {
+            tx = await (walletFactoryWrapper.from && walletFactoryWrapper.from(manager) || walletFactoryWrapper).createCounterfactualWallet(owner, modules, walletEns, salt);
+        } else {
+            tx = await (walletFactoryWrapper.from && walletFactoryWrapper.from(manager) || walletFactoryWrapper).createWallet(owner, modules, walletEns);
+        }
         const txReceipt = await walletFactoryWrapper.verboseWaitForTransaction(tx);
         const walletAddress = txReceipt.events.find(log => log.event === "WalletCreated").args["_wallet"];
         console.log(`New wallet ${walletEns}.${config.ENS.domain} successfully created at address ${walletAddress} for owner ${owner}.`);

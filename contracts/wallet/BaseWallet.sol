@@ -50,6 +50,9 @@ contract BaseWallet {
             Module(_modules[i]).init(this);
             emit AuthorisedModule(_modules[i], true);
         }
+        if (address(this).balance > 0) {
+            emit Received(address(this).balance, address(0), "");
+        }
     }
     
     /**
