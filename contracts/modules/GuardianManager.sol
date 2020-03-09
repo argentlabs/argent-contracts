@@ -59,17 +59,6 @@ contract GuardianManager is BaseModule, RelayerModule {
     event GuardianAdded(address indexed wallet, address indexed guardian);
     event GuardianRevoked(address indexed wallet, address indexed guardian);
 
-    // *************** Modifiers ************************ //
-
-    /**
-     * @dev Throws if the wallet is not locked.
-     */
-    modifier onlyWhenLocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(guardianStorage.isLocked(_wallet), "GM: wallet must be locked");
-        _;
-    }
-
     // *************** Constructor ********************** //
 
     constructor(
