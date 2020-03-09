@@ -564,14 +564,14 @@ describe("Test Wallet Factory", function () {
         });
 
         it("should fail to get an address when the guardian is empty", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             await assert.revertWith(factory.from(infrastructure).getAddressForCounterfactualWalletWithGuardian(owner.address, modules, ZERO_ADDRESS, salt), "WF: guardian cannot be null");
         });
 
         it("should fail to create when the guardian is empty", async () => {
-            let salt = bigNumberify(randomBytes(32)).toHexString ();
+            let salt = utilities.generateSaltValue();
             let label = "wallet" + index; 
             let modules = [module1.contractAddress, module2.contractAddress];
             await assert.revertWith(factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, ZERO_ADDRESS, salt), "WF: guardian cannot be null");
