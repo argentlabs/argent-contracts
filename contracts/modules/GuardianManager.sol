@@ -204,15 +204,6 @@ contract GuardianManager is BaseModule, RelayerModule {
         return guardianStorage.guardianCount(_wallet);
     }
 
-    /**
-     * @dev Get the active guardians for a wallet.
-     * @param _wallet The target wallet.
-     * @return the active guardians for a wallet.
-     */
-    function getGuardians(BaseWallet _wallet) external view returns (address[] memory _guardians) {
-        return guardianStorage.getGuardians(_wallet);
-    }
-
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides to use the incremental nonce and save some gas

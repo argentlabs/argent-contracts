@@ -2,7 +2,7 @@ pragma solidity ^0.5.4;
 
 /**
  * @title NonCompliantGuardian
- * @dev Test contract that consumes more then 5000 gas when its owner() methd is called.
+ * @dev Test contract that consumes more than 5000 gas when its owner() method is called.
  * @author Julien Niset - <julien@argent.im>
  */
 contract NonCompliantGuardian {
@@ -13,5 +13,4 @@ contract NonCompliantGuardian {
         }
         return msg.sender;
     }
-
 }
