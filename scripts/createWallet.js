@@ -7,6 +7,8 @@ const MultiSigWallet = require('../build/MultiSigWallet');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const DeployManager = require('../utils/deploy-manager.js');
 
+const { formatBytes32String } = require('ethers').utils;
+
 async function main() {
 
     // Read Command Line Arguments
@@ -27,7 +29,7 @@ async function main() {
     const owner = idx > -1 ? process.argv[idx + 1] : manager.address;
 
     idx = process.argv.indexOf("--salt");
-    const salt = formatBytes32String(idx > -1 ? process.argv[idx + 1] : null);
+    const salt = idx > -1 ? formatBytes32String(process.argv[idx + 1]) : null;
 
     const config = configurator.config;
     console.log('Config:', config);
@@ -79,5 +81,6 @@ async function main() {
 }
 
 main().catch(err => {
+    console.error(err)
     throw err;
 });

@@ -86,9 +86,10 @@
     "defaultLimit": "1000000000000000000",
     "deployer": {
       "options": {
-        "url": "https://rpc.fuse.io"
+        "key": "ENTER_YOUR_INFURA_KEY_HERE",
+        "network": "ropsten"
       },
-      "type": "jsonrpc"
+      "type": "infura"
     },
     "feeRatio": 15,
     "lockPeriod": 480,

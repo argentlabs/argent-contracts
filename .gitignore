@@ -30,6 +30,8 @@ utils/config/*.json
 !utils/config/fuse.dev.json
 !utils/config/fuse.qa.json
 !utils/config/fuse.prod.json
+!utils/config/ropsten.json
+!utils/config/mainnet.json
 
 !scripts/*.sh
 

@@ -1,6 +1,6 @@
 {
-  "createdAt": 1583827440,
-  "fingerprint": "0x2658c7f0",
+  "version": "1.4.2",
+  "createdAt": 1583829582,
   "modules": [
     {
       "address": "0x7B0b061a38919bd49Def88968A2749F17110Be78",
@@ -51,5 +51,5 @@
       "name": "WalletOwnershipManager"
     }
   ],
-  "version": "1.4.2"
+  "fingerprint": "0x2658c7f0"
 }
