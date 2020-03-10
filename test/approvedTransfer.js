@@ -307,16 +307,26 @@ describe("Test Approved Transfer", function () {
     });
 
     describe("Approve token and Contract call approved by EOA and smart-contract guardians", () => {
-
-        let contract, dataToTransfer;
+        let contract, dataToTransfer, amountToApprove;
 
         beforeEach(async () => {
             contract = await deployer.deploy(TestContract);
             assert.equal(await contract.state(), 0, "initial contract state should be 0");
+            amountToApprove = 10000;
+        });
+
+        it("should revert when contract is the same as wallet", async () => {
+            await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
+            let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+            assert.equal(count, 3, '3 guardians should be active');
+            
+            dataToTransfer = contract.contract.interface.functions['setStateAndPayToken'].encode([2, erc20.contractAddress, amountToApprove]);
+            let txReceipt = await manager.relay(transferModule, "approveTokenAndCallContract", [wallet.contractAddress, erc20.contractAddress, wallet.contractAddress, amountToApprove, dataToTransfer], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "approveTokenAndCall should fail wehn contract and wallet are the same");
         });
 
         it('should approve a token and call a contract with 1 EOA guardian and 2 smart-contract guardians', async () => {
-            let amountToApprove = 10000;
             await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
             let count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
             assert.equal(count, 3, '3 guardians should be active');
