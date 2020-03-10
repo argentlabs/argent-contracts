@@ -45,6 +45,12 @@ contract RecoveryManager is BaseModule, RelayerModule {
         uint32 guardianCount;
     }
 
+    enum OwnerSignature {
+        Required,
+        Optional,
+        Disallowed
+    }
+
     // the wallet specific storage
     mapping (address => RecoveryConfig) internal recoveryConfigs;
 
@@ -97,8 +103,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow,
-            "RM: insecure security periods");
+        require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow, "RM: insecure security periods");
         guardianStorage = _guardianStorage;
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
@@ -153,33 +158,29 @@ contract RecoveryManager is BaseModule, RelayerModule {
     }
 
     /**
-    * @dev Gets the details of the ongoing recovery procedure if any.
-    * @param _wallet The target wallet.
-    */
-    function getRecovery(BaseWallet _wallet) public view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
-        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        return (config.recovery, config.executeAfter, config.guardianCount);
-    }
-
-    /**
      * @dev Lets the owner start the execution of the ownership transfer procedure.
      * Once triggered the ownership transfer is pending for the security period before it can
      * be finalised.
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function transferOwnership(
-        BaseWallet _wallet,
-        address _newOwner
-    )
-        external
-        onlyExecute
-        onlyWhenUnlocked(_wallet)
+    function transferOwnership(BaseWallet _wallet, address _newOwner) external
+    onlyExecute
+    onlyWhenUnlocked(_wallet)
     {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
         _wallet.setOwner(_newOwner);
 
         emit OwnershipTransfered(address(_wallet), _newOwner);
+    }
+
+    /**
+    * @dev Gets the details of the ongoing recovery procedure if any.
+    * @param _wallet The target wallet.
+    */
+    function getRecovery(BaseWallet _wallet) public view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
+        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
+        return (config.recovery, config.executeAfter, config.guardianCount);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
@@ -252,6 +253,77 @@ contract RecoveryManager is BaseModule, RelayerModule {
             }
             return true;
         }
+    }
+
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory _data,
+        bytes32 _signHash,
+        bytes memory _signatures,
+        OwnerSignature _option
+    ) internal view returns (bool)
+    {
+
+        address lastSigner = address(0);
+        address[] memory guardians = guardianStorage.getGuardians(_wallet);
+        bool isGuardian = false;
+
+        if (_option == OwnerSignature.Required) {
+            // Owner SHOULD sign
+            for (uint8 i = 0; i < _signatures.length / 65; i++) {
+                address signer = recoverSigner(_signHash, _signatures, i);
+                if (i == 0) {
+                    // AT: first signer must be owner
+                    if (!isOwner(_wallet, signer)) {
+                        return false;
+                    }
+                } else {
+                    if (signer <= lastSigner) {
+                        return false;
+                    } // "RM: signers must be different"
+                    lastSigner = signer;
+                    (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+                    if (!isGuardian) {
+                        return false;
+                    } // "RM: signatures not valid"
+                }
+            }
+            return true;
+        } else if (_option == OwnerSignature.Disallowed) {
+            // Owner is NOT allowed to sign
+            for (uint8 i = 0; i < _signatures.length / 65; i++) {
+                address signer = recoverSigner(_signHash, _signatures, i);
+                if (signer <= lastSigner) {
+                    return false;
+                } // "RM: signers must be different"
+                lastSigner = signer;
+                (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+                if (!isGuardian) {
+                    return false;
+                } // "RM: signatures not valid"
+            }
+            return true;
+        } else if (_option == OwnerSignature.Optional) {
+            // Owner MIGHT sign
+            for (uint8 i = 0; i < _signatures.length / 65; i++) {
+                address signer = recoverSigner(_signHash, _signatures, i);
+                if (i == 0 && isOwner(_wallet, signer)) {
+                    // first signer can be owner
+                    continue;
+                } else {
+                    if (signer <= lastSigner) {
+                        return false;
+                    } // "RM: signers must be different"
+                    lastSigner = signer;
+                    (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+                    if (!isGuardian) {
+                        return false;
+                    } // "RM: signatures not valid"
+                }
+            }
+            return true;
+        }
+
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
