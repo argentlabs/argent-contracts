@@ -49,7 +49,7 @@ class TestManager {
             }
             return new etherlime.InfuraPrivateKeyDeployer(this.accounts[0].signer.privateKey, 'ropsten', APIKEY, defaultConfigs);
         }
-        return new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey, 8545, { gasLimit: 6700000 });
+        return new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey);
     }
 
     async getCurrentBlock() {
