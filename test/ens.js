@@ -66,11 +66,11 @@ describe("Test ENS contracts", function () {
             assert.equal(res, ensResolver.contractAddress);
         });
 
-        it.skip("should return the correct availability for a subnode", async () => {
+        it("should return the correct availability for a subnode", async () => {
             let label = "wallet";
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
-            let labelNode1 = ethers.utils.namehash(label);
-            // Node is at first available
+            let labelNode1 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(label));
+            // Node is initially available
             let available = await ensManager.isAvailable(labelNode1);
             assert.isTrue(available);
 
