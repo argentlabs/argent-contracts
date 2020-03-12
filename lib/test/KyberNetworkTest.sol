@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
-import "../temp/ERC20.sol";
-import "../temp/KyberNetwork.sol";
+import "../other/ERC20.sol";
+import "../other/KyberNetwork.sol";
 import "../utils/SafeMath.sol";
 
 contract KyberNetworkTest is KyberNetwork {

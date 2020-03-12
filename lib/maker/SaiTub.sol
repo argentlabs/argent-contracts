@@ -22,7 +22,7 @@ pragma solidity ^0.5.4;
 import "./DS/DSThing.sol";
 import "./DS/DSToken.sol";
 import "./DS/DSValue.sol";
-import "../temp/ERC20.sol";
+import "../other/ERC20.sol";
 
 import "./SaiVox.sol";
 
