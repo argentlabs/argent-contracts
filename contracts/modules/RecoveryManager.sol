@@ -51,18 +51,18 @@ contract RecoveryManager is BaseModule, RelayerModule {
         Disallowed
     }
 
-    // the wallet specific storage
+    // Wallet specific storage
     mapping (address => RecoveryConfig) internal recoveryConfigs;
 
     // Recovery period
     uint256 public recoveryPeriod;
     // Lock period
     uint256 public lockPeriod;
-    // The security period used for (non-recovery) ownership transfer
+    // Security period used for (non-recovery) ownership transfer
     uint256 public securityPeriod;
-    // the security window used for (non-recovery) ownership transfer
+    // Security window used for (non-recovery) ownership transfer
     uint256 public securityWindow;
-    // location of the Guardian storage
+    // Location of the Guardian storage
     GuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
@@ -199,23 +199,23 @@ contract RecoveryManager is BaseModule, RelayerModule {
 
         bytes4 functionSignature = functionPrefix(_data);
         if (functionSignature == TRANSFER_OWNERSHIP_PREFIX) {
-            // Owner SHOULD sign
+            // Owner MUST sign
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
                 if (i == 0) {
-                    // AT: first signer must be owner
+                    // First signer must be owner
                     if (!isOwner(_wallet, signer)) {
                         return false;
                     }
                 } else {
                     if (signer <= lastSigner) {
                         return false;
-                    } // "RM: signers must be different"
+                    } // Signers must be different
                     lastSigner = signer;
                     (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
                     if (!isGuardian) {
                         return false;
-                    } // "RM: signatures not valid"
+                    } // Signature not valid
                 }
             }
             return true;
@@ -225,12 +225,12 @@ contract RecoveryManager is BaseModule, RelayerModule {
                 address signer = recoverSigner(_signHash, _signatures, i);
                 if (signer <= lastSigner) {
                     return false;
-                } // "RM: signers must be different"
+                } // Signers must be different
                 lastSigner = signer;
                 (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
                 if (!isGuardian) {
                     return false;
-                } // "RM: signatures not valid"
+                } // Signature not valid
             }
             return true;
         } else if (functionSignature == CANCEL_RECOVERY_PREFIX) {
@@ -238,17 +238,17 @@ contract RecoveryManager is BaseModule, RelayerModule {
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
                 if (i == 0 && isOwner(_wallet, signer)) {
-                    // first signer can be owner
+                    // First signer can be owner
                     continue;
                 } else {
                     if (signer <= lastSigner) {
                         return false;
-                    } // "RM: signers must be different"
+                    } // Signers must be different
                     lastSigner = signer;
                     (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
                     if (!isGuardian) {
                         return false;
-                    } // "RM: signatures not valid"
+                    } // Signature not valid
                 }
             }
             return true;
@@ -269,38 +269,38 @@ contract RecoveryManager is BaseModule, RelayerModule {
         bool isGuardian = false;
 
         if (_option == OwnerSignature.Required) {
-            // Owner SHOULD sign
+            // Owner MUST sign
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
                 if (i == 0) {
-                    // AT: first signer must be owner
+                    // First signer must be owner
                     if (!isOwner(_wallet, signer)) {
                         return false;
                     }
                 } else {
                     if (signer <= lastSigner) {
                         return false;
-                    } // "RM: signers must be different"
+                    } // Signers must be different"
                     lastSigner = signer;
                     (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
                     if (!isGuardian) {
                         return false;
-                    } // "RM: signatures not valid"
+                    } // Signature not valid
                 }
             }
             return true;
         } else if (_option == OwnerSignature.Disallowed) {
-            // Owner is NOT allowed to sign
+            // Owner MUST NOT sign
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
                 if (signer <= lastSigner) {
                     return false;
-                } // "RM: signers must be different"
+                } // Signers must be different"
                 lastSigner = signer;
                 (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
                 if (!isGuardian) {
                     return false;
-                } // "RM: signatures not valid"
+                } // Signature not valid"
             }
             return true;
         } else if (_option == OwnerSignature.Optional) {
@@ -308,17 +308,17 @@ contract RecoveryManager is BaseModule, RelayerModule {
             for (uint8 i = 0; i < _signatures.length / 65; i++) {
                 address signer = recoverSigner(_signHash, _signatures, i);
                 if (i == 0 && isOwner(_wallet, signer)) {
-                    // first signer can be owner
+                    // First signer can be owner
                     continue;
                 } else {
                     if (signer <= lastSigner) {
                         return false;
-                    } // "RM: signers must be different"
+                    } // Signers must be different
                     lastSigner = signer;
                     (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
                     if (!isGuardian) {
                         return false;
-                    } // "RM: signatures not valid"
+                    } // Signature not valid
                 }
             }
             return true;
