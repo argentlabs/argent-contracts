@@ -261,6 +261,13 @@ describe("RecoveryManager", function () {
     })
 
     describe("Ownership Transfer", () => {
+        it("should not allow transfer to an empty address", async () => {
+            await addGuardians([guardian1]);
+            let txReceipt = await manager.relay(recoveryManager, 'transferOwnership', [wallet.contractAddress, ethers.constants.AddressZero], wallet, [owner, guardian1]);
+            const success = parseRelayReceipt(txReceipt);
+            assert.isNotOk(success, "transferOwnership should fail");
+        });
+
         describe("Guardians: G = 1", () => {
             beforeEach(async () => {
                 await addGuardians([guardian1]);
