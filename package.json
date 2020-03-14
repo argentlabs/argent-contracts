@@ -15,7 +15,7 @@
     "test:coverage": "bash ./scripts/provision_lib_artefacts.sh & SOLIDITY_COVERAGE=1 npx etherlime coverage --solcVersion 0.5.4 && istanbul check-coverage --statements 74 --branches 60 --functions 77 --lines 74",
     "lint:contracts": "npx ethlint --dir .",
     "ethlint-staged": "bash ./scripts/ethlint.sh",
-    "test:deployment": "./deploy.sh ganache `seq 1 7`"
+    "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`"
   },
   "husky": {
     "hooks": {
