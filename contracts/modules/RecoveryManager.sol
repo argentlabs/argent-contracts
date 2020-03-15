@@ -193,77 +193,23 @@ contract RecoveryManager is BaseModule, RelayerModule {
     )
         internal view returns (bool)
     {
-        address lastSigner = address(0);
-        address[] memory guardians = guardianStorage.getGuardians(_wallet);
-        bool isGuardian = false;
-
         bytes4 functionSignature = functionPrefix(_data);
         if (functionSignature == TRANSFER_OWNERSHIP_PREFIX) {
-            // Owner MUST sign
-            for (uint8 i = 0; i < _signatures.length / 65; i++) {
-                address signer = recoverSigner(_signHash, _signatures, i);
-                if (i == 0) {
-                    // First signer must be owner
-                    if (!isOwner(_wallet, signer)) {
-                        return false;
-                    }
-                } else {
-                    if (signer <= lastSigner) {
-                        return false;
-                    } // Signers must be different
-                    lastSigner = signer;
-                    (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                    if (!isGuardian) {
-                        return false;
-                    } // Signature not valid
-                }
-            }
-            return true;
+            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
         } else if (functionSignature == EXECUTE_RECOVERY_PREFIX) {
-            // Owner is NOT allowed to sign
-            for (uint8 i = 0; i < _signatures.length / 65; i++) {
-                address signer = recoverSigner(_signHash, _signatures, i);
-                if (signer <= lastSigner) {
-                    return false;
-                } // Signers must be different
-                lastSigner = signer;
-                (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                if (!isGuardian) {
-                    return false;
-                } // Signature not valid
-            }
-            return true;
+            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Disallowed);
         } else if (functionSignature == CANCEL_RECOVERY_PREFIX) {
-            // Owner MIGHT sign
-            for (uint8 i = 0; i < _signatures.length / 65; i++) {
-                address signer = recoverSigner(_signHash, _signatures, i);
-                if (i == 0 && isOwner(_wallet, signer)) {
-                    // First signer can be owner
-                    continue;
-                } else {
-                    if (signer <= lastSigner) {
-                        return false;
-                    } // Signers must be different
-                    lastSigner = signer;
-                    (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                    if (!isGuardian) {
-                        return false;
-                    } // Signature not valid
-                }
-            }
-            return true;
+            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Optional);
         }
     }
 
     function validateSignatures(
         BaseWallet _wallet,
-        bytes memory _data,
         bytes32 _signHash,
         bytes memory _signatures,
         OwnerSignature _option
     ) internal view returns (bool)
     {
-
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
