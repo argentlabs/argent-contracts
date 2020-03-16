@@ -32,12 +32,9 @@ describe("Test SimpleUpgrader", function () {
             let isRegistered;
             // Here we adjust how we call isRegisteredModule which has 2 overlaods, one accepting a single address
             // and a second accepting an array of addresses. Behaviour as to which overload is selected to run
-            // differs between CI and Coverage environments, adjusted for this here
-            if (process.env.CI && process.env.SOLIDITY_COVERAGE) {
-                isRegistered = await registry.isRegisteredModule([initialModule.contractAddress]);
-            } else {
-                isRegistered = await registry.isRegisteredModule(initialModule.contractAddress);
-            }
+            // differs between CI and Coverage environments, adjusted for this here 
+            isRegistered = await registry["isRegisteredModule(address)"](initialModule.contractAddress);
+            
             assert.equal(isRegistered, true, "module1 should be registered");
             let info = await registry.moduleInfo(initialModule.contractAddress);
             assert.equal(ethers.utils.parseBytes32String(info), name, "module1 should be registered with the correct name");
