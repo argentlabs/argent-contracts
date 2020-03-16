@@ -164,10 +164,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function transferOwnership(BaseWallet _wallet, address _newOwner) external
-    onlyExecute
-    onlyWhenUnlocked(_wallet)
-    {
+    function transferOwnership(BaseWallet _wallet, address _newOwner) external onlyExecute onlyWhenUnlocked(_wallet) {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
         _wallet.setOwner(_newOwner);
 
