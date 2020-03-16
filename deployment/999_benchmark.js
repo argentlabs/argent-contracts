@@ -3,7 +3,6 @@
 const BaseWallet = require('../build/BaseWallet');
 const Proxy = require('../build/Proxy');
 const ModuleRegistry = require('../build/ModuleRegistry');
-const DappRegistry = require('../build/DappRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const ENS = require('../build/ENSRegistryWithFallback');
 const ENSManager = require('../build/ArgentENSManager');
@@ -73,7 +72,6 @@ class Benchmark {
         this.MakerV2ManagerWrapper = await this.deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
 
         this.ModuleRegistryWrapper = await this.deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
-        this.DappRegistryWrapper = await this.deployer.wrapDeployedContract(DappRegistry, config.contracts.DappRegistry);
         this.MultiSigWrapper = await this.deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
         this.WalletFactoryWrapper = await this.deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
         this.BaseWalletWrapper = await this.deployer.wrapDeployedContract(BaseWallet, config.contracts.BaseWallet);

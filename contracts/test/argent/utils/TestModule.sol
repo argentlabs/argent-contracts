@@ -20,10 +20,18 @@ contract TestModule is BaseModule, RelayerModule {
         uintVal = _uintVal;
     }
 
+    function invalidOwnerChange(BaseWallet _wallet) external {
+        _wallet.setOwner(address(0)); // this should fail
+    }
+
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
-        _wallet.enableStaticCall(address(this), bytes4(keccak256("getBoolean()")));
-        _wallet.enableStaticCall(address(this), bytes4(keccak256("getUint()")));
-        _wallet.enableStaticCall(address(this), bytes4(keccak256("getAddress(address)")));
+        enableStaticCalls(_wallet, address(this));
+    }
+
+    function enableStaticCalls(BaseWallet _wallet, address _module) public {
+        _wallet.enableStaticCall(_module, bytes4(keccak256("getBoolean()")));
+        _wallet.enableStaticCall(_module, bytes4(keccak256("getUint()")));
+        _wallet.enableStaticCall(_module, bytes4(keccak256("getAddress(address)")));
     }
 
     function getBoolean() public view returns (bool) {
@@ -34,7 +42,7 @@ contract TestModule is BaseModule, RelayerModule {
         return uintVal;
     }
 
-    function getAddress(address _addr) public view returns (address) {
+    function getAddress(address _addr) public pure returns (address) {
         return _addr;
     }
 

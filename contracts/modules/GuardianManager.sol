@@ -59,17 +59,6 @@ contract GuardianManager is BaseModule, RelayerModule {
     event GuardianAdded(address indexed wallet, address indexed guardian);
     event GuardianRevoked(address indexed wallet, address indexed guardian);
 
-    // *************** Modifiers ************************ //
-
-    /**
-     * @dev Throws if the wallet is not locked.
-     */
-    modifier onlyWhenLocked(BaseWallet _wallet) {
-        // solium-disable-next-line security/no-block-members
-        require(guardianStorage.isLocked(_wallet), "GM: wallet must be locked");
-        _;
-    }
-
     // *************** Constructor ********************** //
 
     constructor(
@@ -213,15 +202,6 @@ contract GuardianManager is BaseModule, RelayerModule {
      */
     function guardianCount(BaseWallet _wallet) external view returns (uint256 _count) {
         return guardianStorage.guardianCount(_wallet);
-    }
-
-    /**
-     * @dev Get the active guardians for a wallet.
-     * @param _wallet The target wallet.
-     * @return the active guardians for a wallet.
-     */
-    function getGuardians(BaseWallet _wallet) external view returns (address[] memory _guardians) {
-        return guardianStorage.getGuardians(_wallet);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //

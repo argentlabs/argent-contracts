@@ -15,9 +15,9 @@
 
 pragma solidity ^0.5.4;
 import "../../lib/utils/SafeMath.sol";
-import "./ERC20.sol";
+import "../../lib/other/ERC20.sol";
 import "../base/Managed.sol";
-import "./KyberNetwork.sol";
+import "../../lib/other/KyberNetwork.sol";
 
 contract TokenPriceProvider is Managed {
 

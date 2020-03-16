@@ -26,13 +26,14 @@ bin
 .outputParameter
 
 .env
-*.sh
 utils/config/*.json
 !utils/config/ganache.json
 
 ## Etherlime
 **/.etherlime-store
 flat
-
-
-
+.coverage_artifacts
+.coverage_contracts
+.coverage_tests
+coverage
+coverage.json

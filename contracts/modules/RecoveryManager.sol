@@ -255,12 +255,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
             uint majorityGuardians = SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
             return SafeMath.add(majorityGuardians, 1);
         }
-        if (methodId == FINALIZE_OWNERSHIP_TRANSFER_PREFIX) {
-            return 0;
-        }
-        if (methodId == CANCEL_OWNERSHIP_TRANSFER_PREFIX) {
-            return 1;
-        }
         revert("RM: unknown method");
     }
 }
