@@ -6,6 +6,11 @@ See full specifications [here](specifications/specifications.pdf)
 
 ## Install
 
+Ensure the correct node version is installed:
+```
+nvm install `cat .nvmrc`
+```
+
 Install requirements with npm:
 ```
 npm install
