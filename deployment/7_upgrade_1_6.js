@@ -1,4 +1,5 @@
 const ApprovedTransfer = require('../build/ApprovedTransfer');
+const RecoveryManager = require('../build/RecoveryManager');
 const MultiSig = require('../build/MultiSigWallet');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const Upgrader = require('../build/SimpleUpgrader');
@@ -7,8 +8,8 @@ const MultisigExecutor = require('../utils/multisigexecutor.js');
 const utils = require('../utils/utilities.js');
 const semver = require('semver');
 
-const TARGET_VERSION = "1.5.0";
-const MODULES_TO_ENABLE = ["ApprovedTransfer"];
+const TARGET_VERSION = "1.6.0";
+const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager"];
 const MODULES_TO_DISABLE = ["UniswapManager"];
 
 const BACKWARD_COMPATIBILITY = 3;
@@ -48,12 +49,25 @@ const deploy = async (network) => {
 
     newModuleWrappers.push(ApprovedTransferWrapper);
 
+    const RecoveryManagerWrapper = await deployer.deploy(
+        RecoveryManager,
+        {},
+        config.contracts.ModuleRegistry,
+        config.modules.GuardianStorage,
+        config.settings.recoveryPeriod || 0,
+        config.settings.lockPeriod || 0,
+        config.settings.securityPeriod || 0,
+        config.settings.securityWindow || 0);
+
+    newModuleWrappers.push(RecoveryManagerWrapper);
+
     ///////////////////////////////////////////////////
     // Update config and Upload ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        ApprovedTransfer: ApprovedTransferWrapper.contractAddress
+        ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
+        RecoveryManager: RecoveryManagerWrapper.contractAddress
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
@@ -61,7 +75,8 @@ const deploy = async (network) => {
     await configurator.save();
 
     await Promise.all([
-        abiUploader.upload(ApprovedTransferWrapper, "modules")
+        abiUploader.upload(ApprovedTransferWrapper, "modules"),
+        abiUploader.upload(RecoveryManagerWrapper, "modules")
     ]);
 
     ////////////////////////////////////
