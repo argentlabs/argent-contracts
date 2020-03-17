@@ -11,9 +11,11 @@
     "ganache": "npx etherlime ganache --gasLimit=10700000 -e 10000",
     "test": "npx etherlime test --skip-compilation",
     "ctest": "npm run compile && npm run test",
+    "provision:lib:artefacts": "bash ./scripts/provision_lib_artefacts.sh",
+    "test:coverage": "bash ./scripts/provision_lib_artefacts.sh & npx etherlime coverage --solcVersion 0.5.4 && istanbul check-coverage --statements 74 --branches 60 --functions 77 --lines 74",
     "lint:contracts": "npx ethlint --dir .",
     "ethlint-staged": "bash ./scripts/ethlint.sh",
-    "test:deployment": "./deploy.sh ganache `seq 1 7`"
+    "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`"
   },
   "husky": {
     "hooks": {
@@ -37,12 +39,13 @@
     "cli-table2": "^0.2.0",
     "dotenv": "^6.2.0",
     "ethereumjs-wallet": "^0.6.3",
-    "etherlime": "2.2.4",
+    "etherlime": "^2.3.0",
     "etherlime-lib": "1.1.3",
     "ethers": "^4.0.28",
     "ethlint": "^1.2.5",
     "husky": "^4.2.3",
     "inquirer": "^7.0.0",
+    "istanbul": "^0.4.5",
     "node-fetch": "^2.3.0",
     "openzeppelin-solidity": "2.3.0",
     "ps-node": "^0.1.6",

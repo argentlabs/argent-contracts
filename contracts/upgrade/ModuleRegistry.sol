@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 import "../interfaces/Module.sol";
 import "../base/Owned.sol";
-import "../exchange/ERC20.sol";
+import "../../lib/other/ERC20.sol";
 
 /**
  * @title ModuleRegistry

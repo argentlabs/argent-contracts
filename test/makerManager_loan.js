@@ -6,8 +6,8 @@ const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
 const MakerManager = require("../build/MakerManager");
 
-const UniswapFactory = require("../contracts/test/uniswap/UniswapFactory");
-const UniswapExchange = require("../contracts/test/uniswap/UniswapExchange");
+const UniswapFactory = require("../lib/uniswap/UniswapFactory");
+const UniswapExchange = require("../lib/uniswap/UniswapExchange");
 
 const TestManager = require("../utils/test-manager");
 

@@ -18,7 +18,7 @@ import "../../wallet/BaseWallet.sol";
 import "../../upgrade/ModuleRegistry.sol";
 import "../../storage/GuardianStorage.sol";
 import "../../interfaces/Module.sol";
-import "../../exchange/ERC20.sol";
+import "../../../lib/other/ERC20.sol";
 
 /**
  * @title BaseModule

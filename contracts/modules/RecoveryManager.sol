@@ -37,9 +37,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     bytes4 constant internal EXECUTE_RECOVERY_PREFIX = bytes4(keccak256("executeRecovery(address,address)"));
     bytes4 constant internal FINALIZE_RECOVERY_PREFIX = bytes4(keccak256("finalizeRecovery(address)"));
     bytes4 constant internal CANCEL_RECOVERY_PREFIX = bytes4(keccak256("cancelRecovery(address)"));
-    bytes4 constant internal EXECUTE_OWNERSHIP_TRANSFER_PREFIX = bytes4(keccak256("executeOwnershipTransfer(address,address)"));
-    bytes4 constant internal FINALIZE_OWNERSHIP_TRANSFER_PREFIX = bytes4(keccak256("finalizeOwnershipTransfer(address)"));
-    bytes4 constant internal CANCEL_OWNERSHIP_TRANSFER_PREFIX = bytes4(keccak256("cancelOwnershipTransfer(address)"));
+    bytes4 constant internal TRANSFER_OWNERSHIP_PREFIX = bytes4(keccak256("transferOwnership(address,address)"));
 
     struct RecoveryConfig {
         address recovery;
@@ -47,24 +45,24 @@ contract RecoveryManager is BaseModule, RelayerModule {
         uint32 guardianCount;
     }
 
-    struct OwnershipTransferConfig {
-        address newOwner;
-        uint64 executeAfter;
+    enum OwnerSignature {
+        Required,
+        Optional,
+        Disallowed
     }
 
-    // the wallet specific storage
+    // Wallet specific storage
     mapping (address => RecoveryConfig) internal recoveryConfigs;
-    mapping (address => OwnershipTransferConfig) internal ownershipTransferConfigs;
 
     // Recovery period
     uint256 public recoveryPeriod;
     // Lock period
     uint256 public lockPeriod;
-    // The security period used for (non-recovery) ownership transfer
+    // Security period used for (non-recovery) ownership transfer
     uint256 public securityPeriod;
-    // the security window used for (non-recovery) ownership transfer
+    // Security window used for (non-recovery) ownership transfer
     uint256 public securityWindow;
-    // location of the Guardian storage
+    // Location of the Guardian storage
     GuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
@@ -72,9 +70,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     event RecoveryExecuted(address indexed _wallet, address indexed _recovery, uint64 executeAfter);
     event RecoveryFinalized(address indexed _wallet, address indexed _recovery);
     event RecoveryCanceled(address indexed _wallet, address indexed _recovery);
-    event OwnershipTransferExecuted(address indexed _wallet, address indexed _newOwner, uint64 executeAfter);
-    event OwnershipTransferFinalized(address indexed _wallet, address indexed _newOwner);
-    event OwnershipTransferCanceled(address indexed _wallet, address indexed _newOwner);
+    event OwnershipTransfered(address indexed _wallet, address indexed _newOwner);
 
     // *************** Modifiers ************************ //
 
@@ -94,23 +90,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
         _;
     }
 
-        /**
-     * @dev Throws if there is no ongoing ownership transfer procedure.
-     */
-    modifier onlyWhenOwnershipTransfer(BaseWallet _wallet) {
-        require(ownershipTransferConfigs[address(_wallet)].executeAfter > 0, "RM: there must be an ongoing ownership transfer");
-        _;
-    }
-
-    /**
-     * @dev Throws if there is an ongoing ownership transfer procedure.
-     */
-    modifier notWhenOwnershipTransfer(BaseWallet _wallet) {
-        require(now > ownershipTransferConfigs[address(_wallet)].executeAfter + securityWindow,
-            "RM: there cannot be an ongoing ownership transfer");
-        _;
-    }
-
     // *************** Constructor ************************ //
 
     constructor(
@@ -124,8 +103,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow,
-            "RM: insecure security periods");
+        require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow, "RM: insecure security periods");
         guardianStorage = _guardianStorage;
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
@@ -174,18 +152,9 @@ contract RecoveryManager is BaseModule, RelayerModule {
      */
     function cancelRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        emit  RecoveryCanceled(address(_wallet), config.recovery);
+        emit RecoveryCanceled(address(_wallet), config.recovery);
         guardianStorage.setLock(_wallet, 0);
         delete recoveryConfigs[address(_wallet)];
-    }
-
-    /**
-    * @dev Gets the details of the ongoing recovery procedure if any.
-    * @param _wallet The target wallet.
-    */
-    function getRecovery(BaseWallet _wallet) public view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
-        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        return (config.recovery, config.executeAfter, config.guardianCount);
     }
 
     /**
@@ -195,57 +164,20 @@ contract RecoveryManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function executeOwnershipTransfer(
-        BaseWallet _wallet,
-        address _newOwner
-    )
-        external
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
-        notWhenOwnershipTransfer(_wallet)
-    {
+    function transferOwnership(BaseWallet _wallet, address _newOwner) external onlyExecute onlyWhenUnlocked(_wallet) {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
-        OwnershipTransferConfig storage config = ownershipTransferConfigs[address(_wallet)];
-        config.newOwner = _newOwner;
-        config.executeAfter = uint64(now + securityPeriod);
-        emit OwnershipTransferExecuted(address(_wallet), _newOwner, config.executeAfter);
+        _wallet.setOwner(_newOwner);
+
+        emit OwnershipTransfered(address(_wallet), _newOwner);
     }
 
     /**
-     * @dev Finalizes an ongoing ownership transfer procedure if the security period is over.
-     * The method must be called during the confirmation window and
-     * can be called by anyone to enable orchestration.
-     * @param _wallet The target wallet.
-     */
-    function finalizeOwnershipTransfer(
-        BaseWallet _wallet
-    ) external
-        onlyWhenUnlocked(_wallet)
-        onlyWhenOwnershipTransfer(_wallet)
-    {
-        OwnershipTransferConfig storage config = ownershipTransferConfigs[address(_wallet)];
-        require(config.executeAfter < now, "RM: Too early to confirm ownership transfer");
-        require(now < config.executeAfter + securityWindow, "RM: Too late to confirm ownership transfer");
-        _wallet.setOwner(config.newOwner);
-        emit OwnershipTransferFinalized(address(_wallet), config.newOwner);
-        delete ownershipTransferConfigs[address(_wallet)];
-    }
-
-    /**
-     * @dev Lets the owner cancel an ongoing ownership transfer procedure.
-     * @param _wallet The target wallet.
-     */
-    function cancelOwnershipTransfer(
-        BaseWallet _wallet
-    )
-        external
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
-        onlyWhenOwnershipTransfer(_wallet)
-    {
-        OwnershipTransferConfig storage config = ownershipTransferConfigs[address(_wallet)];
-        emit  OwnershipTransferCanceled(address(_wallet), config.newOwner);
-        delete ownershipTransferConfigs[address(_wallet)];
+    * @dev Gets the details of the ongoing recovery procedure if any.
+    * @param _wallet The target wallet.
+    */
+    function getRecovery(BaseWallet _wallet) public view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
+        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
+        return (config.recovery, config.executeAfter, config.guardianCount);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
@@ -258,23 +190,51 @@ contract RecoveryManager is BaseModule, RelayerModule {
     )
         internal view returns (bool)
     {
+        bytes4 functionSignature = functionPrefix(_data);
+        if (functionSignature == TRANSFER_OWNERSHIP_PREFIX) {
+            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
+        } else if (functionSignature == EXECUTE_RECOVERY_PREFIX) {
+            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Disallowed);
+        } else if (functionSignature == CANCEL_RECOVERY_PREFIX) {
+            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Optional);
+        }
+    }
+
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes32 _signHash,
+        bytes memory _signatures,
+        OwnerSignature _option
+    ) internal view returns (bool)
+    {
         address lastSigner = address(0);
         address[] memory guardians = guardianStorage.getGuardians(_wallet);
         bool isGuardian = false;
+
         for (uint8 i = 0; i < _signatures.length / 65; i++) {
             address signer = recoverSigner(_signHash, _signatures, i);
-            if (i == 0 && isOwner(_wallet, signer)) {
-                // first signer can be owner
-                continue;
-            } else {
-                if (signer <= lastSigner) {
+
+            if (i == 0) {
+                if (_option == OwnerSignature.Required) {
+                    // First signer must be owner
+                    if (isOwner(_wallet, signer)) {
+                        continue;
+                    }
                     return false;
-                } // "RM: signers must be different"
-                lastSigner = signer;
-                (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                if (!isGuardian) {
-                    return false;
-                } // "RM: signatures not valid"
+                } else if (_option == OwnerSignature.Optional) {
+                    // First signer can be owner
+                    if (isOwner(_wallet, signer)) {
+                        continue;
+                    }
+                }
+            }
+            if (signer <= lastSigner) {
+                return false;
+            } // Signers must be different
+            lastSigner = signer;
+            (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+            if (!isGuardian) {
+                return false;
             }
         }
         return true;
@@ -283,7 +243,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
-            return SafeMath.ceil(guardianStorage.guardianCount(_wallet) + 1, 2);
+            return SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
             return 0;
@@ -291,15 +251,10 @@ contract RecoveryManager is BaseModule, RelayerModule {
         if (methodId == CANCEL_RECOVERY_PREFIX) {
             return SafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
         }
-        if (methodId == EXECUTE_OWNERSHIP_TRANSFER_PREFIX) {
-            return 1;
+        if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
+            uint majorityGuardians = SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            return SafeMath.add(majorityGuardians, 1);
         }
-        if (methodId == FINALIZE_OWNERSHIP_TRANSFER_PREFIX) {
-            return 0;
-        }
-        if (methodId == CANCEL_OWNERSHIP_TRANSFER_PREFIX) {
-            return 1;
-        }
-        revert("RM: unknown  method");
+        revert("RM: unknown method");
     }
 }

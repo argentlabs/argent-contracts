@@ -22,7 +22,7 @@ import "./common/BaseTransfer.sol";
 import "./common/LimitManager.sol";
 import "../exchange/TokenPriceProvider.sol";
 import "../storage/TransferStorage.sol";
-import "../exchange/ERC20.sol";
+import "../../lib/other/ERC20.sol";
 
 /**
  * @title TransferManager

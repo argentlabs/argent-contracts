@@ -5,6 +5,7 @@ const ENSResolver = require('../build/ArgentENSResolver');
 const ENSReverseRegistrar = require('../build/ReverseRegistrar');
 
 const TestManager = require("../utils/test-manager");
+const utilities = require('../utils/utilities.js');
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -65,6 +66,25 @@ describe("Test ENS contracts", function () {
             assert.equal(res, ensResolver.contractAddress);
         });
 
+        it("should return the correct availability for a subnode", async () => {
+            let label = "wallet";
+            let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
+            let labelNode1 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(label));
+            // Node is initially available
+            let available = await ensManager.isAvailable(labelNode1);
+            assert.isTrue(available);
+
+            // then we register it
+            await ensManager.from(infrastructure).register(label, owner.address);
+
+            const nodeOwner = await ensRegistry.owner(labelNode);
+            assert.equal(nodeOwner, owner.address);
+
+            // then the node is unavailable
+            available = await ensManager.isAvailable(labelNode1);
+            assert.isFalse(available);
+        });
+
         it("should add a new manager and register an ENS name", async () => {
             let label = "wallet";
             let labelNode = ethers.utils.namehash(label + '.' + subnameWallet + "." + root);
@@ -77,6 +97,34 @@ describe("Test ENS contracts", function () {
         it("should fail to register an ENS name when the caller is not a manager", async () => {
             let label = "wallet";
             await assert.revert(ensManager.from(anonmanager).register(label, owner.address), "registering should throw");
+        });
+
+        it("should be able to change the root node owner", async () => {
+            const randomAddress = await utilities.getRandomAddress();
+            await ensManager.changeRootnodeOwner(randomAddress);
+            const rootNodeOwner = await ensRegistry.owner(walletNode);
+            assert.equal(rootNodeOwner, randomAddress);
+        });
+
+        it("should not be able to change the root node owner if not the owner", async () => {
+            const randomAddress = await utilities.getRandomAddress();
+            await assert.revertWith(ensManager.from(amanager).changeRootnodeOwner(randomAddress), "Must be owner");
+        });
+
+        it("should be able to change the ens resolver", async () => {
+            const randomAddress = await utilities.getRandomAddress();
+            await ensManager.changeENSResolver(randomAddress);
+            const resolver = await ensManager.ensResolver()
+            assert.equal(resolver, randomAddress);
+        });
+
+        it("should not be able to change the ens resolver if not owner", async () => {
+            const randomAddress = await utilities.getRandomAddress();
+            await assert.revertWith(ensManager.from(amanager).changeENSResolver(randomAddress), "Must be owner");
+        });
+
+        it("should not be able to change the ens resolver to an empty address", async () => {
+            await assert.revertWith(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");            
         });
     });
 
@@ -102,10 +150,11 @@ describe("Test ENS contracts", function () {
 
         it("should resolve a name", async () => {
             let label = "wallet";
-            let ensName = label + '.' + subnameWallet + "." + root;
             await ensManager.from(infrastructure).register(label, owner.address);
-            let resolved = await ensResolver.addr(ethers.utils.namehash(ensName));
-            assert.equal(resolved, owner.address, "should resolve to owner");
+
+            const node = await ensReverse.node(owner.address);
+            const name = await ensResolver.name(node);
+            assert.equal(name, "wallet.argent.xyz");
         });
     });
 });

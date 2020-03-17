@@ -72,8 +72,28 @@ describe("Test TransferManager", function () {
         await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify('1000000000000000000') });
     });
 
-    describe("Managing limit and whitelist ", () => {
+    describe("Initialising the module", () => {
+        it("when no previous transfer manager is passed, should initialise with default limit", async () => {
+            const transferModule1 = await deployer.deploy(TransferModule, {},
+                registry.contractAddress,
+                transferStorage.contractAddress,
+                guardianStorage.contractAddress,
+                priceProvider.contractAddress,
+                SECURITY_PERIOD,
+                SECURITY_WINDOW,
+                10,
+                ethers.constants.AddressZero
+            );
 
+            let existingWallet = await deployer.deploy(Wallet);
+            await existingWallet.init(owner.address, [transferModule1.contractAddress]);
+
+            const limit = await transferModule1.defaultLimit();
+            assert.equal(limit, 10); 
+        });
+    });
+
+    describe("Managing limit and whitelist ", () => {
         it('should migrate the limit for existing wallets', async () => {
             // create wallet with previous module and funds
             let existingWallet = await deployer.deploy(Wallet);
@@ -94,10 +114,12 @@ describe("Test TransferManager", function () {
             let unspent = await transferModule.getDailyUnspent(existingWallet.contractAddress);
             assert.equal(unspent[0].toNumber(), 4000000 - 1000000, 'unspent should have been migrated');
         });
+
         it('should set the default limit for new wallets', async () => {
             let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
         });
+
         it('should only change the limit after the security period', async () => {
             await transferModule.from(owner).changeLimit(wallet.contractAddress, 4000000);
             let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
@@ -106,12 +128,14 @@ describe("Test TransferManager", function () {
             limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), 4000000, "limit should be changed");
         });
+
         it('should change the limit via relayed transaction', async () => {
             await manager.relay(transferModule, 'changeLimit', [wallet.contractAddress, 4000000], wallet, [owner]);
             await manager.increaseTime(3);
             limit = await transferModule.getCurrentLimit(wallet.contractAddress);
             assert.equal(limit.toNumber(), 4000000, "limit should be changed");
         });
+
         it('should add/remove an account to/from the whitelist', async () => {
             await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
             let isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
@@ -121,7 +145,17 @@ describe("Test TransferManager", function () {
             assert.equal(isTrusted, true, "should be trusted after the security period");
             await transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address);
             isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
-            assert.equal(isTrusted, false, "should no removed from whitemist immediately");
+            assert.equal(isTrusted, false, "should no removed from whitelist immediately");
+        });
+
+        it("should not be able to whitelist a token twice", async () => {
+            await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
+            await manager.increaseTime(3);
+            await assert.revertWith(transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address), "TT: target already whitelisted");
+        });
+
+        it("should not be able to remove a non-whitelisted token from the whitelist", async () => {
+            await assert.revertWith(transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address), "TT: target not whitelisted");
         });
     });
 
@@ -287,7 +321,6 @@ describe("Test TransferManager", function () {
     });
 
     describe("Token Approvals", () => {
-
         async function doDirectApprove({ signer = owner, amount, relayed = false }) {
             let unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
             const params = [wallet.contractAddress, erc20.contractAddress, spender.address, amount];
@@ -300,21 +333,32 @@ describe("Test TransferManager", function () {
             }
             assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "Approved"), "should have generated Approved event");
             let unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
+
             let amountInEth = await priceProvider.getEtherValue(amount, erc20.contractAddress);
             if (amountInEth < ETH_LIMIT) {
                 assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, 'should have updated the daily limit');
             }
             let approval = await erc20.allowance(wallet.contractAddress, spender.address);
+
             assert.equal(approval.toNumber(), amount, "should have approved the amount");
             return txReceipt;
         }
 
-        it('should appprove an ERC20 immediately when the amount is under the limit ', async () => {
+        it('should appprove an ERC20 immediately when the amount is under the limit', async () => {
             await doDirectApprove({ amount: 10 });
         });
+
         it('should appprove an ERC20 immediately when the amount is under the limit (relayed) ', async () => {
             await doDirectApprove({ amount: 10, relayed: true });
         });
+
+        it("should appprove an ERC20 immediately when the amount is under the existing approved amount", async () => {
+            await doDirectApprove({ amount: 100 });
+            await transferModule.from(owner).approveToken(wallet.contractAddress, erc20.contractAddress, spender.address, 10);
+            const approval = await erc20.allowance(wallet.contractAddress, spender.address);
+            assert.equal(approval.toNumber(), 10);
+        });
+
         it('should not appprove an ERC20 transfer when the signer is not the owner ', async () => {
             try {
                 await doDirectApprove({ signer: nonowner, amount: 10 });
@@ -371,6 +415,7 @@ describe("Test TransferManager", function () {
         it('should call a contract and transfer ETH under the limit (relayed) ', async () => {
             await doCallContract({ value: 10, state: 3, relayed: true });
         });
+
         it('should call a contract and transfer ETH above my limit value when the contract is whitelisted ', async () => {
             await transferModule.from(owner).addToWhitelist(wallet.contractAddress, contract.contractAddress);
             await manager.increaseTime(3);
@@ -408,6 +453,7 @@ describe("Test TransferManager", function () {
             assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "CalledContract"), "should have generated CalledContract event");
             let unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
             let amountInEth = await priceProvider.getEtherValue(amount, erc20.contractAddress);
+
             if (amountInEth < ETH_LIMIT) {
                 assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, 'should have updated the daily limit');
             }
@@ -420,9 +466,20 @@ describe("Test TransferManager", function () {
         it('should approve the token and call the contract when under the limit', async () => {
             await doApproveTokenAndCallContract({ amount: 10, state: 3 });
         });
+
         it('should approve the token and call the contract when under the limit (relayed) ', async () => {
             await doApproveTokenAndCallContract({ amount: 10, state: 3, relayed: true });
         });
+
+        it("should approve the token and call the contract when under the existing approved amount", async () => {
+            await transferModule.from(owner).approveToken(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 10);
+            const dataToTransfer = contract.contract.interface.functions['setStateAndPayToken'].encode([3, erc20.contractAddress, 1]);
+            await transferModule.from(owner).approveTokenAndCallContract(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 1, dataToTransfer);
+            const approval = await erc20.allowance(wallet.contractAddress, contract.contractAddress);
+            // No approval updates were done to the initial approval of 10, then the call succeeded with 1, leaving 9
+            assert.equal(approval.toNumber(), 9);
+        });
+
         it('should approve the token and call the contract when the token is above the limit and the contract is whitelisted ', async () => {
             await transferModule.from(owner).addToWhitelist(wallet.contractAddress, contract.contractAddress);
             await manager.increaseTime(3);
@@ -436,7 +493,4 @@ describe("Test TransferManager", function () {
             }
         });
     });
-
-
-
 });
