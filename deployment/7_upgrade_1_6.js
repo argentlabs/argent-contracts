@@ -9,7 +9,7 @@ const semver = require('semver');
 
 const TARGET_VERSION = "1.5.0";
 const MODULES_TO_ENABLE = ["ApprovedTransfer"];
-const MODULES_TO_DISABLE = [];
+const MODULES_TO_DISABLE = ["UniswapManager"];
 
 const BACKWARD_COMPATIBILITY = 3;
 
