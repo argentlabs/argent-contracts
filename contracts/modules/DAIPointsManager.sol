@@ -3,8 +3,9 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
+import "../base/Managed.sol";
 
-contract DAIPointsManager is BaseModule, RelayerModule, OnlyOwnerModule {
+contract DAIPointsManager is BaseModule, RelayerModule, OnlyOwnerModule, Managed {
   bytes32 constant NAME = "DAIPointsManager";
   address public dai;
   address public daiPoints;
@@ -17,8 +18,6 @@ contract DAIPointsManager is BaseModule, RelayerModule, OnlyOwnerModule {
     BaseModule(_registry, NAME)
     public
   {
-    require(_dai != address(0), "DAI address must not be null");
-    require(_daiPoints != address(0), "DAIPoints address must not be null");
     dai = _dai;
     daiPoints = _daiPoints;
   }
@@ -44,5 +43,13 @@ contract DAIPointsManager is BaseModule, RelayerModule, OnlyOwnerModule {
   {
     _wallet.invoke(dai, 0, abi.encodeWithSignature("approve(address,uint256)", daiPoints, _amount));
     _wallet.invoke(daiPoints, 0, abi.encodeWithSignature("getDAIPointsToAddress(uint256,address)", _amount, _recipient));
+  }
+
+  function setDaiAddress(address _dai) public onlyManager {
+    dai = _dai;
+  }
+
+  function setDaiPointsAddress(address _daiPoints) public onlyManager {
+    daiPoints = _daiPoints;
   }
 }

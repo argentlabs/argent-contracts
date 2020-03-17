@@ -1,6 +1,6 @@
 {
-  "version": "1.4.2",
-  "createdAt": 1583829582,
+  "createdAt": 1584435221,
+  "fingerprint": "0x29bf11da",
   "modules": [
     {
       "address": "0x7B0b061a38919bd49Def88968A2749F17110Be78",
@@ -49,7 +49,11 @@
     {
       "address": "0x564Ad8BfF06884fe8A4fD25Ff728012ad6781892",
       "name": "WalletOwnershipManager"
+    },
+    {
+      "address": "0x4f1D78CFe11DA9EDdc15CEf36818c82DdFb6Bd57",
+      "name": "DAIPointsManager"
     }
   ],
-  "fingerprint": "0x2658c7f0"
+  "version": "1.4.4"
 }

@@ -49,11 +49,12 @@
       "factory": "0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30"
     }
   },
-  "gitCommit": "45ec002a0bf248fd8219697e7a31245576a3b99a",
+  "gitCommit": "79c2b5b10861e4b4a2aa9e8d8398600328134e37",
   "modules": {
     "ApprovedTransfer": "0x2cbE5fE3d259313F25Ac2Dd10FAB8B851561F366",
     "CommunityManager": "0x0D4926876ba1ada6E9b542e018eBeD517FFc8050",
     "CompoundManager": "0xF7Ce6E337F420A7F506Ce62899fCfF4be6187b20",
+    "DAIPointsManager": "0x602C6FbF83f5B758365DB51f38D311B09657f72c",
     "DappManager": "0x0cA65A4a7338Db5E94Aa083B3a60eEB75074f831",
     "DappStorage": "0xE89e7FE7d6Cac0Ac86639163025565581D282035",
     "GuardianManager": "0x4777f535a4496Bb64dC51C48b33201FeD893d100",
@@ -83,6 +84,8 @@
     "threshold": 1
   },
   "settings": {
+    "daiAddress": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    "daiPointsAddress": "0x782c578B5BC3b9A1B6E1E54f839B610Ac7036bA0",
     "defaultLimit": "1000000000000000000",
     "deployer": {
       "options": {
