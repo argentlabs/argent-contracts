@@ -24,8 +24,7 @@ describe("Test ENS contracts", function () {
   const subnameWallet = "argent";
   const walletNode = ethers.utils.namehash(`${subnameWallet}.${root}`);
 
-  let ensRegistry; let ensResolver; let ensReverse; let
-    ensManager;
+  let deployer, ensRegistry, ensResolver, ensReverse, ensManager;
 
   beforeEach(async () => {
     deployer = manager.newDeployer();

@@ -33,8 +33,7 @@ describe("Test TransferManager", function () {
   const recipient = accounts[3].signer;
   const spender = accounts[4].signer;
 
-  let kyber; let registry; let priceProvider; let transferStorage; let guardianStorage; let transferModule; let previousTransferModule; let
-    wallet;
+  let deployer, kyber, registry, priceProvider, transferStorage, guardianStorage, transferModule, previousTransferModule, wallet;
 
   before(async () => {
     deployer = manager.newDeployer();

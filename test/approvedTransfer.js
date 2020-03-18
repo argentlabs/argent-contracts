@@ -31,8 +31,7 @@ describe("Test Approved Transfer", function () {
   const guardian3 = accounts[5].signer;
   const recipient = accounts[6].signer;
 
-  let wallet; let guardianManager; let transferModule; let priceProvider; let kyber; let
-    erc20;
+  let deployer, wallet, guardianManager, transferModule, priceProvider, kyber, erc20;
 
   before(async () => {
     deployer = manager.newDeployer();

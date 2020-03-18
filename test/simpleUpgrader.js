@@ -18,7 +18,7 @@ describe("Test SimpleUpgrader", function () {
   const manager = new TestManager();
 
   const owner = accounts[1].signer;
-  let registry;
+  let deployer, registry;
 
   beforeEach(async () => {
     deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);

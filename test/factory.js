@@ -35,6 +35,7 @@ describe("Test Wallet Factory", function () {
 
   let index = 0;
 
+  let deployer;
   let ensRegistry;
   let ensResolver;
   let ensReverse;

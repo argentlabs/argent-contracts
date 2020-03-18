@@ -23,12 +23,9 @@ describe("Test Token Transfer", function () {
   const owner1 = accounts[1].signer;
   const owner2 = accounts[2].signer;
   const eoaRecipient = accounts[3].signer;
-
-  let nftModule; let wallet1; let wallet2; let erc721; let ck; let ckId; let erc20; let
-    erc20Approver;
-
   const tokenId = 1;
 
+  let deployer, nftModule, wallet1, wallet2, erc721, ck, ckId, erc20, erc20Approver;
 
   before(async () => {
     deployer = manager.newDeployer();
