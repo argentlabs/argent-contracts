@@ -1,3 +1,4 @@
+/* global accounts */
 const { parseEther, formatBytes32String, bigNumberify } = require("ethers").utils;
 
 const GuardianStorage = require("../build/GuardianStorage");

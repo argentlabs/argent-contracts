@@ -1,3 +1,4 @@
+/* global accounts */
 const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const TransferStorage = require("../build/TransferStorage");

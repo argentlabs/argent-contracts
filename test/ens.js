@@ -1,3 +1,4 @@
+/* global accounts */
 const ENSRegistry = require("../build/ENSRegistry");
 const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
 const ENSManager = require("../build/ArgentENSManager");

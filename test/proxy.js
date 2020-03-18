@@ -1,3 +1,4 @@
+/* global accounts */
 const etherlime = require("etherlime-lib");
 const Proxy = require("../build/Proxy");
 const Wallet = require("../build/BaseWallet");

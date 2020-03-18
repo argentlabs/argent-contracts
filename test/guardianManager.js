@@ -1,3 +1,4 @@
+/* global accounts */
 const GuardianManager = require("../build/GuardianManager");
 const GuardianStorage = require("../build/GuardianStorage");
 const Wallet = require("../build/BaseWallet");

@@ -1,3 +1,4 @@
+/* global accounts */
 const etherlime = require("etherlime-lib");
 const ethers = require("ethers");
 const ps = require("ps-node");

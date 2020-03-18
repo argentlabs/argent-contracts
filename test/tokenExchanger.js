@@ -1,3 +1,4 @@
+/* global accounts */
 const Wallet = require("../build/BaseWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const KyberNetwork = require("../build/KyberNetworkTest");
@@ -16,13 +17,11 @@ describe("Test Token Exchanger", function () {
   this.timeout(10000);
 
   const manager = new TestManager();
-
   const infrastructure = accounts[0].signer;
   const owner = accounts[1].signer;
   const collector = accounts[2].signer;
 
-  let wallet; let kyber; let
-    exchanger;
+  let wallet, kyber, exchanger;
 
   before(async () => {
     deployer = manager.newDeployer();

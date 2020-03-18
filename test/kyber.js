@@ -1,3 +1,4 @@
+/* global accounts */
 const BN = require("bn.js");
 
 const KyberNetwork = require("../build/KyberNetworkTest");

@@ -1,3 +1,4 @@
+/* global accounts */
 const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
 const RecoveryManager = require("../build/RecoveryManager");

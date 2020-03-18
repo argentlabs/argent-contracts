@@ -1,3 +1,4 @@
+/* global accounts */
 const Wallet = require("../build/BaseWallet");
 const OldWallet = require("../build/LegacyBaseWallet");
 const Module = require("../build/TestModule");
