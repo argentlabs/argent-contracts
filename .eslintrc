@@ -12,7 +12,9 @@
   },
   "rules": {
     "max-len": [2, { "code": 150, "ignoreComments": true }],
-    "quotes": [2, "double", "avoid-escape"]
+    "quotes": [2, "double", "avoid-escape"],
+    "no-console": "off",
+    "no-underscore-dangle": "off"
   },
   "parserOptions": {
     "ecmaVersion": 2018
