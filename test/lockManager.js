@@ -143,7 +143,8 @@ describe("LockManager", function () {
       // unlock
       await lockManager.from(guardian1).unlock(wallet.contractAddress);
       // try to unlock again
-      await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress), "VM Exception while processing transaction: revert GD: wallet must be locked");
+      await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress),
+        "VM Exception while processing transaction: revert GD: wallet must be locked");
     });
 
     it("should not be able to unlock a wallet, locked by another module", async () => {
@@ -151,7 +152,8 @@ describe("LockManager", function () {
       await manager.relay(recoveryManager, "executeRecovery", [wallet.contractAddress, accounts[5].signer.address], wallet, [guardian1]);
 
       // try to unlock
-      await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress), "LM: cannot unlock a wallet that was locked by another module");
+      await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress),
+        "LM: cannot unlock a wallet that was locked by another module");
     });
   });
 });

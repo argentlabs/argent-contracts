@@ -86,7 +86,8 @@ const deploy = async (network) => {
 
   for (let idx = 0; idx < newModuleWrappers.length; idx++) {
     const wrapper = newModuleWrappers[idx];
-    await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
+    await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
+      [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
   }
 
   // //////////////////////////////////
@@ -143,9 +144,11 @@ const deploy = async (network) => {
         toRemove.map((module) => module.address),
         toAdd.map((module) => module.address),
       );
-      await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+      await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
+        [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
     }
-    await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+    await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader",
+      [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
   }
 
   // //////////////////////////////////

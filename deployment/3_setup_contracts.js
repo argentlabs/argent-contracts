@@ -47,7 +47,8 @@ const deploy = async (network, secret) => {
     await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
 
     const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account);
-    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx, `Set ${account} as the manager of the TokenPriceProvider`);
+    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
+      `Set ${account} as the manager of the TokenPriceProvider`);
   }
 
   // //////////////////////////////////

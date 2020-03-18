@@ -124,7 +124,8 @@ describe("Test BaseWallet", function () {
         assert.equal(module1IsAuthorised, true, "module1 should be authorised");
         const module2IsAuthorised = await wallet.authorised(module2.contractAddress);
         assert.equal(module2IsAuthorised, false, "module2 should not be authorised");
-        await assert.revertWith(module1.enableStaticCalls(wallet.contractAddress, module2.contractAddress), "BW: must be an authorised module for static call");
+        await assert.revertWith(module1.enableStaticCalls(wallet.contractAddress, module2.contractAddress),
+          "BW: must be an authorised module for static call");
       });
 
       it("should not delegate static calls to no longer authorised modules ", async () => {

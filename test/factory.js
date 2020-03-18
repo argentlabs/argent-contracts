@@ -53,15 +53,20 @@ describe("Test Wallet Factory", function () {
     ensRegistry = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
     ensResolver = await deployer.deploy(ENSResolver);
     ensReverse = await deployer.deploy(ENSReverseRegistrar, {}, ensRegistry.contractAddress, ensResolver.contractAddress);
-    ensManager = await deployer.deploy(ENSManager, {}, `${subnameWallet}.${root}`, walletNode, ensRegistry.contractAddress, ensResolver.contractAddress);
+    ensManager = await deployer.deploy(ENSManager, {}, `${subnameWallet}.${root}`,
+      walletNode, ensRegistry.contractAddress, ensResolver.contractAddress);
     await ensResolver.addManager(ensManager.contractAddress);
     await ensResolver.addManager(infrastructure.address);
     await ensManager.addManager(infrastructure.address);
 
     await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes(root)), infrastructure.address);
-    await ensRegistry.setSubnodeOwner(ethers.utils.namehash(root), ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subnameWallet)), ensManager.contractAddress);
+    await ensRegistry.setSubnodeOwner(
+      ethers.utils.namehash(root), ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subnameWallet)), ensManager.contractAddress,
+    );
     await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("reverse")), infrastructure.address);
-    await ensRegistry.setSubnodeOwner(ethers.utils.namehash("reverse"), ethers.utils.keccak256(ethers.utils.toUtf8Bytes("addr")), ensReverse.contractAddress);
+    await ensRegistry.setSubnodeOwner(
+      ethers.utils.namehash("reverse"), ethers.utils.keccak256(ethers.utils.toUtf8Bytes("addr")), ensReverse.contractAddress,
+    );
 
     implementation = await deployer.deploy(Wallet);
 
@@ -204,20 +209,23 @@ describe("Test Wallet Factory", function () {
     it("should fail to create with zero address as owner", async () => {
       const label = `wallet${index}`;
       const modules = [module1.contractAddress];
-      await assert.revertWith(factory.from(infrastructure).createWallet(ethers.constants.AddressZero, modules, label), "WF: owner cannot be null");
+      await assert.revertWith(factory.from(infrastructure).createWallet(ethers.constants.AddressZero, modules, label),
+        "WF: owner cannot be null");
     });
 
     it("should fail to create with no modules", async () => {
       const label = `wallet${index}`;
       const modules = [];
-      await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, label), "WF: cannot assign with less than 1 module");
+      await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, label),
+        "WF: cannot assign with less than 1 module");
     });
 
     it("should fail to create with unregistered module", async () => {
       const label = `wallet${index}`;
       const randomAddress = utilities.getRandomAddress();
       const modules = [randomAddress];
-      await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, label), "WF: one or more modules are not registered");
+      await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, label),
+        "WF: one or more modules are not registered");
     });
 
     it("should fail to create with empty label", async () => {
@@ -286,14 +294,17 @@ describe("Test Wallet Factory", function () {
     it("should fail to create with a guardian when the guardian storage is not defined", async () => {
       const label = `wallet${index}`;
       const modules = [module1.contractAddress, module2.contractAddress];
-      await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure).createWalletWithGuardian(owner.address, modules, label, guardian.address), "GuardianStorage address not defined");
+      await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure)
+        .createWalletWithGuardian(owner.address, modules, label, guardian.address),
+      "GuardianStorage address not defined");
     });
 
     it("should fail to create when the guardian is empty", async () => {
       // we create the wallet
       const label = `wallet${index}`;
       const modules = [module1.contractAddress];
-      await assert.revertWith(factory.from(infrastructure).createWalletWithGuardian(owner.address, modules, label, ZERO_ADDRESS), "WF: guardian cannot be null");
+      await assert.revertWith(factory.from(infrastructure).createWalletWithGuardian(owner.address, modules, label, ZERO_ADDRESS),
+        "WF: guardian cannot be null");
     });
   });
 
@@ -393,21 +404,24 @@ describe("Test Wallet Factory", function () {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we create the second wallet
-      await assert.revert(factory.from(infrastructure).createCounterfactualWallet(owner.address, modules, label, salt), "should fail when address is in use");
+      await assert.revert(factory.from(infrastructure).createCounterfactualWallet(owner.address, modules, label, salt),
+        "should fail when address is in use");
     });
 
     it("should fail to create when there is no modules", async () => {
       const salt = utilities.generateSaltValue();
       const label = `wallet${index}`;
       const modules = [];
-      await assert.revertWith(factory.from(deployer).createCounterfactualWallet(owner.address, modules, label, salt), "WF: cannot assign with less than 1 module");
+      await assert.revertWith(factory.from(deployer).createCounterfactualWallet(owner.address, modules, label, salt),
+        "WF: cannot assign with less than 1 module");
     });
 
     it("should fail to create when there is no ENS", async () => {
       const salt = utilities.generateSaltValue();
       const label = "";
       const modules = [module1.contractAddress, module2.contractAddress];
-      await assert.revertWith(factory.from(deployer).createCounterfactualWallet(owner.address, modules, label, salt), "WF: ENS lable must be defined");
+      await assert.revertWith(factory.from(deployer).createCounterfactualWallet(owner.address, modules, label, salt),
+        "WF: ENS lable must be defined");
     });
 
     it("should emit and event when the balance is non zero at creation", async () => {
@@ -543,14 +557,16 @@ describe("Test Wallet Factory", function () {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we create the second wallet
-      await assert.revert(factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt), "should fail when address is in use");
+      await assert.revert(factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt),
+        "should fail when address is in use");
     });
 
     it("should fail to create when there is no modules", async () => {
       const salt = utilities.generateSaltValue();
       const label = `wallet${index}`;
       const modules = [];
-      await assert.revertWith(factory.from(deployer).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt), "WF: cannot assign with less than 1 module");
+      await assert.revertWith(factory.from(deployer).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt),
+        "WF: cannot assign with less than 1 module");
     });
 
     it("should return the correct ENSManager", async () => {
@@ -563,21 +579,25 @@ describe("Test Wallet Factory", function () {
       const salt = utilities.generateSaltValue();
       const label = `wallet${index}`;
       const modules = [module1.contractAddress, module2.contractAddress];
-      await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt), "GuardianStorage address not defined");
+      await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure)
+        .createCounterfactualWalletWithGuardian(owner.address, modules, label, guardian.address, salt),
+      "GuardianStorage address not defined");
     });
 
     it("should fail to get an address when the guardian is empty", async () => {
       const salt = utilities.generateSaltValue();
       const label = `wallet${index}`;
       const modules = [module1.contractAddress, module2.contractAddress];
-      await assert.revertWith(factory.from(infrastructure).getAddressForCounterfactualWalletWithGuardian(owner.address, modules, ZERO_ADDRESS, salt), "WF: guardian cannot be null");
+      await assert.revertWith(factory.from(infrastructure).getAddressForCounterfactualWalletWithGuardian(owner.address, modules, ZERO_ADDRESS, salt),
+        "WF: guardian cannot be null");
     });
 
     it("should fail to create when the guardian is empty", async () => {
       const salt = utilities.generateSaltValue();
       const label = `wallet${index}`;
       const modules = [module1.contractAddress, module2.contractAddress];
-      await assert.revertWith(factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, ZERO_ADDRESS, salt), "WF: guardian cannot be null");
+      await assert.revertWith(factory.from(infrastructure).createCounterfactualWalletWithGuardian(owner.address, modules, label, ZERO_ADDRESS, salt),
+        "WF: guardian cannot be null");
     });
   });
 });

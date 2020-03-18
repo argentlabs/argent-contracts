@@ -13,8 +13,11 @@ async function deployENSReverseRegistrar(deployer, config, owner) {
   const setSubnodeOwnerTx1 = await ENSRegistryWrapper.contract.setSubnodeOwner(BYTES32_NULL, utils.sha3("reverse"), owner);
   await ENSRegistryWrapper.verboseWaitForTransaction(setSubnodeOwnerTx1, "Create the reverse namespace");
 
-  const setSubnodeOwnerTx2 = await ENSRegistryWrapper.contract.setSubnodeOwner(utils.namehash("reverse"), utils.sha3("addr"), ENSReverseRegistrarWrapper.contractAddress);
-  await ENSRegistryWrapper.verboseWaitForTransaction(setSubnodeOwnerTx2, "Create the addr.reverse namespace and make the ENS reverse registrar the owner");
+  const setSubnodeOwnerTx2 = await ENSRegistryWrapper.contract.setSubnodeOwner(
+    utils.namehash("reverse"), utils.sha3("addr"), ENSReverseRegistrarWrapper.contractAddress,
+  );
+  await ENSRegistryWrapper.verboseWaitForTransaction(setSubnodeOwnerTx2,
+    "Create the addr.reverse namespace and make the ENS reverse registrar the owner");
 }
 
 const deploy = async (network, secret) => {

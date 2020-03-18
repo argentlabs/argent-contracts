@@ -38,15 +38,20 @@ describe("Test ENS contracts", function () {
     ensRegistry = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
     ensResolver = await deployer.deploy(ENSResolver);
     ensReverse = await deployer.deploy(ENSReverseRegistrar, {}, ensRegistry.contractAddress, ensResolver.contractAddress);
-    ensManager = await deployer.deploy(ENSManager, {}, `${subnameWallet}.${root}`, walletNode, ensRegistry.contractAddress, ensResolver.contractAddress);
+    ensManager = await deployer.deploy(ENSManager, {},
+      `${subnameWallet}.${root}`, walletNode, ensRegistry.contractAddress, ensResolver.contractAddress);
     await ensResolver.addManager(ensManager.contractAddress);
     await ensResolver.addManager(infrastructure.address);
     await ensManager.addManager(infrastructure.address);
 
     await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes(root)), infrastructure.address);
-    await ensRegistry.setSubnodeOwner(ethers.utils.namehash(root), ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subnameWallet)), ensManager.contractAddress);
+    await ensRegistry.setSubnodeOwner(
+      ethers.utils.namehash(root), ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subnameWallet)), ensManager.contractAddress,
+    );
     await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("reverse")), infrastructure.address);
-    await ensRegistry.setSubnodeOwner(ethers.utils.namehash("reverse"), ethers.utils.keccak256(ethers.utils.toUtf8Bytes("addr")), ensReverse.contractAddress);
+    await ensRegistry.setSubnodeOwner(
+      ethers.utils.namehash("reverse"), ethers.utils.keccak256(ethers.utils.toUtf8Bytes("addr")), ensReverse.contractAddress,
+    );
   });
 
   describe("ENS Manager", () => {

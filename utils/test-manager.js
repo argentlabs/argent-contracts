@@ -66,7 +66,8 @@ class TestManager {
   async getNonceForRelay() {
     const block = await this.provider.getBlockNumber();
     const timestamp = (new Date()).getTime();
-    return `0x${ethers.utils.hexZeroPad(ethers.utils.hexlify(block), 16).slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
+    return `0x${ethers.utils.hexZeroPad(ethers.utils.hexlify(block), 16)
+      .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   }
 
   async relay(_target, _method, _params, _wallet, _signers, _relayer = this.accounts[9].signer, _estimate = false, _gasLimit = 700000) {
@@ -94,8 +95,8 @@ class TestManager {
         psargs: "ux",
         arguments: "ganache",
       }, (err, processes) => {
-        const runningEthGanache = !err && processes.reduce((etherlimeGanacheFound, p) => etherlimeGanacheFound || (p.command + p.arguments.join("-")).includes("etherlime-ganache"),
-          false);
+        const runningEthGanache = !err && processes.reduce((etherlimeGanacheFound, p) => etherlimeGanacheFound
+        || (p.command + p.arguments.join("-")).includes("etherlime-ganache"), false);
         return res(runningEthGanache);
       });
     });

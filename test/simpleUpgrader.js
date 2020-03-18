@@ -114,7 +114,8 @@ describe("Test SimpleUpgrader", function () {
       if (toAdd.length === 0) {
         if (relayed) {
           txReceipt = await manager.relay(moduleV1, "addModule", params, wallet, [owner]);
-          assert.isTrue(!txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed upgrade to 0 module should have failed.");
+          assert.isTrue(!txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success,
+            "Relayed upgrade to 0 module should have failed.");
         } else {
           assert.revert(moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 }));
         }
@@ -123,7 +124,8 @@ describe("Test SimpleUpgrader", function () {
 
       if (relayed) {
         txReceipt = await manager.relay(moduleV1, "addModule", params, wallet, [owner]);
-        assert.equal(txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, useOnlyOwnerModule, "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
+        assert.equal(txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, useOnlyOwnerModule,
+          "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
       } else {
         const tx = await moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 });
         txReceipt = await moduleV1.verboseWaitForTransaction(tx);
@@ -134,7 +136,8 @@ describe("Test SimpleUpgrader", function () {
       const upgraderAuthorisedLogIndex = logs.findIndex((e) => e.module === upgrader.contractAddress && e.value === true);
       const upgraderUnauthorisedLogIndex = logs.findIndex((e) => e.module === upgrader.contractAddress && e.value === false);
       if (!relayed || useOnlyOwnerModule) {
-        assert.isBelow(upgraderAuthorisedLogIndex, upgraderUnauthorisedLogIndex, "AuthorisedModule(upgrader, false) should come after AuthorisedModule(upgrader, true)");
+        assert.isBelow(upgraderAuthorisedLogIndex, upgraderUnauthorisedLogIndex,
+          "AuthorisedModule(upgrader, false) should come after AuthorisedModule(upgrader, true)");
       } else {
         assert.equal(upgraderUnauthorisedLogIndex, -1, "AuthorisedModule(upgrader, false) should not have been emitted");
         assert.equal(upgraderAuthorisedLogIndex, -1, "AuthorisedModule(upgrader, true) should not have been emitted");

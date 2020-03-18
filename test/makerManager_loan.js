@@ -144,7 +144,8 @@ describe("Test CDP Module", function () {
 
       assert.equal(beforeETH.sub(afterETH).toString(), ethAmount.toString(), `wallet should have ${ethAmount} less ETH (relayed: ${relayed})`);
       assert.equal(afterDAI.sub(beforeDAI).toString(), daiAmount.toString(), `wallet should have ${daiAmount} more DAI (relayed: ${relayed})`);
-      assert.equal(afterDAISupply.sub(beforeDAISupply).toString(), daiAmount.toString(), `${daiAmount} DAI should have been minted (relayed: ${relayed})`);
+      assert.equal(afterDAISupply.sub(beforeDAISupply).toString(), daiAmount.toString(),
+        `${daiAmount} DAI should have been minted (relayed: ${relayed})`);
 
       return loanId;
     }
@@ -171,7 +172,8 @@ describe("Test CDP Module", function () {
       }
       const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
       const expectedETHChange = ethAmount.mul(add ? -1 : 1).toString();
-      assert.equal(afterETH.sub(beforeETH).toString(), expectedETHChange, `wallet ETH should have changed by ${expectedETHChange} (relayed: ${relayed})`);
+      assert.equal(afterETH.sub(beforeETH).toString(), expectedETHChange,
+        `wallet ETH should have changed by ${expectedETHChange} (relayed: ${relayed})`);
     }
 
     describe("Add/Remove Collateral", () => {
@@ -216,8 +218,10 @@ describe("Test CDP Module", function () {
       const afterDAI = await sai.balanceOf(wallet.contractAddress);
       const afterDAISupply = await sai.totalSupply();
       const expectedDAIChange = daiAmount.mul(add ? 1 : -1).toString();
-      assert.equal(afterDAI.sub(beforeDAI).toString(), expectedDAIChange, `wallet DAI should have changed by ${expectedDAIChange} (relayed: ${relayed})`);
-      assert.equal(afterDAISupply.sub(beforeDAISupply).toString(), expectedDAIChange, `total DAI supply should have changed by ${expectedDAIChange} (relayed: ${relayed})`);
+      assert.equal(afterDAI.sub(beforeDAI).toString(), expectedDAIChange,
+        `wallet DAI should have changed by ${expectedDAIChange} (relayed: ${relayed})`);
+      assert.equal(afterDAISupply.sub(beforeDAISupply).toString(), expectedDAIChange,
+        `total DAI supply should have changed by ${expectedDAIChange} (relayed: ${relayed})`);
     }
 
     describe("Increase Debt", () => {

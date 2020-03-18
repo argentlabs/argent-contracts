@@ -67,11 +67,13 @@ describe("Test Token Transfer", function () {
       const beforeWallet1 = await nftContract.balanceOf(wallet1.contractAddress);
       const beforeRecipient = await nftContract.balanceOf(recipientAddress);
       if (relayed) {
-        const txReceipt = await manager.relay(nftModule, "transferNFT", [wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32], wallet1, [owner1]);
+        const txReceipt = await manager.relay(nftModule, "transferNFT",
+          [wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32], wallet1, [owner1]);
         const success = parseRelayReceipt(txReceipt);
         assert.equal(success, shouldSucceed);
       } else {
-        const txPromise = nftModule.from(owner1).transferNFT(wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32);
+        const txPromise = nftModule.from(owner1)
+          .transferNFT(wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32);
         shouldSucceed && await txPromise || assert.revert(txPromise);
       }
       if (shouldSucceed) {

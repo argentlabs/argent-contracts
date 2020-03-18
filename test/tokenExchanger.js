@@ -34,7 +34,8 @@ describe("Test Token Exchanger", function () {
     const registry = await deployer.deploy(ModuleRegistry);
     kyber = await deployer.deploy(KyberNetwork);
     const guardianStorage = await deployer.deploy(GuardianStorage);
-    exchanger = await deployer.deploy(TokenExchanger, {}, registry.contractAddress, guardianStorage.contractAddress, kyber.contractAddress, collector.address, FEE_RATIO);
+    exchanger = await deployer.deploy(TokenExchanger, {},
+      registry.contractAddress, guardianStorage.contractAddress, kyber.contractAddress, collector.address, FEE_RATIO);
   });
 
   beforeEach(async () => {

@@ -80,7 +80,11 @@ class Benchmark {
   async setupWallet() {
     this.oneModule = [this.GuardianManagerWrapper.contractAddress];
     this.twoModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress];
-    this.threeModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress, this.RecoveryManagerWrapper.contractAddress];
+    this.threeModules = [
+      this.GuardianManagerWrapper.contractAddress,
+      this.LockManagerWrapper.contractAddress,
+      this.RecoveryManagerWrapper.contractAddress,
+    ];
     this.allModules = [
       this.GuardianManagerWrapper.contractAddress,
       this.LockManagerWrapper.contractAddress,
@@ -165,7 +169,8 @@ class Benchmark {
   }
 
   async estimateAddGuardianRelayed() {
-    const gasUsed = await this.relayEstimate(this.GuardianManagerWrapper, "addGuardian", [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(this.GuardianManagerWrapper, "addGuardian",
+      [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
     this._logger.addItem("Add a guardian (relayed)", gasUsed);
   }
 
@@ -174,7 +179,8 @@ class Benchmark {
     await this.relay(this.GuardianManagerWrapper, "addGuardian", [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
 
     // estimate revoke guardian
-    const gasUsed = await this.relayEstimate(this.GuardianManagerWrapper, "revokeGuardian", [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(this.GuardianManagerWrapper, "revokeGuardian",
+      [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
     this._logger.addItem("Revoke a guardian (relayed)", gasUsed);
   }
 
@@ -232,7 +238,8 @@ class Benchmark {
     // estimate execute recovery
     const recoveryAddress = this.accounts[3];
     const signers = [this.signers[2], this.signers[1]]; // manually inversed the signers to get them ordered
-    const gasUsed = await this.relayEstimate(this.RecoveryManagerWrapper, "executeRecovery", [this.walletAddress, recoveryAddress], this.wallet, signers);
+    const gasUsed = await this.relayEstimate(this.RecoveryManagerWrapper, "executeRecovery",
+      [this.walletAddress, recoveryAddress], this.wallet, signers);
     this._logger.addItem("Execute recovery", gasUsed);
   }
 
@@ -242,7 +249,8 @@ class Benchmark {
   }
 
   async estimateChangeLimitRelayed() {
-    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "changeLimit", [this.walletAddress, 67000000], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "changeLimit",
+      [this.walletAddress, 67000000], this.wallet, [this.signers[0]]);
     this._logger.addItem("Change limit (relayed)", gasUsed);
   }
 
@@ -262,7 +270,8 @@ class Benchmark {
     await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
     // transfer
-    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x"], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x"], this.wallet, [this.signers[0]]);
     this._logger.addItem("ETH transfer, limit disabled (relayed)", gasUsed);
   }
 
@@ -273,7 +282,8 @@ class Benchmark {
   }
 
   async estimateSmallTransferRelayed() {
-    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000, "0x"], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000, "0x"], this.wallet, [this.signers[0]]);
     this._logger.addItem("ETH small transfer (relayed)", gasUsed);
   }
 
@@ -289,7 +299,8 @@ class Benchmark {
     await this.TransferManagerWrapper.addToWhitelist(this.walletAddress, this.accounts[3]);
     await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
-    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"], this.wallet, [this.signers[0]]);
     this._logger.addItem("ETH transfer to whitelisted account (relayed)", gasUsed);
   }
 
@@ -314,7 +325,8 @@ class Benchmark {
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
 
     // estimate approve large transfer
-    const gasUsed = await this.relayEstimate(this.ApprovedTransferWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"], this.wallet, [this.signers[0], this.signers[1]]);
+    const gasUsed = await this.relayEstimate(this.ApprovedTransferWrapper, "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"], this.wallet, [this.signers[0], this.signers[1]]);
     this._logger.addItem("ETH large transfer approval by one guardian", gasUsed);
   }
 
@@ -331,7 +343,8 @@ class Benchmark {
 
     // estimate approve large transfer
     const signers = [this.signers[0], this.signers[2], this.signers[1]]; // manually inversed the signers to get them ordered
-    const gasUsed = await this.relayEstimate(this.ApprovedTransferWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[5], 2000000, "0x"], this.wallet, signers);
+    const gasUsed = await this.relayEstimate(this.ApprovedTransferWrapper, "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[5], 2000000, "0x"], this.wallet, signers);
     this._logger.addItem("ETH large transfer approval by two guardians", gasUsed);
   }
 

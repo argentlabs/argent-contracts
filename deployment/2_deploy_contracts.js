@@ -50,9 +50,11 @@ const deploy = async (network, secret) => {
   // Deploy the ENS Resolver
   const ENSResolverWrapper = await deployer.deploy(ENSResolver);
   // Deploy the ENS Manager
-  const ENSManagerWrapper = await deployer.deploy(ENSManager, {}, walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
+  const ENSManagerWrapper = await deployer.deploy(ENSManager, {},
+    walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
   // Deploy the Wallet Factory
-  const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {}, ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
+  const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
+    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
 
   // /////////////////////////////////////////////////
   // Making ENSManager owner of the root wallet ENS
@@ -87,7 +89,8 @@ const deploy = async (network, secret) => {
   for (const underlying in newConfig.defi.compound.markets) {
     const cToken = newConfig.defi.compound.markets[underlying];
     const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
-    await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
+    await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction,
+      `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
   }
 
   // /////////////////////////////////////////////////

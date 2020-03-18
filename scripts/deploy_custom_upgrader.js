@@ -12,7 +12,12 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 async function deploy() {
   const network = "test";
   const modules_to_remove = [];
-  const modules_to_add = ["0x624EbBd0f4169E2e11861618045491b6A4e29E77", "0xF6E1AB6cA27c995433C6b71E15270F0b11AE38E2", "0xeAD317AAeAecE3048338D158A64012378bE0bcE2", "0xE739e93dD617D28216dB669AcFdbFC70BF95663c"];
+  const modules_to_add = [
+    "0x624EbBd0f4169E2e11861618045491b6A4e29E77",
+    "0xF6E1AB6cA27c995433C6b71E15270F0b11AE38E2",
+    "0xeAD317AAeAecE3048338D158A64012378bE0bcE2",
+    "0xE739e93dD617D28216dB669AcFdbFC70BF95663c",
+  ];
   const upgrader_name = "0x4ef2f261_0xee7263da";
 
   const manager = new DeployManager(network);
@@ -34,7 +39,8 @@ async function deploy() {
     modules_to_add,
   );
 
-  await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgrader_name)]);
+  await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader",
+    [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgrader_name)]);
 }
 
 module.exports = {

@@ -164,7 +164,8 @@ describe("Test TransferManager", function () {
     });
 
     it("should not be able to remove a non-whitelisted token from the whitelist", async () => {
-      await assert.revertWith(transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address), "TT: target not whitelisted");
+      await assert.revertWith(transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address),
+        "TT: target not whitelisted");
     });
   });
 
@@ -211,13 +212,16 @@ describe("Test TransferManager", function () {
       let fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), 0, "should not have transfered amount");
       if (delay === 0) {
-        const id = ethers.utils.solidityKeccak256(["uint8", "address", "address", "uint256", "bytes", "uint256"], [ACTION_TRANSFER, tokenAddress, recipient.address, amount, ZERO_BYTES32, txReceipt.blockNumber]);
+        const id = ethers.utils.solidityKeccak256(["uint8", "address", "address", "uint256", "bytes", "uint256"],
+          [ACTION_TRANSFER, tokenAddress, recipient.address, amount, ZERO_BYTES32, txReceipt.blockNumber]);
         return id;
       }
       await manager.increaseTime(delay);
-      tx = await transferModule.executePendingTransfer(wallet.contractAddress, tokenAddress, recipient.address, amount, ZERO_BYTES32, txReceipt.blockNumber);
+      tx = await transferModule.executePendingTransfer(wallet.contractAddress,
+        tokenAddress, recipient.address, amount, ZERO_BYTES32, txReceipt.blockNumber);
       txReceipt = await transferModule.verboseWaitForTransaction(tx);
-      assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferExecuted"), "should have generated PendingTransferExecuted event");
+      assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferExecuted"),
+        "should have generated PendingTransferExecuted event");
       fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
     }
@@ -329,7 +333,8 @@ describe("Test TransferManager", function () {
         await manager.increaseTime(1);
         const tx = await transferModule.from(owner).cancelPendingTransfer(wallet.contractAddress, id);
         const txReceipt = await transferModule.verboseWaitForTransaction(tx);
-        assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferCanceled"), "should have generated PendingTransferCanceled event");
+        assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferCanceled"),
+          "should have generated PendingTransferCanceled event");
         const executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
         assert.equal(executeAfter, 0, "should have cancelled the pending transfer");
       });
@@ -340,7 +345,8 @@ describe("Test TransferManager", function () {
         await manager.increaseTime(1);
         const tx = await transferModule.from(owner).cancelPendingTransfer(wallet.contractAddress, id);
         const txReceipt = await transferModule.verboseWaitForTransaction(tx);
-        assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferCanceled"), "should have generated PendingTransferCanceled event");
+        assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferCanceled"),
+          "should have generated PendingTransferCanceled event");
         const executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
         assert.equal(executeAfter, 0, "should have cancelled the pending transfer");
       });
@@ -515,7 +521,8 @@ describe("Test TransferManager", function () {
     it("should approve the token and call the contract when under the existing approved amount", async () => {
       await transferModule.from(owner).approveToken(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 10);
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, 1]);
-      await transferModule.from(owner).approveTokenAndCallContract(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 1, dataToTransfer);
+      await transferModule.from(owner)
+        .approveTokenAndCallContract(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 1, dataToTransfer);
       const approval = await erc20.allowance(wallet.contractAddress, contract.contractAddress);
       // No approval updates were done to the initial approval of 10, then the call succeeded with 1, leaving 9
       assert.equal(approval.toNumber(), 9);
