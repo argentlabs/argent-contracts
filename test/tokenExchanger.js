@@ -21,7 +21,7 @@ describe("Test Token Exchanger", function () {
   const owner = accounts[1].signer;
   const collector = accounts[2].signer;
 
-  let deployer, wallet, kyber, exchanger;
+  let deployer, wallet, kyber, exchanger, erc20;
 
   before(async () => {
     deployer = manager.newDeployer();
