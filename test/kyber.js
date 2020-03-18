@@ -19,7 +19,9 @@ describe("Test Kyber", function () {
 
   const trader = accounts[1].signer;
 
-  let deployer, erc20, kyber;
+  let deployer;
+  let erc20;
+  let kyber;
 
   beforeEach(async () => {
     deployer = manager.newDeployer();

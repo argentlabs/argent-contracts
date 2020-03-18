@@ -1,6 +1,8 @@
 /* global accounts */
 const etherlime = require("etherlime-lib");
-const { keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String } = require("ethers").utils;
+const {
+  keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String,
+} = require("ethers").utils;
 
 const Wallet = require("../build/BaseWallet");
 const OnlyOwnerModule = require("../build/TestOnlyOwnerModule");
@@ -18,7 +20,8 @@ describe("Test SimpleUpgrader", function () {
   const manager = new TestManager();
 
   const owner = accounts[1].signer;
-  let deployer, registry;
+  let deployer;
+  let registry;
 
   beforeEach(async () => {
     deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);

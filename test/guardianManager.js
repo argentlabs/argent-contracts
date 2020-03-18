@@ -21,7 +21,10 @@ describe("GuardianManager", function () {
   const guardian5 = accounts[6].signer;
   const nonowner = accounts[7].signer;
 
-  let deployer, wallet, guardianStorage, guardianManager;
+  let deployer;
+  let wallet;
+  let guardianStorage;
+  let guardianManager;
 
   beforeEach(async () => {
     deployer = manager.newDeployer();

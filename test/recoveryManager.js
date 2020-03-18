@@ -24,7 +24,14 @@ describe("RecoveryManager", function () {
   const nonowner = accounts[6].signer;
   const nonowner2 = accounts[9].signer;
 
-  let deployer, registry, guardianManager, guardianStorage, lockManager, recoveryManager, recoveryPeriod, wallet;
+  let deployer;
+  let registry;
+  let guardianManager;
+  let guardianStorage;
+  let lockManager;
+  let recoveryManager;
+  let recoveryPeriod;
+  let wallet;
 
   beforeEach(async () => {
     deployer = manager.newDeployer();

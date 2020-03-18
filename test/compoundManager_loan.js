@@ -39,7 +39,17 @@ describe("Test Loan Module", function () {
   const liquidityProvider = accounts[2].signer;
   const borrower = accounts[3].signer;
 
-  let deployer, wallet, loanManager, compoundRegistry, token1, token2, cToken1, cToken2, cEther, comptroller, oracleProxy;
+  let deployer;
+  let wallet;
+  let loanManager;
+  let compoundRegistry;
+  let token1;
+  let token2;
+  let cToken1;
+  let cToken2;
+  let cEther;
+  let comptroller;
+  let oracleProxy;
 
   before(async () => {
     deployer = manager.newDeployer();

@@ -18,7 +18,13 @@ describe("LockManager", function () {
   const guardian1 = accounts[2].signer;
   const nonguardian = accounts[3].signer;
 
-  let deployer, guardianManager, guardianStorage, registry, lockManager, recoveryManager, wallet;
+  let deployer;
+  let guardianManager;
+  let guardianStorage;
+  let registry;
+  let lockManager;
+  let recoveryManager;
+  let wallet;
 
   beforeEach(async () => {
     deployer = manager.newDeployer();

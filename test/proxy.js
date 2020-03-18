@@ -13,7 +13,13 @@ describe("Test Proxy", function () {
   const owner = accounts[1].signer;
   const nonowner = accounts[2].signer;
 
-  let deployer, walletImplementation, wallet, proxy, module1, module2, module3;
+  let deployer;
+  let walletImplementation;
+  let wallet;
+  let proxy;
+  let module1;
+  let module2;
+  let module3;
 
   before(async () => {
     deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);

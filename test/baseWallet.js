@@ -19,7 +19,14 @@ describe("Test BaseWallet", function () {
   const owner = accounts[1].signer;
   const nonowner = accounts[2].signer;
 
-  let deployer, wallet, registry, module1, module2, module3, oldModule, newModule;
+  let deployer;
+  let wallet;
+  let registry;
+  let module1;
+  let module2;
+  let module3;
+  let oldModule;
+  let newModule;
 
   before(async () => {
     deployer = manager.newDeployer();

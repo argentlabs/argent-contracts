@@ -35,7 +35,15 @@ describe("Invest Manager with Compound", function () {
   const liquidityProvider = accounts[2].signer;
   const borrower = accounts[3].signer;
 
-  let deployer, wallet, investManager, compoundRegistry, token, cToken, cEther, comptroller, oracleProxy;
+  let deployer;
+  let wallet;
+  let investManager;
+  let compoundRegistry;
+  let token;
+  let cToken;
+  let cEther;
+  let comptroller;
+  let oracleProxy;
 
   before(async () => {
     deployer = manager.newDeployer();
