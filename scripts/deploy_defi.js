@@ -79,7 +79,7 @@ async function deploy() {
 
   await uniswapFactory.createExchange(gov.contractAddress, { gasLimit: 450000 });
   let exchange = "0x0000000000000000000000000000000000000000";
-  while (exchange == "0x0000000000000000000000000000000000000000") {
+  while (exchange === "0x0000000000000000000000000000000000000000") {
     exchange = await uniswapFactory.getExchange(gov.contractAddress);
     console.log("exchange: ", exchange);
     await sleep(5000);

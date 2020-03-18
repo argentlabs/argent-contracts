@@ -161,14 +161,14 @@ describe("Test Loan Module", function () {
     async function testOpenLoan({
       collateral, collateralAmount, debt, debtAmount, relayed,
     }) {
-      const collateralBefore = (collateral == ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
-      const debtBefore = (debt == ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await debt.balanceOf(wallet.contractAddress);
+      const collateralBefore = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
+      const debtBefore = (debt === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await debt.balanceOf(wallet.contractAddress);
 
       const params = [
         wallet.contractAddress,
-        (collateral == ETH_TOKEN) ? ETH_TOKEN : collateral.contractAddress,
+        (collateral === ETH_TOKEN) ? ETH_TOKEN : collateral.contractAddress,
         collateralAmount,
-        (debt == ETH_TOKEN) ? ETH_TOKEN : debt.contractAddress,
+        (debt === ETH_TOKEN) ? ETH_TOKEN : debt.contractAddress,
         debtAmount];
       let txReceipt;
       if (relayed) {
@@ -181,8 +181,8 @@ describe("Test Loan Module", function () {
       const loanId = txReceipt.events.find((e) => e.event === "LoanOpened").args._loanId;
       assert.isDefined(loanId, "Loan ID should be defined");
 
-      const collateralAfter = (collateral == ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
-      const debtAfter = (debt == ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await debt.balanceOf(wallet.contractAddress);
+      const collateralAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
+      const debtAfter = (debt === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await debt.balanceOf(wallet.contractAddress);
 
       assert.isTrue(collateralBefore.sub(collateralAfter).eq(collateralAmount), `wallet should have ${collateralAmount} less ETH (relayed: ${relayed})`);
       assert.isTrue(debtAfter.sub(debtBefore).eq(debtAmount), `wallet should have ${debtAmount} more token (relayed: ${relayed})`);
@@ -193,13 +193,13 @@ describe("Test Loan Module", function () {
     async function testChangeCollateral({
       loanId, collateral, amount, add, relayed,
     }) {
-      const collateralBalanceBefore = (collateral == ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
+      const collateralBalanceBefore = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
 
       const method = add ? "addCollateral" : "removeCollateral";
       const params = [
         wallet.contractAddress,
         loanId,
-        (collateral == ETH_TOKEN) ? ETH_TOKEN : collateral.contractAddress,
+        (collateral === ETH_TOKEN) ? ETH_TOKEN : collateral.contractAddress,
         amount];
       let txReceipt;
       if (relayed) {
@@ -208,7 +208,7 @@ describe("Test Loan Module", function () {
         const tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
-      const collateralBalanceAfter = (collateral == ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
+      const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await collateral.balanceOf(wallet.contractAddress);
       if (add) {
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralAdded"), "should have generated CollateralAdded event");
         assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.sub(amount)), `wallet collateral should have decreased by ${amount} (relayed: ${relayed})`);
@@ -221,13 +221,13 @@ describe("Test Loan Module", function () {
     async function testChangeDebt({
       loanId, debtToken, amount, add, relayed,
     }) {
-      const debtBalanceBefore = (debtToken == ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await debtToken.balanceOf(wallet.contractAddress);
+      const debtBalanceBefore = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await debtToken.balanceOf(wallet.contractAddress);
 
       const method = add ? "addDebt" : "removeDebt";
       const params = [
         wallet.contractAddress,
         loanId,
-        (debtToken == ETH_TOKEN) ? ETH_TOKEN : debtToken.contractAddress,
+        (debtToken === ETH_TOKEN) ? ETH_TOKEN : debtToken.contractAddress,
         amount];
       let txReceipt;
       if (relayed) {
@@ -236,7 +236,7 @@ describe("Test Loan Module", function () {
         const tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
-      const debtBalanceAfter = (debtToken == ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await debtToken.balanceOf(wallet.contractAddress);
+      const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress) : await debtToken.balanceOf(wallet.contractAddress);
       if (add) {
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtAdded"), "should have generated DebtAdded event");
         assert.isTrue(debtBalanceAfter.eq(debtBalanceBefore.add(amount)), `wallet debt should have increase by ${amount} (relayed: ${relayed})`);
@@ -291,7 +291,7 @@ describe("Test Loan Module", function () {
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
         const loan = await loanManager.getLoan(wallet.contractAddress, ZERO_BYTES32);
-        assert.isTrue(loan._status == 1 && loan._ethValue > 0, "should have obtained the info of the loan");
+        assert.isTrue(loan._status === 1 && loan._ethValue > 0, "should have obtained the info of the loan");
       });
     });
 
@@ -494,7 +494,7 @@ describe("Test Loan Module", function () {
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanClosed"), "should have generated LoanClosed event");
 
         const marketsAfter = await comptroller.getAssetsIn(wallet.contractAddress);
-        assert.isTrue(marketsAfter.length == marketsBefore.length - debtMarkets, `should have exited ${debtMarkets} market (relayed: ${relayed})`);
+        assert.isTrue(marketsAfter.length === marketsBefore.length - debtMarkets, `should have exited ${debtMarkets} market (relayed: ${relayed})`);
       }
 
       it("should close an ETH/token1 loan (blockchain tx)", async () => {

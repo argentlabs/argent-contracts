@@ -172,9 +172,9 @@ describe("Test TransferManager", function () {
     async function doDirectTransfer({
       token, signer = owner, to, amount, relayed = false,
     }) {
-      const fundsBefore = (token == ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
+      const fundsBefore = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       const unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
-      const params = [wallet.contractAddress, token == ETH_TOKEN ? ETH_TOKEN : token.contractAddress, to.address, amount, ZERO_BYTES32];
+      const params = [wallet.contractAddress, token === ETH_TOKEN ? ETH_TOKEN : token.contractAddress, to.address, amount, ZERO_BYTES32];
       let txReceipt;
       if (relayed) {
         txReceipt = await manager.relay(transferModule, "transferToken", params, wallet, [signer]);
@@ -183,10 +183,10 @@ describe("Test TransferManager", function () {
         txReceipt = await transferModule.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "Transfer"), "should have generated Transfer event");
-      const fundsAfter = (token == ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
+      const fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
-      const ethValue = (token == ETH_TOKEN ? amount : (await priceProvider.getEtherValue(amount, token.contractAddress)).toNumber());
+      const ethValue = (token === ETH_TOKEN ? amount : (await priceProvider.getEtherValue(amount, token.contractAddress)).toNumber());
       if (ethValue < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), ethValue, "should have updated the daily spent in ETH");
       }
@@ -196,8 +196,8 @@ describe("Test TransferManager", function () {
     async function doPendingTransfer({
       token, to, amount, delay, relayed = false,
     }) {
-      const tokenAddress = token == ETH_TOKEN ? ETH_TOKEN : token.contractAddress;
-      const fundsBefore = (token == ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
+      const tokenAddress = token === ETH_TOKEN ? ETH_TOKEN : token.contractAddress;
+      const fundsBefore = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       const params = [wallet.contractAddress, tokenAddress, to.address, amount, ZERO_BYTES32];
       let txReceipt; let
         tx;
@@ -208,9 +208,9 @@ describe("Test TransferManager", function () {
         txReceipt = await transferModule.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferCreated"), "should have generated PendingTransferCreated event");
-      let fundsAfter = (token == ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
+      let fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), 0, "should not have transfered amount");
-      if (delay == 0) {
+      if (delay === 0) {
         const id = ethers.utils.solidityKeccak256(["uint8", "address", "address", "uint256", "bytes", "uint256"], [ACTION_TRANSFER, tokenAddress, recipient.address, amount, ZERO_BYTES32, txReceipt.blockNumber]);
         return id;
       }
@@ -218,7 +218,7 @@ describe("Test TransferManager", function () {
       tx = await transferModule.executePendingTransfer(wallet.contractAddress, tokenAddress, recipient.address, amount, ZERO_BYTES32, txReceipt.blockNumber);
       txReceipt = await transferModule.verboseWaitForTransaction(tx);
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferExecuted"), "should have generated PendingTransferExecuted event");
-      fundsAfter = (token == ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
+      fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
     }
 

@@ -129,11 +129,11 @@ describe("Invest Manager with Compound", function () {
   describe("Environment", () => {
     it("should deploy the environment correctly", async () => {
       const getCToken = await compoundRegistry.getCToken(token.contractAddress);
-      assert.isTrue(getCToken == cToken.contractAddress, "cToken should be registered");
+      assert.isTrue(getCToken === cToken.contractAddress, "cToken should be registered");
       const getCEther = await compoundRegistry.getCToken(ETH_TOKEN);
-      assert.isTrue(getCEther == cEther.contractAddress, "cEther should be registered");
+      assert.isTrue(getCEther === cEther.contractAddress, "cEther should be registered");
       const cOracle = await comptroller.oracle();
-      assert.isTrue(cOracle == oracleProxy.contractAddress, "oracle should be registered");
+      assert.isTrue(cOracle === oracleProxy.contractAddress, "oracle should be registered");
       const cTokenPrice = await oracleProxy.getUnderlyingPrice(cToken.contractAddress);
       assert.isTrue(cTokenPrice.eq(WAD.div(10)), "cToken price should be 1e17");
       const cEtherPrice = await oracleProxy.getUnderlyingPrice(cEther.contractAddress);
@@ -145,7 +145,7 @@ describe("Invest Manager with Compound", function () {
     async function addInvestment(tokenAddress, amount, days, relay = false) {
       let tx; let
         txReceipt;
-      const investInEth = (tokenAddress == ETH_TOKEN);
+      const investInEth = (tokenAddress === ETH_TOKEN);
 
       if (investInEth) {
         // const bef = (await deployer.provider.getBalance(infrastructure.address)).toString()
@@ -161,7 +161,7 @@ describe("Invest Manager with Compound", function () {
         // const aftW = (await deployer.provider.getBalance(wallet.contractAddress)).toString()
         // console.log('infra after', aft);
         // console.log('W after', aftW);
-        // console.log('inc?', aft !== bef)
+        // console.log('inc?', aft !=== bef)
         // return
       } else {
         await token.from(infrastructure).transfer(wallet.contractAddress, amount);
@@ -189,7 +189,7 @@ describe("Invest Manager with Compound", function () {
     async function removeInvestment(tokenAddress, fraction, relay = false) {
       let tx; let
         txReceipt;
-      const investInEth = (tokenAddress == ETH_TOKEN);
+      const investInEth = (tokenAddress === ETH_TOKEN);
 
       await addInvestment(tokenAddress, parseEther("0.1"), 365, false);
       const before = investInEth ? await cEther.balanceOf(wallet.contractAddress) : await cToken.balanceOf(wallet.contractAddress);
@@ -204,7 +204,7 @@ describe("Invest Manager with Compound", function () {
       assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved"), "should have generated InvestmentRemoved event");
 
       const after = investInEth ? await cEther.balanceOf(wallet.contractAddress) : await cToken.balanceOf(wallet.contractAddress);
-      assert.isTrue(after == Math.ceil(before * (10000 - fraction) / 10000), "should have removed the correct fraction");
+      assert.isTrue(after === Math.ceil(before * (10000 - fraction) / 10000), "should have removed the correct fraction");
     }
 
     async function accrueInterests(days, investInEth) {
