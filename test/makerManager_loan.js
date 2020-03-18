@@ -1,5 +1,6 @@
 /* global accounts */
 const etherlime = require("etherlime-lib");
+const { parseEther, formatBytes32String, bigNumberify } = require("ethers").utils;
 
 const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
@@ -17,7 +18,6 @@ const Tub = require("../build/SaiTub");
 const DSToken = require("../build/DSToken");
 const WETH = require("../build/WETH9");
 const DSValue = require("../build/DSValue");
-const { parseEther, formatBytes32String, bigNumberify } = require("ethers").utils;
 const { bigNumToBytes32 } = require("../utils/utilities.js");
 
 const RAY = bigNumberify("1000000000000000000000000000"); // 10**27

@@ -1,5 +1,7 @@
 /* global accounts */
 const etherlime = require("etherlime-lib");
+const ethers = require("ethers");
+
 const Proxy = require("../build/Proxy");
 const Wallet = require("../build/BaseWallet");
 const Module = require("../build/BaseModule");

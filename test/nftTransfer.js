@@ -1,4 +1,6 @@
 /* global accounts */
+const ethers = require("ethers");
+
 const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 

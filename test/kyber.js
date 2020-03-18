@@ -1,5 +1,6 @@
 /* global accounts */
 const BN = require("bn.js");
+const ethers = require("ethers");
 
 const KyberNetwork = require("../build/KyberNetworkTest");
 const ERC20 = require("../build/TestERC20");

@@ -1,5 +1,7 @@
 /* global accounts */
 const etherlime = require("etherlime-lib");
+const { keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String } = require("ethers").utils;
+
 const Wallet = require("../build/BaseWallet");
 const OnlyOwnerModule = require("../build/TestOnlyOwnerModule");
 const Module = require("../build/TestModule");
@@ -7,8 +9,6 @@ const SimpleUpgrader = require("../build/SimpleUpgrader");
 const Registry = require("../build/ModuleRegistry");
 
 const TestManager = require("../utils/test-manager");
-
-const { keccak256, toUtf8Bytes } = require("ethers").utils;
 
 const IS_ONLY_OWNER_MODULE = keccak256(toUtf8Bytes("isOnlyOwnerModule()")).slice(0, 10);
 
@@ -29,7 +29,7 @@ describe("Test SimpleUpgrader", function () {
     it("should register modules in the registry", async () => {
       const name = "test_1.1";
       const initialModule = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
-      await registry.registerModule(initialModule.contractAddress, ethers.utils.formatBytes32String(name));
+      await registry.registerModule(initialModule.contractAddress, formatBytes32String(name));
       let isRegistered;
       // Here we adjust how we call isRegisteredModule which has 2 overlaods, one accepting a single address
       // and a second accepting an array of addresses. Behaviour as to which overload is selected to run
@@ -38,7 +38,7 @@ describe("Test SimpleUpgrader", function () {
 
       assert.equal(isRegistered, true, "module1 should be registered");
       const info = await registry.moduleInfo(initialModule.contractAddress);
-      assert.equal(ethers.utils.parseBytes32String(info), name, "module1 should be registered with the correct name");
+      assert.equal(parseBytes32String(info), name, "module1 should be registered with the correct name");
     });
 
     it("should add registered modules to a wallet", async () => {
@@ -46,8 +46,8 @@ describe("Test SimpleUpgrader", function () {
       const initialModule = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       const moduleToAdd = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       // register module
-      await registry.registerModule(initialModule.contractAddress, ethers.utils.formatBytes32String("initial"));
-      await registry.registerModule(moduleToAdd.contractAddress, ethers.utils.formatBytes32String("added"));
+      await registry.registerModule(initialModule.contractAddress, formatBytes32String("initial"));
+      await registry.registerModule(moduleToAdd.contractAddress, formatBytes32String("added"));
       // create wallet with initial module
       const wallet = await deployer.deploy(Wallet);
 
@@ -65,7 +65,7 @@ describe("Test SimpleUpgrader", function () {
       const initialModule = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       const moduleToAdd = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       // register initial module only
-      await registry.registerModule(initialModule.contractAddress, ethers.utils.formatBytes32String("initial"));
+      await registry.registerModule(initialModule.contractAddress, formatBytes32String("initial"));
       // create wallet with initial module
       const wallet = await deployer.deploy(Wallet);
       await wallet.init(owner.address, [initialModule.contractAddress]);
@@ -88,18 +88,18 @@ describe("Test SimpleUpgrader", function () {
         moduleV1 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       }
       // register module V1
-      await registry.registerModule(moduleV1.contractAddress, ethers.utils.formatBytes32String("V1"));
+      await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
       // create wallet with module V1
       const wallet = await deployer.deploy(Wallet);
       await wallet.init(owner.address, [moduleV1.contractAddress]);
       // create module V2
       const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       // register module V2
-      await registry.registerModule(moduleV2.contractAddress, ethers.utils.formatBytes32String("V2"));
+      await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
       // create upgrader
       const toAdd = modulesToAdd(moduleV2.contractAddress);
       const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], toAdd);
-      await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("V1toV2"));
+      await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
       // check that module V1 can be used to add the upgrader module
       useOnlyOwnerModule && assert.equal(await moduleV1.isOnlyOwnerModule(), IS_ONLY_OWNER_MODULE);
 

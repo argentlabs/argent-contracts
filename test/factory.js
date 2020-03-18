@@ -1,5 +1,7 @@
 /* global accounts */
 const ethers = require("ethers");
+const { bigNumberify } = require("ethers").utils;
+
 const Wallet = require("../build/BaseWallet");
 const Module = require("../build/BaseModule");
 const ModuleRegistry = require("../build/ModuleRegistry");
@@ -12,7 +14,6 @@ const Factory = require("../build/WalletFactory");
 const GuardianStorage = require("../build/GuardianStorage");
 
 const TestManager = require("../utils/test-manager");
-const { bigNumberify } = require("ethers").utils;
 const utilities = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;

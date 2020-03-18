@@ -1,4 +1,5 @@
 // AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true etherlime deploy --file ./scripts/deploy_defi.js --compile false
+const { parseEther, formatBytes32String, bigNumberify } = require("ethers").utils;
 
 const DeployManager = require("../utils/deploy-manager.js");
 
@@ -10,7 +11,6 @@ const Tub = require("../build/SaiTub");
 const DSToken = require("../build/DSToken");
 const WETH = require("../build/WETH9");
 const DSValue = require("../build/DSValue");
-const { parseEther, formatBytes32String, bigNumberify } = require("ethers").utils;
 
 const RAY = bigNumberify("1000000000000000000000000000"); // 10**27
 const WAD = bigNumberify("1000000000000000000"); // 10**18

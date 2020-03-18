@@ -1,4 +1,6 @@
 /* global accounts */
+const ethers = require("ethers");
+
 const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
 const RecoveryManager = require("../build/RecoveryManager");
