@@ -20,6 +20,16 @@ const USD_PER_MKR = WAD.mul(700); // 1 MKR = 700 USD
 
 const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 2.8 ETH
 
+async function getTimestamp(deployer) {
+  const block = await deployer.provider.getBlock("latest");
+  return block.timestamp;
+}
+
+function sleep(ms) {
+  console.log("sleeping...");
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function deploy() {
   const idx = process.argv.indexOf("--network");
   const network = idx > -1 ? process.argv[idx + 1] : "test";
@@ -95,16 +105,6 @@ async function deploy() {
   console.log(`MAKER TUB: ${tub.contractAddress}`);
   console.log(`UNISWAP FACTORY: ${uniswapFactory.contractAddress}`);
   console.log("********************************");
-}
-
-async function getTimestamp(deployer) {
-  const block = await deployer.provider.getBlock("latest");
-  return block.timestamp;
-}
-
-function sleep(ms) {
-  console.log("sleeping...");
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 module.exports = {

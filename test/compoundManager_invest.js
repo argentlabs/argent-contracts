@@ -144,6 +144,31 @@ describe("Invest Manager with Compound", function () {
   });
 
   describe("Investment", () => {
+    async function accrueInterests(days, investInEth) {
+      let tx; let
+        txReceipt;
+      // genrate borrows to create interests
+      await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress], { gasLimit: 200000 });
+      if (investInEth) {
+        await token.from(borrower).approve(cToken.contractAddress, parseEther("20"));
+        await cToken.from(borrower).mint(parseEther("20"));
+        tx = await cEther.from(borrower).borrow(parseEther("0.1"), { gasLimit: 8000000 });
+        txReceipt = await cEther.verboseWaitForTransaction(tx);
+        console.log("EVVVV:", utils.parseLogs(txReceipt, cEther, "Failure"));
+
+        assert.isTrue(await utils.hasEvent(txReceipt, cEther, "Borrow"), "should have generated Borrow event");
+      } else {
+        await cEther.from(borrower).mint({ value: parseEther("2") });
+        tx = await cToken.from(borrower).borrow(parseEther("0.1"));
+        txReceipt = await cToken.verboseWaitForTransaction(tx);
+        assert.isTrue(await utils.hasEvent(txReceipt, cToken, "Borrow"), "should have generated Borrow event");
+      }
+      // increase time to accumulate interests
+      await manager.increaseTime(3600 * 24 * days);
+      await cToken.accrueInterest();
+      await cEther.accrueInterest();
+    }
+
     async function addInvestment(tokenAddress, amount, days, relay = false) {
       let tx; let
         txReceipt;
@@ -207,31 +232,6 @@ describe("Invest Manager with Compound", function () {
 
       const after = investInEth ? await cEther.balanceOf(wallet.contractAddress) : await cToken.balanceOf(wallet.contractAddress);
       assert.isTrue(after.eq(Math.ceil((before * (10000 - fraction)) / 10000)), "should have removed the correct fraction");
-    }
-
-    async function accrueInterests(days, investInEth) {
-      let tx; let
-        txReceipt;
-      // genrate borrows to create interests
-      await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress], { gasLimit: 200000 });
-      if (investInEth) {
-        await token.from(borrower).approve(cToken.contractAddress, parseEther("20"));
-        await cToken.from(borrower).mint(parseEther("20"));
-        tx = await cEther.from(borrower).borrow(parseEther("0.1"), { gasLimit: 8000000 });
-        txReceipt = await cEther.verboseWaitForTransaction(tx);
-        console.log("EVVVV:", utils.parseLogs(txReceipt, cEther, "Failure"));
-
-        assert.isTrue(await utils.hasEvent(txReceipt, cEther, "Borrow"), "should have generated Borrow event");
-      } else {
-        await cEther.from(borrower).mint({ value: parseEther("2") });
-        tx = await cToken.from(borrower).borrow(parseEther("0.1"));
-        txReceipt = await cToken.verboseWaitForTransaction(tx);
-        assert.isTrue(await utils.hasEvent(txReceipt, cToken, "Borrow"), "should have generated Borrow event");
-      }
-      // increase time to accumulate interests
-      await manager.increaseTime(3600 * 24 * days);
-      await cToken.accrueInterest();
-      await cEther.accrueInterest();
     }
 
     describe("Add Investment", () => {
