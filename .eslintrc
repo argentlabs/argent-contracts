@@ -16,7 +16,8 @@
     "no-console": "off",
     "no-underscore-dangle": "off",
     "no-await-in-loop": "off",
-    "no-restricted-syntax": "off"
+    "no-restricted-syntax": "off",
+    "guard-for-in": "off"
   },
   "parserOptions": {
     "ecmaVersion": 2018
