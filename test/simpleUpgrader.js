@@ -1,7 +1,7 @@
-/* global accounts */
+/* global accounts, utils */
 const etherlime = require("etherlime-lib");
 const {
-  keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String,
+  keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String
 } = require("ethers").utils;
 
 const Wallet = require("../build/BaseWallet");

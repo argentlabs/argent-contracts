@@ -1,4 +1,4 @@
-/* global accounts */
+/* global accounts, utils */
 const ethers = require("ethers");
 const { parseEther, bigNumberify } = require("ethers").utils;
 

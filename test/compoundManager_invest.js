@@ -1,5 +1,7 @@
-/* global accounts */
-const { parseEther, formatBytes32String, bigNumberify } = require("ethers").utils;
+/* global accounts, utils */
+const {
+  parseEther, formatBytes32String, bigNumberify
+} = require("ethers").utils;
 
 const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
