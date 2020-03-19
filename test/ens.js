@@ -155,7 +155,7 @@ describe("Test ENS contracts", function () {
     });
 
     it("should return 0 address for a non-existent record", async () => {
-      const labelNode = ethers.utils.namehash(`${"missingnode" + "."}${subnameWallet}.${root}`);
+      const labelNode = ethers.utils.namehash(`${"missingnode"}.${subnameWallet}.${root}`);
       const nonExistentRecord = await ensResolver.addr(labelNode);
       assert.equal(nonExistentRecord, ethers.constants.AddressZero);
     });
