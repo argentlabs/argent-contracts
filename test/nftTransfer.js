@@ -74,7 +74,11 @@ describe("Test Token Transfer", function () {
       } else {
         const txPromise = nftModule.from(owner1)
           .transferNFT(wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32);
-        (shouldSucceed && await txPromise) || assert.revert(txPromise);
+        if (shouldSucceed) {
+          await txPromise;
+        } else {
+          assert.revert(txPromise);
+        }
       }
       if (shouldSucceed) {
         const afterWallet1 = await nftContract.balanceOf(wallet1.contractAddress);
