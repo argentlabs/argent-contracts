@@ -580,7 +580,6 @@ describe("Test Wallet Factory", function () {
 
     it("should fail to get an address when the guardian is empty", async () => {
       const salt = utilities.generateSaltValue();
-      const label = `wallet${index}`;
       const modules = [module1.contractAddress, module2.contractAddress];
       await assert.revertWith(factory.from(infrastructure).getAddressForCounterfactualWalletWithGuardian(owner.address, modules, ZERO_ADDRESS, salt),
         "WF: guardian cannot be null");

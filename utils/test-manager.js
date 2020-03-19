@@ -89,7 +89,7 @@ class TestManager {
   }
 
   async runningEtherlimeGanache() {
-    return new Promise((res, _) => {
+    return new Promise((res) => {
       ps.lookup({
         command: "node",
         psargs: "ux",

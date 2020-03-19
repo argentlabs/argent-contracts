@@ -27,7 +27,6 @@ describe("Test Approved Transfer", function () {
 
   const infrastructure = accounts[0].signer;
   const owner = accounts[1].signer;
-  const nonowner = accounts[2].signer;
   const guardian1 = accounts[3].signer;
   const guardian2 = accounts[4].signer;
   const guardian3 = accounts[5].signer;
@@ -324,7 +323,7 @@ describe("Test Approved Transfer", function () {
       let before = await deployer.provider.getBalance(contract.contractAddress);
       // should succeed with 2 confirmations
       dataToTransfer = contract.contract.interface.functions.setState.encode([2]);
-      const txReceipt = await manager.relay(transferModule, "callContract",
+      await manager.relay(transferModule, "callContract",
         [wallet.contractAddress, contract.contractAddress, amountToTransfer, dataToTransfer], wallet,
         [owner, ...sortWalletByAddress([guardian1, guardian2])]);
       let after = await deployer.provider.getBalance(contract.contractAddress);
