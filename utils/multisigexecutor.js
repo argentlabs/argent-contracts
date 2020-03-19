@@ -11,7 +11,7 @@ class MultisigExecutor {
   }
 
   async executeCall(contractWrapper, method, params) {
-    const contract_address = contractWrapper.contractAddress;
+    const contractAddress = contractWrapper.contractAddress;
 
     // Encode the method call with its parameters
     const data = contractWrapper.contract.interface.functions[method].encode(params);
@@ -20,7 +20,7 @@ class MultisigExecutor {
     const nonce = (await this._multisigWrapper.contract.nonce()).toNumber();
 
     // Get the sign Hash
-    const signHash = this.signHash(this._multisigWrapper.contractAddress, contract_address, 0, data, nonce);
+    const signHash = this.signHash(this._multisigWrapper.contractAddress, contractAddress, 0, data, nonce);
 
     if (this._autoSign === true) {
       // Get the off chain signature
@@ -32,7 +32,7 @@ class MultisigExecutor {
       signature = ethers.utils.joinSignature(split);
 
       // Call "execute" on the Multisig wallet with data and signatures
-      const executeTransaction = await this._multisigWrapper.contract.execute(contract_address, 0, data, signature, { gasLimit: 2000000 });
+      const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signature, { gasLimit: 2000000 });
       const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
 
       return result;
@@ -41,9 +41,9 @@ class MultisigExecutor {
     const threshold = (await this._multisigWrapper.contract.threshold()).toNumber();
 
     console.log("******* MultisigExecutor *******");
-    console.log(`Signing data for transaction to ${contractWrapper._contract.contractName} located at ${contract_address}:`);
+    console.log(`Signing data for transaction to ${contractWrapper._contract.contractName} located at ${contractAddress}:`);
     console.log(`multisig: ${this._multisigWrapper.contractAddress}`);
-    console.log(`to:       ${contract_address}`);
+    console.log(`to:       ${contractAddress}`);
     console.log("value:    0");
     console.log(`data:     ${data}`);
     console.log(`nonce:    ${nonce}`);
@@ -51,13 +51,13 @@ class MultisigExecutor {
     console.log(`Required signatures: ${threshold}`);
     console.log("********************************");
 
-    const signatures_output = await inquirer.prompt(Array(threshold).fill(0).map((value, index) => ({
+    const signaturesOutput = await inquirer.prompt(Array(threshold).fill(0).map((value, index) => ({
       type: "input",
       name: `signature_${index}`,
       message: `Please provide signature ${index + 1}/${threshold}`,
     })));
 
-    const parsedSignatures = Object.values(signatures_output).map((signature) => JSON.parse(signature));
+    const parsedSignatures = Object.values(signaturesOutput).map((signature) => JSON.parse(signature));
     const sortedSignatures = parsedSignatures.sort((s1, s2) => {
       const bn1 = ethers.utils.bigNumberify(s1.address);
       const bn2 = ethers.utils.bigNumberify(s2.address);
@@ -69,7 +69,7 @@ class MultisigExecutor {
     const signatures = `0x${sortedSignatures.map((s) => s.sig.slice(2)).join("")}`;
 
     // Call "execute" on the Multisig wallet with data and signatures
-    const executeTransaction = await this._multisigWrapper.contract.execute(contract_address, 0, data, signatures, { gasLimit: 300000 });
+    const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signatures, { gasLimit: 300000 });
     const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
 
     return result;

@@ -434,9 +434,9 @@ const deploy = async (network, secret) => {
   await benchmark.setup();
 
   let methods = benchmark.getAllEstimateMethods();
-  const argv_methods = process.argv.filter((x) => x.startsWith("estimate"));
-  if (argv_methods.length > 0) {
-    methods = methods.filter((method) => argv_methods.indexOf(method) >= 0);
+  const argvMethods = process.argv.filter((x) => x.startsWith("estimate"));
+  if (argvMethods.length > 0) {
+    methods = methods.filter((method) => argvMethods.indexOf(method) >= 0);
   }
 
   for (let index = 0; index < methods.length; index++) {
