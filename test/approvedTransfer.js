@@ -82,7 +82,7 @@ describe("Test Approved Transfer", function () {
         return wallets
     }
 
-    describe("Transfer approved by EOA guardians", () => { return;
+    describe("Transfer approved by EOA guardians", () => {
         it('should transfer ETH with 1 confirmations for 1 guardians', async () => {
             let amountToTransfer = 10000;
             await addGuardians([guardian1])
@@ -157,7 +157,7 @@ describe("Test Approved Transfer", function () {
         });
     });
 
-    describe("Transfer approved by smart-contract guardians", () => { return;
+    describe("Transfer approved by smart-contract guardians", () => {
         it('should transfer ETH with 1 confirmations for 1 guardians', async () => {
             let amountToTransfer = 10000;
             await addGuardians(await createSmartContractGuardians([guardian1]));
@@ -223,7 +223,7 @@ describe("Test Approved Transfer", function () {
         });
     });
 
-    describe("Transfer approved by EOA and smart-contract guardians", () => { return;
+    describe("Transfer approved by EOA and smart-contract guardians", () => {
         it('should transfer ETH with 1 EOA guardian and 2 smart-contract guardians', async () => {
             let amountToTransfer = 10000;
             await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
@@ -268,7 +268,7 @@ describe("Test Approved Transfer", function () {
         });
     });
 
-    describe("Contract call approved by EOA and smart-contract guardians", () => { return;
+    describe("Contract call approved by EOA and smart-contract guardians", () => {
 
         let contract, dataToTransfer;
 
