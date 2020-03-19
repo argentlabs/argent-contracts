@@ -66,8 +66,8 @@ describe("GuardianManager", function () {
         await assert.revertWith(guardianManager.confirmGuardianAddition(wallet.contractAddress, guardian2.address),
           "GM: Too late to confirm guardian addition");
 
-        count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
-        active = await guardianManager.isGuardian(wallet.contractAddress, guardian2.address);
+        const count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
+        const active = await guardianManager.isGuardian(wallet.contractAddress, guardian2.address);
         assert.isFalse(active, "second guardian should not be active (addition confirmation was too late)");
         assert.equal(count, 1, "1 guardian should be active after two security periods (addition confirmation was too late)");
       });
@@ -91,8 +91,8 @@ describe("GuardianManager", function () {
 
         // second time
         await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian2.address);
-        count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
-        active = await guardianManager.isGuardian(wallet.contractAddress, guardian2.address);
+        let count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
+        let active = await guardianManager.isGuardian(wallet.contractAddress, guardian2.address);
         assert.isFalse(active, "second guardian should not yet be active");
         assert.equal(count, 1, "second guardian should be pending during security period");
 
@@ -137,8 +137,8 @@ describe("GuardianManager", function () {
 
       it("should add many Guardians (blockchain transaction)", async () => {
         const guardians = [guardian1, guardian2, guardian3, guardian4, guardian5];
-        let count; let
-          active;
+        let count;
+        let active;
         for (let i = 1; i <= 5; i++) {
           await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardians[i - 1].address);
           if (i > 1) {
@@ -154,8 +154,8 @@ describe("GuardianManager", function () {
 
       it("should add many Guardians (relayed transaction)", async () => {
         const guardians = [guardian1, guardian2, guardian3, guardian4, guardian5];
-        let count; let
-          active;
+        let count;
+        let active;
         for (let i = 1; i <= 3; i++) {
           await manager.relay(guardianManager, "addGuardian", [wallet.contractAddress, guardians[i - 1].address], wallet, [owner]);
           if (i > 1) {
@@ -171,8 +171,9 @@ describe("GuardianManager", function () {
     });
 
     describe("Smart Contract Guardians", () => {
-      let guardianWallet1; let guardianWallet2; let
-        dumbContract;
+      let guardianWallet1;
+      let guardianWallet2;
+      let dumbContract;
 
       beforeEach(async () => {
         guardianWallet1 = await deployer.deploy(Wallet);
@@ -297,8 +298,8 @@ describe("GuardianManager", function () {
 
       // second time
       await guardianManager.from(owner).revokeGuardian(wallet.contractAddress, guardian1.address);
-      count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
-      active = await guardianManager.isGuardian(wallet.contractAddress, guardian1.address);
+      let count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
+      let active = await guardianManager.isGuardian(wallet.contractAddress, guardian1.address);
       assert.isTrue(active, "the revoked guardian should still be active during the security period");
       assert.equal(count, 2, "the revoked guardian should go through a security period");
 

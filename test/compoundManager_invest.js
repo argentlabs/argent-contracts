@@ -264,7 +264,7 @@ describe("Invest Manager with Compound", function () {
         });
       }
 
-      for (i = 1; i < 6; i++) {
+      for (let i = 1; i < 6; i++) {
         testRemoveERC20Investment(i * 2000, true);
         testRemoveERC20Investment(i * 2000, false);
         testRemoveETHInvestment(i * 2000, true);

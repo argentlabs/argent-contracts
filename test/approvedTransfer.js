@@ -82,7 +82,7 @@ describe("Test Approved Transfer", function () {
 
   async function createSmartContractGuardians(guardians) {
     const wallets = [];
-    for (g of guardians) {
+    for (const g of guardians) {
       const wallet = await deployer.deploy(Wallet);
       await wallet.init(g.address, [guardianManager.contractAddress]);
       wallets.push(wallet);

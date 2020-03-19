@@ -66,6 +66,7 @@ describe("RecoveryManager", function () {
 
   async function createSmartContractGuardians(guardians) {
     const wallets = [];
+    let g;
     for (g of guardians) {
       const wallet = await deployer.deploy(Wallet);
       await wallet.init(g.address, [guardianManager.contractAddress]);

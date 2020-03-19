@@ -141,7 +141,7 @@ describe("Test TransferManager", function () {
     it("should change the limit via relayed transaction", async () => {
       await manager.relay(transferModule, "changeLimit", [wallet.contractAddress, 4000000], wallet, [owner]);
       await manager.increaseTime(3);
-      limit = await transferModule.getCurrentLimit(wallet.contractAddress);
+      const limit = await transferModule.getCurrentLimit(wallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
     });
 

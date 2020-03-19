@@ -87,7 +87,7 @@ describe("LockManager", function () {
 
   describe("(Un)Lock by Smart Contract guardians", () => {
     beforeEach(async () => {
-      guardianWallet = await deployer.deploy(Wallet);
+      const guardianWallet = await deployer.deploy(Wallet);
       await guardianWallet.init(guardian1.address, [guardianManager.contractAddress, lockManager.contractAddress]);
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();

@@ -41,7 +41,7 @@ const deploy = async (network, secret) => {
   const ENSManagerAddManagerTx = await ENSManagerWrapper.contract.addManager(config.contracts.WalletFactory);
   await ENSManagerWrapper.verboseWaitForTransaction(ENSManagerAddManagerTx, "Set the WalletFactory as the manager of the ENS Manager");
 
-  for (idx in config.backend.accounts) {
+  for (const idx in config.backend.accounts) {
     const account = config.backend.accounts[idx];
     const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account);
     await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);

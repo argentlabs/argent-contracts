@@ -6,6 +6,8 @@ const ModuleRegistry = require("../build/ModuleRegistry");
 const Upgrader = require("../build/SimpleUpgrader");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
+const LegacyUpgrader = require("../build/LegacyUpgrader");
+
 const utils = require("../utils/utilities.js");
 
 const TARGET_VERSION = "1.6.0";
