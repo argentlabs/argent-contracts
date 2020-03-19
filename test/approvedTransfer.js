@@ -308,8 +308,8 @@ describe("Test Approved Transfer", function () {
   });
 
   describe("Contract call approved by EOA and smart-contract guardians", () => {
-    let contract; let
-      dataToTransfer;
+    let contract;
+    let dataToTransfer;
 
     beforeEach(async () => {
       contract = await deployer.deploy(TestContract);
@@ -352,8 +352,10 @@ describe("Test Approved Transfer", function () {
   });
 
   describe("Approve token and Contract call approved by EOA and smart-contract guardians", () => {
-    let contract; let consumer; let dataToTransfer; let
-      amountToApprove;
+    let contract;
+    let consumer;
+    let dataToTransfer;
+    let amountToApprove;
 
     beforeEach(async () => {
       contract = await deployer.deploy(TestContract);

@@ -15,7 +15,8 @@
     "quotes": [2, "double", "avoid-escape"],
     "no-console": "off",
     "no-underscore-dangle": "off",
-    "no-await-in-loop": "off"
+    "no-await-in-loop": "off",
+    "no-restricted-syntax": "off"
   },
   "parserOptions": {
     "ecmaVersion": 2018

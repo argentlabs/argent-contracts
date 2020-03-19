@@ -1,6 +1,6 @@
 /* global accounts, utils */
 const {
-  parseEther, formatBytes32String, bigNumberify
+  parseEther, formatBytes32String, bigNumberify,
 } = require("ethers").utils;
 
 const GuardianStorage = require("../build/GuardianStorage");
