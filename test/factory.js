@@ -90,8 +90,8 @@ describe("Test Wallet Factory", function () {
     await ensManager.addManager(factoryWithoutGuardianStorage.contractAddress);
   });
 
-  let module1; let
-    module2;
+  let module1;
+  let module2;
 
   beforeEach(async () => {
     // Restore the good state of factory (we set these to bad addresses in some tests)
@@ -309,9 +309,6 @@ describe("Test Wallet Factory", function () {
   });
 
   describe("Create wallets with CREATE2", () => {
-    let module1; let
-      module2;
-
     beforeEach(async () => {
       module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress, ZERO_BYTES32);
       module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress, ZERO_BYTES32);
@@ -445,9 +442,6 @@ describe("Test Wallet Factory", function () {
   });
 
   describe("Create wallets with CREATE2 and default guardian", () => {
-    let module1; let
-      module2;
-
     beforeEach(async () => {
       module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress, ZERO_BYTES32);
       module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress, ZERO_BYTES32);

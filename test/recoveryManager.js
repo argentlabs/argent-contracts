@@ -68,9 +68,9 @@ describe("RecoveryManager", function () {
     const wallets = [];
     let g;
     for (g of guardians) {
-      const wallet = await deployer.deploy(Wallet);
-      await wallet.init(g.address, [guardianManager.contractAddress]);
-      wallets.push(wallet);
+      const guardianWallet = await deployer.deploy(Wallet);
+      await guardianWallet.init(g.address, [guardianManager.contractAddress]);
+      wallets.push(guardianWallet);
     }
     return wallets;
   }

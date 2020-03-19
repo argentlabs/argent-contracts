@@ -476,8 +476,7 @@ describe("Test TransferManager", function () {
   });
 
   describe("Approve token and Call contract", () => {
-    let contract; let
-      dataToTransfer;
+    let contract;
 
     beforeEach(async () => {
       contract = await deployer.deploy(TestContract);
@@ -487,7 +486,7 @@ describe("Test TransferManager", function () {
     async function doApproveTokenAndCallContract({
       signer = owner, amount, state, relayed = false,
     }) {
-      dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([state, erc20.contractAddress, amount]);
+      const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([state, erc20.contractAddress, amount]);
       const unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
       const params = [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amount, dataToTransfer];
       let txReceipt;
@@ -533,6 +532,7 @@ describe("Test TransferManager", function () {
       await manager.increaseTime(3);
       await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6 });
     });
+
     it("should fail to approve the token and call the contract when the token is above the daily limit ", async () => {
       try {
         await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6 });

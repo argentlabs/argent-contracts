@@ -56,8 +56,8 @@ describe("Test ENS contracts", function () {
 
   describe("ENS Manager", () => {
     it("should be the owner of the wallet root", async () => {
-      const owner = await ensRegistry.owner(walletNode);
-      assert.equal(owner, ensManager.contractAddress, "ens manager should be the owner of the wallet root node");
+      const nodeOwner = await ensRegistry.owner(walletNode);
+      assert.equal(nodeOwner, ensManager.contractAddress, "ens manager should be the owner of the wallet root node");
     });
 
     it("should return correct ENSResolver", async () => {
