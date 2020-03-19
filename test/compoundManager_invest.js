@@ -206,7 +206,7 @@ describe("Invest Manager with Compound", function () {
       assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved"), "should have generated InvestmentRemoved event");
 
       const after = investInEth ? await cEther.balanceOf(wallet.contractAddress) : await cToken.balanceOf(wallet.contractAddress);
-      assert.isTrue(after.eq(Math.ceil(before * (10000 - fraction) / 10000)), "should have removed the correct fraction");
+      assert.isTrue(after.eq(Math.ceil((before * (10000 - fraction)) / 10000)), "should have removed the correct fraction");
     }
 
     async function accrueInterests(days, investInEth) {

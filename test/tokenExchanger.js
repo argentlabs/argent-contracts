@@ -52,7 +52,7 @@ describe("Test Token Exchanger", function () {
       const srcAmount = 10000;
       const rate = await exchanger.getExpectedTrade(ETH_TOKEN, erc20.contractAddress, srcAmount);
       const fee = ethers.utils.bigNumberify(rate[1]).toNumber();
-      assert.equal(fee, srcAmount * FEE_RATIO / 10000, "rate should be correct");
+      assert.equal(fee, (srcAmount * FEE_RATIO) / 10000, "rate should be correct");
     });
   });
 
