@@ -439,7 +439,7 @@ const deploy = async (network, secret) => {
     methods = methods.filter((method) => argvMethods.indexOf(method) >= 0);
   }
 
-  for (let index = 0; index < methods.length; index++) {
+  for (let index = 0; index < methods.length; index += 1) {
     const method = methods[index];
     console.log(`Running ${method}...`);
     await benchmark.setupWallet();

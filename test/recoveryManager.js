@@ -57,7 +57,7 @@ describe("RecoveryManager", function () {
     }
 
     await manager.increaseTime(30);
-    for (let i = 1; i < guardianAddresses.length; i++) {
+    for (let i = 1; i < guardianAddresses.length; i += 1) {
       await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardianAddresses[i]);
     }
     const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();

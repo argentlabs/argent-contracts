@@ -67,7 +67,7 @@ const deploy = async (network, secret) => {
 
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
-  for (let idx = 0; idx < wrappers.length; idx++) {
+  for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
       [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);

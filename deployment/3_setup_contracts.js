@@ -56,7 +56,7 @@ const deploy = async (network, secret) => {
   // //////////////////////////////////
 
   const wrappers = [ENSResolverWrapper, ENSManagerWrapper, WalletFactoryWrapper, ModuleRegistryWrapper, CompoundRegistryWrapper];
-  for (let idx = 0; idx < wrappers.length; idx++) {
+  for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     const changeOwnerTx = await wrapper.contract.changeOwner(config.contracts.MultiSigWallet);
     await wrapper.verboseWaitForTransaction(changeOwnerTx, `Set the MultiSig as the owner of ${wrapper._contract.contractName}`);

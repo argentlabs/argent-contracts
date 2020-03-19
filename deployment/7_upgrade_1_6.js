@@ -86,7 +86,7 @@ const deploy = async (network) => {
   // Register new modules
   // //////////////////////////////////
 
-  for (let idx = 0; idx < newModuleWrappers.length; idx++) {
+  for (let idx = 0; idx < newModuleWrappers.length; idx += 1) {
     const wrapper = newModuleWrappers[idx];
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
       [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
@@ -99,7 +99,7 @@ const deploy = async (network) => {
 
   let fingerprint;
   const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
-  for (let idx = 0; idx < versions.length; idx++) {
+  for (let idx = 0; idx < versions.length; idx += 1) {
     const version = versions[idx];
     let toAdd; let
       toRemove;

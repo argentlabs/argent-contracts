@@ -31,7 +31,7 @@ class TestManager {
     const hdWallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MNEMONIC));
     const localNodeProvider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
     accounts = [];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i += 1) {
       const privKey = hdWallet.derivePath(`m/44'/60'/0'/0/${i}`).getWallet().getPrivateKeyString();
       accounts.push({
         secretKey: privKey,

@@ -103,7 +103,7 @@ describe("Test Wallet Factory", function () {
     await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
     await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
 
-    index++;
+    index += 1;
   });
 
   describe("Configure the factory", () => {
