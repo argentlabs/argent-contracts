@@ -11,7 +11,7 @@ class MultisigExecutor {
   }
 
   async executeCall(contractWrapper, method, params) {
-    const contractAddress = contractWrapper.contractAddress;
+    const { contractAddress } = contractWrapper;
 
     // Encode the method call with its parameters
     const data = contractWrapper.contract.interface.functions[method].encode(params);
