@@ -1,4 +1,5 @@
 const semver = require("semver");
+const childProcess = require("child_process");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const RecoveryManager = require("../build/RecoveryManager");
 const MultiSig = require("../build/MultiSigWallet");
@@ -73,7 +74,7 @@ const deploy = async (network) => {
     RecoveryManager: RecoveryManagerWrapper.contractAddress,
   });
 
-  const gitHash = require("child_process").execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
+  const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
   configurator.updateGitHash(gitHash);
   await configurator.save();
 

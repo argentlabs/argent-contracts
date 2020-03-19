@@ -1,3 +1,4 @@
+const childProcess = require("child_process");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferStorage = require("../build/TransferStorage");
 
@@ -159,7 +160,7 @@ const deploy = async (network) => {
     MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
   });
 
-  const gitHash = require("child_process").execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
+  const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
   configurator.updateGitHash(gitHash);
 
   await configurator.save();
