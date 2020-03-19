@@ -1,5 +1,5 @@
 // Usage: truffle exec ./scripts/benchmark.js --network ganache
-
+/* eslint-disable */
 const ethers = require("ethers");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
