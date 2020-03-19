@@ -20,7 +20,7 @@ async function deployENSReverseRegistrar(deployer, config, owner) {
     "Create the addr.reverse namespace and make the ENS reverse registrar the owner");
 }
 
-const deploy = async (network, secret) => {
+const deploy = async (network) => {
   const manager = new DeployManager(network);
   await manager.setup();
 

@@ -7,7 +7,7 @@ const CompoundRegistry = require("../build/CompoundRegistry");
 
 const DeployManager = require("../utils/deploy-manager.js");
 
-const deploy = async (network, secret) => {
+const deploy = async (network) => {
   // //////////////////////////////////
   // Setup
   // //////////////////////////////////

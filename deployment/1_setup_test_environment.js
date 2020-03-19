@@ -46,7 +46,7 @@ async function deployKyber(deployer) {
   return KyberWrapper.contractAddress;
 }
 
-const deploy = async (network, secret) => {
+const deploy = async (network) => {
   const manager = new DeployManager(network);
   await manager.setup();
 

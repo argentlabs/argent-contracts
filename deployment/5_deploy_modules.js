@@ -18,7 +18,7 @@ const DeployManager = require("../utils/deploy-manager.js");
 //                 Version 1.4
 // ///////////////////////////////////////////////////////
 
-const deploy = async (network, secret) => {
+const deploy = async (network) => {
   // //////////////////////////////////
   // Setup
   // //////////////////////////////////

@@ -429,7 +429,7 @@ class Logger {
   }
 }
 
-const deploy = async (network, secret) => {
+const deploy = async (network) => {
   const benchmark = new Benchmark(network);
   await benchmark.setup();
 

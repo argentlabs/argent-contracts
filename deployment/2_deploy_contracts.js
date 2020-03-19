@@ -13,7 +13,7 @@ const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-const deploy = async (network, secret) => {
+const deploy = async (network) => {
   // //////////////////////////////////
   // Setup
   // //////////////////////////////////
