@@ -370,8 +370,8 @@ describe("Test Approved Transfer", function () {
 
       dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([2, erc20.contractAddress, amountToApprove]);
       const txReceipt = await manager.relay(transferModule, "approveTokenAndCallContract",
-       [wallet.contractAddress, erc20.contractAddress, wallet.contractAddress, amountToApprove, wallet.contractAddress, dataToTransfer],
-       wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+        [wallet.contractAddress, erc20.contractAddress, wallet.contractAddress, amountToApprove, wallet.contractAddress, dataToTransfer],
+        wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
       const success = parseRelayReceipt(txReceipt);
       assert.isNotOk(success, "approveTokenAndCall should fail when target contract is the wallet");
     });
@@ -383,9 +383,9 @@ describe("Test Approved Transfer", function () {
 
       dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([2, erc20.contractAddress, amountToApprove]);
       const txReceipt = await manager.relay(transferModule, "approveTokenAndCallContract",
-       [wallet.contractAddress, erc20.contractAddress, transferModule.contractAddress,
-        amountToApprove, transferModule.contractAddress, dataToTransfer],
-       wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+        [wallet.contractAddress, erc20.contractAddress, transferModule.contractAddress,
+          amountToApprove, transferModule.contractAddress, dataToTransfer],
+        wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
       const success = parseRelayReceipt(txReceipt);
       assert.isNotOk(success, "approveTokenAndCall should fail when target contract is an authorised module");
     });
@@ -398,8 +398,8 @@ describe("Test Approved Transfer", function () {
       // should succeed with 2 confirmations
       dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([2, erc20.contractAddress, amountToApprove]);
       await manager.relay(transferModule, "approveTokenAndCallContract",
-       [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, contract.contractAddress, dataToTransfer],
-       wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+        [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, contract.contractAddress, dataToTransfer],
+        wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
       let after = await erc20.balanceOf(contract.contractAddress);
       assert.equal(after.sub(before).toNumber(), amountToApprove, "should have approved and transfered the token amount");
       assert.equal((await contract.state()).toNumber(), 2, "the state of the external contract should have been changed");
@@ -407,8 +407,8 @@ describe("Test Approved Transfer", function () {
       before = after;
       dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, amountToApprove]);
       await manager.relay(transferModule, "approveTokenAndCallContract",
-       [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, contract.contractAddress, dataToTransfer],
-       wallet, [owner, ...sortWalletByAddress([guardian1, guardian3])]);
+        [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, contract.contractAddress, dataToTransfer],
+        wallet, [owner, ...sortWalletByAddress([guardian1, guardian3])]);
       after = await erc20.balanceOf(contract.contractAddress);
       assert.equal(after.sub(before).toNumber(), amountToApprove, "should have approved and transfered the token amount");
       assert.equal((await contract.state()).toNumber(), 3, "the state of the external contract should have been changed");
@@ -416,8 +416,8 @@ describe("Test Approved Transfer", function () {
       before = after;
       dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([4, erc20.contractAddress, amountToApprove]);
       await manager.relay(transferModule, "approveTokenAndCallContract",
-       [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, contract.contractAddress, dataToTransfer],
-       wallet, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
+        [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amountToApprove, contract.contractAddress, dataToTransfer],
+        wallet, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
       after = await erc20.balanceOf(contract.contractAddress);
       assert.equal(after.sub(before).toNumber(), amountToApprove, "should have approved and transfered the token amount");
       assert.equal((await contract.state()).toNumber(), 4, "the state of the external contract should have been changed");
@@ -431,8 +431,8 @@ describe("Test Approved Transfer", function () {
       // should succeed with 2 confirmations
       dataToTransfer = contract.contract.interface.functions.setStateAndPayTokenWithConsumer.encode([2, erc20.contractAddress, amountToApprove]);
       await manager.relay(transferModule, "approveTokenAndCallContract",
-       [wallet.contractAddress, erc20.contractAddress, consumer, amountToApprove, contract.contractAddress, dataToTransfer],
-       wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+        [wallet.contractAddress, erc20.contractAddress, consumer, amountToApprove, contract.contractAddress, dataToTransfer],
+        wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
       let after = await erc20.balanceOf(contract.contractAddress);
       assert.equal(after.sub(before).toNumber(), amountToApprove, "should have approved and transfered the token amount");
       assert.equal((await contract.state()).toNumber(), 2, "the state of the external contract should have been changed");
@@ -440,18 +440,18 @@ describe("Test Approved Transfer", function () {
       before = after;
       dataToTransfer = contract.contract.interface.functions.setStateAndPayTokenWithConsumer.encode([3, erc20.contractAddress, amountToApprove]);
       await manager.relay(transferModule, "approveTokenAndCallContract",
-       [wallet.contractAddress, erc20.contractAddress, consumer, amountToApprove, contract.contractAddress, dataToTransfer],
-       wallet, [owner, ...sortWalletByAddress([guardian1, guardian3])]);
+        [wallet.contractAddress, erc20.contractAddress, consumer, amountToApprove, contract.contractAddress, dataToTransfer],
+        wallet, [owner, ...sortWalletByAddress([guardian1, guardian3])]);
       after = await erc20.balanceOf(contract.contractAddress);
       assert.equal(after.sub(before).toNumber(), amountToApprove,
-       "should have approved and transfered the token amount");
+        "should have approved and transfered the token amount");
       assert.equal((await contract.state()).toNumber(), 3, "the state of the external contract should have been changed");
       // should succeed with 2 confirmations
       before = after;
       dataToTransfer = contract.contract.interface.functions.setStateAndPayTokenWithConsumer.encode([4, erc20.contractAddress, amountToApprove]);
       await manager.relay(transferModule, "approveTokenAndCallContract",
-       [wallet.contractAddress, erc20.contractAddress, consumer, amountToApprove, contract.contractAddress, dataToTransfer],
-       wallet, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
+        [wallet.contractAddress, erc20.contractAddress, consumer, amountToApprove, contract.contractAddress, dataToTransfer],
+        wallet, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
       after = await erc20.balanceOf(contract.contractAddress);
       assert.equal(after.sub(before).toNumber(), amountToApprove, "should have approved and transfered the token amount");
       assert.equal((await contract.state()).toNumber(), 4, "the state of the external contract should have been changed");
