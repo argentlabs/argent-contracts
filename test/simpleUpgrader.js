@@ -33,11 +33,10 @@ describe("Test SimpleUpgrader", function () {
       const name = "test_1.1";
       const initialModule = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       await registry.registerModule(initialModule.contractAddress, formatBytes32String(name));
-      let isRegistered;
       // Here we adjust how we call isRegisteredModule which has 2 overlaods, one accepting a single address
       // and a second accepting an array of addresses. Behaviour as to which overload is selected to run
       // differs between CI and Coverage environments, adjusted for this here
-      isRegistered = await registry["isRegisteredModule(address)"](initialModule.contractAddress);
+      const isRegistered = await registry["isRegisteredModule(address)"](initialModule.contractAddress);
 
       assert.equal(isRegistered, true, "module1 should be registered");
       const info = await registry.moduleInfo(initialModule.contractAddress);
@@ -104,7 +103,9 @@ describe("Test SimpleUpgrader", function () {
       const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], toAdd);
       await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
       // check that module V1 can be used to add the upgrader module
-      useOnlyOwnerModule && assert.equal(await moduleV1.isOnlyOwnerModule(), IS_ONLY_OWNER_MODULE);
+      if (useOnlyOwnerModule) {
+        assert.equal(await moduleV1.isOnlyOwnerModule(), IS_ONLY_OWNER_MODULE);
+      }
 
       // upgrade from V1 to V2
       let txReceipt;
@@ -173,11 +174,12 @@ describe("Test SimpleUpgrader", function () {
 
     it("should not upgrade to 0 module (blockchain tx)", async () => {
       // we intentionally try to add 0 module, this should fail
-      await testUpgradeModule({ relayed: false, useOnlyOwnerModule: true, modulesToAdd: (v2) => [] });
+      await testUpgradeModule({ relayed: false, useOnlyOwnerModule: true, modulesToAdd: (v2) => [] }); // eslint-disable-line no-unused-vars
     });
+
     it("should not upgrade to 0 module (relayed tx)", async () => {
       // we intentionally try to add 0 module, this should fail
-      await testUpgradeModule({ relayed: true, useOnlyOwnerModule: true, modulesToAdd: (v2) => [] });
+      await testUpgradeModule({ relayed: true, useOnlyOwnerModule: true, modulesToAdd: (v2) => [] }); // eslint-disable-line no-unused-vars
     });
   });
 });
