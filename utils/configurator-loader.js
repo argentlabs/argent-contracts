@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 const AWS = require("aws-sdk");
 const fs = require("fs");
 
