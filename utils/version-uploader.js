@@ -1,4 +1,4 @@
-
+// eslint-disable-next-line max-classes-per-file
 const AWS = require("aws-sdk");
 const fs = require("fs");
 const path = require("path");
@@ -47,7 +47,7 @@ class VersionUploaderLocal {
     fs.writeFileSync(this._path(), JSON.stringify(version));
   }
 
-  async load(count) {
+  async load(count) { // eslint-disable-line no-unused-vars
     const string = fs.readFileSync(this._path(), "utf8");
     const json = JSON.parse(string);
     return [json];
