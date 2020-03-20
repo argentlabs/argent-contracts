@@ -20,7 +20,7 @@ const modules = [
   {
     address: "0xE0f4a78BbF24E9624989B9ef10A3B035cc46CE5B",
     name: "TokenExchanger",
-  }, ,
+  },
   {
     address: "0x624EbBd0f4169E2e11861618045491b6A4e29E77",
     name: "NftTransfer",
