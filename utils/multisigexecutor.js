@@ -75,7 +75,7 @@ class MultisigExecutor {
     return result;
   }
 
-  signHash(walletAddr, destinationAddr, value, data, nonce) {
+  static signHash(walletAddr, destinationAddr, value, data, nonce) {
     const input = `0x${[
       "0x19",
       "0x00",
@@ -86,9 +86,7 @@ class MultisigExecutor {
       ethers.utils.hexZeroPad(ethers.utils.hexlify(nonce), 32),
     ].map((hex) => hex.slice(2)).join("")}`;
 
-    const signHash = utils.sha3(input);
-
-    return signHash;
+    return utils.sha3(input);
   }
 }
 
