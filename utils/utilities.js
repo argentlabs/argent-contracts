@@ -94,11 +94,13 @@ module.exports = {
         }, "0x");
         return ethers.utils.keccak256(concat).slice(0, 10);
     },
+
     getRandomAddress() {
         const addressBuffer = ethereumUtil.generateAddress(Math.floor(Math.random() * (100 - 0)));
         const addressHex = ethereumUtil.bufferToHex(addressBuffer);
         return ethereumUtil.toChecksumAddress(addressHex);
     },
+    
     generateSaltValue() {
         return ethers.utils.bigNumberify(ethers.utils.randomBytes(32)).toHexString();
     }

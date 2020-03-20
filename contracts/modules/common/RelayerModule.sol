@@ -16,6 +16,7 @@
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../interfaces/Module.sol";
+import "../../utils/GuardianUtils.sol";
 import "./BaseModule.sol";
 
 /**
@@ -32,6 +33,12 @@ contract RelayerModule is BaseModule {
     struct RelayerConfig {
         uint256 nonce;
         mapping (bytes32 => bool) executedTx;
+    }
+
+    enum OwnerSignature {
+        Required,
+        Optional,
+        Disallowed
     }
 
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes32 signedHash);
@@ -67,7 +74,60 @@ contract RelayerModule is BaseModule {
         BaseWallet _wallet,
         bytes memory _data,
         bytes32 _signHash,
-        bytes memory _signatures) internal view returns (bool);
+        bytes memory _signatures
+    )
+        internal view returns (bool);
+
+    /**
+    * @dev Validates the signatures provided with a relayed transaction.
+    * The method MUST throw if one or more signatures are not valid.
+    * @param _wallet The target wallet.
+    * @param _signHash The signed hash representing the relayed transaction.
+    * @param _signatures The signatures as a concatenated byte array.
+    * @param _option An enum indicating whether the owner is required, optional or disallowed.
+    */
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes32 _signHash,
+        bytes memory _signatures,
+        OwnerSignature _option
+    )
+        internal view returns (bool)
+    {
+        address lastSigner = address(0);
+        address[] memory guardians;
+        if (_signatures.length > 65 || _option != OwnerSignature.Required)
+            guardians = guardianStorage.getGuardians(_wallet); // guardians are read only if they may be needed
+        bool isGuardian;
+
+        for (uint8 i = 0; i < _signatures.length / 65; i++) {
+            address signer = recoverSigner(_signHash, _signatures, i);
+
+            if (i == 0) {
+                if (_option == OwnerSignature.Required) {
+                    // First signer must be owner
+                    if (isOwner(_wallet, signer)) {
+                        continue;
+                    }
+                    return false;
+                } else if (_option == OwnerSignature.Optional) {
+                    // First signer can be owner
+                    if (isOwner(_wallet, signer)) {
+                        continue;
+                    }
+                }
+            }
+            if (signer <= lastSigner) {
+                return false; // Signers must be different
+            }
+            lastSigner = signer;
+            (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+            if (!isGuardian) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /* ************************************************************ */
 
@@ -94,16 +154,16 @@ contract RelayerModule is BaseModule {
         uint startGas = gasleft();
         bytes32 signHash = getSignHash(address(this), address(_wallet), 0, _data, _nonce, _gasPrice, _gasLimit);
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
-        require(verifyData(address(_wallet), _data), "RM: the wallet authorized is different then the target of the relayed data");
+        require(verifyData(address(_wallet), _data), "RM: Target of _data != _wallet");
         uint256 requiredSignatures = getRequiredSignatures(_wallet, _data);
-        if ((requiredSignatures * 65) == _signatures.length) {
-            if (verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
-                if (requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures)) {
-                    // solium-disable-next-line security/no-call-value
-                    (success,) = address(this).call(_data);
-                    refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
-                }
-            }
+        require(requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
+        require(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures), "RM: Invalid signatures");
+        // The correctness of the refund is checked on the next line using an `if` instead of a `require`
+        // in order to prevent a failing refund from being replayable in the future.
+        if (verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
+            // solium-disable-next-line security/no-call-value
+            (success,) = address(this).call(_data);
+            refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
         }
         emit TransactionExecuted(address(_wallet), success, signHash);
     }

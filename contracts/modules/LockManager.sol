@@ -132,8 +132,7 @@ contract LockManager is BaseModule, RelayerModule {
         view
         returns (bool)
     {
-        (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), recoverSigner(_signHash, _signatures, 0));
-        return isGuardian; // "LM: must be a guardian to lock or unlock"
+        return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Disallowed);
     }
 
     function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) internal view returns (uint256) {
