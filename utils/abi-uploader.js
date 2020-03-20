@@ -1,4 +1,4 @@
-
+// eslint-disable-next-line max-classes-per-file
 const AWS = require("aws-sdk");
 
 const s3 = new AWS.S3();
@@ -44,6 +44,7 @@ class ABIUploaderS3 {
 }
 
 class ABIUploaderNone {
+  // eslint-disable-next-line class-methods-use-this, no-unused-vars, no-empty-function
   async upload(contract, folder) { }
 }
 
