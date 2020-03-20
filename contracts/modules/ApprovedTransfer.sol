@@ -79,7 +79,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
 
     /**
     * @dev lets the owner do an ERC20 approve followed by a call to a contract.
-    * The address to approve may be different then the contract to call.
+    * The address to approve may be different than the contract to call.
     * We assume that the contract does not require ETH.
     * @param _wallet The target wallet.
     * @param _token The token to approve.
