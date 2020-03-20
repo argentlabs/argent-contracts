@@ -223,7 +223,7 @@ describe("Test TransferManager", function () {
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "PendingTransferExecuted"),
         "should have generated PendingTransferExecuted event");
       fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
-      assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
+      return assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
     }
 
     describe("Small token transfers", () => {
