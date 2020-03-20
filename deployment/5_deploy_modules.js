@@ -10,7 +10,6 @@ const TransferManager = require('../build/TransferManager');
 const NftTransfer = require('../build/NftTransfer');
 const MakerManager = require('../build/MakerManager');
 const CompoundManager = require('../build/CompoundManager');
-const UniswapManager = require('../build/UniswapManager');
 const MakerV2Manager = require('../build/MakerV2Manager');
 
 const DeployManager = require('../utils/deploy-manager.js');
@@ -127,14 +126,6 @@ const deploy = async (network, secret) => {
         config.defi.compound.comptroller,
         config.contracts.CompoundRegistry
     );
-    // Deploy the UniswapManager module
-    const UniswapManagerWrapper = await deployer.deploy(
-        UniswapManager,
-        {},
-        config.contracts.ModuleRegistry,
-        config.modules.GuardianStorage,
-        config.defi.uniswap.factory
-    );
     // Deploy MakerManagerV2 first version
     const MakerV2ManagerWrapper = await deployer.deploy(
         MakerV2Manager,
@@ -161,7 +152,6 @@ const deploy = async (network, secret) => {
         NftTransfer: NftTransferWrapper.contractAddress,
         MakerManager: MakerManagerWrapper.contractAddress,
         CompoundManager: CompoundManagerWrapper.contractAddress,
-        UniswapManager: UniswapManagerWrapper.contractAddress,
         MakerV2Manager: MakerV2ManagerWrapper.contractAddress
     });
 
@@ -182,7 +172,6 @@ const deploy = async (network, secret) => {
         abiUploader.upload(NftTransferWrapper, "modules"),
         abiUploader.upload(MakerManagerWrapper, "modules"),
         abiUploader.upload(CompoundManagerWrapper, "modules"),
-        abiUploader.upload(UniswapManagerWrapper, "modules"),
         abiUploader.upload(MakerV2ManagerWrapper, "modules")
     ]);
 
