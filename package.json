@@ -17,7 +17,7 @@
     "lint:contracts:staged": "bash ./scripts/ethlint.sh",
     "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`",
     "lint:js": "eslint .",
-    "lint:js:staged": "bash ./scripts/ethlint.sh"
+    "lint:js:staged": "bash ./scripts/eslint.sh"
   },
   "husky": {
     "hooks": {
