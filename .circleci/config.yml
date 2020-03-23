@@ -27,7 +27,7 @@ jobs:
       - <<: *step_restore_cache
       - <<: *step_setup_global_packages
       - run:
-          name: "Lint contracts"
+          name: "Lint Solidity contracts"
           command: npm run lint:contracts
       - run:
           name: "Compiling external library contracts"
@@ -35,6 +35,9 @@ jobs:
       - run:
           name: "Compiling contracts"
           command: npm run compile
+      - run:
+          name: "Lint JavaScript"
+          command: npm run lint:js
       - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
