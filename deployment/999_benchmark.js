@@ -433,8 +433,6 @@ const deploy = async (network, secret) => {
     
     const output = await benchmark.output();
     console.log(output);
-
-    // await fs.writeFileSync(OUTPUT_FILE, output);
 }
 
 module.exports = {
