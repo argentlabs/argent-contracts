@@ -10,6 +10,7 @@ const Registry = require("../build/ModuleRegistry");
 
 const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt, signOffchain } = require("../utils/utilities.js");
+
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 
@@ -93,27 +94,29 @@ describe("RecoveryManager", function () {
     });
 
     it("should not let owner execute the recovery procedure", async () => {
-      const expectedRevertMsg = guardians.length >= 3 ? WRONG_SIGNATURE_NUMBER_REVERT_MSG : INVALID_SIGNATURES_REVERT_MSG
+      const expectedRevertMsg = guardians.length >= 3 ? WRONG_SIGNATURE_NUMBER_REVERT_MSG : INVALID_SIGNATURES_REVERT_MSG;
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "executeRecovery", 
-          [wallet.contractAddress, newowner.address], 
-          wallet, 
-          [owner]
-      ), expectedRevertMsg);
+          recoveryManager,
+          "executeRecovery",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          [owner],
+        ), expectedRevertMsg,
+      );
     });
 
     it("should not let a majority of guardians and owner execute the recovery procedure", async () => {
       const majority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "executeRecovery", 
-          [wallet.contractAddress, newowner.address], 
-          wallet, 
-          [owner, ...sortWalletByAddress(majority)]
-      ), INVALID_SIGNATURES_REVERT_MSG);
+          recoveryManager,
+          "executeRecovery",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          [owner, ...sortWalletByAddress(majority)],
+        ), INVALID_SIGNATURES_REVERT_MSG,
+      );
 
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isFalse(isLocked, "should not be locked");
@@ -123,13 +126,14 @@ describe("RecoveryManager", function () {
       const minority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "executeRecovery", 
-          [wallet.contractAddress, newowner.address], 
-          wallet, 
-          sortWalletByAddress(minority)
-      ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
-      
+          recoveryManager,
+          "executeRecovery",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          sortWalletByAddress(minority),
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
+
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isFalse(isLocked, "should not be locked");
     });
@@ -193,12 +197,13 @@ describe("RecoveryManager", function () {
     it("should not let 1 guardian cancel the recovery procedure", async () => {
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "cancelRecovery", 
-          [wallet.contractAddress], 
-          wallet, 
-          [guardian1]
-      ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+          recoveryManager,
+          "cancelRecovery",
+          [wallet.contractAddress],
+          wallet,
+          [guardian1],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
 
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(isLocked, "should still be locked");
@@ -207,12 +212,13 @@ describe("RecoveryManager", function () {
     it("should not let the owner cancel the recovery procedure", async () => {
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "cancelRecovery", 
-          [wallet.contractAddress], 
-          wallet, 
-          [owner]
-      ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+          recoveryManager,
+          "cancelRecovery",
+          [wallet.contractAddress],
+          wallet,
+          [owner],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
 
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(isLocked, "should still be locked");
@@ -221,12 +227,13 @@ describe("RecoveryManager", function () {
     it("should not allow duplicate guardian signatures", async () => {
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "cancelRecovery", 
-          [wallet.contractAddress], 
-          wallet, 
-          [guardian1, guardian1]
-      ), INVALID_SIGNATURES_REVERT_MSG);
+          recoveryManager,
+          "cancelRecovery",
+          [wallet.contractAddress],
+          wallet,
+          [guardian1, guardian1],
+        ), INVALID_SIGNATURES_REVERT_MSG,
+      );
 
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(isLocked, "should still be locked");
@@ -235,12 +242,13 @@ describe("RecoveryManager", function () {
     it("should not allow non guardians signatures", async () => {
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "cancelRecovery", 
-          [wallet.contractAddress], 
-          wallet, 
-          sortWalletByAddress([guardian1, nonowner])
-      ), INVALID_SIGNATURES_REVERT_MSG);
+          recoveryManager,
+          "cancelRecovery",
+          [wallet.contractAddress],
+          wallet,
+          sortWalletByAddress([guardian1, nonowner]),
+        ), INVALID_SIGNATURES_REVERT_MSG,
+      );
 
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(isLocked, "should still be locked");
@@ -261,30 +269,32 @@ describe("RecoveryManager", function () {
       const minority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "transferOwnership", 
-          [wallet.contractAddress, newowner.address], 
-          wallet, 
-          [owner, ...sortWalletByAddress(minority)]
-      ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+          recoveryManager,
+          "transferOwnership",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          [owner, ...sortWalletByAddress(minority)],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
 
       const walletOwner = await wallet.owner();
-      assert.equal(walletOwner, owner.address, 'owner should not have been changed');
+      assert.equal(walletOwner, owner.address, "owner should not have been changed");
     });
 
     it("should not let majority of guardians execute an ownership transfer without owner", async () => {
       const majority = guardians.slice(0, Math.ceil((guardians.length) / 2));
       await assert.revertWith(
         manager.relay(
-          recoveryManager, 
-          "transferOwnership", 
-          [wallet.contractAddress, newowner.address], 
-          wallet, 
-          [...sortWalletByAddress(majority)]
-      ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+          recoveryManager,
+          "transferOwnership",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          [...sortWalletByAddress(majority)],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
 
       const walletOwner = await wallet.owner();
-      assert.equal(walletOwner, owner.address, 'owner should not have been changed');
+      assert.equal(walletOwner, owner.address, "owner should not have been changed");
     });
   }
 
@@ -317,15 +327,16 @@ describe("RecoveryManager", function () {
       testExecuteRecovery([guardian1, guardian2, guardian3]);
 
       it("should not allow duplicate guardian signatures", async () => {
-        const badMajority = [guardian1, guardian1]
+        const badMajority = [guardian1, guardian1];
         await assert.revertWith(
           manager.relay(
-            recoveryManager, 
-            "executeRecovery", 
-            [wallet.contractAddress, newowner.address], 
-            wallet, 
-            [...sortWalletByAddress(badMajority)]
-        ), INVALID_SIGNATURES_REVERT_MSG);
+            recoveryManager,
+            "executeRecovery",
+            [wallet.contractAddress, newowner.address],
+            wallet,
+            [...sortWalletByAddress(badMajority)],
+          ), INVALID_SIGNATURES_REVERT_MSG,
+        );
       });
     });
 
@@ -391,8 +402,14 @@ describe("RecoveryManager", function () {
 
   describe("Finalize Recovery", () => {
     beforeEach(async () => {
-      await addGuardians([guardian1, guardian2, guardian3])
-      await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress([guardian1, guardian2]));
+      await addGuardians([guardian1, guardian2, guardian3]);
+      await manager.relay(
+        recoveryManager,
+        "executeRecovery",
+        [wallet.contractAddress, newowner.address],
+        wallet,
+        sortWalletByAddress([guardian1, guardian2]),
+      );
     });
 
     testFinalizeRecovery();
@@ -401,8 +418,14 @@ describe("RecoveryManager", function () {
   describe("Cancel Recovery with 3 guardians", () => {
     describe("EOA Guardians", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2, guardian3])
-        await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress([guardian1, guardian2]));
+        await addGuardians([guardian1, guardian2, guardian3]);
+        await manager.relay(
+          recoveryManager,
+          "executeRecovery",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          sortWalletByAddress([guardian1, guardian2]),
+        );
       });
 
       testCancelRecovery();
@@ -410,7 +433,13 @@ describe("RecoveryManager", function () {
     describe("Smart Contract Guardians", () => {
       beforeEach(async () => {
         await addGuardians(await createSmartContractGuardians([guardian1, guardian2, guardian3]));
-        await manager.relay(recoveryManager, 'executeRecovery', [wallet.contractAddress, newowner.address], wallet, sortWalletByAddress([guardian1, guardian2]));
+        await manager.relay(
+          recoveryManager,
+          "executeRecovery",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          sortWalletByAddress([guardian1, guardian2]),
+        );
       });
 
       testCancelRecovery();
@@ -420,13 +449,23 @@ describe("RecoveryManager", function () {
   describe("Ownership Transfer", () => {
     it("should not allow transfer to an empty address", async () => {
       await addGuardians([guardian1]);
-      let txReceipt = await manager.relay(recoveryManager, 'transferOwnership', [wallet.contractAddress, ethers.constants.AddressZero], wallet, [owner, guardian1]);
+      const txReceipt = await manager.relay(
+        recoveryManager,
+        "transferOwnership",
+        [wallet.contractAddress, ethers.constants.AddressZero], wallet, [owner, guardian1],
+      );
       const success = parseRelayReceipt(txReceipt);
       assert.isNotOk(success, "transferOwnership should fail");
     });
 
     it("when no guardians, owner should be able to transfer alone", async () => {
-      let txReceipt = await manager.relay(recoveryManager, 'transferOwnership', [wallet.contractAddress, newowner.address], wallet, [owner]);
+      const txReceipt = await manager.relay(
+        recoveryManager,
+        "transferOwnership",
+        [wallet.contractAddress, newowner.address],
+        wallet,
+        [owner],
+      );
       const success = parseRelayReceipt(txReceipt);
       assert.isOk(success, "transferOwnership should succeed");
     });
@@ -434,49 +473,53 @@ describe("RecoveryManager", function () {
     it("should not allow owner not signing", async () => {
       await addGuardians([guardian1]);
       await assert.revertWith(
-          manager.relay(
-              recoveryManager, 
-              "transferOwnership", 
-              [wallet.contractAddress, newowner.address], 
-              wallet, 
-              [nonowner, guardian1]
-      ), INVALID_SIGNATURES_REVERT_MSG);
+        manager.relay(
+          recoveryManager,
+          "transferOwnership",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          [nonowner, guardian1],
+        ), INVALID_SIGNATURES_REVERT_MSG,
+      );
     });
 
     it("should not allow duplicate owner signatures", async () => {
       await addGuardians([guardian1]);
       await assert.revertWith(
-          manager.relay(
-              recoveryManager, 
-              "transferOwnership", 
-              [wallet.contractAddress, newowner.address], 
-              wallet, 
-              [owner, owner]
-      ), INVALID_SIGNATURES_REVERT_MSG);
+        manager.relay(
+          recoveryManager,
+          "transferOwnership",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          [owner, owner],
+        ), INVALID_SIGNATURES_REVERT_MSG,
+      );
     });
 
     it("should not allow duplicate guardian signatures", async () => {
       await addGuardians([guardian1, guardian2, guardian3]);
       await assert.revertWith(
-          manager.relay(
-              recoveryManager, 
-              "transferOwnership", 
-              [wallet.contractAddress, newowner.address], 
-              wallet, 
-              [owner, guardian1, guardian1]
-      ), INVALID_SIGNATURES_REVERT_MSG);
+        manager.relay(
+          recoveryManager,
+          "transferOwnership",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          [owner, guardian1, guardian1],
+        ), INVALID_SIGNATURES_REVERT_MSG,
+      );
     });
 
     it("should not allow non guardian signatures", async () => {
       await addGuardians([guardian1]);
       await assert.revertWith(
-          manager.relay(
-              recoveryManager, 
-              "transferOwnership", 
-              [wallet.contractAddress, newowner.address], 
-              wallet, 
-              [owner, nonowner]
-      ), INVALID_SIGNATURES_REVERT_MSG);
+        manager.relay(
+          recoveryManager,
+          "transferOwnership",
+          [wallet.contractAddress, newowner.address],
+          wallet,
+          [owner, nonowner],
+        ), INVALID_SIGNATURES_REVERT_MSG,
+      );
     });
 
     describe("Guardians: G = 1", () => {

@@ -56,7 +56,7 @@ module.exports = {
     return sigs;
   },
 
-  sortWalletByAddress(wallets, addressKey = 'address') {
+  sortWalletByAddress(wallets, addressKey = "address") {
     return wallets.sort((s1, s2) => {
       const bn1 = ethers.utils.bigNumberify(s1[addressKey]);
       const bn2 = ethers.utils.bigNumberify(s2[addressKey]);

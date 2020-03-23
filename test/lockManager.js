@@ -7,6 +7,7 @@ const Registry = require("../build/ModuleRegistry");
 const RecoveryManager = require("../build/RecoveryManager");
 
 const TestManager = require("../utils/test-manager");
+
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 
 describe("LockManager", function () {
@@ -111,12 +112,13 @@ describe("LockManager", function () {
     it("should fail to lock/unlock by Smart Contract guardians when signer is not authorized (relayed transaction)", async () => {
       await assert.revertWith(
         manager.relay(
-          lockManager, 
-          "lock", 
-          [wallet.contractAddress], 
-          wallet, 
-          [nonguardian]
-      ), INVALID_SIGNATURES_REVERT_MSG);
+          lockManager,
+          "lock",
+          [wallet.contractAddress],
+          wallet,
+          [nonguardian],
+        ), INVALID_SIGNATURES_REVERT_MSG,
+      );
     });
   });
 

@@ -418,7 +418,7 @@ describe("Test Wallet Factory", function () {
       const label = "";
       const modules = [module1.contractAddress, module2.contractAddress];
       await assert.revertWith(factory.from(deployer).createCounterfactualWallet(owner.address, modules, label, salt),
-        "WF: ENS lable must be defined");
+        "WF: ENS label must be defined");
     });
 
     it("should emit and event when the balance is non zero at creation", async () => {

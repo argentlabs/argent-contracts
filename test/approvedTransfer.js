@@ -92,188 +92,208 @@ describe("Test Approved Transfer", function () {
   }
 
   describe("Transfer approved by EOA guardians", () => {
-    it('should transfer ETH with 1 confirmations for 1 guardians', async () => {
+    it("should transfer ETH with 1 confirmations for 1 guardians", async () => {
       const amountToTransfer = 10000;
-      await addGuardians([guardian1])
+      await addGuardians([guardian1]);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-      assert.equal(count, 1, '1 guardians should be active');
+      assert.equal(count, 1, "1 guardians should be active");
       const before = await deployer.provider.getBalance(recipient.address);
       // should succeed with one confirmation
-      await manager.relay(transferModule, "transferToken", 
+      await manager.relay(transferModule, "transferToken",
         [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
       const after = await deployer.provider.getBalance(recipient.address);
-      assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     });
-    it('should transfer ETH with 1 confirmations for 2 guardians', async () => {
+    it("should transfer ETH with 1 confirmations for 2 guardians", async () => {
       const amountToTransfer = 10000;
-      await addGuardians([guardian1, guardian2])
+      await addGuardians([guardian1, guardian2]);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-      assert.equal(count, 2, '2 guardians should be active');
+      assert.equal(count, 2, "2 guardians should be active");
       const before = await deployer.provider.getBalance(recipient.address);
       // should succeed with one confirmation
-      await manager.relay(transferModule, "transferToken", 
+      await manager.relay(transferModule, "transferToken",
         [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
       const after = await deployer.provider.getBalance(recipient.address);
-      assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     });
-    it('should only transfer ETH with 2 confirmations for 3 guardians', async () => {
+    it("should only transfer ETH with 2 confirmations for 3 guardians", async () => {
       const amountToTransfer = 10000;
-      await addGuardians([guardian1, guardian2, guardian3])
+      await addGuardians([guardian1, guardian2, guardian3]);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-      assert.equal(count, 3, '3 guardians should be active');
+      assert.equal(count, 3, "3 guardians should be active");
       const before = await deployer.provider.getBalance(recipient.address);
       // should fail with one confirmation
       await assert.revertWith(
-          manager.relay(
-              transferModule, 
-              "transferToken", 
-              [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], 
-              wallet, 
-              [owner, guardian1]
-      ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+        manager.relay(
+          transferModule,
+          "transferToken",
+          [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32],
+          wallet,
+          [owner, guardian1],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
       // should succeed with 2 confirmations
       await manager.relay(
-        transferModule, 
-        "transferToken", 
-        [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], 
-        wallet, 
-        [owner, ...sortWalletByAddress([guardian1, guardian2])]
+        transferModule,
+        "transferToken",
+        [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32],
+        wallet,
+        [owner, ...sortWalletByAddress([guardian1, guardian2])],
       );
       const after = await deployer.provider.getBalance(recipient.address);
-      assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     });
-    it('should fail to transfer ETH when signer is not a guardian', async () => {
+    it("should fail to transfer ETH when signer is not a guardian", async () => {
       const amountToTransfer = 10000;
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-      assert.equal(count, 0, '0 guardians should be active');
+      assert.equal(count, 0, "0 guardians should be active");
       // should fail
       await assert.revertWith(
-          manager.relay(
-              transferModule, 
-              "transferToken", 
-              [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], 
-              wallet, 
-              [owner, guardian1]
-      ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+        manager.relay(
+          transferModule,
+          "transferToken",
+          [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32],
+          wallet,
+          [owner, guardian1],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
     });
-    it('should transfer ERC20 with 1 confirmations for 1 guardian', async () => {
+    it("should transfer ERC20 with 1 confirmations for 1 guardian", async () => {
       const amountToTransfer = 10000;
-      await addGuardians([guardian1])
+      await addGuardians([guardian1]);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-      assert.equal(count, 1, '1 guardians should be active');
+      assert.equal(count, 1, "1 guardians should be active");
       const before = await erc20.balanceOf(recipient.address);
       // should succeed with one confirmation
-      await manager.relay(transferModule, "transferToken", 
+      await manager.relay(transferModule, "transferToken",
         [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
       const after = await erc20.balanceOf(recipient.address);
-      assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ERC20 amount');
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ERC20 amount");
     });
-    it('should only transfer ERC20 with 2 confirmations for 3 guardians', async () => {
+    it("should only transfer ERC20 with 2 confirmations for 3 guardians", async () => {
       const amountToTransfer = 10000;
-      await addGuardians([guardian1, guardian2, guardian3])
+      await addGuardians([guardian1, guardian2, guardian3]);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-      assert.equal(count, 3, '3 guardians should be active');
+      assert.equal(count, 3, "3 guardians should be active");
       const before = await erc20.balanceOf(recipient.address);
       // should fail with one confirmation
       await assert.revertWith(
-          manager.relay(
-              transferModule, 
-              "transferToken", 
-              [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], 
-              wallet, 
-              [owner, guardian1]
-      ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+        manager.relay(
+          transferModule,
+          "transferToken",
+          [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32],
+          wallet,
+          [owner, guardian1],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
       // should succeed with 2 confirmations
-      await manager.relay(transferModule, "transferToken", 
-        [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+      await manager.relay(
+        transferModule,
+        "transferToken",
+        [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32],
+        wallet,
+        [owner, ...sortWalletByAddress([guardian1, guardian2])],
+      );
       const after = await erc20.balanceOf(recipient.address);
-      assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ERC20 amount');
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ERC20 amount");
     });
   });
 
   describe("Transfer approved by smart-contract guardians", () => {
-    it('should transfer ETH with 1 confirmations for 1 guardian', async () => {
-        const amountToTransfer = 10000;
-        await addGuardians(await createSmartContractGuardians([guardian1]));
-        const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-        assert.equal(count, 1, '1 guardian should be active');
-        const before = await deployer.provider.getBalance(recipient.address);
-        // should succeed with one confirmation
-        await manager.relay(
-          transferModule, 
-          "transferToken", 
-          [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], 
-          wallet, 
-          [owner, guardian1]
-        );
-        const after = await deployer.provider.getBalance(recipient.address);
-        assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+    it("should transfer ETH with 1 confirmations for 1 guardian", async () => {
+      const amountToTransfer = 10000;
+      await addGuardians(await createSmartContractGuardians([guardian1]));
+      const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+      assert.equal(count, 1, "1 guardian should be active");
+      const before = await deployer.provider.getBalance(recipient.address);
+      // should succeed with one confirmation
+      await manager.relay(
+        transferModule,
+        "transferToken",
+        [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32],
+        wallet,
+        [owner, guardian1],
+      );
+      const after = await deployer.provider.getBalance(recipient.address);
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     });
-    it('should transfer ETH with 1 confirmation for 2 guardians', async () => {
-        const amountToTransfer = 10000;
-        await addGuardians(await createSmartContractGuardians([guardian1, guardian2]));
-        const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-        assert.equal(count, 2, '2 guardians should be active');
-        const before = await deployer.provider.getBalance(recipient.address);
-        // should succeed with one confirmation
-        await manager.relay(transferModule, "transferToken", 
-          [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
-        const after = await deployer.provider.getBalance(recipient.address);
-        assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+    it("should transfer ETH with 1 confirmation for 2 guardians", async () => {
+      const amountToTransfer = 10000;
+      await addGuardians(await createSmartContractGuardians([guardian1, guardian2]));
+      const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+      assert.equal(count, 2, "2 guardians should be active");
+      const before = await deployer.provider.getBalance(recipient.address);
+      // should succeed with one confirmation
+      await manager.relay(transferModule, "transferToken",
+        [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+      const after = await deployer.provider.getBalance(recipient.address);
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     });
-    it('should only transfer ETH with 2 confirmations for 3 guardians', async () => {
-        const amountToTransfer = 10000;
-        await addGuardians(await createSmartContractGuardians([guardian1, guardian2, guardian3]));
-        const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-        assert.equal(count, 3, '3 guardians should be active');
-        const before = await deployer.provider.getBalance(recipient.address);
-        // should fail with one confirmation
-        await assert.revertWith(
-            manager.relay(
-                transferModule, 
-                "transferToken", 
-                [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], 
-                wallet, 
-                [owner, guardian1]
-        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
-        // should succeed with 2 confirmations
-        await manager.relay(transferModule, "transferToken", 
-          [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
-        const after = await deployer.provider.getBalance(recipient.address);
-        assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+    it("should only transfer ETH with 2 confirmations for 3 guardians", async () => {
+      const amountToTransfer = 10000;
+      await addGuardians(await createSmartContractGuardians([guardian1, guardian2, guardian3]));
+      const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+      assert.equal(count, 3, "3 guardians should be active");
+      const before = await deployer.provider.getBalance(recipient.address);
+      // should fail with one confirmation
+      await assert.revertWith(
+        manager.relay(
+          transferModule,
+          "transferToken",
+          [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32],
+          wallet,
+          [owner, guardian1],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
+      // should succeed with 2 confirmations
+      await manager.relay(
+        transferModule,
+        "transferToken",
+        [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32],
+        wallet,
+        [owner, ...sortWalletByAddress([guardian1, guardian2])],
+      );
+      const after = await deployer.provider.getBalance(recipient.address);
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     });
-    it('should transfer ERC20 with 1 confirmation for 1 guardian', async () => {
-        const amountToTransfer = 10000;
-        await addGuardians(await createSmartContractGuardians([guardian1]));
-        const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-        assert.equal(count, 1, '1 guardian should be active');
-        const before = await erc20.balanceOf(recipient.address);
-        // should succeed with one confirmation
-        await manager.relay(transferModule, "transferToken", 
-          [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
-        const after = await erc20.balanceOf(recipient.address);
-        assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ETH amount');
+    it("should transfer ERC20 with 1 confirmation for 1 guardian", async () => {
+      const amountToTransfer = 10000;
+      await addGuardians(await createSmartContractGuardians([guardian1]));
+      const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+      assert.equal(count, 1, "1 guardian should be active");
+      const before = await erc20.balanceOf(recipient.address);
+      // should succeed with one confirmation
+      await manager.relay(transferModule, "transferToken",
+        [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, guardian1]);
+      const after = await erc20.balanceOf(recipient.address);
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     });
-    it('should only transfer ERC20 with 2 confirmations for 3 guardians', async () => {
-        const amountToTransfer = 10000;
-        await addGuardians(await createSmartContractGuardians([guardian1, guardian2, guardian3]));
-        const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-        assert.equal(count, 3, '3 guardians should be active');
-        const before = await erc20.balanceOf(recipient.address);
-        // should fail with one confirmation
-        await assert.revertWith(
-            manager.relay(
-                transferModule, 
-                "transferToken", 
-                [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], 
-                wallet, 
-                [owner, guardian1]
-        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG);
-        // should succeed with 2 confirmations
-        await manager.relay(transferModule, "transferToken", 
-          [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32], wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
-        const after = await erc20.balanceOf(recipient.address);
-        assert.equal(after.sub(before).toNumber(), amountToTransfer, 'should have transfered the ERC20 amount');
+    it("should only transfer ERC20 with 2 confirmations for 3 guardians", async () => {
+      const amountToTransfer = 10000;
+      await addGuardians(await createSmartContractGuardians([guardian1, guardian2, guardian3]));
+      const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+      assert.equal(count, 3, "3 guardians should be active");
+      const before = await erc20.balanceOf(recipient.address);
+      // should fail with one confirmation
+      await assert.revertWith(
+        manager.relay(
+          transferModule,
+          "transferToken",
+          [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32],
+          wallet,
+          [owner, guardian1],
+        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+      );
+      // should succeed with 2 confirmations
+      await manager.relay(
+        transferModule,
+        "transferToken",
+        [wallet.contractAddress, erc20.contractAddress, recipient.address, amountToTransfer, ZERO_BYTES32],
+        wallet,
+        [owner, ...sortWalletByAddress([guardian1, guardian2])],
+      );
+      const after = await erc20.balanceOf(recipient.address);
+      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ERC20 amount");
     });
   });
 
