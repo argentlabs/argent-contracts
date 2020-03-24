@@ -13,10 +13,10 @@ interface IUniswapFactory {
 }
 
 interface IUniswapExchange {
-    function getEthToTokenOutputPrice(uint256 _tokens_bought) external view returns (uint256);
-    function getEthToTokenInputPrice(uint256 _eth_sold) external view returns (uint256);
-    function getTokenToEthOutputPrice(uint256 _eth_bought) external view returns (uint256);
-    function getTokenToEthInputPrice(uint256 _tokens_sold) external view returns (uint256);
+    function getEthToTokenOutputPrice(uint256 _tokensBought) external view returns (uint256);
+    function getEthToTokenInputPrice(uint256 _ethSold) external view returns (uint256);
+    function getTokenToEthOutputPrice(uint256 _ethBought) external view returns (uint256);
+    function getTokenToEthInputPrice(uint256 _tokensSold) external view returns (uint256);
 }
 
 /**
@@ -254,7 +254,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
         view
         returns (uint8 _status, uint256 _ethValue)
     {
-        if(cdpManager.owns(uint256(_loanId)) != address(0)) {
+        if (cdpManager.owns(uint256(_loanId)) != address(0)) {
             return (3,0);
         }
         return (0,0);
@@ -353,7 +353,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
     }
 
     function verifySupportedCollateral(address _collateral) internal view {
-        if(_collateral != ETH_TOKEN_ADDRESS) {
+        if (_collateral != ETH_TOKEN_ADDRESS) {
             (bool collateralSupported,,,) = makerRegistry.collaterals(_collateral);
             require(collateralSupported, "MV2: unsupported collateral");
         }
@@ -388,7 +388,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
         // Get the adapter and collateral token for the vault
         (JoinLike gemJoin, GemLike collateral) = makerRegistry.getCollateral(_ilk);
         // Convert ETH to WETH if needed
-        if(gemJoin == wethJoin) {
+        if (gemJoin == wethJoin) {
             invokeWallet(address(_wallet), address(wethToken), _collateralAmount, abi.encodeWithSelector(WETH_DEPOSIT));
         }
         // Send the collateral to the module
@@ -403,7 +403,9 @@ contract MakerV2Loan is Loan, MakerV2Base {
         BaseWallet _wallet,
         uint256 _cdpId,
         uint256 _debtAmount //  art.mul(rate).div(RAY) === [wad]*[ray]/[ray]=[wad]
-    ) internal {
+    )
+        internal
+    {
         // Send the DAI to the module
         invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSelector(ERC20_TRANSFER, address(this), _debtAmount));
         // Approve the DAI adapter to burn DAI from the module
@@ -451,7 +453,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
     {
         bytes32 ilk = cdpManager.ilks(_cdpId);
         (, uint256 art) = vat.urns(ilk, cdpManager.urns(_cdpId));
-        if(art > 0) {
+        if (art > 0) {
             (, uint rate,,, uint dust) = vat.ilks(ilk);
             _maxNonFullRepayment = art.mul(rate).sub(dust).div(RAY);
             _fullRepayment = art.mul(rate).div(RAY)
@@ -501,16 +503,22 @@ contract MakerV2Loan is Loan, MakerV2Base {
         returns (uint256 _cdpId)
     {
         // Continue with WETH as collateral instead of ETH if needed
-        if(_collateral == ETH_TOKEN_ADDRESS) _collateral = address(wethToken);
+        if (_collateral == ETH_TOKEN_ADDRESS) {
+            _collateral = address(wethToken);
+        }
         // Get the ilk for the collateral
         bytes32 ilk = makerRegistry.getIlk(_collateral);
         // Open a vault if there isn't already one for the collateral type (the vault owner will effectively be the module)
         _cdpId = uint256(loanIds[address(_wallet)][ilk]);
-        if(_cdpId == 0) _cdpId = cdpManager.open(ilk, address(this));
+        if (_cdpId == 0) {
+            _cdpId = cdpManager.open(ilk, address(this));
+        }
         // Move the collateral from the wallet to the vat
         joinCollateral(_wallet, _cdpId, _collateralAmount, ilk);
         // Draw the debt and exit it to the wallet
-        if(_debtAmount > 0) drawAndExitDebt(_wallet, _cdpId, _debtAmount, _collateralAmount, ilk);
+        if (_debtAmount > 0) {
+            drawAndExitDebt(_wallet, _cdpId, _debtAmount, _collateralAmount, ilk);
+        }
         // Mark the vault as belonging to the wallet
         saveLoanOwner(_wallet, bytes32(_cdpId));
     }
@@ -557,7 +565,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
         // Exit the collateral from the adapter.
         gemJoin.exit(address(_wallet), _collateralAmount);
         // Convert WETH to ETH if needed
-        if(gemJoin == wethJoin) {
+        if (gemJoin == wethJoin) {
             invokeWallet(address(_wallet), address(wethToken), 0, abi.encodeWithSelector(WETH_WITHDRAW, _collateralAmount));
         }
     }
@@ -621,10 +629,14 @@ contract MakerV2Loan is Loan, MakerV2Base {
     {
         (uint256 fullRepayment,) = debt(_cdpId);
         // Repay the debt
-        if(fullRepayment > 0) removeDebt(_wallet, _cdpId, fullRepayment);
+        if (fullRepayment > 0) {
+            removeDebt(_wallet, _cdpId, fullRepayment);
+        }
         // Remove the collateral
         uint256 ink = collateral(_cdpId);
-        if(ink > 0) removeCollateral(_wallet, _cdpId, ink);
+        if (ink > 0) {
+            removeCollateral(_wallet, _cdpId, ink);
+        }
     }
 
 }

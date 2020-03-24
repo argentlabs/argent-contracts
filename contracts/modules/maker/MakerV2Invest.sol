@@ -99,7 +99,9 @@ contract MakerV2Invest is Invest, MakerV2Base {
         view
         returns (uint256 _tokenValue, uint256 /* _periodEnd */)
     {
-        if(_token == address(daiToken)) _tokenValue = dsrBalance(_wallet);
+        if (_token == address(daiToken)) {
+            _tokenValue = dsrBalance(_wallet);
+        }
     }
 
     /* ****************************************** DSR wrappers ******************************************* */

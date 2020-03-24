@@ -151,7 +151,7 @@ contract RelayerModule is BaseModule {
     * @param _signHash The signed hash of the transaction
     */
     function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 /* _nonce */, bytes32 _signHash) internal returns (bool) {
-        if(relayer[address(_wallet)].executedTx[_signHash] == true) {
+        if (relayer[address(_wallet)].executedTx[_signHash] == true) {
             return false;
         }
         relayer[address(_wallet)].executedTx[_signHash] = true;
