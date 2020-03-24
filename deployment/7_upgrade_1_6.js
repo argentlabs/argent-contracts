@@ -8,6 +8,7 @@ const Upgrader = require("../build/SimpleUpgrader");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const LegacyUpgrader = require("../build/LegacyUpgrader");
+const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 const utils = require("../utils/utilities.js");
 
@@ -35,6 +36,7 @@ const deploy = async (network) => {
   const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
+  const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
@@ -92,6 +94,18 @@ const deploy = async (network) => {
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
       [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
   }
+
+  // ////////////////////////////////////////////////////
+  // Disable KyberNetwork on the TokenPriceProvider
+  // ////////////////////////////////////////////////////
+
+  const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(deploymentWallet);
+  await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
+    `Set ${deploymentWallet} as the manager of the TokenPriceProvider`);
+
+  const TokenPriceProviderSetKyberNetworkTx = await TokenPriceProviderWrapper.contract.setKyberNetwork("0x0000000000000000000000000000000000000000");
+  await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderSetKyberNetworkTx,
+    "Disable the KyberNetwork on the TokenPriceProvider");
 
   // //////////////////////////////////
   // Deploy and Register upgraders
