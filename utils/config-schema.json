@@ -132,6 +132,9 @@
         },
         "CompoundRegistry": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "MakerRegistry": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": [
@@ -142,7 +145,8 @@
         "TokenPriceProvider",
         "ModuleRegistry",
         "BaseWallet",
-        "CompoundRegistry"
+        "CompoundRegistry",
+        "MakerRegistry"
       ],
       "additionalProperties": false
     },
