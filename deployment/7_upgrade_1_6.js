@@ -22,11 +22,10 @@ const MODULES_TO_DISABLE = ["UniswapManager"];
 const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {
-
-  if (!['kovan', 'kovan-fork', 'staging', 'prod'].includes(network)) {
-    console.warn(`------------------------------------------------------------------------`)
-    console.warn(`WARNING: The MakerManagerV2 module is not fully functional on ${network}`)
-    console.warn(`------------------------------------------------------------------------`)
+  if (!["kovan", "kovan-fork", "staging", "prod"].includes(network)) {
+    console.warn("------------------------------------------------------------------------");
+    console.warn(`WARNING: The MakerManagerV2 module is not fully functional on ${network}`);
+    console.warn("------------------------------------------------------------------------");
   }
 
   const newModuleWrappers = [];

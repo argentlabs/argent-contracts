@@ -1,5 +1,5 @@
-require('dotenv').config();
-const etherlime = require('etherlime-lib');
+require("dotenv").config();
+const etherlime = require("etherlime-lib");
 const path = require("path");
 
 const Configurator = require("./configurator.js");
@@ -38,34 +38,34 @@ class DeployManager {
     const { config } = this.configurator;
 
     // getting private key if any is available
-    let pkey = undefined;
-    if (config.settings.privateKey && config.settings.privateKey.type === 'plain') {
-        const { value, envvar } = config.settings.privateKey.options;
-        pkey = value || process.env[envvar];
-    } else if (config.settings.privateKey && config.settings.privateKey.type === 's3') {
-        const options = config.settings.privateKey.options;
-        const pkeyLoader = new PrivateKeyLoader(options.bucket, options.key);
-        pkey = await pkeyLoader.fetch();
+    let pkey;
+    if (config.settings.privateKey && config.settings.privateKey.type === "plain") {
+      const { value, envvar } = config.settings.privateKey.options;
+      pkey = value || process.env[envvar];
+    } else if (config.settings.privateKey && config.settings.privateKey.type === "s3") {
+      const { options } = config.settings.privateKey;
+      const pkeyLoader = new PrivateKeyLoader(options.bucket, options.key);
+      pkey = await pkeyLoader.fetch();
     }
 
     // setting deployer
-    if (config.settings.deployer.type === 'ganache') {
-        this.deployer = new etherlime.EtherlimeGanacheDeployer(pkey); // will use etherlime accounts if pkey is undefined
-    } else if (config.settings.deployer.type === 'infura') {
-        const { network, key, envvar } = config.settings.deployer.options;
-        this.deployer = new etherlime.InfuraPrivateKeyDeployer(pkey, network, key || process.env[envvar], defaultConfigs);
-    } else if (config.settings.deployer.type === 'jsonrpc') {
-        const { url } = config.settings.deployer.options;
-        this.deployer = new etherlime.JSONRPCPrivateKeyDeployer(pkey, url, defaultConfigs);
+    if (config.settings.deployer.type === "ganache") {
+      this.deployer = new etherlime.EtherlimeGanacheDeployer(pkey); // will use etherlime accounts if pkey is undefined
+    } else if (config.settings.deployer.type === "infura") {
+      const { network, key, envvar } = config.settings.deployer.options;
+      this.deployer = new etherlime.InfuraPrivateKeyDeployer(pkey, network, key || process.env[envvar], defaultConfigs);
+    } else if (config.settings.deployer.type === "jsonrpc") {
+      const { url } = config.settings.deployer.options;
+      this.deployer = new etherlime.JSONRPCPrivateKeyDeployer(pkey, url, defaultConfigs);
     }
 
     // setting backend accounts and multi-sig owner for test environments not managed on S3
     if (!this.remotelyManagedNetworks.includes(this.network)) {
-        const account = await this.deployer.signer.getAddress();
-        this.configurator.updateBackendAccounts([account]);
-        this.configurator.updateMultisigOwner([account]);
+      const account = await this.deployer.signer.getAddress();
+      this.configurator.updateBackendAccounts([account]);
+      this.configurator.updateMultisigOwner([account]);
     }
-  
+
     // abi upload
     if (config.settings.abiUpload) {
       this.abiUploader = new ABIUploader.S3(config.settings.abiUpload.bucket);

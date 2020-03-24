@@ -1,4 +1,3 @@
-/* global accounts */
 const etherlime = require("etherlime-lib");
 const ethers = require("ethers");
 const ps = require("ps-node");
@@ -12,8 +11,7 @@ const USE_ETHERLIME_GANACHE_MNEMONIC = true;
 
 // this is the same mnemonic as that used by ganache-cli --deterministic
 // this mnemonic will not be used if `USE_ETHERLIME_GANACHE_MNEMONIC` is set to `true`
-const MNEMONIC =
-  "myth like bonus scare over problem client lizard pioneer submit female collect";
+const MNEMONIC = "myth like bonus scare over problem client lizard pioneer submit female collect";
 
 class TestManager {
   constructor(_accounts = null, network = "ganache") {
@@ -24,28 +22,27 @@ class TestManager {
     this.provider = this.deployer.provider;
   }
 
-  loadAccounts() {
-    // eslint-disable-line class-methods-use-this
+  loadAccounts() { // eslint-disable-line class-methods-use-this
     if (USE_ETHERLIME_GANACHE_MNEMONIC) return global.accounts;
 
     // ignore (global) accounts loaded from cli-commands/ganache/setup.json
     // and instead generate accounts matching those used by ganache-cli in determistic mode
     const hdWallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MNEMONIC));
     const localNodeProvider = new ethers.providers.JsonRpcProvider(
-      "http://localhost:8545"
+      "http://localhost:8545",
     );
-    accounts = []; // eslint-disable-line no-global-assign
+    global.accounts = []; // eslint-disable-line no-global-assign
     for (let i = 0; i < 10; i += 1) {
       const privKey = hdWallet
         .derivePath(`m/44'/60'/0'/0/${i}`)
         .getWallet()
         .getPrivateKeyString();
-      accounts.push({
+      global.accounts.push({
         secretKey: privKey,
-        signer: new ethers.Wallet(privKey, localNodeProvider)
+        signer: new ethers.Wallet(privKey, localNodeProvider),
       });
     }
-    return accounts;
+    return global.accounts;
   }
 
   newDeployer() {
@@ -53,13 +50,13 @@ class TestManager {
       const defaultConfigs = {
         gasPrice: 20000000000,
         gasLimit: 4700000,
-        chainId: 3
+        chainId: 3,
       };
       return new etherlime.InfuraPrivateKeyDeployer(
         this.accounts[0].signer.privateKey,
         "ropsten",
         APIKEY,
-        defaultConfigs
+        defaultConfigs,
       );
     }
     return new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey);
@@ -100,36 +97,34 @@ class TestManager {
   }
 
   async increaseTime(seconds) {
-      if(this.network === 'ganache') {
-          await this.provider.send('evm_increaseTime', seconds);
-          await this.provider.send('evm_mine');
-      } else {
-          return new Promise(res => { setTimeout(res, seconds * 1000); });
-      }
+    if (this.network === "ganache") {
+      await this.provider.send("evm_increaseTime", seconds);
+      await this.provider.send("evm_mine");
+    } else {
+      return new Promise((res) => { setTimeout(res, seconds * 1000); });
+    }
+    return null;
   }
 
-  async runningEtherlimeGanache() {
-    // eslint-disable-line class-methods-use-this
-    return new Promise(res => {
+  async runningEtherlimeGanache() { // eslint-disable-line class-methods-use-this
+    return new Promise((res) => {
       ps.lookup(
         {
           command: "node",
           psargs: "ux",
-          arguments: "ganache"
+          arguments: "ganache",
         },
         (err, processes) => {
-          const runningEthGanache =
-            !err &&
-            processes.reduce(
-              (etherlimeGanacheFound, p) =>
-                etherlimeGanacheFound ||
-                (p.command + p.arguments.join("-")).includes(
-                  "etherlime-ganache"
+          const runningEthGanache = !err
+            && processes.reduce(
+              (etherlimeGanacheFound, p) => etherlimeGanacheFound
+                || (p.command + p.arguments.join("-")).includes(
+                  "etherlime-ganache",
                 ),
-              false
+              false,
             );
           return res(runningEthGanache);
-        }
+        },
       );
     });
   }
