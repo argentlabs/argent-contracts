@@ -51,7 +51,7 @@ contract RelayerModule is BaseModule {
         _;
     }
 
-    /* ***************** Abstract method ************************* */
+    /* ***************** Abstract methods ************************* */
 
     /**
     * @dev Gets the number of valid signatures that must be provided to execute a
@@ -64,11 +64,12 @@ contract RelayerModule is BaseModule {
 
     /**
     * @dev Validates the signatures provided with a relayed transaction.
-    * The method MUST throw if one or more signatures are not valid.
+    * The method MUST return false if one or more signatures are not valid.
     * @param _wallet The target wallet.
     * @param _data The data of the relayed transaction.
     * @param _signHash The signed hash representing the relayed transaction.
     * @param _signatures The signatures as a concatenated byte array.
+    * @return A boolean indicating whether the signatures are valid.
     */
     function validateSignatures(
         BaseWallet _wallet,
@@ -78,58 +79,7 @@ contract RelayerModule is BaseModule {
     )
         internal view returns (bool);
 
-    /**
-    * @dev Validates the signatures provided with a relayed transaction.
-    * The method MUST throw if one or more signatures are not valid.
-    * @param _wallet The target wallet.
-    * @param _signHash The signed hash representing the relayed transaction.
-    * @param _signatures The signatures as a concatenated byte array.
-    * @param _option An enum indicating whether the owner is required, optional or disallowed.
-    */
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes32 _signHash,
-        bytes memory _signatures,
-        OwnerSignature _option
-    )
-        internal view returns (bool)
-    {
-        address lastSigner = address(0);
-        address[] memory guardians;
-        if (_signatures.length > 65 || _option != OwnerSignature.Required)
-            guardians = guardianStorage.getGuardians(_wallet); // guardians are only read if they may be needed
-        bool isGuardian;
-
-        for (uint8 i = 0; i < _signatures.length / 65; i++) {
-            address signer = recoverSigner(_signHash, _signatures, i);
-
-            if (i == 0) {
-                if (_option == OwnerSignature.Required) {
-                    // First signer must be owner
-                    if (isOwner(_wallet, signer)) {
-                        continue;
-                    }
-                    return false;
-                } else if (_option == OwnerSignature.Optional) {
-                    // First signer can be owner
-                    if (isOwner(_wallet, signer)) {
-                        continue;
-                    }
-                }
-            }
-            if (signer <= lastSigner) {
-                return false; // Signers must be different
-            }
-            lastSigner = signer;
-            (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-            if (!isGuardian) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /* ************************************************************ */
+    /* ***************** External methods ************************* */
 
     /**
     * @dev Executes a relayed transaction.
@@ -175,6 +125,8 @@ contract RelayerModule is BaseModule {
     function getNonce(BaseWallet _wallet) external view returns (uint256 nonce) {
         return relayer[address(_wallet)].nonce;
     }
+
+    /* ***************** Internal & Private methods ************************* */
 
     /**
     * @dev Generates the signed hash of a relayed transaction according to ERC 1077.
@@ -239,6 +191,58 @@ contract RelayerModule is BaseModule {
     }
 
     /**
+    * @dev Validates the signatures provided with a relayed transaction.
+    * The method MUST throw if one or more signatures are not valid.
+    * @param _wallet The target wallet.
+    * @param _signHash The signed hash representing the relayed transaction.
+    * @param _signatures The signatures as a concatenated byte array.
+    * @param _option An enum indicating whether the owner is required, optional or disallowed.
+    */
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes32 _signHash,
+        bytes memory _signatures,
+        OwnerSignature _option
+    )
+        internal view returns (bool)
+    {
+        address lastSigner = address(0);
+        address[] memory guardians;
+        if (_option != OwnerSignature.Required || _signatures.length > 65) {
+            guardians = guardianStorage.getGuardians(_wallet); // guardians are only read if they may be needed
+        }
+        bool isGuardian;
+
+        for (uint8 i = 0; i < _signatures.length / 65; i++) {
+            address signer = recoverSigner(_signHash, _signatures, i);
+
+            if (i == 0) {
+                if (_option == OwnerSignature.Required) {
+                    // First signer must be owner
+                    if (isOwner(_wallet, signer)) {
+                        continue;
+                    }
+                    return false;
+                } else if (_option == OwnerSignature.Optional) {
+                    // First signer can be owner
+                    if (isOwner(_wallet, signer)) {
+                        continue;
+                    }
+                }
+            }
+            if (signer <= lastSigner) {
+                return false; // Signers must be different
+            }
+            lastSigner = signer;
+            (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+            if (!isGuardian) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
     * @dev Recovers the signer at a given position from a list of concatenated signatures.
     * @param _signedHash The signed hash
     * @param _signatures The concatenated signatures.
@@ -271,7 +275,16 @@ contract RelayerModule is BaseModule {
     * @param _signatures The number of signatures used in the call.
     * @param _relayer The address of the Relayer.
     */
-    function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
+    function refund(
+        BaseWallet _wallet,
+        uint _gasUsed,
+        uint _gasPrice,
+        uint _gasLimit,
+        uint _signatures,
+        address _relayer
+    )
+        internal
+    {
         uint256 amount = 29292 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 672 to log the event + _gasUsed
         // only refund if gas price not null, more than 1 signatures, gas less than gasLimit
         if (_gasPrice > 0 && _signatures > 1 && amount <= _gasLimit) {
@@ -300,6 +313,17 @@ contract RelayerModule is BaseModule {
     }
 
     /**
+    * @dev Parses the data to extract the method signature.
+    */
+    function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
+        require(_data.length >= 4, "RM: Invalid functionPrefix");
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            prefix := mload(add(_data, 0x20))
+        }
+    }
+
+   /**
     * @dev Checks that the wallet address provided as the first parameter of the relayed data is the same
     * as the wallet passed as the input of the execute() method.
     @return false if the addresses are different.
@@ -313,16 +337,5 @@ contract RelayerModule is BaseModule {
             dataWallet := mload(add(_data, 0x24))
         }
         return dataWallet == _wallet;
-    }
-
-    /**
-    * @dev Parses the data to extract the method signature.
-    */
-    function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
-        require(_data.length >= 4, "RM: Invalid functionPrefix");
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            prefix := mload(add(_data, 0x20))
-        }
     }
 }
