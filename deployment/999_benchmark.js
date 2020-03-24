@@ -1,4 +1,5 @@
-/* eslint-disable */
+/* eslint max-classes-per-file: ["error", 2] */
+
 const ethers = require("ethers");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
@@ -17,9 +18,7 @@ const TransferManager = require("../build/TransferManager");
 const NftTransfer = require("../build/NftTransfer");
 const MakerManager = require("../build/MakerManager");
 const CompoundManager = require("../build/CompoundManager");
-const UniswapManager = require("../build/UniswapManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
-
 
 const DeployManager = require("../utils/deploy-manager");
 const TestManager = require("../utils/test-manager");
@@ -27,6 +26,56 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const { sortWalletByAddress } = require("../utils/utilities.js");
+
+class Logger {
+  constructor() {
+    this._items = [];
+  }
+
+  async loadData() {
+    const coinmarketcap = await tinyreq({ url: "https://api.coinmarketcap.com/v2/ticker/1027/" });
+    try {
+      this._ethusd = JSON.parse(coinmarketcap).data.quotes.USD.price;
+    } catch (error) {
+      this._ethusd = "500";
+    }
+
+    const etherchain = await tinyreq({ url: "https://www.etherchain.org/api/gasPriceOracle" });
+    try {
+      this._gas_price = JSON.parse(etherchain);
+    } catch (error) {
+      this._gas_price = JSON.parse('{"safeLow":"3","standard":"5","fast":"10","fastest":"10"}');
+    }
+  }
+
+  addItem(key, value) {
+    this._items.push({ key, value });
+  }
+
+  output() {
+    const colWidths = [75, 15];
+    const head = [`Task [1 ETH = ${this._ethusd} USD]`, "Gas"];
+    for (const speed in this._gas_price) {
+      const gasPrice = parseInt(this._gas_price[speed], 10);
+      head.push(`${speed} (${gasPrice} gwei)`);
+      colWidths.push(20);
+    }
+    const style = { head: [], border: [] };
+
+    const table = new Table({ head, colWidths, style });
+
+    this._items.forEach((item) => {
+      const row = [item.key, item.value.toLocaleString()];
+      for (const speed in this._gas_price) {
+        const gasPrice = parseInt(this._gas_price[speed], 10);
+        const price = item.value * gasPrice * 0.000000001 * parseInt(this._ethusd, 10);
+        row.push(price.toLocaleString("en-US", { style: "currency", currency: "USD" }));
+      }
+      table.push(row);
+    });
+    return table.toString();
+  }
+}
 
 class Benchmark {
   constructor(network) {
@@ -77,7 +126,8 @@ class Benchmark {
   async setupWallet() {
     this.oneModule = [this.GuardianManagerWrapper.contractAddress];
     this.twoModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress];
-    this.threeModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress, this.RecoveryManagerWrapper.contractAddress];
+    this.threeModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress,
+      this.RecoveryManagerWrapper.contractAddress];
     this.allModules = [
       this.GuardianManagerWrapper.contractAddress,
       this.LockManagerWrapper.contractAddress,
@@ -162,16 +212,25 @@ class Benchmark {
   }
 
   async estimateAddGuardianRelayed() {
-    const gasUsed = await this.relayEstimate(this.GuardianManagerWrapper, "addGuardian", [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(
+      this.GuardianManagerWrapper,
+      "addGuardian",
+      [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]],
+    );
     this._logger.addItem("Add a guardian (relayed)", gasUsed);
   }
 
   async estimateRevokeGuardianRelayed() {
     // add guardian
-    await this.relay(this.GuardianManagerWrapper, "addGuardian", [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
+    await this.relay(this.GuardianManagerWrapper, "addGuardian",
+      [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
 
     // estimate revoke guardian
-    const gasUsed = await this.relayEstimate(this.GuardianManagerWrapper, "revokeGuardian", [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(
+      this.GuardianManagerWrapper,
+      "revokeGuardian",
+      [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]],
+    );
     this._logger.addItem("Revoke a guardian (relayed)", gasUsed);
   }
 
@@ -203,7 +262,8 @@ class Benchmark {
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
 
     // estimate lock wallet
-    const gasUsed = await this.relayEstimate(this.LockManagerWrapper, "lock", [this.walletAddress], this.wallet, [this.signers[1]]);
+    const gasUsed = await this.relayEstimate(this.LockManagerWrapper, "lock",
+      [this.walletAddress], this.wallet, [this.signers[1]]);
     this._logger.addItem("Lock wallet (relayed)", gasUsed);
   }
 
@@ -215,7 +275,8 @@ class Benchmark {
     await this.relay(this.LockManagerWrapper, "lock", [this.walletAddress], this.wallet, [this.signers[1]]);
 
     // estimate unlock wallet
-    const gasUsed = await this.relayEstimate(this.LockManagerWrapper, "unlock", [this.walletAddress], this.wallet, [this.signers[1]]);
+    const gasUsed = await this.relayEstimate(this.LockManagerWrapper, "unlock",
+      [this.walletAddress], this.wallet, [this.signers[1]]);
     this._logger.addItem("Unlock wallet (relayed)", gasUsed);
   }
 
@@ -229,7 +290,8 @@ class Benchmark {
     // estimate execute recovery
     const recoveryAddress = this.accounts[3];
     const signers = [this.signers[1], this.signers[2]];
-    const gasUsed = await this.relayEstimate(this.RecoveryManagerWrapper, "executeRecovery", [this.walletAddress, recoveryAddress], this.wallet, [signers[1]]);
+    const gasUsed = await this.relayEstimate(this.RecoveryManagerWrapper, "executeRecovery",
+      [this.walletAddress, recoveryAddress], this.wallet, [signers[1]]);
     this._logger.addItem("Execute recovery", gasUsed);
   }
 
@@ -239,7 +301,8 @@ class Benchmark {
   }
 
   async estimateChangeLimitRelayed() {
-    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "changeLimit", [this.walletAddress, 67000000], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "changeLimit",
+      [this.walletAddress, 67000000], this.wallet, [this.signers[0]]);
     this._logger.addItem("Change limit (relayed)", gasUsed);
   }
 
@@ -249,7 +312,9 @@ class Benchmark {
     await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
     // transfer
-    const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x");
+    const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(
+      this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x",
+    );
     this._logger.addItem("ETH transfer, limit disabled (direct)", gasUsed);
   }
 
@@ -259,18 +324,31 @@ class Benchmark {
     await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
     // transfer
-    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x"], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(
+      this.TransferManagerWrapper,
+      "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000000, "0x"],
+      this.wallet, [this.signers[0]],
+    );
     this._logger.addItem("ETH transfer, limit disabled (relayed)", gasUsed);
   }
 
   async estimateETHSmallTransferDirect() {
     await this.TransferManagerWrapper.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[5], 200, "0x");
-    const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[5], 200, "0x");
+    const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(
+      this.walletAddress, ETH_TOKEN, this.accounts[5], 200, "0x",
+    );
     this._logger.addItem("ETH small transfer (direct)", gasUsed);
   }
 
   async estimateSmallTransferRelayed() {
-    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000, "0x"], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(
+      this.TransferManagerWrapper,
+      "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000, "0x"],
+      this.wallet,
+      [this.signers[0]],
+    );
     this._logger.addItem("ETH small transfer (relayed)", gasUsed);
   }
 
@@ -278,7 +356,9 @@ class Benchmark {
     await this.TransferManagerWrapper.addToWhitelist(this.walletAddress, this.accounts[3]);
     await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
-    const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x");
+    const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(
+      this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x",
+    );
     this._logger.addItem("ETH transfer to whitelisted account (direct)", gasUsed);
   }
 
@@ -286,12 +366,20 @@ class Benchmark {
     await this.TransferManagerWrapper.addToWhitelist(this.walletAddress, this.accounts[3]);
     await this.testManager.increaseTime(this.config.settings.securityPeriod + 1);
 
-    const gasUsed = await this.relayEstimate(this.TransferManagerWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"], this.wallet, [this.signers[0]]);
+    const gasUsed = await this.relayEstimate(
+      this.TransferManagerWrapper,
+      "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"],
+      this.wallet,
+      [this.signers[0]],
+    );
     this._logger.addItem("ETH transfer to whitelisted account (relayed)", gasUsed);
   }
 
   async estimateETHLargeTransferToUntrustedAccount() {
-    const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[2], 2000000, "0x");
+    const gasUsed = await this.TransferManagerWrapper.estimate.transferToken(
+      this.walletAddress, ETH_TOKEN, this.accounts[2], 2000000, "0x",
+    );
     this._logger.addItem("ETH large transfer to untrusted account", gasUsed);
   }
 
@@ -311,7 +399,13 @@ class Benchmark {
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
 
     // estimate approve large transfer
-    const gasUsed = await this.relayEstimate(this.ApprovedTransferWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"], this.wallet, [this.signers[0], this.signers[1]]);
+    const gasUsed = await this.relayEstimate(
+      this.ApprovedTransferWrapper,
+      "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[3], 2000000, "0x"],
+      this.wallet,
+      [this.signers[0], this.signers[1]],
+    );
     this._logger.addItem("ETH large transfer approval by one guardian", gasUsed);
   }
 
@@ -328,7 +422,13 @@ class Benchmark {
 
     // estimate approve large transfer
     const signers = [this.signers[0], this.signers[1], this.signers[2]];
-    const gasUsed = await this.relayEstimate(this.ApprovedTransferWrapper, "transferToken", [this.walletAddress, ETH_TOKEN, this.accounts[5], 2000000, "0x"], this.wallet, signers);
+    const gasUsed = await this.relayEstimate(
+      this.ApprovedTransferWrapper,
+      "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[5], 2000000, "0x"],
+      this.wallet,
+      signers,
+    );
     this._logger.addItem("ETH large transfer approval by two guardians", gasUsed);
   }
 
@@ -352,7 +452,8 @@ class Benchmark {
 
     do {
       props = props.concat(Object.getOwnPropertyNames(obj));
-    } while (obj = Object.getPrototypeOf(obj));
+      obj = Object.getPrototypeOf(obj);
+    } while (obj);
 
     return props.filter((prop) => prop.startsWith("estimate"));
   }
@@ -363,66 +464,16 @@ class Benchmark {
   }
 }
 
-class Logger {
-  constructor() {
-    this._items = [];
-  }
-
-  async loadData() {
-    const coinmarketcap = await tinyreq({ url: "https://api.coinmarketcap.com/v2/ticker/1027/" });
-    try {
-      this._ethusd = JSON.parse(coinmarketcap).data.quotes.USD.price;
-    } catch (error) {
-      this._ethusd = "500";
-    }
-
-    const etherchain = await tinyreq({ url: "https://www.etherchain.org/api/gasPriceOracle" });
-    try {
-      this._gas_price = JSON.parse(etherchain);
-    } catch (error) {
-      this._gas_price = JSON.parse('{"safeLow":"3","standard":"5","fast":"10","fastest":"10"}');
-    }
-  }
-
-  addItem(key, value) {
-    this._items.push({ key, value });
-  }
-
-  output() {
-    const colWidths = [75, 15];
-    const head = [`Task [1 ETH = ${this._ethusd} USD]`, "Gas"];
-    for (const speed in this._gas_price) {
-      const gasPrice = parseInt(this._gas_price[speed]);
-      head.push(`${speed} (${gasPrice} gwei)`);
-      colWidths.push(20);
-    }
-    const style = { head: [], border: [] };
-
-    const table = new Table({ head, colWidths, style });
-
-    this._items.forEach((item) => {
-      const row = [item.key, item.value.toLocaleString()];
-      for (const speed in this._gas_price) {
-        const gasPrice = parseInt(this._gas_price[speed]);
-        const price = item.value * gasPrice * 0.000000001 * parseInt(this._ethusd);
-        row.push(price.toLocaleString("en-US", { style: "currency", currency: "USD" }));
-      }
-      table.push(row);
-    });
-    return table.toString();
-  }
-}
-
-const deploy = async (network, secret) => {
+const deploy = async (network) => {
   const benchmark = new Benchmark(network);
   await benchmark.setup();
   let methods = benchmark.getAllEstimateMethods();
-  const argv_methods = process.argv.filter((x) => x.startsWith("estimate"));
-  if (argv_methods.length > 0) {
-    methods = methods.filter((method) => argv_methods.indexOf(method) >= 0);
+  const argvMethods = process.argv.filter((x) => x.startsWith("estimate"));
+  if (argvMethods.length > 0) {
+    methods = methods.filter((method) => argvMethods.indexOf(method) >= 0);
   }
 
-  for (let index = 0; index < methods.length; index++) {
+  for (let index = 0; index < methods.length; index += 1) {
     const method = methods[index];
     console.log(`Running ${method}...`);
     await benchmark.setupWallet();
