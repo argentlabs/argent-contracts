@@ -92,6 +92,9 @@ module.exports = {
   },
 
   generateSaltValue() {
-    return ethers.utils.bigNumberify(ethers.utils.randomBytes(32)).toHexString();
+    return ethers.utils.hexZeroPad(
+      ethers.utils.bigNumberify(ethers.utils.randomBytes(32)).toHexString(),
+      32,
+    );
   },
 };
