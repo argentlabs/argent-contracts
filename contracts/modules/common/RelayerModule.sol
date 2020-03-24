@@ -97,7 +97,7 @@ contract RelayerModule is BaseModule {
         address lastSigner = address(0);
         address[] memory guardians;
         if (_signatures.length > 65 || _option != OwnerSignature.Required)
-            guardians = guardianStorage.getGuardians(_wallet); // guardians are read only if they may be needed
+            guardians = guardianStorage.getGuardians(_wallet); // guardians are only read if they may be needed
         bool isGuardian;
 
         for (uint8 i = 0; i < _signatures.length / 65; i++) {
