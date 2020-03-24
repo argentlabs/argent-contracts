@@ -50,7 +50,7 @@ contract MakerRegistry is Owned {
         delete collateralTokensByIlks[collaterals[_token].ilk];
 
         address last = tokens[tokens.length - 1];
-        if(_token != last) {
+        if (_token != last) {
             uint128 targetIndex = collaterals[_token].index;
             tokens[targetIndex] = last;
             collaterals[last].index = targetIndex;

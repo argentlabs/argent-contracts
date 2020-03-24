@@ -38,7 +38,9 @@ contract MockScdMcdMigration {
         daiJoin = (_daiJoin != address(0)) ? MockJoin(_daiJoin) : new MockJoin();
         wethJoin = (_wethJoin != address(0)) ? MockJoin(_wethJoin) : new MockJoin();
         tub = (_tub != address(0)) ? MockTub(_tub) : new MockTub();
-        if(_cdpManager != address(0)) cdpManager = ManagerLike(_cdpManager);
+        if (_cdpManager != address(0)) {
+            cdpManager = ManagerLike(_cdpManager);
+        }
         saiJoin = new MockJoin();
     }
 }
