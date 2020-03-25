@@ -117,30 +117,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
         view
         returns (bool)
     {
-        address lastSigner = address(0);
-        address[] memory guardians = guardianStorage.getGuardians(_wallet);
-        bool isGuardian = false;
-        for (uint8 i = 0; i < _signatures.length / 65; i++) {
-            address signer = recoverSigner(_signHash, _signatures, i);
-            if (i == 0) {
-                // AT: first signer must be owner
-                if (!isOwner(_wallet, signer)) {
-                    return false;
-                }
-            } else {
-                // "AT: signers must be different"
-                if (signer <= lastSigner) {
-                    return false;
-                }
-                lastSigner = signer;
-                (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                // "AT: signatures not valid"
-                if (!isGuardian) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) internal view returns (uint256) {
