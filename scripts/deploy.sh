@@ -27,10 +27,13 @@ for IDX in "$@"
 do
     FILE=`ls ./deployment/${IDX}_*.js`
     if [ ! -z "${CI:-}" ]; then
-    npx etherlime deploy --file $FILE --network $NETWORK --compile false
-else
-    AWS_PROFILE=argent-$PROFILE AWS_SDK_LOAD_CONFIG=true npx etherlime deploy --file $FILE --network $NETWORK --compile false
-fi
+        echo "Waiting for ganache to launch on port 8545..."
+        while ! nc -z localhost 8545; do sleep 1; done
+        echo "ganache running on port 8545"
+        npx etherlime deploy --file $FILE --network $NETWORK --compile false
+    else
+        AWS_PROFILE=argent-$PROFILE AWS_SDK_LOAD_CONFIG=true npx etherlime deploy --file $FILE --network $NETWORK --compile false
+    fi
     if [ $? -ne 0 ]; then
         exit 1 # exit with failure status
     fi
