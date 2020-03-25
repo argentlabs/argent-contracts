@@ -20,7 +20,7 @@ class MultisigExecutor {
     const nonce = (await this._multisigWrapper.contract.nonce()).toNumber();
 
     // Get the sign Hash
-    const signHash = this.signHash(this._multisigWrapper.contractAddress, contractAddress, 0, data, nonce);
+    const signHash = MultisigExecutor.signHash(this._multisigWrapper.contractAddress, contractAddress, 0, data, nonce);
 
     if (this._autoSign === true) {
       // Get the off chain signature
