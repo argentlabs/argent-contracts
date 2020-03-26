@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
+import "./common/RelayerModuleV2.sol";
 import "./common/BaseTransfer.sol";
 import "../../lib/utils/SafeMath.sol";
 import "../utils/GuardianUtils.sol";
@@ -26,7 +26,7 @@ import "../utils/GuardianUtils.sol";
  * @dev Module to transfer tokens (ETH or ERC20) with the approval of guardians.
  * @author Julien Niset - <julien@argent.im>
  */
-contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
+contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 

@@ -16,14 +16,17 @@
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../interfaces/Module.sol";
+import "../../utils/GuardianUtils.sol";
 import "./BaseModule.sol";
 
 /**
- * @title RelayerModule
+ * @title RelayerModuleV2
  * @dev Base module containing logic to execute transactions signed by eth-less accounts and sent by a relayer.
+ * RelayerModuleV2 should ultimately replace RelayerModule and be subclassed by all modules.
+ * It is currently only subclassed by RecoveryManager and ApprovedTransfer.
  * @author Julien Niset - <julien@argent.im>
  */
-contract RelayerModule is BaseModule {
+contract RelayerModuleV2 is BaseModule {
 
     uint256 constant internal BLOCKBOUND = 10000;
 
@@ -32,6 +35,12 @@ contract RelayerModule is BaseModule {
     struct RelayerConfig {
         uint256 nonce;
         mapping (bytes32 => bool) executedTx;
+    }
+
+    enum OwnerSignature {
+        Required,
+        Optional,
+        Disallowed
     }
 
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes32 signedHash);
@@ -44,7 +53,7 @@ contract RelayerModule is BaseModule {
         _;
     }
 
-    /* ***************** Abstract method ************************* */
+    /* ***************** Abstract methods ************************* */
 
     /**
     * @dev Gets the number of valid signatures that must be provided to execute a
@@ -57,19 +66,22 @@ contract RelayerModule is BaseModule {
 
     /**
     * @dev Validates the signatures provided with a relayed transaction.
-    * The method MUST throw if one or more signatures are not valid.
+    * The method MUST return false if one or more signatures are not valid.
     * @param _wallet The target wallet.
     * @param _data The data of the relayed transaction.
     * @param _signHash The signed hash representing the relayed transaction.
     * @param _signatures The signatures as a concatenated byte array.
+    * @return A boolean indicating whether the signatures are valid.
     */
     function validateSignatures(
         BaseWallet _wallet,
         bytes memory _data,
         bytes32 _signHash,
-        bytes memory _signatures) internal view returns (bool);
+        bytes memory _signatures
+    )
+        internal view returns (bool);
 
-    /* ************************************************************ */
+    /* ***************** External methods ************************* */
 
     /**
     * @dev Executes a relayed transaction.
@@ -94,16 +106,16 @@ contract RelayerModule is BaseModule {
         uint startGas = gasleft();
         bytes32 signHash = getSignHash(address(this), address(_wallet), 0, _data, _nonce, _gasPrice, _gasLimit);
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
-        require(verifyData(address(_wallet), _data), "RM: the wallet authorized is different then the target of the relayed data");
+        require(verifyData(address(_wallet), _data), "RM: Target of _data != _wallet");
         uint256 requiredSignatures = getRequiredSignatures(_wallet, _data);
-        if ((requiredSignatures * 65) == _signatures.length) {
-            if (verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
-                if (requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures)) {
-                    // solium-disable-next-line security/no-call-value
-                    (success,) = address(this).call(_data);
-                    refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
-                }
-            }
+        require(requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
+        require(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures), "RM: Invalid signatures");
+        // The correctness of the refund is checked on the next line using an `if` instead of a `require`
+        // in order to prevent a failing refund from being replayable in the future.
+        if (verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
+            // solium-disable-next-line security/no-call-value
+            (success,) = address(this).call(_data);
+            refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
         }
         emit TransactionExecuted(address(_wallet), success, signHash);
     }
@@ -115,6 +127,8 @@ contract RelayerModule is BaseModule {
     function getNonce(BaseWallet _wallet) external view returns (uint256 nonce) {
         return relayer[address(_wallet)].nonce;
     }
+
+    /* ***************** Internal & Private methods ************************* */
 
     /**
     * @dev Generates the signed hash of a relayed transaction according to ERC 1077.
@@ -179,6 +193,58 @@ contract RelayerModule is BaseModule {
     }
 
     /**
+    * @dev Validates the signatures provided with a relayed transaction.
+    * The method MUST throw if one or more signatures are not valid.
+    * @param _wallet The target wallet.
+    * @param _signHash The signed hash representing the relayed transaction.
+    * @param _signatures The signatures as a concatenated byte array.
+    * @param _option An enum indicating whether the owner is required, optional or disallowed.
+    */
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes32 _signHash,
+        bytes memory _signatures,
+        OwnerSignature _option
+    )
+        internal view returns (bool)
+    {
+        address lastSigner = address(0);
+        address[] memory guardians;
+        if (_option != OwnerSignature.Required || _signatures.length > 65) {
+            guardians = guardianStorage.getGuardians(_wallet); // guardians are only read if they may be needed
+        }
+        bool isGuardian;
+
+        for (uint8 i = 0; i < _signatures.length / 65; i++) {
+            address signer = recoverSigner(_signHash, _signatures, i);
+
+            if (i == 0) {
+                if (_option == OwnerSignature.Required) {
+                    // First signer must be owner
+                    if (isOwner(_wallet, signer)) {
+                        continue;
+                    }
+                    return false;
+                } else if (_option == OwnerSignature.Optional) {
+                    // First signer can be owner
+                    if (isOwner(_wallet, signer)) {
+                        continue;
+                    }
+                }
+            }
+            if (signer <= lastSigner) {
+                return false; // Signers must be different
+            }
+            lastSigner = signer;
+            (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+            if (!isGuardian) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
     * @dev Recovers the signer at a given position from a list of concatenated signatures.
     * @param _signedHash The signed hash
     * @param _signatures The concatenated signatures.
@@ -211,7 +277,16 @@ contract RelayerModule is BaseModule {
     * @param _signatures The number of signatures used in the call.
     * @param _relayer The address of the Relayer.
     */
-    function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
+    function refund(
+        BaseWallet _wallet,
+        uint _gasUsed,
+        uint _gasPrice,
+        uint _gasLimit,
+        uint _signatures,
+        address _relayer
+    )
+        internal
+    {
         uint256 amount = 29292 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 672 to log the event + _gasUsed
         // only refund if gas price not null, more than 1 signatures, gas less than gasLimit
         if (_gasPrice > 0 && _signatures > 1 && amount <= _gasLimit) {
@@ -240,6 +315,17 @@ contract RelayerModule is BaseModule {
     }
 
     /**
+    * @dev Parses the data to extract the method signature.
+    */
+    function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
+        require(_data.length >= 4, "RM: Invalid functionPrefix");
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            prefix := mload(add(_data, 0x20))
+        }
+    }
+
+   /**
     * @dev Checks that the wallet address provided as the first parameter of the relayed data is the same
     * as the wallet passed as the input of the execute() method.
     @return false if the addresses are different.
@@ -253,16 +339,5 @@ contract RelayerModule is BaseModule {
             dataWallet := mload(add(_data, 0x24))
         }
         return dataWallet == _wallet;
-    }
-
-    /**
-    * @dev Parses the data to extract the method signature.
-    */
-    function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
-        require(_data.length >= 4, "RM: Invalid functionPrefix");
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            prefix := mload(add(_data, 0x20))
-        }
     }
 }

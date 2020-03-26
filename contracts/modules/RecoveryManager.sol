@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
+import "./common/RelayerModuleV2.sol";
 import "../storage/GuardianStorage.sol";
 import "../../lib/utils/SafeMath.sol";
 
@@ -29,7 +29,7 @@ import "../../lib/utils/SafeMath.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract RecoveryManager is BaseModule, RelayerModule {
+contract RecoveryManager is BaseModule, RelayerModuleV2 {
 
     bytes32 constant NAME = "RecoveryManager";
 

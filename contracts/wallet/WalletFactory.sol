@@ -371,7 +371,7 @@ contract WalletFactory is Owned, Managed {
         require(_modules.length > 0, "WF: cannot assign with less than 1 module");
         require(ModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
         bytes memory labelBytes = bytes(_label);
-        require(labelBytes.length != 0, "WF: ENS label must be defined");
+        require(labelBytes.length != 0, "WF: ENS lable must be defined");
     }
 
     /**

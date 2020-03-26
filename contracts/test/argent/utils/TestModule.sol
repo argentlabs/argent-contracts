@@ -63,7 +63,8 @@ contract TestModule is BaseModule, RelayerModule {
         view
         returns (bool)
     {
-        return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
+        address signer = recoverSigner(_signHash, _signatures, 0);
+        return isOwner(_wallet, signer); // "GM: signer must be owner"
     }
 
     function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /*_data */) internal view returns (uint256) {
