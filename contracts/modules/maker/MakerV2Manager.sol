@@ -1,4 +1,4 @@
-// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+// Copyright (C) 2019  Argent Labs Ltd. <https://argent.xyz>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-
 import "./MakerV2Base.sol";
 import "./MakerV2Invest.sol";
 import "./MakerV2Loan.sol";
