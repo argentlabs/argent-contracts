@@ -21,6 +21,7 @@ const KYBER_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
+const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 
 describe("Test Approved Transfer", function () {
   this.timeout(10000);
@@ -145,8 +146,9 @@ describe("Test Approved Transfer", function () {
     });
     it("should fail to transfer ETH when signer is not a guardian", async () => {
       const amountToTransfer = 10000;
+      await addGuardians([guardian1]);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
-      assert.equal(count, 0, "0 guardians should be active");
+      assert.equal(count, 1, "1 guardian should be active");
       // should fail
       await assert.revertWith(
         manager.relay(
@@ -154,8 +156,8 @@ describe("Test Approved Transfer", function () {
           "transferToken",
           [wallet.contractAddress, ETH_TOKEN, recipient.address, amountToTransfer, ZERO_BYTES32],
           wallet,
-          [owner, guardian1],
-        ), WRONG_SIGNATURE_NUMBER_REVERT_MSG,
+          [owner, guardian2],
+        ), INVALID_SIGNATURES_REVERT_MSG,
       );
     });
     it("should transfer ERC20 with 1 confirmations for 1 guardian", async () => {
