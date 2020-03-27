@@ -132,10 +132,6 @@ contract MakerV2Invest is Invest, MakerV2Base {
     )
         internal
     {
-        if (daiToken.balanceOf(address(_wallet)) < _amount) {
-            swapSaiToDai(_wallet, _amount - daiToken.balanceOf(address(_wallet)));
-        }
-
         // Execute drip to get the chi rate updated to rho == now, otherwise join will fail
         pot.drip();
         // Approve DAI adapter to take the DAI amount

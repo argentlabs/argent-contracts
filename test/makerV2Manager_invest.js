@@ -188,16 +188,6 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
       await exchangeWithPot({ toPot: true, relayed: true });
     });
 
-    it("sends DAI to the pot when only having SAI (blockchain tx)", async () => {
-      await topUpSai();
-      await exchangeWithPot({ toPot: true, relayed: false });
-    });
-
-    it("sends DAI to the pot when only having SAI (relayed tx)", async () => {
-      await topUpSai();
-      await exchangeWithPot({ toPot: true, relayed: true });
-    });
-
     it("withdraw DAI from the pot (blockchain tx)", async () => {
       await topUpPot();
       await exchangeWithPot({ toPot: false, relayed: false });
