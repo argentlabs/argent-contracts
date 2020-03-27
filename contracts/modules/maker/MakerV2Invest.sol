@@ -58,7 +58,7 @@ contract MakerV2Invest is Invest, MakerV2Base {
         onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
-        require(_token == address(daiToken), "DM: token should be DAI");
+        require(_token == address(daiToken), "MV2: token should be DAI");
         joinDsr(_wallet, _amount);
         _invested = _amount;
         emit InvestmentAdded(address(_wallet), address(daiToken), _amount, _period);
