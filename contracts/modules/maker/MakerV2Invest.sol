@@ -27,11 +27,7 @@ contract MakerV2Invest is Invest, MakerV2Base {
 
     // *************** Constructor ********************** //
 
-    constructor(
-        PotLike _pot
-    )
-        public
-    {
+    constructor(PotLike _pot) public {
         pot = _pot;
     }
 
