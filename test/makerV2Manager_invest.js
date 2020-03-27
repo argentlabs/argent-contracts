@@ -1,5 +1,5 @@
 // How to run this test file:
-// 1. add your private key (KOVAN_PRIV_KEY) and Kovan Infura API key (KOVAN_INFURA_KEY) to .env
+// 1. add your private key (KOVAN_PRIV_KEY) and Infura API key (INFURA_KEY) to .env
 // --- TO TEST ON KOVAN: ----
 // 2. npx etherlime test test/makerV2Manager_invest.js --skip-compilation --network kovan
 // --- TO TEST ON KOVAN-FORK: ----
@@ -49,7 +49,7 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
     await deployManager.setup();
     const { configurator } = deployManager;
     deployer = deployManager.deployer;
-    testManager = new TestManager([...Array(10)].map(() => deployer), network);
+    testManager = new TestManager([...Array(10)].map(() => deployer), network, deployer);
     owner = deployer.signer;
     const { config } = configurator;
 

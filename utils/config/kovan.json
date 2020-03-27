@@ -17,7 +17,7 @@
       "type": "infura",
       "options": {
         "network": "kovan",
-        "envvar": "KOVAN_INFURA_KEY"
+        "envvar": "INFURA_KEY"
       }
     },
     "privateKey": {

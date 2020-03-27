@@ -5,8 +5,6 @@ const hdkey = require("ethereumjs-wallet/hdkey");
 const bip39 = require("bip39");
 const { signOffchain } = require("./utilities.js");
 
-const APIKEY = "41c41ec78ad0435982708754d5e8cc24";
-
 const USE_ETHERLIME_GANACHE_MNEMONIC = true;
 
 // this is the same mnemonic as that used by ganache-cli --deterministic
@@ -14,11 +12,11 @@ const USE_ETHERLIME_GANACHE_MNEMONIC = true;
 const MNEMONIC = "myth like bonus scare over problem client lizard pioneer submit female collect";
 
 class TestManager {
-  constructor(_accounts = null, network = "ganache") {
+  constructor(_accounts = null, network = "ganache", deployer) {
     this.network = network;
     this.accounts = _accounts || this.loadAccounts();
     global.accounts = this.accounts;
-    this.deployer = this.newDeployer();
+    this.deployer = deployer || this.newDeployer();
     this.provider = this.deployer.provider;
   }
 
@@ -31,34 +29,21 @@ class TestManager {
     const localNodeProvider = new ethers.providers.JsonRpcProvider(
       "http://localhost:8545",
     );
-    global.accounts = []; // eslint-disable-line no-global-assign
+    const accounts = [];
     for (let i = 0; i < 10; i += 1) {
       const privKey = hdWallet
         .derivePath(`m/44'/60'/0'/0/${i}`)
         .getWallet()
         .getPrivateKeyString();
-      global.accounts.push({
+      accounts.push({
         secretKey: privKey,
         signer: new ethers.Wallet(privKey, localNodeProvider),
       });
     }
-    return global.accounts;
+    return accounts;
   }
 
   newDeployer() {
-    if (this.network === "ropsten") {
-      const defaultConfigs = {
-        gasPrice: 20000000000,
-        gasLimit: 4700000,
-        chainId: 3,
-      };
-      return new etherlime.InfuraPrivateKeyDeployer(
-        this.accounts[0].signer.privateKey,
-        "ropsten",
-        APIKEY,
-        defaultConfigs,
-      );
-    }
     return new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey);
   }
 
