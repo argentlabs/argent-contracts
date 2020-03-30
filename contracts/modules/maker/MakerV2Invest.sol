@@ -15,7 +15,6 @@
 
 pragma solidity ^0.5.4;
 import "./MakerV2Base.sol";
-import "../../defi/Invest.sol";
 
 contract PotLike {
     function chi() public view returns (uint);
@@ -28,10 +27,15 @@ contract PotLike {
  * @dev Module to lock/unlock MCD DAI into/from Maker's Pot
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Invest is Invest, MakerV2Base {
+contract MakerV2Invest is MakerV2Base {
 
     // The address of the Pot
     PotLike internal pot;
+
+    // *************** Events ********************** //
+
+    event DsrJoined(address indexed _wallet, uint256 _amount);
+    event DsrExited(address indexed _wallet, uint256 _amount);
 
     // *************** Constructor ********************** //
 
@@ -41,92 +45,8 @@ contract MakerV2Invest is Invest, MakerV2Base {
 
     // *************** External/Public Functions ********************* //
 
-    /* ********************************** Implementation of Invest ************************************* */
-
     /**
-     * @dev Invest tokens for a given period.
-     * @param _wallet The target wallet.
-     * @param _token The token address.
-     * @param _amount The amount of tokens to invest.
-     * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @return The exact amount of tokens that have been invested.
-     */
-    function addInvestment(
-        BaseWallet _wallet,
-        address _token,
-        uint256 _amount,
-        uint256 _period
-    )
-        external
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
-        returns (uint256 _invested)
-    {
-        require(_token == address(daiToken), "MV2: token should be DAI");
-        joinDsr(_wallet, _amount);
-        _invested = _amount;
-        emit InvestmentAdded(address(_wallet), address(daiToken), _amount, _period);
-    }
-
-    /**
-     * @dev Exit invested postions.
-     * @param _wallet The target wallet.
-     * @param _token The token address.
-     * @param _fraction The fraction of invested tokens to exit in per 10000.
-     */
-    function removeInvestment(
-        BaseWallet _wallet,
-        address _token,
-        uint256 _fraction
-    )
-        external
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
-    {
-        require(_token == address(daiToken), "MV2: token not DAI");
-        require(_fraction <= 10000, "MV2: invalid fraction");
-        exitDsr(_wallet, _fraction);
-        emit InvestmentRemoved(address(_wallet), _token, _fraction);
-    }
-
-    /**
-     * @dev Get the amount of investment in a given token.
-     * @param _wallet The target wallet.
-     * @param _token The token address.
-     * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
-     */
-    function getInvestment(
-        BaseWallet _wallet,
-        address _token
-    )
-        external
-        view
-        returns (uint256 _tokenValue, uint256 /* _periodEnd */)
-    {
-        if (_token == address(daiToken)) {
-            _tokenValue = dsrBalance(_wallet);
-        }
-    }
-
-    /* ****************************************** DSR wrappers ******************************************* */
-
-    /**
-    * @dev Grant access to the wallet's internal DAI balance in the VAT to an operator.
-    * @param _wallet The target wallet.
-    * @param _operator The grantee of the access
-    */
-    function grantVatAccess(BaseWallet _wallet, address _operator) internal {
-        if (vat.can(address(_wallet), _operator) == 0) {
-            invokeWallet(address(_wallet), address(vat), 0, abi.encodeWithSignature("hope(address)", _operator));
-        }
-    }
-
-    function dsrBalance(BaseWallet _wallet) public view returns (uint256) {
-        return pot.chi().mul(pot.pie(address(_wallet))) / RAY;
-    }
-
-    /**
-    * @dev lets the owner deposit MCD DAI into the DSR Pot.
+    * @dev Lets the wallet owner deposit MCD DAI into the DSR Pot.
     * @param _wallet The target wallet.
     * @param _amount The amount of DAI to deposit
     */
@@ -134,7 +54,9 @@ contract MakerV2Invest is Invest, MakerV2Base {
         BaseWallet _wallet,
         uint256 _amount
     )
-        internal
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         // Execute drip to get the chi rate updated to rho == now, otherwise join will fail
         pot.drip();
@@ -148,33 +70,86 @@ contract MakerV2Invest is Invest, MakerV2Base {
         uint256 pie = _amount.mul(RAY) / pot.chi();
         // Join the pie value to the pot
         invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSignature("join(uint256)", pie));
+        // Emitting event
+        emit DsrJoined(address(_wallet), _amount);
     }
 
     /**
-    * @dev lets the owner withdraw MCD DAI from the DSR Pot.
+    * @dev Lets the wallet owner withdraw MCD DAI from the DSR pot.
     * @param _wallet The target wallet.
-    * @param _fraction The fraction of invested tokens to exit in per 10000.
+    * @param _amount The amount of DAI to withdraw.
     */
     function exitDsr(
         BaseWallet _wallet,
-        uint256 _fraction
+        uint256 _amount
     )
-        internal
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
         // Execute drip to count the savings accumulated until this moment
         pot.drip();
-        // Calculate the pie wad amount corresponding to the fraction
-        uint256 pie = pot.pie(address(_wallet)).mul(_fraction) / 10000;
+        // Calculates the pie value in the pot equivalent to the DAI wad amount
+        uint256 pie = _amount.mul(RAY) / pot.chi();
         // Exit DAI from the pot
         invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie));
         // Allow adapter to access the _wallet's DAI balance in the vat
         grantVatAccess(_wallet, address(daiJoin));
         // Check the actual balance of DAI in the vat after the pot exit
         uint bal = vat.dai(address(_wallet));
-        // It is necessary to check if due to rounding the exact amount can be exited by the adapter.
+        // It is necessary to check if due to rounding the exact _amount can be exited by the adapter.
         // Otherwise it will do the maximum DAI balance in the vat
-        uint256 amount = pot.chi().mul(pie) / RAY;
-        uint256 withdrawn = bal >= amount.mul(RAY) ? amount : bal / RAY;
+        uint256 withdrawn = bal >= _amount.mul(RAY) ? _amount : bal / RAY;
         invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSignature("exit(address,uint256)", address(_wallet), withdrawn));
+        // Emitting event
+        emit DsrExited(address(_wallet),  withdrawn);
+    }
+
+    /**
+    * @dev Lets the wallet owner withdraw their entire MCD DAI balance from the DSR pot.
+    * @param _wallet The target wallet.
+    */
+    function exitAllDsr(
+        BaseWallet _wallet
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        // Execute drip to count the savings accumulated until this moment
+        pot.drip();
+        // Gets the total pie belonging to the _wallet
+        uint256 pie = pot.pie(address(_wallet));
+        // Exit DAI from the pot
+        invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie));
+        // Allow adapter to access the _wallet's DAI balance in the vat
+        grantVatAccess(_wallet, address(daiJoin));
+        // Exits the DAI amount corresponding to the value of pie
+        uint256 withdrawn = pot.chi().mul(pie) / RAY;
+        invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSignature("exit(address,uint256)", address(_wallet), withdrawn));
+        // Emitting event
+        emit DsrExited(address(_wallet),  withdrawn);
+    }
+
+    /**
+    * @dev Returns the amount of DAI currently held in the DSR pot.
+    * @param _wallet The target wallet.
+    * @return The DSR balance.
+    */
+    function dsrBalance(BaseWallet _wallet) external view returns (uint256 _balance) {
+        return pot.chi().mul(pot.pie(address(_wallet))) / RAY;
+    }
+
+    /* ****************************************** Internal method ******************************************* */
+
+    /**
+    * @dev Grant access to the wallet's internal DAI balance in the VAT to an operator.
+    * @param _wallet The target wallet.
+    * @param _operator The grantee of the access
+    */
+    function grantVatAccess(BaseWallet _wallet, address _operator) internal {
+        if (vat.can(address(_wallet), _operator) == 0) {
+            invokeWallet(address(_wallet), address(vat), 0, abi.encodeWithSignature("hope(address)", _operator));
+        }
     }
 }

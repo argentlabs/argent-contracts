@@ -107,11 +107,11 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
   }
 
   async function topUpPot() {
-    const invested = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
+    const invested = await makerV2.dsrBalance(walletAddress);
     if (invested.lt(SENT_AMOUNT)) {
       await topUpDai();
       await (await daiToken.transfer(walletAddress, SENT_AMOUNT)).wait();
-      await (await makerV2.addInvestment(walletAddress, daiToken.contractAddress, SENT_AMOUNT, 0, { gasLimit: 2000000 })).wait();
+      await (await makerV2.joinDsr(walletAddress, SENT_AMOUNT, { gasLimit: 2000000 })).wait();
     }
   }
 
@@ -156,17 +156,23 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
   describe("DSR", () => {
     async function exchangeWithPot({ toPot, relayed, all = false }) {
       const walletBefore = (await daiToken.balanceOf(walletAddress)).add(await saiToken.balanceOf(walletAddress));
-      const investedBefore = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
-      const fraction = !toPot && (all ? 10000 : SENT_AMOUNT.mul(10000).div(investedBefore));
-      const method = toPot ? "addInvestment" : "removeInvestment";
-      const params = [walletAddress, daiToken.contractAddress].concat(toPot ? [SENT_AMOUNT, 0] : [fraction]);
+      const investedBefore = await makerV2.dsrBalance(walletAddress);
+      let method;
+      if (toPot) {
+        method = "joinDsr";
+      } else if (all) {
+        method = "exitAllDsr";
+      } else {
+        method = "exitDsr";
+      }
+      const params = [walletAddress].concat(all ? [] : [SENT_AMOUNT]);
       if (relayed) {
         await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
       } else {
         await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
       }
       const walletAfter = (await daiToken.balanceOf(walletAddress)).add(await saiToken.balanceOf(walletAddress));
-      const investedAfter = (await makerV2.getInvestment(walletAddress, daiToken.contractAddress))._tokenValue;
+      const investedAfter = await makerV2.dsrBalance(walletAddress);
       const deltaInvested = toPot ? investedAfter.sub(investedBefore) : investedBefore.sub(investedAfter);
       const deltaWallet = toPot ? walletBefore.sub(walletAfter) : walletAfter.sub(walletBefore);
       assert.isTrue(deltaInvested.gt(0), "DAI in DSR should have changed.");
