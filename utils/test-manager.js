@@ -26,15 +26,10 @@ class TestManager {
     // ignore (global) accounts loaded from cli-commands/ganache/setup.json
     // and instead generate accounts matching those used by ganache-cli in determistic mode
     const hdWallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MNEMONIC));
-    const localNodeProvider = new ethers.providers.JsonRpcProvider(
-      "http://localhost:8545",
-    );
+    const localNodeProvider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
     const accounts = [];
     for (let i = 0; i < 10; i += 1) {
-      const privKey = hdWallet
-        .derivePath(`m/44'/60'/0'/0/${i}`)
-        .getWallet()
-        .getPrivateKeyString();
+      const privKey = hdWallet.derivePath(`m/44'/60'/0'/0/${i}`).getWallet().getPrivateKeyString();
       accounts.push({
         secretKey: privKey,
         signer: new ethers.Wallet(privKey, localNodeProvider),
@@ -60,11 +55,8 @@ class TestManager {
   async getNonceForRelay() {
     const block = await this.provider.getBlockNumber();
     const timestamp = new Date().getTime();
-    return `0x${ethers.utils
-      .hexZeroPad(ethers.utils.hexlify(block), 16)
-      .slice(2)}${ethers.utils
-      .hexZeroPad(ethers.utils.hexlify(timestamp), 16)
-      .slice(2)}`;
+    return `0x${ethers.utils.hexZeroPad(ethers.utils.hexlify(block), 16)
+      .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   }
 
   async relay(_target, _method, _params, _wallet, _signers, _relayer = this.accounts[9].signer, _estimate = false, _gasLimit = 2000000, _nonce) {
@@ -93,24 +85,15 @@ class TestManager {
 
   async runningEtherlimeGanache() { // eslint-disable-line class-methods-use-this
     return new Promise((res) => {
-      ps.lookup(
-        {
-          command: "node",
-          psargs: "ux",
-          arguments: "ganache",
-        },
-        (err, processes) => {
-          const runningEthGanache = !err
-            && processes.reduce(
-              (etherlimeGanacheFound, p) => etherlimeGanacheFound
-                || (p.command + p.arguments.join("-")).includes(
-                  "etherlime-ganache",
-                ),
-              false,
-            );
-          return res(runningEthGanache);
-        },
-      );
+      ps.lookup({
+        command: "node",
+        psargs: "ux",
+        arguments: "ganache",
+      }, (err, processes) => {
+        const runningEthGanache = !err && processes.reduce((etherlimeGanacheFound, p) => etherlimeGanacheFound
+          || (p.command + p.arguments.join("-")).includes("etherlime-ganache"), false);
+        return res(runningEthGanache);
+      });
     });
   }
 
