@@ -248,8 +248,9 @@ describe("TransferManager", function () {
           await doDirectTransfer({
             token: ETH_TOKEN, signer: nonowner, to: recipient, amount: 10000,
           });
+          assert.fail("transfer should have failed");
         } catch (error) {
-          assert.ok(await manager.isRevertReason(error, "must be wallet owner"));
+          assert.ok(await manager.isRevertReason(error, "BM: must be an owner for the wallet"));
         }
       });
       it("should calculate the daily unspent when the owner send ETH", async () => {
@@ -405,8 +406,9 @@ describe("TransferManager", function () {
     it("should not appprove an ERC20 transfer when the signer is not the owner ", async () => {
       try {
         await doDirectApprove({ signer: nonowner, amount: 10 });
+        assert.fail("approve should have failed");
       } catch (error) {
-        assert.ok(await manager.isRevertReason(error, "must be wallet owner"));
+        assert.ok(await manager.isRevertReason(error, "BM: must be an owner for the wallet"));
       }
     });
     it("should appprove an ERC20 immediately when the spender is whitelisted ", async () => {

@@ -85,11 +85,7 @@ class TestManager {
 
   async runningEtherlimeGanache() { // eslint-disable-line class-methods-use-this
     return new Promise((res) => {
-      ps.lookup({
-        command: "node",
-        psargs: "ux",
-        arguments: "ganache",
-      }, (err, processes) => {
+      ps.lookup({ arguments: ["etherlime", "ganache"] }, (err, processes) => {
         const runningEthGanache = !err && processes.reduce((etherlimeGanacheFound, p) => etherlimeGanacheFound
           || (p.command + p.arguments.join("-")).includes("etherlime-ganache"), false);
         return res(runningEthGanache);
