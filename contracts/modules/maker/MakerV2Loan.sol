@@ -69,15 +69,6 @@ contract MakerV2Loan is Loan, MakerV2Base {
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    // Method signatures to reduce gas cost at depoyment
-    bytes4 constant internal ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
-    bytes4 constant internal WETH_DEPOSIT = bytes4(keccak256("deposit()"));
-    bytes4 constant internal WETH_WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
-    bytes4 constant internal VAT_HOPE = bytes4(keccak256("hope(address)"));
-    bytes4 constant internal CDP_GIVE = bytes4(keccak256("give(uint256,address)"));
-    bytes4 constant internal TUB_GIVE = bytes4(keccak256("give(bytes32,address)"));
-    bytes4 constant internal ETH_TOKEN_SWAP_OUTPUT = bytes4(keccak256("ethToTokenSwapOutput(uint256,uint256)"));
-
     // ****************** Events *************************** //
 
     // Emitted when an SCD CDP is converted into an MCD vault
@@ -290,7 +281,12 @@ contract MakerV2Loan is Loan, MakerV2Base {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        invokeWallet(address(_wallet), address(cdpManager), 0, abi.encodeWithSelector(CDP_GIVE, uint256(_loanId), address(this)));
+        invokeWallet(
+            address(_wallet),
+            address(cdpManager),
+            0,
+            abi.encodeWithSignature("give(uint256,address)", uint256(_loanId), address(this))
+        );
         saveLoanOwner(_wallet, _loanId);
     }
 
@@ -316,10 +312,10 @@ contract MakerV2Loan is Loan, MakerV2Base {
             // Convert some ETH into MKR with Uniswap if necessary
             buyTokens(_wallet, mkrToken, mkrFee, mkrUniswap);
             // Transfer the MKR to the Migration contract
-            invokeWallet(address(_wallet), address(mkrToken), 0, abi.encodeWithSelector(ERC20_TRANSFER, address(scdMcdMigration), mkrFee));
+            invokeWallet(address(_wallet), address(mkrToken), 0, abi.encodeWithSignature("transfer(address,uint256)", address(scdMcdMigration), mkrFee));
         }
         // Transfer ownership of the SCD CDP to the migration contract
-        invokeWallet(address(_wallet), address(tub), 0, abi.encodeWithSelector(TUB_GIVE, _cup, address(scdMcdMigration)));
+        invokeWallet(address(_wallet), address(tub), 0, abi.encodeWithSignature("give(bytes32,address)", _cup, address(scdMcdMigration)));
         // Update stability fee rate
         jug.drip(wethJoin.ilk());
         // Execute the CDP migration
@@ -387,7 +383,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
             // Not enough tokens => Convert some ETH into tokens with Uniswap
             uint256 etherValueOfTokens = _uniswapExchange.getEthToTokenOutputPrice(_tokenAmountRequired - tokenBalance);
             // solium-disable-next-line security/no-block-members
-            invokeWallet(address(_wallet), address(_uniswapExchange), etherValueOfTokens, abi.encodeWithSelector(ETH_TOKEN_SWAP_OUTPUT, _tokenAmountRequired - tokenBalance, now));
+            invokeWallet(address(_wallet), address(_uniswapExchange), etherValueOfTokens, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, now));
         }
     }
 
@@ -403,10 +399,15 @@ contract MakerV2Loan is Loan, MakerV2Base {
         (JoinLike gemJoin, GemLike collateral) = makerRegistry.getCollateral(_ilk);
         // Convert ETH to WETH if needed
         if (gemJoin == wethJoin) {
-            invokeWallet(address(_wallet), address(wethToken), _collateralAmount, abi.encodeWithSelector(WETH_DEPOSIT));
+            invokeWallet(address(_wallet), address(wethToken), _collateralAmount, abi.encodeWithSignature("deposit()"));
         }
         // Send the collateral to the module
-        invokeWallet(address(_wallet), address(collateral), 0, abi.encodeWithSelector(ERC20_TRANSFER, address(this), _collateralAmount));
+        invokeWallet(
+            address(_wallet),
+            address(collateral),
+            0,
+            abi.encodeWithSignature("transfer(address,uint256)", address(this), _collateralAmount)
+        );
         // Approve the adapter to pull the collateral from the module
         collateral.approve(address(gemJoin), _collateralAmount);
         // Join collateral to the adapter. The first argument to `join` is the address that *technically* owns the vault
@@ -421,7 +422,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
         internal
     {
         // Send the DAI to the module
-        invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSelector(ERC20_TRANSFER, address(this), _debtAmount));
+        invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSignature("transfer(address,uint256)", address(this), _debtAmount));
         // Approve the DAI adapter to burn DAI from the module
         daiToken.approve(address(daiJoin), _debtAmount);
         // Join DAI to the adapter. The first argument to `join` is the address that *technically* owns the vault
@@ -580,7 +581,7 @@ contract MakerV2Loan is Loan, MakerV2Base {
         gemJoin.exit(address(_wallet), _collateralAmount);
         // Convert WETH to ETH if needed
         if (gemJoin == wethJoin) {
-            invokeWallet(address(_wallet), address(wethToken), 0, abi.encodeWithSelector(WETH_WITHDRAW, _collateralAmount));
+            invokeWallet(address(_wallet), address(wethToken), 0, abi.encodeWithSignature("withdraw(uint256)", _collateralAmount));
         }
     }
 

@@ -33,12 +33,6 @@ contract MakerV2Invest is Invest, MakerV2Base {
     // The address of the Pot
     PotLike internal pot;
 
-    bytes4 constant internal ADAPTER_JOIN = bytes4(keccak256("join(address,uint256)"));
-    bytes4 constant internal ADAPTER_EXIT = bytes4(keccak256("exit(address,uint256)"));
-    bytes4 constant internal VAT_HOPE = bytes4(keccak256("hope(address)"));
-    bytes4 constant internal POT_JOIN = bytes4(keccak256("join(uint256)"));
-    bytes4 constant internal POT_EXIT = bytes4(keccak256("exit(uint256)"));
-
     // *************** Constructor ********************** //
 
     constructor(PotLike _pot) public {
@@ -123,7 +117,7 @@ contract MakerV2Invest is Invest, MakerV2Base {
     */
     function grantVatAccess(BaseWallet _wallet, address _operator) internal {
         if (vat.can(address(_wallet), _operator) == 0) {
-            invokeWallet(address(_wallet), address(vat), 0, abi.encodeWithSelector(VAT_HOPE, _operator));
+            invokeWallet(address(_wallet), address(vat), 0, abi.encodeWithSignature("hope(address)", _operator));
         }
     }
 
@@ -145,15 +139,15 @@ contract MakerV2Invest is Invest, MakerV2Base {
         // Execute drip to get the chi rate updated to rho == now, otherwise join will fail
         pot.drip();
         // Approve DAI adapter to take the DAI amount
-        invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSelector(ERC20_APPROVE, address(daiJoin), _amount));
+        invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSignature("approve(address,uint256)", address(daiJoin), _amount));
         // Join DAI into the vat (_amount of external DAI is burned and the vat transfers _amount of internal DAI from the adapter to the _wallet)
-        invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSelector(ADAPTER_JOIN, address(_wallet), _amount));
+        invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSignature("join(address,uint256)", address(_wallet), _amount));
         // Approve the pot to take out (internal) DAI from the wallet's balance in the vat
         grantVatAccess(_wallet, address(pot));
         // Compute the pie value in the pot
         uint256 pie = _amount.mul(RAY) / pot.chi();
         // Join the pie value to the pot
-        invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSelector(POT_JOIN, pie));
+        invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSignature("join(uint256)", pie));
     }
 
     /**
@@ -172,7 +166,7 @@ contract MakerV2Invest is Invest, MakerV2Base {
         // Calculate the pie wad amount corresponding to the fraction
         uint256 pie = pot.pie(address(_wallet)).mul(_fraction) / 10000;
         // Exit DAI from the pot
-        invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSelector(POT_EXIT, pie));
+        invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie));
         // Allow adapter to access the _wallet's DAI balance in the vat
         grantVatAccess(_wallet, address(daiJoin));
         // Check the actual balance of DAI in the vat after the pot exit
@@ -181,6 +175,6 @@ contract MakerV2Invest is Invest, MakerV2Base {
         // Otherwise it will do the maximum DAI balance in the vat
         uint256 amount = pot.chi().mul(pie) / RAY;
         uint256 withdrawn = bal >= amount.mul(RAY) ? amount : bal / RAY;
-        invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSelector(ADAPTER_EXIT, address(_wallet), withdrawn));
+        invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSignature("exit(address,uint256)", address(_wallet), withdrawn));
     }
 }

@@ -40,11 +40,6 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
     // The address of the Vat
     VatLike internal vat;
 
-    // Method signatures to reduce gas cost at depoyment
-    bytes4 constant internal ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
-    bytes4 constant internal SWAP_SAI_DAI = bytes4(keccak256("swapSaiToDai(uint256)"));
-    bytes4 constant internal SWAP_DAI_SAI = bytes4(keccak256("swapDaiToSai(uint256)"));
-
     uint256 constant internal RAY = 10 ** 27;
 
     using SafeMath for uint256;
@@ -86,8 +81,8 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
     {
         require(saiToken.balanceOf(address(_wallet)) >= _amount, "MV2: insufficient SAI");
-        invokeWallet(address(_wallet), address(saiToken), 0, abi.encodeWithSelector(ERC20_APPROVE, scdMcdMigration, _amount));
-        invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSelector(SWAP_SAI_DAI, _amount));
+        invokeWallet(address(_wallet), address(saiToken), 0, abi.encodeWithSignature("approve(address,uint256)", scdMcdMigration, _amount));
+        invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSignature("swapSaiToDai(uint256)", _amount));
         emit TokenConverted(address(_wallet), address(saiToken), _amount, address(daiToken), _amount);
     }
 
@@ -105,8 +100,8 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
     {
         require(daiToken.balanceOf(address(_wallet)) >= _amount, "MV2: insufficient DAI");
-        invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSelector(ERC20_APPROVE, scdMcdMigration, _amount));
-        invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSelector(SWAP_DAI_SAI, _amount));
+        invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSignature("approve(address,uint256)", scdMcdMigration, _amount));
+        invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSignature("swapDaiToSai(uint256)", _amount));
         emit TokenConverted(address(_wallet), address(daiToken), _amount, address(saiToken), _amount);
     }
 
