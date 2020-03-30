@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../interfaces/Module.sol";
 import "../base/Owned.sol";
@@ -5,7 +20,7 @@ import "../exchange/ERC20.sol";
 
 /**
  * @title ModuleRegistry
- * @dev Registry of authorised modules. 
+ * @dev Registry of authorised modules.
  * Modules must be registered before they can be authorised on a wallet.
  * @author Julien Niset - <julien@argent.im>
  */
@@ -74,7 +89,7 @@ contract ModuleRegistry is Owned {
     function recoverToken(address _token) external onlyOwner {
         uint total = ERC20(_token).balanceOf(address(this));
         ERC20(_token).transfer(msg.sender, total);
-    } 
+    }
 
     /**
      * @dev Gets the name of a module from its address.
@@ -109,13 +124,13 @@ contract ModuleRegistry is Owned {
      * @return true if all the modules are registered.
      */
     function isRegisteredModule(address[] calldata _modules) external view returns (bool) {
-        for(uint i = 0; i < _modules.length; i++) {
+        for (uint i = 0; i < _modules.length; i++) {
             if (!modules[_modules[i]].exists) {
                 return false;
             }
         }
         return true;
-    }  
+    }
 
     /**
      * @dev Checks if an upgrader is registered.
@@ -124,6 +139,5 @@ contract ModuleRegistry is Owned {
      */
     function isRegisteredUpgrader(address _upgrader) external view returns (bool) {
         return upgraders[_upgrader].exists;
-    } 
-
+    }
 }

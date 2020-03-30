@@ -1,8 +1,8 @@
 const BaseWallet = require('../build/BaseWallet');
 const ModuleRegistry = require('../build/ModuleRegistry');
-const DappRegistry = require('../build/DappRegistry');
+const CompoundRegistry = require('../build/CompoundRegistry');
 const MultiSig = require('../build/MultiSigWallet');
-const ENS = require('../build/TestENSRegistry');
+const ENS = require('../build/ENSRegistryWithFallback');
 const ENSManager = require('../build/ArgentENSManager');
 const ENSResolver = require('../build/ArgentENSResolver');
 const WalletFactory = require('../build/WalletFactory');
@@ -46,14 +46,14 @@ const deploy = async (network, secret) => {
     const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, newConfig.Kyber.contract);
     // Deploy Module Registry
     const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
-    // Deploy Dapp Registry
-    const DappRegistryWrapper = await deployer.deploy(DappRegistry);
+    // Deploy Compound Registry
+    const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
     // Deploy the ENS Resolver
     const ENSResolverWrapper = await deployer.deploy(ENSResolver);
     // Deploy the ENS Manager
     const ENSManagerWrapper = await deployer.deploy(ENSManager, {}, walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
     // Deploy the Wallet Factory
-    const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {}, newConfig.ENS.ensRegistry, ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress, ENSResolverWrapper.contractAddress);
+    const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {}, ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
 
     ///////////////////////////////////////////////////
     // Making ENSManager owner of the root wallet ENS
@@ -82,6 +82,16 @@ const deploy = async (network, secret) => {
     }
 
     ///////////////////////////////////////////////////
+    // Add token to the Compound Registry
+    ///////////////////////////////////////////////////
+    
+    for (let underlying in newConfig.defi.compound.markets) {
+        const cToken = newConfig.defi.compound.markets[underlying];
+        const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
+        await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction, `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
+    }
+
+    ///////////////////////////////////////////////////
     // Update config and Upload ABIs
     ///////////////////////////////////////////////////
 
@@ -92,7 +102,7 @@ const deploy = async (network, secret) => {
         ENSManager: ENSManagerWrapper.contractAddress,
         TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
         ModuleRegistry: ModuleRegistryWrapper.contractAddress,
-        DappRegistry: DappRegistryWrapper.contractAddress,
+        CompoundRegistry: CompoundRegistryWrapper.contractAddress,
         BaseWallet: BaseWalletWrapper.contractAddress
     });
     await configurator.save();
@@ -104,7 +114,7 @@ const deploy = async (network, secret) => {
         abiUploader.upload(ENSManagerWrapper, "contracts"),
         abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
         abiUploader.upload(ModuleRegistryWrapper, "contracts"),
-        abiUploader.upload(DappRegistryWrapper, "contracts"),
+        abiUploader.upload(CompoundRegistryWrapper, "contracts"),
         abiUploader.upload(BaseWalletWrapper, "contracts")
     ]);
 };

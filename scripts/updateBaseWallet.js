@@ -1,11 +1,8 @@
-// Example Usage:
-// AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true node scripts/updateBaseWallet.js --network test
+// Usage: ./execute.sh updateBaseWallet.js staging
 
 const BaseWallet = require('../build/BaseWallet');
-
 const WalletFactory = require('../build/WalletFactory');
 const MultiSigWallet = require('../build/MultiSigWallet');
-
 const MultisigExecutor = require('../utils/multisigexecutor.js');
 const DeployManager = require('../utils/deploy-manager.js');
 

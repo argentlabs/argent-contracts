@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 
 import "./BaseModule.sol";
@@ -29,10 +44,9 @@ contract BaseTransfer is BaseModule {
     * @param _data The data to *log* with the transfer.
     */
     function doTransfer(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
-        if(_token == ETH_TOKEN) {
+        if (_token == ETH_TOKEN) {
             invokeWallet(address(_wallet), _to, _value, EMPTY_BYTES);
-        }
-        else {
+        } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
             invokeWallet(address(_wallet), _token, 0, methodData);
         }

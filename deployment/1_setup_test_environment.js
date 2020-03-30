@@ -1,6 +1,8 @@
-const ENS = require('../build/TestENSRegistry');
+const ENSRegistry = require('../build/ENSRegistry');
+const ENSRegistryWithFallback = require('../build/ENSRegistryWithFallback');
 const Kyber = require('../build/KyberNetworkTest');
 const ERC20 = require('../build/TestERC20');
+const MakerMigration = require('../build/MockScdMcdMigration');
 
 const utils = require('../utils/utilities.js');
 const DeployManager = require('../utils/deploy-manager.js');
@@ -13,8 +15,9 @@ const BYTES32_NULL = '0x00000000000000000000000000000000000000000000000000000000
 
 // For development purpose
 async function deployENSRegistry(deployer, owner, domain) {
-    // Deploy the public ENS registry
-    const ENSWrapper = await deployer.deploy(ENS);
+	// Deploy the public ENS registry
+	const ensRegistryWithoutFallback = await deployer.deploy(ENSRegistry);
+    const ENSWrapper = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
 
 	// ENS domain
 	const parts = domain.split('.');
@@ -65,7 +68,13 @@ const deploy = async (network, secret) => {
         // Deploy Kyber Network if needed
         const address = await deployKyber(deployer);
         configurator.updateKyberContract(address);
-    }
+	}
+	
+	if (config.defi.maker.deployOwn) {
+        // Deploy Maker's mock Migration contract if needed
+		const MakerMigrationWrapper = await deployer.deploy(MakerMigration);
+        configurator.updateMakerMigration(MakerMigrationWrapper.contractAddress);
+	}
 
     // save configuration
     await configurator.save();

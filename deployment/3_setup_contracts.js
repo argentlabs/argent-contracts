@@ -1,9 +1,9 @@
 const ModuleRegistry = require('../build/ModuleRegistry');
-const DappRegistry = require('../build/DappRegistry');
 const ENSManager = require('../build/ArgentENSManager');
 const ENSResolver = require('../build/ArgentENSResolver');
 const WalletFactory = require('../build/WalletFactory');
 const TokenPriceProvider = require('../build/TokenPriceProvider');
+const CompoundRegistry = require('../build/CompoundRegistry');
 
 const DeployManager = require('../utils/deploy-manager.js');
 
@@ -26,7 +26,7 @@ const deploy = async (network, secret) => {
     const ENSManagerWrapper = await deployer.wrapDeployedContract(ENSManager, config.contracts.ENSManager);
     const WalletFactoryWrapper = await deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
     const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
-    const DappRegistryWrapper = await deployer.wrapDeployedContract(DappRegistry, config.contracts.DappRegistry);
+    const CompoundRegistryWrapper = await deployer.wrapDeployedContract(CompoundRegistry, config.contracts.CompoundRegistry);
     const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
 
     ////////////////////////////////////
@@ -55,7 +55,7 @@ const deploy = async (network, secret) => {
     // Set contracts' owners
     ////////////////////////////////////
 
-    const wrappers = [ENSResolverWrapper, ENSManagerWrapper, WalletFactoryWrapper, ModuleRegistryWrapper, DappRegistryWrapper];
+    const wrappers = [ENSResolverWrapper, ENSManagerWrapper, WalletFactoryWrapper, ModuleRegistryWrapper, CompoundRegistryWrapper];
     for (let idx = 0; idx < wrappers.length; idx++) {
         let wrapper = wrappers[idx];
         const changeOwnerTx = await wrapper.contract.changeOwner(config.contracts.MultiSigWallet);

@@ -1,11 +1,25 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../utils/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "../exchange/ERC20.sol";
-import "../utils/SafeMath.sol";
 import "../exchange/KyberNetwork.sol";
 
 /**
@@ -64,23 +78,23 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
         uint256 _maxDestAmount,
         uint256 _minConversionRate
     )
-        external 
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
         returns(uint256)
-    {    
+    {
         bytes memory methodData;
         require(_srcToken == ETH_TOKEN_ADDRESS || _destToken == ETH_TOKEN_ADDRESS, "TE: source or destination must be ETH");
         (uint256 destAmount, uint256 fee, ) = getExpectedTrade(_srcToken, _destToken, _srcAmount);
-        if(destAmount > _maxDestAmount) {
+        if (destAmount > _maxDestAmount) {
             fee = fee.mul(_maxDestAmount).div(destAmount);
             destAmount = _maxDestAmount;
         }
-        if(_srcToken == ETH_TOKEN_ADDRESS) {
+        if (_srcToken == ETH_TOKEN_ADDRESS) {
             uint256 srcTradable = _srcAmount.sub(fee);
             methodData = abi.encodeWithSignature(
-                "trade(address,uint256,address,address,uint256,uint256,address)", 
-                _srcToken, 
+                "trade(address,uint256,address,address,uint256,uint256,address)",
+                _srcToken,
                 srcTradable,
                 _destToken,
                 address(_wallet),
@@ -89,15 +103,14 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
                 feeCollector
                 );
             invokeWallet(address(_wallet), kyber, srcTradable, methodData);
-        }
-        else {
-            // approve kyber on erc20 
+        } else {
+            // approve kyber on erc20
             methodData = abi.encodeWithSignature("approve(address,uint256)", kyber, _srcAmount);
             invokeWallet(address(_wallet), _srcToken, 0, methodData);
             // transfer erc20
             methodData = abi.encodeWithSignature(
-                "trade(address,uint256,address,address,uint256,uint256,address)", 
-                _srcToken, 
+                "trade(address,uint256,address,address,uint256,uint256,address)",
+                _srcToken,
                 _srcAmount,
                 _destToken,
                 address(_wallet),
@@ -131,14 +144,13 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
         view
         returns(uint256 _destAmount, uint256 _fee, uint256 _expectedRate)
     {
-        if(_srcToken == ETH_TOKEN_ADDRESS) {
+        if (_srcToken == ETH_TOKEN_ADDRESS) {
             _fee = computeFee(_srcAmount);
-            (_expectedRate,) = KyberNetwork(kyber).getExpectedRate(ERC20(_srcToken), ERC20(_destToken), _srcAmount.sub(_fee));  
+            (_expectedRate,) = KyberNetwork(kyber).getExpectedRate(ERC20(_srcToken), ERC20(_destToken), _srcAmount.sub(_fee));
             uint256 destDecimals = ERC20(_destToken).decimals();
             // destAmount = expectedRate * (_srcAmount - fee) / ETH_PRECISION * (DEST_PRECISION / SRC_PRECISION)
             _destAmount = _expectedRate.mul(_srcAmount.sub(_fee)).div(10 ** (36-destDecimals));
-        }
-        else {
+        } else {
             (_expectedRate,) = KyberNetwork(kyber).getExpectedRate(ERC20(_srcToken), ERC20(_destToken), _srcAmount);
             uint256 srcDecimals = ERC20(_srcToken).decimals();
             // destAmount = expectedRate * _srcAmount / ETH_PRECISION * (DEST_PRECISION / SRC_PRECISION) - fee

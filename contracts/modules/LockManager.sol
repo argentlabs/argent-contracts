@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
@@ -7,8 +22,8 @@ import "../utils/GuardianUtils.sol";
 /**
  * @title LockManager
  * @dev Module to manage the state of a wallet's lock.
- * Other modules can use the state of the lock to determine if their operations 
- * should be authorised or blocked. Only the guardians of a wallet can lock and unlock it. 
+ * Other modules can use the state of the lock to determine if their operations
+ * should be authorised or blocked. Only the guardians of a wallet can lock and unlock it.
  * The lock automatically unlocks after a given period. The lock state is stored on a saparate
  * contract to facilitate its use by other modules.
  * @author Julien Niset - <julien@argent.im>
@@ -25,7 +40,7 @@ contract LockManager is BaseModule, RelayerModule {
 
     event Locked(address indexed wallet, uint64 releaseAfter);
     event Unlocked(address indexed wallet);
-    
+
     // *************** Modifiers ************************ //
 
     /**
@@ -86,7 +101,7 @@ contract LockManager is BaseModule, RelayerModule {
      */
     function getLock(BaseWallet _wallet) public view returns(uint64 _releaseAfter) {
         uint256 lockEnd = guardianStorage.getLock(_wallet);
-        if(lockEnd > now) {
+        if (lockEnd > now) {
             _releaseAfter = uint64(lockEnd);
         }
     }

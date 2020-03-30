@@ -1,5 +1,20 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
-import "../utils/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "./ERC20.sol";
 import "../base/Managed.sol";
 import "./KyberNetwork.sol";
@@ -25,7 +40,7 @@ contract TokenPriceProvider is Managed {
     }
 
     function setPriceForTokenList(ERC20[] calldata _tokens, uint256[] calldata _prices) external onlyManager {
-        for(uint16 i = 0; i < _tokens.length; i++) {
+        for (uint16 i = 0; i < _tokens.length; i++) {
             setPrice(_tokens[i], _prices[i]);
         }
     }
@@ -58,7 +73,7 @@ contract TokenPriceProvider is Managed {
 
     function syncPriceForTokenList(ERC20[] calldata _tokens) external {
         require(address(kyberNetwork) != address(0), "Kyber sync is disabled");
-        for(uint16 i = 0; i < _tokens.length; i++) {
+        for (uint16 i = 0; i < _tokens.length; i++) {
             (uint256 expectedRate,) = kyberNetwork.getExpectedRate(_tokens[i], ERC20(ETH_TOKEN_ADDRESS), 10000);
             cachedPrices[address(_tokens[i])] = expectedRate;
         }

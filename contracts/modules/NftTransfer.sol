@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 
 import "./common/BaseModule.sol";
@@ -75,7 +90,7 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     * @param _safe Whether to execute a safe transfer or not
     * @param _data The data to pass with the transfer.
     */
-function transferNFT(
+    function transferNFT(
         BaseWallet _wallet,
         address _nftContract,
         address _to,
@@ -88,10 +103,10 @@ function transferNFT(
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;
-        if(_nftContract == ckAddress) {
+        if (_nftContract == ckAddress) {
             methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _tokenId);
         } else {
-           if(_safe) {
+           if (_safe) {
                methodData = abi.encodeWithSignature(
                    "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
            } else {
@@ -114,15 +129,17 @@ function transferNFT(
     */
     function isERC721(address _nftContract, uint256 _tokenId) internal returns (bool) {
         // solium-disable-next-line security/no-low-level-calls
-        (bool success, bytes memory result) = _nftContract.call(abi.encodeWithSignature('supportsInterface(bytes4)', 0x80ac58cd));
-        if(success && result[0] != 0x0) return true;
+        (bool success, bytes memory result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x80ac58cd));
+        if (success && result[0] != 0x0)
+            return true;
 
         // solium-disable-next-line security/no-low-level-calls
-        (success, result) = _nftContract.call(abi.encodeWithSignature('supportsInterface(bytes4)', 0x6466353c));
-        if(success && result[0] != 0x0) return true;
+        (success, result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x6466353c));
+        if (success && result[0] != 0x0)
+            return true;
 
         // solium-disable-next-line security/no-low-level-calls
-        (success,) = _nftContract.call(abi.encodeWithSignature('ownerOf(uint256)', _tokenId));
+        (success,) = _nftContract.call(abi.encodeWithSignature("ownerOf(uint256)", _tokenId));
         return success;
     }
 

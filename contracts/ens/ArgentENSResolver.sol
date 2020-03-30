@@ -1,13 +1,28 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../base/Owned.sol";
 import "../base/Managed.sol";
-import "./ENS.sol";
+import "./ENSResolver.sol";
 
 /**
  * @title ArgentENSResolver
  * @dev Basic implementation of a Resolver.
  * The contract defines a manager role who is the only role that can add a new name
- * to the list of resolved names. 
+ * to the list of resolved names.
  * @author Julien Niset - <julien@argent.im>
  */
 contract ArgentENSResolver is Owned, Managed, ENSResolver {
@@ -23,11 +38,6 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
         address addr;
         string name;
     }
-
-    // *************** Events *************************** //
-
-    event AddrChanged(bytes32 indexed _node, address _addr);
-    event NameChanged(bytes32 indexed _node, string _name);
 
     // *************** Public Functions ********************* //
 
@@ -74,7 +84,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _interfaceID The ID of the interface to check for.
      * @return True if the contract implements the requested interface.
      */
-    function supportsInterface(bytes4 _interfaceID) public view returns (bool) {
+    function supportsInterface(bytes4 _interfaceID) public pure returns (bool) {
         return _interfaceID == SUPPORT_INTERFACE_ID || _interfaceID == ADDR_INTERFACE_ID || _interfaceID == NAME_INTERFACE_ID;
     }
 

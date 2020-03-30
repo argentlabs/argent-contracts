@@ -1,11 +1,11 @@
 pragma solidity ^0.5.4;
-import "../../wallet/BaseWallet.sol";
-import "../../modules/common/BaseModule.sol";
-import "../../modules/common/RelayerModule.sol";
-import "../../modules/common/LimitManager.sol";
-import "../../exchange/TokenPriceProvider.sol";
-import "../../storage/GuardianStorage.sol";
-import "../../storage/TransferStorage.sol";
+import "../../../wallet/BaseWallet.sol";
+import "../../../modules/common/BaseModule.sol";
+import "../../../modules/common/RelayerModule.sol";
+import "../../../modules/common/LimitManager.sol";
+import "../../../exchange/TokenPriceProvider.sol";
+import "../../../storage/GuardianStorage.sol";
+import "../../../storage/TransferStorage.sol";
 
 /**
  * @title LegacyTokenTransfer

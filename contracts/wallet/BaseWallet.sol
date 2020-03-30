@@ -1,17 +1,31 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../interfaces/Module.sol";
 
 /**
  * @title BaseWallet
  * @dev Simple modular wallet that authorises modules to call its invoke() method.
- * Based on https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 by 
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract BaseWallet {
 
     // The implementation of the proxy
     address public implementation;
-    // The owner 
+    // The owner
     address public owner;
     // The authorised modules
     mapping (address => bool) public authorised;
@@ -19,13 +33,13 @@ contract BaseWallet {
     mapping (bytes4 => address) public enabled;
     // The number of modules
     uint public modules;
-    
+
     event AuthorisedModule(address indexed module, bool value);
     event EnabledStaticCall(address indexed module, bytes4 indexed method);
     event Invoked(address indexed module, address indexed target, uint indexed value, bytes data);
     event Received(uint indexed value, address indexed sender, bytes data);
     event OwnerChanged(address owner);
-    
+
     /**
      * @dev Throws if the sender is not an authorised module.
      */
@@ -44,14 +58,17 @@ contract BaseWallet {
         require(_modules.length > 0, "BW: construction requires at least 1 module");
         owner = _owner;
         modules = _modules.length;
-        for(uint256 i = 0; i < _modules.length; i++) {
+        for (uint256 i = 0; i < _modules.length; i++) {
             require(authorised[_modules[i]] == false, "BW: module is already added");
             authorised[_modules[i]] = true;
             Module(_modules[i]).init(this);
             emit AuthorisedModule(_modules[i], true);
         }
+        if (address(this).balance > 0) {
+            emit Received(address(this).balance, address(0), "");
+        }
     }
-    
+
     /**
      * @dev Enables/Disables a module.
      * @param _module The target module.
@@ -60,12 +77,11 @@ contract BaseWallet {
     function authoriseModule(address _module, bool _value) external moduleOnly {
         if (authorised[_module] != _value) {
             emit AuthorisedModule(_module, _value);
-            if(_value == true) {
+            if (_value == true) {
                 modules += 1;
                 authorised[_module] = true;
                 Module(_module).init(this);
-            }
-            else {
+            } else {
                 modules -= 1;
                 require(modules > 0, "BW: wallet must have at least one module");
                 delete authorised[_module];
@@ -94,7 +110,7 @@ contract BaseWallet {
         owner = _newOwner;
         emit OwnerChanged(_newOwner);
     }
-    
+
     /**
      * @dev Performs a generic transaction.
      * @param _target The address for the transaction.
@@ -105,7 +121,7 @@ contract BaseWallet {
         bool success;
         // solium-disable-next-line security/no-call-value
         (success, _result) = _target.call.value(_value)(_data);
-        if(!success) {
+        if (!success) {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
                 returndatacopy(0, 0, returndatasize)
@@ -121,20 +137,19 @@ contract BaseWallet {
      * to an enabled method, or logs the call otherwise.
      */
     function() external payable {
-        if(msg.data.length > 0) { 
+        if (msg.data.length > 0) {
             address module = enabled[msg.sig];
-            if(module == address(0)) {
+            if (module == address(0)) {
                 emit Received(msg.value, msg.sender, msg.data);
-            } 
-            else {
+            } else {
                 require(authorised[module], "BW: must be an authorised module for static call");
                 // solium-disable-next-line security/no-inline-assembly
                 assembly {
                     calldatacopy(0, 0, calldatasize())
                     let result := staticcall(gas, module, 0, calldatasize(), 0, 0)
                     returndatacopy(0, 0, returndatasize())
-                    switch result 
-                    case 0 {revert(0, returndatasize())} 
+                    switch result
+                    case 0 {revert(0, returndatasize())}
                     default {return (0, returndatasize())}
                 }
             }

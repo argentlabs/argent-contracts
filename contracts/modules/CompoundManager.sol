@@ -1,6 +1,21 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 
-import "../utils/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
@@ -106,13 +121,13 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         onlyWhenUnlocked(_wallet)
     {
         address[] memory markets = comptroller.getAssetsIn(address(_wallet));
-        for(uint i = 0; i < markets.length; i++) {
+        for (uint i = 0; i < markets.length; i++) {
             address cToken = markets[i];
             uint debt = ICToken(cToken).borrowBalanceCurrent(address(_wallet));
-            if(debt > 0) {
+            if (debt > 0) {
                 repayBorrow(_wallet, cToken, debt);
                 uint collateral = ICToken(cToken).balanceOf(address(_wallet));
-                if(collateral == 0) {
+                if (collateral == 0) {
                     invokeWallet(address(_wallet), address(comptroller), 0, abi.encodeWithSignature("exitMarket(address)", address(cToken)));
                 }
             }
@@ -229,10 +244,10 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
     {
         (uint error, uint liquidity, uint shortfall) = comptroller.getAccountLiquidity(address(_wallet));
         require(error == 0, "Compound: failed to get account liquidity");
-        if(liquidity > 0) {
+        if (liquidity > 0) {
             return (1, liquidity);
         }
-        if(shortfall > 0) {
+        if (shortfall > 0) {
             return (2, shortfall);
         }
         return (0,0);
@@ -246,7 +261,7 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @param _token The token address.
      * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @return The exact amount of tokens that have been invested. 
+     * @return The exact amount of tokens that have been invested.
      */
     function addInvestment(
         BaseWallet _wallet,
@@ -269,7 +284,7 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      * @dev Exit invested postions.
      * @param _wallet The target wallet.
      * @param _token The token address.
-     * @param _fraction The fraction of invested tokens to exit in per 10000. 
+     * @param _fraction The fraction of invested tokens to exit in per 10000.
      */
     function removeInvestment(
         BaseWallet _wallet,
@@ -320,10 +335,9 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
     function mint(BaseWallet _wallet, address _cToken, address _token, uint256 _amount) internal {
         require(_cToken != address(0), "Compound: No market for target token");
         require(_amount > 0, "Compound: amount cannot be 0");
-        if(_token == ETH_TOKEN_ADDRESS) {
+        if (_token == ETH_TOKEN_ADDRESS) {
             invokeWallet(address(_wallet), _cToken, _amount, abi.encodeWithSignature("mint()"));
-        }
-        else {
+        } else {
             invokeWallet(address(_wallet), _token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
             invokeWallet(address(_wallet), _cToken, 0, abi.encodeWithSignature("mint(uint256)", _amount));
         }
@@ -375,10 +389,9 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
         require(_cToken != address(0), "Compound: No market for target token");
         require(_amount > 0, "Compound: amount cannot be 0");
         string memory symbol = ICToken(_cToken).symbol();
-        if(keccak256(abi.encodePacked(symbol)) == keccak256(abi.encodePacked("cETH"))) {
+        if (keccak256(abi.encodePacked(symbol)) == keccak256(abi.encodePacked("cETH"))) {
             invokeWallet(address(_wallet), _cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
-        }
-        else {
+        } else {
             address token = ICToken(_cToken).underlying();
             invokeWallet(address(_wallet), token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
             invokeWallet(address(_wallet), _cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
@@ -393,7 +406,7 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
      */
     function enterMarketIfNeeded(BaseWallet _wallet, address _cToken, address _comptroller) internal {
         bool isEntered = IComptroller(_comptroller).checkMembership(address(_wallet), ICToken(_cToken));
-        if(!isEntered) {
+        if (!isEntered) {
             address[] memory market = new address[](1);
             market[0] = _cToken;
             invokeWallet(address(_wallet), _comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", market));
@@ -409,9 +422,8 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
     function exitMarketIfNeeded(BaseWallet _wallet, address _cToken, address _comptroller) internal {
         uint collateral = ICToken(_cToken).balanceOf(address(_wallet));
         uint debt = ICToken(_cToken).borrowBalanceStored(address(_wallet));
-        if(collateral == 0 && debt == 0) {
+        if (collateral == 0 && debt == 0) {
             invokeWallet(address(_wallet), _comptroller, 0, abi.encodeWithSignature("exitMarket(address)", _cToken));
         }
     }
-} 
-
+}

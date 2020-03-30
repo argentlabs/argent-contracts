@@ -1,6 +1,22 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./Storage.sol";
+import "./IGuardianStorage.sol";
 
 /**
  * @title GuardianStorage
@@ -10,7 +26,7 @@ import "./Storage.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract GuardianStorage is Storage {
+contract GuardianStorage is IGuardianStorage, Storage {
 
     struct GuardianStorageConfig {
         // the list of guardians
@@ -18,7 +34,7 @@ contract GuardianStorage is Storage {
         // the info about guardians
         mapping (address => GuardianInfo) info;
         // the lock's release timestamp
-        uint256 lock; 
+        uint256 lock;
         // the module that set the last lock
         address locker;
     }
@@ -69,7 +85,7 @@ contract GuardianStorage is Storage {
     function guardianCount(BaseWallet _wallet) external view returns (uint256) {
         return configs[address(_wallet)].guardians.length;
     }
-    
+
     /**
      * @dev Gets the list of guaridans for a wallet.
      * @param _wallet The target wallet.
@@ -101,7 +117,7 @@ contract GuardianStorage is Storage {
      */
     function setLock(BaseWallet _wallet, uint256 _releaseAfter) external onlyModule(_wallet) {
         configs[address(_wallet)].lock = _releaseAfter;
-        if(_releaseAfter != 0 && msg.sender != configs[address(_wallet)].locker) {
+        if (_releaseAfter != 0 && msg.sender != configs[address(_wallet)].locker) {
             configs[address(_wallet)].locker = msg.sender;
         }
     }

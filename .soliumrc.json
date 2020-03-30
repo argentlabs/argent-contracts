@@ -1,0 +1,14 @@
+{
+    "extends": "solium:all",
+    "plugins": ["security"],
+    "rules": {
+      "arg-overflow": ["warning", 5],
+      "variable-declarations": "error",
+      "security/no-inline-assembly": 0,
+      "error-reason": "error",
+      "max-len": "error",
+      "no-trailing-whitespace": "error",
+      "blank-lines": 0
+    }
+  }
+  

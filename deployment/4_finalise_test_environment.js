@@ -1,5 +1,5 @@
-const ENS = require('../build/TestENSRegistry');
-const ENSReverseRegistrar = require('../build/TestReverseRegistrar');
+const ENS = require('../build/ENSRegistryWithFallback');
+const ENSReverseRegistrar = require('../build/ReverseRegistrar');
 
 const utils = require('../utils/utilities.js');
 const DeployManager = require('../utils/deploy-manager.js');

@@ -40,8 +40,9 @@ class VersionUploaderS3 {
 
 class VersionUploaderLocal{
 
-    constructor(dir) {
+    constructor(dir, env) {
         this._dir = dir;
+        this._env = env;
     }
 
     async upload(version) { 
@@ -55,7 +56,7 @@ class VersionUploaderLocal{
     }
 
     _path() {
-        return path.join(this._dir, `latest.json`);
+        return path.join(this._dir, this._env ? `${this._env}.latest.json` : `latest.json`);
     }
 }
 

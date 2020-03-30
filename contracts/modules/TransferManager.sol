@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
@@ -19,8 +34,8 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
 
     bytes32 constant NAME = "TransferManager";
 
-    bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
-    bytes4 private constant ERC721_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
+    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
+    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
     enum ActionType { Transfer }
 
@@ -50,7 +65,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event PendingTransferCreated(address indexed wallet, bytes32 indexed id, uint256 indexed executeAfter,
-        address token, address to, uint256 amount, bytes data);
+    address token, address to, uint256 amount, bytes data);
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
 
@@ -86,11 +101,11 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
 
         // setup static calls
-        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES);
-        _wallet.enableStaticCall(address(this), ERC721_ISVALIDSIGNATURE_BYTES32);
+        _wallet.enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
+        _wallet.enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
 
         // setup default limit for new deployment
-        if(address(oldLimitManager) == address(0)) {
+        if (address(oldLimitManager) == address(0)) {
             super.init(_wallet);
             return;
         }
@@ -98,21 +113,20 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         uint256 current = oldLimitManager.getCurrentLimit(_wallet);
         (uint256 pending, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
         // setup default limit for new wallets
-        if(current == 0 && changeAfter == 0) {
+        if (current == 0 && changeAfter == 0) {
             super.init(_wallet);
             return;
         }
         // migrate existing limit for existing wallets
-        if(current == pending) {
+        if (current == pending) {
             limits[address(_wallet)].limit.current = uint128(current);
-        }
-        else {
+        } else {
             limits[address(_wallet)].limit = Limit(uint128(current), uint128(pending), changeAfter);
         }
         // migrate daily pending if we are within a rolling period
         (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
         // solium-disable-next-line security/no-block-members
-        if(periodEnd > now) {
+        if (periodEnd > now) {
             limits[address(_wallet)].dailySpent = DailySpent(uint128(current.sub(unspent)), periodEnd);
         }
     }
@@ -138,17 +152,15 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        if(isWhitelisted(_wallet, _to)) {
+        if (isWhitelisted(_wallet, _to)) {
             // transfer to whitelist
             doTransfer(_wallet, _token, _to, _amount, _data);
-        }
-        else {
+        } else {
             uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : priceProvider.getEtherValue(_amount, _token);
             if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
-            }
-            else {
+            } else {
                 // transfer above the limit
                 (bytes32 id, uint256 executeAfter) = addPendingAction(ActionType.Transfer, _wallet, _token, _to, _amount, _data);
                 emit PendingTransferCreated(address(_wallet), id, executeAfter, _token, _to, _amount, _data);
@@ -173,18 +185,16 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        if(isWhitelisted(_wallet, _spender)) {
+        if (isWhitelisted(_wallet, _spender)) {
             // approve to whitelist
             doApproveToken(_wallet, _token, _spender, _amount);
-        }
-        else {
+        } else {
             // get current alowance
             uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _spender);
-            if(_amount <= currentAllowance) {
+            if (_amount <= currentAllowance) {
                 // approve if we reduce the allowance
                 doApproveToken(_wallet, _token, _spender, _amount);
-            }
-            else {
+            } else {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
                 uint256 deltaInEth = priceProvider.getEtherValue(delta, _token);
@@ -215,11 +225,10 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         // Make sure we don't call a module, the wallet itself, or a supported ERC20
         authoriseContractCall(_wallet, _contract);
 
-        if(isWhitelisted(_wallet, _contract)) {
+        if (isWhitelisted(_wallet, _contract)) {
             // call to whitelist
             doCallContract(_wallet, _contract, _value, _data);
-        }
-        else {
+        } else {
             require(checkAndUpdateDailySpent(_wallet, _value), "TM: Call contract above daily limit");
             // call under the limit
             doCallContract(_wallet, _contract, _value, _data);
@@ -249,18 +258,16 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         // Make sure we don't call a module, the wallet itself, or a supported ERC20
         authoriseContractCall(_wallet, _contract);
 
-        if(isWhitelisted(_wallet, _contract)) {
+        if (isWhitelisted(_wallet, _contract)) {
             doApproveToken(_wallet, _token, _contract, _amount);
             doCallContract(_wallet, _contract, 0, _data);
-        }
-        else {
+        } else {
             // get current alowance
             uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _contract);
-            if(_amount <= currentAllowance) {
+            if (_amount <= currentAllowance) {
                 // no need to approve more
                 doCallContract(_wallet, _contract, 0, _data);
-            }
-            else {
+            } else {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
                 uint256 deltaInEth = priceProvider.getEtherValue(delta, _token);
@@ -405,7 +412,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     function isValidSignature(bytes calldata _data, bytes calldata _signature) external view returns (bytes4) {
         bytes32 msgHash = keccak256(abi.encodePacked(_data));
         isValidSignature(msgHash, _signature);
-        return ERC721_ISVALIDSIGNATURE_BYTES;
+        return ERC1271_ISVALIDSIGNATURE_BYTES;
     }
 
     /**
@@ -418,7 +425,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         require(_signature.length == 65, "TM: invalid signature length");
         address signer = recoverSigner(_msgHash, _signature, 0);
         require(isOwner(BaseWallet(msg.sender), signer), "TM: Invalid signer");
-        return ERC721_ISVALIDSIGNATURE_BYTES32;
+        return ERC1271_ISVALIDSIGNATURE_BYTES32;
     }
 
     // *************** Internal Functions ********************* //
@@ -470,11 +477,10 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
         // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
         uint256 amount = 36616 + _gasUsed;
-        if(_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
-            if(_gasPrice > tx.gasprice) {
+        if (_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
+            if (_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
-            }
-            else {
+            } else {
                 amount = amount * _gasPrice;
             }
             checkAndUpdateDailySpent(_wallet, amount);
@@ -484,7 +490,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
 
     // Overrides verifyRefund to add the refund in the daily limit.
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if(_gasPrice > 0 && _signatures > 0 && (
+        if (_gasPrice > 0 && _signatures > 0 && (
             address(_wallet).balance < _gasUsed * _gasPrice ||
             isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false ||
             _wallet.authorised(address(this)) == false

@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "../utils/GuardianUtils.sol";
@@ -7,9 +22,9 @@ import "./common/RelayerModule.sol";
 /**
  * @title GuardianManager
  * @dev Module to manage the guardians of wallets.
- * Guardians are accounts (EOA or contracts) that are authorized to perform specific 
+ * Guardians are accounts (EOA or contracts) that are authorized to perform specific
  * security operations on wallets such as toggle a safety lock, start a recovery procedure,
- * or confirm transactions. Addition or revokation of guardians is initiated by the owner 
+ * or confirm transactions. Addition or revokation of guardians is initiated by the owner
  * of a wallet and must be confirmed after a security period (e.g. 24 hours).
  * The list of guardians for a wallet is stored on a saparate
  * contract to facilitate its use by other modules.
@@ -43,7 +58,7 @@ contract GuardianManager is BaseModule, RelayerModule {
     event GuardianRevokationCancelled(address indexed wallet, address indexed guardian);
     event GuardianAdded(address indexed wallet, address indexed guardian);
     event GuardianRevoked(address indexed wallet, address indexed guardian);
-    
+
     // *************** Modifiers ************************ //
 
     /**
@@ -88,7 +103,7 @@ contract GuardianManager is BaseModule, RelayerModule {
         // solium-disable-next-line security/no-low-level-calls
         (bool success,) = _guardian.call.gas(5000)(abi.encodeWithSignature("owner()"));
         require(success, "GM: guardian must be EOA or implement owner()");
-        if(guardianStorage.guardianCount(_wallet) == 0) {
+        if (guardianStorage.guardianCount(_wallet) == 0) {
             guardianStorage.addGuardian(_wallet, _guardian);
             emit GuardianAdded(address(_wallet), _guardian);
         } else {

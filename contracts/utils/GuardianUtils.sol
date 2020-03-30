@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "../storage/GuardianStorage.sol";
@@ -12,26 +27,26 @@ library GuardianUtils {
     * @return true and the list of guardians minus the found guardian upon success, false and the original list of guardians if not found.
     */
     function isGuardian(address[] memory _guardians, address _guardian) internal view returns (bool, address[] memory) {
-        if(_guardians.length == 0 || _guardian == address(0)) {
+        if (_guardians.length == 0 || _guardian == address(0)) {
             return (false, _guardians);
         }
         bool isFound = false;
         address[] memory updatedGuardians = new address[](_guardians.length - 1);
         uint256 index = 0;
         for (uint256 i = 0; i < _guardians.length; i++) {
-            if(!isFound) {
+            if (!isFound) {
                 // check if _guardian is an account guardian
-                if(_guardian == _guardians[i]) {
+                if (_guardian == _guardians[i]) {
                     isFound = true;
                     continue;
                 }
                 // check if _guardian is the owner of a smart contract guardian
-                if(isContract(_guardians[i]) && isGuardianOwner(_guardians[i], _guardian)) {
+                if (isContract(_guardians[i]) && isGuardianOwner(_guardians[i], _guardian)) {
                     isFound = true;
                     continue;
                 }
             }
-            if(index < updatedGuardians.length) {
+            if (index < updatedGuardians.length) {
                 updatedGuardians[index] = _guardians[i];
                 index++;
             }
@@ -53,8 +68,8 @@ library GuardianUtils {
     }
 
     /**
-    * @dev Checks if an address is the owner of a guardian contract. 
-    * The method does not revert if the call to the owner() method consumes more then 5000 gas. 
+    * @dev Checks if an address is the owner of a guardian contract.
+    * The method does not revert if the call to the owner() method consumes more then 5000 gas.
     * @param _guardian The guardian contract
     * @param _owner The owner to verify.
     */
@@ -72,5 +87,4 @@ library GuardianUtils {
         }
         return owner == _owner;
     }
-        
-} 
+}

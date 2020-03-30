@@ -1,3 +1,18 @@
+// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
 import "../../interfaces/Module.sol";
@@ -48,7 +63,11 @@ contract RelayerModule is BaseModule {
     * @param _signHash The signed hash representing the relayed transaction.
     * @param _signatures The signatures as a concatenated byte array.
     */
-    function validateSignatures(BaseWallet _wallet, bytes memory _data, bytes32 _signHash, bytes memory _signatures) internal view returns (bool);
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory _data,
+        bytes32 _signHash,
+        bytes memory _signatures) internal view returns (bool);
 
     /* ************************************************************ */
 
@@ -77,9 +96,9 @@ contract RelayerModule is BaseModule {
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
         require(verifyData(address(_wallet), _data), "RM: the wallet authorized is different then the target of the relayed data");
         uint256 requiredSignatures = getRequiredSignatures(_wallet, _data);
-        if((requiredSignatures * 65) == _signatures.length) {
-            if(verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
-                if(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures)) {
+        if ((requiredSignatures * 65) == _signatures.length) {
+            if (verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
+                if (requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures)) {
                     // solium-disable-next-line security/no-call-value
                     (success,) = address(this).call(_data);
                     refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
@@ -134,7 +153,7 @@ contract RelayerModule is BaseModule {
     * @param _signHash The signed hash of the transaction
     */
     function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
-        if(relayer[address(_wallet)].executedTx[_signHash] == true) {
+        if (relayer[address(_wallet)].executedTx[_signHash] == true) {
             return false;
         }
         relayer[address(_wallet)].executedTx[_signHash] = true;
@@ -148,11 +167,11 @@ contract RelayerModule is BaseModule {
     * @param _nonce The nonce
     */
     function checkAndUpdateNonce(BaseWallet _wallet, uint256 _nonce) internal returns (bool) {
-        if(_nonce <= relayer[address(_wallet)].nonce) {
+        if (_nonce <= relayer[address(_wallet)].nonce) {
             return false;
         }
         uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
-        if(nonceBlock > block.number + BLOCKBOUND) {
+        if (nonceBlock > block.number + BLOCKBOUND) {
             return false;
         }
         relayer[address(_wallet)].nonce = _nonce;
@@ -178,13 +197,13 @@ contract RelayerModule is BaseModule {
             s := mload(add(_signatures, add(0x40,mul(0x41,_index))))
             v := and(mload(add(_signatures, add(0x41,mul(0x41,_index)))), 0xff)
         }
-        require(v == 27 || v == 28);
+        require(v == 27 || v == 28); // solium-disable-line error-reason
         return ecrecover(_signedHash, v, r, s);
     }
 
     /**
-    * @dev Refunds the gas used to the Relayer. 
-    * For security reasons the default behavior is to not refund calls with 0 or 1 signatures. 
+    * @dev Refunds the gas used to the Relayer.
+    * For security reasons the default behavior is to not refund calls with 0 or 1 signatures.
     * @param _wallet The target wallet.
     * @param _gasUsed The gas used.
     * @param _gasPrice The gas price for the refund.
@@ -195,11 +214,10 @@ contract RelayerModule is BaseModule {
     function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
         uint256 amount = 29292 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 672 to log the event + _gasUsed
         // only refund if gas price not null, more than 1 signatures, gas less than gasLimit
-        if(_gasPrice > 0 && _signatures > 1 && amount <= _gasLimit) {
-            if(_gasPrice > tx.gasprice) {
+        if (_gasPrice > 0 && _signatures > 1 && amount <= _gasLimit) {
+            if (_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
-            }
-            else {
+            } else {
                 amount = amount * _gasPrice;
             }
             invokeWallet(address(_wallet), _relayer, amount, EMPTY_BYTES);
@@ -213,9 +231,9 @@ contract RelayerModule is BaseModule {
     * @param _gasPrice The expected gas price for the refund.
     */
     function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if(_gasPrice > 0
-            && _signatures > 1
-            && (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(address(this)) == false)) {
+        if (_gasPrice > 0 &&
+            _signatures > 1 &&
+            (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(address(this)) == false)) {
             return false;
         }
         return true;
@@ -223,7 +241,7 @@ contract RelayerModule is BaseModule {
 
     /**
     * @dev Checks that the wallet address provided as the first parameter of the relayed data is the same
-    * as the wallet passed as the input of the execute() method. 
+    * as the wallet passed as the input of the execute() method.
     @return false if the addresses are different.
     */
     function verifyData(address _wallet, bytes memory _data) private pure returns (bool) {
