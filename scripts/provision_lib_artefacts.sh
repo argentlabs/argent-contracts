@@ -25,3 +25,4 @@ cp build/WETH9.json .coverage_artifacts/WETH9.json
 cp build/DSToken.json .coverage_artifacts/DSToken.json
 cp build/DSValue.json .coverage_artifacts/DSValue.json
 cp build/CryptoKittyTest.json .coverage_artifacts/CryptoKittyTest.json
+cp build/TestRegistry.json .coverage_artifacts/TestRegistry.json
