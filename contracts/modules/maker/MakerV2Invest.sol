@@ -34,8 +34,10 @@ contract MakerV2Invest is MakerV2Base {
 
     // *************** Events ********************** //
 
-    event DsrJoined(address indexed _wallet, uint256 _amount);
-    event DsrExited(address indexed _wallet, uint256 _amount);
+    // WARNING: in a previous version of this module, the third parameter of `InvestmentRemoved`
+    // represented the *fraction* (out of 10000) of the investment withdrawn, not the absolute amount withdrawn
+    event InvestmentRemoved(address indexed _wallet, address _token, uint256 _amount);
+    event InvestmentAdded(address indexed _wallet, address _token, uint256 _amount, uint256 _period);
 
     // *************** Constructor ********************** //
 
@@ -71,7 +73,7 @@ contract MakerV2Invest is MakerV2Base {
         // Join the pie value to the pot
         invokeWallet(address(_wallet), address(pot), 0, abi.encodeWithSignature("join(uint256)", pie));
         // Emitting event
-        emit DsrJoined(address(_wallet), _amount);
+        emit InvestmentAdded(address(_wallet), address(daiToken), _amount, 0);
     }
 
     /**
@@ -102,7 +104,7 @@ contract MakerV2Invest is MakerV2Base {
         uint256 withdrawn = bal >= _amount.mul(RAY) ? _amount : bal / RAY;
         invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSignature("exit(address,uint256)", address(_wallet), withdrawn));
         // Emitting event
-        emit DsrExited(address(_wallet),  withdrawn);
+        emit InvestmentRemoved(address(_wallet), address(daiToken), withdrawn);
     }
 
     /**
@@ -128,7 +130,7 @@ contract MakerV2Invest is MakerV2Base {
         uint256 withdrawn = pot.chi().mul(pie) / RAY;
         invokeWallet(address(_wallet), address(daiJoin), 0, abi.encodeWithSignature("exit(address,uint256)", address(_wallet), withdrawn));
         // Emitting event
-        emit DsrExited(address(_wallet),  withdrawn);
+        emit InvestmentRemoved(address(_wallet), address(daiToken), withdrawn);
     }
 
     /**
