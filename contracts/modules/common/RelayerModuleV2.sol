@@ -24,7 +24,7 @@ import "./BaseModule.sol";
  * @dev Base module containing logic to execute transactions signed by eth-less accounts and sent by a relayer.
  * RelayerModuleV2 should ultimately replace RelayerModule and be subclassed by all modules.
  * It is currently only subclassed by RecoveryManager and ApprovedTransfer.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
 contract RelayerModuleV2 is BaseModule {
 
