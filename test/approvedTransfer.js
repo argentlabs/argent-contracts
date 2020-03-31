@@ -252,7 +252,7 @@ describe("Test Approved Transfer", function () {
       });
 
       describe("Invalid Target", () => {
-        async function invalidApproveTokenAndCallContract(target) {
+        async function expectFailingApproveTokenAndCallContract(target) {
           const invalidData = contract.contract.interface.functions.setStateAndPayToken.encode([2, erc20.contractAddress, amountToApprove]);
           const txReceipt = await manager.relay(transferModule, "approveTokenAndCallContract",
             [wallet.contractAddress, erc20.contractAddress, wallet.contractAddress, amountToApprove, target.contractAddress, invalidData],
@@ -261,10 +261,10 @@ describe("Test Approved Transfer", function () {
           assert.isNotOk(success, "approveTokenAndCall should fail when target contract is invalid");
         }
         it("should revert when target contract is the wallet", async () => {
-          await invalidApproveTokenAndCallContract(wallet);
+          await expectFailingApproveTokenAndCallContract(wallet);
         });
         it("should revert when target contract is an authorised module", async () => {
-          await invalidApproveTokenAndCallContract(transferModule);
+          await expectFailingApproveTokenAndCallContract(transferModule);
         });
       });
 
