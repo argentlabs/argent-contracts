@@ -20,7 +20,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const NO_ENS = "";
 
-describe("Test Wallet Factory", function () {
+describe("Wallet Factory", function () {
   this.timeout(10000);
 
   const manager = new TestManager();

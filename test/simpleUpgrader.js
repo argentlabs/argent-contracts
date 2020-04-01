@@ -14,7 +14,7 @@ const TestManager = require("../utils/test-manager");
 
 const IS_ONLY_OWNER_MODULE = keccak256(toUtf8Bytes("isOnlyOwnerModule()")).slice(0, 10);
 
-describe("Test SimpleUpgrader", function () {
+describe("SimpleUpgrader", function () {
   this.timeout(10000);
 
   const manager = new TestManager();

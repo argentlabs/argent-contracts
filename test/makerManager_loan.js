@@ -29,7 +29,7 @@ const USD_PER_MKR = WAD.mul(400); // 1 MKR = 400 USD
 const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 4 ETH
 const ETH_PER_DAI = WAD.mul(USD_PER_DAI).div(RAY).mul(WAD).div(USD_PER_ETH); // 1 DAI = 0.01 ETH
 
-describe("Test CDP Module", function () {
+describe("CDP Module", function () {
   this.timeout(10000);
 
   const manager = new TestManager();

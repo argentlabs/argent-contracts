@@ -11,7 +11,7 @@ const SimpleUpgrader = require("../build/SimpleUpgrader");
 
 const TestManager = require("../utils/test-manager");
 
-describe("Test BaseWallet", function () {
+describe("BaseWallet", function () {
   this.timeout(10000);
 
   const manager = new TestManager();

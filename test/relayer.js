@@ -12,7 +12,7 @@ const TARGET_OF_DATA_NOT_WALLET_REVERT_MSG_V2 = "RM: Target of _data != _wallet"
 const INVALID_DATA_REVERT_MSG = "RM: Invalid dataWallet";
 const DUPLICATE_REQUEST_REVERT_MSG = "RM: Duplicate request";
 
-describe("Test RelayerModule", function () {
+describe("RelayerModule", function () {
   this.timeout(10000);
 
   const manager = new TestManager();
@@ -46,7 +46,7 @@ describe("Test RelayerModule", function () {
       );
     });
 
-    it("should fail to relay a duplicate transaction", async () => {
+    it.only("should fail to relay a duplicate transaction", async () => {
       const params = [wallet.contractAddress, 2];
       const nonce = await getNonceForRelay();
       const relayParams = [relayerModule, "setIntOwnerOnly", params, wallet, [owner],
