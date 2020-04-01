@@ -46,7 +46,7 @@ describe("RelayerModule", function () {
       );
     });
 
-    it.only("should fail to relay a duplicate transaction", async () => {
+    it("should fail to relay a duplicate transaction", async () => {
       const params = [wallet.contractAddress, 2];
       const nonce = await getNonceForRelay();
       const relayParams = [relayerModule, "setIntOwnerOnly", params, wallet, [owner],
