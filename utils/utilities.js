@@ -1,6 +1,5 @@
 const ethers = require("ethers");
 const readline = require("readline");
-const ethereumUtil = require("ethereumjs-util");
 
 module.exports = {
 
@@ -86,9 +85,7 @@ module.exports = {
   },
 
   getRandomAddress() {
-    const addressBuffer = ethereumUtil.generateAddress(Math.floor(Math.random() * (100 - 0)));
-    const addressHex = ethereumUtil.bufferToHex(addressBuffer);
-    return ethereumUtil.toChecksumAddress(addressHex);
+    return ethers.Wallet.createRandom().address;
   },
 
   generateSaltValue() {
