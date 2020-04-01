@@ -1,13 +1,11 @@
-const { formatBytes32String } = require("ethers").utils;
+const { AddressZero } = require("ethers").constants;
 
 const Wallet = require("../build/BaseWallet");
 const TestModule = require("../build/TestModule");
 const TestModuleRelayerV2 = require("../build/TestModuleRelayerV2");
-const Registry = require("../build/ModuleRegistry");
 
 const TestManager = require("../utils/test-manager");
 const { getRandomAddress } = require("../utils/utilities.js");
-
 
 const TARGET_OF_DATA_NOT_WALLET_REVERT_MSG = "RM: the wallet authorized is different then the target of the relayed data";
 const TARGET_OF_DATA_NOT_WALLET_REVERT_MSG_V2 = "RM: Target of _data != _wallet";
@@ -27,11 +25,8 @@ describe("Test RelayerModule", function () {
   let relayerModuleV2;
 
   beforeEach(async () => {
-    const registry = await deployer.deploy(Registry);
-    relayerModule = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);
-    relayerModuleV2 = await deployer.deploy(TestModuleRelayerV2, {}, registry.contractAddress, false, 0);
-    await registry.registerModule(relayerModule.contractAddress, formatBytes32String("RelayerModule"));
-    await registry.registerModule(relayerModuleV2.contractAddress, formatBytes32String("RelayerModuleV2"));
+    relayerModule = await deployer.deploy(TestModule, {}, AddressZero, false, 0);
+    relayerModuleV2 = await deployer.deploy(TestModuleRelayerV2, {}, AddressZero, false, 0);
     wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [relayerModule.contractAddress, relayerModuleV2.contractAddress]);
   });
