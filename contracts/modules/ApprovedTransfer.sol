@@ -19,6 +19,7 @@ import "./common/BaseModule.sol";
 import "./common/RelayerModuleV2.sol";
 import "./common/BaseTransfer.sol";
 import "../../lib/utils/SafeMath.sol";
+import "../../lib/other/ERC20.sol";
 
 /**
  * @title ApprovedTransfer
@@ -28,6 +29,15 @@ import "../../lib/utils/SafeMath.sol";
 contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
+    event ApprovedAndCalledContract(
+        address indexed wallet,
+        address indexed to,
+        address spender,
+        address indexed token,
+        uint256 amountApproved,
+        uint256 amountSpent,
+        bytes data
+    );
 
     constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage) BaseModule(_registry, _guardianStorage, NAME) public {
 
@@ -100,8 +110,29 @@ contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
         onlyWhenUnlocked(_wallet)
     {
         require(!_wallet.authorised(_contract) && _contract != address(_wallet), "AT: Forbidden contract");
-        doApproveToken(_wallet, _token, _spender, _amount);
-        doCallContract(_wallet, _contract, 0, _data);
+        uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+
+        // Approve the desired amount
+        bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _amount);
+        invokeWallet(address(_wallet), _token, 0, methodData);
+
+        invokeWallet(address(_wallet), _contract, 0, _data);
+
+        uint256 unusedAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+        uint256 usedAllowance = SafeMath.sub(_amount, unusedAllowance);
+
+        // Restore the original allowance amount
+        methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, currentAllowance);
+        invokeWallet(address(_wallet), _token, 0, methodData);
+
+        emit ApprovedAndCalledContract(
+            address(_wallet),
+            _contract,
+            _spender,
+            _token,
+            _amount,
+            usedAllowance,
+            _data);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
