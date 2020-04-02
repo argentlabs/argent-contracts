@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
-import "../../upgrade/ModuleRegistry.sol";
+import "../../infrastructure/ModuleRegistry.sol";
 import "../storage/GuardianStorage.sol";
 import "./Module.sol";
 import "../../../lib/other/ERC20.sol";
