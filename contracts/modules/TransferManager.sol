@@ -20,7 +20,7 @@ import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitManager.sol";
-import "../exchange/TokenPriceProvider.sol";
+import "../infrastructure/TokenPriceProvider.sol";
 import "../storage/TransferStorage.sol";
 import "../../lib/other/ERC20.sol";
 
