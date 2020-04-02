@@ -14,7 +14,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../interfaces/Module.sol";
 import "../base/Owned.sol";
 import "../../lib/other/ERC20.sol";
 
