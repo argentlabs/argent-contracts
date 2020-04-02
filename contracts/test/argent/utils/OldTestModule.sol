@@ -4,7 +4,7 @@ import "../../../modules/common/BaseModule.sol";
 import "../../../modules/common/RelayerModule.sol";
 import "../../../modules/common/OnlyOwnerModule.sol";
 import "./TestDapp.sol";
-import "../legacy/LegacyBaseWallet.sol";
+import "../../../legacy/LegacyBaseWallet.sol";
 
 /**
  * @title OldTestModule
