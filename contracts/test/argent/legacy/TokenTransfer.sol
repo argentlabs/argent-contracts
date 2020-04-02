@@ -4,8 +4,8 @@ import "../../../modules/common/BaseModule.sol";
 import "../../../modules/common/RelayerModule.sol";
 import "../../../modules/common/LimitManager.sol";
 import "../../../infrastructure/TokenPriceProvider.sol";
-import "../../../storage/GuardianStorage.sol";
-import "../../../storage/TransferStorage.sol";
+import "../../../modules/storage/GuardianStorage.sol";
+import "../../../modules/storage/TransferStorage.sol";
 
 /**
  * @title LegacyTokenTransfer

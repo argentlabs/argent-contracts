@@ -20,7 +20,7 @@ import "../base/Owned.sol";
 import "../base/Managed.sol";
 import "../infrastructure/ens/IENSManager.sol";
 import "../upgrade/ModuleRegistry.sol";
-import "../storage/IGuardianStorage.sol";
+import "../modules/storage/IGuardianStorage.sol";
 
 /**
  * @title WalletFactory

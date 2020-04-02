@@ -15,7 +15,7 @@
 
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
-import "../utils/GuardianUtils.sol";
+import "./common/GuardianUtils.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 
