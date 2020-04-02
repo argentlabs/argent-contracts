@@ -237,6 +237,15 @@ describe("Approved Transfer", function () {
         await callContract([owner, ...sortWalletByAddress([guardian1, guardian3])]);
         await callContract([owner, ...sortWalletByAddress([guardian2, guardian3])]);
       });
+
+      it("should not be able to call the wallet itself", async () => {
+        const txReceipt = await manager.relay(transferModule, "callContract",
+          [wallet.contractAddress, wallet.contractAddress, amountToTransfer, ethers.constants.HashZero],
+          wallet,
+          [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+        const success = parseRelayReceipt(txReceipt);
+        assert.isFalse(success);
+      });
     });
   });
 
