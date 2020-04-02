@@ -18,7 +18,7 @@ import "./Proxy.sol";
 import "./BaseWallet.sol";
 import "../base/Owned.sol";
 import "../base/Managed.sol";
-import "../ens/IENSManager.sol";
+import "../infrastructure/ens/IENSManager.sol";
 import "../upgrade/ModuleRegistry.sol";
 import "../storage/IGuardianStorage.sol";
 

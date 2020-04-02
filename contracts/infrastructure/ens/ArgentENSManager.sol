@@ -14,12 +14,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../../lib/ens/ENS.sol";
-import "../../lib/utils/strings.sol";
+import "../../../lib/ens/ENS.sol";
+import "../../../lib/utils/strings.sol";
 import "./IENSManager.sol";
 import "./ENSResolver.sol";
 import "./ENSReverseRegistrar.sol";
-import "../base/Managed.sol";
+import "../../base/Managed.sol";
 
 /**
  * @title ArgentENSManager
