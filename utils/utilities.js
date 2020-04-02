@@ -1,6 +1,5 @@
 const ethers = require("ethers");
 const readline = require("readline");
-const ethereumUtil = require("ethereumjs-util");
 
 module.exports = {
 
@@ -56,10 +55,10 @@ module.exports = {
     return sigs;
   },
 
-  sortWalletByAddress(wallets) {
+  sortWalletByAddress(wallets, addressKey = "address") {
     return wallets.sort((s1, s2) => {
-      const bn1 = ethers.utils.bigNumberify(s1.address);
-      const bn2 = ethers.utils.bigNumberify(s2.address);
+      const bn1 = ethers.utils.bigNumberify(s1[addressKey]);
+      const bn2 = ethers.utils.bigNumberify(s2[addressKey]);
       if (bn1.lt(bn2)) return -1;
       if (bn1.gt(bn2)) return 1;
       return 0;
@@ -84,12 +83,15 @@ module.exports = {
     }).reduce((prevValue, currentValue) => prevValue + currentValue.slice(2), "0x");
     return ethers.utils.keccak256(concat).slice(0, 10);
   },
+
   getRandomAddress() {
-    const addressBuffer = ethereumUtil.generateAddress(Math.floor(Math.random() * (100 - 0)));
-    const addressHex = ethereumUtil.bufferToHex(addressBuffer);
-    return ethereumUtil.toChecksumAddress(addressHex);
+    return ethers.Wallet.createRandom().address;
   },
+
   generateSaltValue() {
-    return ethers.utils.bigNumberify(ethers.utils.randomBytes(32)).toHexString();
+    return ethers.utils.hexZeroPad(
+      ethers.utils.bigNumberify(ethers.utils.randomBytes(32)).toHexString(),
+      32,
+    );
   },
 };

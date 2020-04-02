@@ -7,7 +7,7 @@ const Wallet = require("../build/BaseWallet");
 const Module = require("../build/BaseModule");
 const Registry = require("../build/ModuleRegistry");
 
-describe("Test Proxy", function () {
+describe("Proxy", function () {
   this.timeout(10000);
 
   const owner = accounts[1].signer;

@@ -29,7 +29,7 @@ const TestManager = require("../utils/test-manager");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
-describe("Test Loan Module", function () {
+describe("Loan Module", function () {
   this.timeout(1000000);
 
   const manager = new TestManager();

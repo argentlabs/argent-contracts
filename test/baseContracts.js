@@ -4,7 +4,7 @@ const Managed = require("../build/Managed");
 
 const TestManager = require("../utils/test-manager");
 
-describe("Test Token Price Provider", () => {
+describe("Token Price Provider", () => {
   const manager = new TestManager();
 
   const infrastructure = accounts[0].signer;

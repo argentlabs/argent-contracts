@@ -20,7 +20,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const NO_ENS = "";
 
-describe("Test Wallet Factory", function () {
+describe("Wallet Factory", function () {
   this.timeout(10000);
 
   const manager = new TestManager();
@@ -188,7 +188,7 @@ describe("Test Wallet Factory", function () {
       assert.equal(res, ensResolver.contractAddress);
     });
 
-    it("should fail to create when there is no modules", async () => {
+    it("should fail to create when there are no modules", async () => {
       const label = `wallet${index}`;
       const modules = [];
       await assert.revertWith(factory.from(deployer).createWallet(owner.address, modules, label), "WF: cannot assign with less than 1 module");
@@ -405,7 +405,7 @@ describe("Test Wallet Factory", function () {
         "should fail when address is in use");
     });
 
-    it("should fail to create when there is no modules", async () => {
+    it("should fail to create counterfactually when there are no modules (without guardian)", async () => {
       const salt = utilities.generateSaltValue();
       const label = `wallet${index}`;
       const modules = [];
@@ -555,7 +555,7 @@ describe("Test Wallet Factory", function () {
         "should fail when address is in use");
     });
 
-    it("should fail to create when there is no modules", async () => {
+    it("should fail to create counterfactually when there are no modules (with guardian)", async () => {
       const salt = utilities.generateSaltValue();
       const label = `wallet${index}`;
       const modules = [];

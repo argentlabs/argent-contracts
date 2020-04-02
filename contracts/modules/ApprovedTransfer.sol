@@ -16,17 +16,16 @@
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
+import "./common/RelayerModuleV2.sol";
 import "./common/BaseTransfer.sol";
 import "../../lib/utils/SafeMath.sol";
-import "../utils/GuardianUtils.sol";
 
 /**
  * @title ApprovedTransfer
  * @dev Module to transfer tokens (ETH or ERC20) with the approval of guardians.
  * @author Julien Niset - <julien@argent.im>
  */
-contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
+contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
@@ -117,30 +116,7 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
         view
         returns (bool)
     {
-        address lastSigner = address(0);
-        address[] memory guardians = guardianStorage.getGuardians(_wallet);
-        bool isGuardian = false;
-        for (uint8 i = 0; i < _signatures.length / 65; i++) {
-            address signer = recoverSigner(_signHash, _signatures, i);
-            if (i == 0) {
-                // AT: first signer must be owner
-                if (!isOwner(_wallet, signer)) {
-                    return false;
-                }
-            } else {
-                // "AT: signers must be different"
-                if (signer <= lastSigner) {
-                    return false;
-                }
-                lastSigner = signer;
-                (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-                // "AT: signatures not valid"
-                if (!isGuardian) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) internal view returns (uint256) {

@@ -15,7 +15,7 @@ const FEE_RATIO = 30;
 
 const TestManager = require("../utils/test-manager");
 
-describe("Test Token Exchanger", function () {
+describe("Token Exchanger", function () {
   this.timeout(10000);
 
   const manager = new TestManager();

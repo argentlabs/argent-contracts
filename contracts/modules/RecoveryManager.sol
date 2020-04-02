@@ -16,10 +16,9 @@
 pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
+import "./common/RelayerModuleV2.sol";
 import "../storage/GuardianStorage.sol";
 import "../../lib/utils/SafeMath.sol";
-import "../utils/GuardianUtils.sol";
 
 /**
  * @title RecoveryManager
@@ -30,7 +29,7 @@ import "../utils/GuardianUtils.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract RecoveryManager is BaseModule, RelayerModule {
+contract RecoveryManager is BaseModule, RelayerModuleV2 {
 
     bytes32 constant NAME = "RecoveryManager";
 
@@ -43,12 +42,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
         address recovery;
         uint64 executeAfter;
         uint32 guardianCount;
-    }
-
-    enum OwnerSignature {
-        Required,
-        Optional,
-        Disallowed
     }
 
     // Wallet specific storage
@@ -198,46 +191,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
         } else if (functionSignature == CANCEL_RECOVERY_PREFIX) {
             return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Optional);
         }
-    }
-
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes32 _signHash,
-        bytes memory _signatures,
-        OwnerSignature _option
-    ) internal view returns (bool)
-    {
-        address lastSigner = address(0);
-        address[] memory guardians = guardianStorage.getGuardians(_wallet);
-        bool isGuardian = false;
-
-        for (uint8 i = 0; i < _signatures.length / 65; i++) {
-            address signer = recoverSigner(_signHash, _signatures, i);
-
-            if (i == 0) {
-                if (_option == OwnerSignature.Required) {
-                    // First signer must be owner
-                    if (isOwner(_wallet, signer)) {
-                        continue;
-                    }
-                    return false;
-                } else if (_option == OwnerSignature.Optional) {
-                    // First signer can be owner
-                    if (isOwner(_wallet, signer)) {
-                        continue;
-                    }
-                }
-            }
-            if (signer <= lastSigner) {
-                return false;
-            } // Signers must be different
-            lastSigner = signer;
-            (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
-            if (!isGuardian) {
-                return false;
-            }
-        }
-        return true;
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {

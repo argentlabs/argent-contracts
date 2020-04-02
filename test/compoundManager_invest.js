@@ -154,8 +154,6 @@ describe("Invest Manager with Compound", function () {
         await cToken.from(borrower).mint(parseEther("20"));
         tx = await cEther.from(borrower).borrow(parseEther("0.1"), { gasLimit: 8000000 });
         txReceipt = await cEther.verboseWaitForTransaction(tx);
-        console.log("EVVVV:", utils.parseLogs(txReceipt, cEther, "Failure"));
-
         assert.isTrue(await utils.hasEvent(txReceipt, cEther, "Borrow"), "should have generated Borrow event");
       } else {
         await cEther.from(borrower).mint({ value: parseEther("2") });

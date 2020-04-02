@@ -41,7 +41,6 @@
     "bn.js": "^5.1.1",
     "cli-table2": "^0.2.0",
     "dotenv": "^6.2.0",
-    "ethereumjs-util": "^6.2.0",
     "ethereumjs-wallet": "^0.6.3",
     "etherlime": "^2.3.0",
     "etherlime-lib": "1.1.3",
