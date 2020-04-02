@@ -14,8 +14,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "./Proxy.sol";
-import "./BaseWallet.sol";
+import "../wallet/Proxy.sol";
+import "../wallet/BaseWallet.sol";
 import "../base/Owned.sol";
 import "../base/Managed.sol";
 import "../infrastructure/ens/IENSManager.sol";
