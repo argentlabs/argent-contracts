@@ -240,15 +240,17 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
     * @param _token The token to approve.
-    * @param _contract The address of the contract.
+    * @param _spender The address to approve.
     * @param _amount The amount of ERC20 tokens to approve.
+    * @param _contract The address of the contract.
     * @param _data The encoded method data
     */
     function approveTokenAndCallContract(
         BaseWallet _wallet,
         address _token,
-        address _contract,
+        address _spender,
         uint256 _amount,
+        address _contract,
         bytes calldata _data
     )
         external
@@ -265,7 +267,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
             require(checkAndUpdateDailySpent(_wallet, valueInEth), "TM: Approve above daily limit");
         }
 
-        doApproveTokenAndCallContract(_wallet, _token, _contract, _amount, _contract, _data);
+        doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
     }
 
     /**

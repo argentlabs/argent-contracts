@@ -486,11 +486,12 @@ describe("TransferManager", function () {
     });
 
     async function doApproveTokenAndCallContract({
-      signer = owner, amount, state, relayed = false,
+      signer = owner, consumer = contract.contractAddress, amount, state, relayed = false,
     }) {
-      const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([state, erc20.contractAddress, amount]);
+      const fun = consumer === contract.contractAddress ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
+      const dataToTransfer = contract.contract.interface.functions[fun].encode([state, erc20.contractAddress, amount]);
       const unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
-      const params = [wallet.contractAddress, erc20.contractAddress, contract.contractAddress, amount, dataToTransfer];
+      const params = [wallet.contractAddress, erc20.contractAddress, consumer, amount, contract.contractAddress, dataToTransfer];
       let txReceipt;
       if (relayed) {
         txReceipt = await manager.relay(transferModule, "approveTokenAndCallContract", params, wallet, [signer]);
@@ -522,8 +523,14 @@ describe("TransferManager", function () {
     it("should restore existing approved amount after call", async () => {
       await transferModule.from(owner).approveToken(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 10);
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, 1]);
-      await transferModule.from(owner)
-        .approveTokenAndCallContract(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 1, dataToTransfer);
+      await transferModule.from(owner).approveTokenAndCallContract(
+        wallet.contractAddress,
+        erc20.contractAddress,
+        contract.contractAddress,
+        1,
+        contract.contractAddress,
+        dataToTransfer,
+      );
       const approval = await erc20.allowance(wallet.contractAddress, contract.contractAddress);
       // Initial approval of 10 is restored, after approving and spending 1
       assert.equal(approval.toNumber(), 10);
@@ -533,6 +540,11 @@ describe("TransferManager", function () {
       await transferModule.from(owner).addToWhitelist(wallet.contractAddress, contract.contractAddress);
       await manager.increaseTime(3);
       await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6 });
+    });
+
+    it("should approve the token and call the contract when contract to call is different to token spender", async () => {
+      const consumer = await contract.tokenConsumer();
+      await doApproveTokenAndCallContract({ amount: 10, state: 3, spender: consumer });
     });
 
     it("should fail to approve the token and call the contract when the token is above the daily limit ", async () => {
