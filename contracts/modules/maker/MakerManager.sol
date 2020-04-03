@@ -15,12 +15,12 @@
 
 pragma solidity ^0.5.4;
 
-import "../../lib/utils/SafeMath.sol";
-import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
-import "./common/OnlyOwnerModule.sol";
-import "../defi/Loan.sol";
+import "../../../lib/utils/SafeMath.sol";
+import "../../wallet/BaseWallet.sol";
+import "../common/BaseModule.sol";
+import "../common/RelayerModule.sol";
+import "../common/OnlyOwnerModule.sol";
+import "../../defi/Loan.sol";
 
 // Interface to MakerDAO's Tub contract, used to manage CDPs
 contract IMakerCdp {
@@ -72,10 +72,10 @@ interface IUniswapFactory {
 }
 
 interface IUniswapExchange {
-    function getEthToTokenOutputPrice(uint256 _tokens_bought) external view returns (uint256);
-    function getEthToTokenInputPrice(uint256 _eth_sold) external view returns (uint256);
-    function getTokenToEthOutputPrice(uint256 _eth_bought) external view returns (uint256);
-    function getTokenToEthInputPrice(uint256 _tokens_sold) external view returns (uint256);
+    function getEthToTokenOutputPrice(uint256 _tokensBought) external view returns (uint256);
+    function getEthToTokenInputPrice(uint256 _ethSold) external view returns (uint256);
+    function getTokenToEthOutputPrice(uint256 _ethBought) external view returns (uint256);
+    function getTokenToEthInputPrice(uint256 _tokensSold) external view returns (uint256);
 }
 
 

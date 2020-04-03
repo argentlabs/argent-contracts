@@ -1,5 +1,5 @@
 // Example Usage:
-// node createWallet.js --network dev --ens john --owner 0x10391442e6ca847151372b6c7cbcc1fd06afda86
+// node scripts/createWallet.js --network kovan --ens john --owner 0x10391442e6ca847151372b6c7cbcc1fd06afda86
 
 const WalletFactory = require("../build/WalletFactory");
 const MultiSigWallet = require("../build/MultiSigWallet");
@@ -43,16 +43,16 @@ async function main() {
   // Create Wallet
   console.log("Creating new wallet...");
   const modules = [
-    config.modules.GuardianManager,
-    config.modules.LockManager,
-    config.modules.RecoveryManager,
-    config.modules.ApprovedTransfer,
-    config.modules.TransferManager,
-    config.modules.TokenExchanger,
-    config.modules.MakerV2Manager,
-  ];
+    "GuardianManager",
+    "LockManager",
+    "RecoveryManager",
+    "ApprovedTransfer",
+    "TransferManager",
+    "TokenExchanger",
+    "MakerV2Manager",
+  ].map((name) => config.modules[name]).filter((x) => x);
   const tx = await ((walletFactoryWrapper.from && walletFactoryWrapper.from(manager))
-   || walletFactoryWrapper).createWallet(owner, modules, walletEns);
+    || walletFactoryWrapper).createWallet(owner, modules, walletEns);
   const txReceipt = await walletFactoryWrapper.verboseWaitForTransaction(tx);
   const walletAddress = txReceipt.events.find((log) => log.event === "WalletCreated").args._wallet;
   console.log(`New wallet ${walletEns}.${config.ENS.domain} successfully created at address ${walletAddress} for owner ${owner}.`);

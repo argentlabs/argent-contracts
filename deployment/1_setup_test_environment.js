@@ -2,6 +2,8 @@ const ENSRegistry = require("../build/ENSRegistry");
 const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
 const Kyber = require("../build/KyberNetworkTest");
 const ERC20 = require("../build/TestERC20");
+const UniswapFactory = require("../lib/uniswap/UniswapFactory");
+const UniswapExchange = require("../lib/uniswap/UniswapExchange");
 const MakerMigration = require("../build/MockScdMcdMigration");
 
 const utils = require("../utils/utilities.js");
@@ -69,9 +71,24 @@ const deploy = async (network) => {
     configurator.updateKyberContract(address);
   }
 
+  if (config.defi.uniswap.deployOwn) {
+    const UniswapFactoryWrapper = await deployer.deploy(UniswapFactory);
+    configurator.updateUniswapFactory(UniswapFactoryWrapper.contractAddress);
+    const UniswapExchangeTemplateWrapper = await deployer.deploy(UniswapExchange);
+    const initializeFactoryTx = await UniswapFactoryWrapper.initializeFactory(UniswapExchangeTemplateWrapper.contractAddress);
+    await UniswapFactoryWrapper.verboseWaitForTransaction(initializeFactoryTx, "Initializing UniswapFactory");
+  }
+
   if (config.defi.maker.deployOwn) {
     // Deploy Maker's mock Migration contract if needed
-    const MakerMigrationWrapper = await deployer.deploy(MakerMigration);
+    const MakerMigrationWrapper = await deployer.deploy(
+      MakerMigration,
+      {},
+      config.defi.maker.daiJoin || "0x0000000000000000000000000000000000000000",
+      config.defi.maker.wethJoin || "0x0000000000000000000000000000000000000000",
+      config.defi.maker.tub || "0x0000000000000000000000000000000000000000",
+      config.defi.maker.cdpManager || "0x0000000000000000000000000000000000000000",
+    );
     configurator.updateMakerMigration(MakerMigrationWrapper.contractAddress);
   }
 

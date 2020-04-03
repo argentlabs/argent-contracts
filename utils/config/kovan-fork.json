@@ -1,7 +1,7 @@
 {
   "ENS": {
     "deployOwnRegistry": true,
-    "ensRegistry": "0xe03e107077B97cDf32351eC254BBd0A1FEaB2AA2",
+    "ensRegistry": "0x63347C9F2863dcBb723cd8cF1b51b2E87dbD917c",
     "domain": "argent.xyz"
   },
   "backend": {
@@ -14,11 +14,7 @@
   },
   "settings": {
     "deployer": {
-      "type": "infura",
-      "options": {
-        "network": "kovan",
-        "envvar": "INFURA_KEY"
-      }
+      "type": "ganache"
     },
     "privateKey": {
       "type": "plain",
@@ -35,7 +31,7 @@
   },
   "Kyber": {
     "deployOwn": true,
-    "contract": "0xaC684E5464B91524E13351c2360290c21C7E5100"
+    "contract": "0x7F6eB19B148058B71D8BC9D1723E55e4d2da40a6"
   },
   "CryptoKitties": {
     "contract": "0x0000000000000000000000000000000000000000"
@@ -70,7 +66,7 @@
     "ModuleRegistry": "0xB9d7cB1d1b9440526777B39629c7035c33D8C64E",
     "BaseWallet": "0x88ba95809C47bbA1cf9A657fcd3C81a78d608aA5",
     "CompoundRegistry": "0xB3a945f078B44b98f93145f7a820e95a0a98e386",
-    "MakerRegistry": "0x5E102B9ADf82208fDcABDc9D24a4DF562cE7F896"
+    "MakerRegistry": "0xe9B43D909a17cE24C7d43624E7553376Fa971041"
   },
   "modules": {
     "GuardianStorage": "0xD6E5cD0666A2607CfaBddB9aD0E30131e5359515",
@@ -83,9 +79,9 @@
     "TokenExchanger": "0xd9CE60816ADF1E365f04Dea96AAF2775942C42C6",
     "NftTransfer": "0xCAb6F3134894C10Bd357335D00412e0586fcE85E",
     "MakerManager": "0x74BB0268ABf905C1Eb12f8300249070B56E76d77",
-    "MakerV2Manager": "0x7bb678505B6729f40bB1BE34572685766009492f",
+    "MakerV2Manager": "0x69750794c8F3a6A584f850745aF3552158984b99",
     "CompoundManager": "0xbf32494BedC3AcAccBb54F8560262A80609a1ABD",
     "TransferManager": "0xcE7968f585fCe79AD1161A766F13aBd3375a0185"
   },
-  "gitCommit": "0afe14d8a6131725287700d51390b50c22a7f79a"
+  "gitCommit": "e93c93e71c50b186f1c73097425044343703cdff"
 }

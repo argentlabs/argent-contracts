@@ -11,7 +11,6 @@ const TransferManager = require("../build/TransferManager");
 const NftTransfer = require("../build/NftTransfer");
 const MakerManager = require("../build/MakerManager");
 const CompoundManager = require("../build/CompoundManager");
-const MakerV2Manager = require("../build/MakerV2Manager");
 
 const DeployManager = require("../utils/deploy-manager.js");
 
@@ -131,15 +130,18 @@ const deploy = async (network) => {
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
   );
-    // Deploy MakerManagerV2 first version
-  const MakerV2ManagerWrapper = await deployer.deploy(
-    MakerV2Manager,
-    {},
-    config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
-    config.defi.maker.migration,
-    config.defi.maker.pot,
-  );
+    // Deploy MakerManagerV2
+  // const MakerV2ManagerWrapper = await deployer.deploy(
+  //   MakerV2Manager,
+  //   {},
+  //   config.contracts.ModuleRegistry,
+  //   config.modules.GuardianStorage,
+  //   config.defi.maker.migration,
+  //   config.defi.maker.pot,
+  //   config.defi.maker.jug,
+  //   config.contracts.MakerRegistry,
+  //   config.defi.uniswap.factory,
+  // );
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -157,7 +159,7 @@ const deploy = async (network) => {
     NftTransfer: NftTransferWrapper.contractAddress,
     MakerManager: MakerManagerWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
-    MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
+    // MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -177,7 +179,7 @@ const deploy = async (network) => {
     abiUploader.upload(NftTransferWrapper, "modules"),
     abiUploader.upload(MakerManagerWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
-    abiUploader.upload(MakerV2ManagerWrapper, "modules"),
+    // abiUploader.upload(MakerV2ManagerWrapper, "modules"),
   ]);
 
   console.log("Config:", config);

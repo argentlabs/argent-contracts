@@ -39,6 +39,10 @@ class Configurator {
     this._config.defi.maker.migration = address;
   }
 
+  updateUniswapFactory(address) {
+    this._config.defi.uniswap.factory = address;
+  }
+
   updateBackendAccounts(accounts) {
     this._config.backend.accounts = accounts;
   }

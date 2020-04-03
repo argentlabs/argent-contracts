@@ -9,16 +9,25 @@ const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const LegacyUpgrader = require("../build/LegacyUpgrader");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
+const MakerRegistry = require("../build/MakerRegistry");
+const ScdMcdMigration = require("../build/ScdMcdMigration");
+const MakerV2Manager = require("../build/MakerV2Manager");
 
 const utils = require("../utils/utilities.js");
 
 const TARGET_VERSION = "1.6.0";
-const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager"];
-const MODULES_TO_DISABLE = ["UniswapManager"];
+const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager", "MakerV2Manager"];
+const MODULES_TO_DISABLE = ["UniswapManager", "MakerManager"];
 
 const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {
+  if (!["kovan", "kovan-fork", "staging", "prod"].includes(network)) {
+    console.warn("------------------------------------------------------------------------");
+    console.warn(`WARNING: The MakerManagerV2 module is not fully functional on ${network}`);
+    console.warn("------------------------------------------------------------------------");
+  }
+
   const newModuleWrappers = [];
   const newVersion = {};
 
@@ -42,7 +51,20 @@ const deploy = async (network) => {
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
   // //////////////////////////////////
-  // Deploy new contracts
+  // Deploy utility contracts
+  // //////////////////////////////////
+
+  // Deploy and configure Maker Registry
+  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry);
+  const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
+  const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
+  const addCollateralTransaction = await MakerRegistryWrapper.addCollateral(wethJoinAddress);
+  await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
+  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
+  await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
+
+  // //////////////////////////////////
+  // Deploy new modules
   // //////////////////////////////////
 
   const ApprovedTransferWrapper = await deployer.deploy(
@@ -51,7 +73,6 @@ const deploy = async (network) => {
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
   );
-
   newModuleWrappers.push(ApprovedTransferWrapper);
 
   const RecoveryManagerWrapper = await deployer.deploy(
@@ -64,8 +85,20 @@ const deploy = async (network) => {
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
   );
-
   newModuleWrappers.push(RecoveryManagerWrapper);
+
+  const MakerV2ManagerWrapper = await deployer.deploy(
+    MakerV2Manager,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.defi.maker.migration,
+    config.defi.maker.pot,
+    config.defi.maker.jug,
+    MakerRegistryWrapper.contractAddress,
+    config.defi.uniswap.factory,
+  );
+  newModuleWrappers.push(MakerV2ManagerWrapper);
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -74,6 +107,11 @@ const deploy = async (network) => {
   configurator.updateModuleAddresses({
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     RecoveryManager: RecoveryManagerWrapper.contractAddress,
+    MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
+  });
+
+  configurator.updateInfrastructureAddresses({
+    MakerRegistry: MakerRegistryWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -83,6 +121,8 @@ const deploy = async (network) => {
   await Promise.all([
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(RecoveryManagerWrapper, "modules"),
+    abiUploader.upload(MakerV2ManagerWrapper, "modules"),
+    abiUploader.upload(MakerRegistryWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
