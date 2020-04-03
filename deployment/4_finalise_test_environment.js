@@ -14,7 +14,11 @@ async function deployENSReverseRegistrar(deployer, config, owner, overrides) {
   await ENSRegistryWrapper.verboseWaitForTransaction(setSubnodeOwnerTx1, "Create the reverse namespace");
 
   const setSubnodeOwnerTx2 = await ENSRegistryWrapper.contract.setSubnodeOwner(
-    utils.namehash("reverse"), utils.sha3("addr"), ENSReverseRegistrarWrapper.contractAddress, overrides);
+    utils.namehash("reverse"),
+    utils.sha3("addr"),
+    ENSReverseRegistrarWrapper.contractAddress,
+    overrides,
+  );
   await ENSRegistryWrapper.verboseWaitForTransaction(setSubnodeOwnerTx2,
     "Create the addr.reverse namespace and make the ENS reverse registrar the owner");
 }
