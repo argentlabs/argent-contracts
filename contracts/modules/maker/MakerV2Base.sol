@@ -18,6 +18,7 @@ import "../common/BaseModule.sol";
 import "../common/RelayerModule.sol";
 import "../common/OnlyOwnerModule.sol";
 import "../../../lib/utils/SafeMath.sol";
+import "../../../lib/maker/MakerV2Interfaces.sol";
 import "../../infrastructure/MakerRegistry.sol";
 
 /**
