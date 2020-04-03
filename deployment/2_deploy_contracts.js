@@ -68,7 +68,8 @@ const deploy = async (network) => {
 
   if (previousWalletEnsOwner.toLowerCase() === deploymentAccount.toLowerCase()) {
     // newly registered name -> change its owner from deploymentAccount to ENSManager address
-    const setOwnerTransaction = await ENSRegistryWrapper.contract.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.contractAddress, { gasPrice });
+    const setOwnerTransaction = await ENSRegistryWrapper.contract.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.contractAddress, 
+      { gasPrice });
     await ENSRegistryWrapper.verboseWaitForTransaction(setOwnerTransaction, "Replace deployment account by ENSManager as new owner of walletENS");
   } else if (previousWalletEnsOwner.toLowerCase() === prevConfig.contracts.ENSManager.toLowerCase()) {
     // change the owner from the previous ENSManager.address to the new one

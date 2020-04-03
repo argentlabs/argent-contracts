@@ -144,7 +144,7 @@ const deploy = async (network) => {
   await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
     `Set ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
 
-  const TokenPriceProviderSetKyberNetworkTx = await TokenPriceProviderWrapper.contract.setKyberNetwork("0x0000000000000000000000000000000000000000", 
+  const TokenPriceProviderSetKyberNetworkTx = await TokenPriceProviderWrapper.contract.setKyberNetwork("0x0000000000000000000000000000000000000000",
     { gasPrice });
   await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderSetKyberNetworkTx,
     "Disable the KyberNetwork on the TokenPriceProvider");
