@@ -317,7 +317,8 @@ describe("Approved Transfer", function () {
           const allowanceBefore = await erc20.allowance(wallet.contractAddress, consumer);
           const balanceBefore = await erc20.balanceOf(contract.contractAddress);
 
-          dataToTransfer = contract.contract.interface.functions.setStateAndPayTokenWithConsumer.encode([2, erc20.contractAddress, amountToApprove]);
+          const dataToTransfer = contract.contract.interface.functions
+            .setStateAndPayTokenWithConsumer.encode([2, erc20.contractAddress, amountToApprove]);
           await manager.relay(approvedTransfer, "approveTokenAndCallContract",
             [wallet.contractAddress, erc20.contractAddress, consumer, amountToApprove, contract.contractAddress, dataToTransfer],
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);

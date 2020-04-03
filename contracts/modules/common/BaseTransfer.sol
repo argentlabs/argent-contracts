@@ -32,7 +32,15 @@ contract BaseTransfer is BaseModule {
     event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
     event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
     event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
-
+    event ApprovedAndCalledContract(
+        address indexed wallet,
+        address indexed to,
+        address spender,
+        address indexed token,
+        uint256 amountApproved,
+        uint256 amountSpent,
+        bytes data
+    );
     // *************** Internal Functions ********************* //
 
     /**
@@ -76,5 +84,49 @@ contract BaseTransfer is BaseModule {
     function doCallContract(BaseWallet _wallet, address _contract, uint256 _value, bytes memory _data) internal {
         invokeWallet(address(_wallet), _contract, _value, _data);
         emit CalledContract(address(_wallet), _contract, _value, _data);
+    }
+
+    /**
+    * @dev Helper method to call an external contract.
+    * @param _wallet The target wallet.
+    * @param _token The ERC20 address.
+    * @param _spender The spender address.
+    * @param _amount The amount of tokens to transfer.
+    * @param _contract The contract address.
+    * @param _data The method data.
+    */
+    function doApproveTokenAndCallContract(
+        BaseWallet _wallet,
+        address _token,
+        address _spender,
+        int256 _amount,
+        address _contract,
+        bytes memory _data
+    )
+        internal
+    {
+        uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+
+        // Approve the desired amount
+        bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _amount);
+        invokeWallet(address(_wallet), _token, 0, methodData);
+
+        invokeWallet(address(_wallet), _contract, 0, _data);
+
+        uint256 unusedAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+        uint256 usedAllowance = SafeMath.sub(_amount, unusedAllowance);
+
+        // Restore the original allowance amount
+        methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, currentAllowance);
+        invokeWallet(address(_wallet), _token, 0, methodData);
+
+        emit ApprovedAndCalledContract(
+            address(_wallet),
+            _contract,
+            _spender,
+            _token,
+            _amount,
+            usedAllowance,
+            _data);
     }
 }
