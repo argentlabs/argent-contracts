@@ -15,7 +15,6 @@
 
 pragma solidity ^0.5.4;
 import "./MakerV2Base.sol";
-import "../../defi/Loan.sol";
 import "../../infrastructure/MakerRegistry.sol";
 
 contract JugLike {
@@ -41,7 +40,7 @@ interface IUniswapExchange {
  * (a type of asset NOT protected by a wallet's daily limit) to another account.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Loan is Loan, MakerV2Base {
+contract MakerV2Loan is MakerV2Base {
 
     // The address of the MKR token
     GemLike internal mkrToken;
@@ -73,6 +72,21 @@ contract MakerV2Loan is Loan, MakerV2Base {
 
     // Emitted when an SCD CDP is converted into an MCD vault
     event CdpMigrated(address indexed _wallet, bytes32 _oldCdpId, bytes32 _newVaultId);
+    // Vault management events
+    event LoanOpened(
+        address indexed _wallet,
+        bytes32 indexed _loanId,
+        address _collateral,
+        uint256 _collateralAmount,
+        address _debtToken,
+        uint256 _debtAmount
+    );
+    event LoanClosed(address indexed _wallet, bytes32 indexed _loanId);
+    event CollateralAdded(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
+    event CollateralRemoved(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
+    event DebtAdded(address indexed _wallet, bytes32 indexed _loanId, address _debtToken, uint256 _debtAmount);
+    event DebtRemoved(address indexed _wallet, bytes32 indexed _loanId, address _debtToken, uint256 _debtAmount);
+
 
     // *************** Modifiers *************************** //
 
@@ -242,27 +256,6 @@ contract MakerV2Loan is Loan, MakerV2Base {
         updateStabilityFee(uint256(_loanId));
         closeVault(_wallet, uint256(_loanId));
         emit LoanClosed(address(_wallet), _loanId);
-    }
-
-    /**
-     * @dev Gets information about a loan identified by its ID.
-     * @param _loanId The ID of the target vault.
-     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated, 3: loan exists but we are unable to provide info]
-     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral that should be added to
-     * avoid liquidation when status = 2.
-     */
-    function getLoan(
-        BaseWallet /* _wallet */,
-        bytes32 _loanId
-    )
-        external
-        view
-        returns (uint8 _status, uint256 _ethValue)
-    {
-        if (cdpManager.owns(uint256(_loanId)) != address(0)) {
-            return (3,0);
-        }
-        return (0,0);
     }
 
     /* *************************************** Other vault methods ***************************************** */
