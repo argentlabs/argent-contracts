@@ -1,16 +1,16 @@
 pragma solidity ^0.5.4;
-import "../../../wallet/BaseWallet.sol";
-import "../../../modules/common/BaseModule.sol";
-import "../../../modules/common/RelayerModuleV2.sol";
+import "../wallet/BaseWallet.sol";
+import "../modules/common/BaseModule.sol";
+import "../modules/common/RelayerModule.sol";
 
 /**
  * @title TestModule
- * @dev Basic test module subclassing RelayerModuleV2 (otherwise identical to TestModule.sol).
- * @author Olivier VDB - <olivier@argent.xyz>
+ * @dev Basic test module.
+ * @author Julien Niset - <julien@argent.xyz>
  */
-contract TestModuleRelayerV2 is BaseModule, RelayerModuleV2 {
+contract TestModule is BaseModule, RelayerModule {
 
-    bytes32 constant NAME = "TestModuleRelayerV2";
+    bytes32 constant NAME = "TestModule";
 
     bool boolVal;
     uint uintVal;
