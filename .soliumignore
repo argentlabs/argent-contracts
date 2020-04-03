@@ -2,12 +2,5 @@ node_modules
 migrations
 openzeppelin-solidity
 lib
-contracts/test/argent/legacy/LegacyBaseWallet.sol
-contracts/test/argent/legacy/TokenTransfer.sol
-contracts/test/argent/utils/ERC20Approver.sol
-contracts/test/argent/utils/NewTestModule.sol
-contracts/test/argent/utils/NonCompliantGuardian.sol
-contracts/test/argent/utils/OldTestModule.sol
-contracts/test/argent/utils/TestDapp.sol
-contracts/test/argent/utils/TestModule.sol
-contracts/test/argent/utils/TestOnlyOwnerModule.sol
+contracts/test
+contracts/legacy/LegacyBaseWallet.sol

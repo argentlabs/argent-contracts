@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 
 import "./LegacyUpgrader.sol";
-import "../../wallet/BaseWallet.sol";
+import "../wallet/BaseWallet.sol";
 
 /**
  * @title LegacySimpleUpgrader

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.4;
-import "../../../wallet/BaseWallet.sol";
-import "../../../modules/common/BaseModule.sol";
-import "../../../modules/common/OnlyOwnerModule.sol";
+import "../wallet/BaseWallet.sol";
+import "../modules/common/BaseModule.sol";
+import "../modules/common/OnlyOwnerModule.sol";
 
 contract ERC20Approver is BaseModule, OnlyOwnerModule {
 
