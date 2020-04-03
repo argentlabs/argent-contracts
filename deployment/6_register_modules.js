@@ -28,6 +28,7 @@ const deploy = async (network) => {
   const { configurator } = manager;
   const { deployer } = manager;
   const { versionUploader } = manager;
+  const { gasPrice } = deployer.defaultOverrides;
 
   const deploymentWallet = deployer.signer;
 
@@ -65,7 +66,7 @@ const deploy = async (network) => {
   // Register modules
   // //////////////////////////////////
 
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
 
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];

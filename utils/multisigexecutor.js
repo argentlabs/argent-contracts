@@ -4,10 +4,11 @@ const inquirer = require("inquirer");
 const utils = require("./utilities.js");
 
 class MultisigExecutor {
-  constructor(multisigWrapper, ownerWallet, autoSign = true) {
+  constructor(multisigWrapper, ownerWallet, autoSign = true, overrides = {}) {
     this._multisigWrapper = multisigWrapper;
     this._ownerWallet = ownerWallet;
     this._autoSign = autoSign;
+    this._overrides = Object.assign(overrides, { gasLimit: 300000 });
   }
 
   async executeCall(contractWrapper, method, params) {
@@ -32,7 +33,7 @@ class MultisigExecutor {
       signature = ethers.utils.joinSignature(split);
 
       // Call "execute" on the Multisig wallet with data and signatures
-      const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signature, { gasLimit: 2000000 });
+      const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signature, this._overrides);
       const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
 
       return result;
@@ -69,7 +70,7 @@ class MultisigExecutor {
     const signatures = `0x${sortedSignatures.map((s) => s.sig.slice(2)).join("")}`;
 
     // Call "execute" on the Multisig wallet with data and signatures
-    const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signatures, { gasLimit: 300000 });
+    const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signatures, this._overrides);
     const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
 
     return result;

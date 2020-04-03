@@ -24,6 +24,7 @@ const deploy = async (network) => {
   const { configurator } = manager;
   const { deployer } = manager;
   const { abiUploader } = manager;
+  const { gasPrice } = deployer.defaultOverrides;
 
   const newConfig = configurator.config;
   const prevConfig = configurator.copyConfig();
@@ -67,7 +68,7 @@ const deploy = async (network) => {
 
   if (previousWalletEnsOwner.toLowerCase() === deploymentAccount.toLowerCase()) {
     // newly registered name -> change its owner from deploymentAccount to ENSManager address
-    const setOwnerTransaction = await ENSRegistryWrapper.contract.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.contractAddress);
+    const setOwnerTransaction = await ENSRegistryWrapper.contract.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.contractAddress, { gasPrice });
     await ENSRegistryWrapper.verboseWaitForTransaction(setOwnerTransaction, "Replace deployment account by ENSManager as new owner of walletENS");
   } else if (previousWalletEnsOwner.toLowerCase() === prevConfig.contracts.ENSManager.toLowerCase()) {
     // change the owner from the previous ENSManager.address to the new one
@@ -75,7 +76,7 @@ const deploy = async (network) => {
     const previousMultiSigWrapper = deployer.wrapDeployedContract(MultiSig, prevConfig.contracts.MultiSigWallet);
     const previousENSManagerWrapper = deployer.wrapDeployedContract(ENSManager, prevConfig.contracts.ENSManager);
 
-    const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentWallet, prevConfig.multisig.autosign);
+    const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentWallet, prevConfig.multisig.autosign, { gasPrice });
     console.log(`Owner of ${walletRootEns} changed from old ENSManager to new ENSManager...`);
     await multisigExecutor.executeCall(previousENSManagerWrapper, "changeRootnodeOwner", [ENSManagerWrapper.contractAddress]);
   } else {
@@ -88,7 +89,7 @@ const deploy = async (network) => {
 
   for (const underlying in newConfig.defi.compound.markets) {
     const cToken = newConfig.defi.compound.markets[underlying];
-    const addUnderlyingTransaction = await CompoundRegistryWrapper.addCToken(underlying, cToken);
+    const addUnderlyingTransaction = await CompoundRegistryWrapper.contract.addCToken(underlying, cToken, { gasPrice });
     await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction,
       `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
   }
