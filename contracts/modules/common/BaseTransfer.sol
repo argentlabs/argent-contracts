@@ -99,7 +99,7 @@ contract BaseTransfer is BaseModule {
         BaseWallet _wallet,
         address _token,
         address _spender,
-        int256 _amount,
+        uint256 _amount,
         address _contract,
         bytes memory _data
     )

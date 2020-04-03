@@ -18,7 +18,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModuleV2.sol";
 import "./storage/GuardianStorage.sol";
-import "../../lib/utils/SafeMath.sol";
 
 /**
  * @title RecoveryManager

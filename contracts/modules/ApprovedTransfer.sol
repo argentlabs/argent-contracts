@@ -18,8 +18,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModuleV2.sol";
 import "./common/BaseTransfer.sol";
-import "../../lib/utils/SafeMath.sol";
-import "../../lib/other/ERC20.sol";
 
 /**
  * @title ApprovedTransfer
