@@ -498,7 +498,7 @@ describe("TransferManager", function () {
         const tx = await transferModule.from(signer).approveTokenAndCallContract(...params);
         txReceipt = await transferModule.verboseWaitForTransaction(tx);
       }
-      assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "CalledContract"), "should have generated CalledContract event");
+      assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "ApprovedAndCalledContract"), "should have generated CalledContract event");
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
       const amountInEth = await priceProvider.getEtherValue(amount, erc20.contractAddress);
 
@@ -519,14 +519,14 @@ describe("TransferManager", function () {
       await doApproveTokenAndCallContract({ amount: 10, state: 3, relayed: true });
     });
 
-    it("should approve the token and call the contract when under the existing approved amount", async () => {
+    it("should restore existing approved amount after call", async () => {
       await transferModule.from(owner).approveToken(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 10);
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, 1]);
       await transferModule.from(owner)
         .approveTokenAndCallContract(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 1, dataToTransfer);
       const approval = await erc20.allowance(wallet.contractAddress, contract.contractAddress);
-      // No approval updates were done to the initial approval of 10, then the call succeeded with 1, leaving 9
-      assert.equal(approval.toNumber(), 9);
+      // Initial approval of 10 is restored, after approving and spending 1
+      assert.equal(approval.toNumber(), 10);
     });
 
     it("should approve the token and call the contract when the token is above the limit and the contract is whitelisted ", async () => {
