@@ -5,11 +5,20 @@ import "../../contracts/modules/maker/MakerV2Base.sol";
 contract MockVat {
     function hope(address) external {}
 }
+
 contract MockTub is SaiTubLike {
     function gov() public view returns (GemLike) { return GemLike(address(0)); }
+    function skr() public view returns (GemLike) { return GemLike(address(0)); }
+    function gem() public view returns (GemLike) { return GemLike(address(0)); }
+    function sai() public view returns (GemLike) { return GemLike(address(0)); }
     function pep() public view returns (ValueLike) { return ValueLike(address(0)); }
     function rap(bytes32) public returns (uint) { return 0; }
     function give(bytes32, address) public {}
+    function tab(bytes32) public returns (uint) {}
+    function bid(uint) public view returns (uint) {}
+    function ink(bytes32) public view returns (uint) {}
+    function shut(bytes32) public {}
+    function exit(uint) public {}
 }
 
 contract MockJoin is JoinLike {

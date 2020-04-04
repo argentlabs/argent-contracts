@@ -7,30 +7,30 @@
 // 3. npx etherlime test test/makerV2Manager_loan.js --skip-compilation --network kovan-fork
 
 const ethers = require("ethers");
-const TestManager = require("../utils/test-manager");
-const DeployManager = require("../utils/deploy-manager.js");
-const MultisigExecutor = require("../utils/multisigexecutor.js");
+const TestManager = require("../../utils/test-manager");
+const DeployManager = require("../../utils/deploy-manager.js");
+const MultisigExecutor = require("../../utils/multisigexecutor.js");
 
-const MultiSig = require("../build/MultiSigWallet");
-const UniswapFactory = require("../lib/uniswap/UniswapFactory");
-const UniswapExchange = require("../lib/uniswap/UniswapExchange");
-const Join = require("../build/JoinLike");
-const Vat = require("../build/VatLike");
-const FaucetUser = require("../build/FaucetUser");
-const CdpManager = require("../build/TestCdpManager");
-const MakerV1Manager = require("../build/MakerManager");
-const MakerV2Manager = require("../build/MakerV2Manager");
-const UpgradedMakerV2Manager = require("../build/TestUpgradedMakerV2Manager");
-const TransferManager = require("../build/TransferManager");
-const MakerRegistry = require("../build/MakerRegistry");
-const ModuleRegistry = require("../build/ModuleRegistry");
-const ScdMcdMigration = require("../build/ScdMcdMigration");
-const Wallet = require("../build/BaseWallet");
-const DSToken = require("../build/DSToken");
+const MultiSig = require("../../build/MultiSigWallet");
+const UniswapFactory = require("../../lib/uniswap/UniswapFactory");
+const UniswapExchange = require("../../lib/uniswap/UniswapExchange");
+const Join = require("../../build/JoinLike");
+const Vat = require("../../build/VatLike");
+const FaucetUser = require("../../build/FaucetUser");
+const CdpManager = require("../../build/TestCdpManager");
+const MakerV1Manager = require("../../build/MakerManager");
+const MakerV2Manager = require("../../build/MakerV2Manager");
+const UpgradedMakerV2Manager = require("../../build/TestUpgradedMakerV2Manager");
+const TransferManager = require("../../build/TransferManager");
+const MakerRegistry = require("../../build/MakerRegistry");
+const ModuleRegistry = require("../../build/ModuleRegistry");
+const ScdMcdMigration = require("../../build/ScdMcdMigration");
+const Wallet = require("../../build/BaseWallet");
+const DSToken = require("../../build/DSToken");
 
 const { parseEther, bigNumberify, formatBytes32String } = ethers.utils;
 const { HashZero } = ethers.constants;
-const { bigNumToBytes32 } = require("../utils/utilities.js");
+const { bigNumToBytes32 } = require("../../utils/utilities.js");
 
 const DEFAULT_NETWORK = "kovan-fork"; // also works on kovan (faster, but uses real KETH)
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";

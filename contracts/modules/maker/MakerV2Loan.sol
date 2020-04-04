@@ -107,9 +107,9 @@ contract MakerV2Loan is MakerV2Base {
     )
         public
     {
-        cdpManager = ScdMcdMigration(scdMcdMigration).cdpManager();
-        tub = ScdMcdMigration(scdMcdMigration).tub();
-        wethJoin = ScdMcdMigration(scdMcdMigration).wethJoin();
+        cdpManager = ScdMcdMigrationLike(scdMcdMigration).cdpManager();
+        tub = ScdMcdMigrationLike(scdMcdMigration).tub();
+        wethJoin = ScdMcdMigrationLike(scdMcdMigration).wethJoin();
         wethToken = wethJoin.gem();
         mkrToken = tub.gov();
         jug = _jug;
@@ -312,7 +312,7 @@ contract MakerV2Loan is MakerV2Base {
         // Update stability fee rate
         jug.drip(wethJoin.ilk());
         // Execute the CDP migration
-        _loanId = bytes32(ScdMcdMigration(scdMcdMigration).migrate(_cup));
+        _loanId = bytes32(ScdMcdMigrationLike(scdMcdMigration).migrate(_cup));
         // Record the new vault as belonging to the wallet
         saveLoanOwner(_wallet, _loanId);
 

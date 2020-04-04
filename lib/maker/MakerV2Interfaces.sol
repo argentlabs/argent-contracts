@@ -4,25 +4,24 @@ contract GemLike {
     function balanceOf(address) public view returns (uint);
     function transferFrom(address, address, uint) public returns (bool);
     function approve(address, uint) public returns (bool success);
+    function decimals() public view returns (uint);
+    function transfer(address,uint) external returns (bool);
+}
+
+contract DSTokenLike {
+    function mint(address,uint) external;
+    function burn(address,uint) external;
 }
 
 contract VatLike {
-    struct Ilk {
-        uint256 Art;   // Total Normalised Debt     [wad]
-        uint256 rate;  // Accumulated Rates         [ray]
-        uint256 spot;  // Price with Safety Margin  [ray]
-        uint256 line;  // Debt Ceiling              [rad]
-        uint256 dust;  // Urn Debt Floor            [rad]
-    }
-    struct Urn {
-        uint256 ink;   // Locked Collateral  [wad]
-        uint256 art;   // Normalised Debt    [wad]
-    }
-    mapping (bytes32 => Ilk) public ilks;
-    mapping (bytes32 => mapping (address => Urn )) public urns;
     function can(address, address) public view returns (uint);
     function dai(address) public view returns (uint);
     function hope(address) public;
+    function ilks(bytes32) public view returns (uint Art, uint rate, uint spot, uint line, uint dust);
+    function urns(bytes32, address) public view returns (uint ink, uint art);
+    function frob(bytes32, address, address, address, int, int) public;
+    function slip(bytes32,address,int) external;
+    function move(address,address,uint) external;
 }
 
 contract JoinLike {
@@ -36,6 +35,7 @@ contract JoinLike {
 }
 
 contract ManagerLike {
+    function vat() public view returns (address);
     function urns(uint) public view returns (address);
     function open(bytes32, address) public returns (uint);
     function frob(uint, int, int) public;
@@ -46,10 +46,10 @@ contract ManagerLike {
     mapping (uint => address) public owns;
 }
 
-contract ScdMcdMigration {
-    function swapSaiToDai(uint wad) external;
-    function swapDaiToSai(uint wad) external;
-    function migrate(bytes32 cup) external returns (uint cdp);
+contract ScdMcdMigrationLike {
+    function swapSaiToDai(uint) public;
+    function swapDaiToSai(uint) public;
+    function migrate(bytes32) public returns (uint);
     JoinLike public saiJoin;
     JoinLike public wethJoin;
     JoinLike public daiJoin;
@@ -62,8 +62,19 @@ contract ValueLike {
 }
 
 contract SaiTubLike {
+    function skr() public view returns (GemLike);
+    function gem() public view returns (GemLike);
     function gov() public view returns (GemLike);
+    function sai() public view returns (GemLike);
     function pep() public view returns (ValueLike);
+    function bid(uint) public view returns (uint);
+    function ink(bytes32) public view returns (uint);
+    function tab(bytes32) public returns (uint);
     function rap(bytes32) public returns (uint);
-    function give(bytes32, address) public;
+    function shut(bytes32) public;
+    function exit(uint) public;
+}
+
+contract VoxLike {
+    function par() public returns (uint);
 }
