@@ -148,6 +148,16 @@ const deploy = async (network) => {
   await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderSetKyberNetworkTx,
     "Disable the KyberNetwork on the TokenPriceProvider");
 
+  // ////////////////////////////////////////////////////
+  // Change the owner of TokenPriceProvider
+  // ////////////////////////////////////////////////////
+
+  const TokenPriceProviderRevokeManagerTx = await TokenPriceProviderWrapper.contract.revokeManager(deploymentWallet.address);
+  await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderRevokeManagerTx,
+    `Revoke ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
+  const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet);
+  await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProvider");
+
   // //////////////////////////////////
   // Deploy and Register upgraders
   // //////////////////////////////////
