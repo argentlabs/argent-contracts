@@ -51,7 +51,7 @@ const deploy = async (network) => {
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
   // //////////////////////////////////
-  // Deploy utility contracts
+  // Deploy infrastructure contracts
   // //////////////////////////////////
 
   // Deploy and configure Maker Registry
@@ -139,13 +139,24 @@ const deploy = async (network) => {
   // Disable KyberNetwork on the TokenPriceProvider
   // ////////////////////////////////////////////////////
 
-  const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(deploymentWallet);
-  await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
-    `Set ${deploymentWallet} as the manager of the TokenPriceProvider`);
-
+  if (!await TokenPriceProviderWrapper.contract.managers(deploymentWallet.address)) {
+    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(deploymentWallet.address);
+    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
+      `Set ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
+  }
   const TokenPriceProviderSetKyberNetworkTx = await TokenPriceProviderWrapper.contract.setKyberNetwork("0x0000000000000000000000000000000000000000");
   await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderSetKyberNetworkTx,
     "Disable the KyberNetwork on the TokenPriceProvider");
+
+  // ////////////////////////////////////////////////////
+  // Change the owner of TokenPriceProvider
+  // ////////////////////////////////////////////////////
+
+  const TokenPriceProviderRevokeManagerTx = await TokenPriceProviderWrapper.contract.revokeManager(deploymentWallet.address);
+  await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderRevokeManagerTx,
+    `Revoke ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
+  const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet);
+  await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProvider");
 
   // //////////////////////////////////
   // Deploy and Register upgraders
