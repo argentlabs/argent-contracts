@@ -35,7 +35,7 @@ contract BaseTransfer is BaseModule {
     event ApprovedAndCalledContract(
         address indexed wallet,
         address indexed to,
-        address spender,
+        address indexed spender,
         address indexed token,
         uint256 amountApproved,
         uint256 amountSpent,
