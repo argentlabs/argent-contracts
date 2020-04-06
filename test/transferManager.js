@@ -6,7 +6,7 @@ const Registry = require("../build/ModuleRegistry");
 const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferModule = require("../build/TransferManager");
-const OldTransferModule = require("../build/LegacyTokenTransfer");
+const LegacyTransferManager = require("../build/LegacyTransferManager");
 const KyberNetwork = require("../build/KyberNetworkTest");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
@@ -53,7 +53,7 @@ describe("TransferManager", function () {
     priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
     transferStorage = await deployer.deploy(TransferStorage);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    previousTransferModule = await deployer.deploy(OldTransferModule, {},
+    previousTransferModule = await deployer.deploy(LegacyTransferManager, {},
       registry.contractAddress,
       transferStorage.contractAddress,
       guardianStorage.contractAddress,
