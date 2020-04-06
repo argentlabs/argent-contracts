@@ -53,6 +53,7 @@ describe("TransferManager", function () {
     priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
     transferStorage = await deployer.deploy(TransferStorage);
     guardianStorage = await deployer.deploy(GuardianStorage);
+
     previousTransferModule = await deployer.deploy(LegacyTransferManager, {},
       registry.contractAddress,
       transferStorage.contractAddress,
@@ -60,7 +61,9 @@ describe("TransferManager", function () {
       priceProvider.contractAddress,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
-      ETH_LIMIT);
+      ETH_LIMIT,
+      ethers.constants.AddressZero);
+
     transferModule = await deployer.deploy(TransferModule, {},
       registry.contractAddress,
       transferStorage.contractAddress,
@@ -70,6 +73,7 @@ describe("TransferManager", function () {
       SECURITY_WINDOW,
       ETH_LIMIT,
       previousTransferModule.contractAddress);
+
     await registry.registerModule(transferModule.contractAddress, ethers.utils.formatBytes32String("TransferModule"));
   });
 

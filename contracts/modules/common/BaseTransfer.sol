@@ -35,7 +35,7 @@ contract BaseTransfer is BaseModule {
     event ApprovedAndCalledContract(
         address indexed wallet,
         address indexed to,
-        address indexed spender,
+        address spender,
         address indexed token,
         uint256 amountApproved,
         uint256 amountSpent,
@@ -106,15 +106,15 @@ contract BaseTransfer is BaseModule {
         internal
     {
         uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _spender);
-
+        uint256 totalAllowance = SafeMath.add(currentAllowance, _amount);
         // Approve the desired amount
-        bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _amount);
+        bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, totalAllowance);
         invokeWallet(address(_wallet), _token, 0, methodData);
 
         invokeWallet(address(_wallet), _contract, 0, _data);
 
         uint256 unusedAllowance = ERC20(_token).allowance(address(_wallet), _spender);
-        uint256 usedAllowance = SafeMath.sub(_amount, unusedAllowance);
+        uint256 usedAllowance = SafeMath.sub(totalAllowance, unusedAllowance);
 
         // Restore the original allowance amount
         methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, currentAllowance);
