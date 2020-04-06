@@ -17,7 +17,7 @@ const utils = require("../utils/utilities.js");
 
 const TARGET_VERSION = "1.6.0";
 const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager", "MakerV2Manager"];
-const MODULES_TO_DISABLE = ["UniswapManager", "MakerManager"];
+const MODULES_TO_DISABLE = ["UniswapManager"];
 
 const BACKWARD_COMPATIBILITY = 3;
 
