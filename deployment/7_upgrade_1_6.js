@@ -12,11 +12,12 @@ const TokenPriceProvider = require("../build/TokenPriceProvider");
 const MakerRegistry = require("../build/MakerRegistry");
 const ScdMcdMigration = require("../build/ScdMcdMigration");
 const MakerV2Manager = require("../build/MakerV2Manager");
+const TransferManager = require("../build/TransferManager");
 
 const utils = require("../utils/utilities.js");
 
 const TARGET_VERSION = "1.6.0";
-const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager", "MakerV2Manager"];
+const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager", "MakerV2Manager", "TransferManager"];
 const MODULES_TO_DISABLE = ["UniswapManager"];
 
 const BACKWARD_COMPATIBILITY = 3;
@@ -101,6 +102,20 @@ const deploy = async (network) => {
   );
   newModuleWrappers.push(MakerV2ManagerWrapper);
 
+  const TransferManagerWrapper = await deployer.deploy(
+    TransferManager,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.TransferStorage,
+    config.modules.GuardianStorage,
+    config.contracts.TokenPriceProvider,
+    config.settings.securityPeriod || 0,
+    config.settings.securityWindow || 0,
+    config.settings.defaultLimit || "1000000000000000000",
+    ["test", "staging", "prod"].includes(network) ? config.modules.TokenTransfer : "0x0000000000000000000000000000000000000000",
+  );
+  newModuleWrappers.push(TransferManagerWrapper);
+
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
@@ -109,6 +124,7 @@ const deploy = async (network) => {
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     RecoveryManager: RecoveryManagerWrapper.contractAddress,
     MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
+    TransferManager: TransferManagerWrapper.contractAddress,
   });
 
   configurator.updateInfrastructureAddresses({
@@ -123,6 +139,7 @@ const deploy = async (network) => {
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(RecoveryManagerWrapper, "modules"),
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
+    abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(MakerRegistryWrapper, "contracts"),
   ]);
 
