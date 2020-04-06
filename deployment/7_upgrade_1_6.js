@@ -7,7 +7,6 @@ const ModuleRegistry = require("../build/ModuleRegistry");
 const Upgrader = require("../build/SimpleUpgrader");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
-const LegacyUpgrader = require("../build/LegacyUpgrader");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 const MakerRegistry = require("../build/MakerRegistry");
 const ScdMcdMigration = require("../build/ScdMcdMigration");
@@ -212,29 +211,16 @@ const deploy = async (network) => {
 
     const upgraderName = `${version.fingerprint}_${fingerprint}`;
 
-    let UpgraderWrapper;
-    if (version.modules.map((m) => m.name).includes("ModuleManager")) {
-      // make sure ModuleManager is always the last to be removed if it needs to be removed
-      toRemove.push(toRemove.splice(toRemove.findIndex(({ name }) => name === "ModuleManager"), 1)[0]);
-      // this is an "old-style" Upgrader (to be used with ModuleManager)
-      UpgraderWrapper = await deployer.deploy(
-        LegacyUpgrader,
-        {},
-        toRemove.map((module) => module.address),
-        toAdd.map((module) => module.address),
-      );
-    } else {
-      // this is a "new-style" Upgrader Module (to be used with the addModule method of TransferManager or any module deployed after it)
-      UpgraderWrapper = await deployer.deploy(
-        Upgrader,
-        {},
-        config.contracts.ModuleRegistry,
-        toRemove.map((module) => module.address),
-        toAdd.map((module) => module.address),
-      );
-      await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
-        [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
-    }
+    const UpgraderWrapper = await deployer.deploy(
+      Upgrader,
+      {},
+      config.contracts.ModuleRegistry,
+      toRemove.map((module) => module.address),
+      toAdd.map((module) => module.address),
+    );
+    await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
+      [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader",
       [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
   }
