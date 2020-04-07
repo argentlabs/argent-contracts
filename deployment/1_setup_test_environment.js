@@ -56,6 +56,7 @@ const deploy = async (network) => {
 
   const { configurator } = manager;
   const { deployer } = manager;
+  const { gasPrice } = deployer.defaultOverrides;
 
   const { config } = configurator;
 
@@ -77,7 +78,7 @@ const deploy = async (network) => {
     const UniswapFactoryWrapper = await deployer.deploy(UniswapFactory);
     configurator.updateUniswapFactory(UniswapFactoryWrapper.contractAddress);
     const UniswapExchangeTemplateWrapper = await deployer.deploy(UniswapExchange);
-    const initializeFactoryTx = await UniswapFactoryWrapper.initializeFactory(UniswapExchangeTemplateWrapper.contractAddress);
+    const initializeFactoryTx = await UniswapFactoryWrapper.contract.initializeFactory(UniswapExchangeTemplateWrapper.contractAddress, { gasPrice });
     await UniswapFactoryWrapper.verboseWaitForTransaction(initializeFactoryTx, "Initializing UniswapFactory");
   }
 

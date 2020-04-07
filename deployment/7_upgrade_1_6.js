@@ -59,9 +59,9 @@ const deploy = async (network) => {
   const MakerRegistryWrapper = await deployer.deploy(MakerRegistry);
   const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
   const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
-  const addCollateralTransaction = await MakerRegistryWrapper.addCollateral(wethJoinAddress);
+  const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
-  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
+  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
 
   // //////////////////////////////////
@@ -155,10 +155,10 @@ const deploy = async (network) => {
   // Change the owner of TokenPriceProvider
   // ////////////////////////////////////////////////////
 
-  const TokenPriceProviderRevokeManagerTx = await TokenPriceProviderWrapper.contract.revokeManager(deploymentWallet.address);
+  const TokenPriceProviderRevokeManagerTx = await TokenPriceProviderWrapper.contract.revokeManager(deploymentWallet.address, { gasPrice });
   await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderRevokeManagerTx,
     `Revoke ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
-  const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet);
+  const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProvider");
 
   // //////////////////////////////////
