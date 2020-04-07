@@ -526,18 +526,54 @@ describe("TransferManager", function () {
 
     it("should restore existing approved amount after call", async () => {
       await transferModule.from(owner).approveToken(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 10);
-      const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, 1]);
+      const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, 5]);
       await transferModule.from(owner).approveTokenAndCallContract(
         wallet.contractAddress,
         erc20.contractAddress,
         contract.contractAddress,
-        1,
+        5,
         contract.contractAddress,
         dataToTransfer,
       );
       const approval = await erc20.allowance(wallet.contractAddress, contract.contractAddress);
-      // Initial approval of 10 is restored, after approving and spending 1
+
+      // Initial approval of 10 is restored, after approving and spending 5
       assert.equal(approval.toNumber(), 10);
+
+      const erc20Balance = await erc20.balanceOf(contract.contractAddress);
+      assert.equal(erc20Balance.toNumber(), 5, "the contract should have transfered the tokens");
+    });
+
+    it("should be able to spend less than approved in call", async () => {
+      await transferModule.from(owner).approveToken(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 10);
+      const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, 4]);
+      await transferModule.from(owner).approveTokenAndCallContract(
+        wallet.contractAddress,
+        erc20.contractAddress,
+        contract.contractAddress,
+        5,
+        contract.contractAddress,
+        dataToTransfer,
+      );
+      const approval = await erc20.allowance(wallet.contractAddress, contract.contractAddress);
+      // Initial approval of 10 is restored, after approving and spending 4
+      assert.equal(approval.toNumber(), 10);
+
+      const erc20Balance = await erc20.balanceOf(contract.contractAddress);
+      assert.equal(erc20Balance.toNumber(), 4, "the contract should have transfered the tokens");
+    });
+
+    it("should not be able to spend more than approved in call", async () => {
+      await transferModule.from(owner).approveToken(wallet.contractAddress, erc20.contractAddress, contract.contractAddress, 10);
+      const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, 6]);
+      await assert.revertWith(transferModule.from(owner).approveTokenAndCallContract(
+        wallet.contractAddress,
+        erc20.contractAddress,
+        contract.contractAddress,
+        5,
+        contract.contractAddress,
+        dataToTransfer,
+      ), "BT: insufficient amount for call");
     });
 
     it("should approve the token and call the contract when the token is above the limit and the contract is whitelisted ", async () => {

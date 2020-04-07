@@ -118,6 +118,8 @@ contract BaseTransfer is BaseModule {
         // Calculate the approved amount that was spent after the call
         uint256 unusedAllowance = ERC20(_token).allowance(address(_wallet), _spender);
         uint256 usedAllowance = SafeMath.sub(totalAllowance, unusedAllowance);
+        // Ensure the amount spent does not exceed the amount approved for this call
+        require(usedAllowance <= _amount, "BT: insufficient amount for call");
 
         // Restore the original allowance amount.
         methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, existingAllowance);
