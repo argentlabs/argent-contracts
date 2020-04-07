@@ -1,6 +1,7 @@
 #!/bin/bash
 
-for file in $(git diff --cached --name-only | grep -E '\.sol$' | grep -v '^lib/')
+for file in $(git diff --cached --name-only | grep -E '^contracts/.*\.sol$')
+
 do
   echo "Checking $file"
   git show ":$file" | node_modules/.bin/solium --stdin "$file" # we only want to lint the staged changes, not any un-staged changes
