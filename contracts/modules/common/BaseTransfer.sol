@@ -87,7 +87,8 @@ contract BaseTransfer is BaseModule {
     }
 
     /**
-    * @dev Helper method to call an external contract.
+    * @dev Helper method to approve a certain amount of token and call an external contract.
+    * The address that spends the _token and the address that is called with _data can be different.
     * @param _wallet The target wallet.
     * @param _token The ERC20 address.
     * @param _spender The spender address.
@@ -105,19 +106,21 @@ contract BaseTransfer is BaseModule {
     )
         internal
     {
-        uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _spender);
-        uint256 totalAllowance = SafeMath.add(currentAllowance, _amount);
-        // Approve the desired amount
+        uint256 existingAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+        uint256 totalAllowance = SafeMath.add(existingAllowance, _amount);
+        // Approve the desired amount plus existing amount. This logic allows for potential gas saving later
+        // when restoring the original approved amount, in cases where the _spender uses the exact approved _amount.
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, totalAllowance);
-        invokeWallet(address(_wallet), _token, 0, methodData);
 
+        invokeWallet(address(_wallet), _token, 0, methodData);
         invokeWallet(address(_wallet), _contract, 0, _data);
 
+        // Calculate the approved amount that was spent after the call
         uint256 unusedAllowance = ERC20(_token).allowance(address(_wallet), _spender);
         uint256 usedAllowance = SafeMath.sub(totalAllowance, unusedAllowance);
 
-        // Restore the original allowance amount
-        methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, currentAllowance);
+        // Restore the original allowance amount.
+        methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, existingAllowance);
         invokeWallet(address(_wallet), _token, 0, methodData);
 
         emit ApprovedAndCalledContract(
