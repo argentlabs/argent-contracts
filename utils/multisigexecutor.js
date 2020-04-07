@@ -8,7 +8,7 @@ class MultisigExecutor {
     this._multisigWrapper = multisigWrapper;
     this._ownerWallet = ownerWallet;
     this._autoSign = autoSign;
-    this._overrides = Object.assign(overrides, { gasLimit: 300000 });
+    this._overrides = Object.assign(overrides, { gasLimit: 1000000 });
   }
 
   async executeCall(contractWrapper, method, params) {
