@@ -17,6 +17,7 @@ const BYTES32_NULL = "0x00000000000000000000000000000000000000000000000000000000
 
 // For development purpose
 async function deployENSRegistry(deployer, owner, domain) {
+  const { gasPrice } = deployer.defaultOverrides;
   // Deploy the public ENS registry
   const ensRegistryWithoutFallback = await deployer.deploy(ENSRegistry);
   const ENSWrapper = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
@@ -27,11 +28,11 @@ async function deployENSRegistry(deployer, owner, domain) {
   const domainName = parts[0];
 
   // Create the 'eth' and 'xyz' namespaces
-  const setSubnodeOwnerXYZ = await ENSWrapper.contract.setSubnodeOwner(BYTES32_NULL, utils.sha3(extension), owner);
+  const setSubnodeOwnerXYZ = await ENSWrapper.contract.setSubnodeOwner(BYTES32_NULL, utils.sha3(extension), owner, { gasPrice });
   await ENSWrapper.verboseWaitForTransaction(setSubnodeOwnerXYZ, `Setting Subnode Owner for ${extension}`);
 
   // Create the 'argentx.xyz' wallet ENS namespace
-  const setSubnodeOwnerArgent = await ENSWrapper.contract.setSubnodeOwner(utils.namehash(extension), utils.sha3(domainName), owner);
+  const setSubnodeOwnerArgent = await ENSWrapper.contract.setSubnodeOwner(utils.namehash(extension), utils.sha3(domainName), owner, { gasPrice });
   await ENSWrapper.verboseWaitForTransaction(setSubnodeOwnerArgent, `Setting Subnode Owner for ${domainName}.${extension}`);
 
   return ENSWrapper.contractAddress;
@@ -39,10 +40,11 @@ async function deployENSRegistry(deployer, owner, domain) {
 
 // For development purpose
 async function deployKyber(deployer) {
+  const { gasPrice } = deployer.defaultOverrides;
   const KyberWrapper = await deployer.deploy(Kyber);
   const ERC20Wrapper = await deployer.deploy(ERC20, {}, [KyberWrapper.contractAddress], TEST_ERC20_SUPPLY, TEST_ERC20_DECIMALS);
 
-  const addToken = await KyberWrapper.contract.addToken(ERC20Wrapper.contractAddress, TEST_ERC20_RATE, TEST_ERC20_DECIMALS);
+  const addToken = await KyberWrapper.contract.addToken(ERC20Wrapper.contractAddress, TEST_ERC20_RATE, TEST_ERC20_DECIMALS, { gasPrice });
   await KyberWrapper.verboseWaitForTransaction(addToken, "Add test token to Kyber");
 
   return KyberWrapper.contractAddress;
@@ -54,6 +56,7 @@ const deploy = async (network) => {
 
   const { configurator } = manager;
   const { deployer } = manager;
+  const { gasPrice } = deployer.defaultOverrides;
 
   const { config } = configurator;
 
@@ -75,7 +78,7 @@ const deploy = async (network) => {
     const UniswapFactoryWrapper = await deployer.deploy(UniswapFactory);
     configurator.updateUniswapFactory(UniswapFactoryWrapper.contractAddress);
     const UniswapExchangeTemplateWrapper = await deployer.deploy(UniswapExchange);
-    const initializeFactoryTx = await UniswapFactoryWrapper.initializeFactory(UniswapExchangeTemplateWrapper.contractAddress);
+    const initializeFactoryTx = await UniswapFactoryWrapper.contract.initializeFactory(UniswapExchangeTemplateWrapper.contractAddress, { gasPrice });
     await UniswapFactoryWrapper.verboseWaitForTransaction(initializeFactoryTx, "Initializing UniswapFactory");
   }
 

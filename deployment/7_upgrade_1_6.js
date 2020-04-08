@@ -42,13 +42,14 @@ const deploy = async (network) => {
   const { deployer } = manager;
   const { abiUploader } = manager;
   const { versionUploader } = manager;
+  const { gasPrice } = deployer.defaultOverrides;
   const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
   const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
 
   // //////////////////////////////////
   // Deploy infrastructure contracts
@@ -58,9 +59,9 @@ const deploy = async (network) => {
   const MakerRegistryWrapper = await deployer.deploy(MakerRegistry);
   const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
   const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
-  const addCollateralTransaction = await MakerRegistryWrapper.addCollateral(wethJoinAddress);
+  const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
-  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
+  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
 
   // //////////////////////////////////
@@ -140,11 +141,13 @@ const deploy = async (network) => {
   // ////////////////////////////////////////////////////
 
   if (!await TokenPriceProviderWrapper.contract.managers(deploymentWallet.address)) {
-    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(deploymentWallet.address);
+    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(deploymentWallet.address, { gasPrice });
     await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
       `Set ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
   }
-  const TokenPriceProviderSetKyberNetworkTx = await TokenPriceProviderWrapper.contract.setKyberNetwork("0x0000000000000000000000000000000000000000");
+
+  const TokenPriceProviderSetKyberNetworkTx = await TokenPriceProviderWrapper.contract.setKyberNetwork("0x0000000000000000000000000000000000000000",
+    { gasPrice });
   await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderSetKyberNetworkTx,
     "Disable the KyberNetwork on the TokenPriceProvider");
 
@@ -152,10 +155,10 @@ const deploy = async (network) => {
   // Change the owner of TokenPriceProvider
   // ////////////////////////////////////////////////////
 
-  const TokenPriceProviderRevokeManagerTx = await TokenPriceProviderWrapper.contract.revokeManager(deploymentWallet.address);
+  const TokenPriceProviderRevokeManagerTx = await TokenPriceProviderWrapper.contract.revokeManager(deploymentWallet.address, { gasPrice });
   await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderRevokeManagerTx,
     `Revoke ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
-  const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet);
+  const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProvider");
 
   // //////////////////////////////////

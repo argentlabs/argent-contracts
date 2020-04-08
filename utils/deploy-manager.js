@@ -7,9 +7,10 @@ const ConfiguratorLoader = require("./configurator-loader.js");
 const PrivateKeyLoader = require("./private-key-loader.js");
 const ABIUploader = require("./abi-uploader.js");
 const VersionUploader = require("./version-uploader.js");
+const utils = require("./utilities.js");
 
 const defaultConfigs = {
-  gasPrice: 20000000000, // 20 Gwei
+  gasPrice: utils.bigNumberify(process.env.DEPLOYER_GAS_PRICE || 20000000000),
   gasLimit: 6000000,
 };
 
@@ -53,11 +54,13 @@ class DeployManager {
       this.deployer = new etherlime.EtherlimeGanacheDeployer(pkey); // will use etherlime accounts if pkey is undefined
     } else if (config.settings.deployer.type === "infura") {
       const { network, key, envvar } = config.settings.deployer.options;
-      this.deployer = new etherlime.InfuraPrivateKeyDeployer(pkey, network, key || process.env[envvar], defaultConfigs);
+      this.deployer = new etherlime.InfuraPrivateKeyDeployer(pkey, network, key || process.env[envvar]);
     } else if (config.settings.deployer.type === "jsonrpc") {
       const { url } = config.settings.deployer.options;
-      this.deployer = new etherlime.JSONRPCPrivateKeyDeployer(pkey, url, defaultConfigs);
+      this.deployer = new etherlime.JSONRPCPrivateKeyDeployer(pkey, url);
     }
+    // set default gasPrice and gasLimit
+    this.deployer.setDefaultOverrides(defaultConfigs);
 
     // setting backend accounts and multi-sig owner for test environments not managed on S3
     if (!this.remotelyManagedNetworks.includes(this.network)) {
