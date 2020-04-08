@@ -18,7 +18,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../../lib/utils/SafeMath.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/other/KyberNetwork.sol";
 

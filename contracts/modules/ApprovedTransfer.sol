@@ -18,7 +18,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModuleV2.sol";
 import "./common/BaseTransfer.sol";
-import "../../lib/utils/SafeMath.sol";
 
 /**
  * @title ApprovedTransfer
@@ -100,8 +99,7 @@ contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
         onlyWhenUnlocked(_wallet)
     {
         require(!_wallet.authorised(_contract) && _contract != address(_wallet), "AT: Forbidden contract");
-        doApproveToken(_wallet, _token, _spender, _amount);
-        doCallContract(_wallet, _contract, 0, _data);
+        doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //

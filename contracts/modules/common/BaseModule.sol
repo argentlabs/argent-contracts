@@ -19,6 +19,7 @@ import "../../infrastructure/ModuleRegistry.sol";
 import "../storage/GuardianStorage.sol";
 import "./Module.sol";
 import "../../../lib/other/ERC20.sol";
+import "../../../lib/utils/SafeMath.sol";
 
 /**
  * @title BaseModule

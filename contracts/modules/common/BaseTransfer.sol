@@ -32,7 +32,15 @@ contract BaseTransfer is BaseModule {
     event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
     event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
     event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
-
+    event ApprovedAndCalledContract(
+        address indexed wallet,
+        address indexed to,
+        address spender,
+        address indexed token,
+        uint256 amountApproved,
+        uint256 amountSpent,
+        bytes data
+    );
     // *************** Internal Functions ********************* //
 
     /**
@@ -76,5 +84,56 @@ contract BaseTransfer is BaseModule {
     function doCallContract(BaseWallet _wallet, address _contract, uint256 _value, bytes memory _data) internal {
         invokeWallet(address(_wallet), _contract, _value, _data);
         emit CalledContract(address(_wallet), _contract, _value, _data);
+    }
+
+    /**
+    * @dev Helper method to approve a certain amount of token and call an external contract.
+    * The address that spends the _token and the address that is called with _data can be different.
+    * @param _wallet The target wallet.
+    * @param _token The ERC20 address.
+    * @param _spender The spender address.
+    * @param _amount The amount of tokens to transfer.
+    * @param _contract The contract address.
+    * @param _data The method data.
+    */
+    function doApproveTokenAndCallContract(
+        BaseWallet _wallet,
+        address _token,
+        address _spender,
+        uint256 _amount,
+        address _contract,
+        bytes memory _data
+    )
+        internal
+    {
+        uint256 existingAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+        uint256 totalAllowance = SafeMath.add(existingAllowance, _amount);
+        // Approve the desired amount plus existing amount. This logic allows for potential gas saving later
+        // when restoring the original approved amount, in cases where the _spender uses the exact approved _amount.
+        bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, totalAllowance);
+
+        invokeWallet(address(_wallet), _token, 0, methodData);
+        invokeWallet(address(_wallet), _contract, 0, _data);
+
+        // Calculate the approved amount that was spent after the call
+        uint256 unusedAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+        uint256 usedAllowance = SafeMath.sub(totalAllowance, unusedAllowance);
+        // Ensure the amount spent does not exceed the amount approved for this call
+        require(usedAllowance <= _amount, "BT: insufficient amount for call");
+
+        if (unusedAllowance != existingAllowance) {
+            // Restore the original allowance amount if the amount spent was different (can be lower).
+            methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, existingAllowance);
+            invokeWallet(address(_wallet), _token, 0, methodData);
+        }
+
+        emit ApprovedAndCalledContract(
+            address(_wallet),
+            _contract,
+            _spender,
+            _token,
+            _amount,
+            usedAllowance,
+            _data);
     }
 }
