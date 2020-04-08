@@ -112,7 +112,7 @@ const deploy = async (network) => {
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
-    ["test", "staging", "prod"].includes(network) ? config.modules.TokenTransfer : "0x0000000000000000000000000000000000000000",
+    ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
   );
   newModuleWrappers.push(TransferManagerWrapper);
 
