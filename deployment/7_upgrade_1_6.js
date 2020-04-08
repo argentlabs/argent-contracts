@@ -19,7 +19,7 @@ const TARGET_VERSION = "1.6.0";
 const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager", "MakerV2Manager", "TransferManager"];
 const MODULES_TO_DISABLE = ["UniswapManager"];
 
-const BACKWARD_COMPATIBILITY = 3;
+const BACKWARD_COMPATIBILITY = 1;
 
 const deploy = async (network) => {
   if (!["kovan", "kovan-fork", "staging", "prod"].includes(network)) {
