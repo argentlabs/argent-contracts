@@ -1,4 +1,3 @@
-
 const { parseEther, formatBytes32String, bigNumberify } = require("ethers").utils;
 const { AddressZero } = require("ethers").constants;
 const etherlime = require("etherlime-lib");
@@ -187,7 +186,7 @@ describe("MakerV2 DSR & SAI<>DAI", function () {
       const params = [wallet.contractAddress, DAI_SENT];
 
       if (relayed) {
-        await manager.relay(makerV2, method, params, { contractAddress: wallet.contractAddress }, [owner]);
+        await manager.relay(makerV2, method, params, wallet, [owner]);
       } else {
         await (await makerV2.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
       }
@@ -225,7 +224,7 @@ describe("MakerV2 DSR & SAI<>DAI", function () {
       }
       const params = [wallet.contractAddress].concat(all ? [] : [DAI_SENT]);
       if (relayed) {
-        await manager.relay(makerV2, method, params, { contractAddress: wallet.contractAddress }, [owner]);
+        await manager.relay(makerV2, method, params, wallet, [owner]);
       } else {
         await (await makerV2.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
       }
