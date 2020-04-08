@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
 
-import "../../contracts/modules/maker/MakerV2Base.sol";
+import "./MakerV2Interfaces.sol";
 
 contract MockVat {
     function hope(address) external {}
