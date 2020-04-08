@@ -121,9 +121,11 @@ contract BaseTransfer is BaseModule {
         // Ensure the amount spent does not exceed the amount approved for this call
         require(usedAllowance <= _amount, "BT: insufficient amount for call");
 
-        // Restore the original allowance amount.
-        methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, existingAllowance);
-        invokeWallet(address(_wallet), _token, 0, methodData);
+        if (unusedAllowance != existingAllowance) {
+            // Restore the original allowance amount if the amount spent was different (can be lower).
+            methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, existingAllowance);
+            invokeWallet(address(_wallet), _token, 0, methodData);
+        }
 
         emit ApprovedAndCalledContract(
             address(_wallet),
