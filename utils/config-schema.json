@@ -171,9 +171,6 @@
         "ApprovedTransfer": {
           "$ref": "#/definitions/ethaddress"
         },
-        "TokenTransfer": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "TransferManager": {
           "$ref": "#/definitions/ethaddress"
         },
@@ -202,7 +199,6 @@
         "LockManager",
         "RecoveryManager",
         "ApprovedTransfer",
-        "TokenTransfer",
         "TransferManager",
         "TransferStorage",
         "TokenExchanger",
