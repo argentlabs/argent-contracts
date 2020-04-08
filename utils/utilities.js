@@ -1,7 +1,27 @@
-const ethers = require("ethers");
 const readline = require("readline");
+const ethers = require("ethers");
+
+const { bigNumberify } = ethers.utils;
+
+const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const RAY = bigNumberify("1000000000000000000000000000"); // 10**27
+const WAD = bigNumberify("1000000000000000000"); // 10**18
+const USD_PER_DAI = RAY; // 1 DAI = 1 USD
+const USD_PER_ETH = WAD.mul(100); // 1 ETH = 100 USD
+const USD_PER_MKR = WAD.mul(400); // 1 MKR = 400 USD
+const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 4 ETH
+const ETH_PER_DAI = WAD.mul(USD_PER_DAI).div(RAY).mul(WAD).div(USD_PER_ETH); // 1 DAI = 0.01 ETH
 
 module.exports = {
+
+  ETH_TOKEN,
+  RAY,
+  WAD,
+  USD_PER_DAI,
+  USD_PER_ETH,
+  USD_PER_MKR,
+  ETH_PER_MKR,
+  ETH_PER_DAI,
 
   namehash(_name) {
     return ethers.utils.namehash(_name);

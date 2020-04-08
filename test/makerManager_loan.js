@@ -1,109 +1,46 @@
 /* global accounts */
-const etherlime = require("etherlime-lib");
-const { parseEther, formatBytes32String, bigNumberify } = require("ethers").utils;
+const { parseEther, bigNumberify } = require("ethers").utils;
+const { deployMaker, deployUniswap } = require("../utils/defi-deployer");
+const {
+  bigNumToBytes32, ETH_TOKEN, ETH_PER_DAI, ETH_PER_MKR,
+} = require("../utils/utilities.js");
+const TestManager = require("../utils/test-manager");
 
 const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
-
 const GuardianStorage = require("../build/GuardianStorage");
 const MakerManager = require("../build/MakerManager");
 
-const UniswapFactory = require("../lib/uniswap/UniswapFactory");
-const UniswapExchange = require("../lib/uniswap/UniswapExchange");
-
-const TestManager = require("../utils/test-manager");
-
-const Vox = require("../build/SaiVox");
-const Tub = require("../build/SaiTub");
-const DSToken = require("../build/DSToken");
-const WETH = require("../build/WETH9");
-const DSValue = require("../build/DSValue");
-const { bigNumToBytes32 } = require("../utils/utilities.js");
-
-const RAY = bigNumberify("1000000000000000000000000000"); // 10**27
-const WAD = bigNumberify("1000000000000000000"); // 10**18
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const USD_PER_DAI = RAY; // 1 DAI = 1 USD
-const USD_PER_ETH = WAD.mul(100); // 1 ETH = 100 USD
-const USD_PER_MKR = WAD.mul(400); // 1 MKR = 400 USD
-const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 4 ETH
-const ETH_PER_DAI = WAD.mul(USD_PER_DAI).div(RAY).mul(WAD).div(USD_PER_ETH); // 1 DAI = 0.01 ETH
-
 describe("CDP Module", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
 
   const infrastructure = accounts[0].signer;
   const owner = accounts[1].signer;
-  const pit = accounts[2].signer;
 
-  let deployer; let loanManager; let wallet; let sai; let gov; let tub; let uniswapFactory; let
-    pip;
+  let deployer;
+  let loanManager;
+  let wallet;
+  let sai;
+  let gov;
+  let tub;
+  let uniswapFactory;
+  let pip;
 
   before(async () => {
     deployer = manager.newDeployer();
 
+    // Deploy Maker
+    const mk = await deployMaker(deployer, infrastructure);
+    [sai, gov, pip, tub] = [mk.sai, mk.gov, mk.pip, mk.tub];
+
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
 
-    // deploy MakerDAO infrastructure
-    const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
-    sai = await deployer.deploy(DSToken, {}, formatBytes32String("DAI"));
-    gov = await deployer.deploy(DSToken, {}, formatBytes32String("MKR"));
-    const sin = await deployer.deploy(DSToken, {}, formatBytes32String("SIN"));
-    const skr = await deployer.deploy(DSToken, {}, formatBytes32String("PETH"));
-    const gem = await deployer.deploy(WETH);
-    pip = await deployer.deploy(DSValue);
-    const pep = await deployer.deploy(DSValue);
-    tub = await deployer.deploy(Tub, {},
-      sai.contractAddress,
-      sin.contractAddress,
-      skr.contractAddress,
-      gem.contractAddress,
-      gov.contractAddress,
-      pip.contractAddress,
-      pep.contractAddress,
-      vox.contractAddress,
-      pit.address);
-
-    // let the Tub mint PETH and DAI
-    await skr.setOwner(tub.contractAddress);
-    await sai.setOwner(tub.contractAddress);
-    // setup USD/ETH oracle with a convertion rate of 100 USD/ETH
-    await pip.poke(`0x${USD_PER_ETH.toHexString().slice(2).padStart(64, "0")}`);
-    // setup USD/MKR oracle with a convertion rate of 400 USD/MKR
-    await pep.poke(`0x${USD_PER_MKR.toHexString().slice(2).padStart(64, "0")}`);
-    // set the total DAI debt ceiling to 50,000 DAI
-    await tub.mold(formatBytes32String("cap"), parseEther("50000"));
-    // set the liquidity ratio to 150%
-    await tub.mold(formatBytes32String("mat"), RAY.mul(3).div(2));
-    // set the governance fee to 7.5% APR
-    await tub.mold(formatBytes32String("fee"), "1000000002293273137447730714");
-
-    // setup Uniswap for purchase of MKR and DAI
-    uniswapFactory = await deployer.deploy(UniswapFactory);
-    const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
-    await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress);
-    const ethLiquidity = parseEther("10");
-    // MKR
-    await uniswapFactory.from(infrastructure).createExchange(gov.contractAddress);
-    const mkrExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(gov.contractAddress));
-    const mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
-    await gov["mint(address,uint256)"](infrastructure.address, mkrLiquidity);
-    await gov.from(infrastructure).approve(mkrExchange.contractAddress, mkrLiquidity);
-    let currentBlock = await manager.getCurrentBlock();
-    let timestamp = await manager.getTimestamp(currentBlock);
-    await mkrExchange.from(infrastructure).addLiquidity(1, mkrLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
-    // DAI
-    await uniswapFactory.from(infrastructure).createExchange(sai.contractAddress);
-    const saiExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(sai.contractAddress));
-    const saiLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_DAI);
-    await sai["mint(address,uint256)"](infrastructure.address, saiLiquidity);
-    await sai.from(infrastructure).approve(saiExchange.contractAddress, saiLiquidity);
-    currentBlock = await manager.getCurrentBlock();
-    timestamp = await manager.getTimestamp(currentBlock);
-    await saiExchange.from(infrastructure).addLiquidity(1, saiLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
+    // Deploy & setup Uniswap for purchase of MKR and DAI
+    const uni = await deployUniswap(deployer, manager, infrastructure, [gov, sai], [ETH_PER_MKR, ETH_PER_DAI]);
+    uniswapFactory = uni.uniswapFactory;
 
     loanManager = await deployer.deploy(
       MakerManager,
