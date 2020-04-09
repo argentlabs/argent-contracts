@@ -77,7 +77,7 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
         BaseWallet _wallet,
         uint256 _amount
     )
-        public
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
