@@ -143,5 +143,10 @@ describe("RelayerModule", function () {
       const updatedNonceHex = await ethers.utils.hexZeroPad(updatedNonce.toHexString(), 32);
       assert.equal(nonce, updatedNonceHex);
     });
+
+    it("should be able to get required signatures number", async () => {
+      const requiredSignatures = await relayerModuleV2.getRequiredSignatures(wallet.contractAddress, ethers.constants.HashZero);
+      assert.equal(requiredSignatures, 1);
+    });
   });
 });
