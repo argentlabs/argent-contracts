@@ -78,3 +78,7 @@ contract SaiTubLike {
 contract VoxLike {
     function par() public returns (uint);
 }
+
+contract JugLike {
+    function drip(bytes32) external;
+}

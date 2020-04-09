@@ -17,10 +17,6 @@ pragma solidity ^0.5.4;
 import "./MakerV2Base.sol";
 import "../../infrastructure/MakerRegistry.sol";
 
-contract JugLike {
-    function drip(bytes32) external;
-}
-
 interface IUniswapFactory {
     function getExchange(address _token) external view returns(IUniswapExchange);
 }

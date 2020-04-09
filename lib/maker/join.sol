@@ -18,7 +18,7 @@
 pragma solidity ^0.5.4;
 
 import "./lib.sol";
-import "./MakerV2Interfaces.sol";
+import "./MakerInterfaces.sol";
 
 /*
     Here we provide *adapters* to connect the Vat to arbitrary external

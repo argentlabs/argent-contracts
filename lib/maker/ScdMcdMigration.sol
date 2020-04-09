@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
 
-import { JoinLike, ManagerLike, SaiTubLike, VatLike } from "./MakerV2Interfaces.sol";
+import { JoinLike, ManagerLike, SaiTubLike, VatLike } from "./MakerInterfaces.sol";
 
 contract ScdMcdMigration {
     SaiTubLike                  public tub;

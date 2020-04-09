@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
 import "../base/Owned.sol";
-import "../modules/maker/MakerV2Base.sol";
+import "../../lib/maker/MakerInterfaces.sol";
 
 /**
  * @title MakerRegistry
