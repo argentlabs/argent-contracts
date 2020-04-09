@@ -23,6 +23,11 @@ const TokenPriceProvider = require("../build/TokenPriceProvider");
 describe("MakerV2 Vaults", function () {
   this.timeout(100000);
 
+  if (process.env.COVERAGE) {
+    // Can't yet deploy MakerV2Manager or MakerV2Loan with etherlime coverage as we need custom gasLimit
+    return;
+  }
+
   const manager = new TestManager();
   const { deployer } = manager;
 
