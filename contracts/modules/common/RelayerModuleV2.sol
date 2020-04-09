@@ -61,7 +61,7 @@ contract RelayerModuleV2 is BaseModule {
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures.
     */
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256);
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256);
 
     /**
     * @dev Validates the signatures provided with a relayed transaction.

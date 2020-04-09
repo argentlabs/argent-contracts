@@ -117,7 +117,7 @@ contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
         return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) public view returns (uint256) {
         // owner  + [n/2] guardians
         return  1 + SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
     }
