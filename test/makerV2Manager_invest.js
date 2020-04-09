@@ -1,4 +1,3 @@
-/* global accounts */
 const { AddressZero } = require("ethers").constants;
 const { WAD, ETH_PER_DAI, ETH_PER_MKR } = require("../utils/utilities.js");
 const { deployMaker, deployUniswap } = require("../utils/defi-deployer");
@@ -10,6 +9,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 
 const DAI_SENT = WAD.div(100000000);
 
+/* global accounts */
 describe("MakerV2 DSR & SAI<>DAI", function () {
   this.timeout(100000);
 
@@ -84,11 +84,17 @@ describe("MakerV2 DSR & SAI<>DAI", function () {
     it("swaps SAI to DAI (relayed tx)", async () => {
       await swapDaiSai({ toDai: true, relayed: true });
     });
+    it("does not swap SAI to DAI with insufficient SAI (blockchain tx)", async () => {
+      await assert.revertWith(makerV2.from(owner).swapSaiToDai(wallet.contractAddress, DAI_SENT.mul(1000)), "MV2: insufficient SAI");
+    });
     it("swaps DAI to SAI (blockchain tx)", async () => {
       await swapDaiSai({ toDai: false, relayed: false });
     });
     it("swaps DAI to SAI (relayed tx)", async () => {
       await swapDaiSai({ toDai: false, relayed: true });
+    });
+    it("does not swap DAI to SAI with insufficient DAI (blockchain tx)", async () => {
+      await assert.revertWith(makerV2.from(owner).swapDaiToSai(wallet.contractAddress, DAI_SENT.mul(1000)), "MV2: insufficient DAI");
     });
   });
 
@@ -126,9 +132,13 @@ describe("MakerV2 DSR & SAI<>DAI", function () {
     describe("Deposit", () => {
       it("sends DAI to the pot (blockchain tx)", async () => {
         await exchangeWithPot({ toPot: true, relayed: false });
+        // do it a second time, when Vat authorisations have already been granted
+        await exchangeWithPot({ toPot: true, relayed: false });
       });
 
       it("sends DAI to the pot (relayed tx)", async () => {
+        await exchangeWithPot({ toPot: true, relayed: true });
+        // do it a second time, when Vat authorisations have already been granted
         await exchangeWithPot({ toPot: true, relayed: true });
       });
     });

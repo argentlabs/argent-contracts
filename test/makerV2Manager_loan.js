@@ -4,10 +4,9 @@ const {
 } = require("../utils/utilities.js");
 const { deployMaker, deployUniswap } = require("../utils/defi-deployer");
 
-const { parseEther, formatBytes32String } = ethers.utils;
+const { parseEther, formatBytes32String, bigNumberify } = ethers.utils;
 const { HashZero, AddressZero } = ethers.constants;
 
-/* global accounts */
 const TestManager = require("../utils/test-manager");
 const Registry = require("../build/ModuleRegistry");
 const MakerV1Manager = require("../build/MakerManager");
@@ -20,6 +19,7 @@ const TransferStorage = require("../build/TransferStorage");
 const TransferManager = require("../build/TransferManager");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 
+/* global accounts */
 describe("MakerV2 Vaults", function () {
   this.timeout(100000);
 
@@ -28,6 +28,7 @@ describe("MakerV2 Vaults", function () {
 
   const infrastructure = accounts[0].signer;
   const owner = accounts[1].signer;
+  const owner2 = accounts[2].signer;
 
   let sai;
   let dai;
@@ -116,8 +117,7 @@ describe("MakerV2 Vaults", function () {
     const { ilk } = await makerRegistry.collaterals(tokenAddress_);
     const { spot, dust } = await vat.ilks(ilk);
     const daiAmount = dust.div(RAY);
-    const collateralAmount = dust.div(spot).mul(2);// 0).div(10);
-    // const saiAmount = collateralAmount.div(ETH_PER_DAI).div(MAT).div(2);
+    const collateralAmount = dust.div(spot).mul(2);
     return { daiAmount, collateralAmount };
   }
 
@@ -176,25 +176,33 @@ describe("MakerV2 Vaults", function () {
       daiAmount = testAmounts.daiAmount;
       collateralAmount = testAmounts.collateralAmount;
     });
-
     it("should open a Loan (blockchain tx)", async () => {
       await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
     });
-
     it("should open a Loan (relayed tx)", async () => {
       await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
     });
-
     it("should open>close>reopen a Loan (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await makerV2.from(owner).closeLoan(walletAddress, loanId, { gasLimit: 4500000 });
       await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
     });
-
     it("should open>close>reopen a Loan (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await (await makerV2.from(owner).closeLoan(walletAddress, loanId, { gasLimit: 4500000 })).wait();
       await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
+    });
+    it("should not open a loan for the wrong debt token", async () => {
+      await assert.revertWith(
+        makerV2.from(owner).openLoan(walletAddress, ETH_TOKEN, collateralAmount, sai.contractAddress, daiAmount),
+        "MV2: debt token not DAI",
+      );
+    });
+    it("should not open a loan for an unsupported collateral token", async () => {
+      await assert.revertWith(
+        makerV2.from(owner).openLoan(walletAddress, sai.contractAddress, collateralAmount, dai.contractAddress, daiAmount),
+        "MV2: unsupported collateral",
+      );
     });
   });
 
@@ -246,6 +254,15 @@ describe("MakerV2 Vaults", function () {
         loanId, collateralAmount: parseEther("0.010"), add: true, relayed: true,
       });
     });
+    it("should not add collateral for the wrong loan owner", async () => {
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).addCollateral(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
+        "MV2: unauthorized loanId",
+      );
+    });
     it("should remove collateral (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeCollateral({
@@ -257,6 +274,13 @@ describe("MakerV2 Vaults", function () {
       await testChangeCollateral({
         loanId, collateralAmount: parseEther("0.010"), add: false, relayed: true,
       });
+    });
+    it("should not remove collateral with invalid collateral amount", async () => {
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      await assert.revertWith(
+        makerV2.from(owner).removeCollateral(walletAddress, loanId, ETH_TOKEN, bigNumberify(2).pow(255)),
+        "MV2: int overflow",
+      );
     });
   });
 
@@ -348,6 +372,14 @@ describe("MakerV2 Vaults", function () {
     });
     it("should repay debt when paying fee in ETH (relayed tx)", async () => {
       await testRepayDebt({ useDai: false, relayed: true });
+    });
+    it("should not repay debt when only dust left", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      await assert.revertWith(
+        makerV2.from(owner).removeDebt(walletAddress, loanId, dai.contractAddress, daiAmount.sub(1)),
+        "MV2: repay less or full",
+      );
     });
   });
 
@@ -573,6 +605,10 @@ describe("MakerV2 Vaults", function () {
 
     it("should move 2 vaults after a module upgrade (relayed tx)", async () => {
       await testUpgradeModule({ withBatVault: true, relayed: true });
+    });
+
+    it("should not allow non-module to give vault", async () => {
+      await assert.revertWith(makerV2.from(owner).giveVault(walletAddress, formatBytes32String("")), "MV2: sender unauthorized");
     });
   });
 });

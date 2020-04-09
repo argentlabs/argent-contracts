@@ -340,7 +340,7 @@ contract MakerV2Loan is MakerV2Base {
 
     function toInt(uint256 _x) internal pure returns (int _y) {
         _y = int(_x);
-        require(_y >= 0, "int-overflow");
+        require(_y >= 0, "MV2: int overflow");
     }
 
     function saveLoanOwner(BaseWallet _wallet, bytes32 _loanId) internal {
@@ -488,7 +488,7 @@ contract MakerV2Loan is MakerV2Base {
         view
     {
         (uint256 fullRepayment, uint256 maxRepayment) = debt(_cdpId);
-        require(_debtAmount <= maxRepayment || _debtAmount == fullRepayment, "MV2: repay full or >dust");
+        require(_debtAmount <= maxRepayment || _debtAmount == fullRepayment, "MV2: repay less or full");
     }
 
      /**
