@@ -15,6 +15,8 @@
 
 pragma solidity ^0.5.4;
 
+import "../modules/maker/IUniswapExchange.sol";
+import "../modules/maker/IUniswapFactory.sol";
 import "../wallet/BaseWallet.sol";
 import "../modules/common/BaseModule.sol";
 import "../modules/common/RelayerModule.sol";
@@ -66,18 +68,6 @@ interface IDSValue {
     function poke(bytes32 wut) external;
     function void() external;
 }
-
-interface IUniswapFactory {
-    function getExchange(address _token) external view returns(address);
-}
-
-interface IUniswapExchange {
-    function getEthToTokenOutputPrice(uint256 _tokensBought) external view returns (uint256);
-    function getEthToTokenInputPrice(uint256 _ethSold) external view returns (uint256);
-    function getTokenToEthOutputPrice(uint256 _ethBought) external view returns (uint256);
-    function getTokenToEthInputPrice(uint256 _tokensSold) external view returns (uint256);
-}
-
 
 /**
  * @title MakerManager
