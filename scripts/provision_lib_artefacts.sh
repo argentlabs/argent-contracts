@@ -27,3 +27,13 @@ cp build/DSValue.json .coverage_artifacts/DSValue.json
 cp build/CryptoKittyTest.json .coverage_artifacts/CryptoKittyTest.json
 cp build/TestRegistry.json .coverage_artifacts/TestRegistry.json
 cp build/GemJoin.json .coverage_artifacts/GemJoin.json
+cp build/TestModule.json .coverage_artifacts/TestModule.json
+cp build/OldTestModule.json .coverage_artifacts/OldTestModule.json
+cp build/NewTestModule.json .coverage_artifacts/NewTestModule.json
+cp build/NonCompliantGuardian.json .coverage_artifacts/NonCompliantGuardian.json
+cp build/FaucetUser.json .coverage_artifacts/FaucetUser.json
+cp build/TestCdpManager.json .coverage_artifacts/TestCdpManager.json
+cp build/TestUpgradedMakerV2Manager.json .coverage_artifacts/TestUpgradedMakerV2Manager.json
+cp build/ERC20Approver.json .coverage_artifacts/ERC20Approver.json
+cp build/TestModuleRelayerV2.json .coverage_artifacts/TestModuleRelayerV2.json
+cp build/TestOnlyOwnerModule.json .coverage_artifacts/TestOnlyOwnerModule.json
