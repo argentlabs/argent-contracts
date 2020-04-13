@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
 
-import "../../../lib/maker/DS/DSToken.sol";
+import "../../lib/maker/DS/DSToken.sol";
 
 contract MakerFaucet {
     function gulp(address gem) external;

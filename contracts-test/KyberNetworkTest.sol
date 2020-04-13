@@ -1,7 +1,7 @@
 pragma solidity ^0.5.4;
+import "../lib/other/ERC20.sol";
+import "../lib/other/KyberNetwork.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../../lib/other/ERC20.sol";
-import "../../lib/other/KyberNetwork.sol";
 
 contract KyberNetworkTest is KyberNetwork {
 

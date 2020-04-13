@@ -14,8 +14,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../../modules/maker/MakerV2Base.sol";
-import "../../modules/maker/MakerV2Invest.sol";
+import "../../contracts/modules/maker/MakerV2Base.sol";
+import "../../contracts/modules/maker/MakerV2Invest.sol";
 
 /**
  * @title TestMakerV2Invest

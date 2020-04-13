@@ -6,7 +6,7 @@ const {
 
 const Wallet = require("../build/BaseWallet");
 const OnlyOwnerModule = require("../build/TestOnlyOwnerModule");
-const Module = require("../build/TestModule");
+const Module = require("../build/TestModuleRelayer");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
 const Registry = require("../build/ModuleRegistry");
 

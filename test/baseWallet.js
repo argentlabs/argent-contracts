@@ -3,7 +3,7 @@ const ethers = require("ethers");
 
 const Wallet = require("../build/BaseWallet");
 const OldWallet = require("../build/LegacyBaseWallet");
-const Module = require("../build/TestModule");
+const Module = require("../build/TestModuleRelayer");
 const OldTestModule = require("../build/OldTestModule");
 const NewTestModule = require("../build/NewTestModule");
 const Registry = require("../build/ModuleRegistry");

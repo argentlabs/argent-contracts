@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
 
-import "../modules/maker/MakerV2Manager.sol";
+import "../contracts/modules/maker/MakerV2Manager.sol";
 
 /**
  * @title TestUpgradedMakerV2Manager
