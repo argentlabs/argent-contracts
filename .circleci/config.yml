@@ -4,6 +4,10 @@ job_common: &job_common
   docker:
     - image: circleci/node:10.12-stretch
   working_directory: ~/argent-contracts
+job_python: &job_python
+  docker:
+    - image: circleci/python:3.8.0b1-stretch-node
+  working_directory: ~/argent-contracts
 step_save_cache: &step_save_cache
   save_cache:
     paths:
@@ -18,7 +22,14 @@ step_setup_global_packages: &step_setup_global_packages
     name: "Set up global packages"
     command: |
       npm install
-
+step_setup_slither: &step_setup_slither
+    run:
+      name: "Setup slither analyser https://github.com/crytic/slither"
+      command: |
+        wget https://github.com/ethereum/solidity/releases/download/v0.5.4/solc-static-linux
+        chmod +x solc-static-linux
+        sudo mv solc-static-linux /usr/local/bin/solc
+        sudo pip install slither-analyzer
 jobs:
   unit-test:
     <<: *job_common
@@ -51,9 +62,19 @@ jobs:
       # Save coverage artifacts
       - store_artifacts:
           path: coverage
-
+  security-test:
+    <<: *job_python
+    steps:
+      - checkout
+      - <<: *step_restore_cache
+      - <<: *step_setup_global_packages
+      - <<: *step_setup_slither
+      - run:
+          name: "Run slither"
+          command: npm run security:slither
 workflows:
   version: 2
   commit:
     jobs:
       - unit-test
+      - security-test

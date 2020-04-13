@@ -21,7 +21,8 @@
     "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`",
     "test:benchmark": "./scripts/deploy.sh ganache 999",
     "lint:js": "eslint .",
-    "lint:js:staged": "bash ./scripts/eslint.sh"
+    "lint:js:staged": "bash ./scripts/eslint.sh",
+    "security:slither":  "rm -rf build && slither . --filter-paths lib,openzeppelin-solidity"
   },
   "husky": {
     "hooks": {
