@@ -29,7 +29,7 @@ step_setup_slither: &step_setup_slither
         wget https://github.com/ethereum/solidity/releases/download/v0.5.4/solc-static-linux
         chmod +x solc-static-linux
         sudo mv solc-static-linux /usr/local/bin/solc
-        sudo pip install slither-analyzer
+        sudo pip3 install slither-analyzer
 jobs:
   unit-test:
     <<: *job_common
