@@ -55,8 +55,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
     uint256 public securityPeriod;
     // Security window used for (non-recovery) ownership transfer
     uint256 public securityWindow;
-    // Location of the Guardian storage
-    GuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
 
@@ -97,7 +95,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
         public
     {
         require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow, "RM: insecure security periods");
-        guardianStorage = _guardianStorage;
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
         securityPeriod = _securityPeriod;
