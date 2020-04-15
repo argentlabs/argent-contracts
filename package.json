@@ -22,7 +22,7 @@
     "test:benchmark": "./scripts/deploy.sh ganache 999",
     "lint:js": "eslint .",
     "lint:js:staged": "bash ./scripts/eslint.sh",
-    "security:slither": "rm -rf build && slither . --filter-paths contracts-test,lib,openzeppelin-solidity --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls"
+    "security:slither": "rm -rf build && slither . --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls"
   },
   "husky": {
     "hooks": {
