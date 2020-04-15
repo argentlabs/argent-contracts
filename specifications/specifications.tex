@@ -29,7 +29,7 @@ The Argent wallet is an Ethereum Smart Contract based mobile wallet. The wallet'
 
 The wallet security model is based on the ability to add Guardians. A Guardian is an account (EOA or smart contract) that has been given permission by the wallet's owner to execute certain specific operations on their wallet. In particular guardians can lock, unlock, and trigger a recovery procedure on the wallet as well as approve the execution of a large transfer to an unknown account.
 
-We do not impose restrictions on who or what Guardians are. They can be can be a friend's Argent wallet, a friend's EOA, a hardware wallet, or even a paid third-party service.
+We do not impose restrictions on who or what Guardians are. They can be a friend's Argent wallet, a friend's EOA, a hardware wallet, or even a paid third-party service.
 
 Adding a Guardian is an action triggered by the wallet owner. While the first Guardian is added immediately, all subsequent additions must be confirmed after 24 hours and no longer then 36 hours after the addition was requested. This confirmation windows ensures that a pending addition will be canceled (expire) should the wallet be locked or recovered.
 
