@@ -129,10 +129,13 @@ contract RecoveryManager is BaseModule, RelayerModule {
     function finalizeRecovery(BaseWallet _wallet) external onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         require(uint64(now) > config.executeAfter, "RM: the recovery period is not over yet");
-        _wallet.setOwner(config.recovery);
-        emit RecoveryFinalized(address(_wallet), config.recovery);
-        guardianStorage.setLock(_wallet, 0);
+        address recoveryOwner = config.recovery;
         delete recoveryConfigs[address(_wallet)];
+
+        _wallet.setOwner(recoveryOwner);
+        guardianStorage.setLock(_wallet, 0);
+
+        emit RecoveryFinalized(address(_wallet), config.recovery);
     }
 
     /**
@@ -142,9 +145,10 @@ contract RecoveryManager is BaseModule, RelayerModule {
      */
     function cancelRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        emit RecoveryCanceled(address(_wallet), config.recovery);
-        guardianStorage.setLock(_wallet, 0);
         delete recoveryConfigs[address(_wallet)];
+        guardianStorage.setLock(_wallet, 0);
+
+        emit RecoveryCanceled(address(_wallet), config.recovery);
     }
 
     /**
