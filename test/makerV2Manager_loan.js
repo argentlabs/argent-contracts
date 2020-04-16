@@ -1,8 +1,8 @@
 const ethers = require("ethers");
+const { bigNumToBytes32, ETH_TOKEN } = require("../utils/utilities.js");
 const {
-  bigNumToBytes32, ETH_TOKEN, RAY, ETH_PER_DAI, ETH_PER_MKR,
-} = require("../utils/utilities.js");
-const { deployMaker, deployUniswap } = require("../utils/defi-deployer");
+  deployMaker, deployUniswap, RAY, ETH_PER_DAI, ETH_PER_MKR,
+} = require("../utils/defi-deployer");
 
 const { parseEther, formatBytes32String, bigNumberify } = ethers.utils;
 const { HashZero, AddressZero } = ethers.constants;

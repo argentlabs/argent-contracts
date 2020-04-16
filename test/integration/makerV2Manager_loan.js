@@ -28,13 +28,12 @@ const ScdMcdMigration = require("../../build/ScdMcdMigration");
 const Wallet = require("../../build/BaseWallet");
 const DSToken = require("../../build/DSToken");
 
-const { parseEther, bigNumberify, formatBytes32String } = ethers.utils;
+const { parseEther, formatBytes32String } = ethers.utils;
 const { HashZero } = ethers.constants;
-const { bigNumToBytes32 } = require("../../utils/utilities.js");
+const { bigNumToBytes32, ETH_TOKEN } = require("../../utils/utilities.js");
+const { RAY } = require("../../utils/defi-deployer");
 
 const DEFAULT_NETWORK = "kovan-fork"; // also works on kovan (faster, but uses real KETH)
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const RAY = bigNumberify("1000000000000000000000000000"); // 10**27
 
 describe("Test MakerV2 Vaults", function () {
   this.timeout(1000000);

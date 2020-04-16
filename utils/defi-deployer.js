@@ -25,10 +25,15 @@ const RAD = RAY.mul(WAD);
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
 const USD_PER_ETH = WAD.mul(100); // 1 ETH = 100 USD
 const USD_PER_MKR = WAD.mul(400); // 1 MKR = 400 USD
-const MAT = RAY.mul(3).div(2); // collateralization ratio = 150%
+const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 4 ETH
+const ETH_PER_DAI = WAD.mul(USD_PER_DAI).div(RAY).mul(WAD).div(USD_PER_ETH); // 1 DAI = 0.01 ETH
+const MAT = RAY.mul(3).div(2); // collateralizsation ratio = 150%
 
 module.exports = {
-
+  RAY,
+  WAD,
+  ETH_PER_MKR,
+  ETH_PER_DAI,
 
   deployUniswap: async (deployer, manager, infrastructure, tokens = [], ethPerToken = [], ethLiquidity = parseEther("10")) => {
     const uniswapFactory = await deployer.deploy(UniswapFactory);

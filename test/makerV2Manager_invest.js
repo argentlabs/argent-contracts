@@ -1,6 +1,5 @@
 const { AddressZero } = require("ethers").constants;
-const { WAD } = require("../utils/utilities.js");
-const { deployMaker } = require("../utils/defi-deployer");
+const { deployMaker, WAD } = require("../utils/defi-deployer");
 const TestManager = require("../utils/test-manager");
 const MakerV2Invest = require("../build/TestMakerV2Invest");
 const Wallet = require("../build/BaseWallet");

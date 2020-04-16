@@ -1,9 +1,9 @@
 /* global accounts */
 const { parseEther, bigNumberify } = require("ethers").utils;
-const { deployMaker, deployUniswap } = require("../utils/defi-deployer");
 const {
-  bigNumToBytes32, ETH_TOKEN, ETH_PER_DAI, ETH_PER_MKR,
-} = require("../utils/utilities.js");
+  deployMaker, deployUniswap, ETH_PER_DAI, ETH_PER_MKR,
+} = require("../utils/defi-deployer");
+const { bigNumToBytes32, ETH_TOKEN } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
 const Wallet = require("../build/BaseWallet");
