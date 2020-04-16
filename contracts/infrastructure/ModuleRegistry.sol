@@ -87,7 +87,8 @@ contract ModuleRegistry is Owned {
     */
     function recoverToken(address _token) external onlyOwner {
         uint total = ERC20(_token).balanceOf(address(this));
-        ERC20(_token).transfer(msg.sender, total);
+        bool success = ERC20(_token).transfer(msg.sender, total);
+        require(success, "MR: recovery token transfer failed");
     }
 
     /**
