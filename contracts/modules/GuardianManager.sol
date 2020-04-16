@@ -113,7 +113,7 @@ contract GuardianManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function confirmGuardianAddition(BaseWallet _wallet, address _guardian) public onlyWhenUnlocked(_wallet) {
+    function confirmGuardianAddition(BaseWallet _wallet, address _guardian) external onlyWhenUnlocked(_wallet) {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "addition"));
         GuardianManagerConfig storage config = configs[address(_wallet)];
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
@@ -129,7 +129,7 @@ contract GuardianManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function cancelGuardianAddition(BaseWallet _wallet, address _guardian) public onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function cancelGuardianAddition(BaseWallet _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "addition"));
         GuardianManagerConfig storage config = configs[address(_wallet)];
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
@@ -161,7 +161,7 @@ contract GuardianManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function confirmGuardianRevokation(BaseWallet _wallet, address _guardian) public {
+    function confirmGuardianRevokation(BaseWallet _wallet, address _guardian) external {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[address(_wallet)];
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");
@@ -177,7 +177,7 @@ contract GuardianManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function cancelGuardianRevokation(BaseWallet _wallet, address _guardian) public onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function cancelGuardianRevokation(BaseWallet _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[address(_wallet)];
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");

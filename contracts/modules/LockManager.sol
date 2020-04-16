@@ -99,7 +99,7 @@ contract LockManager is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @return The epoch time at which the lock will release (in seconds).
      */
-    function getLock(BaseWallet _wallet) public view returns(uint64 _releaseAfter) {
+    function getLock(BaseWallet _wallet) external view returns(uint64 _releaseAfter) {
         uint256 lockEnd = guardianStorage.getLock(_wallet);
         if (lockEnd > now) {
             _releaseAfter = uint64(lockEnd);

@@ -169,7 +169,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     * @dev Gets the details of the ongoing recovery procedure if any.
     * @param _wallet The target wallet.
     */
-    function getRecovery(BaseWallet _wallet) public view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
+    function getRecovery(BaseWallet _wallet) external view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         return (config.recovery, config.executeAfter, config.guardianCount);
     }
