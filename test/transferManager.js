@@ -7,7 +7,6 @@ const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferModule = require("../build/TransferManager");
 const LegacyTransferManager = require("../build/LegacyTransferManager");
-const KyberNetwork = require("../build/KyberNetworkTest");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
@@ -37,7 +36,6 @@ describe("TransferManager", function () {
   const spender = accounts[4].signer;
 
   let deployer;
-  let kyber;
   let registry;
   let priceProvider;
   let transferStorage;
@@ -50,8 +48,9 @@ describe("TransferManager", function () {
   before(async () => {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(Registry);
-    kyber = await deployer.deploy(KyberNetwork);
-    priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
+    priceProvider = await deployer.deploy(TokenPriceProvider);
+    await priceProvider.addManager(infrastructure.address);
+
     transferStorage = await deployer.deploy(TransferStorage);
     guardianStorage = await deployer.deploy(GuardianStorage);
 
@@ -82,8 +81,7 @@ describe("TransferManager", function () {
     wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [transferModule.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await kyber.addToken(erc20.contractAddress, KYBER_RATE, DECIMALS);
-    await priceProvider.syncPrice(erc20.contractAddress);
+    await priceProvider.setPrice(erc20.contractAddress, KYBER_RATE);
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("1000000000000000000") });
   });
 

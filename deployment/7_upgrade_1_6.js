@@ -153,21 +153,6 @@ const deploy = async (network) => {
   }
 
   // ////////////////////////////////////////////////////
-  // Disable KyberNetwork on the TokenPriceProvider
-  // ////////////////////////////////////////////////////
-
-  if (!await TokenPriceProviderWrapper.contract.managers(deploymentWallet.address)) {
-    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(deploymentWallet.address, { gasPrice });
-    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
-      `Set ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
-  }
-
-  const TokenPriceProviderSetKyberNetworkTx = await TokenPriceProviderWrapper.contract.setKyberNetwork("0x0000000000000000000000000000000000000000",
-    { gasPrice });
-  await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderSetKyberNetworkTx,
-    "Disable the KyberNetwork on the TokenPriceProvider");
-
-  // ////////////////////////////////////////////////////
   // Change the owner of TokenPriceProvider
   // ////////////////////////////////////////////////////
 
