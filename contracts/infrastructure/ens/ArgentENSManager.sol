@@ -125,7 +125,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
      * @param _subnode The target subnode.
      * @return true if the subnode is available.
      */
-    function isAvailable(bytes32 _subnode) public view returns (bool) {
+    function isAvailable(bytes32 _subnode) external view returns (bool) {
         bytes32 node = keccak256(abi.encodePacked(rootNode, _subnode));
         address currentOwner = ensRegistry.owner(node);
         if (currentOwner == address(0)) {
