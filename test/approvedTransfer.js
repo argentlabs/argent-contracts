@@ -12,9 +12,8 @@ const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
 
 const TestManager = require("../utils/test-manager");
-const { sortWalletByAddress, parseRelayReceipt } = require("../utils/utilities.js");
+const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN } = require("../utils/utilities.js");
 
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const DECIMALS = 12; // number of decimal for TOKN contract
 const KYBER_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
 

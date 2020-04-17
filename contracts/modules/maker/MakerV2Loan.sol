@@ -17,10 +17,6 @@ pragma solidity ^0.5.4;
 import "./MakerV2Base.sol";
 import "../../infrastructure/MakerRegistry.sol";
 
-contract JugLike {
-    function drip(bytes32) external;
-}
-
 interface IUniswapFactory {
     function getExchange(address _token) external view returns(IUniswapExchange);
 }
@@ -107,9 +103,9 @@ contract MakerV2Loan is MakerV2Base {
     )
         public
     {
-        cdpManager = ScdMcdMigration(scdMcdMigration).cdpManager();
-        tub = ScdMcdMigration(scdMcdMigration).tub();
-        wethJoin = ScdMcdMigration(scdMcdMigration).wethJoin();
+        cdpManager = ScdMcdMigrationLike(scdMcdMigration).cdpManager();
+        tub = ScdMcdMigrationLike(scdMcdMigration).tub();
+        wethJoin = ScdMcdMigrationLike(scdMcdMigration).wethJoin();
         wethToken = wethJoin.gem();
         mkrToken = tub.gov();
         jug = _jug;
@@ -312,7 +308,7 @@ contract MakerV2Loan is MakerV2Base {
         // Update stability fee rate
         jug.drip(wethJoin.ilk());
         // Execute the CDP migration
-        _loanId = bytes32(ScdMcdMigration(scdMcdMigration).migrate(_cup));
+        _loanId = bytes32(ScdMcdMigrationLike(scdMcdMigration).migrate(_cup));
         // Record the new vault as belonging to the wallet
         saveLoanOwner(_wallet, _loanId);
 
@@ -340,7 +336,7 @@ contract MakerV2Loan is MakerV2Base {
 
     function toInt(uint256 _x) internal pure returns (int _y) {
         _y = int(_x);
-        require(_y >= 0, "int-overflow");
+        require(_y >= 0, "MV2: int overflow");
     }
 
     function saveLoanOwner(BaseWallet _wallet, bytes32 _loanId) internal {
@@ -488,7 +484,7 @@ contract MakerV2Loan is MakerV2Base {
         view
     {
         (uint256 fullRepayment, uint256 maxRepayment) = debt(_cdpId);
-        require(_debtAmount <= maxRepayment || _debtAmount == fullRepayment, "MV2: repay full or >dust");
+        require(_debtAmount <= maxRepayment || _debtAmount == fullRepayment, "MV2: repay less or full");
     }
 
      /**

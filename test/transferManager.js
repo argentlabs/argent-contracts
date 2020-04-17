@@ -12,7 +12,8 @@ const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
 
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const { ETH_TOKEN } = require("../utils/utilities.js");
+
 const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;

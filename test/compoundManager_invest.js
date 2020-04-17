@@ -24,7 +24,7 @@ const ETH_EXCHANGE_RATE = bigNumberify("200000000000000000000000000");
 
 const ERC20 = require("../build/TestERC20");
 
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const { ETH_TOKEN } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
 describe("Invest Manager with Compound", function () {

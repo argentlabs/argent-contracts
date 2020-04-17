@@ -8,7 +8,8 @@ const GuardianStorage = require("../build/GuardianStorage");
 const TokenExchanger = require("../build/TokenExchanger");
 const ERC20 = require("../build/TestERC20");
 
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const { ETH_TOKEN } = require("../utils/utilities.js");
+
 const DECIMALS = 12; // number of decimal for TOKN contract
 const KYBER_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
 const FEE_RATIO = 30;
