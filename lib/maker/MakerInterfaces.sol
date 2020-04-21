@@ -8,6 +8,12 @@ contract GemLike {
     function transfer(address,uint) external returns (bool);
 }
 
+contract PotLike {
+    function chi() public view returns (uint);
+    function pie(address) public view returns (uint);
+    function drip() public;
+}
+
 contract DSTokenLike {
     function mint(address,uint) external;
     function burn(address,uint) external;
