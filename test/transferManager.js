@@ -17,7 +17,7 @@ const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
 const DECIMALS = 12; // number of decimal for TOKN contract
-const KYBER_RATE = ethers.utils.bigNumberify(51 * 10 ** 13); // 1 TOKN = 0.00051 ETH
+const TOKEN_RATE = ethers.utils.bigNumberify(51 * 10 ** 13); // 1 TOKN = 0.00051 ETH
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const ACTION_TRANSFER = 0;
@@ -81,7 +81,7 @@ describe("TransferManager", function () {
     wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [transferModule.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await priceProvider.setPrice(erc20.contractAddress, KYBER_RATE);
+    await priceProvider.setPrice(erc20.contractAddress, TOKEN_RATE);
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("1000000000000000000") });
   });
 

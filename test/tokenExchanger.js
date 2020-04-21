@@ -11,7 +11,7 @@ const ERC20 = require("../build/TestERC20");
 const { ETH_TOKEN } = require("../utils/utilities.js");
 
 const DECIMALS = 12; // number of decimal for TOKN contract
-const KYBER_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
+const TOKEN_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
 const FEE_RATIO = 30;
 
 const TestManager = require("../utils/test-manager");
@@ -43,7 +43,7 @@ describe("Token Exchanger", function () {
     wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [exchanger.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [kyber.contractAddress, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for kyber)
-    await kyber.addToken(erc20.contractAddress, KYBER_RATE, DECIMALS);
+    await kyber.addToken(erc20.contractAddress, TOKEN_RATE, DECIMALS);
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
     await infrastructure.sendTransaction({ to: kyber.contractAddress, value: 50000000 });
   });

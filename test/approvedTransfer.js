@@ -14,7 +14,7 @@ const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN } = require("../utils/utilities.js");
 
 const DECIMALS = 12; // number of decimal for TOKN contract
-const KYBER_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
+const TOKEN_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -55,7 +55,7 @@ describe("Approved Transfer", function () {
     wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [approvedTransfer.contractAddress, guardianManager.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await priceProvider.setPrice(erc20.contractAddress, KYBER_RATE);
+    await priceProvider.setPrice(erc20.contractAddress, TOKEN_RATE);
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
   });
 
