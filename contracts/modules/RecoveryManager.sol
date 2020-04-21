@@ -59,10 +59,10 @@ contract RecoveryManager is BaseModule, RelayerModuleV2 {
 
     // *************** Events *************************** //
 
-    event RecoveryExecuted(address indexed _wallet, address indexed _recovery, uint64 executeAfter);
-    event RecoveryFinalized(address indexed _wallet, address indexed _recovery);
-    event RecoveryCanceled(address indexed _wallet, address indexed _recovery);
-    event OwnershipTransfered(address indexed _wallet, address indexed _newOwner);
+    event RecoveryExecuted(address indexed wallet, address indexed _recovery, uint64 executeAfter);
+    event RecoveryFinalized(address indexed wallet, address indexed _recovery);
+    event RecoveryCanceled(address indexed wallet, address indexed _recovery);
+    event OwnershipTransfered(address indexed wallet, address indexed _newOwner);
 
     // *************** Modifiers ************************ //
 
