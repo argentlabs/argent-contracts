@@ -97,7 +97,7 @@ describe("MakerV2 Vaults", function () {
     );
 
     // Deploy TransferManager
-    const priceProvider = await deployer.deploy(TokenPriceProvider, {}, AddressZero);
+    const priceProvider = await deployer.deploy(TokenPriceProvider);
     const transferStorage = await deployer.deploy(TransferStorage);
     transferManager = await deployer.deploy(TransferManager, {},
       AddressZero,
