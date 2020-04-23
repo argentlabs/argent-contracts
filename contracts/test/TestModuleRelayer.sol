@@ -4,13 +4,13 @@ import "../modules/common/BaseModule.sol";
 import "../modules/common/RelayerModule.sol";
 
 /**
- * @title TestModule
- * @dev Basic test module.
- * @author Julien Niset - <julien@argent.xyz>
+ * @title TestModuleRelayer
+ * @dev Basic test module subclassing RelayerModule
+ * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TestModule is BaseModule, RelayerModule {
+contract TestModuleRelayer is BaseModule, RelayerModule {
 
-    bytes32 constant NAME = "TestModule";
+    bytes32 constant NAME = "TestModuleRelayer";
 
     bool boolVal;
     uint uintVal;

@@ -2,8 +2,7 @@ const ethers = require("ethers");
 const { AddressZero } = require("ethers").constants;
 
 const Wallet = require("../build/BaseWallet");
-const TestModule = require("../build/TestModule");
-const TestModuleRelayerV2 = require("../build/TestModuleRelayerV2");
+const TestModule = require("../build/TestModuleRelayer");
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
@@ -12,8 +11,7 @@ const RecoveryManager = require("../build/RecoveryManager");
 const TestManager = require("../utils/test-manager");
 const { getRandomAddress } = require("../utils/utilities.js");
 
-const TARGET_OF_DATA_NOT_WALLET_REVERT_MSG = "RM: the wallet authorized is different then the target of the relayed data";
-const TARGET_OF_DATA_NOT_WALLET_REVERT_MSG_V2 = "RM: Target of _data != _wallet";
+const TARGET_OF_DATA_NOT_WALLET_REVERT_MSG = "RM: Target of _data != _wallet";
 const INVALID_DATA_REVERT_MSG = "RM: Invalid dataWallet";
 const DUPLICATE_REQUEST_REVERT_MSG = "RM: Duplicate request";
 
@@ -27,13 +25,11 @@ describe("RelayerModule", function () {
   const owner = global.accounts[1].signer;
   let wallet;
   let relayerModule;
-  let relayerModuleV2;
 
   beforeEach(async () => {
     relayerModule = await deployer.deploy(TestModule, {}, AddressZero, false, 0);
-    relayerModuleV2 = await deployer.deploy(TestModuleRelayerV2, {}, AddressZero, false, 0);
     wallet = await deployer.deploy(Wallet);
-    await wallet.init(owner.address, [relayerModule.contractAddress, relayerModuleV2.contractAddress]);
+    await wallet.init(owner.address, [relayerModule.contractAddress]);
   });
 
   describe("RelayerModule", () => {
@@ -105,48 +101,6 @@ describe("RelayerModule", function () {
       await assert.revertWith(recoveryManager.executeRecovery(wallet.contractAddress, randomAddress), "RM: must be called via execute()");
       await assert.revertWith(recoveryManager.cancelRecovery(wallet.contractAddress), "RM: must be called via execute()");
       await assert.revertWith(recoveryManager.transferOwnership(wallet.contractAddress, randomAddress), "RM: must be called via execute()");
-    });
-  });
-
-  describe("RelayerModuleV2", () => {
-    it("should fail to relay when target of _data != _wallet", async () => {
-      const params = [await getRandomAddress(), 4]; // the first argument is not the wallet address, which should make the relaying revert
-      await assert.revertWith(
-        manager.relay(relayerModuleV2, "setIntOwnerOnly", params, wallet, [owner]), TARGET_OF_DATA_NOT_WALLET_REVERT_MSG_V2,
-      );
-    });
-
-    it("should fail to relay when _data is less than 36 bytes", async () => {
-      const params = []; // the first argument is not the wallet address, which should make the relaying rever
-      await assert.revertWith(
-        manager.relay(relayerModuleV2, "clearInt", params, wallet, [owner]), INVALID_DATA_REVERT_MSG,
-      );
-    });
-
-    it("should fail to relay a duplicate transaction", async () => {
-      const params = [wallet.contractAddress, 2];
-      const nonce = await getNonceForRelay();
-      const relayParams = [relayerModule, "setIntOwnerOnly", params, wallet, [owner],
-        global.accounts[9].signer, false, 2000000, nonce];
-      await manager.relay(...relayParams);
-      await assert.revertWith(
-        manager.relay(...relayParams), DUPLICATE_REQUEST_REVERT_MSG,
-      );
-    });
-
-    it("should update the nonce after transaction", async () => {
-      const nonce = await getNonceForRelay();
-      await manager.relay(relayerModuleV2, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner],
-        global.accounts[9].signer, false, 2000000, nonce);
-
-      const updatedNonce = await relayerModuleV2.getNonce(wallet.contractAddress);
-      const updatedNonceHex = await ethers.utils.hexZeroPad(updatedNonce.toHexString(), 32);
-      assert.equal(nonce, updatedNonceHex);
-    });
-
-    it("should be able to get required signatures number", async () => {
-      const requiredSignatures = await relayerModuleV2.getRequiredSignatures(wallet.contractAddress, ethers.constants.HashZero);
-      assert.equal(requiredSignatures, 1);
     });
   });
 });

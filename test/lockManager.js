@@ -7,7 +7,6 @@ const Registry = require("../build/ModuleRegistry");
 const RecoveryManager = require("../build/RecoveryManager");
 
 const TestManager = require("../utils/test-manager");
-const { parseRelayReceipt } = require("../utils/utilities.js");
 
 describe("LockManager", function () {
   this.timeout(10000);
@@ -109,9 +108,7 @@ describe("LockManager", function () {
     });
 
     it("should fail to lock/unlock by Smart Contract guardians when signer is not authorized (relayed transaction)", async () => {
-      const txReceipt = await manager.relay(lockManager, "lock", [wallet.contractAddress], wallet, [nonguardian]);
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "locking from non-guardian should fail");
+      await assert.revertWith(manager.relay(lockManager, "lock", [wallet.contractAddress], wallet, [nonguardian]), "RM: Invalid signatures");
     });
   });
 
