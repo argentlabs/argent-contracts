@@ -60,7 +60,7 @@ contract RelayerModule is BaseModule {
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures.
     */
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256);
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256, OwnerSignature);
 
     /**
     * @dev Validates the signatures provided with a relayed transaction.
@@ -105,7 +105,8 @@ contract RelayerModule is BaseModule {
         bytes32 signHash = getSignHash(address(this), address(_wallet), 0, _data, _nonce, _gasPrice, _gasLimit);
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
         require(verifyData(address(_wallet), _data), "RM: Target of _data != _wallet");
-        uint256 requiredSignatures = getRequiredSignatures(_wallet, _data);
+        uint256 requiredSignatures;
+        (requiredSignatures,) = getRequiredSignatures(_wallet, _data);
         require(requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         require(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures), "RM: Invalid signatures");
         // The correctness of the refund is checked on the next line using an `if` instead of a `require`

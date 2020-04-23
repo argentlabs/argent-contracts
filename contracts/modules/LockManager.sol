@@ -135,7 +135,7 @@ contract LockManager is BaseModule, RelayerModule {
         return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Disallowed);
     }
 
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) internal view returns (uint256) {
-        return 1;
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) public view returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Disallowed);
     }
 }

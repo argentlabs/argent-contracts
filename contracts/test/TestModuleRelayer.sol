@@ -87,8 +87,8 @@ contract TestModuleRelayer is BaseModule, RelayerModule {
         return isOwner(_wallet, signer); // "GM: signer must be owner"
     }
 
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /*_data */) internal view returns (uint256) {
-        return 1;
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /*_data */) public view returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 
 }

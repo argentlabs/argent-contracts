@@ -193,21 +193,25 @@ contract RecoveryManager is BaseModule, RelayerModule {
         }
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
-            return ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
-            return 0;
+            return (0, OwnerSignature.Disallowed);
         }
         if (methodId == CANCEL_RECOVERY_PREFIX) {
-            return ArgentSafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
+            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
+            return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
         if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
             uint majorityGuardians = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
-            return SafeMath.add(majorityGuardians, 1);
+            uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
+            return (numberOfSignaturesRequired, OwnerSignature.Required);
         }
+
         revert("RM: unknown method");
     }
 }
