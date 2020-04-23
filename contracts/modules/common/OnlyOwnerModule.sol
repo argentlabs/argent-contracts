@@ -55,20 +55,6 @@ contract OnlyOwnerModule is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory /* _data */,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal
-        view
-        returns (bool)
-    {
-        address signer = recoverSigner(_signHash, _signatures, 0);
-        return isOwner(_wallet, signer); // "OOM: signer must be owner"
-    }
-
     function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) public view returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }

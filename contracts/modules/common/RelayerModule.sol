@@ -62,23 +62,6 @@ contract RelayerModule is BaseModule {
     */
     function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256, OwnerSignature);
 
-    /**
-    * @dev Validates the signatures provided with a relayed transaction.
-    * The method MUST return false if one or more signatures are not valid.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @param _signHash The signed hash representing the relayed transaction.
-    * @param _signatures The signatures as a concatenated byte array.
-    * @return A boolean indicating whether the signatures are valid.
-    */
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory _data,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal view returns (bool);
-
     /* ***************** External methods ************************* */
 
     /**
@@ -106,9 +89,11 @@ contract RelayerModule is BaseModule {
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
         require(verifyData(address(_wallet), _data), "RM: Target of _data != _wallet");
         uint256 requiredSignatures;
-        (requiredSignatures,) = getRequiredSignatures(_wallet, _data);
+        OwnerSignature ownerSignatureRequirement;
+        (requiredSignatures, ownerSignatureRequirement) = getRequiredSignatures(_wallet, _data);
         require(requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
-        require(requiredSignatures == 0 || validateSignatures(_wallet, _data, signHash, _signatures), "RM: Invalid signatures");
+        require(requiredSignatures == 0 || validateSignatures(_wallet, signHash, _signatures, ownerSignatureRequirement),
+         "RM: Invalid signatures");
         // The correctness of the refund is checked on the next line using an `if` instead of a `require`
         // in order to prevent a failing refund from being replayable in the future.
         if (verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
@@ -198,6 +183,7 @@ contract RelayerModule is BaseModule {
     * @param _signHash The signed hash representing the relayed transaction.
     * @param _signatures The signatures as a concatenated byte array.
     * @param _option An enum indicating whether the owner is required, optional or disallowed.
+    * @return A boolean indicating whether the signatures are valid.
     */
     function validateSignatures(
         BaseWallet _wallet,

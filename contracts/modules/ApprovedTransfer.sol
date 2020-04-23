@@ -105,19 +105,6 @@ contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory /* _data */,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal
-        view
-        returns (bool)
-    {
-        return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
-    }
-
     function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) public view returns (uint256, OwnerSignature) {
         // owner  + [n/2] guardians
         uint numberOfSignatures = 1 + ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);

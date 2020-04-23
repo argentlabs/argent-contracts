@@ -175,24 +175,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory _data,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal view returns (bool)
-    {
-        bytes4 functionSignature = functionPrefix(_data);
-        if (functionSignature == TRANSFER_OWNERSHIP_PREFIX) {
-            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
-        } else if (functionSignature == EXECUTE_RECOVERY_PREFIX) {
-            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Disallowed);
-        } else if (functionSignature == CANCEL_RECOVERY_PREFIX) {
-            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Optional);
-        }
-    }
-
     function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {

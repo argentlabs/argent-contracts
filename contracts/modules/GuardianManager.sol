@@ -211,19 +211,6 @@ contract GuardianManager is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory /* _data */,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal
-        view
-        returns (bool)
-    {
-        return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
-    }
-
     function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) public view returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
         uint numberOfSignatures;
