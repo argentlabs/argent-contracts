@@ -97,7 +97,7 @@ describe("SimpleUpgrader", function () {
       // create module V2
       const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       // register module V2
-      await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
+      // await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
       // create upgrader
       const toAdd = modulesToAdd(moduleV2.contractAddress);
       const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], toAdd);
