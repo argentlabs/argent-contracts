@@ -62,15 +62,18 @@ describe("Token Transfer", function () {
 
   describe("NFT transfers", () => {
     async function testNftTransfer({
-      safe = true, relayed, recipientAddress, nftContract = erc721, nftId = tokenId, shouldSucceed = true,
+      safe = true, relayed, recipientAddress, nftContract = erc721, nftId = tokenId, shouldSucceed = true, expectedError,
     }) {
       const beforeWallet1 = await nftContract.balanceOf(wallet1.contractAddress);
       const beforeRecipient = await nftContract.balanceOf(recipientAddress);
       if (relayed) {
         const txReceipt = await manager.relay(nftModule, "transferNFT",
           [wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32], wallet1, [owner1]);
-        const success = parseRelayReceipt(txReceipt);
+        const { success, error } = parseRelayReceipt(txReceipt);
         assert.equal(success, shouldSucceed);
+        if (!shouldSucceed) {
+          assert.equal(error, expectedError);
+        }
       } else {
         const txPromise = nftModule.from(owner1)
           .transferNFT(wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32);
@@ -175,7 +178,13 @@ describe("Token Transfer", function () {
 
       it("should NOT allow ERC20 transfer from wallet1 to wallet2 (relayed)", async () => {
         await testNftTransfer({
-          shouldSucceed: false, safe: false, relayed: true, nftId: 100, nftContract: erc20, recipientAddress: wallet2.contractAddress,
+          shouldSucceed: false,
+          expectedError: "NT: Non-compliant NFT contract",
+          safe: false,
+          relayed: true,
+          nftId: 100,
+          nftContract: erc20,
+          recipientAddress: wallet2.contractAddress,
         });
       });
     });

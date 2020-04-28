@@ -41,7 +41,7 @@ contract RelayerModule is BaseModule {
         Disallowed
     }
 
-    event TransactionExecuted(address indexed wallet, bool indexed success, bytes32 signedHash);
+    event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
 
     /**
      * @dev Throws if the call did not go through the execute() method.
@@ -96,12 +96,14 @@ contract RelayerModule is BaseModule {
          "RM: Invalid signatures");
         // The correctness of the refund is checked on the next line using an `if` instead of a `require`
         // in order to prevent a failing refund from being replayable in the future.
+        bytes memory returnData;
         if (verifyRefund(_wallet, _gasLimit, _gasPrice, requiredSignatures)) {
             // solium-disable-next-line security/no-call-value
-            (success,) = address(this).call(_data);
+            (success, returnData) = address(this).call(_data);
             refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
         }
-        emit TransactionExecuted(address(_wallet), success, signHash);
+
+        emit TransactionExecuted(address(_wallet), success, returnData, signHash);
     }
 
     /**

@@ -1,5 +1,6 @@
 const ethers = require("ethers");
 const { formatBytes32String } = require("ethers").utils;
+const { parseRelayReceipt } = require("../utils/utilities.js");
 
 const Wallet = require("../build/BaseWallet");
 const TestModule = require("../build/TestModuleRelayer");
@@ -142,7 +143,11 @@ describe("RelayerModule", function () {
     it("should fail when relayed on non-OnlyOwnerModule modules", async () => {
       await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
       const params = [wallet.contractAddress, testModuleNew.contractAddress];
-      await manager.relay(approvedTransfer, "addModule", params, wallet, [owner]);
+      const txReceipt = await manager.relay(approvedTransfer, "addModule", params, wallet, [owner]);
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "BM: msg.sender must be an owner for the wallet");
+
       const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
       assert.isFalse(isModuleAuthorised);
     });

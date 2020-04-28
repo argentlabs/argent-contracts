@@ -70,8 +70,20 @@ module.exports = {
     });
   },
 
+  // Parses the RelayerModule.execute receipt to decompose the success value of the transaction
+  // and additionally if an error was raised in the sub-call to optionally return that
   parseRelayReceipt(txReceipt) {
-    return txReceipt.events.find((l) => l.event === "TransactionExecuted").args.success;
+    const { args } = txReceipt.events.find((l) => l.event === "TransactionExecuted");
+
+    let error;
+    if (args.returnData.startsWith("0x08c379a0")) {
+      // Remove the encoded error signatures 08c379a0
+      const noErrorSelector = `0x${args.returnData.slice(10)}`;
+      const errorBytes = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
+      error = ethers.utils.toUtf8String(errorBytes[0]);
+    }
+
+    return { success: args.success, error };
   },
 
   versionFingerprint(modules) {
