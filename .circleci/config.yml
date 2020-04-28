@@ -42,7 +42,7 @@ jobs:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
       - run:
-          name: "Testing deployment scripts"
+          name: "Testing deployment scripts and benchmark gas costs"
           command: npm run ganache >/dev/null 2>&1 & npm run test:deployment
       - run:
           name: "Running coverage"
