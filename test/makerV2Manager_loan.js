@@ -71,7 +71,7 @@ describe("MakerV2 Vaults", function () {
     // Deploy MakerV2Manager
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    makerRegistry = await deployer.deploy(MakerRegistry);
+    makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);
     await makerRegistry.addCollateral(wethJoin.contractAddress);
     makerV2 = await deployer.deploy(
       MakerV2Manager,

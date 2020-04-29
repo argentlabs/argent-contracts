@@ -17,6 +17,7 @@ contract VatLike {
     function can(address, address) public view returns (uint);
     function dai(address) public view returns (uint);
     function hope(address) public;
+    function wards(address) public view returns (uint);
     function ilks(bytes32) public view returns (uint Art, uint rate, uint spot, uint line, uint dust);
     function urns(bytes32, address) public view returns (uint ink, uint art);
     function frob(bytes32, address, address, address, int, int) public;
