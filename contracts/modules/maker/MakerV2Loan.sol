@@ -208,6 +208,7 @@ contract MakerV2Loan is MakerV2Base {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        verifyLoanOwner(_wallet, _loanId);
         addDebt(_wallet, uint256(_loanId), _debtAmount);
         emit DebtAdded(address(_wallet), _loanId, _debtToken, _debtAmount);
     }

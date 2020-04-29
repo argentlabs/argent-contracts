@@ -288,6 +288,15 @@ describe("MakerV2 Vaults", function () {
         "MV2: int overflow",
       );
     });
+    it("should not remove collateral for the wrong loan owner", async () => {
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).removeCollateral(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
+        "MV2: unauthorized loanId",
+      );
+    });
   });
 
   async function testChangeDebt({
@@ -339,6 +348,15 @@ describe("MakerV2 Vaults", function () {
         loanId, daiAmount: parseEther("0.5"), add: true, relayed: true,
       });
     });
+    it("should not increase debt for the wrong loan owner", async () => {
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).addDebt(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
+        "MV2: unauthorized loanId",
+      );
+    });
   });
 
   async function testRepayDebt({ useDai, relayed }) {
@@ -387,6 +405,16 @@ describe("MakerV2 Vaults", function () {
         "MV2: repay less or full",
       );
     });
+    it("should not repay debt for the wrong loan owner", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).removeDebt(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
+        "MV2: unauthorized loanId",
+      );
+    });
   });
 
   async function testCloseLoan({ useDai, relayed }) {
@@ -428,6 +456,16 @@ describe("MakerV2 Vaults", function () {
     });
     it("should close a vault when paying fee in ETH (relayed tx)", async () => {
       await testCloseLoan({ useDai: false, relayed: true });
+    });
+    it("should not close a vault for the wrong loan owner", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).closeLoan(wallet2.contractAddress, loanId),
+        "MV2: unauthorized loanId",
+      );
     });
   });
 
