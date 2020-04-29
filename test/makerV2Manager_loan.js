@@ -8,6 +8,7 @@ const { parseEther, formatBytes32String, bigNumberify } = ethers.utils;
 const { HashZero, AddressZero } = ethers.constants;
 
 const TestManager = require("../utils/test-manager");
+const GemJoin = require("../build/GemJoin");
 const Registry = require("../build/ModuleRegistry");
 const MakerV1Manager = require("../build/MakerManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
@@ -430,7 +431,14 @@ describe("MakerV2 Vaults", function () {
     });
   });
 
-  describe("Adding new collateral token to registry", () => {
+  describe("MakerRegistry", () => {
+    it("should add a new collateral token", async () => {
+      const numCollateralBefore = (await makerRegistry.getCollateralTokens()).length;
+      await makerRegistry.addCollateral(batJoin.contractAddress);
+      const numCollateralAfter = (await makerRegistry.getCollateralTokens()).length;
+      assert.equal(numCollateralAfter, numCollateralBefore + 1, "A new collateral should have been added");
+      await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
+    });
     it("should open a loan with a newly added collateral token", async () => {
       await makerRegistry.addCollateral(batJoin.contractAddress);
       const { daiAmount, collateralAmount } = await getTestAmounts(bat.contractAddress);
@@ -438,7 +446,26 @@ describe("MakerV2 Vaults", function () {
       await testOpenLoan({
         collateralAmount, daiAmount, collateral: bat, relayed: false,
       });
-      await manager.increaseTime(3); // wait 3 seconds
+      await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
+    });
+    it("should not add a collateral when Join is not in the Vat", async () => {
+      const badJoin = await deployer.deploy(GemJoin, {}, vat.contractAddress, formatBytes32String("BAD"), bat.contractAddress);
+      await assert.revertWith(makerRegistry.addCollateral(badJoin.contractAddress), "MR: _joinAdapter not authorised in vat");
+    });
+    it("should not add a duplicate collateral", async () => {
+      await makerRegistry.addCollateral(batJoin.contractAddress);
+      await assert.revertWith(makerRegistry.addCollateral(batJoin.contractAddress), "MR: collateral already added");
+      await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
+    });
+    it("should remove a collateral", async () => {
+      const numCollateralBefore = (await makerRegistry.getCollateralTokens()).length;
+      await makerRegistry.addCollateral(batJoin.contractAddress);
+      await makerRegistry.removeCollateral(bat.contractAddress);
+      const numCollateralAfter = (await makerRegistry.getCollateralTokens()).length;
+      assert.equal(numCollateralAfter, numCollateralBefore, "The added collateral should have been removed");
+    });
+    it("should not remove a non-existing collateral", async () => {
+      await assert.revertWith(makerRegistry.removeCollateral(bat.contractAddress), "MR: collateral does not exist");
     });
   });
 
