@@ -65,45 +65,4 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
         daiToken = daiJoin.dai();
         vat = daiJoin.vat();
     }
-
-    /* **************************************** SAI <> DAI Conversion **************************************** */
-
-    /**
-    * @dev lets the owner convert SCD SAI into MCD DAI.
-    * @param _wallet The target wallet.
-    * @param _amount The amount of SAI to convert
-    */
-    function swapSaiToDai(
-        BaseWallet _wallet,
-        uint256 _amount
-    )
-        external
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
-    {
-        require(saiToken.balanceOf(address(_wallet)) >= _amount, "MV2: insufficient SAI");
-        invokeWallet(address(_wallet), address(saiToken), 0, abi.encodeWithSignature("approve(address,uint256)", scdMcdMigration, _amount));
-        invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSignature("swapSaiToDai(uint256)", _amount));
-        emit TokenConverted(address(_wallet), address(saiToken), _amount, address(daiToken), _amount);
-    }
-
-    /**
-    * @dev lets the owner convert MCD DAI into SCD SAI.
-    * @param _wallet The target wallet.
-    * @param _amount The amount of DAI to convert
-    */
-    function swapDaiToSai(
-        BaseWallet _wallet,
-        uint256 _amount
-    )
-        external
-        onlyWalletOwner(_wallet)
-        onlyWhenUnlocked(_wallet)
-    {
-        require(daiToken.balanceOf(address(_wallet)) >= _amount, "MV2: insufficient DAI");
-        invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSignature("approve(address,uint256)", scdMcdMigration, _amount));
-        invokeWallet(address(_wallet), scdMcdMigration, 0, abi.encodeWithSignature("swapDaiToSai(uint256)", _amount));
-        emit TokenConverted(address(_wallet), address(daiToken), _amount, address(saiToken), _amount);
-    }
-
 }
