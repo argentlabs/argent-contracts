@@ -15,6 +15,7 @@ const MakerV2Manager = require("../build/MakerV2Manager");
 const UpgradedMakerV2Manager = require("../build/TestUpgradedMakerV2Manager");
 const MakerRegistry = require("../build/MakerRegistry");
 const Wallet = require("../build/BaseWallet");
+const FakeWallet = require("../build/FakeWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferStorage = require("../build/TransferStorage");
 const TransferManager = require("../build/TransferManager");
@@ -538,9 +539,34 @@ describe("MakerV2 Vaults", function () {
     it("should transfer a vault from a wallet to the module (blockchain tx)", async () => {
       await testAcquireVault({ relayed: false });
     });
-
     it("should transfer a vault from a wallet to the module (relayed tx)", async () => {
       await testAcquireVault({ relayed: true });
+    });
+    it("should not transfer a vault that is not owned by the wallet", async () => {
+      // Create the vault with `owner` as owner
+      const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
+      const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
+      const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
+      const loanId = bigNumToBytes32(vaultId);
+      // We are NOT transferring the vault from the owner to the wallet
+      await assert.revertWith(
+        makerV2.from(owner).acquireLoan(walletAddress, loanId), "MV2: wrong vault owner",
+      );
+    });
+    it("should not transfer a vault that is not owned by the wallet", async () => {
+      // Deploy a fake wallet
+      const fakeWallet = await deployer.deploy(FakeWallet);
+      await fakeWallet.init(owner.address, [makerV2.contractAddress]);
+      // Create the vault with `owner` as owner
+      const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
+      const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
+      const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
+      const loanId = bigNumToBytes32(vaultId);
+      // Transfer the vault to the fake wallet
+      await cdpManager.from(owner).give(vaultId, fakeWallet.contractAddress);
+      await assert.revertWith(
+        makerV2.from(owner).acquireLoan(fakeWallet.contractAddress, loanId), "MV2: failed give",
+      );
     });
   });
 
