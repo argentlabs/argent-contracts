@@ -331,6 +331,7 @@ contract MakerV2Loan is MakerV2Base {
         onlyModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        verifyLoanOwner(_wallet, _loanId);
         cdpManager.give(uint256(_loanId), msg.sender);
         clearLoanOwner(_wallet, _loanId);
     }

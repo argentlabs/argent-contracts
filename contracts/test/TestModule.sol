@@ -31,6 +31,19 @@ contract TestModule is BaseModule, RelayerModule {
         uintVal = 0;
     }
 
+    // used to simulate a bad module in MakerV2Loan tests
+    function callContract(address _contract, uint256 _value, bytes calldata _data) external {
+        // solium-disable-next-line security/no-call-value
+        (bool success,) = _contract.call.value(_value)(_data);
+        if (!success) {
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                returndatacopy(0, 0, returndatasize)
+                revert(0, returndatasize)
+            }
+        }
+    }
+
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         enableStaticCalls(_wallet, address(this));
     }

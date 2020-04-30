@@ -19,6 +19,7 @@ const FakeWallet = require("../build/FakeWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferStorage = require("../build/TransferStorage");
 const TransferManager = require("../build/TransferManager");
+const BadModule = require("../build/TestModule");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 /* global accounts */
@@ -614,7 +615,7 @@ describe("MakerV2 Vaults", function () {
       daiAmount = testAmounts.daiAmount;
       collateralAmount = testAmounts.collateralAmount;
 
-      // Deploy the upgraded MakerV2 module
+      // Deploy and register the upgraded MakerV2 module
       upgradedMakerV2 = await deployer.deploy(
         UpgradedMakerV2Manager,
         {},
@@ -628,8 +629,6 @@ describe("MakerV2 Vaults", function () {
         makerV2.contractAddress,
         { gasLimit: 10700000 },
       );
-
-      // Register the upgraded MakerV2 module in the ModuleRegistry
       await registry.registerModule(upgradedMakerV2.contractAddress, formatBytes32String("UpgradedMakerV2Manager"));
 
       // Adding BAT to the registry of supported collateral tokens
@@ -705,6 +704,16 @@ describe("MakerV2 Vaults", function () {
 
     it("should not allow non-module to give vault", async () => {
       await assert.revertWith(makerV2.from(owner).giveVault(walletAddress, formatBytes32String("")), "MV2: sender unauthorized");
+    });
+    it("should not allow (fake) module to give unowned vault", async () => {
+      // Deploy and register a (fake) bad module
+      const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, false, 0);
+      await registry.registerModule(badModule.contractAddress, formatBytes32String("BadModule"));
+      // Add the bad module to the wallet
+      await makerV2.from(owner).addModule(walletAddress, badModule.contractAddress, { gasLimit: 2000000 });
+      // Use the bad module to attempt a bad giveVault call
+      const callData = makerV2.contract.interface.functions.giveVault.encode([walletAddress, bigNumToBytes32(bigNumberify(666))]);
+      await assert.revertWith(badModule.from(owner).callContract(makerV2.contractAddress, 0, callData), "MV2: unauthorized loanId");
     });
   });
 });
