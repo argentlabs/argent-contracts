@@ -208,6 +208,7 @@ contract MakerV2Loan is MakerV2Base {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        verifyLoanOwner(_wallet, _loanId);
         addDebt(_wallet, uint256(_loanId), _debtAmount);
         emit DebtAdded(address(_wallet), _loanId, _debtToken, _debtAmount);
     }
@@ -270,12 +271,14 @@ contract MakerV2Loan is MakerV2Base {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        require(cdpManager.owns(uint256(_loanId)) == address(_wallet), "MV2: wrong vault owner");
         invokeWallet(
             address(_wallet),
             address(cdpManager),
             0,
             abi.encodeWithSignature("give(uint256,address)", uint256(_loanId), address(this))
         );
+        require(cdpManager.owns(uint256(_loanId)) == address(this), "MV2: failed give");
         saveLoanOwner(_wallet, _loanId);
     }
 
@@ -328,6 +331,7 @@ contract MakerV2Loan is MakerV2Base {
         onlyModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        verifyLoanOwner(_wallet, _loanId);
         cdpManager.give(uint256(_loanId), msg.sender);
         clearLoanOwner(_wallet, _loanId);
     }

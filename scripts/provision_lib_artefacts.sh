@@ -26,3 +26,4 @@ cp build/DSToken.json .coverage_artifacts/DSToken.json
 cp build/DSValue.json .coverage_artifacts/DSValue.json
 cp build/CryptoKittyTest.json .coverage_artifacts/CryptoKittyTest.json
 cp build/TestRegistry.json .coverage_artifacts/TestRegistry.json
+cp build/GemJoin.json .coverage_artifacts/GemJoin.json

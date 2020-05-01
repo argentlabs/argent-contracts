@@ -8,15 +8,18 @@ const { parseEther, formatBytes32String, bigNumberify } = ethers.utils;
 const { HashZero, AddressZero } = ethers.constants;
 
 const TestManager = require("../utils/test-manager");
+const GemJoin = require("../build/GemJoin");
 const Registry = require("../build/ModuleRegistry");
 const MakerV1Manager = require("../build/MakerManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const UpgradedMakerV2Manager = require("../build/TestUpgradedMakerV2Manager");
 const MakerRegistry = require("../build/MakerRegistry");
 const Wallet = require("../build/BaseWallet");
+const FakeWallet = require("../build/FakeWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferStorage = require("../build/TransferStorage");
 const TransferManager = require("../build/TransferManager");
+const BadModule = require("../build/TestModule");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 /* global accounts */
@@ -71,7 +74,7 @@ describe("MakerV2 Vaults", function () {
     // Deploy MakerV2Manager
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    makerRegistry = await deployer.deploy(MakerRegistry);
+    makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);
     await makerRegistry.addCollateral(wethJoin.contractAddress);
     makerV2 = await deployer.deploy(
       MakerV2Manager,
@@ -287,6 +290,15 @@ describe("MakerV2 Vaults", function () {
         "MV2: int overflow",
       );
     });
+    it("should not remove collateral for the wrong loan owner", async () => {
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).removeCollateral(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
+        "MV2: unauthorized loanId",
+      );
+    });
   });
 
   async function testChangeDebt({
@@ -338,6 +350,15 @@ describe("MakerV2 Vaults", function () {
         loanId, daiAmount: parseEther("0.5"), add: true, relayed: true,
       });
     });
+    it("should not increase debt for the wrong loan owner", async () => {
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).addDebt(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
+        "MV2: unauthorized loanId",
+      );
+    });
   });
 
   async function testRepayDebt({ useDai, relayed }) {
@@ -386,6 +407,16 @@ describe("MakerV2 Vaults", function () {
         "MV2: repay less or full",
       );
     });
+    it("should not repay debt for the wrong loan owner", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).removeDebt(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
+        "MV2: unauthorized loanId",
+      );
+    });
   });
 
   async function testCloseLoan({ useDai, relayed }) {
@@ -428,9 +459,26 @@ describe("MakerV2 Vaults", function () {
     it("should close a vault when paying fee in ETH (relayed tx)", async () => {
       await testCloseLoan({ useDai: false, relayed: true });
     });
+    it("should not close a vault for the wrong loan owner", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      const wallet2 = await deployer.deploy(Wallet);
+      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await assert.revertWith(
+        makerV2.from(owner2).closeLoan(wallet2.contractAddress, loanId),
+        "MV2: unauthorized loanId",
+      );
+    });
   });
 
-  describe("Adding new collateral token to registry", () => {
+  describe("MakerRegistry", () => {
+    it("should add a new collateral token", async () => {
+      const numCollateralBefore = (await makerRegistry.getCollateralTokens()).length;
+      await makerRegistry.addCollateral(batJoin.contractAddress);
+      const numCollateralAfter = (await makerRegistry.getCollateralTokens()).length;
+      assert.equal(numCollateralAfter, numCollateralBefore + 1, "A new collateral should have been added");
+      await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
+    });
     it("should open a loan with a newly added collateral token", async () => {
       await makerRegistry.addCollateral(batJoin.contractAddress);
       const { daiAmount, collateralAmount } = await getTestAmounts(bat.contractAddress);
@@ -438,7 +486,26 @@ describe("MakerV2 Vaults", function () {
       await testOpenLoan({
         collateralAmount, daiAmount, collateral: bat, relayed: false,
       });
-      await manager.increaseTime(3); // wait 3 seconds
+      await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
+    });
+    it("should not add a collateral when Join is not in the Vat", async () => {
+      const badJoin = await deployer.deploy(GemJoin, {}, vat.contractAddress, formatBytes32String("BAD"), bat.contractAddress);
+      await assert.revertWith(makerRegistry.addCollateral(badJoin.contractAddress), "MR: _joinAdapter not authorised in vat");
+    });
+    it("should not add a duplicate collateral", async () => {
+      await makerRegistry.addCollateral(batJoin.contractAddress);
+      await assert.revertWith(makerRegistry.addCollateral(batJoin.contractAddress), "MR: collateral already added");
+      await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
+    });
+    it("should remove a collateral", async () => {
+      const numCollateralBefore = (await makerRegistry.getCollateralTokens()).length;
+      await makerRegistry.addCollateral(batJoin.contractAddress);
+      await makerRegistry.removeCollateral(bat.contractAddress);
+      const numCollateralAfter = (await makerRegistry.getCollateralTokens()).length;
+      assert.equal(numCollateralAfter, numCollateralBefore, "The added collateral should have been removed");
+    });
+    it("should not remove a non-existing collateral", async () => {
+      await assert.revertWith(makerRegistry.removeCollateral(bat.contractAddress), "MR: collateral does not exist");
     });
   });
 
@@ -473,9 +540,34 @@ describe("MakerV2 Vaults", function () {
     it("should transfer a vault from a wallet to the module (blockchain tx)", async () => {
       await testAcquireVault({ relayed: false });
     });
-
     it("should transfer a vault from a wallet to the module (relayed tx)", async () => {
       await testAcquireVault({ relayed: true });
+    });
+    it("should not transfer a vault that is not owned by the wallet", async () => {
+      // Create the vault with `owner` as owner
+      const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
+      const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
+      const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
+      const loanId = bigNumToBytes32(vaultId);
+      // We are NOT transferring the vault from the owner to the wallet
+      await assert.revertWith(
+        makerV2.from(owner).acquireLoan(walletAddress, loanId), "MV2: wrong vault owner",
+      );
+    });
+    it("should not transfer a vault that is not owned by the wallet", async () => {
+      // Deploy a fake wallet
+      const fakeWallet = await deployer.deploy(FakeWallet);
+      await fakeWallet.init(owner.address, [makerV2.contractAddress]);
+      // Create the vault with `owner` as owner
+      const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
+      const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
+      const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
+      const loanId = bigNumToBytes32(vaultId);
+      // Transfer the vault to the fake wallet
+      await cdpManager.from(owner).give(vaultId, fakeWallet.contractAddress);
+      await assert.revertWith(
+        makerV2.from(owner).acquireLoan(fakeWallet.contractAddress, loanId), "MV2: failed give",
+      );
     });
   });
 
@@ -523,7 +615,7 @@ describe("MakerV2 Vaults", function () {
       daiAmount = testAmounts.daiAmount;
       collateralAmount = testAmounts.collateralAmount;
 
-      // Deploy the upgraded MakerV2 module
+      // Deploy and register the upgraded MakerV2 module
       upgradedMakerV2 = await deployer.deploy(
         UpgradedMakerV2Manager,
         {},
@@ -537,8 +629,6 @@ describe("MakerV2 Vaults", function () {
         makerV2.contractAddress,
         { gasLimit: 10700000 },
       );
-
-      // Register the upgraded MakerV2 module in the ModuleRegistry
       await registry.registerModule(upgradedMakerV2.contractAddress, formatBytes32String("UpgradedMakerV2Manager"));
 
       // Adding BAT to the registry of supported collateral tokens
@@ -614,6 +704,16 @@ describe("MakerV2 Vaults", function () {
 
     it("should not allow non-module to give vault", async () => {
       await assert.revertWith(makerV2.from(owner).giveVault(walletAddress, formatBytes32String("")), "MV2: sender unauthorized");
+    });
+    it("should not allow (fake) module to give unowned vault", async () => {
+      // Deploy and register a (fake) bad module
+      const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, false, 0);
+      await registry.registerModule(badModule.contractAddress, formatBytes32String("BadModule"));
+      // Add the bad module to the wallet
+      await makerV2.from(owner).addModule(walletAddress, badModule.contractAddress, { gasLimit: 2000000 });
+      // Use the bad module to attempt a bad giveVault call
+      const callData = makerV2.contract.interface.functions.giveVault.encode([walletAddress, bigNumToBytes32(bigNumberify(666))]);
+      await assert.revertWith(badModule.from(owner).callContract(makerV2.contractAddress, 0, callData), "MV2: unauthorized loanId");
     });
   });
 });
