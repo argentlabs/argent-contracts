@@ -1,7 +1,11 @@
-const ethers = require("ethers");
 const readline = require("readline");
+const ethers = require("ethers");
+
+const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 module.exports = {
+
+  ETH_TOKEN,
 
   namehash(_name) {
     return ethers.utils.namehash(_name);

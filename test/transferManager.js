@@ -7,17 +7,17 @@ const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferModule = require("../build/TransferManager");
 const LegacyTransferManager = require("../build/LegacyTransferManager");
-const KyberNetwork = require("../build/KyberNetworkTest");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
 
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const { ETH_TOKEN } = require("../utils/utilities.js");
+
 const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
 const DECIMALS = 12; // number of decimal for TOKN contract
-const KYBER_RATE = ethers.utils.bigNumberify(51 * 10 ** 13); // 1 TOKN = 0.00051 ETH
+const TOKEN_RATE = ethers.utils.bigNumberify(51 * 10 ** 13); // 1 TOKN = 0.00051 ETH
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const ACTION_TRANSFER = 0;
@@ -36,7 +36,6 @@ describe("TransferManager", function () {
   const spender = accounts[4].signer;
 
   let deployer;
-  let kyber;
   let registry;
   let priceProvider;
   let transferStorage;
@@ -49,8 +48,9 @@ describe("TransferManager", function () {
   before(async () => {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(Registry);
-    kyber = await deployer.deploy(KyberNetwork);
-    priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
+    priceProvider = await deployer.deploy(TokenPriceProvider);
+    await priceProvider.addManager(infrastructure.address);
+
     transferStorage = await deployer.deploy(TransferStorage);
     guardianStorage = await deployer.deploy(GuardianStorage);
 
@@ -81,8 +81,7 @@ describe("TransferManager", function () {
     wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [transferModule.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await kyber.addToken(erc20.contractAddress, KYBER_RATE, DECIMALS);
-    await priceProvider.syncPrice(erc20.contractAddress);
+    await priceProvider.setPrice(erc20.contractAddress, TOKEN_RATE);
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("1000000000000000000") });
   });
 
@@ -584,7 +583,28 @@ describe("TransferManager", function () {
 
     it("should approve the token and call the contract when contract to call is different to token spender", async () => {
       const consumer = await contract.tokenConsumer();
-      await doApproveTokenAndCallContract({ amount: 10, state: 3, spender: consumer });
+      await doApproveTokenAndCallContract({ amount: 10, state: 3, consumer });
+    });
+
+    it("should approve token and call contract when contract != spender, amount > limit and spender is whitelisted ", async () => {
+      const consumer = await contract.tokenConsumer();
+      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, consumer);
+      await manager.increaseTime(3);
+      await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6, consumer });
+    });
+
+    it("should fail to approve token and call contract when contract != spender, amount > limit and contract is whitelisted ", async () => {
+      const amount = ETH_LIMIT + 10000;
+      const consumer = await contract.tokenConsumer();
+      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, contract.contractAddress);
+      await manager.increaseTime(3);
+      const dataToTransfer = contract.contract.interface.functions.setStateAndPayTokenWithConsumer.encode([6, erc20.contractAddress, amount]);
+      await assert.revertWith(
+        transferModule.from(owner).approveTokenAndCallContract(
+          wallet.contractAddress, erc20.contractAddress, consumer, amount, contract.contractAddress, dataToTransfer,
+        ),
+        "TM: Approve above daily limit",
+      );
     });
 
     it("should fail to approve the token and call the contract when the token is above the daily limit ", async () => {

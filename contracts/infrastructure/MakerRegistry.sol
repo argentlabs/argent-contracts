@@ -1,6 +1,6 @@
 pragma solidity ^0.5.4;
 import "../base/Owned.sol";
-import "../modules/maker/MakerV2Base.sol";
+import "../../lib/maker/MakerInterfaces.sol";
 
 /**
  * @title MakerRegistry
@@ -9,10 +9,9 @@ import "../modules/maker/MakerV2Base.sol";
  */
 contract MakerRegistry is Owned {
 
+    VatLike public vat;
     address[] public tokens;
-
     mapping (address => Collateral) public collaterals;
-
     mapping (bytes32 => address) public collateralTokensByIlks;
 
     struct Collateral {
@@ -25,11 +24,16 @@ contract MakerRegistry is Owned {
     event CollateralAdded(address indexed _token);
     event CollateralRemoved(address indexed _token);
 
+    constructor(VatLike _vat) public {
+        vat = _vat;
+    }
+
     /**
      * @dev Adds a new token as possible CDP collateral.
      * @param _joinAdapter The Join Adapter for the token.
      */
     function addCollateral(JoinLike _joinAdapter) external onlyOwner {
+        require(vat.wards(address(_joinAdapter)) == 1, "MR: _joinAdapter not authorised in vat");
         address token = address(_joinAdapter.gem());
         require(!collaterals[token].exists, "MR: collateral already added");
         collaterals[token].exists = true;

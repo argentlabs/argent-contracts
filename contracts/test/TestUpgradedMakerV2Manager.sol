@@ -13,7 +13,7 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
     constructor(
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
-        ScdMcdMigration _scdMcdMigration,
+        ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,
         JugLike _jug,
         MakerRegistry _makerRegistry,

@@ -18,7 +18,7 @@ import "../common/BaseModule.sol";
 import "../common/RelayerModule.sol";
 import "../common/OnlyOwnerModule.sol";
 import "../../../lib/utils/SafeMath.sol";
-import "../../../lib/maker/MakerV2Interfaces.sol";
+import "../../../lib/maker/MakerInterfaces.sol";
 import "../../infrastructure/MakerRegistry.sol";
 
 /**
@@ -54,7 +54,7 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
     constructor(
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
-        ScdMcdMigration _scdMcdMigration
+        ScdMcdMigrationLike _scdMcdMigration
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public
@@ -77,7 +77,7 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
         BaseWallet _wallet,
         uint256 _amount
     )
-        public
+        external
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
