@@ -260,7 +260,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         // Make sure we don't call a module, the wallet itself, or a supported ERC20
         authoriseContractCall(_wallet, _contract);
 
-        if (!isWhitelisted(_wallet, _contract)) {
+        if (!isWhitelisted(_wallet, _spender)) {
             // check if the amount is under the daily limit
             // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
             uint256 valueInEth = priceProvider.getEtherValue(_amount, _token);
