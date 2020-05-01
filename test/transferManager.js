@@ -583,7 +583,28 @@ describe("TransferManager", function () {
 
     it("should approve the token and call the contract when contract to call is different to token spender", async () => {
       const consumer = await contract.tokenConsumer();
-      await doApproveTokenAndCallContract({ amount: 10, state: 3, spender: consumer });
+      await doApproveTokenAndCallContract({ amount: 10, state: 3, consumer });
+    });
+
+    it("should approve token and call contract when contract != spender, amount > limit and spender is whitelisted ", async () => {
+      const consumer = await contract.tokenConsumer();
+      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, consumer);
+      await manager.increaseTime(3);
+      await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6, consumer });
+    });
+
+    it("should fail to approve token and call contract when contract != spender, amount > limit and contract is whitelisted ", async () => {
+      const amount = ETH_LIMIT + 10000;
+      const consumer = await contract.tokenConsumer();
+      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, contract.contractAddress);
+      await manager.increaseTime(3);
+      const dataToTransfer = contract.contract.interface.functions.setStateAndPayTokenWithConsumer.encode([6, erc20.contractAddress, amount]);
+      await assert.revertWith(
+        transferModule.from(owner).approveTokenAndCallContract(
+          wallet.contractAddress, erc20.contractAddress, consumer, amount, contract.contractAddress, dataToTransfer,
+        ),
+        "TM: Approve above daily limit",
+      );
     });
 
     it("should fail to approve the token and call the contract when the token is above the daily limit ", async () => {
