@@ -43,6 +43,7 @@ contract ManagerLike {
     function give(uint, address) public;
     function move(uint, address, uint) public;
     function flux(uint, address, uint) public;
+    function shift(uint, uint) public;
     mapping (uint => bytes32) public ilks;
     mapping (uint => address) public owns;
 }

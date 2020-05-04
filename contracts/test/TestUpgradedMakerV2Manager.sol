@@ -42,7 +42,7 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
             bytes32 loanId = previousMakerV2Manager.loanIds(address(_wallet), makerRegistry.getIlk(tokens[i]));
             if (loanId != 0) {
                 previousMakerV2Manager.giveVault(_wallet, loanId);
-                saveLoanOwner(_wallet, loanId);
+                assignLoanToWallet(_wallet, loanId);
             }
         }
     }
