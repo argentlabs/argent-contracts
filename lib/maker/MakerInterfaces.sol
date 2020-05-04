@@ -84,3 +84,9 @@ contract VoxLike {
 contract JugLike {
     function drip(bytes32) external;
 }
+
+contract PotLike {
+    function chi() public view returns (uint);
+    function pie(address) public view returns (uint);
+    function drip() public;
+}
