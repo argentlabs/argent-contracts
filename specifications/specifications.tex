@@ -64,7 +64,7 @@ Once a recovery is started the wallet is automatically locked. The wallet can on
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ownership Transfer}
 
-In addition to recovery it is possible for a user to transfer ownership of his wallet to a new device while still being in possession of the actual phone. This transfer is immediate to avoid service interruption but must be approved bu guardians. The number of required signatures is given by
+In addition to recovery it is possible for a user to transfer ownership of his wallet to a new device while still being in possession of the actual phone. This transfer is immediate to avoid service interruption but must be approved by guardians. The number of required signatures is given by
 \begin{equation*}
     1+\left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
@@ -93,7 +93,7 @@ Adding an address to the whitelist is an action triggered by the wallet owner an
 \subsection{Approved Transfer}
 \label{sec:approved-transfer}
 
-Transfers exceeding the daily limit can be executed immediately by the owner, provided that he obtains approval from its guardians. The number of required signatures for an approved transfer is given by
+Transfers exceeding the daily limit can be executed immediately by the owner, provided that he obtains approval from their guardians. The number of required signatures for an approved transfer is given by
 \begin{equation*}
     1+\left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
@@ -169,7 +169,7 @@ Our architecture is made up of multiple contracts (see Figure~\ref{fig:sc-arch-1
     \item \textbf{ENS Resolver:} The ENS Resolver keeps links between ENS subdomains and wallet addresses and allows to resolve them in both directions.
     \item \textbf{Module Registry:} The Module Registry maintains a list of the registered \emph{Module} contracts that can be used with user wallets. It also maintains a list of registered \emph{Upgrader} contracts that a user can use to migrate the modules used with their wallet (see Section~\ref{sec:upgradability}).
     \item \textbf{Compound Registry:} Registry maintaining a mapping between underlying assets (ETH, DAI, BAT, etc) and their corresponding Compound Token (cETH, cDAI, cBAT, etc).
-    \item \textbf{Maker Registry:} Registry maintaining a mapping between token collaterals (ETH, BAT, USDC) and their corresponding Maker Join adapters.
+    \item \textbf{Maker Registry:} Registry maintaining a mapping between token collaterals (ETH, BAT, USDC, WBTC) and their corresponding Maker Join adapters.
     \item \textbf{Token Price Provider:} On-chain price oracle for ERC20 tokens. It is used by wallets to estimate the value in ETH of ERC-20 transfers and update the daily limit. 
 \end{itemize}
 
@@ -234,7 +234,7 @@ This module lets users exchange ETH or ERC20 tokens for ETH or other ERC20 token
 
 This module lets users lend and borrow tokens with the Compound protocol. 
 
-\subsubsection{NFTTransfer module}
+\subsubsection{NftTransfer module}
 
 This module lets users transfer collectibles that comply to the ERC-721 interface.  
 
