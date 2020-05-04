@@ -554,9 +554,9 @@ describe("MakerV2 Vaults", function () {
         makerV2.from(owner).acquireLoan(walletAddress, loanId), "MV2: wrong vault owner",
       );
     });
-    it("should not transfer a vault that is not owned by the wallet", async () => {
+    it("should not transfer a vault that is not given to the module", async () => {
       // Deploy a fake wallet
-      const fakeWallet = await deployer.deploy(FakeWallet);
+      const fakeWallet = await deployer.deploy(FakeWallet, {}, false, AddressZero, 0, "0x00");
       await fakeWallet.init(owner.address, [makerV2.contractAddress]);
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
@@ -567,6 +567,23 @@ describe("MakerV2 Vaults", function () {
       await cdpManager.from(owner).give(vaultId, fakeWallet.contractAddress);
       await assert.revertWith(
         makerV2.from(owner).acquireLoan(fakeWallet.contractAddress, loanId), "MV2: failed give",
+      );
+    });
+
+    it("should not allow reentrancy in acquireLoan", async () => {
+      // Deploy a fake wallet capable of reentrancy
+      const acquireLoanCallData = makerV2.contract.interface.functions.acquireLoan.encode([AddressZero, bigNumToBytes32(bigNumberify(0))]);
+      const fakeWallet = await deployer.deploy(FakeWallet, {}, true, makerV2.contractAddress, 0, acquireLoanCallData);
+      await fakeWallet.init(owner.address, [makerV2.contractAddress]);
+      // Create the vault with `owner` as owner
+      const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
+      const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
+      const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
+      const loanId = bigNumToBytes32(vaultId);
+      // Transfer the vault to the fake wallet
+      await cdpManager.from(owner).give(vaultId, fakeWallet.contractAddress);
+      await assert.revertWith(
+        makerV2.from(owner).acquireLoan(fakeWallet.contractAddress, loanId), "MV2: reentrant call",
       );
     });
   });

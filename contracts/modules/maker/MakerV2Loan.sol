@@ -60,6 +60,8 @@ contract MakerV2Loan is MakerV2Base {
     // while also enforcing a maximum of one loan per token (ilk) and per wallet
     // (which will make future upgrades of the module easier)
     mapping(address => mapping(bytes32 => bytes32)) public loanIds;
+    // Lock used by nonReentrant()
+    bool private _notEntered = true;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -92,6 +94,16 @@ contract MakerV2Loan is MakerV2Base {
     modifier onlyModule(BaseWallet _wallet) {
         require(_wallet.authorised(msg.sender), "MV2: sender unauthorized");
         _;
+    }
+
+    /**
+     * @dev Prevents call reentrancy
+     */
+    modifier nonReentrant() {
+        require(_notEntered, "MV2: reentrant call");
+        _notEntered = false;
+        _;
+        _notEntered = true;
     }
 
     // *************** Constructor ********************** //
@@ -268,6 +280,7 @@ contract MakerV2Loan is MakerV2Base {
         bytes32 _loanId
     )
         external
+        nonReentrant
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
