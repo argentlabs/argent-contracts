@@ -20,6 +20,8 @@ import "../modules/common/BaseModule.sol";
 import "../modules/common/RelayerModule.sol";
 import "../modules/common/OnlyOwnerModule.sol";
 import "../defi/Loan.sol";
+import "../../lib/maker/DS/DSMath.sol";
+
 
 // Interface to MakerDAO's Tub contract, used to manage CDPs
 contract IMakerCdp {
@@ -83,8 +85,7 @@ interface IUniswapExchange {
  * @dev Module to borrow tokens with MakerDAO
  * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
-contract LegacyMakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
-
+contract LegacyMakerManager is DSMath, Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     bytes32 constant NAME = "MakerManager";
 
     // The Maker Tub contract
@@ -505,7 +506,7 @@ contract LegacyMakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule 
      * @return the amount of DAI that can still be drawn from a CDP while keeping it above the liquidation ratio.
      */
     function maxDaiDrawable(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256) {
-        uint256 maxTab = _makerCdp.ink(_cup).rmul(_makerCdp.tag()).rdiv(_makerCdp.vox().par()).rdiv(_makerCdp.mat());
+        uint256 maxTab = rdiv(rdiv(rmul(_makerCdp.ink(_cup), _makerCdp.tag()), _makerCdp.vox().par()), _makerCdp.mat());
         return maxTab.sub(_makerCdp.tab(_cup));
     }
 
@@ -516,7 +517,7 @@ contract LegacyMakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule 
      * @return the amount of collateral that needs to be added to a CDP to bring it above the liquidation ratio.
      */
     function minCollateralRequired(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256) {
-        uint256 minInk = _makerCdp.tab(_cup).rmul(_makerCdp.mat()).rmul(_makerCdp.vox().par()).rdiv(_makerCdp.tag());
+        uint256 minInk = rdiv(rmul(rmul(_makerCdp.tab(_cup), _makerCdp.mat()), _makerCdp.vox().par()), _makerCdp.tag());
         return minInk.sub(_makerCdp.ink(_cup));
     }
 
@@ -531,10 +532,10 @@ contract LegacyMakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule 
         uint debt = daiDebt(_cup, _makerCdp);
         if (debt == 0)
             return 0;
-        uint256 feeInDAI = _daiRefund.rmul(_makerCdp.rap(_cup).rdiv(debt));
+        uint256 feeInDAI = rmul(_daiRefund, rdiv(_makerCdp.rap(_cup), debt));
         (bytes32 daiPerMKR, bool ok) = _makerCdp.pep().peek();
         if (ok && daiPerMKR != 0)
-            _fee = feeInDAI.wdiv(uint(daiPerMKR));
+            _fee = wdiv(feeInDAI, uint(daiPerMKR));
     }
 
     /**
@@ -554,11 +555,13 @@ contract LegacyMakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule 
      * @return The minimum amount of PETH to lock in the CDP
      */
     function minRequiredCollateral(bytes32 _cup, IMakerCdp _makerCdp) public returns (uint256 _minCollateral) {
-        _minCollateral = daiDebt(_cup, _makerCdp)    // DAI debt
-            .rmul(_makerCdp.vox().par())         // x ~1 USD/DAI
-            .rmul(_makerCdp.mat())               // x 1.5
-            .rmul(1010000000000000000000000000) // x (1+1%) cushion
-            .rdiv(_makerCdp.tag());              // ÷ ~170 USD/PETH
+        _minCollateral = rdiv(
+            rmul(
+                rmul(
+                    rmul(daiDebt(_cup, _makerCdp), _makerCdp.vox().par()), // DAI debt x ~1 USD/DAI
+                    _makerCdp.mat()),           // x 1.5
+                1010000000000000000000000000),  // x (1+1%) cushion
+            _makerCdp.tag());                  // ÷ ~170 USD/PETH
     }
 
     /* *********************************** Utilities ************************************* */

@@ -14,6 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
+import "./common/ArgentSafeMath.sol";
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModuleV2.sol";
@@ -195,16 +196,16 @@ contract RecoveryManager is BaseModule, RelayerModuleV2 {
     function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
-            return SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            return ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
             return 0;
         }
         if (methodId == CANCEL_RECOVERY_PREFIX) {
-            return SafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
+            return ArgentSafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
         }
         if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
-            uint majorityGuardians = SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            uint majorityGuardians = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
             return SafeMath.add(majorityGuardians, 1);
         }
         revert("RM: unknown method");

@@ -14,6 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
+import "./common/ArgentSafeMath.sol";
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModuleV2.sol";
@@ -118,7 +119,7 @@ contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
     }
 
     function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) internal view returns (uint256) {
-        // owner  + [n/2] guardians
-        return  1 + SafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+        // owner + [n/2] guardians
+        return 1 + ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
     }
 }

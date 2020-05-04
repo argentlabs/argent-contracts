@@ -1,7 +1,7 @@
 pragma solidity ^0.5.4;
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/other/KyberNetwork.sol";
-import "../../lib/utils/SafeMath.sol";
 
 contract KyberNetworkTest is KyberNetwork {
 
@@ -12,7 +12,7 @@ contract KyberNetworkTest is KyberNetwork {
 
     struct Token {
         bool exists;
-        uint256 rate; 
+        uint256 rate;
         uint256 decimals;
     }
 
@@ -45,15 +45,13 @@ contract KyberNetworkTest is KyberNetwork {
         view
         returns (uint expectedRate, uint slippageRate)
     {
-        if(address(_src) == ETH_TOKEN_ADDRESS) {
+        if (address(_src) == ETH_TOKEN_ADDRESS) {
             expectedRate = 10**36 / tokens[address(_dest)].rate;
             slippageRate = expectedRate;
-        }
-        else if(address(_dest) == ETH_TOKEN_ADDRESS) {
+        } else if (address(_dest) == ETH_TOKEN_ADDRESS) {
             expectedRate = tokens[address(_src)].rate;
             slippageRate = expectedRate;
-        }
-        else {
+        } else {
             revert("Unknown token pair");
         }
     }
@@ -69,41 +67,37 @@ contract KyberNetworkTest is KyberNetwork {
     )
         public
         payable
-        returns( uint destAmount) 
+        returns( uint destAmount)
     {
         uint expectedRate;
         uint srcAmount;
-        if(address(_src) == ETH_TOKEN_ADDRESS) {
+        if (address(_src) == ETH_TOKEN_ADDRESS) {
             expectedRate = 10**36 / tokens[address(_dest)].rate;
             destAmount = expectedRate.mul(_srcAmount).div(10**(36 - tokens[address(_dest)].decimals));
-            if(destAmount > _maxDestAmount) {
+            if (destAmount > _maxDestAmount) {
                 destAmount = _maxDestAmount;
                 srcAmount = _maxDestAmount.mul(10**(36 - tokens[address(_dest)].decimals)).div(expectedRate);
-            }
-            else {
+            } else {
                 srcAmount = _srcAmount;
             }
             require(msg.value >= srcAmount, "not enough ETH provided");
-            if(msg.value > srcAmount) {
+            if (msg.value > srcAmount) {
                 // refund
                 msg.sender.transfer(msg.value - srcAmount);
             }
             require(ERC20(_dest).transfer(_destAddress, destAmount), "ERC20 transfer failed");
-        }
-        else if(address(_dest) == ETH_TOKEN_ADDRESS) {
+        } else if (address(_dest) == ETH_TOKEN_ADDRESS) {
             expectedRate = tokens[address(_src)].rate;
             destAmount = expectedRate.mul(_srcAmount).div(10**tokens[address(_src)].decimals);
-            if(destAmount > _maxDestAmount) {
+            if (destAmount > _maxDestAmount) {
                 destAmount = _maxDestAmount;
                 srcAmount = _maxDestAmount.mul(10**tokens[address(_src)].decimals).div(expectedRate);
-            }
-            else {
+            } else {
                 srcAmount = _srcAmount;
             }
             require(_src.transferFrom(msg.sender, address(this), srcAmount), "not enough ERC20 provided");
             _destAddress.transfer(destAmount);
-        }
-        else {
+        } else {
             revert("Unknown token pair");
         }
     }
