@@ -16,12 +16,6 @@
 pragma solidity ^0.5.4;
 import "./MakerV2Base.sol";
 
-contract PotLike {
-    function chi() public view returns (uint);
-    function pie(address) public view returns (uint);
-    function drip() public;
-}
-
 /**
  * @title MakerV2Invest
  * @dev Module to lock/unlock MCD DAI into/from Maker's Pot

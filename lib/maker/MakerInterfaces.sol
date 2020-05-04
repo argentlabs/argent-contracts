@@ -43,6 +43,7 @@ contract ManagerLike {
     function give(uint, address) public;
     function move(uint, address, uint) public;
     function flux(uint, address, uint) public;
+    function shift(uint, uint) public;
     mapping (uint => bytes32) public ilks;
     mapping (uint => address) public owns;
 }
@@ -82,4 +83,10 @@ contract VoxLike {
 
 contract JugLike {
     function drip(bytes32) external;
+}
+
+contract PotLike {
+    function chi() public view returns (uint);
+    function pie(address) public view returns (uint);
+    function drip() public;
 }

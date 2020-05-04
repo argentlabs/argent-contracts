@@ -117,7 +117,7 @@ describe("MakerV2 Vaults", function () {
     wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [makerV1.contractAddress, makerV2.contractAddress, transferManager.contractAddress]);
     walletAddress = wallet.contractAddress;
-    await infrastructure.sendTransaction({ to: walletAddress, value: parseEther("0.6") });
+    await infrastructure.sendTransaction({ to: walletAddress, value: parseEther("2.0") });
   });
 
   async function getTestAmounts(tokenAddress) {
@@ -527,13 +527,15 @@ describe("MakerV2 Vaults", function () {
       } else {
         await makerV2.from(owner)[method](...params, { gasLimit: 1000000 });
       }
+      // The loanId held by the MakerV2Manager will be different from the transferred vault id, in case the latter was merged into an existing vault
+      const moduleLoanId = await makerV2.loanIds(walletAddress, ilk);
       // Add some collateral and debt
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       await testChangeCollateral({
-        loanId, collateralAmount, add: true, relayed, makerV2,
+        loanId: moduleLoanId, collateralAmount, add: true, relayed, makerV2,
       });
       await testChangeDebt({
-        loanId, daiAmount, add: true, relayed,
+        loanId: moduleLoanId, daiAmount, add: true, relayed,
       });
     }
 
@@ -554,9 +556,9 @@ describe("MakerV2 Vaults", function () {
         makerV2.from(owner).acquireLoan(walletAddress, loanId), "MV2: wrong vault owner",
       );
     });
-    it("should not transfer a vault that is not owned by the wallet", async () => {
+    it("should not transfer a vault that is not given to the module", async () => {
       // Deploy a fake wallet
-      const fakeWallet = await deployer.deploy(FakeWallet);
+      const fakeWallet = await deployer.deploy(FakeWallet, {}, false, AddressZero, 0, "0x00");
       await fakeWallet.init(owner.address, [makerV2.contractAddress]);
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
@@ -567,6 +569,32 @@ describe("MakerV2 Vaults", function () {
       await cdpManager.from(owner).give(vaultId, fakeWallet.contractAddress);
       await assert.revertWith(
         makerV2.from(owner).acquireLoan(fakeWallet.contractAddress, loanId), "MV2: failed give",
+      );
+    });
+    it("should transfer (merge) a vault when already holding a vault in the module (blockchain tx)", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      await testAcquireVault({ relayed: false });
+    });
+    it("should transfer (merge) a vault when already holding a vault in the module (relayed tx)", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
+      await testAcquireVault({ relayed: true });
+    });
+    it("should not allow reentrancy in acquireLoan", async () => {
+      // Deploy a fake wallet capable of reentrancy
+      const acquireLoanCallData = makerV2.contract.interface.functions.acquireLoan.encode([AddressZero, bigNumToBytes32(bigNumberify(0))]);
+      const fakeWallet = await deployer.deploy(FakeWallet, {}, true, makerV2.contractAddress, 0, acquireLoanCallData);
+      await fakeWallet.init(owner.address, [makerV2.contractAddress]);
+      // Create the vault with `owner` as owner
+      const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
+      const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
+      const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
+      const loanId = bigNumToBytes32(vaultId);
+      // Transfer the vault to the fake wallet
+      await cdpManager.from(owner).give(vaultId, fakeWallet.contractAddress);
+      await assert.revertWith(
+        makerV2.from(owner).acquireLoan(fakeWallet.contractAddress, loanId), "MV2: reentrant call",
       );
     });
   });
@@ -594,6 +622,15 @@ describe("MakerV2 Vaults", function () {
       }
       const loanId = txR.events.find((e) => e.event === "CdpMigrated").args._newVaultId;
       assert.isDefined(loanId, "The new vault ID should be defined");
+
+      // Add some collateral and debt
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      await testChangeCollateral({
+        loanId, collateralAmount, add: true, relayed, makerV2,
+      });
+      await testChangeDebt({
+        loanId, daiAmount, add: true, relayed,
+      });
     }
 
     it("should migrate a CDP (blockchain tx)", async () => {
@@ -601,6 +638,18 @@ describe("MakerV2 Vaults", function () {
     });
 
     it("should migrate a CDP (relayed tx)", async () => {
+      await testMigrateCdp({ relayed: true });
+    });
+
+    it("should migrate a CDP when already holding a vault in the module (blockchain tx)", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
+      await testMigrateCdp({ relayed: false });
+    });
+
+    it("should migrate a CDP when already holding a vault in the module (relayed tx)", async () => {
+      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+      await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testMigrateCdp({ relayed: true });
     });
   });
