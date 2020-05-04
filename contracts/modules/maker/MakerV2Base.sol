@@ -45,10 +45,6 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
 
     using SafeMath for uint256;
 
-    // ****************** Events *************************** //
-
-    event TokenConverted(address indexed _wallet, address _srcToken, uint _srcAmount, address _destToken, uint _destAmount);
-
     // *************** Constructor ********************** //
 
     constructor(
