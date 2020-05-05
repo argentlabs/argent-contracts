@@ -19,7 +19,7 @@ const FakeWallet = require("../build/FakeWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferStorage = require("../build/TransferStorage");
 const TransferManager = require("../build/TransferManager");
-const BadModule = require("../build/TestModule");
+const BadModule = require("../build/TestModuleRelayer");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 /* global accounts */
