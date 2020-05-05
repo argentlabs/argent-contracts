@@ -9,9 +9,10 @@ const TestManager = require("../utils/test-manager");
 const Wallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
-const MakerManager = require("../build/MakerManager");
+const MakerManager = require("../build/LegacyMakerManager");
 
-describe("CDP Module", function () {
+// Testing the LegacyMakerManager contract
+describe("LegacyMakerManager Module", function () {
   this.timeout(100000);
 
   const manager = new TestManager();

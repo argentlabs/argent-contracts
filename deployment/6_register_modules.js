@@ -8,7 +8,6 @@ const RecoveryManager = require("../build/RecoveryManager");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const TransferManager = require("../build/TransferManager");
 const NftTransfer = require("../build/NftTransfer");
-const MakerManager = require("../build/MakerManager");
 const CompoundManager = require("../build/CompoundManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
 
@@ -42,7 +41,6 @@ const deploy = async (network) => {
   const TransferManagerWrapper = await deployer.wrapDeployedContract(TransferManager, config.modules.TransferManager);
   const TokenExchangerWrapper = await deployer.wrapDeployedContract(TokenExchanger, config.modules.TokenExchanger);
   const NftTransferWrapper = await deployer.wrapDeployedContract(NftTransfer, config.modules.NftTransfer);
-  const MakerManagerWrapper = await deployer.wrapDeployedContract(MakerManager, config.modules.MakerManager);
   const CompoundManagerWrapper = await deployer.wrapDeployedContract(CompoundManager, config.modules.CompoundManager);
   const MakerV2ManagerWrapper = await deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
 
@@ -57,7 +55,6 @@ const deploy = async (network) => {
     TransferManagerWrapper,
     TokenExchangerWrapper,
     NftTransferWrapper,
-    MakerManagerWrapper,
     CompoundManagerWrapper,
     MakerV2ManagerWrapper,
   ];

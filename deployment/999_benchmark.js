@@ -16,7 +16,6 @@ const RecoveryManager = require("../build/RecoveryManager");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const TransferManager = require("../build/TransferManager");
 const NftTransfer = require("../build/NftTransfer");
-const MakerManager = require("../build/MakerManager");
 const CompoundManager = require("../build/CompoundManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
 
@@ -111,7 +110,6 @@ class Benchmark {
     this.TransferManagerWrapper = await this.deployer.wrapDeployedContract(TransferManager, config.modules.TransferManager);
     this.TokenExchangerWrapper = await this.deployer.wrapDeployedContract(TokenExchanger, config.modules.TokenExchanger);
     this.NftTransferWrapper = await this.deployer.wrapDeployedContract(NftTransfer, config.modules.NftTransfer);
-    this.MakerManagerWrapper = await this.deployer.wrapDeployedContract(MakerManager, config.modules.MakerManager);
     this.CompoundManagerWrapper = await this.deployer.wrapDeployedContract(CompoundManager, config.modules.CompoundManager);
     this.MakerV2ManagerWrapper = await this.deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
 
@@ -136,7 +134,6 @@ class Benchmark {
       this.TransferManagerWrapper.contractAddress,
       this.TokenExchangerWrapper.contractAddress,
       this.NftTransferWrapper.contractAddress,
-      this.MakerManagerWrapper.contractAddress,
       this.CompoundManagerWrapper.contractAddress,
       this.MakerV2ManagerWrapper.contractAddress,
     ];
