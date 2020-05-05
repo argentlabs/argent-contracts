@@ -161,9 +161,13 @@ const deploy = async (network) => {
   // Change the owner of TokenPriceProvider
   // ////////////////////////////////////////////////////
 
-  const TokenPriceProviderRevokeManagerTx = await TokenPriceProviderWrapper.contract.revokeManager(deploymentWallet.address, { gasPrice });
-  await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderRevokeManagerTx,
-    `Revoke ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
+  for (const idx in config.backend.accounts) {
+    const account = config.backend.accounts[idx];
+    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account, { gasPrice });
+    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
+      `Set ${account} as the manager of the TokenPriceProvider`);
+  }
+
   const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProvider");
 
