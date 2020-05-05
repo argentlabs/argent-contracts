@@ -56,8 +56,9 @@ const deploy = async (network) => {
   // //////////////////////////////////
 
   // Deploy and configure Maker Registry
-  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry);
   const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
+  const vatAddress = await ScdMcdMigrationWrapper.vat();
+  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry, {}, vatAddress);
   const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
   const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
