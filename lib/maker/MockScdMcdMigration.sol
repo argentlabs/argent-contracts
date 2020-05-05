@@ -45,7 +45,6 @@ contract MockJoin is JoinLike {
  */
 contract MockScdMcdMigration {
 
-    MockJoin public saiJoin;
     MockJoin public daiJoin;
     MockJoin public wethJoin;
     MockTub public tub;
@@ -60,6 +59,5 @@ contract MockScdMcdMigration {
         if (_cdpManager != address(0)) {
             cdpManager = ManagerLike(_cdpManager);
         }
-        saiJoin = new MockJoin(vat);
     }
 }
