@@ -1,5 +1,5 @@
 // Example Usage:
-// node scripts/dsr_demo.js [--to-dai 1.0] [--stake 10.0] [--unstake 5.0] [--unstake-all] [--to-sai 0.5] [--network kovan] [--wallet 0x62Da0Aca40650CB06361288FD0248Ad4eaB1d652]
+// node scripts/dsr_demo.js [--stake 10.0] [--unstake 5.0] [--unstake-all] [--network kovan] [--wallet 0x62Da0Aca40650CB06361288FD0248Ad4eaB1d652]
 const { parseEther, formatEther } = require("ethers").utils;
 
 const DeployManager = require("../utils/deploy-manager.js");
@@ -32,12 +32,6 @@ async function main() {
   idx = process.argv.indexOf("--unstake-all");
   const unstakeAll = idx > -1;
 
-  idx = process.argv.indexOf("--to-dai");
-  const toDai = parseEther(idx > -1 ? process.argv[idx + 1] : "0");
-
-  idx = process.argv.indexOf("--to-sai");
-  const toSai = parseEther(idx > -1 ? process.argv[idx + 1] : "0");
-
   const makerV2 = await deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
   const saiToken = await deployer.wrapDeployedContract(DSToken, await makerV2.saiToken());
   const daiToken = await deployer.wrapDeployedContract(DSToken, await makerV2.daiToken());
@@ -54,15 +48,6 @@ async function main() {
 
   // Print initial balances
   await printBalances();
-
-  // Swap SAI to DAI
-  if (toDai.gt(0)) {
-    await makerV2.verboseWaitForTransaction(
-      await makerV2.swapSaiToDai(walletAddress, toDai),
-    );
-    console.log(`Converted ${formatEther(toDai)} SAI to DAI.`);
-    await printBalances();
-  }
 
   // Send DAI to the Pot
   if (staked.gt(0)) {
@@ -88,15 +73,6 @@ async function main() {
       await makerV2.exitAllDsr(walletAddress, { gasLimit: 1000000 }),
     );
     console.log("Removed all DAI from the Pot.");
-    await printBalances();
-  }
-
-  // Swap DAI to SAI
-  if (toSai.gt(0)) {
-    await makerV2.verboseWaitForTransaction(
-      await makerV2.swapDaiToSai(walletAddress, toSai),
-    );
-    console.log(`Converted ${formatEther(toSai)} DAI to SAI.`);
     await printBalances();
   }
 }

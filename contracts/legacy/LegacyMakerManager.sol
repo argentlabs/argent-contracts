@@ -15,11 +15,11 @@
 
 pragma solidity ^0.5.4;
 
-import "../../wallet/BaseWallet.sol";
-import "../common/BaseModule.sol";
-import "../common/RelayerModule.sol";
-import "../common/OnlyOwnerModule.sol";
-import "../../defi/Loan.sol";
+import "../wallet/BaseWallet.sol";
+import "../modules/common/BaseModule.sol";
+import "../modules/common/RelayerModule.sol";
+import "../modules/common/OnlyOwnerModule.sol";
+import "../defi/Loan.sol";
 
 // Interface to MakerDAO's Tub contract, used to manage CDPs
 contract IMakerCdp {
@@ -83,7 +83,7 @@ interface IUniswapExchange {
  * @dev Module to borrow tokens with MakerDAO
  * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
-contract MakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
+contract LegacyMakerManager is Loan, BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "MakerManager";
 

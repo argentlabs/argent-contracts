@@ -9,8 +9,8 @@ const RecoveryManager = require("../build/RecoveryManager");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const TransferManager = require("../build/TransferManager");
 const NftTransfer = require("../build/NftTransfer");
-const MakerManager = require("../build/MakerManager");
 const CompoundManager = require("../build/CompoundManager");
+const MakerV2Manager = require("../build/MakerV2Manager");
 
 const DeployManager = require("../utils/deploy-manager.js");
 
@@ -112,15 +112,6 @@ const deploy = async (network) => {
     config.modules.GuardianStorage,
     config.CryptoKitties.contract,
   );
-    // Deploy the MakerManager module
-  const MakerManagerWrapper = await deployer.deploy(
-    MakerManager,
-    {},
-    config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
-    config.defi.maker.tub,
-    config.defi.uniswap.factory,
-  );
     // Deploy the CompoundManager module
   const CompoundManagerWrapper = await deployer.deploy(
     CompoundManager,
@@ -131,17 +122,17 @@ const deploy = async (network) => {
     config.contracts.CompoundRegistry,
   );
     // Deploy MakerManagerV2
-  // const MakerV2ManagerWrapper = await deployer.deploy(
-  //   MakerV2Manager,
-  //   {},
-  //   config.contracts.ModuleRegistry,
-  //   config.modules.GuardianStorage,
-  //   config.defi.maker.migration,
-  //   config.defi.maker.pot,
-  //   config.defi.maker.jug,
-  //   config.contracts.MakerRegistry,
-  //   config.defi.uniswap.factory,
-  // );
+  const MakerV2ManagerWrapper = await deployer.deploy(
+    MakerV2Manager,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.defi.maker.migration,
+    config.defi.maker.pot,
+    config.defi.maker.jug,
+    config.contracts.MakerRegistry,
+    config.defi.uniswap.factory,
+  );
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -157,9 +148,8 @@ const deploy = async (network) => {
     TransferManager: TransferManagerWrapper.contractAddress,
     TokenExchanger: TokenExchangerWrapper.contractAddress,
     NftTransfer: NftTransferWrapper.contractAddress,
-    MakerManager: MakerManagerWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
-    // MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
+    MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -177,7 +167,7 @@ const deploy = async (network) => {
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(TokenExchangerWrapper, "modules"),
     abiUploader.upload(NftTransferWrapper, "modules"),
-    abiUploader.upload(MakerManagerWrapper, "modules"),
+    abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
     // abiUploader.upload(MakerV2ManagerWrapper, "modules"),
   ]);
