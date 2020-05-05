@@ -30,8 +30,6 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant private NAME = "MakerV2Manager";
 
-    // The address of the SAI token
-    GemLike internal saiToken;
     // The address of the (MCD) DAI token
     GemLike internal daiToken;
     // The address of the SAI <-> DAI migration contract
@@ -57,7 +55,6 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
     {
         scdMcdMigration = address(_scdMcdMigration);
         daiJoin = _scdMcdMigration.daiJoin();
-        saiToken = _scdMcdMigration.saiJoin().gem();
         daiToken = daiJoin.dai();
         vat = daiJoin.vat();
     }

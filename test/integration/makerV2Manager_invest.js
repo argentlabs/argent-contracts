@@ -21,7 +21,7 @@ const DSToken = require("../../build/DSToken");
 const DEFAULT_NETWORK = "kovan"; // a bug in kovan-fork makes some tests fail => use kovan
 const SENT_AMOUNT = parseEther("0.00000001");
 
-describe("Test MakerV2 DSR & SAI<>DAI", function () {
+describe("Test MakerV2 DSR", function () {
   this.timeout(1000000);
 
   if (!process.argv.join(" ").includes(__filename.slice(__dirname.length + 1))) {
@@ -53,7 +53,9 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
     owner = deployer.signer;
     const { config } = configurator;
 
-    const makerRegistry = await deployer.deploy(MakerRegistry);
+    const migration = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
+    const vat = await migration.vat();
+    const makerRegistry = await deployer.deploy(MakerRegistry, {}, vat);
     makerV2 = await deployer.deploy(
       MakerV2Manager,
       {},
@@ -67,7 +69,6 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
       { gasLimit: 8000000 },
     );
 
-    const migration = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
     const daiJoin = await deployer.wrapDeployedContract(Join, await migration.daiJoin());
     const saiJoin = await deployer.wrapDeployedContract(Join, await migration.saiJoin());
     daiToken = await deployer.wrapDeployedContract(DSToken, await daiJoin.dai());
@@ -99,13 +100,6 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
     }
   }
 
-  async function topUpSai() {
-    const walletSai = await saiToken.balanceOf(walletAddress);
-    if (walletSai.lt(SENT_AMOUNT)) {
-      await (await saiToken.transfer(walletAddress, SENT_AMOUNT)).wait();
-    }
-  }
-
   async function topUpPot() {
     const invested = await makerV2.dsrBalance(walletAddress);
     if (invested.lt(SENT_AMOUNT)) {
@@ -114,44 +108,6 @@ describe("Test MakerV2 DSR & SAI<>DAI", function () {
       await (await makerV2.joinDsr(walletAddress, SENT_AMOUNT, { gasLimit: 2000000 })).wait();
     }
   }
-
-  describe("DAI <> SAI", () => {
-    async function swapDaiSai({ toDai, relayed }) {
-      const originToken = toDai ? saiToken : daiToken;
-      const destinationToken = toDai ? daiToken : saiToken;
-      const originBefore = await originToken.balanceOf(walletAddress);
-      const destinationBefore = await destinationToken.balanceOf(walletAddress);
-      const method = toDai ? "swapSaiToDai" : "swapDaiToSai";
-      const params = [walletAddress, SENT_AMOUNT];
-
-      if (relayed) {
-        await testManager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
-      } else {
-        await (await makerV2[method](...params, { gasLimit: 2000000 })).wait();
-      }
-
-      const originAfter = await originToken.balanceOf(walletAddress);
-      const destinationAfter = await destinationToken.balanceOf(walletAddress);
-      assert.isTrue(destinationAfter.sub(destinationBefore).eq(SENT_AMOUNT), `wallet should have received ${toDai ? "DAI" : "SAI"}`);
-      assert.isTrue(originBefore.sub(originAfter).eq(SENT_AMOUNT), `wallet should have sent ${toDai ? "SAI" : "DAI"}`);
-    }
-    it("swaps SAI to DAI (blockchain tx)", async () => {
-      await topUpSai();
-      await swapDaiSai({ toDai: true, relayed: false });
-    });
-    it("swaps SAI to DAI (relayed tx)", async () => {
-      await topUpSai();
-      await swapDaiSai({ toDai: true, relayed: true });
-    });
-    it("swaps DAI to SAI (blockchain tx)", async () => {
-      await topUpDai();
-      await swapDaiSai({ toDai: false, relayed: false });
-    });
-    it("swaps DAI to SAI (relayed tx)", async () => {
-      await topUpDai();
-      await swapDaiSai({ toDai: false, relayed: true });
-    });
-  });
 
   describe("DSR", () => {
     async function exchangeWithPot({ toPot, relayed, all = false }) {
