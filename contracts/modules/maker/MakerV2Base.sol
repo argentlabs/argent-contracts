@@ -17,7 +17,6 @@ pragma solidity ^0.5.4;
 import "../common/BaseModule.sol";
 import "../common/RelayerModule.sol";
 import "../common/OnlyOwnerModule.sol";
-import "../../../lib/utils/SafeMath.sol";
 import "../../../lib/maker/MakerInterfaces.sol";
 import "../../infrastructure/MakerRegistry.sol";
 

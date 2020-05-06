@@ -16,6 +16,7 @@
 pragma solidity ^0.5.4;
 import "./MakerV2Base.sol";
 import "../../infrastructure/MakerRegistry.sol";
+import "../../../lib/maker/DS/DSMath.sol";
 
 interface IUniswapFactory {
     function getExchange(address _token) external view returns(IUniswapExchange);
@@ -36,7 +37,7 @@ interface IUniswapExchange {
  * (a type of asset NOT protected by a wallet's daily limit) to another account.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Loan is MakerV2Base {
+contract MakerV2Loan is DSMath, MakerV2Base {
 
     // The address of the MKR token
     GemLike internal mkrToken;
@@ -300,7 +301,7 @@ contract MakerV2Loan is MakerV2Base {
         (uint daiPerMkr, bool ok) = tub.pep().peek();
         if (ok && daiPerMkr != 0) {
             // get governance fee in MKR
-            uint mkrFee = tub.rap(_cup).wdiv(daiPerMkr);
+            uint mkrFee = wdiv(tub.rap(_cup), daiPerMkr);
             // Convert some ETH into MKR with Uniswap if necessary
             buyTokens(_wallet, mkrToken, mkrFee, mkrUniswap);
             // Transfer the MKR to the Migration contract
