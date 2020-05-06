@@ -3,7 +3,7 @@ const { formatBytes32String } = require("ethers").utils;
 const { parseRelayReceipt } = require("../utils/utilities.js");
 
 const Wallet = require("../build/BaseWallet");
-const TestModule = require("../build/TestModuleRelayer");
+const TestModule = require("../build/TestModule");
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
