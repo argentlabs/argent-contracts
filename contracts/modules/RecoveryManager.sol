@@ -182,7 +182,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
-            return (0, OwnerSignature.Disallowed);
+            return (0, OwnerSignature.Required);
         }
         if (methodId == CANCEL_RECOVERY_PREFIX) {
             uint numberOfSignaturesRequired = ArgentSafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
