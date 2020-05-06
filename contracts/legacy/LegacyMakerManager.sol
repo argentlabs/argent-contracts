@@ -19,9 +19,8 @@ import "../wallet/BaseWallet.sol";
 import "../modules/common/BaseModule.sol";
 import "../modules/common/RelayerModule.sol";
 import "../modules/common/OnlyOwnerModule.sol";
-import "../defi/Loan.sol";
+import "./Loan.sol";
 import "../../lib/maker/DS/DSMath.sol";
-
 
 // Interface to MakerDAO's Tub contract, used to manage CDPs
 contract IMakerCdp {
