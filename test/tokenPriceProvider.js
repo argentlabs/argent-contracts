@@ -1,6 +1,7 @@
 /* global accounts */
 
 const ERC20 = require("../build/TestERC20");
+const KyberNetwork = require("../build/KyberNetworkTest");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 const TestManager = require("../utils/test-manager");
@@ -12,19 +13,28 @@ describe("Token Price Provider", () => {
   const priceProviderManager = accounts[1].signer;
 
   let deployer;
+  let kyber;
   let priceProvider;
   let erc20First;
   let erc20Second;
 
   before(async () => {
     deployer = manager.newDeployer();
+    kyber = await deployer.deploy(KyberNetwork);
   });
 
   beforeEach(async () => {
-    priceProvider = await deployer.deploy(TokenPriceProvider);
+    priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
     await priceProvider.addManager(priceProviderManager.address);
     erc20First = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 18);
     erc20Second = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 18);
+  });
+
+  it("should be able to set the Kyber network contract", async () => {
+    const kyberNew = await deployer.deploy(KyberNetwork);
+    await priceProvider.from(priceProviderManager).setKyberNetwork(kyberNew.contractAddress);
+    const kyberContract = await priceProvider.kyberNetwork();
+    assert.equal(kyberNew.contractAddress, kyberContract);
   });
 
   describe("Reading and writing token prices", () => {
