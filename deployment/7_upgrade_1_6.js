@@ -141,7 +141,6 @@ const deploy = async (network) => {
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(MakerRegistryWrapper, "contracts"),
-    abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
