@@ -63,9 +63,7 @@ const deploy = async (network) => {
   await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
   const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
-
-  // Deploy new TokenPriceProvider instance
-  const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider);
+  const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
 
   // //////////////////////////////////
   // Deploy new modules
@@ -131,7 +129,6 @@ const deploy = async (network) => {
 
   configurator.updateInfrastructureAddresses({
     MakerRegistry: MakerRegistryWrapper.contractAddress,
-    TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -144,7 +141,6 @@ const deploy = async (network) => {
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(MakerRegistryWrapper, "contracts"),
-    abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
@@ -156,20 +152,6 @@ const deploy = async (network) => {
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
       [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
   }
-
-  // ////////////////////////////////////////////////////
-  // Change the owner of TokenPriceProvider
-  // ////////////////////////////////////////////////////
-
-  for (const idx in config.backend.accounts) {
-    const account = config.backend.accounts[idx];
-    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account, { gasPrice });
-    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
-      `Set ${account} as the manager of the TokenPriceProvider`);
-  }
-
-  const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProvider");
 
   // //////////////////////////////////
   // Deploy and Register upgraders
