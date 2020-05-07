@@ -19,8 +19,6 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../defi/Loan.sol";
-import "../defi/Invest.sol";
 import "../infrastructure/CompoundRegistry.sol";
 
 interface IComptroller {
@@ -47,7 +45,7 @@ interface ICToken {
  * @dev Module to invest and borrow tokens with CompoundV2
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerModule {
+contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "CompoundManager";
 
@@ -58,6 +56,21 @@ contract CompoundManager is Loan, Invest, BaseModule, RelayerModule, OnlyOwnerMo
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    event InvestmentAdded(address indexed _wallet, address _token, uint256 _invested, uint256 _period);
+    event InvestmentRemoved(address indexed _wallet, address _token, uint256 _fraction);
+    event LoanOpened(
+        address indexed _wallet,
+        bytes32 indexed _loanId,
+        address _collateral,
+        uint256 _collateralAmount,
+        address _debtToken,
+        uint256 _debtAmount);
+    event LoanClosed(address indexed _wallet, bytes32 indexed _loanId);
+    event CollateralAdded(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
+    event CollateralRemoved(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
+    event DebtAdded(address indexed _wallet, bytes32 indexed _loanId, address _debtToken, uint256 _debtAmount);
+    event DebtRemoved(address indexed _wallet, bytes32 indexed _loanId, address _debtToken, uint256 _debtAmount);
 
     using SafeMath for uint256;
 

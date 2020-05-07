@@ -16,8 +16,8 @@
 pragma solidity ^0.5.4;
 import "../wallet/Proxy.sol";
 import "../wallet/BaseWallet.sol";
-import "../base/Owned.sol";
-import "../base/Managed.sol";
+import "./base/Owned.sol";
+import "./base/Managed.sol";
 import "../infrastructure/ens/IENSManager.sol";
 import "../infrastructure/ModuleRegistry.sol";
 import "../modules/storage/IGuardianStorage.sol";

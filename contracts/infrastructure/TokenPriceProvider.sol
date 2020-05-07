@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../../lib/other/ERC20.sol";
-import "../base/Managed.sol";
+import "./base/Managed.sol";
 
 contract TokenPriceProvider is Managed {
     using SafeMath for uint256;

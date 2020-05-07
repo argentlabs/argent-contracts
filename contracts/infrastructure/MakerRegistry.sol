@@ -1,5 +1,5 @@
 pragma solidity ^0.5.4;
-import "../base/Owned.sol";
+import "./base/Owned.sol";
 import "../../lib/maker/MakerInterfaces.sol";
 
 /**
