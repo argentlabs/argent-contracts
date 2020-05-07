@@ -21,7 +21,8 @@ else
     shift
 fi
 
-npx etherlime compile --runs 999
+npm run compile:lib
+npm run compile
 
 for IDX in "$@"
 do
