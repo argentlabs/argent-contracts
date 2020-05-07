@@ -213,13 +213,11 @@ contract GuardianManager is BaseModule, RelayerModule {
 
     function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) public view returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
-        uint numberOfSignatures;
-        if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {
-            numberOfSignatures = 0;
-        } else {
-            numberOfSignatures = 1;
-        }
 
-        return (numberOfSignatures, OwnerSignature.Required);
+        if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {
+            return (0, OwnerSignature.Required);
+        } else {
+            return (1, OwnerSignature.Required);
+        }
     }
 }
