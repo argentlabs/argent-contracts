@@ -2,7 +2,7 @@ version: 2
 
 job_common: &job_common
   docker:
-    - image: circleci/node:8.12-stretch
+    - image: circleci/node:10.12-stretch
   working_directory: ~/argent-contracts
 step_save_cache: &step_save_cache
   save_cache:
@@ -27,7 +27,7 @@ jobs:
       - <<: *step_restore_cache
       - <<: *step_setup_global_packages
       - run:
-          name: "Lint contracts"
+          name: "Lint Solidity contracts"
           command: npm run lint:contracts
       - run:
           name: "Compiling external library contracts"
@@ -36,17 +36,21 @@ jobs:
           name: "Compiling contracts"
           command: npm run compile
       - run:
+          name: "Lint JavaScript"
+          command: npm run lint:js
+      - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
       - run:
           name: "Testing deployment scripts"
           command: npm run ganache >/dev/null 2>&1 & npm run test:deployment
+      - run:
+          name: "Running coverage"
+          command: npm run test:coverage
       - <<: *step_save_cache
-      # Save test results to artifacts
-      - store_test_results:
-          path: test-results.xml
+      # Save coverage artifacts
       - store_artifacts:
-          path: test-results.xml
+          path: coverage
 
 workflows:
   version: 2

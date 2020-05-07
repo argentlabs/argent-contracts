@@ -15,7 +15,6 @@
 
 pragma solidity ^0.5.4;
 import "../../wallet/BaseWallet.sol";
-import "../../interfaces/Module.sol";
 import "./BaseModule.sol";
 
 /**
@@ -149,10 +148,9 @@ contract RelayerModule is BaseModule {
     /**
     * @dev Checks if the relayed transaction is unique.
     * @param _wallet The target wallet.
-    * @param _nonce The nonce
     * @param _signHash The signed hash of the transaction
     */
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal returns (bool) {
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 /* _nonce */, bytes32 _signHash) internal returns (bool) {
         if (relayer[address(_wallet)].executedTx[_signHash] == true) {
             return false;
         }

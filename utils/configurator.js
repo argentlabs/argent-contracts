@@ -1,77 +1,81 @@
-const Ajv = require('ajv');
+const Ajv = require("ajv");
 
-const ajv = Ajv({allErrors: true});
+const ajv = Ajv({ allErrors: true });
 
-const schema = require('./config-schema.json');
+const schema = require("./config-schema.json");
 
 class Configurator {
-    constructor(loader) {
-      this.loader = loader;
-    }
+  constructor(loader) {
+    this.loader = loader;
+  }
 
-    get config() {
-      return this._config;
-    }
+  get config() {
+    return this._config;
+  }
 
-    copyConfig() {
-        return JSON.parse(JSON.stringify(this._config));
-    }
+  copyConfig() {
+    return JSON.parse(JSON.stringify(this._config));
+  }
 
-    updateInfrastructureAddresses(contracts) {
-        if (!this._config.contracts) this._config.contracts = {};
-        Object.assign(this._config.contracts, contracts);
-    }
+  updateInfrastructureAddresses(contracts) {
+    if (!this._config.contracts) this._config.contracts = {};
+    Object.assign(this._config.contracts, contracts);
+  }
 
-    updateModuleAddresses(modules) {
-        if (!this._config.modules) this._config.modules = {};
-        Object.assign(this._config.modules, modules);
-    }
+  updateModuleAddresses(modules) {
+    if (!this._config.modules) this._config.modules = {};
+    Object.assign(this._config.modules, modules);
+  }
 
-    updateENSRegistry(address) {
-        this._config.ENS.ensRegistry = address;
-    }
+  updateENSRegistry(address) {
+    this._config.ENS.ensRegistry = address;
+  }
 
-    updateKyberContract(address) {
-        this._config.Kyber.contract = address;
-    }
+  updateKyberContract(address) {
+    this._config.Kyber.contract = address;
+  }
 
-    updateMakerMigration(address) {
-        this._config.defi.maker.migration = address;
-    }
+  updateMakerMigration(address) {
+    this._config.defi.maker.migration = address;
+  }
 
-    updateBackendAccounts(accounts) {
-        this._config.backend.accounts = accounts;
-    }
+  updateUniswapFactory(address) {
+    this._config.defi.uniswap.factory = address;
+  }
 
-    updateMultisigOwner(owners) {
-        if (this._config.multisig.autosign === false) return;
-        this._config.multisig.owners = owners;
-    }
+  updateBackendAccounts(accounts) {
+    this._config.backend.accounts = accounts;
+  }
 
-    updateGitHash(hash) {
-        this._config.gitCommit = hash;
-    }
+  updateMultisigOwner(owners) {
+    if (this._config.multisig.autosign === false) return;
+    this._config.multisig.owners = owners;
+  }
 
-    async load(validate = true) {
-        const json = await this.loader.load();
-        this._config = JSON.parse(json);
-        if (validate) { this._validate(); }
-        return this._config;
-    }
+  updateGitHash(hash) {
+    this._config.gitCommit = hash;
+  }
 
-    async save() {
-        this._validate();
-        let json = JSON.stringify(this._config);
-        await this.loader.save(json);
-    }
+  async load(validate = true) {
+    const json = await this.loader.load();
+    this._config = JSON.parse(json);
+    if (validate) { this._validate(); }
+    return this._config;
+  }
 
-    _validate() {
-        var valid = ajv.validate(schema, this._config);
-        if (!valid) {
-            console.log(ajv.errors);
-            throw new Error("Configuration is not valid");
-        }
+  async save() {
+    this._validate();
+    const json = JSON.stringify(this._config);
+    await this.loader.save(json);
+  }
+
+  _validate() {
+    const valid = ajv.validate(schema, this._config);
+    if (!valid) {
+      console.log(ajv.errors);
+      throw new Error("Configuration is not valid");
     }
   }
+}
 
 module.exports = Configurator;

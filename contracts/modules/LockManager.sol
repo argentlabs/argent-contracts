@@ -17,7 +17,7 @@ pragma solidity ^0.5.4;
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
-import "../utils/GuardianUtils.sol";
+import "./common/GuardianUtils.sol";
 
 /**
  * @title LockManager

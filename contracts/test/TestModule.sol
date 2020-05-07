@@ -1,0 +1,94 @@
+pragma solidity ^0.5.4;
+import "../wallet/BaseWallet.sol";
+import "../modules/common/BaseModule.sol";
+import "../modules/common/RelayerModule.sol";
+
+/**
+ * @title TestModule
+ * @dev Basic test module.
+ * @author Julien Niset - <julien@argent.xyz>
+ */
+contract TestModule is BaseModule, RelayerModule {
+
+    bytes32 constant NAME = "TestModule";
+
+    bool boolVal;
+    uint uintVal;
+
+    constructor(ModuleRegistry _registry, bool _boolVal, uint _uintVal) BaseModule(_registry, GuardianStorage(0), NAME) public {
+        boolVal = _boolVal;
+        uintVal = _uintVal;
+    }
+
+    function invalidOwnerChange(BaseWallet _wallet) external {
+        _wallet.setOwner(address(0)); // this should fail
+    }
+
+    function setIntOwnerOnly(BaseWallet _wallet, uint _val) external onlyWalletOwner(_wallet) {
+        uintVal = _val;
+    }
+    function clearInt() external {
+        uintVal = 0;
+    }
+
+    // used to simulate a bad module in MakerV2Loan tests
+    function callContract(address _contract, uint256 _value, bytes calldata _data) external {
+        // solium-disable-next-line security/no-call-value
+        (bool success,) = _contract.call.value(_value)(_data);
+        if (!success) {
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                returndatacopy(0, 0, returndatasize)
+                revert(0, returndatasize)
+            }
+        }
+    }
+
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+        enableStaticCalls(_wallet, address(this));
+    }
+
+    function enableStaticCalls(BaseWallet _wallet, address _module) public {
+        _wallet.enableStaticCall(_module, bytes4(keccak256("getBoolean()")));
+        _wallet.enableStaticCall(_module, bytes4(keccak256("getUint()")));
+        _wallet.enableStaticCall(_module, bytes4(keccak256("getAddress(address)")));
+    }
+
+    function getBoolean() public view returns (bool) {
+        return boolVal;
+    }
+
+    function getUint() public view returns (uint) {
+        return uintVal;
+    }
+
+    function getAddress(address _addr) public pure returns (address) {
+        return _addr;
+    }
+
+    // *************** Implementation of RelayerModule methods ********************* //
+
+    // Overrides to use the incremental nonce and save some gas
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
+        return checkAndUpdateNonce(_wallet, _nonce);
+    }
+
+    function validateSignatures(
+        BaseWallet _wallet,
+        bytes memory /* _data */,
+        bytes32 _signHash,
+        bytes memory _signatures
+    )
+        internal
+        view
+        returns (bool)
+    {
+        address signer = recoverSigner(_signHash, _signatures, 0);
+        return isOwner(_wallet, signer); // "GM: signer must be owner"
+    }
+
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /*_data */) internal view returns (uint256) {
+        return 1;
+    }
+
+}

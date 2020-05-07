@@ -15,14 +15,13 @@
 
 pragma solidity ^0.5.4;
 
-import "../../lib/utils/SafeMath.sol";
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "../defi/Loan.sol";
 import "../defi/Invest.sol";
-import "../defi/utils/CompoundRegistry.sol";
+import "../infrastructure/CompoundRegistry.sol";
 
 interface IComptroller {
     function enterMarkets(address[] calldata _cTokens) external returns (uint[] memory);

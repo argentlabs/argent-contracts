@@ -2,6 +2,7 @@ node_modules
 build
 tmp
 bin
+.outputParameter
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
@@ -22,15 +23,19 @@ bin
 .DS_Store
 .node-xmlhttprequest-sync-*
 .vscode
+.outputParameter
 
 .env
-*.sh
 utils/config/*.json
 !utils/config/ganache.json
+!utils/config/kovan.json
+!utils/config/kovan-fork.json
 
 ## Etherlime
 **/.etherlime-store
 flat
-
-
-
+.coverage_artifacts
+.coverage_contracts
+.coverage_tests
+coverage
+coverage.json

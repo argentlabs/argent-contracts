@@ -126,6 +126,15 @@
         },
         "ModuleRegistry": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "BaseWallet": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "CompoundRegistry": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "MakerRegistry": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": [
@@ -134,9 +143,12 @@
         "ENSResolver",
         "ENSManager",
         "TokenPriceProvider",
-        "ModuleRegistry"
+        "ModuleRegistry",
+        "BaseWallet",
+        "CompoundRegistry",
+        "MakerRegistry"
       ],
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "modules": {
       "type": "object",
@@ -145,6 +157,9 @@
           "$ref": "#/definitions/ethaddress"
         },
         "GuardianManager": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "GuardianStorage": {
           "$ref": "#/definitions/ethaddress"
         },
         "LockManager": {
@@ -156,21 +171,43 @@
         "ApprovedTransfer": {
           "$ref": "#/definitions/ethaddress"
         },
-        "TokenTransfer": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "DappManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "TransferManager": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "TransferStorage": {
           "$ref": "#/definitions/ethaddress"
         },
         "TokenExchanger": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "NftTransfer": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "CompoundManager": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "MakerManager": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "MakerV2Manager": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
-      "required": [],
-      "additionalProperties": true
+      "required": [
+        "GuardianManager",
+        "GuardianStorage",
+        "LockManager",
+        "RecoveryManager",
+        "ApprovedTransfer",
+        "TransferManager",
+        "TransferStorage",
+        "TokenExchanger",
+        "NftTransfer",
+        "CompoundManager",
+        "MakerManager",
+        "MakerV2Manager"
+      ],
+      "additionalProperties": false
     },
     "backend": {
       "type": "object",
