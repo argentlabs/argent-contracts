@@ -53,7 +53,9 @@ describe("Test MakerV2 DSR", function () {
     owner = deployer.signer;
     const { config } = configurator;
 
-    const makerRegistry = await deployer.deploy(MakerRegistry);
+    const migration = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
+    const vat = await migration.vat();
+    const makerRegistry = await deployer.deploy(MakerRegistry, {}, vat);
     makerV2 = await deployer.deploy(
       MakerV2Manager,
       {},
@@ -67,7 +69,6 @@ describe("Test MakerV2 DSR", function () {
       { gasLimit: 8000000 },
     );
 
-    const migration = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
     const daiJoin = await deployer.wrapDeployedContract(Join, await migration.daiJoin());
     const saiJoin = await deployer.wrapDeployedContract(Join, await migration.saiJoin());
     daiToken = await deployer.wrapDeployedContract(DSToken, await daiJoin.dai());

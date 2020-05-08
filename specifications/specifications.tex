@@ -5,8 +5,8 @@
 
 \graphicspath{ {./images/} }
 
-\title{Argent Documentation}
-\author{Argent Team}
+\title{Argent Smart Wallet Specification}
+\author{v1.6}
 \date{\today}
 
 
@@ -45,11 +45,11 @@ To unlock a wallet before the end of the security period, any guardian should tr
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Recovery}
 
-Wallet recovery is a process requested by a user who asserts ownership of a wallet. A successful recovery sets a new account as the wallet owner. This process should be validated by the wallet's guardians to be executed. Once a recovery has been executed it may be finalised after 36 hours, unless it has been cancelled.
+Wallet recovery is a process requested by a user who asserts ownership of a wallet while not being in possession of the owner key. A successful recovery sets a new account as the wallet owner. This process should be validated by the wallet's guardians to be executed. Once a recovery has been executed it may be finalised after 36 hours, unless it has been cancelled.
 
-The number of signatures (owner and/or guardians) needed to execute a recovery is given by
+The number of signatures needed to execute a recovery is given by
 \begin{equation*}
-    \left\lceil {\frac{n+1}{2}} \right\rceil
+    \left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
 where $n$ is the total number of guardians and $\lceil\rceil$ is the ceiling function.
 
@@ -62,6 +62,15 @@ where $n$ is the total number of guardians when the recovery was executed.
 Once a recovery is started the wallet is automatically locked. The wallet can only be unlock by finalising or cancelling the ongoing procedure, i.e. Guardians cannot unlock during a recovery.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ownership Transfer}
+
+In addition to recovery it is possible for a user to transfer ownership of his wallet to a new device while still being in possession of the actual phone. This transfer is immediate to avoid service interruption but must be approved by guardians. The number of required signatures is given by
+\begin{equation*}
+    1+\left\lceil {\frac{n}{2}} \right\rceil
+\end{equation*}
+where the first signature is the owner and $n$ is the total number of guardians.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Daily Transfer Limit}
 \label{sec:dailylimit}
 The wallet is protected by a daily limit (rolling for 24 hours). The owner can spend up to the daily limit in a given 24 hours period. The daily limit default value is 1 ETH and can be modified by the owner but it takes 24 hours for the new limit to be effective.
@@ -70,7 +79,7 @@ Any transfer exceeding the daily limit will be set as pending, and can be execut
 
 Transfers to whitelisted addresses (see Section~\ref{sec:whitelist}) and transfers approved by guardians (see Section~\ref{sec:approved-transfer}) do not contribute to the daily limit.
 
-The daily limit is cross-token (ETH + ERC20) and we're using an on-chain exchange (i.e. Kyber Network) to get the conversion rates for ERC20 tokens.
+The daily limit is cross-token (ETH + ERC20) and we're using an on-chain oracle to get the conversion rates for ERC20 tokens.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Whitelist}
@@ -84,50 +93,49 @@ Adding an address to the whitelist is an action triggered by the wallet owner an
 \subsection{Approved Transfer}
 \label{sec:approved-transfer}
 
-Pending transfers exceeding the daily limit can be executed immediately by the owner, provided that he obtains signed approval from a number of guardians given by
+Transfers exceeding the daily limit can be executed immediately by the owner, provided that he obtains approval from their guardians. The number of required signatures for an approved transfer is given by
 \begin{equation*}
-    \left\lceil {\frac{n}{2}} \right\rceil
+    1+\left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
+where the first signature is the owner and $n$ is the total number of guardians.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{ERC20 Exchange}
 
-The owner will be able to exchange ETH against ERC20 tokens. We're using an on-chain exchange (i.e. Kyber Network) to allow this. we (intend to) charge a fee on each transaction.
+The owner is able to exchange ETH against ERC20 tokens through the KyberNetwork on-chain exchange and a fee of 0,15\% is charged on every transaction. The fee is paid in ETH. 
+
+Swapping tokens is not constrained by the daily limit since no value is leaving the wallet.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{ENS}
 
-The Wallet will be associated to an ENS. This association should be forward and backward meaning that it should be possible to obtain the Wallet address from the ENS and the ENS from the Wallet address.
+The Wallet is associated to an ENS. This association is forward and backward meaning that it is possible to obtain the Wallet address from the ENS and the ENS from the Wallet address.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Upgradability}
 
-The wallet must be upgradable to fix potential bugs and add new features. The choice of whether to upgrade or not a wallet will be left to the wallet owner. In particular, it should not be possible for a centralised party such as Argent to force a wallet upgrade and change an implementation that is assumed to be immutable by the owner.
+The wallet is upgradable to add new features and fix potential bugs. The choice of whether to upgrade or not a wallet is left to the wallet owner. In particular, it is not possible for a centralised party such as Argent to force a wallet upgrade and change an implementation that is assumed to be immutable by the owner.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{ETH-less Account}
 \label{sec:eth-less-account}
 
-In order to execute a wallet operation, owner and guardians should be able to use their account's private keys to sign a message showing intent of execution, and allow a third party relayer to execute them. Therefore their account don't pay transaction fees and don't need ethers (ETH-less account). In that case the wallet contract should be able to refund the gas (partially or totally) required to execute the transaction to the third party relayer. This pattern is similar to what is described in EIP 1077\footnote{https://eips.ethereum.org/EIPS/eip-1077}.
+Owner and guardians can execute wallet operations without the need to pay transaction fees and own ETH, i.e. they are ETH-less account. This is achieved by enabling accounts to sign a message showing intent of execution, and allowing a third party relayer to execute the transaction and pay the fee on their behalf. The party signing the transaction can specify if the wallet should refund the gas (partially or totally) required to execute the transaction to the third party relayer. This pattern, now called meta-transactions, is described in EIP 1077\footnote{https://eips.ethereum.org/EIPS/eip-1077} and implemented in the abstract \emph{Relayer Module} (see Section~\ref{sec:meta-transactions}). 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Authorized Third-Party Accounts}
-
-Wallet owners can authorize (and revoke at any time) specific third-party accounts to transfer ETH or call external contracts (optionally attaching ether to these calls) from their wallets. The wallet owner can specify a daily limit in ETH that applies across all third-party accounts. This functionality allows third-party Dapps to perform the aforementioned wallet operations without every time requiring a confirmation from the user. Authorizing (and revoking) a third-party account is always immediate.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Summary of Guardian Operations}
 \begin{table}[ht]
-    \begin{tabular}{ |c|m{6em}|m{8em}|m{8em}|m{8em}| }
+    \begin{tabular}{ |c|m{6em}|m{6em}|m{6em}|m{6em}|m{6em}| }
      \hline
-       & Lock/Unlock & Execute Recovery   & Cancel Recovery    & Approve Transfer \\
+       & Lock/Unlock & Execute \newline Recovery & Cancel  \newline Recovery & Transfer Ownership & Approve Transfer \\
      \hline \hline
-       & Guardians   & Owner OR Guardians & Owner OR Guardians & Owner AND Guardians \\
+       & Guardians & Guardians & Owner OR Guardians & Owner AND Guardians & Owner AND Guardians \\
      \hline
-     1 & 1 & 1 & 1 & 2 \\
-     2 & 1 & 2 & 2 & 2 \\
-     3 & 1 & 2 & 2 & 3 \\
-     4 & 1 & 3 & 3 & 3 \\
-     5 & 1 & 3 & 3 & 4 \\
+     1 & 1 & 1 & 1 & 2 & 2 \\
+     2 & 1 & 1 & 2 & 2 & 2 \\
+     3 & 1 & 2 & 2 & 3 & 3 \\
+     4 & 1 & 2 & 3 & 3 & 3 \\
+     5 & 1 & 3 & 3 & 4 & 4 \\
      \hline
 
     \end{tabular}
@@ -153,13 +161,16 @@ Wallet owners can authorize (and revoke at any time) specific third-party accoun
 %     \caption{Smart Contracts architecture: create/assign wallet and proxy wallet delegation flows}
 % \end{figure}
 
-Our architecture is made up of multiple contracts (see Figure~\ref{fig:sc-arch-1}). A first group of contracts form the infrastructure required to deploy or update user wallets. These infrastructure contracts are meant to be deployed only once (in theory):
+Our architecture is made up of multiple contracts (see Figure~\ref{fig:sc-arch-1}). A first group of contracts form the infrastructure required to deploy or update user wallets. These infrastructure contracts are meant to be deployed only once:
 \begin{itemize}
     \item \textbf{Multisig Wallet:} Custom-made multi-signatures wallet which is the owner of most of other infrastructure contracts. All calls on those contracts will therefore need to be approved by multiple persons.
-    \item \textbf{Wallet Factory:} Wallet factory contract used to create proxy wallets (in batches) and assign them to users.
+    \item \textbf{Wallet Factory:} Wallet factory contract used to create proxy wallets using CREATE or CREATE2 and assign them to users.
     \item \textbf{ENS Manager:} The ENS Manager is responsible for registering ENS subdomains (e.g. mike.argent.xyz) and assigning them to wallets.
     \item \textbf{ENS Resolver:} The ENS Resolver keeps links between ENS subdomains and wallet addresses and allows to resolve them in both directions.
     \item \textbf{Module Registry:} The Module Registry maintains a list of the registered \emph{Module} contracts that can be used with user wallets. It also maintains a list of registered \emph{Upgrader} contracts that a user can use to migrate the modules used with their wallet (see Section~\ref{sec:upgradability}).
+    \item \textbf{Compound Registry:} Registry maintaining a mapping between underlying assets (ETH, DAI, BAT, etc) and their corresponding Compound Token (cETH, cDAI, cBAT, etc).
+    \item \textbf{Maker Registry:} Registry maintaining a mapping between token collaterals (ETH, BAT, USDC, WBTC) and their corresponding Maker Join adapters.
+    \item \textbf{Token Price Provider:} On-chain price oracle for ERC20 tokens. It is used by wallets to estimate the value in ETH of ERC-20 transfers and update the daily limit. 
 \end{itemize}
 
 A second group of contracts implements the functionalities of the wallet:
@@ -174,14 +185,21 @@ A second group of contracts implements the functionalities of the wallet:
 \subsection{Upgradability}
 \label{sec:upgradability}
 
-Argent maintains an evolving set of registered \emph{Module} contracts as well as a list of registered \emph{Upgrader} contracts. \emph{Upgrader} contracts define a migration from a particular set of old modules to disable to a set of new registered modules to enable. A user can perform an upgrade of their modules using one of the registered \emph{Upgrader} contracts.
+Argent maintains an evolving set of registered \emph{Module} contracts. A subset of these \emph{Module} contracts are \emph{SimpleUpgrader} modules that define a migration path from a particular set of old modules to a new set of registered modules, i.e. it contains the list of modules to disable and the list of modules to enable to go from the old set to the new set. A user can perform an upgrade of their modules using one of the registered \emph{SimpleUpgrader} contracts.
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Storage}
 \label{sec:storage}
-In general, each module stores the entire state pertaining to all the wallets that use that module. For example, the \emph{TokenTransfer} module stores how much of their daily allowance has been used by each wallet. Some modules such as \emph{TokenTransfer} make use of an additional storage contract (e.g. \emph{TransferStorage}). This is the case when their storage needs to be accessed by other modules and/or to simplify the upgradability of the module.
+In general, each module stores the entire state pertaining to all the wallets that use that module. For example, the \emph{TransferManager} module stores how much of their daily allowance has been used by each wallet. Some modules such as \emph{TransferManager} make use of an additional storage contract (e.g. \emph{TransferStorage}). This is the case when their storage needs to be accessed by other modules and/or to simplify the upgradability of that module in the future.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Meta-Transactions}
+\label{sec:meta-transactions}
+Meta-Transactions are implemented in the abstract \emph{RelayerModule} from which all modules inherit. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding module methods to do so.
+
+The RelayerModule delegates the implementation of the code that verifies the intention and the signature(s) to the subclass modules that implement it.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Modules}
@@ -196,28 +214,32 @@ This module is used by guardians to lock or unlock a wallet.
 
 \subsubsection{RecoveryManager module}
 
-This module is used by guardians to perform a recovery of the wallet, i.e. change the owner to a new owner. The recovery is triggered by a majority of guardians and needs to be manually finalized after a security period of 24h. Upon finalization, the RecoveryManager module calls the \emph{setOwner()} method on the user wallet.
+This module is used to change the owner of a wallet to a new owner. It can be executed immediately if the owner is still in possession of the current owner account (transfer ownership), or with a delay if the owner account is lost or stolen (recovery). Both operations need to be approved by guardians.
 
-\subsubsection{TokenTransfer module}
+\subsubsection{TransferManager module}
 
-This module lets users perform transfers of ETH and ERC20 tokens, either to whitelisted addresses without any limit, or to non-whitelisted addresses within a certain daily allowance. If the daily limit is reached for a transfer, the transfer is set to a pending state and will only be executable by the user after 24h.
+This module lets users perform transfers of ETH and ERC20 tokens, approve ERC20 tokens for third-party contracts, or call third-party contracts directly. Calling contracts can be coupled with a value transfer by either providing an ETH amount or approving a spender to widthraw an ERC20 amount as part of the same transaction.
+
+All transfers of value can be done either to whitelisted addresses without any limit, or to non-whitelisted addresses within a certain daily allowance. If the daily limit is reached for a given period, the transfer is set to a pending state and will only be executed after 24h.
 
 \subsubsection{ApprovedTransfer module}
 
-This module lets users perform instant transfers of ETH and ERC20 tokens to non-whitelisted addresses with the signed approval of a majority of guardians.
+This module lets users perform instant transfers of ETH and ERC20 tokens, approval of ERC20 tokens, or contract calls to non-whitelisted addresses with the signed approval of a majority of guardians.
 
 \subsubsection{TokenExchanger module}
 
 This module lets users exchange ETH or ERC20 tokens for ETH or other ERC20 tokens using Kyber Network.
 
-\subsubsection{DappManager module}
+\subsubsection{CompoundManager module}
 
-This module lets users authorize third-party Dapps to call third-party contracts or transfer ETH on behalf of the user within a fixed spending limit. The authorized Dapps interact with the same module to execute the operations they have been authorized to perform.
+This module lets users lend and borrow tokens with the Compound protocol. 
 
-\subsubsection{RelayerModule}
+\subsubsection{NftTransfer module}
 
-This is an abstract contract from which all modules inherit. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding module methods to do so.
+This module lets users transfer collectibles that comply to the ERC-721 interface.  
 
-The RelayerModule delegates the implementation of the code that verifies the intention and the signature(s) to the subclass modules that implement it.
+\subsubsection{MakerManagerV2 module}
+
+This module lets users invest their DAI in the DSR (Dai Savings Rate) or borrow DAI with the Maker protocol. 
 
 \end{document}

@@ -22,15 +22,13 @@ import "../../infrastructure/MakerRegistry.sol";
 
 /**
  * @title MakerV2Base
- * @dev Module to convert SAI <-> DAI. Also serves as common base to MakerV2Invest and MakerV2Loan.
+ * @dev Common base to MakerV2Invest and MakerV2Loan.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant private NAME = "MakerV2Manager";
 
-    // The address of the SAI token
-    GemLike internal saiToken;
     // The address of the (MCD) DAI token
     GemLike internal daiToken;
     // The address of the SAI <-> DAI migration contract
@@ -44,10 +42,6 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
 
     using SafeMath for uint256;
 
-    // ****************** Events *************************** //
-
-    event TokenConverted(address indexed _wallet, address _srcToken, uint _srcAmount, address _destToken, uint _destAmount);
-
     // *************** Constructor ********************** //
 
     constructor(
@@ -60,7 +54,6 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
     {
         scdMcdMigration = address(_scdMcdMigration);
         daiJoin = _scdMcdMigration.daiJoin();
-        saiToken = _scdMcdMigration.saiJoin().gem();
         daiToken = daiJoin.dai();
         vat = daiJoin.vat();
     }

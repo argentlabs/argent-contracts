@@ -61,6 +61,8 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     // while also enforcing a maximum of one loan per token (ilk) and per wallet
     // (which will make future upgrades of the module easier)
     mapping(address => mapping(bytes32 => bytes32)) public loanIds;
+    // Lock used by nonReentrant()
+    bool private _notEntered = true;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -93,6 +95,16 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     modifier onlyModule(BaseWallet _wallet) {
         require(_wallet.authorised(msg.sender), "MV2: sender unauthorized");
         _;
+    }
+
+    /**
+     * @dev Prevents call reentrancy
+     */
+    modifier nonReentrant() {
+        require(_notEntered, "MV2: reentrant call");
+        _notEntered = false;
+        _;
+        _notEntered = true;
     }
 
     // *************** Constructor ********************** //
@@ -269,10 +281,12 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         bytes32 _loanId
     )
         external
+        nonReentrant
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(cdpManager.owns(uint256(_loanId)) == address(_wallet), "MV2: wrong vault owner");
+        // Transfer the vault from the wallet to the module
         invokeWallet(
             address(_wallet),
             address(cdpManager),
@@ -280,7 +294,8 @@ contract MakerV2Loan is DSMath, MakerV2Base {
             abi.encodeWithSignature("give(uint256,address)", uint256(_loanId), address(this))
         );
         require(cdpManager.owns(uint256(_loanId)) == address(this), "MV2: failed give");
-        saveLoanOwner(_wallet, _loanId);
+        // Mark the incoming vault as belonging to the wallet (or merge it into the existing vault if there is one)
+        assignLoanToWallet(_wallet, _loanId);
     }
 
     /**
@@ -313,8 +328,8 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         jug.drip(wethJoin.ilk());
         // Execute the CDP migration
         _loanId = bytes32(ScdMcdMigrationLike(scdMcdMigration).migrate(_cup));
-        // Record the new vault as belonging to the wallet
-        saveLoanOwner(_wallet, _loanId);
+        // Mark the new vault as belonging to the wallet (or merge it into the existing vault if there is one)
+        _loanId = assignLoanToWallet(_wallet, _loanId);
 
         emit CdpMigrated(address(_wallet), _cup, _loanId);
     }
@@ -344,8 +359,18 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         require(_y >= 0, "MV2: int overflow");
     }
 
-    function saveLoanOwner(BaseWallet _wallet, bytes32 _loanId) internal {
-        loanIds[address(_wallet)][cdpManager.ilks(uint256(_loanId))] = _loanId;
+    function assignLoanToWallet(BaseWallet _wallet, bytes32 _loanId) internal returns (bytes32 _assignedLoanId) {
+        bytes32 ilk = cdpManager.ilks(uint256(_loanId));
+        // Check if the user already holds a vault in the MakerV2Manager
+        bytes32 existingLoanId = loanIds[address(_wallet)][ilk];
+        if (existingLoanId > 0) {
+            // Merge the new loan into the existing loan
+            cdpManager.shift(uint256(_loanId), uint256(existingLoanId));
+            return existingLoanId;
+        }
+        // Record the new vault as belonging to the wallet
+        loanIds[address(_wallet)][ilk] = _loanId;
+        return _loanId;
     }
 
     function clearLoanOwner(BaseWallet _wallet, bytes32 _loanId) internal {
@@ -521,6 +546,8 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         _cdpId = uint256(loanIds[address(_wallet)][ilk]);
         if (_cdpId == 0) {
             _cdpId = cdpManager.open(ilk, address(this));
+            // Mark the vault as belonging to the wallet
+            loanIds[address(_wallet)][ilk] = bytes32(_cdpId);
         }
         // Move the collateral from the wallet to the vat
         joinCollateral(_wallet, _cdpId, _collateralAmount, ilk);
@@ -528,8 +555,6 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         if (_debtAmount > 0) {
             drawAndExitDebt(_wallet, _cdpId, _debtAmount, _collateralAmount, ilk);
         }
-        // Mark the vault as belonging to the wallet
-        saveLoanOwner(_wallet, bytes32(_cdpId));
     }
 
     /**

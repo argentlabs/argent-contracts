@@ -87,6 +87,7 @@ const deploy = async (network) => {
     const MakerMigrationWrapper = await deployer.deploy(
       MakerMigration,
       {},
+      config.defi.maker.vat || "0x0000000000000000000000000000000000000000",
       config.defi.maker.daiJoin || "0x0000000000000000000000000000000000000000",
       config.defi.maker.wethJoin || "0x0000000000000000000000000000000000000000",
       config.defi.maker.tub || "0x0000000000000000000000000000000000000000",

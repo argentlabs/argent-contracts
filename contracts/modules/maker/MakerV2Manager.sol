@@ -20,7 +20,7 @@ import "./MakerV2Loan.sol";
 
 /**
  * @title MakerV2Manager
- * @dev Module to convert SAI <-> DAI, lock/unlock MCD DAI into/from Maker's Pot,
+ * @dev Module to lock/unlock MCD DAI into/from Maker's Pot,
  * migrate old CDPs and open and manage new CDPs.
  * @author Olivier VDB - <olivier@argent.xyz>
  */

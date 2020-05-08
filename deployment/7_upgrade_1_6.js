@@ -46,7 +46,6 @@ const deploy = async (network) => {
   const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
-  const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
@@ -56,13 +55,15 @@ const deploy = async (network) => {
   // //////////////////////////////////
 
   // Deploy and configure Maker Registry
-  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry);
   const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
+  const vatAddress = await ScdMcdMigrationWrapper.vat();
+  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry, {}, vatAddress);
   const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
   const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
   const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
+  const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
 
   // //////////////////////////////////
   // Deploy new modules
@@ -107,7 +108,7 @@ const deploy = async (network) => {
     config.contracts.ModuleRegistry,
     config.modules.TransferStorage,
     config.modules.GuardianStorage,
-    config.contracts.TokenPriceProvider,
+    TokenPriceProviderWrapper.contractAddress,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
@@ -151,16 +152,6 @@ const deploy = async (network) => {
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
       [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
   }
-
-  // ////////////////////////////////////////////////////
-  // Change the owner of TokenPriceProvider
-  // ////////////////////////////////////////////////////
-
-  const TokenPriceProviderRevokeManagerTx = await TokenPriceProviderWrapper.contract.revokeManager(deploymentWallet.address, { gasPrice });
-  await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderRevokeManagerTx,
-    `Revoke ${deploymentWallet.address} as the manager of the TokenPriceProvider`);
-  const changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProvider");
 
   // //////////////////////////////////
   // Deploy and Register upgraders

@@ -94,7 +94,8 @@ describe("Test MakerV2 Vaults", function () {
     const uniswapFactory = await deployer.wrapDeployedContract(UniswapFactory, config.defi.uniswap.factory);
     daiExchange = await deployer.wrapDeployedContract(UniswapExchange, await uniswapFactory.getExchange(daiToken.contractAddress));
 
-    makerRegistry = await deployer.deploy(MakerRegistry);
+    const vat = await migration.vat();
+    makerRegistry = await deployer.deploy(MakerRegistry, {}, vat);
     await (await makerRegistry.addCollateral(wethJoin.contractAddress)).wait();
 
     makerV2 = await deployer.deploy(

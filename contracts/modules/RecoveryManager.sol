@@ -60,10 +60,10 @@ contract RecoveryManager is BaseModule, RelayerModuleV2 {
 
     // *************** Events *************************** //
 
-    event RecoveryExecuted(address indexed _wallet, address indexed _recovery, uint64 executeAfter);
-    event RecoveryFinalized(address indexed _wallet, address indexed _recovery);
-    event RecoveryCanceled(address indexed _wallet, address indexed _recovery);
-    event OwnershipTransfered(address indexed _wallet, address indexed _newOwner);
+    event RecoveryExecuted(address indexed wallet, address indexed _recovery, uint64 executeAfter);
+    event RecoveryFinalized(address indexed wallet, address indexed _recovery);
+    event RecoveryCanceled(address indexed wallet, address indexed _recovery);
+    event OwnershipTransfered(address indexed wallet, address indexed _newOwner);
 
     // *************** Modifiers ************************ //
 
@@ -193,7 +193,7 @@ contract RecoveryManager is BaseModule, RelayerModuleV2 {
         }
     }
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
             return ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
