@@ -106,7 +106,7 @@ describe("GuardianManager", function () {
 
       it("should only let the owner add an EOA guardian", async () => {
         await assert.revertWith(guardianManager.from(nonowner).addGuardian(wallet.contractAddress, guardian1.address),
-          "BM: must be an owner for the wallet");
+          "BM: must be wallet owner");
       });
 
       it("should not allow adding wallet owner as guardian", async () => {
