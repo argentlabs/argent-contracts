@@ -60,7 +60,10 @@ jobs:
           command: npm run ganache >/dev/null 2>&1 & npm run test
       - run:
           name: "Running coverage"
-          command: npm run test:coverage
+          command: |
+            npm run compile
+            npm run compile:test
+            npm run test:coverage
       - <<: *step_save_cache
       # Save coverage artifacts
       - store_artifacts:
