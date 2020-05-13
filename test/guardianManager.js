@@ -379,4 +379,16 @@ describe("GuardianManager", function () {
         "GM: no pending guardian revokation for target");
     });
   });
+
+  describe("Guardian Storage", () => {
+    it("should not allow non modules to addGuardian", async () => {
+      await assert.revertWith(guardianStorage.addGuardian(wallet.contractAddress, guardian4.address),
+        "TS: must be an authorized module to call this method");
+    });
+
+    it("should not allow non modules to revokeGuardian", async () => {
+      await assert.revertWith(guardianStorage.revokeGuardian(wallet.contractAddress, guardian1.address),
+        "TS: must be an authorized module to call this method");
+    });
+  });
 });
