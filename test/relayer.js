@@ -1,3 +1,4 @@
+/* global accounts */
 const ethers = require("ethers");
 const { formatBytes32String } = require("ethers").utils;
 const { parseRelayReceipt } = require("../utils/utilities.js");
@@ -5,6 +6,7 @@ const { parseRelayReceipt } = require("../utils/utilities.js");
 const Wallet = require("../build/BaseWallet");
 const TestModule = require("../build/TestModule");
 const Registry = require("../build/ModuleRegistry");
+const GuardianManager = require("../build/GuardianManager");
 const GuardianStorage = require("../build/GuardianStorage");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const RecoveryManager = require("../build/RecoveryManager"); // non-owner only module
@@ -25,10 +27,12 @@ describe("RelayerModule", function () {
   const { deployer } = manager;
   let { getNonceForRelay } = manager;
   getNonceForRelay = getNonceForRelay.bind(manager);
-  const owner = global.accounts[1].signer;
+  const owner = accounts[1].signer;
 
   let registry;
   let guardianStorage;
+  let guardianManager;
+  let recoveryManager;
   let wallet;
   let approvedTransfer;
   let nftTransferModule;
@@ -46,11 +50,19 @@ describe("RelayerModule", function () {
       registry.contractAddress,
       guardianStorage.contractAddress,
       cryptoKittyTest.contractAddress);
+    guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
+    recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 120, 24, 12);
+
     testModule = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);
     testModuleNew = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);
 
     wallet = await deployer.deploy(Wallet);
-    await wallet.init(owner.address, [approvedTransfer.contractAddress, nftTransferModule.contractAddress, testModule.contractAddress]);
+    await wallet.init(owner.address,
+      [approvedTransfer.contractAddress,
+        nftTransferModule.contractAddress,
+        guardianManager.contractAddress,
+        recoveryManager.contractAddress,
+        testModule.contractAddress]);
   });
 
   describe("relaying module transactions", () => {
@@ -72,7 +84,7 @@ describe("RelayerModule", function () {
       const params = [wallet.contractAddress, 2];
       const nonce = await getNonceForRelay();
       const relayParams = [testModule, "setIntOwnerOnly", params, wallet, [owner],
-        global.accounts[9].signer, false, 2000000, nonce];
+        accounts[9].signer, false, 2000000, nonce];
       await manager.relay(...relayParams);
       await assert.revertWith(
         manager.relay(...relayParams), DUPLICATE_REQUEST_REVERT_MSG,
@@ -82,7 +94,7 @@ describe("RelayerModule", function () {
     it("should update the nonce after transaction", async () => {
       const nonce = await getNonceForRelay();
       await manager.relay(testModule, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner],
-        global.accounts[9].signer, false, 2000000, nonce);
+        accounts[9].signer, false, 2000000, nonce);
 
       const updatedNonce = await testModule.getNonce(wallet.contractAddress);
       const updatedNonceHex = await ethers.utils.hexZeroPad(updatedNonce.toHexString(), 32);
@@ -90,8 +102,6 @@ describe("RelayerModule", function () {
     });
 
     it("should not allow ApprovedTransfer and RecoveryManager module functions to be executed directly", async () => {
-      const recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 120, 24, 12);
-
       const randomAddress = await getRandomAddress();
 
       await assert.revertWith(
@@ -119,6 +129,30 @@ describe("RelayerModule", function () {
       await assert.revertWith(recoveryManager.executeRecovery(wallet.contractAddress, randomAddress), "RM: must be called via execute()");
       await assert.revertWith(recoveryManager.cancelRecovery(wallet.contractAddress), "RM: must be called via execute()");
       await assert.revertWith(recoveryManager.transferOwnership(wallet.contractAddress, randomAddress), "RM: must be called via execute()");
+    });
+
+    it("should fail to refund ", async () => {
+      const nonce = await getNonceForRelay();
+
+      const newowner = accounts[5].signer;
+      const guardian = accounts[6].signer;
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
+
+      const txReceipt = await manager.relay(
+        recoveryManager,
+        "transferOwnership",
+        [wallet.contractAddress, newowner.address],
+        wallet,
+        [owner, guardian],
+        accounts[9].signer,
+        false,
+        2000000,
+        nonce,
+        1,
+      );
+
+      const { error } = parseRelayReceipt(txReceipt);
+      assert.equal(error, "RM: refund failed");
     });
   });
 

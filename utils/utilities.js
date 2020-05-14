@@ -75,14 +75,16 @@ module.exports = {
   parseRelayReceipt(txReceipt) {
     const { args } = txReceipt.events.find((l) => l.event === "TransactionExecuted");
 
-    let error;
+    let errorBytes;
     if (args.returnData.startsWith("0x08c379a0")) {
       // Remove the encoded error signatures 08c379a0
       const noErrorSelector = `0x${args.returnData.slice(10)}`;
-      const errorBytes = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
-      error = ethers.utils.toUtf8String(errorBytes[0]);
+      const errorBytesArray = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
+      errorBytes = errorBytesArray[0]; // eslint-disable-line prefer-destructuring
+    } else {
+      errorBytes = args.returnData;
     }
-
+    const error = ethers.utils.toUtf8String(errorBytes);
     return { success: args.success, error };
   },
 

@@ -99,6 +99,8 @@ contract RelayerModule is BaseModule {
             // solium-disable-next-line security/no-call-value
             (success, returnData) = address(this).call(_data);
             refund(_wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
+        } else {
+            returnData = bytes("RM: refund failed");
         }
 
         emit TransactionExecuted(address(_wallet), success, returnData, signHash);
