@@ -135,7 +135,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
         _wallet.setOwner(recoveryOwner);
         guardianStorage.setLock(_wallet, 0);
 
-        emit RecoveryFinalized(address(_wallet), config.recovery);
+        emit RecoveryFinalized(address(_wallet), recoveryOwner);
     }
 
     /**
@@ -145,10 +145,11 @@ contract RecoveryManager is BaseModule, RelayerModule {
      */
     function cancelRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
+        address recoveryOwner = config.recovery;
         delete recoveryConfigs[address(_wallet)];
         guardianStorage.setLock(_wallet, 0);
 
-        emit RecoveryCanceled(address(_wallet), config.recovery);
+        emit RecoveryCanceled(address(_wallet), recoveryOwner);
     }
 
     /**
