@@ -324,6 +324,21 @@ describe("GuardianManager", function () {
       count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
       assert.equal(count, 2, "there should be 2 guardians again");
     });
+
+    it("should be able to remove a guardian that is not last in the list", async () => {
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian3.address);
+      await manager.increaseTime(30);
+      await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardian3.address);
+      let count = await guardianStorage.guardianCount(wallet.contractAddress);
+      assert.equal(count.toNumber(), 3, "there should be 3 guardians");
+
+      const guardians = await guardianStorage.getGuardians(wallet.contractAddress);
+      await guardianManager.from(owner).revokeGuardian(wallet.contractAddress, guardians[2]);
+      await manager.increaseTime(30);
+      await guardianManager.confirmGuardianRevokation(wallet.contractAddress, guardians[2]);
+      count = await guardianStorage.guardianCount(wallet.contractAddress);
+      assert.equal(count.toNumber(), 2, "there should be 2 guardians left");
+    });
   });
 
   describe("Cancelling Pending Guardians", () => {
