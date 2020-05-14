@@ -17,7 +17,7 @@ pragma solidity ^0.5.4;
 import "./common/ArgentSafeMath.sol";
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
-import "./common/RelayerModuleV2.sol";
+import "./common/RelayerModule.sol";
 import "./common/BaseTransfer.sol";
 
 /**
@@ -25,7 +25,7 @@ import "./common/BaseTransfer.sol";
  * @dev Module to transfer tokens (ETH or ERC20) with the approval of guardians.
  * @author Julien Niset - <julien@argent.im>
  */
-contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
+contract ApprovedTransfer is BaseModule, RelayerModule, BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
@@ -105,21 +105,9 @@ contract ApprovedTransfer is BaseModule, RelayerModuleV2, BaseTransfer {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory /* _data */,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal
-        view
-        returns (bool)
-    {
-        return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
-    }
-
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) public view returns (uint256) {
-        // owner + [n/2] guardians
-        return 1 + ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) public view returns (uint256, OwnerSignature) {
+        // owner  + [n/2] guardians
+        uint numberOfSignatures = 1 + ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+        return (numberOfSignatures, OwnerSignature.Required);
     }
 }

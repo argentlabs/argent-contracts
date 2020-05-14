@@ -242,8 +242,9 @@ describe("Approved Transfer", function () {
           [wallet.contractAddress, wallet.contractAddress, amountToTransfer, ethers.constants.HashZero],
           wallet,
           [owner, ...sortWalletByAddress([guardian1, guardian2])]);
-        const success = parseRelayReceipt(txReceipt);
+        const { success, error } = parseRelayReceipt(txReceipt);
         assert.isFalse(success);
+        assert.equal(error, "AT: Forbidden contract");
       });
     });
   });
@@ -265,8 +266,9 @@ describe("Approved Transfer", function () {
           const txReceipt = await manager.relay(approvedTransfer, "approveTokenAndCallContract",
             [wallet.contractAddress, erc20.contractAddress, wallet.contractAddress, amountToApprove, target.contractAddress, invalidData],
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
-          const success = parseRelayReceipt(txReceipt);
-          assert.isNotOk(success, "approveTokenAndCall should fail when target contract is invalid");
+          const { success, error } = parseRelayReceipt(txReceipt);
+          assert.isFalse(success);
+          assert.equal(error, "AT: Forbidden contract");
         }
 
         it("should revert when target contract is the wallet", async () => {

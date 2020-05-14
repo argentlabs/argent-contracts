@@ -17,7 +17,7 @@ pragma solidity ^0.5.4;
 import "./common/ArgentSafeMath.sol";
 import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
-import "./common/RelayerModuleV2.sol";
+import "./common/RelayerModule.sol";
 import "./storage/GuardianStorage.sol";
 
 /**
@@ -29,7 +29,7 @@ import "./storage/GuardianStorage.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract RecoveryManager is BaseModule, RelayerModuleV2 {
+contract RecoveryManager is BaseModule, RelayerModule {
 
     bytes32 constant NAME = "RecoveryManager";
 
@@ -175,39 +175,25 @@ contract RecoveryManager is BaseModule, RelayerModuleV2 {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory _data,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal view returns (bool)
-    {
-        bytes4 functionSignature = functionPrefix(_data);
-        if (functionSignature == TRANSFER_OWNERSHIP_PREFIX) {
-            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Required);
-        } else if (functionSignature == EXECUTE_RECOVERY_PREFIX) {
-            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Disallowed);
-        } else if (functionSignature == CANCEL_RECOVERY_PREFIX) {
-            return validateSignatures(_wallet, _signHash, _signatures, OwnerSignature.Optional);
-        }
-    }
-
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
-            return ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
-            return 0;
+            return (0, OwnerSignature.Required);
         }
         if (methodId == CANCEL_RECOVERY_PREFIX) {
-            return ArgentSafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
+            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
+            return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
         if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
             uint majorityGuardians = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
-            return SafeMath.add(majorityGuardians, 1);
+            uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
+            return (numberOfSignaturesRequired, OwnerSignature.Required);
         }
+
         revert("RM: unknown method");
     }
 }

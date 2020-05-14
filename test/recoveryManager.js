@@ -156,8 +156,9 @@ describe("RecoveryManager", function () {
 
     it("should not let anyone finalize the recovery procedure before the end of the recovery period", async () => {
       const txReceipt = await manager.relay(recoveryManager, "finalizeRecovery", [wallet.contractAddress], wallet, []);
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "finalization should have failed");
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "RM: the recovery period is not over yet");
 
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(isLocked, "should still be locked");
@@ -171,8 +172,9 @@ describe("RecoveryManager", function () {
       assert.isFalse(isLocked, "should no longer be locked by recovery");
       await manager.increaseTime(40); // moving time to after the end of the recovery period
       const txReceipt = await manager.relay(recoveryManager, "finalizeRecovery", [wallet.contractAddress], wallet, []);
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "finalization should have failed");
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "RM: there must be an ongoing recovery");
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner.address, "wallet owner should not have been changed");
 
@@ -188,8 +190,9 @@ describe("RecoveryManager", function () {
       assert.isFalse(isLocked, "should no longer be locked by recovery");
       await manager.increaseTime(40); // moving time to after the end of the recovery period
       const txReceipt = await manager.relay(recoveryManager, "finalizeRecovery", [wallet.contractAddress], wallet, []);
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "finalization should have failed");
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "finalization should have failed");
+      assert.equal(error, "RM: there must be an ongoing recovery");
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner.address, "wallet owner should not have been changed");
     });
@@ -368,8 +371,9 @@ describe("RecoveryManager", function () {
       it("should not be able to call ExecuteRecovery with an empty recovery address", async () => {
         const txReceipt = await manager.relay(recoveryManager, "executeRecovery",
           [wallet.contractAddress, ethers.constants.AddressZero], wallet, [guardian1]);
-        const success = parseRelayReceipt(txReceipt);
-        assert.isNotOk(success, "executeRecovery should fail");
+        const { success, error } = parseRelayReceipt(txReceipt);
+        assert.isFalse(success, "executeRecovery should fail");
+        assert.equal(error, "RM: recovery address cannot be null");
       });
 
       it("should not be able to call ExecuteRecovery if already in the process of Recovery", async () => {
@@ -378,8 +382,9 @@ describe("RecoveryManager", function () {
 
         const txReceipt = await manager.relay(recoveryManager, "executeRecovery",
           [wallet.contractAddress, ethers.constants.AddressZero], wallet, [guardian1]);
-        const success = parseRelayReceipt(txReceipt);
-        assert.isNotOk(success, "executeRecovery should fail");
+        const { success, error } = parseRelayReceipt(txReceipt);
+        assert.isFalse(success, "executeRecovery should fail");
+        assert.equal(error, "RM: there cannot be an ongoing recovery");
       });
 
       it("should revert if an unknown method is executed", async () => {
@@ -454,8 +459,9 @@ describe("RecoveryManager", function () {
         "transferOwnership",
         [wallet.contractAddress, ethers.constants.AddressZero], wallet, [owner, guardian1],
       );
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "transferOwnership should fail");
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "transferOwnership should fail");
+      assert.equal(error, "RM: new owner address cannot be null");
     });
 
     it("when no guardians, owner should be able to transfer alone", async () => {
@@ -466,8 +472,8 @@ describe("RecoveryManager", function () {
         wallet,
         [owner],
       );
-      const success = parseRelayReceipt(txReceipt);
-      assert.isOk(success, "transferOwnership should succeed");
+      const { success } = parseRelayReceipt(txReceipt);
+      assert.isTrue(success, "transferOwnership should succeed");
     });
 
     it("should not allow owner not signing", async () => {

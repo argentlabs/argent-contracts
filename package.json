@@ -18,6 +18,7 @@
     "lint:contracts": "npx ethlint --dir .",
     "lint:contracts:staged": "bash ./scripts/ethlint.sh",
     "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`",
+    "test:benchmark": "./scripts/deploy.sh ganache 999",
     "lint:js": "eslint .",
     "lint:js:staged": "bash ./scripts/eslint.sh"
   },

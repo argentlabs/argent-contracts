@@ -211,25 +211,13 @@ contract GuardianManager is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory /* _data */,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal
-        view
-        returns (bool)
-    {
-        address signer = recoverSigner(_signHash, _signatures, 0);
-        return isOwner(_wallet, signer); // "GM: signer must be owner"
-    }
-
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) internal view returns (uint256) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) public view returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
+
         if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {
-            return 0;
+            return (0, OwnerSignature.Required);
+        } else {
+            return (1, OwnerSignature.Required);
         }
-        return 1;
     }
 }

@@ -5,8 +5,8 @@ import "../modules/common/RelayerModule.sol";
 
 /**
  * @title TestModule
- * @dev Basic test module.
- * @author Julien Niset - <julien@argent.xyz>
+ * @dev Basic test module subclassing RelayerModule
+ * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract TestModule is BaseModule, RelayerModule {
 
@@ -73,22 +73,7 @@ contract TestModule is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory /* _data */,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal
-        view
-        returns (bool)
-    {
-        address signer = recoverSigner(_signHash, _signatures, 0);
-        return isOwner(_wallet, signer); // "GM: signer must be owner"
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /*_data */) public view returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
-
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /*_data */) internal view returns (uint256) {
-        return 1;
-    }
-
 }

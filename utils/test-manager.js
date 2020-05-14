@@ -59,16 +59,22 @@ class TestManager {
       .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   }
 
-  async relay(_target, _method, _params, _wallet, _signers, _relayer = this.accounts[9].signer, _estimate = false, _gasLimit = 2000000, _nonce) {
+  async relay(_target, _method, _params, _wallet, _signers,
+    _relayer = this.accounts[9].signer,
+    _estimate = false,
+    _gasLimit = 2000000,
+    _nonce,
+    _gasPrice = 0) {
     const nonce = _nonce || await this.getNonceForRelay();
     const methodData = _target.contract.interface.functions[_method].encode(_params);
-    const signatures = await signOffchain(_signers, _target.contractAddress, _wallet.contractAddress, 0, methodData, nonce, 0, _gasLimit);
+    const signatures = await signOffchain(_signers, _target.contractAddress, _wallet.contractAddress, 0, methodData, nonce, _gasPrice, _gasLimit);
     const targetFrom = (_target.from && _target.from(_relayer)) || _target;
     if (_estimate === true) {
-      const gasUsed = await targetFrom.estimate.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit);
+      const gasUsed = await targetFrom.estimate.execute(_wallet.contractAddress, methodData, nonce, signatures, _gasPrice, _gasLimit);
       return gasUsed;
     }
-    const tx = await targetFrom.execute(_wallet.contractAddress, methodData, nonce, signatures, 0, _gasLimit, { gasLimit: _gasLimit });
+    const tx = await targetFrom.execute(_wallet.contractAddress, methodData, nonce, signatures, _gasPrice, _gasLimit,
+      { gasLimit: _gasLimit, gasPrice: _gasPrice });
     const txReceipt = await _target.verboseWaitForTransaction(tx);
     return txReceipt;
   }

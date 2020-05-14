@@ -122,21 +122,7 @@ contract LockManager is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function validateSignatures(
-        BaseWallet _wallet,
-        bytes memory /* _data */,
-        bytes32 _signHash,
-        bytes memory _signatures
-    )
-        internal
-        view
-        returns (bool)
-    {
-        (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), recoverSigner(_signHash, _signatures, 0));
-        return isGuardian; // "LM: must be a guardian to lock or unlock"
-    }
-
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) internal view returns (uint256) {
-        return 1;
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) public view returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Disallowed);
     }
 }
