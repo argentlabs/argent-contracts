@@ -22,8 +22,8 @@
     "test:benchmark": "./scripts/deploy.sh ganache 999",
     "lint:js": "eslint .",
     "lint:js:staged": "bash ./scripts/eslint.sh",
-    "security:slither": "rm -rf build && slither . --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls",
-    "security:slither:triage": "rm -rf build && slither . --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls"
+    "security:slither": "rm -rf build && slither . --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
+    "security:slither:triage": "rm -rf build && slither . --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external"
   },
   "husky": {
     "hooks": {
