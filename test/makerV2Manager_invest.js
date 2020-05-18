@@ -24,14 +24,17 @@ describe("MakerV2 DSR", function () {
   let makerV2;
   let sai;
   let dai;
-  let jug;
-  let vat;
-  let gov;
 
   before(async () => {
     const m = await deployMaker(deployer, infrastructure);
-    [sai, dai, jug, vat, gov] = [m.sai, m.dai, m.jug, m.vat, m.gov];
-    const { migration, pot } = m;
+    [sai, dai] = [m.sai, m.dai];
+    const {
+      migration,
+      pot,
+      jug,
+      vat,
+      gov,
+    } = m;
 
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
