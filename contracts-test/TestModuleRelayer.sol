@@ -38,8 +38,8 @@ contract TestModuleRelayer is BaseModule, RelayerModule {
         if (!success) {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
-                returndatacopy(0, 0, returndatasize)
-                revert(0, returndatasize)
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
             }
         }
     }

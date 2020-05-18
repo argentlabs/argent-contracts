@@ -124,8 +124,8 @@ contract BaseWallet {
         if (!success) {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
-                returndatacopy(0, 0, returndatasize)
-                revert(0, returndatasize)
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
             }
         }
         emit Invoked(msg.sender, _target, _value, _data);
@@ -146,7 +146,7 @@ contract BaseWallet {
                 // solium-disable-next-line security/no-inline-assembly
                 assembly {
                     calldatacopy(0, 0, calldatasize())
-                    let result := staticcall(gas, module, 0, calldatasize(), 0, 0)
+                    let result := staticcall(gas(), module, 0, calldatasize(), 0, 0)
                     returndatacopy(0, 0, returndatasize())
                     switch result
                     case 0 {revert(0, returndatasize())}
