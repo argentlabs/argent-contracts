@@ -325,7 +325,7 @@ describe("GuardianManager", function () {
       assert.equal(count, 2, "there should be 2 guardians again");
     });
 
-    it("should be able to remove a guardian that is not last in the list", async () => {
+    it("should be able to remove a guardian that is the last in the list", async () => {
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian3.address);
       await manager.increaseTime(30);
       await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardian3.address);
