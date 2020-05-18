@@ -104,7 +104,8 @@ contract BaseModule is Module {
     */
     function recoverToken(address _token) external {
         uint total = ERC20(_token).balanceOf(address(this));
-        ERC20(_token).transfer(address(registry), total);
+        bool success = ERC20(_token).transfer(address(registry), total);
+        require(success, "BM: recover token transfer failed");
     }
 
     /**

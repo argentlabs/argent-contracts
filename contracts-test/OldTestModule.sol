@@ -1,10 +1,10 @@
 pragma solidity ^0.5.4;
 
-import "../modules/common/BaseModule.sol";
-import "../modules/common/RelayerModule.sol";
-import "../modules/common/OnlyOwnerModule.sol";
+import "../contracts/modules/common/BaseModule.sol";
+import "../contracts/modules/common/RelayerModule.sol";
+import "../contracts/modules/common/OnlyOwnerModule.sol";
 import "./TestDapp.sol";
-import "../legacy/LegacyBaseWallet.sol";
+import "../contracts/legacy/LegacyBaseWallet.sol";
 
 /**
  * @title OldTestModule

@@ -55,8 +55,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
     uint256 public securityPeriod;
     // Security window used for (non-recovery) ownership transfer
     uint256 public securityWindow;
-    // Location of the Guardian storage
-    GuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
 
@@ -97,7 +95,6 @@ contract RecoveryManager is BaseModule, RelayerModule {
         public
     {
         require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow, "RM: insecure security periods");
-        guardianStorage = _guardianStorage;
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
         securityPeriod = _securityPeriod;
@@ -132,10 +129,13 @@ contract RecoveryManager is BaseModule, RelayerModule {
     function finalizeRecovery(BaseWallet _wallet) external onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         require(uint64(now) > config.executeAfter, "RM: the recovery period is not over yet");
-        _wallet.setOwner(config.recovery);
-        emit RecoveryFinalized(address(_wallet), config.recovery);
-        guardianStorage.setLock(_wallet, 0);
+        address recoveryOwner = config.recovery;
         delete recoveryConfigs[address(_wallet)];
+
+        _wallet.setOwner(recoveryOwner);
+        guardianStorage.setLock(_wallet, 0);
+
+        emit RecoveryFinalized(address(_wallet), recoveryOwner);
     }
 
     /**
@@ -145,9 +145,11 @@ contract RecoveryManager is BaseModule, RelayerModule {
      */
     function cancelRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        emit RecoveryCanceled(address(_wallet), config.recovery);
-        guardianStorage.setLock(_wallet, 0);
+        address recoveryOwner = config.recovery;
         delete recoveryConfigs[address(_wallet)];
+        guardianStorage.setLock(_wallet, 0);
+
+        emit RecoveryCanceled(address(_wallet), recoveryOwner);
     }
 
     /**
@@ -168,7 +170,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     * @dev Gets the details of the ongoing recovery procedure if any.
     * @param _wallet The target wallet.
     */
-    function getRecovery(BaseWallet _wallet) public view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
+    function getRecovery(BaseWallet _wallet) external view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         return (config.recovery, config.executeAfter, config.guardianCount);
     }

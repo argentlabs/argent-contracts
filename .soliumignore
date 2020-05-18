@@ -2,5 +2,5 @@ node_modules
 migrations
 openzeppelin-solidity
 lib
-contracts/test
+contracts-test
 contracts/legacy/LegacyBaseWallet.sol
