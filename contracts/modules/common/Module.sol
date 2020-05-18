@@ -14,7 +14,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../../wallet/BaseWallet.sol";
 
 /**
  * @title Module
@@ -27,16 +26,16 @@ interface Module {
 
     /**
      * @dev Inits a module for a wallet by e.g. setting some wallet specific parameters in storage.
-     * @param _wallet The wallet.
+     * @param _wallet The wallet address.
      */
-    function init(BaseWallet _wallet) external;
+    function init(address _wallet) external;
 
     /**
      * @dev Adds a module to a wallet.
-     * @param _wallet The target wallet.
+     * @param _wallet The target wallet address.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) external;
+    function addModule(address _wallet, Module _module) external;
 
     /**
     * @dev Utility method to recover any ERC20 token that was sent to the
