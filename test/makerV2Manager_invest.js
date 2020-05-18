@@ -1,9 +1,12 @@
-const { AddressZero } = require("ethers").constants;
-const { deployMaker, WAD } = require("../utils/defi-deployer");
+const {
+  deployMaker, deployUniswap, WAD, ETH_PER_DAI, ETH_PER_MKR,
+} = require("../utils/defi-deployer");
 const TestManager = require("../utils/test-manager");
-const MakerV2Invest = require("../build/TestMakerV2Invest");
+const Registry = require("../build/ModuleRegistry");
+const MakerV2Manager = require("../build/MakerV2Manager");
 const Wallet = require("../build/BaseWallet");
 const GuardianStorage = require("../build/GuardianStorage");
+const MakerRegistry = require("../build/MakerRegistry");
 
 const DAI_SENT = WAD.div(100000000);
 
@@ -25,18 +28,32 @@ describe("MakerV2 DSR", function () {
   before(async () => {
     const m = await deployMaker(deployer, infrastructure);
     [sai, dai] = [m.sai, m.dai];
-    const { migration, pot } = m;
+    const {
+      migration,
+      pot,
+      jug,
+      vat,
+      gov,
+    } = m;
 
+    const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
 
+    const makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);
+
+    // Deploy Uniswap
+    const uni = await deployUniswap(deployer, manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
+
     makerV2 = await deployer.deploy(
-      MakerV2Invest,
+      MakerV2Manager,
       {},
-      AddressZero,
+      registry.contractAddress,
       guardianStorage.contractAddress,
       migration.contractAddress,
       pot.contractAddress,
-      { gasLimit: 8000000 },
+      jug.contractAddress,
+      makerRegistry.contractAddress,
+      uni.uniswapFactory.contractAddress,
     );
   });
 

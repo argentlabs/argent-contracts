@@ -27,7 +27,6 @@ cp build/DSValue.json .coverage_artifacts/DSValue.json
 cp build/CryptoKittyTest.json .coverage_artifacts/CryptoKittyTest.json
 cp build/TestRegistry.json .coverage_artifacts/TestRegistry.json
 cp build/GemJoin.json .coverage_artifacts/GemJoin.json
-cp build/TestModule.json .coverage_artifacts/TestModule.json
 cp build/OldTestModule.json .coverage_artifacts/OldTestModule.json
 cp build/NewTestModule.json .coverage_artifacts/NewTestModule.json
 cp build/NonCompliantGuardian.json .coverage_artifacts/NonCompliantGuardian.json
@@ -37,5 +36,4 @@ cp build/TestUpgradedMakerV2Manager.json .coverage_artifacts/TestUpgradedMakerV2
 cp build/ERC20Approver.json .coverage_artifacts/ERC20Approver.json
 cp build/TestModuleRelayer.json .coverage_artifacts/TestModuleRelayer.json
 cp build/TestOnlyOwnerModule.json .coverage_artifacts/TestOnlyOwnerModule.json
-cp build/TestMakerV2Invest.json .coverage_artifacts/TestMakerV2Invest.json
 cp build/FakeWallet.json .coverage_artifacts/FakeWallet.json

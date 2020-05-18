@@ -324,6 +324,21 @@ describe("GuardianManager", function () {
       count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
       assert.equal(count, 2, "there should be 2 guardians again");
     });
+
+    it("should be able to remove a guardian that is the last in the list", async () => {
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian3.address);
+      await manager.increaseTime(30);
+      await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardian3.address);
+      let count = await guardianStorage.guardianCount(wallet.contractAddress);
+      assert.equal(count.toNumber(), 3, "there should be 3 guardians");
+
+      const guardians = await guardianStorage.getGuardians(wallet.contractAddress);
+      await guardianManager.from(owner).revokeGuardian(wallet.contractAddress, guardians[2]);
+      await manager.increaseTime(30);
+      await guardianManager.confirmGuardianRevokation(wallet.contractAddress, guardians[2]);
+      count = await guardianStorage.guardianCount(wallet.contractAddress);
+      assert.equal(count.toNumber(), 2, "there should be 2 guardians left");
+    });
   });
 
   describe("Cancelling Pending Guardians", () => {
@@ -377,6 +392,18 @@ describe("GuardianManager", function () {
       await manager.increaseTime(30);
       await assert.revertWith(guardianManager.confirmGuardianRevokation(wallet.contractAddress, guardian1.address),
         "GM: no pending guardian revokation for target");
+    });
+  });
+
+  describe("Guardian Storage", () => {
+    it("should not allow non modules to addGuardian", async () => {
+      await assert.revertWith(guardianStorage.addGuardian(wallet.contractAddress, guardian4.address),
+        "TS: must be an authorized module to call this method");
+    });
+
+    it("should not allow non modules to revokeGuardian", async () => {
+      await assert.revertWith(guardianStorage.revokeGuardian(wallet.contractAddress, guardian1.address),
+        "TS: must be an authorized module to call this method");
     });
   });
 });
