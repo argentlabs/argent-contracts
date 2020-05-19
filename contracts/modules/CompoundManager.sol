@@ -19,7 +19,7 @@ import "../wallet/BaseWallet.sol";
 import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
-import "../infrastructure/CompoundRegistry.sol";
+import "../infrastructure/ICompoundRegistry.sol";
 
 interface IComptroller {
     function enterMarkets(address[] calldata _cTokens) external returns (uint[] memory);
@@ -52,7 +52,7 @@ contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
     // The Compound IComptroller contract
     IComptroller public comptroller;
     // The registry mapping underlying with cTokens
-    CompoundRegistry public compoundRegistry;
+    ICompoundRegistry public compoundRegistry;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -78,7 +78,7 @@ contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
         ModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         IComptroller _comptroller,
-        CompoundRegistry _compoundRegistry
+        ICompoundRegistry _compoundRegistry
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public

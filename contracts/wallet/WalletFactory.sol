@@ -13,14 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
-import "../wallet/Proxy.sol";
-import "../wallet/BaseWallet.sol";
-import "./base/Owned.sol";
-import "./base/Managed.sol";
-import "../infrastructure/ens/IENSManager.sol";
-import "../infrastructure/ModuleRegistry.sol";
+pragma solidity ^0.6.8;
+import "./Proxy.sol";
+import "./BaseWallet.sol";
+import "../infrastructure/base/Owned.sol";
+import "../infrastructure/base/Managed.sol";
 import "../modules/storage/IGuardianStorage.sol";
+import "../infrastructure/ens/IENSManager.sol";
+import "../infrastructure/IModuleRegistry.sol";
 
 /**
  * @title WalletFactory
@@ -369,7 +369,7 @@ contract WalletFactory is Owned, Managed {
     function _validateInputs(address _owner, address[] memory _modules, string memory _label) internal view {
         require(_owner != address(0), "WF: owner cannot be null");
         require(_modules.length > 0, "WF: cannot assign with less than 1 module");
-        require(ModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
+        require(IModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
         bytes memory labelBytes = bytes(_label);
         require(labelBytes.length != 0, "WF: ENS label must be defined");
     }
