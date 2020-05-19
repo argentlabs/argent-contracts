@@ -14,15 +14,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../wallet/BaseWallet.sol";
-import "../modules/common/BaseModule.sol";
-import "../modules/common/RelayerModule.sol";
-import "../modules/common/OnlyOwnerModule.sol";
-import "../modules/common/BaseTransfer.sol";
-import "../modules/common/LimitManager.sol";
+import "./BaseWallet.sol";
+import "./BaseModule.sol";
+import "./RelayerModule.sol";
+import "./OnlyOwnerModule.sol";
+import "./BaseTransfer.sol";
+import "./LimitManager.sol";
 import "../infrastructure/TokenPriceProvider.sol";
-import "../modules/storage/TransferStorage.sol";
-import "../../lib/other/ERC20.sol";
+import "./TransferStorage.sol";
 
 /**
  * @title LegacyTransferManager

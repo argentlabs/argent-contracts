@@ -15,14 +15,14 @@
 
 pragma solidity ^0.5.4;
 
-import "../modules/maker/IUniswapExchange.sol";
-import "../modules/maker/IUniswapFactory.sol";
-import "../wallet/BaseWallet.sol";
-import "../modules/common/BaseModule.sol";
-import "../modules/common/RelayerModule.sol";
-import "../modules/common/OnlyOwnerModule.sol";
+import "./IUniswapExchange.sol";
+import "./IUniswapFactory.sol";
+import "./BaseWallet.sol";
+import "./BaseModule.sol";
+import "./RelayerModule.sol";
+import "./OnlyOwnerModule.sol";
 import "./Loan.sol";
-import "../../lib/maker/DS/DSMath.sol";
+import "./DSMath.sol";
 
 // Interface to MakerDAO's Tub contract, used to manage CDPs
 contract IMakerCdp {

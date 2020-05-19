@@ -3,4 +3,4 @@ migrations
 openzeppelin-solidity
 lib
 contracts-test
-contracts/legacy/LegacyBaseWallet.sol
+contracts/legacy
