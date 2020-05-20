@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "../../lib/utils/SafeMath.sol";
 import "./BaseWallet.sol";
 import "../infrastructure/ModuleRegistry.sol";
 import "./GuardianStorage.sol";

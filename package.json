@@ -6,8 +6,11 @@
     "test": "test"
   },
   "scripts": {
-    "compile:lib": "npx etherlime compile --workingDirectory lib --runs=200",
-    "compile": "npx etherlime compile --runs=999",
+    "compile:lib": "npx etherlime compile --workingDirectory lib --solcVersion 0.5.4 --runs=200",
+    "compile:legacy": "npx etherlime compile --workingDirectory contracts/legacy --solcVersion 0.5.4 --runs=999",
+    "compile:infrastructure": "npx etherlime compile --workingDirectory contracts/infrastructure --solcVersion 0.5.4 --runs=999",
+    "compile:modules": "npx etherlime compile --workingDirectory contracts/modules --runs=999",
+    "compile:wallet": "npx etherlime compile --workingDirectory contracts/wallet --runs=999",
     "compile:test": "npx etherlime compile --workingDirectory contracts-test --runs=999",
     "ganache": "npx etherlime ganache --gasLimit=10700000 -e 10000",
     "kovan-fork": "npx ganache-cli -i 42 -l 10700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')@16988040",
@@ -57,7 +60,7 @@
     "inquirer": "^7.0.0",
     "istanbul": "^0.4.5",
     "node-fetch": "^2.3.0",
-    "openzeppelin-solidity": "2.3.0",
+    "openzeppelin-solidity": "3.0.1",
     "ps-node": "^0.1.6",
     "semver": "^7.1.3",
     "solc": "0.6.8",
