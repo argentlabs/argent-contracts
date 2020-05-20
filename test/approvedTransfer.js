@@ -6,7 +6,6 @@ const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
 const GuardianManager = require("../build/GuardianManager");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
-const KyberNetwork = require("../build/KyberNetworkTest");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
@@ -15,7 +14,7 @@ const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN } = require("../utils/utilities.js");
 
 const DECIMALS = 12; // number of decimal for TOKN contract
-const KYBER_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
+const TOKEN_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -39,7 +38,6 @@ describe("Approved Transfer", function () {
   let guardianManager;
   let approvedTransfer;
   let priceProvider;
-  let kyber;
   let erc20;
   const amountToTransfer = 10000;
 
@@ -47,18 +45,17 @@ describe("Approved Transfer", function () {
     deployer = manager.newDeployer();
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
-    kyber = await deployer.deploy(KyberNetwork);
-    priceProvider = await deployer.deploy(TokenPriceProvider, {}, kyber.contractAddress);
+    priceProvider = await deployer.deploy(TokenPriceProvider);
     await priceProvider.addManager(infrastructure.address);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {}, registry.contractAddress, guardianStorage.contractAddress);
   });
+
   beforeEach(async () => {
     wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [approvedTransfer.contractAddress, guardianManager.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await kyber.addToken(erc20.contractAddress, KYBER_RATE, DECIMALS);
-    await priceProvider.syncPrice(erc20.contractAddress);
+    await priceProvider.setPrice(erc20.contractAddress, TOKEN_RATE);
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
   });
 
