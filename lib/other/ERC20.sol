@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity >=0.5.4 <0.7.0;
 
 /**
  * ERC20 contract interface.

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.8;
 
 contract TestDapp {
     function noReturn() external {}

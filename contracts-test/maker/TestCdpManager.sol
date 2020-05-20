@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.8;
 
 contract TestCdpManager {
     function urns(uint) public view returns (address);

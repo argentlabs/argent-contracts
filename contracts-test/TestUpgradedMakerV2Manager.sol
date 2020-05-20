@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.8;
 
 import "../contracts/modules/maker/MakerV2Manager.sol";
 
