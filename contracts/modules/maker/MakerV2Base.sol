@@ -20,7 +20,7 @@ import "../common/BaseModule.sol";
 import "../common/RelayerModule.sol";
 import "../common/OnlyOwnerModule.sol";
 import "../../../lib/maker/MakerInterfaces.sol";
-import "../../infrastructure/MakerRegistry.sol";
+import "../../infrastructure/IMakerRegistry.sol";
 
 /**
  * @title MakerV2Base

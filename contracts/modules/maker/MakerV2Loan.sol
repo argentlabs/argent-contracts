@@ -19,7 +19,6 @@ pragma solidity ^0.6.8;
 import "./MakerV2Base.sol";
 import "./IUniswapExchange.sol";
 import "./IUniswapFactory.sol";
-import "../../infrastructure/MakerRegistry.sol";
 import "../../../lib/maker/DS/DSMath.sol";
 
 /**
@@ -45,7 +44,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     // The address of the SCD Tub
     SaiTubLike internal tub;
     // The Maker Registry in which all supported collateral tokens and their adapters are stored
-    MakerRegistry internal makerRegistry;
+    IMakerRegistry internal makerRegistry;
     // The Uniswap Exchange contract for DAI
     IUniswapExchange internal daiUniswap;
     // The Uniswap Exchange contract for MKR
@@ -104,7 +103,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
 
     constructor(
         JugLike _jug,
-        MakerRegistry _makerRegistry,
+        IMakerRegistry _makerRegistry,
         IUniswapFactory _uniswapFactory
     )
         public

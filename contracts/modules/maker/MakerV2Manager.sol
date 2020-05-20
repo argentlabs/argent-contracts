@@ -36,7 +36,7 @@ contract MakerV2Manager is MakerV2Base, MakerV2Invest, MakerV2Loan {
         ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,
         JugLike _jug,
-        MakerRegistry _makerRegistry,
+        IMakerRegistry _makerRegistry,
         IUniswapFactory _uniswapFactory
     )
         MakerV2Base(_registry, _guardianStorage, _scdMcdMigration)

@@ -16,7 +16,7 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
         ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,
         JugLike _jug,
-        MakerRegistry _makerRegistry,
+        IMakerRegistry _makerRegistry,
         IUniswapFactory _uniswapFactory,
         MakerV2Manager _previousMakerV2Manager
     )
