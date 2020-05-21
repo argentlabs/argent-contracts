@@ -3,6 +3,7 @@ import "../lib/other/ERC20.sol";
 import "../lib/other/KyberNetwork.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+// SPDX-License-Identifier: GPL-3.0-only
 contract KyberNetworkTest is KyberNetwork {
 
     using SafeMath for uint256;
@@ -23,7 +24,7 @@ contract KyberNetworkTest is KyberNetwork {
         owner = msg.sender;
     }
 
-    function() external payable {}
+    receive() external payable {}
 
     /**
     * @dev Adds a tradable token to the Kyber instance

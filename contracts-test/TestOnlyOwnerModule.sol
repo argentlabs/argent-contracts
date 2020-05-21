@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 import "../contracts/wallet/BaseWallet.sol";
 import "../contracts/modules/common/OnlyOwnerModule.sol";

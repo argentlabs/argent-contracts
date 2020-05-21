@@ -3,6 +3,7 @@ import "../contracts/wallet/BaseWallet.sol";
 import "../contracts/modules/common/BaseModule.sol";
 import "../contracts/modules/common/OnlyOwnerModule.sol";
 
+// SPDX-License-Identifier: GPL-3.0-only
 contract ERC20Approver is BaseModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "ERC20Approver";
