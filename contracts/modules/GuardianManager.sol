@@ -191,7 +191,7 @@ contract GuardianManager is BaseModule, RelayerModule {
      * @dev Checks if an address is a guardian for a wallet.
      * @param _wallet The target wallet.
      * @param _guardian The address to check.
-     * @return true if the address if a guardian for the wallet.
+     * @return _isGuardian true if the address if a guardian for the wallet.
      */
     function isGuardian(BaseWallet _wallet, address _guardian) public view returns (bool _isGuardian) {
         (_isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), _guardian);
@@ -200,7 +200,7 @@ contract GuardianManager is BaseModule, RelayerModule {
     /**
      * @dev Counts the number of active guardians for a wallet.
      * @param _wallet The target wallet.
-     * @return the number of active guardians for a wallet.
+     * @return _count The number of active guardians for a wallet.
      */
     function guardianCount(BaseWallet _wallet) external view returns (uint256 _count) {
         return guardianStorage.guardianCount(_wallet);

@@ -116,7 +116,7 @@ contract LimitManager is BaseModule {
     /**
     * @dev Gets the current daily limit for a wallet.
     * @param _wallet The target wallet.
-    * @return the current limit expressed in ETH.
+    * @return _currentLimit The current limit expressed in ETH.
     */
     function getCurrentLimit(BaseWallet _wallet) public view returns (uint256 _currentLimit) {
         Limit storage limit = limits[address(_wallet)].limit;
@@ -126,7 +126,7 @@ contract LimitManager is BaseModule {
     /**
     * @dev Returns whether the daily limit is disabled for a wallet.
     * @param _wallet The target wallet.
-    * @return true if the daily limit is disabled, false otherwise.
+    * @return _limitDisabled true if the daily limit is disabled, false otherwise.
     */
     function isLimitDisabled(BaseWallet _wallet) public view returns (bool _limitDisabled) {
         uint256 currentLimit = getCurrentLimit(_wallet);
@@ -136,7 +136,8 @@ contract LimitManager is BaseModule {
     /**
     * @dev Gets a pending limit for a wallet if any.
     * @param _wallet The target wallet.
-    * @return the pending limit (in ETH) and the time at chich it will become effective.
+    * @return _pendingLimit The pending limit (in ETH).
+    * @return _changeAfter The time at which the pending limit will become effective.
     */
     function getPendingLimit(BaseWallet _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
         Limit storage limit = limits[address(_wallet)].limit;
@@ -147,7 +148,8 @@ contract LimitManager is BaseModule {
     /**
     * @dev Gets the amount of tokens that has not yet been spent during the current period.
     * @param _wallet The target wallet.
-    * @return the amount of tokens (in ETH) that has not been spent yet and the end of the period.
+    * @return _unspent The amount of tokens (in ETH) that has not been spent yet.
+    * @return _periodEnd The end of the daily period.
     */
     function getDailyUnspent(BaseWallet _wallet) external view returns (uint256 _unspent, uint64 _periodEnd) {
         uint256 limit = getCurrentLimit(_wallet);

@@ -378,7 +378,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @dev Checks if an address is whitelisted for a wallet.
     * @param _wallet The target wallet.
     * @param _target The address.
-    * @return true if the address is whitelisted.
+    * @return _isWhitelisted true if the address is whitelisted.
     */
     function isWhitelisted(BaseWallet _wallet, address _target) public view returns (bool _isWhitelisted) {
         uint whitelistAfter = transferStorage.getWhitelist(_wallet, _target);
@@ -390,7 +390,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @dev Gets the info of a pending transfer for a wallet.
     * @param _wallet The target wallet.
     * @param _id The pending transfer ID.
-    * @return the epoch time at which the pending transfer can be executed.
+    * @return _executeAfter The epoch time at which the pending transfer can be executed.
     */
     function getPendingTransfer(BaseWallet _wallet, bytes32 _id) external view returns (uint64 _executeAfter) {
         _executeAfter = uint64(configs[address(_wallet)].pendingActions[_id]);
@@ -431,7 +431,8 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
      * @param _to The recipient of the action.
      * @param _amount The amount of token associated to the action.
      * @param _data The data associated to the action.
-     * @return the identifier for the new pending action and the time when the action can be executed
+     * @return id The identifier for the new pending action.
+     * @return executeAfter The time when the action can be executed
      */
     function addPendingAction(
         ActionType _action,

@@ -97,7 +97,7 @@ contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _collateralAmount The amount of collateral token provided.
      * @param _debtToken The token borrowed.
      * @param _debtAmount The amount of tokens borrowed.
-     * @return bytes32(0) as Compound does not allow the creation of multiple loans.
+     * @return _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      */
     function openLoan(
         BaseWallet _wallet,
@@ -243,8 +243,8 @@ contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
     /**
      * @dev Gets information about the loan status on Compound.
      * @param _wallet The target wallet.
-     * @return a status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated]
-     * and a value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral
+     * @return _status Status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated]
+     * @return _ethValue Value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral
      * that should be added to avoid liquidation when status = 2.
      */
     function getLoan(
@@ -274,7 +274,7 @@ contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
      * @param _token The token address.
      * @param _amount The amount of tokens to invest.
      * @param _period The period over which the tokens may be locked in the investment (optional).
-     * @return The exact amount of tokens that have been invested.
+     * @return _invested The exact amount of tokens that have been invested.
      */
     function addInvestment(
         BaseWallet _wallet,
@@ -319,7 +319,8 @@ contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
      * @dev Get the amount of investment in a given token.
      * @param _wallet The target wallet.
      * @param _token The token address.
-     * @return The value in tokens of the investment (including interests) and the time at which the investment can be removed.
+     * @return _tokenValue The value in tokens of the investment (including interests).
+     * @return _periodEnd The time at which the investment can be removed.
      */
     function getInvestment(
         BaseWallet _wallet,

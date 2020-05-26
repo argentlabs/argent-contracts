@@ -132,7 +132,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _collateralAmount The amount of collateral token provided.
      * @param _debtToken The token borrowed (must be the address of the DAI contract).
      * @param _debtAmount The amount of tokens borrowed.
-     * @return The ID of the created vault.
+     * @return _loanId The ID of the created vault.
      */
     function openLoan(
         BaseWallet _wallet,
@@ -516,7 +516,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _collateral The token to use as collateral in the vault.
      * @param _collateralAmount The amount of collateral to lock in the vault.
      * @param _debtAmount The amount of DAI to draw from the vault
-     * @return The id of the created vault.
+     * @return _cdpId The id of the created vault.
      */
     // solium-disable-next-line security/no-assign-params
     function openVault(

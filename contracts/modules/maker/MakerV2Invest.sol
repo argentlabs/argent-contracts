@@ -132,7 +132,7 @@ contract MakerV2Invest is MakerV2Base {
     /**
     * @dev Returns the amount of DAI currently held in the DSR pot.
     * @param _wallet The target wallet.
-    * @return The DSR balance.
+    * @return _balance The DSR balance.
     */
     function dsrBalance(BaseWallet _wallet) external view returns (uint256 _balance) {
         return pot.chi().mul(pot.pie(address(_wallet))) / RAY;
