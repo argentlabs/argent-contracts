@@ -20,7 +20,7 @@ import "./RelayerModule.sol";
 import "./OnlyOwnerModule.sol";
 import "./BaseTransfer.sol";
 import "./LimitManager.sol";
-import "../modules/common/TokenPriceProvider.sol";
+import "./TokenPriceProvider.sol";
 import "./TransferStorage.sol";
 
 /**

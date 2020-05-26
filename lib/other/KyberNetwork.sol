@@ -1,4 +1,4 @@
-pragma solidity ^0.6.8;
+pragma solidity >=0.5.4 <0.7.0;
 import "./ERC20.sol";
 
 contract KyberNetwork {

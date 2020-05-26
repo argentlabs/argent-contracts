@@ -37,7 +37,7 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
         previousMakerV2Manager = _previousMakerV2Manager;
     }
 
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
         address[] memory tokens = makerRegistry.getCollateralTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
             bytes32 loanId = previousMakerV2Manager.loanIds(address(_wallet), makerRegistry.getIlk(tokens[i]));

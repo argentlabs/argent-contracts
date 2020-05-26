@@ -45,7 +45,7 @@ contract TestModuleRelayer is BaseModule, RelayerModule {
         }
     }
 
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
         enableStaticCalls(_wallet, address(this));
     }
 
