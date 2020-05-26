@@ -47,7 +47,7 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         ScdMcdMigrationLike _scdMcdMigration
     )

@@ -32,7 +32,7 @@ contract SimpleUpgrader is BaseModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         address[] memory _toDisable,
         address[] memory _toEnable
     )

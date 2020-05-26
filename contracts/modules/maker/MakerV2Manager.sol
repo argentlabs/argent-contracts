@@ -31,7 +31,7 @@ contract MakerV2Manager is MakerV2Base, MakerV2Invest, MakerV2Loan {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,

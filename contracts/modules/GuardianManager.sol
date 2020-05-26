@@ -64,7 +64,7 @@ contract GuardianManager is BaseModule, RelayerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         uint256 _securityPeriod,
         uint256 _securityWindow

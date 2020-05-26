@@ -47,7 +47,7 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
     event TokenExchanged(address indexed wallet, address srcToken, uint srcAmount, address destToken, uint destAmount);
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         address _kyber,
         address _feeCollector,

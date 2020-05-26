@@ -74,7 +74,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         TransferStorage _transferStorage,
         GuardianStorage _guardianStorage,
         address _priceProvider,

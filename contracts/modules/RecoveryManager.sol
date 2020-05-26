@@ -86,7 +86,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
     // *************** Constructor ************************ //
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         uint256 _recoveryPeriod,
         uint256 _lockPeriod,

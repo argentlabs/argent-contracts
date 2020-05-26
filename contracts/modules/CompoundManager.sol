@@ -76,7 +76,7 @@ contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
     using SafeMath for uint256;
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         GuardianStorage _guardianStorage,
         IComptroller _comptroller,
         ICompoundRegistry _compoundRegistry
