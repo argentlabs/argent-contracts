@@ -28,7 +28,7 @@ import "../../../lib/other/ERC20.sol";
  * @dev Basic module that contains some methods common to all modules.
  * @author Julien Niset - <julien@argent.im>
  */
-contract BaseModule is Module {
+abstract contract BaseModule is Module {
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
@@ -85,7 +85,7 @@ contract BaseModule is Module {
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public virtual onlyWallet(_wallet) {
         emit ModuleInitialised(address(_wallet));
     }
 
@@ -94,7 +94,7 @@ contract BaseModule is Module {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) external strictOnlyWalletOwner(_wallet) {
+    function addModule(BaseWallet _wallet, Module _module) external virtual strictOnlyWalletOwner(_wallet) {
         require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
         _wallet.authoriseModule(address(_module), true);
     }
@@ -104,7 +104,7 @@ contract BaseModule is Module {
     * module by mistake and transfer them to the Module Registry.
     * @param _token The token to recover.
     */
-    function recoverToken(address _token) external {
+    function recoverToken(address _token) external virtual {
         uint total = ERC20(_token).balanceOf(address(this));
         bool success = ERC20(_token).transfer(address(registry), total);
         require(success, "BM: recover token transfer failed");

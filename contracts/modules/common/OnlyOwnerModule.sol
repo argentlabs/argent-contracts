@@ -26,7 +26,7 @@ import "../../wallet/BaseWallet.sol";
  * must be called with one signature frm the owner.
  * @author Julien Niset - <julien@argent.im>
  */
-contract OnlyOwnerModule is BaseModule, RelayerModule {
+abstract contract OnlyOwnerModule is BaseModule, RelayerModule {
 
     // bytes4 private constant IS_ONLY_OWNER_MODULE = bytes4(keccak256("isOnlyOwnerModule()"));
 
@@ -45,7 +45,7 @@ contract OnlyOwnerModule is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) external onlyWalletOwner(_wallet) {
+    function addModule(BaseWallet _wallet, Module _module) external override onlyWalletOwner(_wallet) {
         require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
         _wallet.authoriseModule(address(_module), true);
     }

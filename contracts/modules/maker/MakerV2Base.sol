@@ -27,7 +27,7 @@ import "../../infrastructure/IMakerRegistry.sol";
  * @dev Common base to MakerV2Invest and MakerV2Loan.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
+abstract contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant private NAME = "MakerV2Manager";
 

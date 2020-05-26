@@ -50,7 +50,7 @@ contract SimpleUpgrader is BaseModule {
      * when SimpleUpgrader is temporarily added as a module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
         require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
 
         uint256 i = 0;

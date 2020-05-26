@@ -23,7 +23,7 @@ import "./BaseModule.sol";
  * @dev Module containing internal methods to execute or approve transfers
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract BaseTransfer is BaseModule {
+abstract contract BaseTransfer is BaseModule {
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;

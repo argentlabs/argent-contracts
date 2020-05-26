@@ -23,7 +23,7 @@ import "../../wallet/BaseWallet.sol";
  * @dev Base contract for the storage of a wallet.
  * @author Julien Niset - <julien@argent.im>
  */
-contract Storage {
+abstract contract Storage {
 
     /**
      * @dev Throws if the caller is not an authorised module.

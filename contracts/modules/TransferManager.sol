@@ -100,7 +100,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
 
         // setup static calls
         _wallet.enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);

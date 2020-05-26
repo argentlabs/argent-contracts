@@ -24,7 +24,7 @@ import "./BaseModule.sol";
  * @dev Module to manage a daily spending limit
  * @author Julien Niset - <julien@argent.im>
  */
-contract LimitManager is BaseModule {
+abstract contract LimitManager is BaseModule {
 
     // large limit when the limit can be considered disabled
     uint128 constant private LIMIT_DISABLED = uint128(-1); // 3.40282366920938463463374607431768211455e+38
@@ -75,7 +75,7 @@ contract LimitManager is BaseModule {
      * @dev Inits the module for a wallet by setting the limit to the default value.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
         Limit storage limit = limits[address(_wallet)].limit;
         if (limit.current == 0 && limit.changeAfter == 0) {
             limit.current = uint128(defaultLimit);
