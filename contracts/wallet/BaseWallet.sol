@@ -134,27 +134,28 @@ contract BaseWallet {
     }
 
     /**
-     * @dev This method makes it possible for the wallet to comply to interfaces expecting the wallet to
-     * implement specific static methods. It delegates the static call to a target contract if the data corresponds
-     * to an enabled method, or logs the call otherwise.
+     * @dev This method delegates the static call to a target contract if the data corresponds
+     * to an enabled module, or logs the call otherwise.
      */
-    function() external payable {
-        if (msg.data.length > 0) {
-            address module = enabled[msg.sig];
-            if (module == address(0)) {
-                emit Received(msg.value, msg.sender, msg.data);
-            } else {
-                require(authorised[module], "BW: must be an authorised module for static call");
-                // solium-disable-next-line security/no-inline-assembly
-                assembly {
-                    calldatacopy(0, 0, calldatasize())
-                    let result := staticcall(gas(), module, 0, calldatasize(), 0, 0)
-                    returndatacopy(0, 0, returndatasize())
-                    switch result
-                    case 0 {revert(0, returndatasize())}
-                    default {return (0, returndatasize())}
-                }
+    fallback() external payable {
+        address module = enabled[msg.sig];
+        if (module == address(0)) {
+            emit Received(msg.value, msg.sender, msg.data);
+        } else {
+            require(authorised[module], "BW: must be an authorised module for static call");
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                calldatacopy(0, 0, calldatasize())
+                let result := staticcall(gas(), module, 0, calldatasize(), 0, 0)
+                returndatacopy(0, 0, returndatasize())
+                switch result
+                case 0 {revert(0, returndatasize())}
+                default {return (0, returndatasize())}
             }
         }
+    }
+
+    receive() external payable {
+        emit Received(msg.value, msg.sender, msg.data);
     }
 }

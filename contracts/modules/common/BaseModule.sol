@@ -18,7 +18,7 @@ pragma solidity ^0.6.8;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "../../wallet/BaseWallet.sol";
-import "../../infrastructure/ModuleRegistry.sol";
+import "../../infrastructure/IModuleRegistry.sol";
 import "../storage/GuardianStorage.sol";
 import "./Module.sol";
 import "../../../lib/other/ERC20.sol";
@@ -34,7 +34,7 @@ contract BaseModule is Module {
     bytes constant internal EMPTY_BYTES = "";
 
     // The adddress of the module registry.
-    ModuleRegistry internal registry;
+    IModuleRegistry internal registry;
     // The address of the Guardian storage
     GuardianStorage internal guardianStorage;
 
@@ -49,7 +49,7 @@ contract BaseModule is Module {
     event ModuleCreated(bytes32 name);
     event ModuleInitialised(address wallet);
 
-    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage, bytes32 _name) public {
+    constructor(IModuleRegistry _registry, GuardianStorage _guardianStorage, bytes32 _name) public {
         registry = _registry;
         guardianStorage = _guardianStorage;
         emit ModuleCreated(_name);

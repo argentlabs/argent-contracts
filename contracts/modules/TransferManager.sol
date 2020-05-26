@@ -23,7 +23,7 @@ import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitManager.sol";
 import "./storage/TransferStorage.sol";
-import "../infrastructure/TokenPriceProvider.sol";
+import "./common/TokenPriceProvider.sol";
 import "../../lib/other/ERC20.sol";
 
 /**

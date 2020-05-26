@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity >=0.5.4 <0.7.0;
 
 contract GemLike {
     function balanceOf(address) public view returns (uint);

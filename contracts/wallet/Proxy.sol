@@ -32,7 +32,7 @@ contract Proxy {
         implementation = _implementation;
     }
 
-    function() external payable {
+    fallback() external payable {
 
         if (msg.data.length == 0 && msg.value > 0) {
             emit Received(msg.value, msg.sender, msg.data);
