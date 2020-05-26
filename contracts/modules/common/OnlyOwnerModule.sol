@@ -57,7 +57,7 @@ abstract contract OnlyOwnerModule is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) public view returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) public view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
 }

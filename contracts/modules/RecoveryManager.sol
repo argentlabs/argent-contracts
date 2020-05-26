@@ -179,7 +179,7 @@ contract RecoveryManager is BaseModule, RelayerModule {
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
             uint numberOfSignaturesRequired = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);

@@ -213,7 +213,7 @@ contract GuardianManager is BaseModule, RelayerModule {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) public view returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
 
         if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {
