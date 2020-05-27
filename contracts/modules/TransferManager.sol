@@ -17,8 +17,6 @@
 pragma solidity ^0.6.8;
 
 import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitManager.sol";
@@ -32,7 +30,7 @@ import "../../lib/other/ERC20.sol";
  * This module is the V2 of TokenTransfer.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTransfer, LimitManager {
+contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
 
     bytes32 constant NAME = "TransferManager";
 

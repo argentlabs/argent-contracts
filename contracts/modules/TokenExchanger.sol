@@ -17,8 +17,6 @@
 pragma solidity ^0.6.8;
 
 import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/other/KyberNetwork.sol";
@@ -28,7 +26,7 @@ import "../../lib/other/KyberNetwork.sol";
  * @dev Module to trade tokens (ETH or ERC20) using KyberNetworks.
  * @author Julien Niset - <julien@argent.im>
  */
-contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
+contract TokenExchanger is OnlyOwnerModule {
 
     bytes32 constant NAME = "TokenExchanger";
 

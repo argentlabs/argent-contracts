@@ -16,8 +16,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 
 /**
@@ -25,7 +23,7 @@ import "./common/OnlyOwnerModule.sol";
  * @dev Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
+contract NftTransfer is OnlyOwnerModule {
 
     bytes32 constant NAME = "NftTransfer";
 

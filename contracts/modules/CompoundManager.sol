@@ -17,8 +17,6 @@
 pragma solidity ^0.6.8;
 
 import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "../infrastructure/ICompoundRegistry.sol";
 
@@ -46,7 +44,7 @@ interface ICToken {
  * @dev Module to invest and borrow tokens with CompoundV2
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract CompoundManager is BaseModule, RelayerModule, OnlyOwnerModule {
+contract CompoundManager is OnlyOwnerModule {
 
     bytes32 constant NAME = "CompoundManager";
 

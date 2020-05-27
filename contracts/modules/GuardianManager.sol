@@ -18,7 +18,6 @@ pragma solidity ^0.6.8;
 
 import "../wallet/BaseWallet.sol";
 import "./common/GuardianUtils.sol";
-import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 
 /**
@@ -33,7 +32,7 @@ import "./common/RelayerModule.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract GuardianManager is BaseModule, RelayerModule {
+contract GuardianManager is RelayerModule {
 
     bytes32 constant NAME = "GuardianManager";
 
