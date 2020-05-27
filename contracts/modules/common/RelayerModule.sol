@@ -26,7 +26,7 @@ import "./GuardianUtils.sol";
  * It is subclassed by all modules.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
-contract RelayerModule is BaseModule {
+abstract contract RelayerModule is BaseModule {
 
     uint256 constant internal BLOCKBOUND = 10000;
 
