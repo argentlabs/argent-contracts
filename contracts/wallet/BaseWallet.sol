@@ -122,7 +122,7 @@ contract BaseWallet {
     function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly returns (bytes memory _result) {
         bool success;
         // solium-disable-next-line security/no-call-value
-        (success, _result) = _target.call.value(_value)(_data);
+        (success, _result) = _target.call{value: _value}(_data);
         if (!success) {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
