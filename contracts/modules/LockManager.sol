@@ -120,7 +120,7 @@ contract LockManager is BaseModule, RelayerModule {
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal returns (bool) {
+    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
