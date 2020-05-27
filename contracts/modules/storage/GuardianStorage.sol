@@ -59,7 +59,8 @@ contract GuardianStorage is IGuardianStorage, Storage {
     function addGuardian(BaseWallet _wallet, address _guardian) external override onlyModule(_wallet) {
         GuardianStorageConfig storage config = configs[address(_wallet)];
         config.info[_guardian].exists = true;
-        config.info[_guardian].index = uint128(config.guardians.push(_guardian) - 1);
+        config.guardians.push(_guardian);
+        config.info[_guardian].index = uint128(config.guardians.length - 1);
     }
 
     /**
@@ -75,7 +76,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
             config.guardians[targetIndex] = lastGuardian;
             config.info[lastGuardian].index = targetIndex;
         }
-        config.guardians.length--;
+        config.guardians.pop();
         delete config.info[_guardian];
     }
 
