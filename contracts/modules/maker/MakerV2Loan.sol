@@ -19,7 +19,6 @@ pragma solidity ^0.6.8;
 import "./MakerV2Base.sol";
 import "./IUniswapExchange.sol";
 import "./IUniswapFactory.sol";
-import "../../../lib/maker/DS/DSMath.sol";
 
 /**
  * @title MakerV2Loan
@@ -29,7 +28,7 @@ import "../../../lib/maker/DS/DSMath.sol";
  * (a type of asset NOT protected by a wallet's daily limit) to another account.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Loan is DSMath, MakerV2Base {
+abstract contract MakerV2Loan is MakerV2Base {
 
     // The address of the MKR token
     GemLike internal mkrToken;

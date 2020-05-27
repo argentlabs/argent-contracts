@@ -23,7 +23,7 @@ import "./MakerV2Base.sol";
  * @dev Module to lock/unlock MCD DAI into/from Maker's Pot
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Invest is MakerV2Base {
+abstract contract MakerV2Invest is MakerV2Base {
 
     // The address of the Pot
     PotLike internal pot;

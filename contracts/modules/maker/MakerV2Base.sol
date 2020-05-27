@@ -19,15 +19,16 @@ pragma solidity ^0.6.8;
 import "../common/BaseModule.sol";
 import "../common/RelayerModule.sol";
 import "../common/OnlyOwnerModule.sol";
-import "../../../lib/maker/MakerInterfaces.sol";
 import "../../infrastructure/IMakerRegistry.sol";
+import "../../../lib/maker/MakerInterfaces.sol";
+import "../../../lib/maker/DS/DSMath.sol";
 
 /**
  * @title MakerV2Base
  * @dev Common base to MakerV2Invest and MakerV2Loan.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-abstract contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
+abstract contract MakerV2Base is DSMath, OnlyOwnerModule {
 
     bytes32 constant private NAME = "MakerV2Manager";
 
@@ -39,8 +40,6 @@ abstract contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
     JoinLike internal daiJoin;
     // The address of the Vat
     VatLike internal vat;
-
-    uint256 constant internal RAY = 10 ** 27;
 
     using SafeMath for uint256;
 
