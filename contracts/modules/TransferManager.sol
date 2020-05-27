@@ -98,7 +98,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public override(BaseModule, LimitManager) onlyWallet(_wallet) {
 
         // setup static calls
         _wallet.enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
@@ -129,6 +129,12 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
         if (periodEnd > now) {
             limits[address(_wallet)].dailySpent = DailySpent(uint128(current.sub(unspent)), periodEnd);
         }
+    }
+
+    // TODO: We should inherit the OnlyOwnerModule implementation
+    function addModule(BaseWallet _wallet, Module _module) external override(BaseModule, OnlyOwnerModule) onlyWalletOwner(_wallet) {
+        require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
+        _wallet.authoriseModule(address(_module), true);
     }
 
     // *************** External/Public Functions ********************* //
@@ -466,7 +472,16 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides refund to add the refund in the daily limit.
-    function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
+    function refund(
+        BaseWallet _wallet,
+        uint _gasUsed,
+        uint _gasPrice,
+        uint _gasLimit,
+        uint _signatures,
+        address _relayer
+    )
+        internal override
+    {
         // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
         uint256 amount = 36616 + _gasUsed;
         if (_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
@@ -481,7 +496,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     }
 
     // Overrides verifyRefund to add the refund in the daily limit.
-    function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
+    function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal override view returns (bool) {
         if (_gasPrice > 0 && _signatures > 0 && (
             address(_wallet).balance < _gasUsed * _gasPrice ||
             isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false ||

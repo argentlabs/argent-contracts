@@ -75,7 +75,7 @@ abstract contract LimitManager is BaseModule {
      * @dev Inits the module for a wallet by setting the limit to the default value.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public virtual override onlyWallet(_wallet) {
         Limit storage limit = limits[address(_wallet)].limit;
         if (limit.current == 0 && limit.changeAfter == 0) {
             limit.current = uint128(defaultLimit);

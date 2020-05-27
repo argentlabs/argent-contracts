@@ -274,7 +274,7 @@ abstract contract RelayerModule is BaseModule {
         uint _signatures,
         address _relayer
     )
-        internal
+        internal virtual
     {
         uint256 amount = 29292 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 672 to log the event + _gasUsed
         // only refund if gas price not null, more than 1 signatures, gas less than gasLimit
@@ -294,7 +294,7 @@ abstract contract RelayerModule is BaseModule {
     * @param _gasUsed The expected gas used.
     * @param _gasPrice The expected gas price for the refund.
     */
-    function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
+    function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal virtual view returns (bool) {
         if (_gasPrice > 0 &&
             _signatures > 1 &&
             (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(address(this)) == false)) {
