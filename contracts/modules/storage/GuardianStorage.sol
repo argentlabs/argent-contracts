@@ -56,7 +56,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to add.
      */
-    function addGuardian(BaseWallet _wallet, address _guardian) external onlyModule(_wallet) {
+    function addGuardian(BaseWallet _wallet, address _guardian) external override onlyModule(_wallet) {
         GuardianStorageConfig storage config = configs[address(_wallet)];
         config.info[_guardian].exists = true;
         config.info[_guardian].index = uint128(config.guardians.push(_guardian) - 1);
@@ -67,7 +67,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
-    function revokeGuardian(BaseWallet _wallet, address _guardian) external onlyModule(_wallet) {
+    function revokeGuardian(BaseWallet _wallet, address _guardian) external override onlyModule(_wallet) {
         GuardianStorageConfig storage config = configs[address(_wallet)];
         address lastGuardian = config.guardians[config.guardians.length - 1];
         if (_guardian != lastGuardian) {
@@ -108,7 +108,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _guardian The account.
      * @return true if the account is a guardian for a wallet.
      */
-    function isGuardian(BaseWallet _wallet, address _guardian) external view returns (bool) {
+    function isGuardian(BaseWallet _wallet, address _guardian) external override view returns (bool) {
         return configs[address(_wallet)].info[_guardian].exists;
     }
 
