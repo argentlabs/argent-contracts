@@ -28,7 +28,7 @@ import "../../../lib/other/ERC20.sol";
  * @dev Basic module that contains some methods common to all modules.
  * @author Julien Niset - <julien@argent.im>
  */
-abstract contract BaseModule is Module {
+contract BaseModule is Module {
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
