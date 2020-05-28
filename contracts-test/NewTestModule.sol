@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "../contracts/modules/common/BaseModule.sol";
-import "../contracts/modules/common/RelayerModule.sol";
 import "../contracts/modules/common/OnlyOwnerModule.sol";
 import "./TestDapp.sol";
 
@@ -11,7 +9,7 @@ import "./TestDapp.sol";
  * @dev Test Module
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NewTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
+contract NewTestModule is OnlyOwnerModule {
 
     bytes32 constant NAME = "NewTestModule";
 

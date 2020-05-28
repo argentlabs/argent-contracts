@@ -20,25 +20,13 @@ pragma solidity >=0.5.4;
 import "./DSMath.sol";
 import "./DSStop.sol";
 
-contract ERC20Events {
-    event Approval(address indexed src, address indexed guy, uint wad);
-    event Transfer(address indexed src, address indexed dst, uint wad);
-}
-
-contract IERC20 is ERC20Events {
-    function totalSupply() public view returns (uint);
-    function balanceOf(address guy) public view returns (uint);
-    function allowance(address src, address guy) public view returns (uint);
-
-    function approve(address guy, uint wad) public returns (bool);
-    function transfer(address dst, uint wad) public returns (bool);
-    function transferFrom(address src, address dst, uint wad) public returns (bool);
-}
-
-contract DSTokenBase is IERC20, DSMath {
+contract DSTokenBase is DSMath {
     uint256                                            _supply;
     mapping (address => uint256)                       _balances;
     mapping (address => mapping (address => uint256))  _approvals;
+
+    event Approval(address indexed src, address indexed guy, uint wad);
+    event Transfer(address indexed src, address indexed dst, uint wad);
 
     constructor(uint supply) public {
         _balances[msg.sender] = supply;
@@ -54,36 +42,7 @@ contract DSTokenBase is IERC20, DSMath {
     function allowance(address src, address guy) public view returns (uint) {
         return _approvals[src][guy];
     }
-
-    function transfer(address dst, uint wad) public returns (bool) {
-        return transferFrom(msg.sender, dst, wad);
-    }
-
-    function transferFrom(address src, address dst, uint wad)
-        public
-        returns (bool)
-    {
-        if (src != msg.sender) {
-            _approvals[src][msg.sender] = sub(_approvals[src][msg.sender], wad);
-        }
-
-        _balances[src] = sub(_balances[src], wad);
-        _balances[dst] = add(_balances[dst], wad);
-
-        emit Transfer(src, dst, wad);
-
-        return true;
-    }
-
-    function approve(address guy, uint wad) public returns (bool) {
-        _approvals[msg.sender][guy] = wad;
-
-        emit Approval(msg.sender, guy, wad);
-
-        return true;
-    }
 }
-
 
 contract DSToken is DSTokenBase(0), DSStop {
 
@@ -98,11 +57,15 @@ contract DSToken is DSTokenBase(0), DSStop {
     event Burn(address indexed guy, uint wad);
 
     function approve(address guy) public returns (bool) {
-        return super.approve(guy, uint(-1));
+        return approve(guy, uint(-1));
     }
 
     function approve(address guy, uint wad) public returns (bool) {
-        return super.approve(guy, wad);
+        _approvals[msg.sender][guy] = wad;
+
+        emit Approval(msg.sender, guy, wad);
+
+        return true;
     }
 
     function transferFrom(address src, address dst, uint wad)

@@ -6,15 +6,10 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 /**
  * ERC20 test contract.
  */
-contract TestERC20 is ERC20 {
-
-    string constant public symbol = "AGT";
-    string constant public name = "ArgentToken";
-    uint8 public decimals;
-
+contract TestERC20 is ERC20("ArgentToken", "AGT") {
     constructor (address[] memory _initialAccounts, uint _supply, uint8 _decimals) public {
-        decimals = _decimals;
-        for(uint i = 0; i < _initialAccounts.length; i++) {
+        super._setupDecimals(_decimals);
+        for (uint i = 0; i < _initialAccounts.length; i++) {
             super._mint(_initialAccounts[i], _supply * 10**uint(_decimals));
         }
     }
@@ -25,9 +20,5 @@ contract TestERC20 is ERC20 {
 
     function burn(address account, uint256 amount) public {
         super._burn(account, amount);
-    }
-
-    function burnFrom(address account, uint256 amount) public {
-        super._burnFrom(account, amount);
     }
 }

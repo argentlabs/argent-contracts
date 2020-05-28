@@ -35,13 +35,13 @@ contract MockTub is SaiTubLike {
 
 contract MockJoin is JoinLike {
     MockVat public vat;
+    uint public live;
     constructor (MockVat _vat) public { vat = _vat; }
     function ilk() public view returns (bytes32) { return bytes32(0); }
     function gem() public view returns (GemLike) { return GemLike(address(0)); }
     function dai() public view returns (GemLike) { return GemLike(address(0)); }
     function join(address, uint) public {}
     function exit(address, uint) public {}
-    function live() external returns (uint) {}
 }
 
 /**

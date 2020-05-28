@@ -43,6 +43,7 @@ contract KyberNetworkTest is KyberNetwork {
         uint /* _srcQty */
     )
         public
+        override
         view
         returns (uint expectedRate, uint slippageRate)
     {
@@ -67,6 +68,7 @@ contract KyberNetworkTest is KyberNetwork {
         address /* _walletId */
     )
         public
+        override
         payable
         returns( uint destAmount)
     {

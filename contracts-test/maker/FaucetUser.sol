@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "../../lib/maker/DS/DSToken.sol";
+import "../../lib/maker/DS/IERC20.sol";
 
-contract MakerFaucet {
+interface MakerFaucet {
     function gulp(address gem) external;
 }
 
