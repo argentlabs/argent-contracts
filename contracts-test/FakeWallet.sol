@@ -40,7 +40,7 @@ contract FakeWallet is BaseWallet {
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
      */
-    function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly returns (bytes memory _result) {
+    function invoke(address _target, uint _value, bytes calldata _data) external override moduleOnly returns (bytes memory _result) {
         if (target != address(0)) {
             address prevOwner = owner;
             if (targetIsModule) {
@@ -48,7 +48,7 @@ contract FakeWallet is BaseWallet {
                 owner = address(this);
             }
             // solium-disable-next-line security/no-call-value
-            (bool success,) = target.call.value(value)(data);
+            (bool success,) = target.call{value: value}(data);
             owner = prevOwner;
             if (!success) {
                 // solium-disable-next-line security/no-inline-assembly

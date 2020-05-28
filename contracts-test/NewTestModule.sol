@@ -20,7 +20,7 @@ contract NewTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry
+        IModuleRegistry _registry
     )
         BaseModule(_registry, GuardianStorage(0), NAME)
         public

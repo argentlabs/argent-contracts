@@ -41,6 +41,7 @@ contract MockJoin is JoinLike {
     function dai() public view returns (GemLike) { return GemLike(address(0)); }
     function join(address, uint) public {}
     function exit(address, uint) public {}
+    function live() external returns (uint) {}
 }
 
 /**

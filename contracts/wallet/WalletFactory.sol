@@ -163,7 +163,7 @@ contract WalletFactory is Owned, Managed {
      * @param _owner The account address.
      * @param _modules The list of modules.
      * @param _salt The salt.
-     * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
+     * @return _wallet The address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function getAddressForCounterfactualWallet(
         address _owner,
@@ -183,7 +183,7 @@ contract WalletFactory is Owned, Managed {
      * @param _modules The list of modules.
      * @param _guardian The guardian address.
      * @param _salt The salt.
-     * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
+     * @return _wallet The address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function getAddressForCounterfactualWalletWithGuardian(
         address _owner,
@@ -282,7 +282,7 @@ contract WalletFactory is Owned, Managed {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             wallet := create2(0, add(code, 0x20), mload(code), newsalt)
-            if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
+            if iszero(extcodesize(wallet)) { revert(0, returndatasize()) }
         }
         _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
     }
@@ -330,7 +330,7 @@ contract WalletFactory is Owned, Managed {
      * @param _modules The list of modules.
      * @param _salt The salt.
      * @param _guardian (Optional) The guardian address.
-     * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
+     * @return _wallet The address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function _getAddressForCounterfactualWallet(
         address _owner,

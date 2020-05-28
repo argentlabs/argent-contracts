@@ -16,7 +16,7 @@ contract TestModuleRelayer is BaseModule, RelayerModule {
     bool boolVal;
     uint uintVal;
 
-    constructor(ModuleRegistry _registry, bool _boolVal, uint _uintVal) BaseModule(_registry, GuardianStorage(0), NAME) public {
+    constructor(IModuleRegistry _registry, bool _boolVal, uint _uintVal) BaseModule(_registry, GuardianStorage(0), NAME) public {
         boolVal = _boolVal;
         uintVal = _uintVal;
     }

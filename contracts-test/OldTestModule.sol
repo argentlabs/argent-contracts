@@ -5,7 +5,7 @@ import "../contracts/modules/common/BaseModule.sol";
 import "../contracts/modules/common/RelayerModule.sol";
 import "../contracts/modules/common/OnlyOwnerModule.sol";
 import "./TestDapp.sol";
-import "../contracts/legacy/LegacyBaseWallet.sol";
+import "./LegacyBaseWallet.sol";
 
 /**
  * @title OldTestModule
@@ -21,7 +21,7 @@ contract OldTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry
+        IModuleRegistry _registry
     )
         BaseModule(_registry, GuardianStorage(0), NAME)
         public

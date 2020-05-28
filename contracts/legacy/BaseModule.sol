@@ -55,8 +55,8 @@ contract BaseModule is Module {
     /**
      * @dev Throws if the sender is not the target wallet of the call.
      */
-    modifier onlyWallet(address _wallet) {
-        require(msg.sender == _wallet, "BM: caller must be wallet");
+    modifier onlyWallet(BaseWallet _wallet) {
+        require(msg.sender == address(_wallet), "BM: caller must be wallet");
         _;
     }
 
@@ -82,7 +82,7 @@ contract BaseModule is Module {
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
-    function init(address _wallet) public onlyWallet(_wallet) {
+    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
         emit ModuleInitialised(address(_wallet));
     }
 
@@ -91,7 +91,7 @@ contract BaseModule is Module {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(address _wallet, Module _module) external strictOnlyWalletOwner(_wallet) {
+    function addModule(BaseWallet _wallet, Module _module) external strictOnlyWalletOwner(_wallet) {
         require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
         _wallet.authoriseModule(address(_module), true);
     }
@@ -148,8 +148,8 @@ contract BaseModule is Module {
         } else if (_res.length > 0) {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
-                returndatacopy(0, 0, returndatasize())
-                revert(0, returndatasize())
+                returndatacopy(0, 0, returndatasize)
+                revert(0, returndatasize)
             }
         } else if (!success) {
             revert("BM: wallet invoke reverted");

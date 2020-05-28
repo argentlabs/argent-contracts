@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.8;
 
 /**
  * @title LegacyBaseWallet
@@ -24,7 +24,7 @@ pragma solidity ^0.5.4;
 
     /**
     * @dev Utility method to recover any ERC20 token that was sent to the
-    * module by mistake. 
+    * module by mistake.
     * @param _token The token to recover.
     */
     function recoverToken(address _token) external;
@@ -126,34 +126,8 @@ contract LegacyBaseWallet {
      */
     function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly {
         // solium-disable-next-line security/no-call-value
-        (bool success, ) = _target.call.value(_value)(_data);
+        (bool success, ) = _target.call{value: _value}(_data);
         require(success, "BW: call to target failed");
         emit Invoked(msg.sender, _target, _value, _data);
-    }
-
-    /**
-     * @dev This method makes it possible for the wallet to comply to interfaces expecting the wallet to
-     * implement specific static methods. It delegates the static call to a target contract if the data corresponds
-     * to an enabled method, or logs the call otherwise.
-     */
-    function() external payable {
-        if(msg.data.length > 0) {
-            address module = enabled[msg.sig];
-            if(module == address(0)) {
-                emit Received(msg.value, msg.sender, msg.data);
-            }
-            else {
-                require(authorised[module], "BW: must be an authorised module for static call");
-                // solium-disable-next-line security/no-inline-assembly
-                assembly {
-                    calldatacopy(0, 0, calldatasize())
-                    let result := staticcall(gas, module, 0, calldatasize(), 0, 0)
-                    returndatacopy(0, 0, returndatasize())
-                    switch result
-                    case 0 {revert(0, returndatasize())}
-                    default {return (0, returndatasize())}
-                }
-            }
-        }
     }
 }
