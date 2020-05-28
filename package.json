@@ -12,7 +12,7 @@
     "compile:modules": "npx etherlime compile --workingDirectory contracts/modules --runs=999",
     "compile:wallet": "npx etherlime compile --workingDirectory contracts/wallet --runs=999",
     "compile:test": "npx etherlime compile --workingDirectory contracts-test --runs=999",
-    "compile": "npm run compile:lib && npm run compile:legacy && npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet && npm run compile:test",
+    "compile": "npm run compile:legacy && npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet && npm run compile:test",
     "ganache": "npx etherlime ganache --gasLimit=10700000 -e 10000",
     "kovan-fork": "npx ganache-cli -i 42 -l 10700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')@16988040",
     "kovan-fork-latest": "npx ganache-cli -i 42 -l 10700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')",
