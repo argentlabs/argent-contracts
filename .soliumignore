@@ -4,4 +4,5 @@ openzeppelin-solidity
 lib
 contracts-test
 contracts/legacy
-contracts/wallet/BaseWallet.sol
+contracts/modules
+contracts/wallet
