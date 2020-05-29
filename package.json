@@ -6,13 +6,13 @@
     "test": "test"
   },
   "scripts": {
-    "compile:lib": "npx etherlime compile --workingDirectory lib --solcVersion 0.5.4 --runs=200",
+    "compile:lib": "npx etherlime compile --workingDirectory lib --solcVersion 0.5.4 --runs=200 && npm run compile:legacy",
     "compile:legacy": "npx etherlime compile --workingDirectory contracts/legacy --solcVersion 0.5.4 --runs=999",
     "compile:infrastructure": "npx etherlime compile --workingDirectory contracts/infrastructure --solcVersion 0.5.4 --runs=999",
     "compile:modules": "npx etherlime compile --workingDirectory contracts/modules --runs=999",
     "compile:wallet": "npx etherlime compile --workingDirectory contracts/wallet --runs=999",
     "compile:test": "npx etherlime compile --workingDirectory contracts-test --runs=999",
-    "compile": "npm run compile:legacy && npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet && npm run compile:test",
+    "compile": "npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet",
     "ganache": "npx etherlime ganache --gasLimit=10700000 -e 10000",
     "kovan-fork": "npx ganache-cli -i 42 -l 10700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')@16988040",
     "kovan-fork-latest": "npx ganache-cli -i 42 -l 10700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')",
@@ -26,8 +26,8 @@
     "test:benchmark": "./scripts/deploy.sh ganache 999",
     "lint:js": "eslint .",
     "lint:js:staged": "bash ./scripts/eslint.sh",
-    "security:slither": "rm -rf build && slither . --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
-    "security:slither:triage": "rm -rf build && slither . --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external"
+    "security:slither": "rm -rf build && npm run compile && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
+    "security:slither:triage": "rm -rf build && npm run compile && slither . --ignore-compile --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external"
   },
   "husky": {
     "hooks": {
