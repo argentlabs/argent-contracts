@@ -21,8 +21,12 @@ contract VatLike {
     function ilks(bytes32) public view returns (uint Art, uint rate, uint spot, uint line, uint dust);
     function urns(bytes32, address) public view returns (uint ink, uint art);
     function frob(bytes32, address, address, address, int, int) public;
-    function slip(bytes32,address,int) external;
-    function move(address,address,uint) external;
+    function slip(bytes32,address,int) public;
+    function move(address,address,uint) public;
+    function fold(bytes32,address,int) public;
+    function suck(address,address,uint256) public;
+    function flux(bytes32, address, address, uint) public;
+    function fork(bytes32, address, address, int, int) public;
 }
 
 contract JoinLike {
