@@ -68,6 +68,10 @@ contract DSToken is DSTokenBase(0), DSStop {
         return true;
     }
 
+    function transfer(address dst, uint wad) public returns (bool) {
+        return transferFrom(msg.sender, dst, wad);
+    }
+
     function transferFrom(address src, address dst, uint wad)
         public
         returns (bool)
