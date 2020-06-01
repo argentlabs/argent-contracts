@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../../lib/utils/SafeMath.sol";
+import "./SafeMath.sol";
 import "./BaseWallet.sol";
 import "../infrastructure/ModuleRegistry.sol";
 import "./GuardianStorage.sol";

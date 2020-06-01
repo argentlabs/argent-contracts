@@ -23,7 +23,7 @@ import "./common/OnlyOwnerModule.sol";
  * @dev Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NftTransfer is OnlyOwnerModule {
+contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     bytes32 constant NAME = "NftTransfer";
 
