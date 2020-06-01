@@ -46,7 +46,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The node to update.
      * @param _addr The address to set.
      */
-    function setAddr(bytes32 _node, address _addr) external onlyManager {
+    function setAddr(bytes32 _node, address _addr) public onlyManager {
         records[_node].addr = _addr;
         emit AddrChanged(_node, _addr);
     }
@@ -56,7 +56,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The node to update.
      * @param _name The name to set.
      */
-    function setName(bytes32 _node, string calldata _name) external onlyManager {
+    function setName(bytes32 _node, string memory _name) public onlyManager {
         records[_node].name = _name;
         emit NameChanged(_node, _name);
     }
@@ -66,7 +66,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The target node.
      * @return the address of the target node.
      */
-    function addr(bytes32 _node) external view returns (address) {
+    function addr(bytes32 _node) public view returns (address) {
         return records[_node].addr;
     }
 
@@ -75,7 +75,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The target ENS node.
      * @return the name of the target ENS node.
      */
-    function name(bytes32 _node) external view returns (string memory) {
+    function name(bytes32 _node) public view returns (string memory) {
         return records[_node].name;
     }
 
@@ -84,7 +84,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _interfaceID The ID of the interface to check for.
      * @return True if the contract implements the requested interface.
      */
-    function supportsInterface(bytes4 _interfaceID) external pure returns (bool) {
+    function supportsInterface(bytes4 _interfaceID) public pure returns (bool) {
         return _interfaceID == SUPPORT_INTERFACE_ID || _interfaceID == ADDR_INTERFACE_ID || _interfaceID == NAME_INTERFACE_ID;
     }
 
