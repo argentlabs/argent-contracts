@@ -24,7 +24,7 @@ pragma solidity ^0.6.8;
 
     /**
     * @dev Utility method to recover any ERC20 token that was sent to the
-    * module by mistake.
+    * contract by mistake.
     * @param _token The token to recover.
     */
     function recoverToken(address _token) external;

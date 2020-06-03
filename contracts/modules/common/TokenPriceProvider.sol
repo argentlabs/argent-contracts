@@ -15,7 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../../lib/other/ERC20.sol";
 import "../../infrastructure/base/Managed.sol";
 

@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../wallet/BaseWallet.sol";
 import "../../infrastructure/IModuleRegistry.sol";
 import "../storage/GuardianStorage.sol";
