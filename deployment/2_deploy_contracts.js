@@ -7,6 +7,8 @@ const ENSManager = require("../build/ArgentENSManager");
 const ENSResolver = require("../build/ArgentENSResolver");
 const WalletFactory = require("../build/WalletFactory");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
+const MakerRegistry = require("../build/MakerRegistry");
+const ScdMcdMigration = require("../build/ScdMcdMigration");
 
 const utils = require("../utils/utilities.js");
 
@@ -56,6 +58,16 @@ const deploy = async (network) => {
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
     ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
+
+  // Deploy and configure Maker Registry
+  const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, newConfig.defi.maker.migration);
+  const vatAddress = await ScdMcdMigrationWrapper.vat();
+  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry, {}, vatAddress);
+  const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
+  const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
+  await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
+  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.contract.changeOwner(newConfig.contracts.MultiSigWallet, { gasPrice });
+  await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
 
   // /////////////////////////////////////////////////
   // Making ENSManager owner of the root wallet ENS
