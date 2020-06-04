@@ -169,7 +169,6 @@ const deploy = async (network) => {
     abiUploader.upload(NftTransferWrapper, "modules"),
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
-    // abiUploader.upload(MakerV2ManagerWrapper, "modules"),
   ]);
 
   console.log("Config:", config);

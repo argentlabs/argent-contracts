@@ -1,23 +1,40 @@
 const semver = require("semver");
 const childProcess = require("child_process");
-const ApprovedTransfer = require("../build/ApprovedTransfer");
-const RecoveryManager = require("../build/RecoveryManager");
 const MultiSig = require("../build/MultiSigWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const Upgrader = require("../build/SimpleUpgrader");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
-const MakerRegistry = require("../build/MakerRegistry");
-const ScdMcdMigration = require("../build/ScdMcdMigration");
+
+const ApprovedTransfer = require("../build/ApprovedTransfer");
+const CompoundManager = require("../build/CompoundManager");
+const GuardianManager = require("../build/GuardianManager");
+const LockManager = require("../build/LockManager");
+const NftTransfer = require("../build/NftTransfer");
+const RecoveryManager = require("../build/RecoveryManager");
+const TokenExchanger = require("../build/TokenExchanger");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const TransferManager = require("../build/TransferManager");
 
+const BaseWallet = require("../build/BaseWallet");
+const WalletFactory = require("../build/WalletFactory");
+const TokenPriceProvider = require("../build/TokenPriceProvider");
+const ENSManager = require("../build/ArgentENSManager");
+
 const utils = require("../utils/utilities.js");
 
-const TARGET_VERSION = "1.6.0";
-const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager", "MakerV2Manager", "TransferManager"];
-const MODULES_TO_DISABLE = ["UniswapManager"];
+const TARGET_VERSION = "2.0.0";
+const MODULES_TO_ENABLE = [
+  "ApprovedTransfer",
+  "CompoundManager",
+  "GuardianManager",
+  "LockManager",
+  "NftTransfer",
+  "RecoveryManager",
+  "TokenExchanger",
+  "MakerV2Manager",
+  "TransferManager"];
+const MODULES_TO_DISABLE = ["MakerManager"];
 
 const BACKWARD_COMPATIBILITY = 1;
 
@@ -49,26 +66,23 @@ const deploy = async (network) => {
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
+  const ENSManagerWrapper = await deployer.wrapDeployedContract(ENSManager, config.contracts.ENSManager);
 
   // //////////////////////////////////
   // Deploy infrastructure contracts
   // //////////////////////////////////
 
-  // Deploy and configure Maker Registry
-  const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
-  const vatAddress = await ScdMcdMigrationWrapper.vat();
-  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry, {}, vatAddress);
-  const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
-  const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
-  await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
-  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
-  const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
+  // Deploy the Base Wallet Library
+  const BaseWalletWrapper = await deployer.deploy(BaseWallet);
+  // Deploy TokenPriceProvider
+  const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider);
+  // Deploy the Wallet Factory
+  const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
+    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
 
   // //////////////////////////////////
   // Deploy new modules
   // //////////////////////////////////
-
   const ApprovedTransferWrapper = await deployer.deploy(
     ApprovedTransfer,
     {},
@@ -76,6 +90,44 @@ const deploy = async (network) => {
     config.modules.GuardianStorage,
   );
   newModuleWrappers.push(ApprovedTransferWrapper);
+
+  const CompoundManagerWrapper = await deployer.deploy(
+    CompoundManager,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.defi.compound.comptroller,
+    config.contracts.CompoundRegistry,
+  );
+  newModuleWrappers.push(CompoundManagerWrapper);
+
+  const GuardianManagerWrapper = await deployer.deploy(
+    GuardianManager,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.settings.securityPeriod || 0,
+    config.settings.securityWindow || 0,
+  );
+  newModuleWrappers.push(GuardianManagerWrapper);
+
+  const LockManagerWrapper = await deployer.deploy(
+    LockManager,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.settings.lockPeriod || 0,
+  );
+  newModuleWrappers.push(LockManagerWrapper);
+
+  const NftTransferWrapper = await deployer.deploy(
+    NftTransfer,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.CryptoKitties.contract,
+  );
+  newModuleWrappers.push(NftTransferWrapper);
 
   const RecoveryManagerWrapper = await deployer.deploy(
     RecoveryManager,
@@ -89,6 +141,17 @@ const deploy = async (network) => {
   );
   newModuleWrappers.push(RecoveryManagerWrapper);
 
+  const TokenExchangerWrapper = await deployer.deploy(
+    TokenExchanger,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.Kyber.contract,
+    config.contracts.MultiSigWallet,
+    config.settings.feeRatio || 0,
+  );
+  newModuleWrappers.push(TokenExchangerWrapper);
+
   const MakerV2ManagerWrapper = await deployer.deploy(
     MakerV2Manager,
     {},
@@ -97,7 +160,7 @@ const deploy = async (network) => {
     config.defi.maker.migration,
     config.defi.maker.pot,
     config.defi.maker.jug,
-    MakerRegistryWrapper.contractAddress,
+    config.contracts.MakerRegistry,
     config.defi.uniswap.factory,
   );
   newModuleWrappers.push(MakerV2ManagerWrapper);
@@ -116,19 +179,51 @@ const deploy = async (network) => {
   );
   newModuleWrappers.push(TransferManagerWrapper);
 
+  // //////////////////////////////////
+  // Set contracts' managers
+  // //////////////////////////////////
+  await multisigExecutor.executeCall(ENSManagerWrapper, "addManager", [WalletFactoryWrapper.contractAddress]);
+
+  for (const idx in config.backend.accounts) {
+    const account = config.backend.accounts[idx];
+    const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
+    await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
+
+    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account, { gasPrice });
+    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
+      `Set ${account} as the manager of the TokenPriceProvider`);
+  }
+
+  // //////////////////////////////////
+  // Set contracts' owners
+  // //////////////////////////////////
+
+  let changeOwnerTx = await WalletFactoryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  await WalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of WalletFactory");
+
+  changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProviderWrapper");
+
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
 
   configurator.updateModuleAddresses({
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
+    CompoundManager: CompoundManagerWrapper.contractAddress,
+    GuardianManager: GuardianManagerWrapper.contractAddress,
+    LockManager: LockManagerWrapper.contractAddress,
+    NftTransfer: NftTransferWrapper.contractAddress,
     RecoveryManager: RecoveryManagerWrapper.contractAddress,
+    TokenExchanger: TokenExchangerWrapper.contractAddress,
     MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
     TransferManager: TransferManagerWrapper.contractAddress,
   });
 
   configurator.updateInfrastructureAddresses({
-    MakerRegistry: MakerRegistryWrapper.contractAddress,
+    BaseWallet: BaseWalletWrapper.contractAddress,
+    WalletFactory: WalletFactoryWrapper.contractAddress,
+    TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -137,10 +232,17 @@ const deploy = async (network) => {
 
   await Promise.all([
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
+    abiUploader.upload(CompoundManagerWrapper, "modules"),
+    abiUploader.upload(GuardianManagerWrapper, "contracts"),
+    abiUploader.upload(LockManagerWrapper, "contracts"),
+    abiUploader.upload(NftTransferWrapper, "contracts"),
     abiUploader.upload(RecoveryManagerWrapper, "modules"),
+    abiUploader.upload(TokenExchangerWrapper, "contracts"),
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
-    abiUploader.upload(MakerRegistryWrapper, "contracts"),
+    abiUploader.upload(BaseWalletWrapper, "contracts"),
+    abiUploader.upload(WalletFactoryWrapper, "contracts"),
+    abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
@@ -162,8 +264,7 @@ const deploy = async (network) => {
   const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
   for (let idx = 0; idx < versions.length; idx += 1) {
     const version = versions[idx];
-    let toAdd; let
-      toRemove;
+    let toAdd; let toRemove;
     if (idx === 0) {
       const moduleNamesToRemove = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
       toRemove = version.modules.filter((module) => moduleNamesToRemove.includes(module.name));
