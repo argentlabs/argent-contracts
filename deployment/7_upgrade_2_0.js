@@ -15,7 +15,6 @@ const RecoveryManager = require("../build/RecoveryManager");
 const TokenExchanger = require("../build/TokenExchanger");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const TransferManager = require("../build/TransferManager");
-const MakerManager = require("../build/LegacyMakerManager");
 
 const BaseWallet = require("../build/BaseWallet");
 const WalletFactory = require("../build/WalletFactory");
@@ -35,7 +34,7 @@ const MODULES_TO_ENABLE = [
   "TokenExchanger",
   "MakerV2Manager",
   "TransferManager"];
-const MODULES_TO_DISABLE = [MakerManager];
+const MODULES_TO_DISABLE = ["MakerManager"];
 
 const BACKWARD_COMPATIBILITY = 1;
 
