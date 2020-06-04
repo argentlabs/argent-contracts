@@ -56,7 +56,13 @@ const deploy = async (network) => {
   // Set contracts' owners
   // //////////////////////////////////
 
-  const wrappers = [ENSResolverWrapper, ENSManagerWrapper, WalletFactoryWrapper, ModuleRegistryWrapper, CompoundRegistryWrapper];
+  const wrappers = [
+    ENSResolverWrapper,
+    ENSManagerWrapper,
+    WalletFactoryWrapper,
+    ModuleRegistryWrapper,
+    CompoundRegistryWrapper,
+    TokenPriceProviderWrapper];
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     const changeOwnerTx = await wrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
