@@ -15,6 +15,7 @@ const RecoveryManager = require("../build/RecoveryManager");
 const TokenExchanger = require("../build/TokenExchanger");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const TransferManager = require("../build/TransferManager");
+const MakerManager = require("../build/LegacyMakerManager");
 
 const BaseWallet = require("../build/BaseWallet");
 const WalletFactory = require("../build/WalletFactory");
@@ -34,7 +35,7 @@ const MODULES_TO_ENABLE = [
   "TokenExchanger",
   "MakerV2Manager",
   "TransferManager"];
-const MODULES_TO_DISABLE = [];
+const MODULES_TO_DISABLE = [MakerManager];
 
 const BACKWARD_COMPATIBILITY = 1;
 
@@ -178,6 +179,28 @@ const deploy = async (network) => {
     ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
   );
   newModuleWrappers.push(TransferManagerWrapper);
+
+  // //////////////////////////////////
+  // Set contracts' managers
+  // //////////////////////////////////
+  await multisigExecutor.executeCall(ENSManagerWrapper, "addManager", [WalletFactoryWrapper.contractAddress]);
+
+  for (const idx in config.backend.accounts) {
+    const account = config.backend.accounts[idx];
+    const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
+    await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
+
+    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account, { gasPrice });
+    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
+      `Set ${account} as the manager of the TokenPriceProvider`);
+  }
+
+  // //////////////////////////////////
+  // Set contracts' owners
+  // //////////////////////////////////
+
+  const changeOwnerTx = await WalletFactoryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  await WalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of WalletFactory");
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
