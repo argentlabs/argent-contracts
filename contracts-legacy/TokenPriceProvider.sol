@@ -16,8 +16,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.5.4;
 import "./SafeMath.sol";
-import "../../lib/other/ERC20.sol";
-import "../infrastructure/base/Managed.sol";
+import "../lib/other/ERC20.sol";
+import "../contracts/infrastructure/base/Managed.sol";
 
 contract TokenPriceProvider is Managed {
     using SafeMath for uint256;

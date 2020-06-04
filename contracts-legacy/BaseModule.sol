@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 import "./SafeMath.sol";
 import "./BaseWallet.sol";
-import "../infrastructure/ModuleRegistry.sol";
+import "../contracts/infrastructure/ModuleRegistry.sol";
 import "./GuardianStorage.sol";
 import "./Module.sol";
 

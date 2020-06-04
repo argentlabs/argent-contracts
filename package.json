@@ -6,8 +6,8 @@
     "test": "test"
   },
   "scripts": {
-    "compile:lib": "npx etherlime compile --workingDirectory lib --solcVersion 0.5.4 --runs=200 && npm run compile:legacy",
-    "compile:legacy": "npx etherlime compile --workingDirectory contracts/legacy --solcVersion 0.5.4 --runs=999",
+    "compile:lib": "npx etherlime compile --workingDirectory lib --solcVersion 0.5.4 --runs=200",
+    "compile:legacy": "npx etherlime compile --workingDirectory contracts-legacy --buildDirectory build-legacy --solcVersion 0.5.4 --runs=999",
     "compile:infrastructure": "npx etherlime compile --workingDirectory contracts/infrastructure --solcVersion 0.5.4 --runs=999",
     "compile:modules": "npx etherlime compile --workingDirectory contracts/modules --runs=999",
     "compile:wallet": "npx etherlime compile --workingDirectory contracts/wallet --runs=999",
