@@ -20,7 +20,7 @@ import "./Proxy.sol";
 import "./BaseWallet.sol";
 import "../infrastructure/base/Owned.sol";
 import "../infrastructure/base/Managed.sol";
-import "../modules/storage/IGuardianStorage.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 import "../infrastructure/ens/IENSManager.sol";
 import "../infrastructure/IModuleRegistry.sol";
 
@@ -53,7 +53,7 @@ contract WalletFactory is Owned, Managed {
      * @dev Throws if the guardian storage address is not set.
      */
     modifier guardianStorageDefined {
-        require(guardianStorage != address(0), "GuardianStorage address not defined");
+        require(guardianStorage != address(0), "IGuardianStorage address not defined");
         _;
     }
 
@@ -220,8 +220,8 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Lets the owner change the address of the GuardianStorage contract.
-     * @param _guardianStorage The address of the GuardianStorage contract.
+     * @dev Lets the owner change the address of the IGuardianStorage contract.
+     * @param _guardianStorage The address of the IGuardianStorage contract.
      */
     function changeGuardianStorage(address _guardianStorage) external onlyOwner {
         require(_guardianStorage != address(0), "WF: address cannot be null");
@@ -314,7 +314,7 @@ contract WalletFactory is Owned, Managed {
         _wallet.init(_owner, extendedModules);
         // add guardian if needed
         if (_guardian != address(0)) {
-            IGuardianStorage(guardianStorage).addGuardian(_wallet, _guardian);
+            IGuardianStorage(guardianStorage).addGuardian(address(_wallet), _guardian);
         }
         // register ENS
         _registerWalletENS(address(_wallet), _label);

@@ -14,22 +14,20 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.8;
-
-import "../../wallet/BaseWallet.sol";
+pragma solidity >=0.5.4 <0.7.0;
 
 /**
- * @title Storage
- * @dev Base contract for the storage of a wallet.
- * @author Julien Niset - <julien@argent.im>
+ * @title IWallet
+ * @dev Interface for the BaseWallet
  */
-abstract contract Storage {
+interface IWallet {
+    function owner() external view returns (address);
 
-    /**
-     * @dev Throws if the caller is not an authorised module.
-     */
-    modifier onlyModule(BaseWallet _wallet) {
-        require(_wallet.authorised(msg.sender), "TS: must be an authorized module to call this method");
-        _;
-    }
+    function setOwner(address _newOwner) external;
+
+    function authorised(address) external view returns (bool);
+
+    function authoriseModule(address _module, bool _value) external;
+
+    function enableStaticCall(address _module, bytes4 _method) external;
 }

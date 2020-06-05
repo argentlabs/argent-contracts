@@ -17,9 +17,8 @@
 pragma solidity ^0.6.8;
 
 import "./common/ArgentSafeMath.sol";
-import "../wallet/BaseWallet.sol";
 import "./common/RelayerModule.sol";
-import "./storage/GuardianStorage.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RecoveryManager
@@ -69,16 +68,16 @@ contract RecoveryManager is RelayerModule {
     /**
      * @dev Throws if there is no ongoing recovery procedure.
      */
-    modifier onlyWhenRecovery(BaseWallet _wallet) {
-        require(recoveryConfigs[address(_wallet)].executeAfter > 0, "RM: there must be an ongoing recovery");
+    modifier onlyWhenRecovery(address _wallet) {
+        require(recoveryConfigs[_wallet].executeAfter > 0, "RM: there must be an ongoing recovery");
         _;
     }
 
     /**
      * @dev Throws if there is an ongoing recovery procedure.
      */
-    modifier notWhenRecovery(BaseWallet _wallet) {
-        require(recoveryConfigs[address(_wallet)].executeAfter == 0, "RM: there cannot be an ongoing recovery");
+    modifier notWhenRecovery(address _wallet) {
+        require(recoveryConfigs[_wallet].executeAfter == 0, "RM: there cannot be an ongoing recovery");
         _;
     }
 
@@ -86,7 +85,7 @@ contract RecoveryManager is RelayerModule {
 
     constructor(
         IModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IGuardianStorage _guardianStorage,
         uint256 _recoveryPeriod,
         uint256 _lockPeriod,
         uint256 _securityPeriod,
@@ -112,14 +111,14 @@ contract RecoveryManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _recovery The address to which ownership should be transferred.
      */
-    function executeRecovery(BaseWallet _wallet, address _recovery) external onlyExecute notWhenRecovery(_wallet) {
+    function executeRecovery(address _wallet, address _recovery) external onlyExecute notWhenRecovery(_wallet) {
         require(_recovery != address(0), "RM: recovery address cannot be null");
-        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
+        RecoveryConfig storage config = recoveryConfigs[_wallet];
         config.recovery = _recovery;
         config.executeAfter = uint64(now + recoveryPeriod);
         config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
         guardianStorage.setLock(_wallet, now + lockPeriod);
-        emit RecoveryExecuted(address(_wallet), _recovery, config.executeAfter);
+        emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
     }
 
     /**
@@ -127,16 +126,16 @@ contract RecoveryManager is RelayerModule {
      * The method is public and callable by anyone to enable orchestration.
      * @param _wallet The target wallet.
      */
-    function finalizeRecovery(BaseWallet _wallet) external onlyWhenRecovery(_wallet) {
+    function finalizeRecovery(address _wallet) external onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         require(uint64(now) > config.executeAfter, "RM: the recovery period is not over yet");
         address recoveryOwner = config.recovery;
-        delete recoveryConfigs[address(_wallet)];
+        delete recoveryConfigs[_wallet];
 
-        _wallet.setOwner(recoveryOwner);
+        IWallet(_wallet).setOwner(recoveryOwner);
         guardianStorage.setLock(_wallet, 0);
 
-        emit RecoveryFinalized(address(_wallet), recoveryOwner);
+        emit RecoveryFinalized(_wallet, recoveryOwner);
     }
 
     /**
@@ -144,13 +143,13 @@ contract RecoveryManager is RelayerModule {
      * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2) - 1.
      * @param _wallet The target wallet.
      */
-    function cancelRecovery(BaseWallet _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
+    function cancelRecovery(address _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         address recoveryOwner = config.recovery;
-        delete recoveryConfigs[address(_wallet)];
+        delete recoveryConfigs[_wallet];
         guardianStorage.setLock(_wallet, 0);
 
-        emit RecoveryCanceled(address(_wallet), recoveryOwner);
+        emit RecoveryCanceled(_wallet, recoveryOwner);
     }
 
     /**
@@ -160,25 +159,25 @@ contract RecoveryManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function transferOwnership(BaseWallet _wallet, address _newOwner) external onlyExecute onlyWhenUnlocked(_wallet) {
+    function transferOwnership(address _wallet, address _newOwner) external onlyExecute onlyWhenUnlocked(_wallet) {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
-        _wallet.setOwner(_newOwner);
+        IWallet(_wallet).setOwner(_newOwner);
 
-        emit OwnershipTransfered(address(_wallet), _newOwner);
+        emit OwnershipTransfered(_wallet, _newOwner);
     }
 
     /**
     * @dev Gets the details of the ongoing recovery procedure if any.
     * @param _wallet The target wallet.
     */
-    function getRecovery(BaseWallet _wallet) external view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
-        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
+    function getRecovery(address _wallet) external view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
+        RecoveryConfig storage config = recoveryConfigs[_wallet];
         return (config.recovery, config.executeAfter, config.guardianCount);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address _wallet, bytes memory _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
             uint numberOfSignaturesRequired = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
@@ -188,7 +187,7 @@ contract RecoveryManager is RelayerModule {
             return (0, OwnerSignature.Required);
         }
         if (methodId == CANCEL_RECOVERY_PREFIX) {
-            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(recoveryConfigs[address(_wallet)].guardianCount + 1, 2);
+            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
             return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
         if (methodId == TRANSFER_OWNERSHIP_PREFIX) {

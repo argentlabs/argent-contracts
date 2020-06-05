@@ -17,10 +17,10 @@
 pragma solidity ^0.6.8;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../wallet/BaseWallet.sol";
+import "../../wallet/IWallet.sol";
 import "../../infrastructure/IModuleRegistry.sol";
-import "../storage/GuardianStorage.sol";
-import "./Module.sol";
+import "../../infrastructure/storage/IGuardianStorage.sol";
+import "./IModule.sol";
 import "../../../lib/other/ERC20.sol";
 
 /**
@@ -28,7 +28,7 @@ import "../../../lib/other/ERC20.sol";
  * @dev Basic module that contains some methods common to all modules.
  * @author Julien Niset - <julien@argent.im>
  */
-contract BaseModule is Module {
+contract BaseModule is IModule {
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
@@ -36,12 +36,12 @@ contract BaseModule is Module {
     // The adddress of the module registry.
     IModuleRegistry internal registry;
     // The address of the Guardian storage
-    GuardianStorage internal guardianStorage;
+    IGuardianStorage internal guardianStorage;
 
     /**
      * @dev Throws if the wallet is locked.
      */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
+    modifier onlyWhenUnlocked(address _wallet) {
         verifyUnlocked(_wallet);
         _;
     }
@@ -49,7 +49,7 @@ contract BaseModule is Module {
     event ModuleCreated(bytes32 name);
     event ModuleInitialised(address wallet);
 
-    constructor(IModuleRegistry _registry, GuardianStorage _guardianStorage, bytes32 _name) public {
+    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage, bytes32 _name) public {
         registry = _registry;
         guardianStorage = _guardianStorage;
         emit ModuleCreated(_name);
@@ -58,15 +58,15 @@ contract BaseModule is Module {
     /**
      * @dev Throws if the sender is not the target wallet of the call.
      */
-    modifier onlyWallet(BaseWallet _wallet) {
-        require(msg.sender == address(_wallet), "BM: caller must be wallet");
+    modifier onlyWallet(address _wallet) {
+        require(msg.sender == _wallet, "BM: caller must be wallet");
         _;
     }
 
     /**
      * @dev Throws if the sender is not the owner of the target wallet or the module itself.
      */
-    modifier onlyWalletOwner(BaseWallet _wallet) {
+    modifier onlyWalletOwner(address _wallet) {
         // Wrapping in an internal method reduces deployment cost by avoiding duplication of inlined code
         verifyWalletOwner(_wallet);
         _;
@@ -75,7 +75,7 @@ contract BaseModule is Module {
     /**
      * @dev Throws if the sender is not the owner of the target wallet.
      */
-    modifier strictOnlyWalletOwner(BaseWallet _wallet) {
+    modifier strictOnlyWalletOwner(address _wallet) {
         require(isOwner(_wallet, msg.sender), "BM: msg.sender must be an owner for the wallet");
         _;
     }
@@ -85,8 +85,8 @@ contract BaseModule is Module {
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
-    function init(BaseWallet _wallet) public virtual override onlyWallet(_wallet) {
-        emit ModuleInitialised(address(_wallet));
+    function init(address _wallet) public virtual override onlyWallet(_wallet) {
+        emit ModuleInitialised(_wallet);
     }
 
     /**
@@ -94,9 +94,9 @@ contract BaseModule is Module {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) external virtual override strictOnlyWalletOwner(_wallet) {
-        require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
-        _wallet.authoriseModule(address(_module), true);
+    function addModule(address _wallet, address _module) external virtual override strictOnlyWalletOwner(_wallet) {
+        require(registry.isRegisteredModule(_module), "BM: module is not registered");
+        IWallet(_wallet).authoriseModule(_module, true);
     }
 
     /**
@@ -114,7 +114,7 @@ contract BaseModule is Module {
      * @dev Verify that the wallet is unlocked.
      * @param _wallet The target wallet.
      */
-    function verifyUnlocked(BaseWallet _wallet) internal view {
+    function verifyUnlocked(address _wallet) internal view {
         require(!guardianStorage.isLocked(_wallet), "BM: wallet locked");
     }
 
@@ -122,7 +122,7 @@ contract BaseModule is Module {
      * @dev Verify that the caller is the module or the wallet owner.
      * @param _wallet The target wallet.
      */
-    function verifyWalletOwner(BaseWallet _wallet) internal view {
+    function verifyWalletOwner(address _wallet) internal view {
         require(msg.sender == address(this) || isOwner(_wallet, msg.sender), "BM: must be wallet owner");
     }
 
@@ -131,8 +131,8 @@ contract BaseModule is Module {
      * @param _wallet The target wallet.
      * @param _addr The address.
      */
-    function isOwner(BaseWallet _wallet, address _addr) internal view returns (bool) {
-        return _wallet.owner() == _addr;
+    function isOwner(address _wallet, address _addr) internal view returns (bool) {
+        return IWallet(_wallet).owner() == _addr;
     }
 
     /**

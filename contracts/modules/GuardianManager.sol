@@ -16,7 +16,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "../wallet/BaseWallet.sol";
 import "./common/GuardianUtils.sol";
 import "./common/RelayerModule.sol";
 
@@ -64,7 +63,7 @@ contract GuardianManager is RelayerModule {
 
     constructor(
         IModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IGuardianStorage _guardianStorage,
         uint256 _securityPeriod,
         uint256 _securityWindow
     )
@@ -84,7 +83,7 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to add.
      */
-    function addGuardian(BaseWallet _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function addGuardian(address _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         require(!isOwner(_wallet, _guardian), "GM: target guardian cannot be owner");
         require(!isGuardian(_wallet, _guardian), "GM: target is already a guardian");
         // Guardians must either be an EOA or a contract with an owner()
@@ -95,15 +94,15 @@ contract GuardianManager is RelayerModule {
         require(success, "GM: guardian must be EOA or implement owner()");
         if (guardianStorage.guardianCount(_wallet) == 0) {
             guardianStorage.addGuardian(_wallet, _guardian);
-            emit GuardianAdded(address(_wallet), _guardian);
+            emit GuardianAdded(_wallet, _guardian);
         } else {
-            bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "addition"));
-            GuardianManagerConfig storage config = configs[address(_wallet)];
+            bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
+            GuardianManagerConfig storage config = configs[_wallet];
             require(
                 config.pending[id] == 0 || now > config.pending[id] + securityWindow,
                 "GM: addition of target as guardian is already pending");
             config.pending[id] = now + securityPeriod;
-            emit GuardianAdditionRequested(address(_wallet), _guardian, now + securityPeriod);
+            emit GuardianAdditionRequested(_wallet, _guardian, now + securityPeriod);
         }
     }
 
@@ -114,15 +113,15 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function confirmGuardianAddition(BaseWallet _wallet, address _guardian) external onlyWhenUnlocked(_wallet) {
-        bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "addition"));
-        GuardianManagerConfig storage config = configs[address(_wallet)];
+    function confirmGuardianAddition(address _wallet, address _guardian) external onlyWhenUnlocked(_wallet) {
+        bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
+        GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
         require(config.pending[id] < now, "GM: Too early to confirm guardian addition");
         require(now < config.pending[id] + securityWindow, "GM: Too late to confirm guardian addition");
         guardianStorage.addGuardian(_wallet, _guardian);
         delete config.pending[id];
-        emit GuardianAdded(address(_wallet), _guardian);
+        emit GuardianAdded(_wallet, _guardian);
     }
 
     /**
@@ -130,12 +129,12 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function cancelGuardianAddition(BaseWallet _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
-        bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "addition"));
-        GuardianManagerConfig storage config = configs[address(_wallet)];
+    function cancelGuardianAddition(address _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+        bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
+        GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
         delete config.pending[id];
-        emit GuardianAdditionCancelled(address(_wallet), _guardian);
+        emit GuardianAdditionCancelled(_wallet, _guardian);
     }
 
     /**
@@ -144,15 +143,15 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
-    function revokeGuardian(BaseWallet _wallet, address _guardian) external onlyWalletOwner(_wallet) {
+    function revokeGuardian(address _wallet, address _guardian) external onlyWalletOwner(_wallet) {
         require(isGuardian(_wallet, _guardian), "GM: must be an existing guardian");
-        bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "revokation"));
-        GuardianManagerConfig storage config = configs[address(_wallet)];
+        bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
+        GuardianManagerConfig storage config = configs[_wallet];
         require(
             config.pending[id] == 0 || now > config.pending[id] + securityWindow,
             "GM: revokation of target as guardian is already pending"); // TODO need to allow if confirmation window passed
         config.pending[id] = now + securityPeriod;
-        emit GuardianRevokationRequested(address(_wallet), _guardian, now + securityPeriod);
+        emit GuardianRevokationRequested(_wallet, _guardian, now + securityPeriod);
     }
 
     /**
@@ -162,15 +161,15 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function confirmGuardianRevokation(BaseWallet _wallet, address _guardian) external {
-        bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "revokation"));
-        GuardianManagerConfig storage config = configs[address(_wallet)];
+    function confirmGuardianRevokation(address _wallet, address _guardian) external {
+        bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
+        GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");
         require(config.pending[id] < now, "GM: Too early to confirm guardian revokation");
         require(now < config.pending[id] + securityWindow, "GM: Too late to confirm guardian revokation");
         guardianStorage.revokeGuardian(_wallet, _guardian);
         delete config.pending[id];
-        emit GuardianRevoked(address(_wallet), _guardian);
+        emit GuardianRevoked(_wallet, _guardian);
     }
 
     /**
@@ -178,12 +177,12 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function cancelGuardianRevokation(BaseWallet _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
-        bytes32 id = keccak256(abi.encodePacked(address(_wallet), _guardian, "revokation"));
-        GuardianManagerConfig storage config = configs[address(_wallet)];
+    function cancelGuardianRevokation(address _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+        bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
+        GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");
         delete config.pending[id];
-        emit GuardianRevokationCancelled(address(_wallet), _guardian);
+        emit GuardianRevokationCancelled(_wallet, _guardian);
     }
 
     /**
@@ -192,7 +191,7 @@ contract GuardianManager is RelayerModule {
      * @param _guardian The address to check.
      * @return _isGuardian true if the address if a guardian for the wallet.
      */
-    function isGuardian(BaseWallet _wallet, address _guardian) public view returns (bool _isGuardian) {
+    function isGuardian(address _wallet, address _guardian) public view returns (bool _isGuardian) {
         (_isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), _guardian);
     }
 
@@ -201,18 +200,18 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @return _count The number of active guardians for a wallet.
      */
-    function guardianCount(BaseWallet _wallet) external view returns (uint256 _count) {
+    function guardianCount(address _wallet) external view returns (uint256 _count) {
         return guardianStorage.guardianCount(_wallet);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
+    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory _data) public view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address /* _wallet */, bytes memory _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
 
         if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {

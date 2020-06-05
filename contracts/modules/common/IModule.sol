@@ -14,30 +14,29 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.8;
-import "../../wallet/BaseWallet.sol";
+pragma solidity >=0.5.4 <0.7.0;
 
 /**
- * @title Module
+ * @title IModule
  * @dev Interface for a module.
  * A module MUST implement the addModule() method to ensure that a wallet with at least one module
  * can never end up in a "frozen" state.
  * @author Julien Niset - <julien@argent.xyz>
  */
-interface Module {
+interface IModule {
 
     /**
      * @dev Inits a module for a wallet by e.g. setting some wallet specific parameters in storage.
      * @param _wallet The wallet.
      */
-    function init(BaseWallet _wallet) external;
+    function init(address _wallet) external;
 
     /**
      * @dev Adds a module to a wallet.
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) external;
+    function addModule(address _wallet, address _module) external;
 
     /**
     * @dev Utility method to recover any ERC20 token that was sent to the

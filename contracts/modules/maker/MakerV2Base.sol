@@ -47,7 +47,7 @@ abstract contract MakerV2Base is DSMath, OnlyOwnerModule {
 
     constructor(
         IModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IGuardianStorage _guardianStorage,
         ScdMcdMigrationLike _scdMcdMigration
     )
         BaseModule(_registry, _guardianStorage, NAME)

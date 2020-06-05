@@ -52,14 +52,14 @@ abstract contract BaseTransfer is BaseModule {
     * @param _value The amount of ETH to transfer
     * @param _data The data to *log* with the transfer.
     */
-    function doTransfer(BaseWallet _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
+    function doTransfer(address _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
         if (_token == ETH_TOKEN) {
-            invokeWallet(address(_wallet), _to, _value, EMPTY_BYTES);
+            invokeWallet(_wallet, _to, _value, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
-            invokeWallet(address(_wallet), _token, 0, methodData);
+            invokeWallet(_wallet, _token, 0, methodData);
         }
-        emit Transfer(address(_wallet), _token, _value, _to, _data);
+        emit Transfer(_wallet, _token, _value, _to, _data);
     }
 
     /**
@@ -69,10 +69,10 @@ abstract contract BaseTransfer is BaseModule {
     * @param _spender The spender address.
     * @param _value The amount of token to transfer.
     */
-    function doApproveToken(BaseWallet _wallet, address _token, address _spender, uint256 _value) internal {
+    function doApproveToken(address _wallet, address _token, address _spender, uint256 _value) internal {
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _value);
-        invokeWallet(address(_wallet), _token, 0, methodData);
-        emit Approved(address(_wallet), _token, _value, _spender);
+        invokeWallet(_wallet, _token, 0, methodData);
+        emit Approved(_wallet, _token, _value, _spender);
     }
 
     /**
@@ -82,9 +82,9 @@ abstract contract BaseTransfer is BaseModule {
     * @param _value The ETH value to transfer.
     * @param _data The method data.
     */
-    function doCallContract(BaseWallet _wallet, address _contract, uint256 _value, bytes memory _data) internal {
-        invokeWallet(address(_wallet), _contract, _value, _data);
-        emit CalledContract(address(_wallet), _contract, _value, _data);
+    function doCallContract(address _wallet, address _contract, uint256 _value, bytes memory _data) internal {
+        invokeWallet(_wallet, _contract, _value, _data);
+        emit CalledContract(_wallet, _contract, _value, _data);
     }
 
     /**
@@ -98,7 +98,7 @@ abstract contract BaseTransfer is BaseModule {
     * @param _data The method data.
     */
     function doApproveTokenAndCallContract(
-        BaseWallet _wallet,
+        address _wallet,
         address _token,
         address _spender,
         uint256 _amount,
@@ -107,17 +107,17 @@ abstract contract BaseTransfer is BaseModule {
     )
         internal
     {
-        uint256 existingAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+        uint256 existingAllowance = ERC20(_token).allowance(_wallet, _spender);
         uint256 totalAllowance = SafeMath.add(existingAllowance, _amount);
         // Approve the desired amount plus existing amount. This logic allows for potential gas saving later
         // when restoring the original approved amount, in cases where the _spender uses the exact approved _amount.
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, totalAllowance);
 
-        invokeWallet(address(_wallet), _token, 0, methodData);
-        invokeWallet(address(_wallet), _contract, 0, _data);
+        invokeWallet(_wallet, _token, 0, methodData);
+        invokeWallet(_wallet, _contract, 0, _data);
 
         // Calculate the approved amount that was spent after the call
-        uint256 unusedAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+        uint256 unusedAllowance = ERC20(_token).allowance(_wallet, _spender);
         uint256 usedAllowance = SafeMath.sub(totalAllowance, unusedAllowance);
         // Ensure the amount spent does not exceed the amount approved for this call
         require(usedAllowance <= _amount, "BT: insufficient amount for call");
@@ -125,11 +125,11 @@ abstract contract BaseTransfer is BaseModule {
         if (unusedAllowance != existingAllowance) {
             // Restore the original allowance amount if the amount spent was different (can be lower).
             methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, existingAllowance);
-            invokeWallet(address(_wallet), _token, 0, methodData);
+            invokeWallet(_wallet, _token, 0, methodData);
         }
 
         emit ApprovedAndCalledContract(
-            address(_wallet),
+            _wallet,
             _contract,
             _spender,
             _token,

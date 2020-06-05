@@ -13,7 +13,7 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
 
     constructor(
         IModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IGuardianStorage _guardianStorage,
         ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,
         JugLike _jug,
@@ -37,10 +37,10 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
         previousMakerV2Manager = _previousMakerV2Manager;
     }
 
-    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
+    function init(address _wallet) public override onlyWallet(_wallet) {
         address[] memory tokens = makerRegistry.getCollateralTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
-            bytes32 loanId = previousMakerV2Manager.loanIds(address(_wallet), makerRegistry.getIlk(tokens[i]));
+            bytes32 loanId = previousMakerV2Manager.loanIds(_wallet, makerRegistry.getIlk(tokens[i]));
             if (loanId != 0) {
                 previousMakerV2Manager.giveVault(_wallet, loanId);
                 assignLoanToWallet(_wallet, loanId);

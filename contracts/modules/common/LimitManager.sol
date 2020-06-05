@@ -16,7 +16,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "../../wallet/BaseWallet.sol";
 import "./BaseModule.sol";
 
 /**
@@ -75,8 +74,8 @@ abstract contract LimitManager is BaseModule {
      * @dev Inits the module for a wallet by setting the limit to the default value.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public virtual override onlyWallet(_wallet) {
-        Limit storage limit = limits[address(_wallet)].limit;
+    function init(address _wallet) public virtual override onlyWallet(_wallet) {
+        Limit storage limit = limits[_wallet].limit;
         if (limit.current == 0 && limit.changeAfter == 0) {
             limit.current = uint128(defaultLimit);
         }
@@ -91,8 +90,8 @@ abstract contract LimitManager is BaseModule {
      * @param _newLimit The new limit.
      * @param _securityPeriod The security period.
      */
-    function changeLimit(BaseWallet _wallet, uint256 _newLimit, uint256 _securityPeriod) internal {
-        Limit storage limit = limits[address(_wallet)].limit;
+    function changeLimit(address _wallet, uint256 _newLimit, uint256 _securityPeriod) internal {
+        Limit storage limit = limits[_wallet].limit;
         // solium-disable-next-line security/no-block-members
         uint128 current = (limit.changeAfter > 0 && limit.changeAfter < now) ? limit.pending : limit.current;
         limit.current = current;
@@ -100,7 +99,7 @@ abstract contract LimitManager is BaseModule {
         // solium-disable-next-line security/no-block-members
         limit.changeAfter = uint64(now.add(_securityPeriod));
         // solium-disable-next-line security/no-block-members
-        emit LimitChanged(address(_wallet), _newLimit, uint64(now.add(_securityPeriod)));
+        emit LimitChanged(_wallet, _newLimit, uint64(now.add(_securityPeriod)));
     }
 
      /**
@@ -109,7 +108,7 @@ abstract contract LimitManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _securityPeriod The security period.
      */
-    function disableLimit(BaseWallet _wallet, uint256 _securityPeriod) internal {
+    function disableLimit(address _wallet, uint256 _securityPeriod) internal {
         changeLimit(_wallet, LIMIT_DISABLED, _securityPeriod);
     }
 
@@ -118,8 +117,8 @@ abstract contract LimitManager is BaseModule {
     * @param _wallet The target wallet.
     * @return _currentLimit The current limit expressed in ETH.
     */
-    function getCurrentLimit(BaseWallet _wallet) public view returns (uint256 _currentLimit) {
-        Limit storage limit = limits[address(_wallet)].limit;
+    function getCurrentLimit(address _wallet) public view returns (uint256 _currentLimit) {
+        Limit storage limit = limits[_wallet].limit;
         _currentLimit = uint256(currentLimit(limit.current, limit.pending, limit.changeAfter));
     }
 
@@ -128,7 +127,7 @@ abstract contract LimitManager is BaseModule {
     * @param _wallet The target wallet.
     * @return _limitDisabled true if the daily limit is disabled, false otherwise.
     */
-    function isLimitDisabled(BaseWallet _wallet) public view returns (bool _limitDisabled) {
+    function isLimitDisabled(address _wallet) public view returns (bool _limitDisabled) {
         uint256 currentLimit = getCurrentLimit(_wallet);
         _limitDisabled = currentLimit == LIMIT_DISABLED;
     }
@@ -139,8 +138,8 @@ abstract contract LimitManager is BaseModule {
     * @return _pendingLimit The pending limit (in ETH).
     * @return _changeAfter The time at which the pending limit will become effective.
     */
-    function getPendingLimit(BaseWallet _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
-        Limit storage limit = limits[address(_wallet)].limit;
+    function getPendingLimit(address _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
+        Limit storage limit = limits[_wallet].limit;
         // solium-disable-next-line security/no-block-members
         return ((now < limit.changeAfter)? (uint256(limit.pending), limit.changeAfter) : (0,0));
     }
@@ -151,9 +150,9 @@ abstract contract LimitManager is BaseModule {
     * @return _unspent The amount of tokens (in ETH) that has not been spent yet.
     * @return _periodEnd The end of the daily period.
     */
-    function getDailyUnspent(BaseWallet _wallet) external view returns (uint256 _unspent, uint64 _periodEnd) {
+    function getDailyUnspent(address _wallet) external view returns (uint256 _unspent, uint64 _periodEnd) {
         uint256 limit = getCurrentLimit(_wallet);
-        DailySpent storage expense = limits[address(_wallet)].dailySpent;
+        DailySpent storage expense = limits[_wallet].dailySpent;
         // solium-disable-next-line security/no-block-members
         if (now > expense.periodEnd) {
             _unspent = limit;
@@ -173,10 +172,10 @@ abstract contract LimitManager is BaseModule {
     * @param _wallet The target wallet.
     * @param _amount The amount for the transfer
     */
-    function checkAndUpdateDailySpent(BaseWallet _wallet, uint _amount) internal returns (bool) {
+    function checkAndUpdateDailySpent(address _wallet, uint _amount) internal returns (bool) {
         if (_amount == 0)
             return true;
-        Limit storage limit = limits[address(_wallet)].limit;
+        Limit storage limit = limits[_wallet].limit;
         uint128 current = currentLimit(limit.current, limit.pending, limit.changeAfter);
         if (isWithinDailyLimit(_wallet, current, _amount)) {
             updateDailySpent(_wallet, current, _amount);
@@ -191,9 +190,9 @@ abstract contract LimitManager is BaseModule {
     * @param _limit The current limit for the wallet.
     * @param _amount The amount to add to the daily spent.
     */
-    function updateDailySpent(BaseWallet _wallet, uint128 _limit, uint _amount) internal {
+    function updateDailySpent(address _wallet, uint128 _limit, uint _amount) internal {
         if (_limit != LIMIT_DISABLED) {
-            DailySpent storage expense = limits[address(_wallet)].dailySpent;
+            DailySpent storage expense = limits[_wallet].dailySpent;
             // solium-disable-next-line security/no-block-members
             if (expense.periodEnd < now) {
                 // solium-disable-next-line security/no-block-members
@@ -212,11 +211,11 @@ abstract contract LimitManager is BaseModule {
     * @param _amount The transfer amount.
     * @return true if the transfer amount is withing the daily limit.
     */
-    function isWithinDailyLimit(BaseWallet _wallet, uint _limit, uint _amount) internal view returns (bool) {
+    function isWithinDailyLimit(address _wallet, uint _limit, uint _amount) internal view returns (bool) {
         if (_limit == LIMIT_DISABLED) {
             return true;
         }
-        DailySpent storage expense = limits[address(_wallet)].dailySpent;
+        DailySpent storage expense = limits[_wallet].dailySpent;
         // solium-disable-next-line security/no-block-members
         if (expense.periodEnd < now) {
             return (_amount <= _limit);

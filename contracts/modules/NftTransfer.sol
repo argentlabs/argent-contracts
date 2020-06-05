@@ -41,7 +41,7 @@ contract NftTransfer is OnlyOwnerModule {
 
     constructor(
         IModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IGuardianStorage _guardianStorage,
         address _ckAddress
     )
         BaseModule(_registry, _guardianStorage, NAME)
@@ -57,8 +57,8 @@ contract NftTransfer is OnlyOwnerModule {
      * static call redirection from the wallet to the module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public override onlyWallet(_wallet) {
-        _wallet.enableStaticCall(address(this), ERC721_RECEIVED);
+    function init(address _wallet) public override onlyWallet(_wallet) {
+        IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
     /**
@@ -90,7 +90,7 @@ contract NftTransfer is OnlyOwnerModule {
     * @param _data The data to pass with the transfer.
     */
     function transferNFT(
-        BaseWallet _wallet,
+        address _wallet,
         address _nftContract,
         address _to,
         uint256 _tokenId,
@@ -107,15 +107,15 @@ contract NftTransfer is OnlyOwnerModule {
         } else {
            if (_safe) {
                methodData = abi.encodeWithSignature(
-                   "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
+                   "safeTransferFrom(address,address,uint256,bytes)", _wallet, _to, _tokenId, _data);
            } else {
                require(isERC721(_nftContract, _tokenId), "NT: Non-compliant NFT contract");
                methodData = abi.encodeWithSignature(
-                   "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
+                   "transferFrom(address,address,uint256)", _wallet, _to, _tokenId);
            }
         }
-        invokeWallet(address(_wallet), _nftContract, 0, methodData);
-        emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
+        invokeWallet(_wallet, _nftContract, 0, methodData);
+        emit NonFungibleTransfer(_wallet, _nftContract, _tokenId, _to, _data);
     }
 
     // *************** Internal Functions ********************* //

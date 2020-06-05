@@ -14,25 +14,23 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.8;
+pragma solidity >=0.5.4 <0.7.0;
 
-import "../../wallet/BaseWallet.sol";
-
-interface IGuardianStorage{
+interface IGuardianStorage {
 
     /**
      * @dev Lets an authorised module add a guardian to a wallet.
      * @param _wallet The target wallet.
      * @param _guardian The guardian to add.
      */
-    function addGuardian(BaseWallet _wallet, address _guardian) external;
+    function addGuardian(address _wallet, address _guardian) external;
 
     /**
      * @dev Lets an authorised module revoke a guardian from a wallet.
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
-    function revokeGuardian(BaseWallet _wallet, address _guardian) external;
+    function revokeGuardian(address _wallet, address _guardian) external;
 
     /**
      * @dev Checks if an account is a guardian for a wallet.
@@ -40,5 +38,17 @@ interface IGuardianStorage{
      * @param _guardian The account.
      * @return true if the account is a guardian for a wallet.
      */
-    function isGuardian(BaseWallet _wallet, address _guardian) external view returns (bool);
+    function isGuardian(address _wallet, address _guardian) external view returns (bool);
+
+    function isLocked(address _wallet) external view returns (bool);
+
+    function getLock(address _wallet) external view returns (uint256);
+
+    function getLocker(address _wallet) external view returns (address);
+
+    function setLock(address _wallet, uint256 _releaseAfter) external;
+
+    function getGuardians(address _wallet) external view returns (address[] memory);
+
+    function guardianCount(address _wallet) external view returns (uint256);
 }

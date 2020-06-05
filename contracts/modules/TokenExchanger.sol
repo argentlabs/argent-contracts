@@ -16,7 +16,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "../wallet/BaseWallet.sol";
 import "./common/OnlyOwnerModule.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/other/KyberNetwork.sol";
@@ -46,7 +45,7 @@ contract TokenExchanger is OnlyOwnerModule {
 
     constructor(
         IModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IGuardianStorage _guardianStorage,
         address _kyber,
         address _feeCollector,
         uint _feeRatio
@@ -70,7 +69,7 @@ contract TokenExchanger is OnlyOwnerModule {
      * @return The amount of destination tokens that have been received.
      */
     function trade(
-        BaseWallet _wallet,
+        address _wallet,
         address _srcToken,
         uint256 _srcAmount,
         address _destToken,
@@ -96,34 +95,34 @@ contract TokenExchanger is OnlyOwnerModule {
                 _srcToken,
                 srcTradable,
                 _destToken,
-                address(_wallet),
+                _wallet,
                 _maxDestAmount,
                 _minConversionRate,
                 feeCollector
                 );
-            invokeWallet(address(_wallet), kyber, srcTradable, methodData);
+            invokeWallet(_wallet, kyber, srcTradable, methodData);
         } else {
             // approve kyber on erc20
             methodData = abi.encodeWithSignature("approve(address,uint256)", kyber, _srcAmount);
-            invokeWallet(address(_wallet), _srcToken, 0, methodData);
+            invokeWallet(_wallet, _srcToken, 0, methodData);
             // transfer erc20
             methodData = abi.encodeWithSignature(
                 "trade(address,uint256,address,address,uint256,uint256,address)",
                 _srcToken,
                 _srcAmount,
                 _destToken,
-                address(_wallet),
+                _wallet,
                 _maxDestAmount,
                 _minConversionRate,
                 feeCollector
                 );
-            invokeWallet(address(_wallet), kyber, 0, methodData);
+            invokeWallet(_wallet, kyber, 0, methodData);
         }
 
         if (fee > 0) {
-            invokeWallet(address(_wallet), feeCollector, fee, "");
+            invokeWallet(_wallet, feeCollector, fee, "");
         }
-        emit TokenExchanged(address(_wallet), _srcToken, _srcAmount, _destToken, destAmount);
+        emit TokenExchanged(_wallet, _srcToken, _srcAmount, _destToken, destAmount);
         return destAmount;
     }
 

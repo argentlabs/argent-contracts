@@ -16,7 +16,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "../../wallet/BaseWallet.sol";
 import "./BaseModule.sol";
 import "./GuardianUtils.sol";
 
@@ -62,7 +61,7 @@ abstract contract RelayerModule is BaseModule {
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures and the wallet owner signature requirement.
     */
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory _data) public view virtual returns (uint256, OwnerSignature);
+    function getRequiredSignatures(address _wallet, bytes memory _data) public view virtual returns (uint256, OwnerSignature);
 
     /* ***************** External methods ************************* */
 
@@ -76,7 +75,7 @@ abstract contract RelayerModule is BaseModule {
     * @param _gasLimit The gas limit to use for the gas refund.
     */
     function execute(
-        BaseWallet _wallet,
+        address _wallet,
         bytes calldata _data,
         uint256 _nonce,
         bytes calldata _signatures,
@@ -87,9 +86,9 @@ abstract contract RelayerModule is BaseModule {
         returns (bool success)
     {
         uint startGas = gasleft();
-        bytes32 signHash = getSignHash(address(this), address(_wallet), 0, _data, _nonce, _gasPrice, _gasLimit);
+        bytes32 signHash = getSignHash(address(this), _wallet, 0, _data, _nonce, _gasPrice, _gasLimit);
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
-        require(verifyData(address(_wallet), _data), "RM: Target of _data != _wallet");
+        require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
         (uint256 requiredSignatures, OwnerSignature ownerSignatureRequirement) = getRequiredSignatures(_wallet, _data);
         require(requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         require(requiredSignatures == 0 || validateSignatures(_wallet, signHash, _signatures, ownerSignatureRequirement),
@@ -105,15 +104,15 @@ abstract contract RelayerModule is BaseModule {
             returnData = bytes("RM: refund failed");
         }
 
-        emit TransactionExecuted(address(_wallet), success, returnData, signHash);
+        emit TransactionExecuted(_wallet, success, returnData, signHash);
     }
 
     /**
     * @dev Gets the current nonce for a wallet.
     * @param _wallet The target wallet.
     */
-    function getNonce(BaseWallet _wallet) external view returns (uint256 nonce) {
-        return relayer[address(_wallet)].nonce;
+    function getNonce(address _wallet) external view returns (uint256 nonce) {
+        return relayer[_wallet].nonce;
     }
 
     /* ***************** Internal & Private methods ************************* */
@@ -154,11 +153,11 @@ abstract contract RelayerModule is BaseModule {
     * @param _nonce The nonce
     * @param _signHash The signed hash of the transaction
     */
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 _signHash) internal virtual returns (bool) {
-        if (relayer[address(_wallet)].executedTx[_signHash] == true) {
+    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 _signHash) internal virtual returns (bool) {
+        if (relayer[_wallet].executedTx[_signHash] == true) {
             return false;
         }
-        relayer[address(_wallet)].executedTx[_signHash] = true;
+        relayer[_wallet].executedTx[_signHash] = true;
         return true;
     }
 
@@ -168,15 +167,15 @@ abstract contract RelayerModule is BaseModule {
     * @param _wallet The target wallet.
     * @param _nonce The nonce
     */
-    function checkAndUpdateNonce(BaseWallet _wallet, uint256 _nonce) internal returns (bool) {
-        if (_nonce <= relayer[address(_wallet)].nonce) {
+    function checkAndUpdateNonce(address _wallet, uint256 _nonce) internal returns (bool) {
+        if (_nonce <= relayer[_wallet].nonce) {
             return false;
         }
         uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
         if (nonceBlock > block.number + BLOCKBOUND) {
             return false;
         }
-        relayer[address(_wallet)].nonce = _nonce;
+        relayer[_wallet].nonce = _nonce;
         return true;
     }
 
@@ -190,7 +189,7 @@ abstract contract RelayerModule is BaseModule {
     * @return A boolean indicating whether the signatures are valid.
     */
     function validateSignatures(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _signHash,
         bytes memory _signatures,
         OwnerSignature _option
@@ -267,7 +266,7 @@ abstract contract RelayerModule is BaseModule {
     * @param _relayer The address of the Relayer.
     */
     function refund(
-        BaseWallet _wallet,
+        address _wallet,
         uint _gasUsed,
         uint _gasPrice,
         uint _gasLimit,
@@ -284,7 +283,7 @@ abstract contract RelayerModule is BaseModule {
             } else {
                 amount = amount * _gasPrice;
             }
-            invokeWallet(address(_wallet), _relayer, amount, EMPTY_BYTES);
+            invokeWallet(_wallet, _relayer, amount, EMPTY_BYTES);
         }
     }
 
@@ -294,10 +293,10 @@ abstract contract RelayerModule is BaseModule {
     * @param _gasUsed The expected gas used.
     * @param _gasPrice The expected gas price for the refund.
     */
-    function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal virtual view returns (bool) {
+    function verifyRefund(address _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal virtual view returns (bool) {
         if (_gasPrice > 0 &&
             _signatures > 1 &&
-            (address(_wallet).balance < _gasUsed * _gasPrice || _wallet.authorised(address(this)) == false)) {
+            (_wallet.balance < _gasUsed * _gasPrice || IWallet(_wallet).authorised(address(this)) == false)) {
             return false;
         }
         return true;

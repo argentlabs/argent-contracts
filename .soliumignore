@@ -3,6 +3,6 @@ migrations
 openzeppelin-solidity
 lib
 contracts-test
-contracts/legacy
+contracts-legacy
 contracts/modules
 contracts/wallet

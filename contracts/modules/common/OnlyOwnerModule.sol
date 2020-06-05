@@ -18,7 +18,6 @@ pragma solidity ^0.6.8;
 
 import "./BaseModule.sol";
 import "./RelayerModule.sol";
-import "../../wallet/BaseWallet.sol";
 
 /**
  * @title OnlyOwnerModule
@@ -45,19 +44,19 @@ abstract contract OnlyOwnerModule is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) external override virtual onlyWalletOwner(_wallet) {
-        require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
-        _wallet.authoriseModule(address(_module), true);
+    function addModule(address _wallet, address _module) external override virtual onlyWalletOwner(_wallet) {
+        require(registry.isRegisteredModule(_module), "BM: module is not registered");
+        IWallet(_wallet).authoriseModule(_module, true);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
 
     // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(BaseWallet _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
+    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
         return checkAndUpdateNonce(_wallet, _nonce);
     }
 
-    function getRequiredSignatures(BaseWallet /* _wallet */, bytes memory /* _data */) public view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address /* _wallet */, bytes memory /* _data */) public view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
 }

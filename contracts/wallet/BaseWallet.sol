@@ -16,21 +16,22 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.8;
 
-import "../modules/common/Module.sol";
+import "../modules/common/IModule.sol";
+import "./IWallet.sol";
 
 /**
  * @title BaseWallet
  * @dev Simple modular wallet that authorises modules to call its invoke() method.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract BaseWallet {
+contract BaseWallet is IWallet {
 
     // The implementation of the proxy
     address public implementation;
     // The owner
-    address public owner;
+    address public override owner;
     // The authorised modules
-    mapping (address => bool) public authorised;
+    mapping (address => bool) public override authorised;
     // The enabled static calls
     mapping (bytes4 => address) public enabled;
     // The number of modules
@@ -63,7 +64,7 @@ contract BaseWallet {
         for (uint256 i = 0; i < _modules.length; i++) {
             require(authorised[_modules[i]] == false, "BW: module is already added");
             authorised[_modules[i]] = true;
-            Module(_modules[i]).init(this);
+            IModule(_modules[i]).init(address(this));
             emit AuthorisedModule(_modules[i], true);
         }
         if (address(this).balance > 0) {
@@ -76,13 +77,13 @@ contract BaseWallet {
      * @param _module The target module.
      * @param _value Set to true to authorise the module.
      */
-    function authoriseModule(address _module, bool _value) external moduleOnly {
+    function authoriseModule(address _module, bool _value) external override moduleOnly {
         if (authorised[_module] != _value) {
             emit AuthorisedModule(_module, _value);
             if (_value == true) {
                 modules += 1;
                 authorised[_module] = true;
-                Module(_module).init(this);
+                IModule(_module).init(address(this));
             } else {
                 modules -= 1;
                 require(modules > 0, "BW: wallet must have at least one module");
@@ -97,7 +98,7 @@ contract BaseWallet {
     * @param _module The target module.
     * @param _method The static method signature.
     */
-    function enableStaticCall(address _module, bytes4 _method) external moduleOnly {
+    function enableStaticCall(address _module, bytes4 _method) external override moduleOnly {
         require(authorised[_module], "BW: must be an authorised module for static call");
         enabled[_method] = _module;
         emit EnabledStaticCall(_module, _method);
@@ -107,7 +108,7 @@ contract BaseWallet {
      * @dev Sets a new owner for the wallet.
      * @param _newOwner The new owner.
      */
-    function setOwner(address _newOwner) external moduleOnly {
+    function setOwner(address _newOwner) external override moduleOnly {
         require(_newOwner != address(0), "BW: address cannot be null");
         owner = _newOwner;
         emit OwnerChanged(_newOwner);

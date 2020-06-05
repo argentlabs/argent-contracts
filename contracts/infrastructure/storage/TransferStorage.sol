@@ -13,11 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.8;
+pragma solidity ^0.5.4;
 
-import "../../wallet/BaseWallet.sol";
 import "./Storage.sol";
+import "./ITransferStorage.sol";
 
 /**
  * @title TransferStorage
@@ -26,7 +25,7 @@ import "./Storage.sol";
  * for a wallet can modify its state.
  * @author Julien Niset - <julien@argent.im>
  */
-contract TransferStorage is Storage {
+contract TransferStorage is ITransferStorage, Storage {
 
     // wallet specific storage
     mapping (address => mapping (address => uint256)) internal whitelist;
@@ -39,8 +38,8 @@ contract TransferStorage is Storage {
      * @param _target The account to add/remove.
      * @param _value True for addition, false for revokation.
      */
-    function setWhitelist(BaseWallet _wallet, address _target, uint256 _value) external onlyModule(_wallet) {
-        whitelist[address(_wallet)][_target] = _value;
+    function setWhitelist(address _wallet, address _target, uint256 _value) external onlyModule(_wallet) {
+        whitelist[_wallet][_target] = _value;
     }
 
     /**
@@ -49,7 +48,7 @@ contract TransferStorage is Storage {
      * @param _target The account.
      * @return the epoch time at which an account strats to be whitelisted, or zero if the account is not whitelisted.
      */
-    function getWhitelist(BaseWallet _wallet, address _target) external view returns (uint256) {
-        return whitelist[address(_wallet)][_target];
+    function getWhitelist(address _wallet, address _target) external view returns (uint256) {
+        return whitelist[_wallet][_target];
     }
 }

@@ -17,7 +17,6 @@
 pragma solidity ^0.6.8;
 
 import "./common/ArgentSafeMath.sol";
-import "../wallet/BaseWallet.sol";
 import "./common/RelayerModule.sol";
 import "./common/BaseTransfer.sol";
 
@@ -30,7 +29,7 @@ contract ApprovedTransfer is RelayerModule, BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
-    constructor(IModuleRegistry _registry, GuardianStorage _guardianStorage) BaseModule(_registry, _guardianStorage, NAME) public {
+    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage) BaseModule(_registry, _guardianStorage, NAME) public {
 
     }
 
@@ -43,7 +42,7 @@ contract ApprovedTransfer is RelayerModule, BaseTransfer {
     * @param _data  The data for the transaction (only for ETH transfers)
     */
     function transferToken(
-        BaseWallet _wallet,
+        address _wallet,
         address _token,
         address _to,
         uint256 _amount,
@@ -64,7 +63,7 @@ contract ApprovedTransfer is RelayerModule, BaseTransfer {
     * @param _data The encoded method data
     */
     function callContract(
-        BaseWallet _wallet,
+        address _wallet,
         address _contract,
         uint256 _value,
         bytes calldata _data
@@ -73,7 +72,7 @@ contract ApprovedTransfer is RelayerModule, BaseTransfer {
         onlyExecute
         onlyWhenUnlocked(_wallet)
     {
-        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "AT: Forbidden contract");
+        require(!IWallet(_wallet).authorised(_contract) && _contract != _wallet, "AT: Forbidden contract");
         doCallContract(_wallet, _contract, _value, _data);
     }
 
@@ -89,7 +88,7 @@ contract ApprovedTransfer is RelayerModule, BaseTransfer {
     * @param _data The encoded method data
     */
     function approveTokenAndCallContract(
-        BaseWallet _wallet,
+        address _wallet,
         address _token,
         address _spender,
         uint256 _amount,
@@ -100,13 +99,13 @@ contract ApprovedTransfer is RelayerModule, BaseTransfer {
         onlyExecute
         onlyWhenUnlocked(_wallet)
     {
-        require(!_wallet.authorised(_contract) && _contract != address(_wallet), "AT: Forbidden contract");
+        require(!IWallet(_wallet).authorised(_contract) && _contract != _wallet, "AT: Forbidden contract");
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
     }
 
     // *************** Implementation of RelayerModule methods ********************* //
 
-    function getRequiredSignatures(BaseWallet _wallet, bytes memory /* _data */) public view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address _wallet, bytes memory /* _data */) public view override returns (uint256, OwnerSignature) {
         // owner  + [n/2] guardians
         uint numberOfSignatures = 1 + ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
         return (numberOfSignatures, OwnerSignature.Required);
