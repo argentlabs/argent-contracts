@@ -44,8 +44,14 @@ jobs:
           name: "Compiling external library contracts"
           command: npm run compile:lib
       - run:
+          name: "Compiling legacy contracts"
+          command: npm run compile:legacy
+      - run:
           name: "Compiling contracts"
           command: npm run compile
+      - run:
+          name: "Compiling test contracts"
+          command: npm run compile:test
       - run:
           name: "Lint JavaScript"
           command: npm run lint:js
