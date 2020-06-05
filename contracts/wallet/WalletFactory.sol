@@ -277,13 +277,9 @@ contract WalletFactory is Owned, Managed {
     {
         _validateInputs(_owner, _modules, _label);
         bytes32 newsalt = _newSalt(_salt, _owner, _modules, _guardian);
-        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
-        address payable wallet;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            wallet := create2(0, add(code, 0x20), mload(code), newsalt)
-            if iszero(extcodesize(wallet)) { revert(0, returndatasize()) }
-        }
+
+        Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
+        address payable wallet = address(proxy);
         _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
     }
 
