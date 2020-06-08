@@ -37,3 +37,5 @@ cp build/ERC20Approver.json .coverage_artifacts/ERC20Approver.json
 cp build/TestModuleRelayer.json .coverage_artifacts/TestModuleRelayer.json
 cp build/TestOnlyOwnerModule.json .coverage_artifacts/TestOnlyOwnerModule.json
 cp build/FakeWallet.json .coverage_artifacts/FakeWallet.json
+cp build/LegacyBaseWallet.json .coverage_artifacts/LegacyBaseWallet.json
+cp build/DS*.json .coverage_artifacts
