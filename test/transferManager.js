@@ -6,6 +6,7 @@ const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
+const LimitStorage = require("../build/LimitStorage");
 const TransferModule = require("../build/TransferManager");
 const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
@@ -41,6 +42,7 @@ describe("TransferManager", function () {
   let priceProvider;
   let transferStorage;
   let guardianStorage;
+  let limitStorage;
   let transferModule;
   let previousTransferModule;
   let wallet;
@@ -55,6 +57,7 @@ describe("TransferManager", function () {
 
     transferStorage = await deployer.deploy(TransferStorage);
     guardianStorage = await deployer.deploy(GuardianStorage);
+    limitStorage = await deployer.deploy(LimitStorage);
 
     previousTransferModule = await deployer.deploy(LegacyTransferManager, {},
       registry.contractAddress,
@@ -70,6 +73,7 @@ describe("TransferManager", function () {
       registry.contractAddress,
       transferStorage.contractAddress,
       guardianStorage.contractAddress,
+      limitStorage.contractAddress,
       priceProvider.contractAddress,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
@@ -96,6 +100,7 @@ describe("TransferManager", function () {
         registry.contractAddress,
         transferStorage.contractAddress,
         guardianStorage.contractAddress,
+        limitStorage.contractAddress,
         priceProvider.contractAddress,
         SECURITY_PERIOD,
         SECURITY_WINDOW,
@@ -106,8 +111,9 @@ describe("TransferManager", function () {
       const existingWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
       await existingWallet.init(owner.address, [transferModule1.contractAddress]);
 
-      const limit = await transferModule1.defaultLimit();
-      assert.equal(limit, 10);
+      const defautlimit = await transferModule1.defaultLimit();
+      const limit = await transferModule1.getCurrentLimit(existingWallet.contractAddress);
+      assert.equal(limit.toNumber(), defautlimit.toNumber());
     });
   });
 
@@ -180,7 +186,7 @@ describe("TransferManager", function () {
     });
   });
 
-  describe("Token transfers", () => {
+  describe("Token transfers", () => { 
     async function doDirectTransfer({
       token, signer = owner, to, amount, relayed = false,
     }) {

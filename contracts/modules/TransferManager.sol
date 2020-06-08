@@ -125,7 +125,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
                         current,
                         pending,
                         changeAfter,
-                        unspent,
+                        current.sub(unspent),
                         periodEnd);
                 }
             }
