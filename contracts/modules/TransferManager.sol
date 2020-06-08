@@ -57,7 +57,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     // The Token price provider
     TokenPriceProvider public priceProvider;
     // The previous limit manager needed to migrate the limits
-    LimitManager public oldLimitManager;
+    TransferManager public oldLimitManager;
 
     // *************** Events *************************** //
 
@@ -74,14 +74,15 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
         IModuleRegistry _registry,
         ITransferStorage _transferStorage,
         IGuardianStorage _guardianStorage,
+        ILimitStorage _storageLimit,
         address _priceProvider,
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit,
-        LimitManager _oldLimitManager
+        TransferManager _oldLimitManager
     )
         BaseModule(_registry, _guardianStorage, NAME)
-        LimitManager(_defaultLimit)
+        LimitManager(_storageLimit, _defaultLimit)
         public
     {
         transferStorage = _transferStorage;
@@ -97,36 +98,37 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
-    function init(address _wallet) public override(BaseModule, LimitManager) onlyWallet(_wallet) {
+    function init(address _wallet) public override(BaseModule) onlyWallet(_wallet) {
 
         // setup static calls
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
 
-        // setup default limit for new deployment
+        // migrate the limit and daily spent
         if (address(oldLimitManager) == address(0)) {
-            super.init(_wallet);
-            return;
-        }
-        // get limit from previous LimitManager
-        uint256 current = oldLimitManager.getCurrentLimit(_wallet);
-        (uint256 pending, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
-        // setup default limit for new wallets
-        if (current == 0 && changeAfter == 0) {
-            super.init(_wallet);
-            return;
-        }
-        // migrate existing limit for existing wallets
-        if (current == pending) {
-            limits[_wallet].limit.current = uint128(current);
+            initLimit(_wallet);
         } else {
-            limits[_wallet].limit = Limit(uint128(current), uint128(pending), changeAfter);
-        }
-        // migrate daily pending if we are within a rolling period
-        (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
-        // solium-disable-next-line security/no-block-members
-        if (periodEnd > now) {
-            limits[_wallet].dailySpent = DailySpent(uint128(current.sub(unspent)), periodEnd);
+            uint256 current = oldLimitManager.getCurrentLimit(_wallet);
+            (uint256 pending, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
+            if (current == 0 && changeAfter == 0) {
+                // new wallet: we setup the default limit
+                initLimit(_wallet);
+            } else {
+                // migrate limit and daily spent (if we are in a rolling period)
+                (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
+                // solium-disable-next-line security/no-block-members
+                if (periodEnd < now) {
+                    lStorage.setLimit(_wallet, current, pending, changeAfter);
+                } else {
+                    lStorage.setLimitAndDailySpent(
+                        _wallet,
+                        current,
+                        pending,
+                        changeAfter,
+                        unspent,
+                        periodEnd);
+                }
+            }
         }
     }
 
@@ -376,6 +378,59 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     }
 
     /**
+    * @dev Gets the current daily limit for a wallet.
+    * @param _wallet The target wallet.
+    * @return _currentLimit The current limit expressed in ETH.
+    */
+    function getCurrentLimit(address _wallet) external view returns (uint256 _currentLimit) {
+        (uint256 current, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
+        return currentLimit(current, pending, changeAfter);
+    }
+
+    /**
+    * @dev Returns whether the daily limit is disabled for a wallet.
+    * @param _wallet The target wallet.
+    * @return _limitDisabled true if the daily limit is disabled, false otherwise.
+    */
+    function isLimitDisabled(address _wallet) public view returns (bool _limitDisabled) {
+        (uint256 current, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
+        uint256 currentLimit = currentLimit(current, pending, changeAfter);
+        return (currentLimit == LIMIT_DISABLED);
+    }
+
+    /**
+    * @dev Gets a pending limit for a wallet if any.
+    * @param _wallet The target wallet.
+    * @return _pendingLimit The pending limit (in ETH).
+    * @return _changeAfter The time at which the pending limit will become effective.
+    */
+    function getPendingLimit(address _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
+        (uint256 current, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
+        // solium-disable-next-line security/no-block-members
+        return ((now < changeAfter)? (pending, uint64(changeAfter)) : (0,0));
+    }
+
+    /**
+    * @dev Gets the amount of tokens that has not yet been spent during the current period.
+    * @param _wallet The target wallet.
+    * @return _unspent The amount of tokens (in ETH) that has not been spent yet.
+    * @return _periodEnd The end of the daily period.
+    */
+    function getDailyUnspent(address _wallet) external view returns (uint256 _unspent, uint64 _periodEnd) {
+        (uint256 current, uint256 pending, uint256 changeAfter, uint256 alreadySpent, uint256 periodEnd) = getLimitAndDailySpent(_wallet);
+        uint256 currentLimit = currentLimit(current, pending, changeAfter);
+        // solium-disable-next-line security/no-block-members
+        if (now > periodEnd) {
+            // solium-disable-next-line security/no-block-members
+            return (currentLimit, uint64(now.add(24 hours)));
+        } else if (alreadySpent < currentLimit) {
+            return (currentLimit.sub(alreadySpent),uint64(periodEnd));
+        } else {
+            return (0, uint64(periodEnd));
+        }
+    }
+
+    /**
     * @dev Checks if an address is whitelisted for a wallet.
     * @param _wallet The target wallet.
     * @param _target The address.
@@ -496,7 +551,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     function verifyRefund(address _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal override view returns (bool) {
         if (_gasPrice > 0 && _signatures > 0 && (
             _wallet.balance < _gasUsed * _gasPrice ||
-            isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false ||
+            checkDailySpent(_wallet, _gasUsed * _gasPrice) == false ||
             IWallet(_wallet).authorised(address(this)) == false
         ))
         {
