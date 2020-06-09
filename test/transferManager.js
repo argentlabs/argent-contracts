@@ -119,7 +119,7 @@ describe("TransferManager", function () {
       // transfer some funds
       await previousTransferModule.from(owner).transferToken(existingWallet.contractAddress, ETH_TOKEN, recipient.address, 1000000, ZERO_BYTES32);
       // add new module
-      await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress, { gasLimit: 500000 });
+      await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress);
       // check result
       limit = await transferModule.getCurrentLimit(existingWallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should have been migrated");

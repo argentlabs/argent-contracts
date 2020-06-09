@@ -136,7 +136,7 @@ describe("BaseWallet", function () {
         // removing module 1
         const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [module1.contractAddress], []);
         await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("Removing module1"));
-        await module1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress, { gasLimit: 1000000 });
+        await module1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress);
         module1IsAuthorised = await wallet.authorised(module1.contractAddress);
         assert.equal(module1IsAuthorised, false, "module1 should not be authorised");
 
@@ -150,8 +150,8 @@ describe("BaseWallet", function () {
   describe("New BaseWallet", () => {
     it("should work with old modules", async () => {
       await wallet.init(owner.address, [oldModule.contractAddress]);
-      await oldModule.callDapp(wallet.contractAddress, { gasLimit: 500000 });
-      await oldModule.callDapp2(wallet.contractAddress, { gasLimit: 500000 });
+      await oldModule.callDapp(wallet.contractAddress);
+      await oldModule.callDapp2(wallet.contractAddress);
     });
     it("should work with new modules", async () => {
       await wallet.init(owner.address, [newModule.contractAddress]);

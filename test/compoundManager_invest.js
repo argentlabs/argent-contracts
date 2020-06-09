@@ -59,7 +59,7 @@ describe("Invest Manager with Compound", function () {
     const comptrollerProxy = await deployer.deploy(Unitroller);
     const comptrollerImpl = await deployer.deploy(Comptroller);
     await comptrollerProxy._setPendingImplementation(comptrollerImpl.contractAddress);
-    await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false, { gasLimit: 500000 });
+    await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false);
     comptroller = deployer.wrapDeployedContract(Comptroller, comptrollerProxy.contractAddress);
     // deploy Interest rate model
     const interestModel = await deployer.deploy(InterestModel, {}, WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
@@ -92,14 +92,14 @@ describe("Invest Manager with Compound", function () {
     // add price to Oracle
     await oracle.setUnderlyingPrice(cToken.contractAddress, WAD.div(10));
     // list cToken in Comptroller
-    await comptroller._supportMarket(cEther.contractAddress, { gasLimit: 500000 });
-    await comptroller._supportMarket(cToken.contractAddress, { gasLimit: 500000 });
+    await comptroller._supportMarket(cEther.contractAddress);
+    await comptroller._supportMarket(cToken.contractAddress);
     // deploy Price Oracle proxy
     oracleProxy = await deployer.deploy(PriceOracleProxy, {}, comptroller.contractAddress, oracle.contractAddress, cEther.contractAddress);
-    await comptroller._setPriceOracle(oracleProxy.contractAddress, { gasLimit: 200000 });
+    await comptroller._setPriceOracle(oracleProxy.contractAddress);
     // set collateral factor
-    await comptroller._setCollateralFactor(cToken.contractAddress, WAD.div(10), { gasLimit: 500000 });
-    await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10), { gasLimit: 500000 });
+    await comptroller._setCollateralFactor(cToken.contractAddress, WAD.div(10));
+    await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10));
 
     // add liquidity to tokens
     await cEther.from(liquidityProvider).mint({ value: parseEther("100") });
@@ -148,11 +148,11 @@ describe("Invest Manager with Compound", function () {
       let tx; let
         txReceipt;
       // genrate borrows to create interests
-      await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress], { gasLimit: 200000 });
+      await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress]);
       if (investInEth) {
         await token.from(borrower).approve(cToken.contractAddress, parseEther("20"));
         await cToken.from(borrower).mint(parseEther("20"));
-        tx = await cEther.from(borrower).borrow(parseEther("0.1"), { gasLimit: 8000000 });
+        tx = await cEther.from(borrower).borrow(parseEther("0.1"));
         txReceipt = await cEther.verboseWaitForTransaction(tx);
         assert.isTrue(await utils.hasEvent(txReceipt, cEther, "Borrow"), "should have generated Borrow event");
       } else {
@@ -177,8 +177,8 @@ describe("Invest Manager with Compound", function () {
         // console.log('infra before', bef);
         // console.log({ to: wallet.contractAddress, value: amount });
 
-        tx = await infrastructure.sendTransaction({ to: wallet.contractAddress, value: amount, gasLimit: 8000000 });
-        // tx = await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 100, gasLimit: 8000000 });
+        tx = await infrastructure.sendTransaction({ to: wallet.contractAddress, value: amount });
+        // tx = await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 100);
         // txReceipt = await wallet.verboseWaitForTransaction(tx);
 
         // console.log('resu', txReceipt)
@@ -197,7 +197,7 @@ describe("Invest Manager with Compound", function () {
       } else {
         // console.log(owner.address, 'bal=', await deployer.provider.getBalance(wallet.contractAddress), 'p', wallet.contractAddress, tokenAddress, amount.toString(), 0);
 
-        tx = await investManager.from(owner).addInvestment(...params, { gasLimit: 4000000 });
+        tx = await investManager.from(owner).addInvestment(...params);
         txReceipt = await investManager.verboseWaitForTransaction(tx);
       }
 
@@ -223,7 +223,7 @@ describe("Invest Manager with Compound", function () {
       if (relay) {
         txReceipt = await manager.relay(investManager, "removeInvestment", params, wallet, [owner]);
       } else {
-        tx = await investManager.from(owner).removeInvestment(...params, { gasLimit: 400000 });
+        tx = await investManager.from(owner).removeInvestment(...params);
         txReceipt = await investManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved"), "should have generated InvestmentRemoved event");

@@ -166,7 +166,7 @@ describe("Token Transfer", function () {
           wallet1.contractAddress,
           erc20.contractAddress,
           wallet1.contractAddress, // spender
-          100, { gasLimit: 1000000 },
+          100,
         ); // amount
       });
 

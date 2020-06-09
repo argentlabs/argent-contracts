@@ -71,7 +71,6 @@ describe("Token Exchanger", function () {
         erc20.contractAddress,
         ethers.utils.bigNumberify("10000000000000000000000"),
         0,
-        { gasLimit: 200000 },
       );
       const txReceipt = await exchanger.verboseWaitForTransaction(tx);
       const { destAmount } = txReceipt.events.find((log) => log.event === "TokenExchanged").args;

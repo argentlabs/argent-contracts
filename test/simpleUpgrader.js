@@ -1,5 +1,4 @@
 /* global accounts, utils */
-const etherlime = require("etherlime-lib");
 const {
   keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String,
 } = require("ethers").utils;
@@ -23,8 +22,11 @@ describe("SimpleUpgrader", function () {
   let deployer;
   let registry;
 
+  before(async () => {
+    deployer = manager.newDeployer();
+  });
+
   beforeEach(async () => {
-    deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);
     registry = await deployer.deploy(Registry);
   });
 
@@ -57,7 +59,7 @@ describe("SimpleUpgrader", function () {
       let isAuthorised = await wallet.authorised(initialModule.contractAddress);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // add module to wallet
-      await initialModule.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress, { gasLimit: 1000000 });
+      await initialModule.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress);
       isAuthorised = await wallet.authorised(moduleToAdd.contractAddress);
       assert.equal(isAuthorised, true, "added module should be authorised");
     });
@@ -74,7 +76,7 @@ describe("SimpleUpgrader", function () {
       let isAuthorised = await wallet.authorised(initialModule.contractAddress);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // try (and fail) to add moduleToAdd to wallet
-      await assert.revert(initialModule.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress, { gasLimit: 1000000 }));
+      await assert.revert(initialModule.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress));
       isAuthorised = await wallet.authorised(moduleToAdd.contractAddress);
       assert.equal(isAuthorised, false, "unregistered module should not be authorised");
     });
@@ -150,7 +152,7 @@ describe("SimpleUpgrader", function () {
           assert.isTrue(!txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success,
             "Relayed upgrade to 0 module should have failed.");
         } else {
-          assert.revert(moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 }));
+          assert.revert(moduleV1.from(owner).addModule(...params));
         }
         return;
       }
@@ -160,7 +162,7 @@ describe("SimpleUpgrader", function () {
         assert.equal(txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, useOnlyOwnerModule,
           "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
       } else {
-        const tx = await moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 });
+        const tx = await moduleV1.from(owner).addModule(...params);
         txReceipt = await moduleV1.verboseWaitForTransaction(tx);
       }
 

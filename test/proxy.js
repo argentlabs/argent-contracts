@@ -1,6 +1,7 @@
 /* global accounts */
-const etherlime = require("etherlime-lib");
 const ethers = require("ethers");
+
+const TestManager = require("../utils/test-manager");
 
 const Proxy = require("../build/Proxy");
 const Wallet = require("../build/BaseWallet");
@@ -22,7 +23,8 @@ describe("Proxy", function () {
   let module3;
 
   before(async () => {
-    deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);
+    const manager = new TestManager();
+    deployer = manager.newDeployer();
     const registry = await deployer.deploy(Registry);
     walletImplementation = await deployer.deploy(Wallet);
     module1 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
@@ -38,13 +40,13 @@ describe("Proxy", function () {
   it("should init the wallet with the correct owner", async () => {
     let walletOwner = await wallet.owner();
     assert.equal(walletOwner, ethers.constants.AddressZero, "owner should be null before init");
-    await wallet.init(owner.address, [module1.contractAddress], { gasLimit: 1000000 });
+    await wallet.init(owner.address, [module1.contractAddress]);
     walletOwner = await wallet.owner();
     assert.equal(walletOwner, owner.address, "owner should be the owner after init");
   });
 
   it("should init a wallet with the correct modules", async () => {
-    await wallet.init(owner.address, [module1.contractAddress, module2.contractAddress], { gasLimit: 1000000 });
+    await wallet.init(owner.address, [module1.contractAddress, module2.contractAddress]);
     const module1IsAuthorised = await wallet.authorised(module1.contractAddress);
     const module2IsAuthorised = await wallet.authorised(module2.contractAddress);
     const module3IsAuthorised = await wallet.authorised(module3.contractAddress);
