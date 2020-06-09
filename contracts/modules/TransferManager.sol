@@ -158,7 +158,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _to)) {
@@ -205,7 +205,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         uint256 _amount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _spender)) {
@@ -242,7 +242,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Make sure we don't call a module, the wallet itself, or a supported ERC20
@@ -277,7 +277,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Make sure we don't call a module, the wallet itself, or a supported ERC20
@@ -303,7 +303,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         address _target
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
@@ -323,7 +323,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         address _target
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(isWhitelisted(_wallet, _target), "TT: target not whitelisted");
@@ -368,7 +368,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes32 _id
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(configs[_wallet].pendingActions[_id] > 0, "TT: unknown pending action");

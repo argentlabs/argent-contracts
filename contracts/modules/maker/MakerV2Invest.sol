@@ -53,7 +53,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         uint256 _amount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Execute drip to get the chi rate updated to rho == now, otherwise join will fail
@@ -82,7 +82,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         uint256 _amount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Execute drip to count the savings accumulated until this moment
@@ -111,7 +111,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         address _wallet
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Execute drip to count the savings accumulated until this moment

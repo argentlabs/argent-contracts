@@ -28,7 +28,7 @@ import "../../../lib/other/ERC20.sol";
  * @dev Basic module that contains some methods common to all modules.
  * @author Julien Niset - <julien@argent.im>
  */
-contract BaseModule is IModule {
+abstract contract BaseModule is IModule {
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
@@ -64,21 +64,31 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Throws if the sender is not the owner of the target wallet or the module itself.
+     * @dev Throws if the sender is not the owner of the target wallet.
      */
-    modifier onlyWalletOwner(address _wallet) {
-        // Wrapping in an internal method reduces deployment cost by avoiding duplication of inlined code
-        verifyWalletOwner(_wallet);
+    modifier onlyOwner(address _wallet) {
+        require(isOwner(_wallet, msg.sender), "BM: must be owner");
         _;
     }
 
     /**
-     * @dev Throws if the sender is not the owner of the target wallet.
+     * @dev Throws if the sender is not an authorised module of the target wallet.
      */
-    modifier strictOnlyWalletOwner(address _wallet) {
-        require(isOwner(_wallet, msg.sender), "BM: msg.sender must be an owner for the wallet");
+    modifier onlyModule(address _wallet) {
+        require(isModule(_wallet, _sender), "BM: must be a module");
         _;
     }
+
+    /**
+     * @dev Throws if the sender is not the owner of the target wallet or the module itself.
+     */
+    modifier onlyOwnerOrModule(address _wallet) {
+        // Wrapping in an internal method reduces deployment cost by avoiding duplication of inlined code
+        verifyOwnerOrModule(_wallet, msg.sender);
+        _;
+    }
+
+
 
     /**
     * @dev Utility method enabling anyone to recover ERC20 token sent to the
@@ -113,11 +123,12 @@ contract BaseModule is IModule {
     }
 
      /**
-     * @dev Verify that the caller is the module or the wallet owner.
+     * @dev Verify that the caller is an authorised module or the wallet owner.
      * @param _wallet The target wallet.
+     * @param _sender The caller.
      */
-    function verifyWalletOwner(address _wallet) internal view {
-        require(msg.sender == address(this) || isOwner(_wallet, msg.sender), "BM: must be wallet owner");
+    function verifyOwnerOrModule(address _wallet, address _sender) internal view {
+        require(isModule(_wallet, _sender) || isModule(_wallet, _sender), "BM: must be owner or module");
     }
 
     /**
@@ -127,6 +138,15 @@ contract BaseModule is IModule {
      */
     function isOwner(address _wallet, address _addr) internal view returns (bool) {
         return IWallet(_wallet).owner() == _addr;
+    }
+
+    /**
+     * @dev Helper method to check if an address is an authorised module of a target wallet.
+     * @param _wallet The target wallet.
+     * @param _module The address.
+     */
+    function isModule(address _wallet, address _module) internal view returns (bool) {
+        return IWallet(_wallet).authorised(_module);
     }
 
     /**

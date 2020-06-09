@@ -98,7 +98,7 @@ contract NftTransfer is OnlyOwnerModule {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;
