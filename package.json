@@ -27,7 +27,10 @@
     "test:benchmark": "./scripts/deploy.sh ganache 999",
     "lint:js": "eslint .",
     "lint:js:staged": "bash ./scripts/eslint.sh",
-    "security:slither": "rm -rf build && npm run compile && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
+    "security:slither": "npm run security:slither:infrastructure && npm run security:slither:modules",
+    "security:slither:infrastructure": "rm -rf build && npm run compile:infrastructure && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
+    "security:slither:modules": "rm -rf build && npm run compile:modules && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
+    "security:slither:wallet": "rm -rf build && npm run compile:wallet && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
     "security:slither:triage": "rm -rf build && npm run compile && slither . --ignore-compile --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external"
   },
   "husky": {
