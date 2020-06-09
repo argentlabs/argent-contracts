@@ -57,7 +57,7 @@ abstract contract OnlyOwnerModule is BaseModule {
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures and the wallet owner signature requirement.
     */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override(BaseModule) returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
 }

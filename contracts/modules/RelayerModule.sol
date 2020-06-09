@@ -57,7 +57,7 @@ contract RelayerModule is BaseModule, LimitManager {
 
     /**
     * @dev Executes a relayed transaction.
-    * @param _wallet The target wallet.
+    * @param _module The target module.
     * @param _data The data for the relayed transaction
     * @param _nonce The nonce used to prevent replay attacks.
     * @param _signatures The signatures as a concatenated byte array.
@@ -104,6 +104,17 @@ contract RelayerModule is BaseModule, LimitManager {
     */
     function getNonce(address _wallet) external view returns (uint256 nonce) {
         return relayer[_wallet].nonce;
+    }
+
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * The method should not be called and will always revert.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return always reverts.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual override view returns (uint256, OwnerSignature) {
+        revert("RM: disabled method");
     }
 
     /* ***************** Internal & Private methods ************************* */

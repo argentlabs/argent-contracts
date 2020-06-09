@@ -65,4 +65,15 @@ contract SimpleUpgrader is BaseModule {
         // SimpleUpgrader did its job, we no longer need it as a module
         IWallet(_wallet).authoriseModule(address(this), false);
     }
+
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * The method should not be called and will always revert.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return always reverts.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual override view returns (uint256, OwnerSignature) {
+        revert("RM: disabled method");
+    }
 }
