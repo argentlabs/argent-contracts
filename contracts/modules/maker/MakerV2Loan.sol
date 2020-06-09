@@ -30,6 +30,8 @@ import "./IUniswapFactory.sol";
  */
 abstract contract MakerV2Loan is MakerV2Base {
 
+    bytes4 private constant IS_UPGRADER = bytes4(keccak256("isUpgrader(address)"));
+
     // The address of the MKR token
     GemLike internal mkrToken;
     // The address of the WETH token
@@ -88,6 +90,12 @@ abstract contract MakerV2Loan is MakerV2Base {
         _notEntered = false;
         _;
         _notEntered = true;
+    }
+
+    modifier onlyUpgrader() {
+        (bool success, bytes memory res) = msg.sender.call(abi.encodeWithSignature("isUpgrader(address)", address(this)));
+        require(success && abi.decode(res, (bytes4)) == IS_UPGRADER , "MV2: not an upgrader");
+        _;
     }
 
     // *************** Constructor ********************** //
@@ -328,6 +336,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     )
         external
         onlyModule(_wallet)
+        onlyUpgrader
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
