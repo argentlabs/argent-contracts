@@ -17,6 +17,7 @@
 pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2;
 
+import "./common/Utils.sol";
 import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitUtils.sol";
@@ -491,7 +492,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     */
     function isValidSignature(bytes32 _msgHash, bytes memory _signature) public view returns (bytes4) {
         require(_signature.length == 65, "TM: invalid signature length");
-        address signer = recoverSigner(_msgHash, _signature, 0);
+        address signer = Utils.recoverSigner(_msgHash, _signature, 0);
         require(isOwner(msg.sender, signer), "TM: Invalid signer");
         return ERC1271_ISVALIDSIGNATURE_BYTES32;
     }

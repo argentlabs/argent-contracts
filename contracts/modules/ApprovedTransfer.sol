@@ -16,8 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
-import "./common/ArgentSafeMath.sol";
-import "./common/RelayerModule.sol";
+import "./common/Utils.sol";
 import "./common/BaseTransfer.sol";
 
 /**
@@ -25,7 +24,7 @@ import "./common/BaseTransfer.sol";
  * @dev Module to transfer tokens (ETH or ERC20) with the approval of guardians.
  * @author Julien Niset - <julien@argent.im>
  */
-contract ApprovedTransfer is RelayerModule, BaseTransfer {
+contract ApprovedTransfer is BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
@@ -103,11 +102,15 @@ contract ApprovedTransfer is RelayerModule, BaseTransfer {
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
     }
 
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    function getRequiredSignatures(address _wallet, bytes memory /* _data */) public view override returns (uint256, OwnerSignature) {
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         // owner  + [n/2] guardians
-        uint numberOfSignatures = 1 + ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+        uint numberOfSignatures = 1 + Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
         return (numberOfSignatures, OwnerSignature.Required);
     }
 }

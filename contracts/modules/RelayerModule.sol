@@ -16,15 +16,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
-import "./BaseModule.sol";
-import "./GuardianUtils.sol";
+import "./common/Utils.sol";
+import "./common/BaseModule.sol";
+import "./common/LimitManager.sol";
+import "./common/GuardianUtils.sol";
 
 /**
  * @title RelayerModule
  * @dev Module to execute transactions signed by eth-less accounts and sent by a relayer.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
-contract RelayerModule is BaseModule {
+contract RelayerModule is BaseModule, LimitManager {
+
+    bytes32 constant NAME = "RelayerModule";
 
     uint256 constant internal BLOCKBOUND = 10000;
 
@@ -38,6 +42,18 @@ contract RelayerModule is BaseModule {
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
 
     /* ***************** External methods ************************* */
+
+    constructor(
+        IModuleRegistry _registry,
+        IGuardianStorage _guardianStorage,
+        ILimitStorage _storageLimit
+    )
+        BaseModule(_registry, _guardianStorage, NAME)
+        LimitManager(_storageLimit, 0)
+        public
+    {
+
+    }
 
     /**
     * @dev Executes a relayed transaction.
@@ -57,22 +73,29 @@ contract RelayerModule is BaseModule {
         uint256 _gasLimit
     )
         external
-        returns (bool success)
+        returns (bool)
     {
         uint startGas = gasleft();
         address wallet = getWalletFromData(_data);
         require(isModule(wallet, _module), "RM: module not authorised");
         bytes32 signHash = getSignHash(address(this), _module, 0, _data, _nonce, _gasPrice, _gasLimit);
-        require(checkAndUpdateUniqueness(wallet, _nonce, signHash), "RM: Duplicate request");
         (uint256 requiredSignatures, OwnerSignature ownerSignatureRequirement) = IModule(_module).getRequiredSignatures(wallet, _data);
         require(requiredSignatures > 0 || ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong number of required signatures");
+        require(checkAndUpdateUniqueness(wallet, _nonce, signHash, requiredSignatures, ownerSignatureRequirement), "RM: Duplicate request");
         require(requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         require(validateSignatures(wallet, signHash, _signatures, ownerSignatureRequirement), "RM: Invalid signatures");
-        bytes memory returnData;
         // solium-disable-next-line security/no-low-level-calls
-        (success, returnData) = _module.call(_data);
-        refund(wallet, startGas - gasleft(), _gasPrice, _gasLimit, requiredSignatures, msg.sender);
+        (bool success, bytes memory returnData) = _module.call(_data);
+        refund(
+            wallet,
+            startGas - gasleft(),
+            _gasPrice,
+            _gasLimit,
+            requiredSignatures,
+            ownerSignatureRequirement,
+            msg.sender);
         emit TransactionExecuted(wallet, success, returnData, signHash);
+        return success;
     }
 
     /**
@@ -81,17 +104,6 @@ contract RelayerModule is BaseModule {
     */
     function getNonce(address _wallet) external view returns (uint256 nonce) {
         return relayer[_wallet].nonce;
-    }
-
-    /**
-    * @dev Gets the number of valid signatures that must be provided to execute a
-    * specific relayed transaction.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @return The number of required signatures and the wallet owner signature requirement.
-    */
-    function getRequiredSignatures(address _wallet, bytes memory _data) external view returns (uint256, OwnerSignature) {
-        return (0,OwnerSignature.Optional);
     }
 
     /* ***************** Internal & Private methods ************************* */
@@ -127,35 +139,45 @@ contract RelayerModule is BaseModule {
     }
 
     /**
-    * @dev Checks if the relayed transaction is unique.
+    * @dev Checks if the relayed transaction is unique. If yes the state is updated.
+    * For actions requiring 1 signature by the owner we use the incremental nonce.
+    * For all other actions we check/store the signHash in a mapping.
     * @param _wallet The target wallet.
-    * @param _nonce The nonce
-    * @param _signHash The signed hash of the transaction
+    * @param _nonce The nonce.
+    * @param _signHash The signed hash of the transaction.
+    * @param requiredSignatures The number of signatures required.
+    * @param ownerSignatureRequirement The wallet owner signature requirement.
+    * @return true if the transaction is unique.
     */
-    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 _signHash) internal virtual returns (bool) {
-        if (relayer[_wallet].executedTx[_signHash] == true) {
-            return false;
+    function checkAndUpdateUniqueness(
+        address _wallet,
+        uint256 _nonce,
+        bytes32 _signHash,
+        uint256 requiredSignatures,
+        OwnerSignature ownerSignatureRequirement
+    )
+        internal
+        returns (bool)
+    {
+        if (requiredSignatures == 1 && ownerSignatureRequirement == OwnerSignature.Required) {
+            // use the incremental nonce
+            if (_nonce <= relayer[_wallet].nonce) {
+                return false;
+            }
+            uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
+            if (nonceBlock > block.number + BLOCKBOUND) {
+                return false;
+            }
+            relayer[_wallet].nonce = _nonce;
+            return true;
+        } else {
+            // use the txHash map
+            if (relayer[_wallet].executedTx[_signHash] == true) {
+                return false;
+            }
+            relayer[_wallet].executedTx[_signHash] = true;
+            return true;
         }
-        relayer[_wallet].executedTx[_signHash] = true;
-        return true;
-    }
-
-    /**
-    * @dev Checks that a nonce has the correct format and is valid.
-    * It must be constructed as nonce = {block number}{timestamp} where each component is 16 bytes.
-    * @param _wallet The target wallet.
-    * @param _nonce The nonce
-    */
-    function checkAndUpdateNonce(address _wallet, uint256 _nonce) internal returns (bool) {
-        if (_nonce <= relayer[_wallet].nonce) {
-            return false;
-        }
-        uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
-        if (nonceBlock > block.number + BLOCKBOUND) {
-            return false;
-        }
-        relayer[_wallet].nonce = _nonce;
-        return true;
     }
 
     /**
@@ -188,7 +210,7 @@ contract RelayerModule is BaseModule {
         bool isGuardian;
 
         for (uint8 i = 0; i < _signatures.length / 65; i++) {
-            address signer = recoverSigner(_signHash, _signatures, i);
+            address signer = Utils.recoverSigner(_signHash, _signatures, i);
 
             if (i == 0) {
                 if (_option == OwnerSignature.Required) {
@@ -216,37 +238,17 @@ contract RelayerModule is BaseModule {
         return true;
     }
 
-    /**
-    * @dev Recovers the signer at a given position from a list of concatenated signatures.
-    * @param _signedHash The signed hash
-    * @param _signatures The concatenated signatures.
-    * @param _index The index of the signature to recover.
-    */
-    function recoverSigner(bytes32 _signedHash, bytes memory _signatures, uint _index) internal pure returns (address) {
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-        // we jump 32 (0x20) as the first slot of bytes contains the length
-        // we jump 65 (0x41) per signature
-        // for v we load 32 bytes ending with v (the first 31 come from s) then apply a mask
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            r := mload(add(_signatures, add(0x20,mul(0x41,_index))))
-            s := mload(add(_signatures, add(0x40,mul(0x41,_index))))
-            v := and(mload(add(_signatures, add(0x41,mul(0x41,_index)))), 0xff)
-        }
-        require(v == 27 || v == 28); // solium-disable-line error-reason
-        return ecrecover(_signedHash, v, r, s);
-    }
+
 
     /**
     * @dev Refunds the gas used to the Relayer.
-    * For security reasons the default behavior is to not refund calls with 0 or 1 signatures.
+    * For security reasons the default behavior is to not refund calls with 0 or 1 signatures unless the owner is signing.
     * @param _wallet The target wallet.
     * @param _gasUsed The gas used.
     * @param _gasPrice The gas price for the refund.
     * @param _gasLimit The gas limit for the refund.
     * @param _signatures The number of signatures used in the call.
+    * @param _ownerSignatureRequirement The owner signature requirement.
     * @param _relayer The address of the Relayer.
     */
     function refund(
@@ -255,36 +257,28 @@ contract RelayerModule is BaseModule {
         uint _gasPrice,
         uint _gasLimit,
         uint _signatures,
+        OwnerSignature _ownerSignatureRequirement,
         address _relayer
     )
-        internal virtual
+        internal
     {
-        uint256 amount = 29292 + _gasUsed; // 21000 (transaction) + 7620 (execution of refund) + 672 to log the event + _gasUsed
-        // only refund if gas price not null, more than 1 signatures, gas less than gasLimit
-        if (_gasPrice > 0 && _signatures > 1 && amount <= _gasLimit) {
+        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
+        uint256 amount = 36616 + _gasUsed;
+        if (_gasPrice > 0 && _signatures > 0 && _ownerSignatureRequirement == OwnerSignature.Required && amount <= _gasLimit) {
             if (_gasPrice > tx.gasprice) {
                 amount = amount * tx.gasprice;
             } else {
                 amount = amount * _gasPrice;
             }
+            checkAndUpdateDailySpent(_wallet, amount);
             invokeWallet(_wallet, _relayer, amount, EMPTY_BYTES);
-        }
-    }
-
-    /**
-    * @dev Parses the data to extract the method signature.
-    */
-    function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
-        require(_data.length >= 4, "RM: Invalid functionPrefix");
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            prefix := mload(add(_data, 0x20))
         }
     }
 
    /**
     * @dev Gets the address of the target wallet as the first parameter of an encoded function call.
-    * @return the address of the target wallet.
+    * @param _data The data.
+    * @return _wallet the address of the target wallet.
     */
     function getWalletFromData(bytes memory _data) private pure returns (address _wallet) {
         require(_data.length >= 36, "RM: Invalid data");

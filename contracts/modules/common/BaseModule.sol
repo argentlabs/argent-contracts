@@ -38,21 +38,15 @@ abstract contract BaseModule is IModule {
     // The address of the Guardian storage
     IGuardianStorage internal guardianStorage;
 
+    event ModuleCreated(bytes32 name);
+    event ModuleInitialised(address wallet);
+
     /**
      * @dev Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(address _wallet) {
         require(!guardianStorage.isLocked(_wallet), "BM: wallet locked");
         _;
-    }
-
-    event ModuleCreated(bytes32 name);
-    event ModuleInitialised(address wallet);
-
-    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage, bytes32 _name) public {
-        registry = _registry;
-        guardianStorage = _guardianStorage;
-        emit ModuleCreated(_name);
     }
 
     /**
@@ -75,7 +69,7 @@ abstract contract BaseModule is IModule {
      * @dev Throws if the sender is not an authorised module of the target wallet.
      */
     modifier onlyModule(address _wallet) {
-        require(isModule(_wallet, _sender), "BM: must be a module");
+        require(isModule(_wallet, msg.sender), "BM: must be a module");
         _;
     }
 
@@ -88,7 +82,11 @@ abstract contract BaseModule is IModule {
         _;
     }
 
-
+    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage, bytes32 _name) public {
+        registry = _registry;
+        guardianStorage = _guardianStorage;
+        emit ModuleCreated(_name);
+    }
 
     /**
     * @dev Utility method enabling anyone to recover ERC20 token sent to the
@@ -172,4 +170,5 @@ abstract contract BaseModule is IModule {
             revert("BM: wallet invoke reverted");
         }
     }
+
 }

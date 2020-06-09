@@ -81,14 +81,6 @@ abstract contract MakerV2Loan is MakerV2Base {
     // *************** Modifiers *************************** //
 
     /**
-     * @dev Throws if the sender is not an authorised module.
-     */
-    modifier onlyModule(address _wallet) {
-        require(IWallet(_wallet).authorised(msg.sender), "MV2: sender unauthorized");
-        _;
-    }
-
-    /**
      * @dev Prevents call reentrancy
      */
     modifier nonReentrant() {

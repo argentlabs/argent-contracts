@@ -16,8 +16,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
+import "./common/Utils.sol";
 import "./common/GuardianUtils.sol";
-import "./common/RelayerModule.sol";
+import "./common/BaseModule.sol";
 
 /**
  * @title GuardianManager
@@ -31,7 +32,7 @@ import "./common/RelayerModule.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract GuardianManager is RelayerModule {
+contract GuardianManager is BaseModule {
 
     bytes32 constant NAME = "GuardianManager";
 
@@ -204,16 +205,14 @@ contract GuardianManager is RelayerModule {
         return guardianStorage.guardianCount(_wallet);
     }
 
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
-        return checkAndUpdateNonce(_wallet, _nonce);
-    }
-
-    function getRequiredSignatures(address /* _wallet */, bytes memory _data) public view override returns (uint256, OwnerSignature) {
-        bytes4 methodId = functionPrefix(_data);
-
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+        bytes4 methodId = Utils.functionPrefix(_data);
         if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {
             return (0, OwnerSignature.Anyone);
         } else {
