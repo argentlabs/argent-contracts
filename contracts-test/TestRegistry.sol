@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Source https://github.com/christianlundkvist/simple-multisig/blob/master/contracts/TestRegistry.sol
-pragma solidity ^0.6.8;
+pragma solidity ^0.6.9;
 
 // This contract is only used for testing the MultiSigWallet
 contract TestRegistry {
