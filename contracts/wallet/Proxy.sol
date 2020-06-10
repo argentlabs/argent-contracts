@@ -46,6 +46,8 @@ contract Proxy {
     }
 
     receive() external payable {
-        emit Received(msg.value, msg.sender, msg.data);
+        if (msg.value > 0) {
+            emit Received(msg.value, msg.sender, msg.data);
+        }
     }
 }
