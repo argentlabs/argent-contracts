@@ -130,7 +130,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
         }
     }
 
-    // TODO: We should inherit the OnlyOwnerModule implementation
     function addModule(address _wallet, address _module) external override(BaseModule, OnlyOwnerModule) onlyWalletOwner(_wallet) {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
