@@ -78,6 +78,38 @@ describe("SimpleUpgrader", function () {
       isAuthorised = await wallet.authorised(moduleToAdd.contractAddress);
       assert.equal(isAuthorised, false, "unregistered module should not be authorised");
     });
+
+    it("should not be able to upgrade to unregistered module", async () => {
+      // create module V1
+      const moduleV1 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
+      // register module V1
+      await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
+      // create wallet with module V1
+      const wallet = await deployer.deploy(Wallet);
+      await wallet.init(owner.address, [moduleV1.contractAddress]);
+      // create module V2
+      const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
+      // create upgrader
+      const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], [moduleV2.contractAddress]);
+      await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
+
+      // check we can't upgrade from V1 to V2
+      await assert.revertWith(moduleV1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress), "SU: module is not registered");
+      // register module V2
+      await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
+      // now we can upgrade
+      await moduleV1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress);
+
+      // test if the upgrade worked
+      const isV1Authorised = await wallet.authorised(moduleV1.contractAddress);
+      const isV2Authorised = await wallet.authorised(moduleV2.contractAddress);
+      const isUpgraderAuthorised = await wallet.authorised(upgrader.contractAddress);
+      const numModules = await wallet.modules();
+      assert.isFalse(isV1Authorised, "moduleV1 should be unauthorised");
+      assert.isTrue(isV2Authorised, "moduleV2 should be authorised");
+      assert.equal(isUpgraderAuthorised, false, "upgrader should not be authorised");
+      assert.equal(numModules, 1, "only one module (moduleV2) should be authorised");
+    });
   });
 
   describe("Upgrading modules", () => {
@@ -97,7 +129,7 @@ describe("SimpleUpgrader", function () {
       // create module V2
       const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
       // register module V2
-      // await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
+      await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
       // create upgrader
       const toAdd = modulesToAdd(moduleV2.contractAddress);
       const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], toAdd);

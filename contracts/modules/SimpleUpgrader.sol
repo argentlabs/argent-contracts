@@ -53,6 +53,7 @@ contract SimpleUpgrader is BaseModule {
         uint256 i = 0;
         //add new modules
         for (; i < toEnable.length; i++) {
+            require(registry.isRegisteredModule(toEnable[i]), "SU: module is not registered");
             BaseWallet(_wallet).authoriseModule(toEnable[i], true);
         }
         //remove old modules
