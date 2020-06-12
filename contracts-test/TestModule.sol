@@ -8,9 +8,9 @@ import "../contracts/modules/common/RelayerModule.sol";
  * @dev Basic test module subclassing RelayerModule
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TestModuleRelayer is BaseModule, RelayerModule {
+contract TestModule is OnlyOwnerModule {
 
-    bytes32 constant NAME = "TestModuleRelayer";
+    bytes32 constant NAME = "TestModule";
 
     bool boolVal;
     uint uintVal;
@@ -18,13 +18,14 @@ contract TestModuleRelayer is BaseModule, RelayerModule {
     constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage, bool _boolVal, uint _uintVal) BaseModule(_registry, _guardianStorage, NAME) public {
         boolVal = _boolVal;
         uintVal = _uintVal;
+        dapp = new TestDapp();
     }
 
     function invalidOwnerChange(address _wallet) external {
         IWallet(_wallet).setOwner(address(0)); // this should fail
     }
 
-    function setIntOwnerOnly(address _wallet, uint _val) external onlyWalletOwner(_wallet) {
+    function setIntOwnerOnly(address _wallet, uint _val) external onlyOwnerOrModule(_wallet) {
         uintVal = _val;
     }
     function clearInt() external {
@@ -66,14 +67,26 @@ contract TestModuleRelayer is BaseModule, RelayerModule {
         return _addr;
     }
 
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
-        return checkAndUpdateNonce(_wallet, _nonce);
+    function callDapp(address _wallet)
+        external
+    {
+        invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("noReturn()"));
     }
 
-    function getRequiredSignatures(address /* _wallet */, bytes memory /*_data */) public view override returns (uint256, OwnerSignature) {
-        return (1, OwnerSignature.Required);
+    function callDapp2(address _wallet, uint256 _val, bool _isNewWallet)
+        external returns (uint256 _ret)
+    {
+        bytes memory result = invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", _val));
+        if (_isNewWallet) {
+            require(result.length > 0, "TestModule: callDapp2 returned no result");
+            (_ret) = abi.decode(result, (uint256));
+            require(_ret == _val, "TestModule: invalid val");
+        } else {
+            require(result.length == 0, "TestModule: callDapp2 returned some result");
+        }
+    }
+
+    function fail(address _wallet, string calldata reason) external {
+        invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
     }
 }

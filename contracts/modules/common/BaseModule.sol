@@ -126,7 +126,7 @@ abstract contract BaseModule is IModule {
      * @param _sender The caller.
      */
     function verifyOwnerOrModule(address _wallet, address _sender) internal view {
-        require(isModule(_wallet, _sender) || isModule(_wallet, _sender), "BM: must be owner or module");
+        require(isModule(_wallet, _sender) || isOwner(_wallet, _sender), "BM: must be owner or module");
     }
 
     /**
