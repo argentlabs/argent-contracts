@@ -24,10 +24,10 @@ import "./TokenPriceProvider.sol";
 import "./TransferStorage.sol";
 
 /**
- * @title LegacyTransferManager
+ * @title Legacy TransferManager
  * @dev Copy of TransferManager module as from release 1.5
  */
-contract LegacyTransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTransfer, LimitManager {
+contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTransfer, LimitManager {
 
     bytes32 constant NAME = "TransferManager";
 

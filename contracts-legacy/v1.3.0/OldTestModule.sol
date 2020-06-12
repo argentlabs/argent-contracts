@@ -1,9 +1,8 @@
-// SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.9;
+pragma solidity ^0.5.4;
 
-import "../contracts/modules/common/OnlyOwnerModule.sol";
-import "./TestDapp.sol";
-import "./LegacyBaseWallet.sol";
+import "./OnlyOwnerModule.sol";
+import "../../contracts-test/TestDapp.sol";
+import "./BaseWallet.sol";
 
 /**
  * @title OldTestModule
@@ -19,9 +18,9 @@ contract OldTestModule is OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry
+        ModuleRegistry _registry
     )
-        BaseModule(_registry, IGuardianStorage(0), NAME)
+        BaseModule(_registry, GuardianStorage(0), NAME)
         public
     {
         dapp = new TestDapp();
@@ -29,13 +28,13 @@ contract OldTestModule is OnlyOwnerModule {
 
     // *************** External/Public Functions ********************* //
 
-    function callDapp(LegacyBaseWallet _wallet)
+    function callDapp(BaseWallet _wallet)
         external
     {
         _wallet.invoke(address(dapp), 0, abi.encodeWithSignature("noReturn()", 0));
     }
 
-    function callDapp2(LegacyBaseWallet _wallet)
+    function callDapp2(BaseWallet _wallet)
         external
     {
         _wallet.invoke(address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", 2));

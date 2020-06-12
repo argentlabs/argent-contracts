@@ -6,13 +6,13 @@ const {
 const { bigNumToBytes32, ETH_TOKEN } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
-const Wallet = require("../build-legacy/BaseWallet");
-const Registry = require("../build-legacy/ModuleRegistry");
-const GuardianStorage = require("../build-legacy/GuardianStorage");
-const MakerManager = require("../build-legacy/LegacyMakerManager");
+const Wallet = require("../build-legacy/v1.5.0/BaseWallet");
+const Registry = require("../build-legacy/v1.5.0/ModuleRegistry");
+const GuardianStorage = require("../build-legacy/v1.5.0/GuardianStorage");
+const MakerManager = require("../build-legacy/v1.5.0/MakerManager");
 
-// Testing the LegacyMakerManager contract
-describe("LegacyMakerManager Module", function () {
+// Testing the Legacy MakerManager contract
+describe("Legacy MakerManager Module", function () {
   this.timeout(100000);
 
   const manager = new TestManager();

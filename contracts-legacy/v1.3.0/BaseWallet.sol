@@ -1,36 +1,14 @@
-pragma solidity ^0.6.9;
+pragma solidity ^0.5.4;
+
+import "./Module.sol";
 
 /**
- * @title LegacyBaseWallet
+ * @title BaseWallet
  * @dev Simple modular wallet that authorises modules to call its invoke() method.
  * Based on https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 by
  * @author Julien Niset - <julien@argent.im>
  */
-
- interface LegacyModule {
-
-    /**
-     * @dev Inits a module for a wallet by e.g. setting some wallet specific parameters in storage.
-     * @param _wallet The wallet.
-     */
-    function init(LegacyBaseWallet _wallet) external;
-
-    /**
-     * @dev Adds a module to a wallet.
-     * @param _wallet The target wallet.
-     * @param _module The modules to authorise.
-     */
-    function addModule(LegacyBaseWallet _wallet, LegacyModule _module) external;
-
-    /**
-    * @dev Utility method to recover any ERC20 token that was sent to the
-    * contract by mistake.
-    * @param _token The token to recover.
-    */
-    function recoverToken(address _token) external;
-}
-
-contract LegacyBaseWallet {
+contract BaseWallet {
 
     // The implementation of the proxy
     address public implementation;
@@ -70,7 +48,7 @@ contract LegacyBaseWallet {
         for(uint256 i = 0; i < _modules.length; i++) {
             require(authorised[_modules[i]] == false, "BW: module is already added");
             authorised[_modules[i]] = true;
-            LegacyModule(_modules[i]).init(this);
+            Module(_modules[i]).init(this);
             emit AuthorisedModule(_modules[i], true);
         }
     }
@@ -85,7 +63,7 @@ contract LegacyBaseWallet {
             if(_value == true) {
                 modules += 1;
                 authorised[_module] = true;
-                LegacyModule(_module).init(this);
+                Module(_module).init(this);
             }
             else {
                 modules -= 1;
@@ -126,8 +104,34 @@ contract LegacyBaseWallet {
      */
     function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly {
         // solium-disable-next-line security/no-call-value
-        (bool success, ) = _target.call{value: _value}(_data);
+        (bool success, ) = _target.call.value(_value)(_data);
         require(success, "BW: call to target failed");
         emit Invoked(msg.sender, _target, _value, _data);
+    }
+
+    /**
+     * @dev This method makes it possible for the wallet to comply to interfaces expecting the wallet to
+     * implement specific static methods. It delegates the static call to a target contract if the data corresponds
+     * to an enabled method, or logs the call otherwise.
+     */
+    function() external payable {
+        if(msg.data.length > 0) {
+            address module = enabled[msg.sig];
+            if(module == address(0)) {
+                emit Received(msg.value, msg.sender, msg.data);
+            }
+            else {
+                require(authorised[module], "BW: must be an authorised module for static call");
+                // solium-disable-next-line security/no-inline-assembly
+                assembly {
+                    calldatacopy(0, 0, calldatasize())
+                    let result := staticcall(gas, module, 0, calldatasize(), 0, 0)
+                    returndatacopy(0, 0, returndatasize())
+                    switch result
+                    case 0 {revert(0, returndatasize())}
+                    default {return (0, returndatasize())}
+                }
+            }
+        }
     }
 }

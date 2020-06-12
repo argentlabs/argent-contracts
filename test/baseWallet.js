@@ -2,9 +2,9 @@
 const ethers = require("ethers");
 
 const Wallet = require("../build/BaseWallet");
-const OldWallet = require("../build/LegacyBaseWallet");
+const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
 const Module = require("../build/TestModuleRelayer");
-const OldTestModule = require("../build/OldTestModule");
+const OldTestModule = require("../build-legacy/v1.3.0/OldTestModule");
 const NewTestModule = require("../build/NewTestModule");
 const Registry = require("../build/ModuleRegistry");
 const SimpleUpgrader = require("../build/SimpleUpgrader");

@@ -74,7 +74,7 @@ interface IDSValue {
  * @dev Module to borrow tokens with MakerDAO
  * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
-contract LegacyMakerManager is DSMath, Loan, BaseModule, RelayerModule, OnlyOwnerModule {
+contract MakerManager is DSMath, Loan, BaseModule, RelayerModule, OnlyOwnerModule {
     bytes32 constant NAME = "MakerManager";
 
     // The Maker Tub contract
