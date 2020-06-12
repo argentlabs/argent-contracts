@@ -86,8 +86,8 @@ const deploy = async (network) => {
     TransferManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.TransferStorage,
-    config.modules.GuardianStorage,
+    TransferStorageWrapper.contractAddress,
+    GuardianStorageWrapper.contractAddress,
     config.contracts.TokenPriceProvider,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
@@ -109,7 +109,7 @@ const deploy = async (network) => {
     NftTransfer,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     config.CryptoKitties.contract,
   );
     // Deploy the CompoundManager module
@@ -117,7 +117,7 @@ const deploy = async (network) => {
     CompoundManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
   );
@@ -126,7 +126,7 @@ const deploy = async (network) => {
     MakerV2Manager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     config.defi.maker.migration,
     config.defi.maker.pot,
     config.defi.maker.jug,
