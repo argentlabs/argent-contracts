@@ -81,6 +81,17 @@ contract BaseModule is IModule {
     }
 
     /**
+    * @dev Utility method enbaling anyone to recover ERC20 token sent to the
+    * module by mistake and transfer them to the Module Registry.
+    * @param _token The token to recover.
+    */
+    function recoverToken(address _token) external override {
+        uint total = ERC20(_token).balanceOf(address(this));
+        bool success = ERC20(_token).transfer(address(registry), total);
+        require(success, "BM: recover token transfer failed");
+    }
+
+    /**
      * @dev Inits the module for a wallet by logging an event.
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
@@ -94,20 +105,9 @@ contract BaseModule is IModule {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(address _wallet, address _module) external virtual override strictOnlyWalletOwner(_wallet) {
+    function addModule(address _wallet, address _module) public virtual override strictOnlyWalletOwner(_wallet) {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
-    }
-
-    /**
-    * @dev Utility method enbaling anyone to recover ERC20 token sent to the
-    * module by mistake and transfer them to the Module Registry.
-    * @param _token The token to recover.
-    */
-    function recoverToken(address _token) external virtual override {
-        uint total = ERC20(_token).balanceOf(address(this));
-        bool success = ERC20(_token).transfer(address(registry), total);
-        require(success, "BM: recover token transfer failed");
     }
 
     /**

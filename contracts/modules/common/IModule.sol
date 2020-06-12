@@ -26,6 +26,13 @@ pragma solidity >=0.5.4 <0.7.0;
 interface IModule {
 
     /**
+    * @dev Utility method to recover any ERC20 token that was sent to the
+    * module by mistake.
+    * @param _token The token to recover.
+    */
+    function recoverToken(address _token) external;
+
+    /**
      * @dev Inits a module for a wallet by e.g. setting some wallet specific parameters in storage.
      * @param _wallet The wallet.
      */
@@ -37,11 +44,4 @@ interface IModule {
      * @param _module The modules to authorise.
      */
     function addModule(address _wallet, address _module) external;
-
-    /**
-    * @dev Utility method to recover any ERC20 token that was sent to the
-    * module by mistake.
-    * @param _token The token to recover.
-    */
-    function recoverToken(address _token) external;
 }
