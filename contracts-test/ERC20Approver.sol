@@ -1,4 +1,4 @@
-pragma solidity ^0.6.9;
+pragma solidity ^0.6.10;
 import "../contracts/wallet/BaseWallet.sol";
 import "../contracts/modules/common/OnlyOwnerModule.sol";
 
