@@ -94,7 +94,7 @@ describe("SimpleUpgrader", function () {
       await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
 
       // check we can't upgrade from V1 to V2
-      await assert.revertWith(moduleV1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress), "SU: module is not registered");
+      await assert.revertWith(moduleV1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress), "SU: Not all modules are registered");
       // register module V2
       await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
       // now we can upgrade

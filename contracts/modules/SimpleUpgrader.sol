@@ -50,10 +50,11 @@ contract SimpleUpgrader is BaseModule {
      * @param _wallet The target wallet.
      */
     function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+        require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
+
         uint256 i = 0;
         //add new modules
         for (; i < toEnable.length; i++) {
-            require(registry.isRegisteredModule(toEnable[i]), "SU: module is not registered");
             BaseWallet(_wallet).authoriseModule(toEnable[i], true);
         }
         //remove old modules
