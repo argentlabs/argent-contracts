@@ -24,8 +24,10 @@ import "./TokenPriceProvider.sol";
 import "./TransferStorage.sol";
 
 /**
- * @title Legacy TransferManager
- * @dev Copy of TransferManager module as from release 1.5
+ * @title TransferManager
+ * @dev Module to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
+ * This module is the V2 of TokenTransfer.
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTransfer, LimitManager {
 
