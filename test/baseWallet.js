@@ -1,7 +1,8 @@
 /* global accounts */
 const ethers = require("ethers");
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
 const Module = require("../build/TestModuleRelayer");
 const OldTestModule = require("../build-legacy/v1.3.0/OldTestModule");
@@ -21,6 +22,7 @@ describe("BaseWallet", function () {
 
   let deployer;
   let wallet;
+  let walletImplementation;
   let registry;
   let module1;
   let module2;
@@ -36,10 +38,12 @@ describe("BaseWallet", function () {
     module3 = await deployer.deploy(Module, {}, registry.contractAddress, true, 42);
     oldModule = await deployer.deploy(OldTestModule, {}, registry.contractAddress);
     newModule = await deployer.deploy(NewTestModule, {}, registry.contractAddress);
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
   });
 
   describe("Old and New BaseWallets", () => {

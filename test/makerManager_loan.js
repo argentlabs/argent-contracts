@@ -6,7 +6,7 @@ const {
 const { bigNumToBytes32, ETH_TOKEN } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
-const Wallet = require("../build-legacy/v1.5.0/BaseWallet");
+const LegacyWallet = require("../build-legacy/v1.5.0/BaseWallet");
 const Registry = require("../build-legacy/v1.5.0/ModuleRegistry");
 const GuardianStorage = require("../build-legacy/v1.5.0/GuardianStorage");
 const MakerManager = require("../build-legacy/v1.5.0/MakerManager");
@@ -54,7 +54,7 @@ describe("Legacy MakerManager Module", function () {
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    wallet = await deployer.deploy(LegacyWallet);
     await wallet.init(owner.address, [loanManager.contractAddress]);
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther("5") });
   });

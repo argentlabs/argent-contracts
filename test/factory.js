@@ -2,7 +2,7 @@
 const ethers = require("ethers");
 const { bigNumberify } = require("ethers").utils;
 
-const Wallet = require("../build/BaseWallet");
+const BaseWallet = require("../build/BaseWallet");
 const Module = require("../build/BaseModule");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const ENSRegistry = require("../build/ENSRegistry");
@@ -68,7 +68,7 @@ describe("Wallet Factory", function () {
       ethers.utils.namehash("reverse"), ethers.utils.keccak256(ethers.utils.toUtf8Bytes("addr")), ensReverse.contractAddress,
     );
 
-    implementation = await deployer.deploy(Wallet);
+    implementation = await deployer.deploy(BaseWallet);
 
     moduleRegistry = await deployer.deploy(ModuleRegistry);
 
@@ -153,7 +153,7 @@ describe("Wallet Factory", function () {
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       // we test that the wallet has the correct owner
-      const wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner.address, "should have the correct owner");
     });
@@ -166,7 +166,7 @@ describe("Wallet Factory", function () {
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       // we test that the wallet has the correct modules
-      const wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
       let isAuthorised = await wallet.authorised(module1.contractAddress);
       assert.equal(isAuthorised, true, "module1 should be authorised");
       isAuthorised = await wallet.authorised(module2.contractAddress);
@@ -244,7 +244,7 @@ describe("Wallet Factory", function () {
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       // we test that the wallet has the correct owner
-      const wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner.address, "should have the correct owner");
     });
@@ -257,7 +257,7 @@ describe("Wallet Factory", function () {
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       // we test that the wallet has the correct modules
-      const wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
       let isAuthorised = await wallet.authorised(module1.contractAddress);
       assert.equal(isAuthorised, true, "module1 should be authorised");
       isAuthorised = await wallet.authorised(module2.contractAddress);
@@ -343,7 +343,7 @@ describe("Wallet Factory", function () {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct owner
-      const wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner.address, "should have the correct owner");
     });
@@ -361,7 +361,7 @@ describe("Wallet Factory", function () {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct modules
-      const wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
       let isAuthorised = await wallet.authorised(module1.contractAddress);
       assert.equal(isAuthorised, true, "module1 should be authorised");
       isAuthorised = await wallet.authorised(module2.contractAddress);
@@ -433,7 +433,7 @@ describe("Wallet Factory", function () {
       // we create the wallet
       const tx = await factory.from(infrastructure).createCounterfactualWallet(owner.address, modules, label, salt);
       const txReceipt = await factory.verboseWaitForTransaction(tx);
-      const wallet = deployer.wrapDeployedContract(Wallet, futureAddr);
+      const wallet = deployer.wrapDeployedContract(BaseWallet, futureAddr);
       assert.isTrue(await utils.hasEvent(txReceipt, wallet, "Received"), "should have generated Received event");
       const log = await utils.parseLogs(txReceipt, wallet, "Received");
       assert.equal(log[0].value.toNumber(), amount, "should log the correct amount");
@@ -476,7 +476,7 @@ describe("Wallet Factory", function () {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct owner
-      const wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner.address, "should have the correct owner");
     });
@@ -511,7 +511,7 @@ describe("Wallet Factory", function () {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct modules
-      const wallet = await deployer.wrapDeployedContract(Wallet, walletAddr);
+      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
       let isAuthorised = await wallet.authorised(module1.contractAddress);
       assert.equal(isAuthorised, true, "module1 should be authorised");
       isAuthorised = await wallet.authorised(module2.contractAddress);

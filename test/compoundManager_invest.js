@@ -6,7 +6,8 @@ const {
 const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const CompoundManager = require("../build/CompoundManager");
 
 // Compound
@@ -39,6 +40,7 @@ describe("Invest Manager with Compound", function () {
 
   let deployer;
   let wallet;
+  let walletImplementation;
   let investManager;
   let compoundRegistry;
   let token;
@@ -121,10 +123,13 @@ describe("Invest Manager with Compound", function () {
       comptroller.contractAddress,
       compoundRegistry.contractAddress,
     );
+
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [investManager.contractAddress]);
   });
 

@@ -34,7 +34,7 @@ contract TestModuleRelayer is BaseModule, RelayerModule {
     // used to simulate a bad module in MakerV2Loan tests
     function callContract(address _contract, uint256 _value, bytes calldata _data) external {
         // solium-disable-next-line security/no-call-value
-        (bool success,) = _contract.call.value(_value)(_data);
+        (bool success,) = _contract.call{value: _value}(_data);
         if (!success) {
             // solium-disable-next-line security/no-inline-assembly
             assembly {

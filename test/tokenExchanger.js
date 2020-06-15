@@ -1,7 +1,8 @@
 /* global accounts */
 const ethers = require("ethers");
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const KyberNetwork = require("../build/KyberNetworkTest");
 const GuardianStorage = require("../build/GuardianStorage");
@@ -26,6 +27,7 @@ describe("Token Exchanger", function () {
 
   let deployer;
   let wallet;
+  let walletImplementation;
   let kyber;
   let exchanger;
   let erc20;
@@ -37,10 +39,13 @@ describe("Token Exchanger", function () {
     const guardianStorage = await deployer.deploy(GuardianStorage);
     exchanger = await deployer.deploy(TokenExchanger, {},
       registry.contractAddress, guardianStorage.contractAddress, kyber.contractAddress, collector.address, FEE_RATIO);
+
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [exchanger.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [kyber.contractAddress, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for kyber)
     await kyber.addToken(erc20.contractAddress, TOKEN_RATE, DECIMALS);

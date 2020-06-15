@@ -4,7 +4,8 @@ const {
 const TestManager = require("../utils/test-manager");
 const Registry = require("../build/ModuleRegistry");
 const MakerV2Manager = require("../build/MakerV2Manager");
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const MakerRegistry = require("../build/MakerRegistry");
 
@@ -21,6 +22,7 @@ describe("MakerV2 DSR", function () {
   const owner = accounts[1].signer;
 
   let wallet;
+  let walletImplementation;
   let makerV2;
   let sai;
   let dai;
@@ -55,10 +57,14 @@ describe("MakerV2 DSR", function () {
       makerRegistry.contractAddress,
       uni.uniswapFactory.contractAddress,
     );
+
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
     await wallet.init(owner.address, [makerV2.contractAddress]);
     await sai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
     await dai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));

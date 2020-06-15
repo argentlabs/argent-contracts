@@ -5,7 +5,8 @@ const { parseEther, bigNumberify } = require("ethers").utils;
 const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const CompoundManager = require("../build/CompoundManager");
 
 // Compound
@@ -41,6 +42,7 @@ describe("Loan Module", function () {
 
   let deployer;
   let wallet;
+  let walletImplementation;
   let loanManager;
   let compoundRegistry;
   let token1;
@@ -144,10 +146,13 @@ describe("Loan Module", function () {
       comptroller.contractAddress,
       compoundRegistry.contractAddress,
     );
+
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [loanManager.contractAddress]);
   });
 

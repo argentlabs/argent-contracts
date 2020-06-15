@@ -4,7 +4,7 @@ const ethers = require("ethers");
 const TestManager = require("../utils/test-manager");
 
 const Proxy = require("../build/Proxy");
-const Wallet = require("../build/BaseWallet");
+const BaseWallet = require("../build/BaseWallet");
 const Module = require("../build/BaseModule");
 const Registry = require("../build/ModuleRegistry");
 
@@ -26,7 +26,7 @@ describe("Proxy", function () {
     const manager = new TestManager();
     deployer = manager.newDeployer();
     const registry = await deployer.deploy(Registry);
-    walletImplementation = await deployer.deploy(Wallet);
+    walletImplementation = await deployer.deploy(BaseWallet);
     module1 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
     module2 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
     module3 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
@@ -34,7 +34,7 @@ describe("Proxy", function () {
 
   beforeEach(async () => {
     proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(Wallet, proxy.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
   });
 
   it("should init the wallet with the correct owner", async () => {
