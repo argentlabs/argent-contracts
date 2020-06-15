@@ -311,6 +311,23 @@ describe("RecoveryManager", function () {
   });
 
   describe("Execute Recovery", () => {
+    it("should not allow recovery to be executed with no guardians", async () => {
+      const noGuardians = [];
+      await assert.revertWith(manager.relay(
+        recoveryManager,
+        "executeRecovery",
+        [wallet.contractAddress, newowner.address],
+        wallet,
+        noGuardians,
+      ), "RM: no guardians set on wallet");
+
+      const isLocked = await lockManager.isLocked(wallet.contractAddress);
+      assert.isFalse(isLocked, "should not be locked by recovery");
+
+      const walletOwner = await wallet.owner();
+      assert.equal(walletOwner, owner.address, "owner should have not changed");
+    });
+
     describe("EOA Guardians: G = 2", () => {
       beforeEach(async () => {
         await addGuardians([guardian1, guardian2]);
