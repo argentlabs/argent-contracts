@@ -196,7 +196,7 @@ describe("Wallet Factory", function () {
 
     it("should fail to create when there is no ENS", async () => {
       const modules = [module1.contractAddress, module2.contractAddress];
-      await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, NO_ENS), "WF: ENS lable must be defined");
+      await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, NO_ENS), "WF: ENS label must be defined");
     });
 
     it("should fail to create with an existing ENS", async () => {
@@ -231,7 +231,7 @@ describe("Wallet Factory", function () {
     it("should fail to create with empty label", async () => {
       const label = "";
       const modules = [module1.contractAddress];
-      await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, label), "WF: ENS lable must be defined");
+      await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, modules, label), "WF: ENS label must be defined");
     });
   });
 
@@ -418,7 +418,7 @@ describe("Wallet Factory", function () {
       const label = "";
       const modules = [module1.contractAddress, module2.contractAddress];
       await assert.revertWith(factory.from(deployer).createCounterfactualWallet(owner.address, modules, label, salt),
-        "WF: ENS lable must be defined");
+        "WF: ENS label must be defined");
     });
 
     it("should emit and event when the balance is non zero at creation", async () => {
