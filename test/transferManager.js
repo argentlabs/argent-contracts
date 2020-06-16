@@ -1,12 +1,13 @@
 /* global accounts, utils */
 const ethers = require("ethers");
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferModule = require("../build/TransferManager");
-const LegacyTransferManager = require("../build/LegacyTransferManager");
+const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
@@ -43,6 +44,7 @@ describe("TransferManager", function () {
   let transferModule;
   let previousTransferModule;
   let wallet;
+  let walletImplementation;
   let erc20;
 
   before(async () => {
@@ -75,10 +77,13 @@ describe("TransferManager", function () {
       previousTransferModule.contractAddress);
 
     await registry.registerModule(transferModule.contractAddress, ethers.utils.formatBytes32String("TransferModule"));
+
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [transferModule.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await priceProvider.setPrice(erc20.contractAddress, TOKEN_RATE);
@@ -97,7 +102,8 @@ describe("TransferManager", function () {
         10,
         ethers.constants.AddressZero);
 
-      const existingWallet = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const existingWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
       await existingWallet.init(owner.address, [transferModule1.contractAddress]);
 
       const limit = await transferModule1.defaultLimit();
@@ -108,7 +114,9 @@ describe("TransferManager", function () {
   describe("Managing limit and whitelist ", () => {
     it("should migrate the limit for existing wallets", async () => {
       // create wallet with previous module and funds
-      const existingWallet = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const existingWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await existingWallet.init(owner.address, [previousTransferModule.contractAddress]);
       await infrastructure.sendTransaction({ to: existingWallet.contractAddress, value: ethers.utils.bigNumberify("100000000") });
       // change the limit
@@ -119,7 +127,7 @@ describe("TransferManager", function () {
       // transfer some funds
       await previousTransferModule.from(owner).transferToken(existingWallet.contractAddress, ETH_TOKEN, recipient.address, 1000000, ZERO_BYTES32);
       // add new module
-      await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress, { gasLimit: 500000 });
+      await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress);
       // check result
       limit = await transferModule.getCurrentLimit(existingWallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should have been migrated");

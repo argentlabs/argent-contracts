@@ -1,7 +1,8 @@
 /* global accounts */
 const ethers = require("ethers");
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
 const GuardianManager = require("../build/GuardianManager");
@@ -35,6 +36,7 @@ describe("Approved Transfer", function () {
 
   let deployer;
   let wallet;
+  let walletImplementation;
   let guardianManager;
   let approvedTransfer;
   let priceProvider;
@@ -49,10 +51,14 @@ describe("Approved Transfer", function () {
     await priceProvider.addManager(infrastructure.address);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {}, registry.contractAddress, guardianStorage.contractAddress);
+
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
     await wallet.init(owner.address, [approvedTransfer.contractAddress, guardianManager.contractAddress]);
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await priceProvider.setPrice(erc20.contractAddress, TOKEN_RATE);
@@ -60,14 +66,14 @@ describe("Approved Transfer", function () {
   });
 
   async function addGuardians(guardians) {
-    // guardians can be Wallet or ContractWrapper objects
+    // guardians can be BaseWallet or ContractWrapper objects
     const guardianAddresses = guardians.map((guardian) => {
       if (guardian.address) return guardian.address;
       return guardian.contractAddress;
     });
 
     for (const address of guardianAddresses) {
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, address, { gasLimit: 500000 });
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, address);
     }
 
     await manager.increaseTime(30);
@@ -81,7 +87,7 @@ describe("Approved Transfer", function () {
   async function createSmartContractGuardians(guardians) {
     const wallets = [];
     for (const g of guardians) {
-      const guardianWallet = await deployer.deploy(Wallet);
+      const guardianWallet = await deployer.deploy(BaseWallet);
       await guardianWallet.init(g.address, [guardianManager.contractAddress]);
       wallets.push(guardianWallet);
     }

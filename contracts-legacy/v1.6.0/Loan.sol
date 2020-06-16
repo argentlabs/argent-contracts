@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../wallet/BaseWallet.sol";
+import "./BaseWallet.sol";
 
 /**
  * @title Interface for a contract that can loan tokens to a wallet.

@@ -161,7 +161,7 @@ module.exports = {
     const initialSaiAmountInMigrationVault = parseEther("1000");
     await sai["mint(address,uint256)"](infrastructure.address, initialSaiAmountInMigrationVault);
     await sai.from(infrastructure).approve(migration.contractAddress, initialSaiAmountInMigrationVault);
-    await migration.from(infrastructure).swapSaiToDai(initialSaiAmountInMigrationVault, { gasLimit: 2000000 });
+    await migration.from(infrastructure).swapSaiToDai(initialSaiAmountInMigrationVault);
 
     return {
       sai,

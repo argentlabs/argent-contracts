@@ -13,7 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
 
 import "./common/BaseModule.sol";
 
@@ -31,11 +32,11 @@ contract SimpleUpgrader is BaseModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        BaseModule(_registry, GuardianStorage(0), NAME)
+        BaseModule(_registry, IGuardianStorage(0), NAME)
         public
     {
         toDisable = _toDisable;
@@ -49,19 +50,19 @@ contract SimpleUpgrader is BaseModule {
      * when SimpleUpgrader is temporarily added as a module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(address _wallet) public override onlyWallet(_wallet) {
         require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
 
         uint256 i = 0;
         //add new modules
         for (; i < toEnable.length; i++) {
-            BaseWallet(_wallet).authoriseModule(toEnable[i], true);
+            IWallet(_wallet).authoriseModule(toEnable[i], true);
         }
         //remove old modules
         for (i = 0; i < toDisable.length; i++) {
-            BaseWallet(_wallet).authoriseModule(toDisable[i], false);
+            IWallet(_wallet).authoriseModule(toDisable[i], false);
         }
         // SimpleUpgrader did its job, we no longer need it as a module
-        BaseWallet(_wallet).authoriseModule(address(this), false);
+        IWallet(_wallet).authoriseModule(address(this), false);
     }
 }

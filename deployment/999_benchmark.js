@@ -141,7 +141,7 @@ class Benchmark {
     const proxy = await this.deployer.deploy(Proxy, {}, this.BaseWalletWrapper.contractAddress);
     this.wallet = this.deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     this.walletAddress = this.wallet.contractAddress;
-    await this.wallet.init(this.accounts[0], this.allModules, { gasLimit: 1000000 });
+    await this.wallet.init(this.accounts[0], this.allModules);
     await this.deploymentWallet.sendTransaction({
       to: this.walletAddress,
       value: ethers.utils.parseEther("1.0"),

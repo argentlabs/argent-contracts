@@ -3,7 +3,8 @@ const ethers = require("ethers");
 const { formatBytes32String } = require("ethers").utils;
 const { parseRelayReceipt } = require("../utils/utilities.js");
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const TestModule = require("../build/TestModuleRelayer");
 const Registry = require("../build/ModuleRegistry");
 const GuardianManager = require("../build/GuardianManager");
@@ -56,7 +57,10 @@ describe("RelayerModule", function () {
     testModule = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);
     testModuleNew = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);
 
-    wallet = await deployer.deploy(Wallet);
+    const walletImplementation = await deployer.deploy(BaseWallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
     await wallet.init(owner.address,
       [approvedTransfer.contractAddress,
         nftTransferModule.contractAddress,

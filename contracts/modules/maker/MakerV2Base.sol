@@ -13,19 +13,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
+
 import "../common/BaseModule.sol";
 import "../common/RelayerModule.sol";
 import "../common/OnlyOwnerModule.sol";
+import "../../infrastructure/IMakerRegistry.sol";
 import "../../../lib/maker/MakerInterfaces.sol";
-import "../../infrastructure/MakerRegistry.sol";
+import "../../../lib/maker/DS/DSMath.sol";
 
 /**
  * @title MakerV2Base
  * @dev Common base to MakerV2Invest and MakerV2Loan.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
+abstract contract MakerV2Base is DSMath, OnlyOwnerModule {
 
     bytes32 constant private NAME = "MakerV2Manager";
 
@@ -38,15 +41,13 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
     // The address of the Vat
     VatLike internal vat;
 
-    uint256 constant internal RAY = 10 ** 27;
-
     using SafeMath for uint256;
 
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IModuleRegistry _registry,
+        IGuardianStorage _guardianStorage,
         ScdMcdMigrationLike _scdMcdMigration
     )
         BaseModule(_registry, _guardianStorage, NAME)

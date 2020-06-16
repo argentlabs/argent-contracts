@@ -13,10 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.5.4;
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./SafeMath.sol";
 import "../../lib/other/ERC20.sol";
-import "./base/Managed.sol";
+import "../../contracts/infrastructure/base/Managed.sol";
 
 contract TokenPriceProvider is Managed {
     using SafeMath for uint256;

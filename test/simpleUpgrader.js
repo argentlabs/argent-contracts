@@ -1,10 +1,10 @@
 /* global accounts, utils */
-const etherlime = require("etherlime-lib");
 const {
   keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String,
 } = require("ethers").utils;
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const OnlyOwnerModule = require("../build/TestOnlyOwnerModule");
 const Module = require("../build/TestModuleRelayer");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
@@ -22,9 +22,14 @@ describe("SimpleUpgrader", function () {
   const owner = accounts[1].signer;
   let deployer;
   let registry;
+  let walletImplementation;
+
+  before(async () => {
+    deployer = manager.newDeployer();
+    walletImplementation = await deployer.deploy(BaseWallet);
+  });
 
   beforeEach(async () => {
-    deployer = new etherlime.EtherlimeGanacheDeployer(accounts[0].secretKey);
     registry = await deployer.deploy(Registry);
   });
 
@@ -51,13 +56,14 @@ describe("SimpleUpgrader", function () {
       await registry.registerModule(initialModule.contractAddress, formatBytes32String("initial"));
       await registry.registerModule(moduleToAdd.contractAddress, formatBytes32String("added"));
       // create wallet with initial module
-      const wallet = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
       await wallet.init(owner.address, [initialModule.contractAddress]);
       let isAuthorised = await wallet.authorised(initialModule.contractAddress);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // add module to wallet
-      await initialModule.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress, { gasLimit: 1000000 });
+      await initialModule.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress);
       isAuthorised = await wallet.authorised(moduleToAdd.contractAddress);
       assert.equal(isAuthorised, true, "added module should be authorised");
     });
@@ -69,12 +75,14 @@ describe("SimpleUpgrader", function () {
       // register initial module only
       await registry.registerModule(initialModule.contractAddress, formatBytes32String("initial"));
       // create wallet with initial module
-      const wallet = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await wallet.init(owner.address, [initialModule.contractAddress]);
       let isAuthorised = await wallet.authorised(initialModule.contractAddress);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // try (and fail) to add moduleToAdd to wallet
-      await assert.revert(initialModule.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress, { gasLimit: 1000000 }));
+      await assert.revert(initialModule.from(owner).addModule(wallet.contractAddress, moduleToAdd.contractAddress));
       isAuthorised = await wallet.authorised(moduleToAdd.contractAddress);
       assert.equal(isAuthorised, false, "unregistered module should not be authorised");
     });
@@ -85,7 +93,9 @@ describe("SimpleUpgrader", function () {
       // register module V1
       await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
       // create wallet with module V1
-      const wallet = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await wallet.init(owner.address, [moduleV1.contractAddress]);
       // create module V2
       const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
@@ -124,7 +134,8 @@ describe("SimpleUpgrader", function () {
       // register module V1
       await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
       // create wallet with module V1
-      const wallet = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
       await wallet.init(owner.address, [moduleV1.contractAddress]);
       // create module V2
       const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 0);
@@ -150,7 +161,7 @@ describe("SimpleUpgrader", function () {
           assert.isTrue(!txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success,
             "Relayed upgrade to 0 module should have failed.");
         } else {
-          assert.revert(moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 }));
+          assert.revert(moduleV1.from(owner).addModule(...params));
         }
         return;
       }
@@ -160,7 +171,7 @@ describe("SimpleUpgrader", function () {
         assert.equal(txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, useOnlyOwnerModule,
           "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
       } else {
-        const tx = await moduleV1.from(owner).addModule(...params, { gasLimit: 1000000 });
+        const tx = await moduleV1.from(owner).addModule(...params);
         txReceipt = await moduleV1.verboseWaitForTransaction(tx);
       }
 

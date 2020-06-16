@@ -1,4 +1,4 @@
-// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+// Copyright (C) 2020 Argent Labs Ltd. <https://argent.xyz>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,21 +13,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
-import "../../wallet/BaseWallet.sol";
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity >=0.5.4 <0.7.0;
 
 /**
- * @title Storage
- * @dev Base contract for the storage of a wallet.
- * @author Julien Niset - <julien@argent.im>
+ * @title ICompoundRegistry
+ * @dev Interface for CompoundRegistry
  */
-contract Storage {
+interface ICompoundRegistry {
+    function addCToken(address _underlying, address _cToken) external;
 
-    /**
-     * @dev Throws if the caller is not an authorised module.
-     */
-    modifier onlyModule(BaseWallet _wallet) {
-        require(_wallet.authorised(msg.sender), "TS: must be an authorized module to call this method");
-        _;
-    }
+    function removeCToken(address _underlying) external;
+
+    function getCToken(address _underlying) external view returns (address);
+
+    function listUnderlyings() external view returns (address[] memory);
 }

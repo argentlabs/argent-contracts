@@ -1,9 +1,13 @@
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
 
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721Full.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721Mintable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-contract TestERC721 is ERC721Full, ERC721Mintable {
-    constructor() ERC721Full("Argent Kitties", "AGKT") public {
+contract TestERC721 is ERC721 {
+    constructor() ERC721("Argent Kitties", "AGKT") public {
+    }
+
+    function mint(address to, uint256 tokenId) public {
+        _mint(to, tokenId);
     }
 }

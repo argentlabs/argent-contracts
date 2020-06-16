@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
+
 import "./MakerV2Base.sol";
 import "./IUniswapExchange.sol";
 import "./IUniswapFactory.sol";
-import "../../infrastructure/MakerRegistry.sol";
-import "../../../lib/maker/DS/DSMath.sol";
 
 /**
  * @title MakerV2Loan
@@ -28,7 +28,7 @@ import "../../../lib/maker/DS/DSMath.sol";
  * (a type of asset NOT protected by a wallet's daily limit) to another account.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Loan is DSMath, MakerV2Base {
+abstract contract MakerV2Loan is MakerV2Base {
 
     // The address of the MKR token
     GemLike internal mkrToken;
@@ -43,7 +43,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     // The address of the SCD Tub
     SaiTubLike internal tub;
     // The Maker Registry in which all supported collateral tokens and their adapters are stored
-    MakerRegistry internal makerRegistry;
+    IMakerRegistry internal makerRegistry;
     // The Uniswap Exchange contract for DAI
     IUniswapExchange internal daiUniswap;
     // The Uniswap Exchange contract for MKR
@@ -83,8 +83,8 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     /**
      * @dev Throws if the sender is not an authorised module.
      */
-    modifier onlyModule(BaseWallet _wallet) {
-        require(_wallet.authorised(msg.sender), "MV2: sender unauthorized");
+    modifier onlyModule(address _wallet) {
+        require(IWallet(_wallet).authorised(msg.sender), "MV2: sender unauthorized");
         _;
     }
 
@@ -102,7 +102,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
 
     constructor(
         JugLike _jug,
-        MakerRegistry _makerRegistry,
+        IMakerRegistry _makerRegistry,
         IUniswapFactory _uniswapFactory
     )
         public
@@ -131,10 +131,10 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _collateralAmount The amount of collateral token provided.
      * @param _debtToken The token borrowed (must be the address of the DAI contract).
      * @param _debtAmount The amount of tokens borrowed.
-     * @return The ID of the created vault.
+     * @return _loanId The ID of the created vault.
      */
     function openLoan(
-        BaseWallet _wallet,
+        address _wallet,
         address _collateral,
         uint256 _collateralAmount,
         address _debtToken,
@@ -148,7 +148,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         verifySupportedCollateral(_collateral);
         require(_debtToken == address(daiToken), "MV2: debt token not DAI");
         _loanId = bytes32(openVault(_wallet, _collateral, _collateralAmount, _debtAmount));
-        emit LoanOpened(address(_wallet), _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
+        emit LoanOpened(_wallet, _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
     }
 
     /**
@@ -159,7 +159,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _collateralAmount The amount of collateral to add.
      */
     function addCollateral(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _loanId,
         address _collateral,
         uint256 _collateralAmount
@@ -170,7 +170,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     {
         verifyLoanOwner(_wallet, _loanId);
         addCollateral(_wallet, uint256(_loanId), _collateralAmount);
-        emit CollateralAdded(address(_wallet), _loanId, _collateral, _collateralAmount);
+        emit CollateralAdded(_wallet, _loanId, _collateral, _collateralAmount);
     }
 
     /**
@@ -181,7 +181,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _collateralAmount The amount of collateral to remove.
      */
     function removeCollateral(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _loanId,
         address _collateral,
         uint256 _collateralAmount
@@ -192,7 +192,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     {
         verifyLoanOwner(_wallet, _loanId);
         removeCollateral(_wallet, uint256(_loanId), _collateralAmount);
-        emit CollateralRemoved(address(_wallet), _loanId, _collateral, _collateralAmount);
+        emit CollateralRemoved(_wallet, _loanId, _collateral, _collateralAmount);
     }
 
     /**
@@ -203,7 +203,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _debtAmount The amount of token to borrow.
      */
     function addDebt(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _loanId,
         address _debtToken,
         uint256 _debtAmount
@@ -214,7 +214,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     {
         verifyLoanOwner(_wallet, _loanId);
         addDebt(_wallet, uint256(_loanId), _debtAmount);
-        emit DebtAdded(address(_wallet), _loanId, _debtToken, _debtAmount);
+        emit DebtAdded(_wallet, _loanId, _debtToken, _debtAmount);
     }
 
     /**
@@ -225,7 +225,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _debtAmount The amount of token to repay.
      */
     function removeDebt(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _loanId,
         address _debtToken,
         uint256 _debtAmount
@@ -237,7 +237,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         verifyLoanOwner(_wallet, _loanId);
         updateStabilityFee(uint256(_loanId));
         removeDebt(_wallet, uint256(_loanId), _debtAmount);
-        emit DebtRemoved(address(_wallet), _loanId, _debtToken, _debtAmount);
+        emit DebtRemoved(_wallet, _loanId, _debtToken, _debtAmount);
     }
 
     /**
@@ -246,7 +246,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _loanId The ID of the target vault.
      */
     function closeLoan(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _loanId
     )
         external
@@ -256,7 +256,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         verifyLoanOwner(_wallet, _loanId);
         updateStabilityFee(uint256(_loanId));
         closeVault(_wallet, uint256(_loanId));
-        emit LoanClosed(address(_wallet), _loanId);
+        emit LoanClosed(_wallet, _loanId);
     }
 
     /* *************************************** Other vault methods ***************************************** */
@@ -268,7 +268,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _loanId The ID of the target vault.
      */
     function acquireLoan(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _loanId
     )
         external
@@ -276,10 +276,10 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         onlyWalletOwner(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        require(cdpManager.owns(uint256(_loanId)) == address(_wallet), "MV2: wrong vault owner");
+        require(cdpManager.owns(uint256(_loanId)) == _wallet, "MV2: wrong vault owner");
         // Transfer the vault from the wallet to the module
         invokeWallet(
-            address(_wallet),
+            _wallet,
             address(cdpManager),
             0,
             abi.encodeWithSignature("give(uint256,address)", uint256(_loanId), address(this))
@@ -296,7 +296,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _cup id of the old SCD CDP to migrate
      */
     function migrateCdp(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _cup
     )
         external
@@ -311,10 +311,10 @@ contract MakerV2Loan is DSMath, MakerV2Base {
             // Convert some ETH into MKR with Uniswap if necessary
             buyTokens(_wallet, mkrToken, mkrFee, mkrUniswap);
             // Transfer the MKR to the Migration contract
-            invokeWallet(address(_wallet), address(mkrToken), 0, abi.encodeWithSignature("transfer(address,uint256)", address(scdMcdMigration), mkrFee));
+            invokeWallet(_wallet, address(mkrToken), 0, abi.encodeWithSignature("transfer(address,uint256)", address(scdMcdMigration), mkrFee));
         }
         // Transfer ownership of the SCD CDP to the migration contract
-        invokeWallet(address(_wallet), address(tub), 0, abi.encodeWithSignature("give(bytes32,address)", _cup, address(scdMcdMigration)));
+        invokeWallet(_wallet, address(tub), 0, abi.encodeWithSignature("give(bytes32,address)", _cup, address(scdMcdMigration)));
         // Update stability fee rate
         jug.drip(wethJoin.ilk());
         // Execute the CDP migration
@@ -322,7 +322,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         // Mark the new vault as belonging to the wallet (or merge it into the existing vault if there is one)
         _loanId = assignLoanToWallet(_wallet, _loanId);
 
-        emit CdpMigrated(address(_wallet), _cup, _loanId);
+        emit CdpMigrated(_wallet, _cup, _loanId);
     }
 
     /**
@@ -331,7 +331,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _loanId The ID of the target vault.
      */
     function giveVault(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _loanId
     )
         external
@@ -350,26 +350,26 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         require(_y >= 0, "MV2: int overflow");
     }
 
-    function assignLoanToWallet(BaseWallet _wallet, bytes32 _loanId) internal returns (bytes32 _assignedLoanId) {
+    function assignLoanToWallet(address _wallet, bytes32 _loanId) internal returns (bytes32 _assignedLoanId) {
         bytes32 ilk = cdpManager.ilks(uint256(_loanId));
         // Check if the user already holds a vault in the MakerV2Manager
-        bytes32 existingLoanId = loanIds[address(_wallet)][ilk];
+        bytes32 existingLoanId = loanIds[_wallet][ilk];
         if (existingLoanId > 0) {
             // Merge the new loan into the existing loan
             cdpManager.shift(uint256(_loanId), uint256(existingLoanId));
             return existingLoanId;
         }
         // Record the new vault as belonging to the wallet
-        loanIds[address(_wallet)][ilk] = _loanId;
+        loanIds[_wallet][ilk] = _loanId;
         return _loanId;
     }
 
-    function clearLoanOwner(BaseWallet _wallet, bytes32 _loanId) internal {
-        delete loanIds[address(_wallet)][cdpManager.ilks(uint256(_loanId))];
+    function clearLoanOwner(address _wallet, bytes32 _loanId) internal {
+        delete loanIds[_wallet][cdpManager.ilks(uint256(_loanId))];
     }
 
-    function verifyLoanOwner(BaseWallet _wallet, bytes32 _loanId) internal view {
-        require(loanIds[address(_wallet)][cdpManager.ilks(uint256(_loanId))] == _loanId, "MV2: unauthorized loanId");
+    function verifyLoanOwner(address _wallet, bytes32 _loanId) internal view {
+        require(loanIds[_wallet][cdpManager.ilks(uint256(_loanId))] == _loanId, "MV2: unauthorized loanId");
     }
 
     function verifySupportedCollateral(address _collateral) internal view {
@@ -380,7 +380,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     }
 
     function buyTokens(
-        BaseWallet _wallet,
+        address _wallet,
         GemLike _token,
         uint256 _tokenAmountRequired,
         IUniswapExchange _uniswapExchange
@@ -388,17 +388,17 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         internal
     {
         // get token balance
-        uint256 tokenBalance = _token.balanceOf(address(_wallet));
+        uint256 tokenBalance = _token.balanceOf(_wallet);
         if (tokenBalance < _tokenAmountRequired) {
             // Not enough tokens => Convert some ETH into tokens with Uniswap
             uint256 etherValueOfTokens = _uniswapExchange.getEthToTokenOutputPrice(_tokenAmountRequired - tokenBalance);
             // solium-disable-next-line security/no-block-members
-            invokeWallet(address(_wallet), address(_uniswapExchange), etherValueOfTokens, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, now));
+            invokeWallet(_wallet, address(_uniswapExchange), etherValueOfTokens, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, now));
         }
     }
 
     function joinCollateral(
-        BaseWallet _wallet,
+        address _wallet,
         uint256 _cdpId,
         uint256 _collateralAmount,
         bytes32 _ilk
@@ -409,11 +409,11 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         (JoinLike gemJoin, GemLike collateral) = makerRegistry.getCollateral(_ilk);
         // Convert ETH to WETH if needed
         if (gemJoin == wethJoin) {
-            invokeWallet(address(_wallet), address(wethToken), _collateralAmount, abi.encodeWithSignature("deposit()"));
+            invokeWallet(_wallet, address(wethToken), _collateralAmount, abi.encodeWithSignature("deposit()"));
         }
         // Send the collateral to the module
         invokeWallet(
-            address(_wallet),
+            _wallet,
             address(collateral),
             0,
             abi.encodeWithSignature("transfer(address,uint256)", address(this), _collateralAmount)
@@ -425,14 +425,14 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     }
 
     function joinDebt(
-        BaseWallet _wallet,
+        address _wallet,
         uint256 _cdpId,
         uint256 _debtAmount //  art.mul(rate).div(RAY) === [wad]*[ray]/[ray]=[wad]
     )
         internal
     {
         // Send the DAI to the module
-        invokeWallet(address(_wallet), address(daiToken), 0, abi.encodeWithSignature("transfer(address,uint256)", address(this), _debtAmount));
+        invokeWallet(_wallet, address(daiToken), 0, abi.encodeWithSignature("transfer(address,uint256)", address(this), _debtAmount));
         // Approve the DAI adapter to burn DAI from the module
         daiToken.approve(address(daiJoin), _debtAmount);
         // Join DAI to the adapter. The first argument to `join` is the address that *technically* owns the vault
@@ -441,7 +441,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
     }
 
     function drawAndExitDebt(
-        BaseWallet _wallet,
+        address _wallet,
         uint256 _cdpId,
         uint256 _debtAmount,
         uint256 _collateralAmount,
@@ -458,7 +458,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         // Transfer the (internal) DAI debt from the cdp's urn to the module.
         cdpManager.move(_cdpId, address(this), daiDebtInRad);
         // Mint the DAI token and exit it to the user's wallet
-        daiJoin.exit(address(_wallet), _debtAmount);
+        daiJoin.exit(_wallet, _debtAmount);
     }
 
     function updateStabilityFee(
@@ -515,11 +515,11 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _collateral The token to use as collateral in the vault.
      * @param _collateralAmount The amount of collateral to lock in the vault.
      * @param _debtAmount The amount of DAI to draw from the vault
-     * @return The id of the created vault.
+     * @return _cdpId The id of the created vault.
      */
     // solium-disable-next-line security/no-assign-params
     function openVault(
-        BaseWallet _wallet,
+        address _wallet,
         address _collateral,
         uint256 _collateralAmount,
         uint256 _debtAmount
@@ -534,11 +534,11 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         // Get the ilk for the collateral
         bytes32 ilk = makerRegistry.getIlk(_collateral);
         // Open a vault if there isn't already one for the collateral type (the vault owner will effectively be the module)
-        _cdpId = uint256(loanIds[address(_wallet)][ilk]);
+        _cdpId = uint256(loanIds[_wallet][ilk]);
         if (_cdpId == 0) {
             _cdpId = cdpManager.open(ilk, address(this));
             // Mark the vault as belonging to the wallet
-            loanIds[address(_wallet)][ilk] = bytes32(_cdpId);
+            loanIds[_wallet][ilk] = bytes32(_cdpId);
         }
         // Move the collateral from the wallet to the vat
         joinCollateral(_wallet, _cdpId, _collateralAmount, ilk);
@@ -556,7 +556,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _collateralAmount The amount of collateral to add to the vault.
      */
     function addCollateral(
-        BaseWallet _wallet,
+        address _wallet,
         uint256 _cdpId,
         uint256 _collateralAmount
     )
@@ -575,7 +575,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _collateralAmount The amount of collateral to remove from the vault.
      */
     function removeCollateral(
-        BaseWallet _wallet,
+        address _wallet,
         uint256 _cdpId,
         uint256 _collateralAmount
     )
@@ -588,10 +588,10 @@ contract MakerV2Loan is DSMath, MakerV2Base {
         // Get the adapter for the collateral
         (JoinLike gemJoin,) = makerRegistry.getCollateral(cdpManager.ilks(_cdpId));
         // Exit the collateral from the adapter.
-        gemJoin.exit(address(_wallet), _collateralAmount);
+        gemJoin.exit(_wallet, _collateralAmount);
         // Convert WETH to ETH if needed
         if (gemJoin == wethJoin) {
-            invokeWallet(address(_wallet), address(wethToken), 0, abi.encodeWithSignature("withdraw(uint256)", _collateralAmount));
+            invokeWallet(_wallet, address(wethToken), 0, abi.encodeWithSignature("withdraw(uint256)", _collateralAmount));
         }
     }
 
@@ -602,7 +602,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _amount The amount of additional DAI to draw from the vault.
      */
     function addDebt(
-        BaseWallet _wallet,
+        address _wallet,
         uint256 _cdpId,
         uint256 _amount
     )
@@ -622,7 +622,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _amount The amount of DAI debt to repay.
      */
     function removeDebt(
-        BaseWallet _wallet,
+        address _wallet,
         uint256 _cdpId,
         uint256 _amount
     )
@@ -647,7 +647,7 @@ contract MakerV2Loan is DSMath, MakerV2Base {
      * @param _cdpId The id of the CDP.
      */
     function closeVault(
-        BaseWallet _wallet,
+        address _wallet,
         uint256 _cdpId
     )
         internal

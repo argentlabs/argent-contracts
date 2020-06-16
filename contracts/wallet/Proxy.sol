@@ -13,7 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
 
 /**
  * @title Proxy
@@ -31,21 +32,20 @@ contract Proxy {
         implementation = _implementation;
     }
 
-    function() external payable {
-
-        if (msg.data.length == 0 && msg.value > 0) {
-            emit Received(msg.value, msg.sender, msg.data);
-        } else {
-            // solium-disable-next-line security/no-inline-assembly
-            assembly {
-                let target := sload(0)
-                calldatacopy(0, 0, calldatasize())
-                let result := delegatecall(gas, target, 0, calldatasize(), 0, 0)
-                returndatacopy(0, 0, returndatasize())
-                switch result
-                case 0 {revert(0, returndatasize())}
-                default {return (0, returndatasize())}
-            }
+    fallback() external payable {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let target := sload(0)
+            calldatacopy(0, 0, calldatasize())
+            let result := delegatecall(gas(), target, 0, calldatasize(), 0, 0)
+            returndatacopy(0, 0, returndatasize())
+            switch result
+            case 0 {revert(0, returndatasize())}
+            default {return (0, returndatasize())}
         }
+    }
+
+    receive() external payable {
+        emit Received(msg.value, msg.sender, msg.data);
     }
 }

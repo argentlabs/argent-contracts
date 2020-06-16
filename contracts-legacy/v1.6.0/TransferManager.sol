@@ -14,21 +14,22 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../wallet/BaseWallet.sol";
-import "../modules/common/BaseModule.sol";
-import "../modules/common/RelayerModule.sol";
-import "../modules/common/OnlyOwnerModule.sol";
-import "../modules/common/BaseTransfer.sol";
-import "../modules/common/LimitManager.sol";
-import "../infrastructure/TokenPriceProvider.sol";
-import "../modules/storage/TransferStorage.sol";
-import "../../lib/other/ERC20.sol";
+import "./BaseWallet.sol";
+import "./BaseModule.sol";
+import "./RelayerModule.sol";
+import "./OnlyOwnerModule.sol";
+import "./BaseTransfer.sol";
+import "./LimitManager.sol";
+import "./TokenPriceProvider.sol";
+import "./TransferStorage.sol";
 
 /**
- * @title LegacyTransferManager
- * @dev Copy of TransferManager module as from release 1.5
+ * @title TransferManager
+ * @dev Module to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
+ * This module is the V2 of TokenTransfer.
+ * @author Julien Niset - <julien@argent.xyz>
  */
-contract LegacyTransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTransfer, LimitManager {
+contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTransfer, LimitManager {
 
     bytes32 constant NAME = "TransferManager";
 
@@ -238,15 +239,17 @@ contract LegacyTransferManager is BaseModule, RelayerModule, OnlyOwnerModule, Ba
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
     * @param _token The token to approve.
-    * @param _contract The address of the contract.
+    * @param _spender The address to approve.
     * @param _amount The amount of ERC20 tokens to approve.
+    * @param _contract The address of the contract.
     * @param _data The encoded method data
     */
     function approveTokenAndCallContract(
         BaseWallet _wallet,
         address _token,
-        address _contract,
+        address _spender,
         uint256 _amount,
+        address _contract,
         bytes calldata _data
     )
         external
@@ -256,25 +259,14 @@ contract LegacyTransferManager is BaseModule, RelayerModule, OnlyOwnerModule, Ba
         // Make sure we don't call a module, the wallet itself, or a supported ERC20
         authoriseContractCall(_wallet, _contract);
 
-        if (isWhitelisted(_wallet, _contract)) {
-            doApproveToken(_wallet, _token, _contract, _amount);
-            doCallContract(_wallet, _contract, 0, _data);
-        } else {
-            // get current alowance
-            uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _contract);
-            if (_amount <= currentAllowance) {
-                // no need to approve more
-                doCallContract(_wallet, _contract, 0, _data);
-            } else {
-                // check if delta is under the limit
-                uint delta = _amount - currentAllowance;
-                uint256 deltaInEth = priceProvider.getEtherValue(delta, _token);
-                require(checkAndUpdateDailySpent(_wallet, deltaInEth), "TM: Approve above daily limit");
-                // approve if under the limit
-                doApproveToken(_wallet, _token, _contract, _amount);
-                doCallContract(_wallet, _contract, 0, _data);
-            }
+        if (!isWhitelisted(_wallet, _spender)) {
+            // check if the amount is under the daily limit
+            // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
+            uint256 valueInEth = priceProvider.getEtherValue(_amount, _token);
+            require(checkAndUpdateDailySpent(_wallet, valueInEth), "TM: Approve above daily limit");
         }
+
+        doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
     }
 
     /**

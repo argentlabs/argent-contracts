@@ -5,7 +5,8 @@ const { parseEther, bigNumberify } = require("ethers").utils;
 const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
 
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const CompoundManager = require("../build/CompoundManager");
 
 // Compound
@@ -41,6 +42,7 @@ describe("Loan Module", function () {
 
   let deployer;
   let wallet;
+  let walletImplementation;
   let loanManager;
   let compoundRegistry;
   let token1;
@@ -62,7 +64,7 @@ describe("Loan Module", function () {
     const comptrollerProxy = await deployer.deploy(Unitroller);
     const comptrollerImpl = await deployer.deploy(Comptroller);
     await comptrollerProxy._setPendingImplementation(comptrollerImpl.contractAddress);
-    await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false, { gasLimit: 500000 });
+    await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false);
     comptroller = deployer.wrapDeployedContract(Comptroller, comptrollerProxy.contractAddress);
     // deploy Interest rate model
     const interestModel = await deployer.deploy(InterestModel, {}, WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
@@ -109,16 +111,16 @@ describe("Loan Module", function () {
     await oracle.setUnderlyingPrice(cToken1.contractAddress, WAD.div(10));
     await oracle.setUnderlyingPrice(cToken2.contractAddress, WAD.div(10));
     // list cToken in Comptroller
-    await comptroller._supportMarket(cEther.contractAddress, { gasLimit: 500000 });
-    await comptroller._supportMarket(cToken1.contractAddress, { gasLimit: 500000 });
-    await comptroller._supportMarket(cToken2.contractAddress, { gasLimit: 500000 });
+    await comptroller._supportMarket(cEther.contractAddress);
+    await comptroller._supportMarket(cToken1.contractAddress);
+    await comptroller._supportMarket(cToken2.contractAddress);
     // deploy Price Oracle proxy
     oracleProxy = await deployer.deploy(PriceOracleProxy, {}, comptroller.contractAddress, oracle.contractAddress, cEther.contractAddress);
-    await comptroller._setPriceOracle(oracleProxy.contractAddress, { gasLimit: 200000 });
+    await comptroller._setPriceOracle(oracleProxy.contractAddress);
     // set collateral factor
-    await comptroller._setCollateralFactor(cToken1.contractAddress, WAD.div(10), { gasLimit: 500000 });
-    await comptroller._setCollateralFactor(cToken2.contractAddress, WAD.div(10), { gasLimit: 500000 });
-    await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10), { gasLimit: 500000 });
+    await comptroller._setCollateralFactor(cToken1.contractAddress, WAD.div(10));
+    await comptroller._setCollateralFactor(cToken2.contractAddress, WAD.div(10));
+    await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10));
 
     // add liquidity to tokens
     await cEther.from(liquidityProvider).mint({ value: parseEther("100") });
@@ -144,10 +146,13 @@ describe("Loan Module", function () {
       comptroller.contractAddress,
       compoundRegistry.contractAddress,
     );
+
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [loanManager.contractAddress]);
   });
 
@@ -176,7 +181,7 @@ describe("Loan Module", function () {
       if (relayed) {
         txReceipt = await manager.relay(loanManager, "openLoan", params, wallet, [owner]);
       } else {
-        const tx = await loanManager.from(owner).openLoan(...params, { gasLimit: 2000000 });
+        const tx = await loanManager.from(owner).openLoan(...params);
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanOpened"), "should have generated LoanOpened event");
@@ -211,7 +216,7 @@ describe("Loan Module", function () {
       if (relayed) {
         txReceipt = await manager.relay(loanManager, method, params, wallet, [owner]);
       } else {
-        const tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
+        const tx = await loanManager.from(owner)[method](...params);
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
       const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
@@ -243,7 +248,7 @@ describe("Loan Module", function () {
       if (relayed) {
         txReceipt = await manager.relay(loanManager, method, params, wallet, [owner]);
       } else {
-        const tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
+        const tx = await loanManager.from(owner)[method](...params);
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
       const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
@@ -499,7 +504,7 @@ describe("Loan Module", function () {
         if (relayed) {
           txReceipt = await manager.relay(loanManager, method, params, wallet, [owner], accounts[9].signer, false, 2000000);
         } else {
-          const tx = await loanManager.from(owner)[method](...params, { gasLimit: 2000000 });
+          const tx = await loanManager.from(owner)[method](...params);
           txReceipt = await loanManager.verboseWaitForTransaction(tx);
         }
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanClosed"), "should have generated LoanClosed event");

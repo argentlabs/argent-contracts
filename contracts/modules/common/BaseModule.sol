@@ -13,12 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "../../wallet/BaseWallet.sol";
-import "../../infrastructure/ModuleRegistry.sol";
-import "../storage/GuardianStorage.sol";
-import "./Module.sol";
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
+
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../wallet/IWallet.sol";
+import "../../infrastructure/IModuleRegistry.sol";
+import "../../infrastructure/storage/IGuardianStorage.sol";
+import "./IModule.sol";
 import "../../../lib/other/ERC20.sol";
 
 /**
@@ -26,20 +28,20 @@ import "../../../lib/other/ERC20.sol";
  * @dev Basic module that contains some methods common to all modules.
  * @author Julien Niset - <julien@argent.im>
  */
-contract BaseModule is Module {
+contract BaseModule is IModule {
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
 
     // The adddress of the module registry.
-    ModuleRegistry internal registry;
+    IModuleRegistry internal registry;
     // The address of the Guardian storage
-    GuardianStorage internal guardianStorage;
+    IGuardianStorage internal guardianStorage;
 
     /**
      * @dev Throws if the wallet is locked.
      */
-    modifier onlyWhenUnlocked(BaseWallet _wallet) {
+    modifier onlyWhenUnlocked(address _wallet) {
         verifyUnlocked(_wallet);
         _;
     }
@@ -47,7 +49,7 @@ contract BaseModule is Module {
     event ModuleCreated(bytes32 name);
     event ModuleInitialised(address wallet);
 
-    constructor(ModuleRegistry _registry, GuardianStorage _guardianStorage, bytes32 _name) public {
+    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage, bytes32 _name) public {
         registry = _registry;
         guardianStorage = _guardianStorage;
         emit ModuleCreated(_name);
@@ -56,15 +58,15 @@ contract BaseModule is Module {
     /**
      * @dev Throws if the sender is not the target wallet of the call.
      */
-    modifier onlyWallet(BaseWallet _wallet) {
-        require(msg.sender == address(_wallet), "BM: caller must be wallet");
+    modifier onlyWallet(address _wallet) {
+        require(msg.sender == _wallet, "BM: caller must be wallet");
         _;
     }
 
     /**
      * @dev Throws if the sender is not the owner of the target wallet or the module itself.
      */
-    modifier onlyWalletOwner(BaseWallet _wallet) {
+    modifier onlyWalletOwner(address _wallet) {
         // Wrapping in an internal method reduces deployment cost by avoiding duplication of inlined code
         verifyWalletOwner(_wallet);
         _;
@@ -73,9 +75,20 @@ contract BaseModule is Module {
     /**
      * @dev Throws if the sender is not the owner of the target wallet.
      */
-    modifier strictOnlyWalletOwner(BaseWallet _wallet) {
+    modifier strictOnlyWalletOwner(address _wallet) {
         require(isOwner(_wallet, msg.sender), "BM: msg.sender must be an owner for the wallet");
         _;
+    }
+
+    /**
+    * @dev Utility method enabling anyone to recover ERC20 token sent to the
+    * module by mistake and transfer them to the Module Registry.
+    * @param _token The token to recover.
+    */
+    function recoverToken(address _token) external override {
+        uint total = ERC20(_token).balanceOf(address(this));
+        bool success = ERC20(_token).transfer(address(registry), total);
+        require(success, "BM: recover token transfer failed");
     }
 
     /**
@@ -83,8 +96,8 @@ contract BaseModule is Module {
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
-        emit ModuleInitialised(address(_wallet));
+    function init(address _wallet) public virtual override onlyWallet(_wallet) {
+        emit ModuleInitialised(_wallet);
     }
 
     /**
@@ -92,27 +105,16 @@ contract BaseModule is Module {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(BaseWallet _wallet, Module _module) external strictOnlyWalletOwner(_wallet) {
-        require(registry.isRegisteredModule(address(_module)), "BM: module is not registered");
-        _wallet.authoriseModule(address(_module), true);
-    }
-
-    /**
-    * @dev Utility method enbaling anyone to recover ERC20 token sent to the
-    * module by mistake and transfer them to the Module Registry.
-    * @param _token The token to recover.
-    */
-    function recoverToken(address _token) external {
-        uint total = ERC20(_token).balanceOf(address(this));
-        bool success = ERC20(_token).transfer(address(registry), total);
-        require(success, "BM: recover token transfer failed");
+    function addModule(address _wallet, address _module) public virtual override strictOnlyWalletOwner(_wallet) {
+        require(registry.isRegisteredModule(_module), "BM: module is not registered");
+        IWallet(_wallet).authoriseModule(_module, true);
     }
 
     /**
      * @dev Verify that the wallet is unlocked.
      * @param _wallet The target wallet.
      */
-    function verifyUnlocked(BaseWallet _wallet) internal view {
+    function verifyUnlocked(address _wallet) internal view {
         require(!guardianStorage.isLocked(_wallet), "BM: wallet locked");
     }
 
@@ -120,7 +122,7 @@ contract BaseModule is Module {
      * @dev Verify that the caller is the module or the wallet owner.
      * @param _wallet The target wallet.
      */
-    function verifyWalletOwner(BaseWallet _wallet) internal view {
+    function verifyWalletOwner(address _wallet) internal view {
         require(msg.sender == address(this) || isOwner(_wallet, msg.sender), "BM: must be wallet owner");
     }
 
@@ -129,8 +131,8 @@ contract BaseModule is Module {
      * @param _wallet The target wallet.
      * @param _addr The address.
      */
-    function isOwner(BaseWallet _wallet, address _addr) internal view returns (bool) {
-        return _wallet.owner() == _addr;
+    function isOwner(address _wallet, address _addr) internal view returns (bool) {
+        return IWallet(_wallet).owner() == _addr;
     }
 
     /**
@@ -149,8 +151,8 @@ contract BaseModule is Module {
         } else if (_res.length > 0) {
             // solium-disable-next-line security/no-inline-assembly
             assembly {
-                returndatacopy(0, 0, returndatasize)
-                revert(0, returndatasize)
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
             }
         } else if (!success) {
             revert("BM: wallet invoke reverted");

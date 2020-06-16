@@ -1,7 +1,6 @@
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
 
-import "../contracts/modules/common/BaseModule.sol";
-import "../contracts/modules/common/RelayerModule.sol";
 import "../contracts/modules/common/OnlyOwnerModule.sol";
 import "./TestDapp.sol";
 
@@ -10,7 +9,7 @@ import "./TestDapp.sol";
  * @dev Test Module
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NewTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
+contract NewTestModule is OnlyOwnerModule {
 
     bytes32 constant NAME = "NewTestModule";
 
@@ -19,9 +18,9 @@ contract NewTestModule is BaseModule, RelayerModule, OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry
+        IModuleRegistry _registry
     )
-        BaseModule(_registry, GuardianStorage(0), NAME)
+        BaseModule(_registry, IGuardianStorage(0), NAME)
         public
     {
         dapp = new TestDapp();

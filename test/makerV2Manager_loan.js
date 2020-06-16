@@ -10,11 +10,12 @@ const { HashZero, AddressZero } = ethers.constants;
 const TestManager = require("../utils/test-manager");
 const GemJoin = require("../build/GemJoin");
 const Registry = require("../build/ModuleRegistry");
-const MakerV1Manager = require("../build/LegacyMakerManager");
+const MakerV1Manager = require("../build-legacy/v1.6.0/MakerManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const UpgradedMakerV2Manager = require("../build/TestUpgradedMakerV2Manager");
 const MakerRegistry = require("../build/MakerRegistry");
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const FakeWallet = require("../build/FakeWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferStorage = require("../build/TransferStorage");
@@ -50,6 +51,7 @@ describe("MakerV2 Vaults", function () {
   let makerV1;
   let makerV2;
   let wallet;
+  let walletImplementation;
   let walletAddress;
   let makerRegistry;
   let uniswapFactory;
@@ -105,10 +107,14 @@ describe("MakerV2 Vaults", function () {
       3600,
       10000,
       AddressZero);
+
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
     await wallet.init(owner.address, [makerV1.contractAddress, makerV2.contractAddress, transferManager.contractAddress]);
     walletAddress = wallet.contractAddress;
     await infrastructure.sendTransaction({ to: walletAddress, value: parseEther("2.0") });
@@ -178,28 +184,34 @@ describe("MakerV2 Vaults", function () {
       daiAmount = testAmounts.daiAmount;
       collateralAmount = testAmounts.collateralAmount;
     });
+
     it("should open a Loan (blockchain tx)", async () => {
       await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
     });
+
     it("should open a Loan (relayed tx)", async () => {
       await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
     });
+
     it("should open>close>reopen a Loan (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await makerV2.from(owner).closeLoan(walletAddress, loanId, { gasLimit: 4500000 });
       await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
     });
+
     it("should open>close>reopen a Loan (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await (await makerV2.from(owner).closeLoan(walletAddress, loanId, { gasLimit: 4500000 })).wait();
       await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
     });
+
     it("should not open a loan for the wrong debt token", async () => {
       await assert.revertWith(
         makerV2.from(owner).openLoan(walletAddress, ETH_TOKEN, collateralAmount, sai.contractAddress, daiAmount),
         "MV2: debt token not DAI",
       );
     });
+
     it("should not open a loan for an unsupported collateral token", async () => {
       await assert.revertWith(
         makerV2.from(owner).openLoan(walletAddress, sai.contractAddress, collateralAmount, dai.contractAddress, daiAmount),
@@ -237,46 +249,55 @@ describe("MakerV2 Vaults", function () {
   }
 
   describe("Add/Remove Collateral", () => {
-    let daiAmount; let
-      collateralAmount;
+    let daiAmount;
+    let collateralAmount;
+
     before(async () => {
       const testAmounts = await getTestAmounts(ETH_TOKEN);
       daiAmount = testAmounts.daiAmount;
       collateralAmount = testAmounts.collateralAmount;
     });
+
     it("should add collateral (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeCollateral({
         loanId, collateralAmount: parseEther("0.010"), add: true, relayed: false,
       });
     });
+
     it("should add collateral (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testChangeCollateral({
         loanId, collateralAmount: parseEther("0.010"), add: true, relayed: true,
       });
     });
+
     it("should not add collateral for the wrong loan owner", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
-      const wallet2 = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await wallet2.init(owner2.address, [makerV2.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).addCollateral(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
         "MV2: unauthorized loanId",
       );
     });
+
     it("should remove collateral (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeCollateral({
         loanId, collateralAmount: parseEther("0.010"), add: false, relayed: false,
       });
     });
+
     it("should remove collateral (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testChangeCollateral({
         loanId, collateralAmount: parseEther("0.010"), add: false, relayed: true,
       });
     });
+
     it("should not remove collateral with invalid collateral amount", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await assert.revertWith(
@@ -284,9 +305,12 @@ describe("MakerV2 Vaults", function () {
         "MV2: int overflow",
       );
     });
+
     it("should not remove collateral for the wrong loan owner", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
-      const wallet2 = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await wallet2.init(owner2.address, [makerV2.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).removeCollateral(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
@@ -325,28 +349,34 @@ describe("MakerV2 Vaults", function () {
   }
 
   describe("Increase Debt", () => {
-    let daiAmount; let
-      collateralAmount;
+    let daiAmount;
+    let collateralAmount;
+
     before(async () => {
       const testAmounts = await getTestAmounts(ETH_TOKEN);
       daiAmount = testAmounts.daiAmount;
       collateralAmount = testAmounts.collateralAmount;
     });
+
     it("should increase debt (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeDebt({
         loanId, daiAmount: parseEther("0.5"), add: true, relayed: false,
       });
     });
+
     it("should increase debt (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testChangeDebt({
         loanId, daiAmount: parseEther("0.5"), add: true, relayed: true,
       });
     });
+
     it("should not increase debt for the wrong loan owner", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
-      const wallet2 = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await wallet2.init(owner2.address, [makerV2.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).addDebt(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
@@ -384,15 +414,19 @@ describe("MakerV2 Vaults", function () {
     it("should repay debt when paying fee in DAI (blockchain tx)", async () => {
       await testRepayDebt({ useDai: true, relayed: false });
     });
+
     it("should repay debt when paying fee in DAI (relayed tx)", async () => {
       await testRepayDebt({ useDai: true, relayed: true });
     });
+
     it("should repay debt when paying fee in ETH (blockchain tx)", async () => {
       await testRepayDebt({ useDai: false, relayed: false });
     });
+
     it("should repay debt when paying fee in ETH (relayed tx)", async () => {
       await testRepayDebt({ useDai: false, relayed: true });
     });
+
     it("should not repay debt when only dust left", async () => {
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
@@ -401,10 +435,13 @@ describe("MakerV2 Vaults", function () {
         "MV2: repay less or full",
       );
     });
+
     it("should not repay debt for the wrong loan owner", async () => {
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
-      const wallet2 = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await wallet2.init(owner2.address, [makerV2.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).removeDebt(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
@@ -444,19 +481,25 @@ describe("MakerV2 Vaults", function () {
     it("should close a vault when paying fee in DAI + ETH (blockchain tx)", async () => {
       await testCloseLoan({ useDai: true, relayed: false });
     });
+
     it("should close a vault when paying fee in DAI + ETH (relayed tx)", async () => {
       await testCloseLoan({ useDai: true, relayed: true });
     });
+
     it("should close a vault when paying fee in ETH (blockchain tx)", async () => {
       await testCloseLoan({ useDai: false, relayed: false });
     });
+
     it("should close a vault when paying fee in ETH (relayed tx)", async () => {
       await testCloseLoan({ useDai: false, relayed: true });
     });
+
     it("should not close a vault for the wrong loan owner", async () => {
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
-      const wallet2 = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await wallet2.init(owner2.address, [makerV2.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).closeLoan(wallet2.contractAddress, loanId),
@@ -473,6 +516,7 @@ describe("MakerV2 Vaults", function () {
       assert.equal(numCollateralAfter, numCollateralBefore + 1, "A new collateral should have been added");
       await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
     });
+
     it("should open a loan with a newly added collateral token", async () => {
       await makerRegistry.addCollateral(batJoin.contractAddress);
       const { daiAmount, collateralAmount } = await getTestAmounts(bat.contractAddress);
@@ -482,15 +526,18 @@ describe("MakerV2 Vaults", function () {
       });
       await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
     });
+
     it("should not add a collateral when Join is not in the Vat", async () => {
       const badJoin = await deployer.deploy(GemJoin, {}, vat.contractAddress, formatBytes32String("BAD"), bat.contractAddress);
       await assert.revertWith(makerRegistry.addCollateral(badJoin.contractAddress), "MR: _joinAdapter not authorised in vat");
     });
+
     it("should not add a duplicate collateral", async () => {
       await makerRegistry.addCollateral(batJoin.contractAddress);
       await assert.revertWith(makerRegistry.addCollateral(batJoin.contractAddress), "MR: collateral already added");
       await makerRegistry.removeCollateral(bat.contractAddress); // cleanup
     });
+
     it("should remove a collateral", async () => {
       const numCollateralBefore = (await makerRegistry.getCollateralTokens()).length;
       await makerRegistry.addCollateral(batJoin.contractAddress);
@@ -498,6 +545,7 @@ describe("MakerV2 Vaults", function () {
       const numCollateralAfter = (await makerRegistry.getCollateralTokens()).length;
       assert.equal(numCollateralAfter, numCollateralBefore, "The added collateral should have been removed");
     });
+
     it("should not remove a non-existing collateral", async () => {
       await assert.revertWith(makerRegistry.removeCollateral(bat.contractAddress), "MR: collateral does not exist");
     });
@@ -536,9 +584,11 @@ describe("MakerV2 Vaults", function () {
     it("should transfer a vault from a wallet to the module (blockchain tx)", async () => {
       await testAcquireVault({ relayed: false });
     });
+
     it("should transfer a vault from a wallet to the module (relayed tx)", async () => {
       await testAcquireVault({ relayed: true });
     });
+
     it("should not transfer a vault that is not owned by the wallet", async () => {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
@@ -550,6 +600,7 @@ describe("MakerV2 Vaults", function () {
         makerV2.from(owner).acquireLoan(walletAddress, loanId), "MV2: wrong vault owner",
       );
     });
+
     it("should not transfer a vault that is not given to the module", async () => {
       // Deploy a fake wallet
       const fakeWallet = await deployer.deploy(FakeWallet, {}, false, AddressZero, 0, "0x00");
@@ -565,16 +616,19 @@ describe("MakerV2 Vaults", function () {
         makerV2.from(owner).acquireLoan(fakeWallet.contractAddress, loanId), "MV2: failed give",
       );
     });
+
     it("should transfer (merge) a vault when already holding a vault in the module (blockchain tx)", async () => {
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testAcquireVault({ relayed: false });
     });
+
     it("should transfer (merge) a vault when already holding a vault in the module (relayed tx)", async () => {
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testAcquireVault({ relayed: true });
     });
+
     it("should not allow reentrancy in acquireLoan", async () => {
       // Deploy a fake wallet capable of reentrancy
       const acquireLoanCallData = makerV2.contract.interface.functions.acquireLoan.encode([AddressZero, bigNumToBytes32(bigNumberify(0))]);
@@ -595,6 +649,7 @@ describe("MakerV2 Vaults", function () {
 
   describe("Migrating an SCD CDP to an MCD vault", () => {
     let oldCdpId;
+
     beforeEach(async () => {
       // Opening SCD CDP
       const { daiAmount, collateralAmount } = await getTestAmounts(ETH_TOKEN);
@@ -652,6 +707,7 @@ describe("MakerV2 Vaults", function () {
     let upgradedMakerV2;
     let daiAmount;
     let collateralAmount;
+
     beforeEach(async () => {
       // Generate test amounts
       const testAmounts = await getTestAmounts(ETH_TOKEN);
@@ -748,6 +804,7 @@ describe("MakerV2 Vaults", function () {
     it("should not allow non-module to give vault", async () => {
       await assert.revertWith(makerV2.from(owner).giveVault(walletAddress, formatBytes32String("")), "MV2: sender unauthorized");
     });
+
     it("should not allow (fake) module to give unowned vault", async () => {
       // Deploy and register a (fake) bad module
       const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, false, 0);

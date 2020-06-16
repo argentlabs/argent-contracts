@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
+
 import "./MakerV2Base.sol";
 import "./MakerV2Invest.sol";
 import "./MakerV2Loan.sol";
@@ -29,12 +31,12 @@ contract MakerV2Manager is MakerV2Base, MakerV2Invest, MakerV2Loan {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IModuleRegistry _registry,
+        IGuardianStorage _guardianStorage,
         ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,
         JugLike _jug,
-        MakerRegistry _makerRegistry,
+        IMakerRegistry _makerRegistry,
         IUniswapFactory _uniswapFactory
     )
         MakerV2Base(_registry, _guardianStorage, _scdMcdMigration)

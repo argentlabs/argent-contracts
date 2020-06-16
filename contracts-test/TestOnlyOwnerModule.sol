@@ -1,4 +1,5 @@
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
 import "../contracts/wallet/BaseWallet.sol";
 import "../contracts/modules/common/OnlyOwnerModule.sol";
 
@@ -10,5 +11,5 @@ import "../contracts/modules/common/OnlyOwnerModule.sol";
 contract TestOnlyOwnerModule is OnlyOwnerModule {
 
     bytes32 constant NAME = "TestOnlyOwnerModule";
-    constructor(ModuleRegistry _registry) BaseModule(_registry, GuardianStorage(0), NAME) public {}
+    constructor(IModuleRegistry _registry) BaseModule(_registry, IGuardianStorage(0), NAME) public {}
 }

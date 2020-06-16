@@ -1,7 +1,8 @@
 /* global accounts */
 const GuardianManager = require("../build/GuardianManager");
 const GuardianStorage = require("../build/GuardianStorage");
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const DumbContract = require("../build/TestContract");
 const NonCompliantGuardian = require("../build/NonCompliantGuardian");
@@ -23,15 +24,21 @@ describe("GuardianManager", function () {
 
   let deployer;
   let wallet;
+  let walletImplementation;
   let guardianStorage;
   let guardianManager;
 
-  beforeEach(async () => {
+  before(async () => {
     deployer = manager.newDeployer();
+    walletImplementation = await deployer.deploy(BaseWallet);
+  });
+
+  beforeEach(async () => {
     const registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [guardianManager.contractAddress]);
   });
 
@@ -176,9 +183,12 @@ describe("GuardianManager", function () {
       let dumbContract;
 
       beforeEach(async () => {
-        guardianWallet1 = await deployer.deploy(Wallet);
+        const proxy1 = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+        guardianWallet1 = deployer.wrapDeployedContract(BaseWallet, proxy1.contractAddress);
         await guardianWallet1.init(guardian1.address, [guardianManager.contractAddress]);
-        guardianWallet2 = await deployer.deploy(Wallet);
+
+        const proxy2 = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+        guardianWallet2 = deployer.wrapDeployedContract(BaseWallet, proxy2.contractAddress);
         await guardianWallet2.init(guardian2.address, [guardianManager.contractAddress]);
         dumbContract = await deployer.deploy(DumbContract);
       });

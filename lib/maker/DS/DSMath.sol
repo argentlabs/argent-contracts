@@ -1,3 +1,4 @@
+/// source: https://github.com/dapphub/ds-math/
 /// math.sol -- mixin for inline numerical wizardry
 
 // This program is free software: you can redistribute it and/or modify
@@ -13,17 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+pragma solidity >0.4.13;
 
 contract DSMath {
     function add(uint x, uint y) internal pure returns (uint z) {
-        ((z = x + y) >= x);
+        require((z = x + y) >= x, "ds-math-add-overflow");
     }
     function sub(uint x, uint y) internal pure returns (uint z) {
-        require((z = x - y) <= x);
+        require((z = x - y) <= x, "ds-math-sub-underflow");
     }
     function mul(uint x, uint y) internal pure returns (uint z) {
-        require(y == 0 || (z = x * y) / y == x);
+        require(y == 0 || (z = x * y) / y == x, "ds-math-mul-overflow");
     }
 
     function min(uint x, uint y) internal pure returns (uint z) {
@@ -42,15 +43,19 @@ contract DSMath {
     uint constant WAD = 10 ** 18;
     uint constant RAY = 10 ** 27;
 
+    //rounds to zero if x*y < WAD / 2
     function wmul(uint x, uint y) internal pure returns (uint z) {
         z = add(mul(x, y), WAD / 2) / WAD;
     }
+    //rounds to zero if x*y < WAD / 2
     function rmul(uint x, uint y) internal pure returns (uint z) {
         z = add(mul(x, y), RAY / 2) / RAY;
     }
+    //rounds to zero if x*y < WAD / 2
     function wdiv(uint x, uint y) internal pure returns (uint z) {
         z = add(mul(x, WAD), y / 2) / y;
     }
+    //rounds to zero if x*y < RAY / 2
     function rdiv(uint x, uint y) internal pure returns (uint z) {
         z = add(mul(x, RAY), y / 2) / y;
     }

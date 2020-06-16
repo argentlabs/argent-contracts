@@ -13,10 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
 
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 
 /**
@@ -24,7 +23,7 @@ import "./common/OnlyOwnerModule.sol";
  * @dev Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
+contract NftTransfer is OnlyOwnerModule {
 
     bytes32 constant NAME = "NftTransfer";
 
@@ -41,8 +40,8 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        IModuleRegistry _registry,
+        IGuardianStorage _guardianStorage,
         address _ckAddress
     )
         BaseModule(_registry, _guardianStorage, NAME)
@@ -58,8 +57,8 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
      * static call redirection from the wallet to the module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
-        _wallet.enableStaticCall(address(this), ERC721_RECEIVED);
+    function init(address _wallet) public override onlyWallet(_wallet) {
+        IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
     /**
@@ -91,7 +90,7 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     * @param _data The data to pass with the transfer.
     */
     function transferNFT(
-        BaseWallet _wallet,
+        address _wallet,
         address _nftContract,
         address _to,
         uint256 _tokenId,
@@ -108,15 +107,15 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
         } else {
            if (_safe) {
                methodData = abi.encodeWithSignature(
-                   "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
+                   "safeTransferFrom(address,address,uint256,bytes)", _wallet, _to, _tokenId, _data);
            } else {
                require(isERC721(_nftContract, _tokenId), "NT: Non-compliant NFT contract");
                methodData = abi.encodeWithSignature(
-                   "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
+                   "transferFrom(address,address,uint256)", _wallet, _to, _tokenId);
            }
         }
-        invokeWallet(address(_wallet), _nftContract, 0, methodData);
-        emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
+        invokeWallet(_wallet, _nftContract, 0, methodData);
+        emit NonFungibleTransfer(_wallet, _nftContract, _tokenId, _to, _data);
     }
 
     // *************** Internal Functions ********************* //

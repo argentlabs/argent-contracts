@@ -2,7 +2,8 @@
 const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
 const GuardianStorage = require("../build/GuardianStorage");
-const Wallet = require("../build/BaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const RecoveryManager = require("../build/RecoveryManager");
 
@@ -24,16 +25,22 @@ describe("LockManager", function () {
   let lockManager;
   let recoveryManager;
   let wallet;
+  let walletImplementation;
+
+  before(async () => {
+    deployer = manager.newDeployer();
+    walletImplementation = await deployer.deploy(BaseWallet);
+  });
 
   beforeEach(async () => {
-    deployer = manager.newDeployer();
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5, 24, 12);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-    wallet = await deployer.deploy(Wallet);
     await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
   });
 
@@ -86,7 +93,9 @@ describe("LockManager", function () {
 
   describe("(Un)Lock by Smart Contract guardians", () => {
     beforeEach(async () => {
-      const guardianWallet = await deployer.deploy(Wallet);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const guardianWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
       await guardianWallet.init(guardian1.address, [guardianManager.contractAddress, lockManager.contractAddress]);
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();

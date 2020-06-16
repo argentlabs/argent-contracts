@@ -13,14 +13,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
-import "../wallet/Proxy.sol";
-import "../wallet/BaseWallet.sol";
-import "./base/Owned.sol";
-import "./base/Managed.sol";
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.10;
+
+import "./Proxy.sol";
+import "./BaseWallet.sol";
+import "../infrastructure/base/Owned.sol";
+import "../infrastructure/base/Managed.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 import "../infrastructure/ens/IENSManager.sol";
-import "../infrastructure/ModuleRegistry.sol";
-import "../modules/storage/IGuardianStorage.sol";
+import "../infrastructure/IModuleRegistry.sol";
 
 /**
  * @title WalletFactory
@@ -51,7 +53,7 @@ contract WalletFactory is Owned, Managed {
      * @dev Throws if the guardian storage address is not set.
      */
     modifier guardianStorageDefined {
-        require(guardianStorage != address(0), "GuardianStorage address not defined");
+        require(guardianStorage != address(0), "IGuardianStorage address not defined");
         _;
     }
 
@@ -161,7 +163,7 @@ contract WalletFactory is Owned, Managed {
      * @param _owner The account address.
      * @param _modules The list of modules.
      * @param _salt The salt.
-     * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
+     * @return _wallet The address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function getAddressForCounterfactualWallet(
         address _owner,
@@ -181,7 +183,7 @@ contract WalletFactory is Owned, Managed {
      * @param _modules The list of modules.
      * @param _guardian The guardian address.
      * @param _salt The salt.
-     * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
+     * @return _wallet The address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function getAddressForCounterfactualWalletWithGuardian(
         address _owner,
@@ -218,8 +220,8 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Lets the owner change the address of the GuardianStorage contract.
-     * @param _guardianStorage The address of the GuardianStorage contract.
+     * @dev Lets the owner change the address of the IGuardianStorage contract.
+     * @param _guardianStorage The address of the IGuardianStorage contract.
      */
     function changeGuardianStorage(address _guardianStorage) external onlyOwner {
         require(_guardianStorage != address(0), "WF: address cannot be null");
@@ -275,13 +277,9 @@ contract WalletFactory is Owned, Managed {
     {
         _validateInputs(_owner, _modules, _label);
         bytes32 newsalt = _newSalt(_salt, _owner, _modules, _guardian);
-        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
-        address payable wallet;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            wallet := create2(0, add(code, 0x20), mload(code), newsalt)
-            if iszero(extcodesize(wallet)) { revert(0, returndatasize) }
-        }
+
+        Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
+        address payable wallet = address(proxy);
         _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
     }
 
@@ -312,7 +310,7 @@ contract WalletFactory is Owned, Managed {
         _wallet.init(_owner, extendedModules);
         // add guardian if needed
         if (_guardian != address(0)) {
-            IGuardianStorage(guardianStorage).addGuardian(_wallet, _guardian);
+            IGuardianStorage(guardianStorage).addGuardian(address(_wallet), _guardian);
         }
         // register ENS
         _registerWalletENS(address(_wallet), _label);
@@ -328,7 +326,7 @@ contract WalletFactory is Owned, Managed {
      * @param _modules The list of modules.
      * @param _salt The salt.
      * @param _guardian (Optional) The guardian address.
-     * @return the address that the wallet will have when created using CREATE2 and the same input parameters.
+     * @return _wallet The address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function _getAddressForCounterfactualWallet(
         address _owner,
@@ -369,7 +367,7 @@ contract WalletFactory is Owned, Managed {
     function _validateInputs(address _owner, address[] memory _modules, string memory _label) internal view {
         require(_owner != address(0), "WF: owner cannot be null");
         require(_modules.length > 0, "WF: cannot assign with less than 1 module");
-        require(ModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
+        require(IModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
         bytes memory labelBytes = bytes(_label);
         require(labelBytes.length != 0, "WF: ENS label must be defined");
     }
