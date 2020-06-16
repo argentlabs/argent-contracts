@@ -24,7 +24,8 @@ const { getRandomAddress } = require("../utils/utilities.js");
 const MODULE_NOT_AUTHORISED_FOR_WALLET = "RM: module not authorised";
 const INVALID_DATA_REVERT_MSG = "RM: Invalid dataWallet";
 const DUPLICATE_REQUEST_REVERT_MSG = "RM: Duplicate request";
-const INVALID_WALLET_REVERT_MSG = "RM: Target of _data != _wallet";
+const INVALID_WALLET_REVERT_MSG = "RM: Target of _data != _wallet"; 
+const RELAYER_NOT_AUTHORISED_FOR_WALLET = "BM: must be owner or module";
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 describe("RelayManager", function () {
@@ -103,9 +104,18 @@ describe("RelayManager", function () {
       );
     });
 
+    it("should fail when the RelayerModule is not authorised", async () => {
+      let wrongWallet = await deployer.deploy(Wallet);
+      await wrongWallet.init(owner.address, [testModule.contractAddress]);
+      const params = [wrongWallet.contractAddress, 2];
+      const txReceipt = await manager.relay(testModule, "setIntOwnerOnly", params, wrongWallet, [owner]);
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, RELAYER_NOT_AUTHORISED_FOR_WALLET);
+    });
 
-    it("should fail when the first param is not a wallet ", async () => {
-      const params = [owner.address, 4]; // the first argument is not the wallet address, which should make the relaying revert
+    it("should fail when the first param is not the wallet ", async () => {
+      const params = [owner.address, 4];
       await assert.revertWith(
         manager.relay(testModule, "setIntOwnerOnly", params, wallet, [owner]), INVALID_WALLET_REVERT_MSG,
       );

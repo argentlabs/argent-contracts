@@ -48,16 +48,16 @@ contract LockManager is BaseModule {
      */
     modifier onlyWhenLocked(address _wallet) {
         // solium-disable-next-line security/no-block-members
-        require(guardianStorage.isLocked(_wallet), "GD: wallet must be locked");
+        require(guardianStorage.isLocked(_wallet), "LM: wallet must be locked");
         _;
     }
 
     /**
      * @dev Throws if the caller is not a guardian for the wallet.
      */
-    modifier onlyGuardian(address _wallet) {
+    modifier onlyGuardianOrModule(address _wallet) {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), msg.sender);
-        require(msg.sender == address(this) || isGuardian, "GD: wallet must be unlocked");
+        require(isModule(_wallet, msg.sender) || isGuardian, "LM: must be guardian or module");
         _;
     }
 
@@ -78,7 +78,7 @@ contract LockManager is BaseModule {
      * @dev Lets a guardian lock a wallet.
      * @param _wallet The target wallet.
      */
-    function lock(address _wallet) external onlyGuardian(_wallet) onlyWhenUnlocked(_wallet) {
+    function lock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         guardianStorage.setLock(_wallet, now + lockPeriod);
         emit Locked(_wallet, uint64(now + lockPeriod));
     }
@@ -87,7 +87,7 @@ contract LockManager is BaseModule {
      * @dev Lets a guardian unlock a locked wallet.
      * @param _wallet The target wallet.
      */
-    function unlock(address _wallet) external onlyGuardian(_wallet) onlyWhenLocked(_wallet) {
+    function unlock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenLocked(_wallet) {
         address locker = guardianStorage.getLocker(_wallet);
         require(locker == address(this), "LM: cannot unlock a wallet that was locked by another module");
         guardianStorage.setLock(_wallet, 0);

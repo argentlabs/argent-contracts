@@ -7,6 +7,7 @@ const Registry = require("../build/ModuleRegistry");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
+const RelayerModule = require("../build/RelayerModule");
 const CompoundManager = require("../build/CompoundManager");
 
 // Compound
@@ -21,7 +22,6 @@ const CompoundRegistry = require("../build/CompoundRegistry");
 
 const WAD = bigNumberify("1000000000000000000"); // 10**18
 const ETH_EXCHANGE_RATE = bigNumberify("200000000000000000000000000");
-
 
 const ERC20 = require("../build/TestERC20");
 
@@ -137,6 +137,8 @@ describe("Loan Module", function () {
     await compoundRegistry.addCToken(token2.contractAddress, cToken2.contractAddress);
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
+    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
 
     loanManager = await deployer.deploy(
       CompoundManager,
@@ -153,7 +155,7 @@ describe("Loan Module", function () {
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [loanManager.contractAddress]);
+    await wallet.init(owner.address, [loanManager.contractAddress, relayerModule.contractAddress]);
   });
 
   async function fundWallet({ ethAmount, token1Amount, token2Amount = 0 }) {

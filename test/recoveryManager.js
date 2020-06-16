@@ -8,6 +8,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
+const RelayerModule = require("../build/RelayerModule");
 
 const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt, signOffchain } = require("../utils/utilities.js");
@@ -51,10 +52,12 @@ describe("RecoveryManager", function () {
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
     recoveryPeriod = await recoveryManager.recoveryPeriod();
 
+    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
+
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-
-    await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
+    await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress, relayerModule.contractAddress]);
   });
 
   async function addGuardians(guardians) {
@@ -416,13 +419,17 @@ describe("RecoveryManager", function () {
         methodData = methodData.replace("b0ba4da0", "e0b6fcfc");
 
         const signatures = await signOffchain([guardian1], recoveryManager.contractAddress, wallet.contractAddress, 0, methodData, nonce, 0, 700000);
-        let errorReason;
-        try {
-          await recoveryManager.from(nonowner2).execute(wallet.contractAddress, methodData, nonce, signatures, 0, 700000, { gasLimit: 700000 });
-        } catch (err) {
-          errorReason = err.data[err.transactionHash].reason;
-        }
-        assert.equal(errorReason, "RM: unknown method");
+        await assert.revertWith(
+          relayerModule.from(nonowner2).execute(
+            wallet.contractAddress, 
+            recoveryManager.contractAddress, 
+            methodData, 
+            nonce, 
+            signatures, 
+            0, 
+            700000, 
+            { gasLimit: 700000 }), 
+          "RM: unknown method");
       });
     });
   });

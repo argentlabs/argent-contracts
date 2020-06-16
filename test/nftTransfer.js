@@ -4,7 +4,7 @@ const ethers = require("ethers");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
-
+const RelayerModule = require("../build/RelayerModule");
 const GuardianStorage = require("../build/GuardianStorage");
 const NftModule = require("../build/NftTransfer");
 
@@ -45,6 +45,8 @@ describe("Token Transfer", function () {
     walletImplementation = await deployer.deploy(BaseWallet);
 
     const guardianStorage = await deployer.deploy(GuardianStorage);
+    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
     ck = await deployer.deploy(CK);
     nftModule = await deployer.deploy(NftModule, {},
       registry.contractAddress,
@@ -59,8 +61,8 @@ describe("Token Transfer", function () {
     const proxy2 = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy2.contractAddress);
 
-    await wallet1.init(owner1.address, [nftModule.contractAddress, erc20Approver.contractAddress]);
-    await wallet2.init(owner2.address, [nftModule.contractAddress]);
+    await wallet1.init(owner1.address, [nftModule.contractAddress, erc20Approver.contractAddress, relayerModule.contractAddress]);
+    await wallet2.init(owner2.address, [nftModule.contractAddress, relayerModule.contractAddress]);
     erc721 = await deployer.deploy(ERC721);
     await erc721.mint(wallet1.contractAddress, tokenId);
   });

@@ -25,6 +25,7 @@ const BaseWallet = require("../build/BaseWallet");
 const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TokenExchanger = require("../build/TokenExchanger");
+const RelayerModule = require("../build/RelayerModule");
 const ERC20 = require("../build/TestERC20");
 const TransferStorage = require("../build/TransferStorage");
 const LimitStorage = require("../build/LimitStorage");
@@ -56,7 +57,7 @@ describe("Token Exchanger", function () {
   let walletImplementation;
   let exchanger;
   let transferManager;
-
+  let relayerModule;
   let kyberNetwork;
   let kyberAdapter;
   let uniswapRouter;
@@ -69,6 +70,8 @@ describe("Token Exchanger", function () {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(ModuleRegistry);
     guardianStorage = await deployer.deploy(GuardianStorage);
+    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
 
     // Deploy test tokens
     tokenA = await deployer.deploy(ERC20, {}, [infrastructure.address], parseEther("1000"), DECIMALS);
@@ -152,7 +155,7 @@ describe("Token Exchanger", function () {
     // create wallet
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [exchanger.contractAddress, transferManager.contractAddress]);
+    await wallet.init(owner.address, [exchanger.contractAddress, transferManager.contractAddress, relayerModule.contractAddress]);
 
     // fund wallet
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther("0.1") });
