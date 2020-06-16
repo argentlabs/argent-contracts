@@ -69,22 +69,36 @@ class TestManager {
     this.relayerModule = relayerModule;
   }
 
-  async relay(_target, _method, _params, _wallet, _signers,
+  async relay(_module, _method, _params, _wallet, _signers,
     _relayer = this.accounts[9].signer,
     _estimate = false,
     _gasLimit = 2000000,
     _nonce,
     _gasPrice = 0) {
     const nonce = _nonce || await this.getNonceForRelay();
-    const methodData = _target.contract.interface.functions[_method].encode(_params);
-    const signatures = await signOffchain(_signers, this.relayerModule.contractAddress, _target.contractAddress, 0, methodData, nonce, _gasPrice, _gasLimit);
+    const methodData = _module.contract.interface.functions[_method].encode(_params);
+    const signatures = await signOffchain(_signers, this.relayerModule.contractAddress, _module.contractAddress, 0, methodData, nonce, _gasPrice, _gasLimit);
     if (_estimate === true) {
-      const gasUsed = await this.relayerModule.estimate.execute(_target.contractAddress, methodData, nonce, signatures, _gasPrice, _gasLimit);
+      const gasUsed = await this.relayerModule.estimate.execute(
+        _wallet.contractAddress,
+        _module.contractAddress,
+        methodData,
+        nonce,
+        signatures,
+        _gasPrice,
+        _gasLimit);
       return gasUsed;
     }
-    const tx = await this.relayerModule.execute(_target.contractAddress, methodData, nonce, signatures, _gasPrice, _gasLimit,
+    const tx = await this.relayerModule.execute(
+      _wallet.contractAddress,
+      _module.contractAddress,
+      methodData,
+      nonce,
+      signatures,
+      _gasPrice,
+      _gasLimit,
       { gasLimit: _gasLimit, gasPrice: _gasPrice });
-    const txReceipt = await _target.verboseWaitForTransaction(tx);
+    const txReceipt = await _module.verboseWaitForTransaction(tx);
     return txReceipt;
   }
 

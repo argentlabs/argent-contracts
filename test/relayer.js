@@ -16,13 +16,16 @@ const ApprovedTransfer = require("../build/ApprovedTransfer");
 const RecoveryManager = require("../build/RecoveryManager"); // non-owner only module
 const NftTransfer = require("../build/NftTransfer"); // owner only module
 const CryptoKittyTest = require("../build/CryptoKittyTest");
+const ERC721 = require("../build/TestERC721");
 
 const TestManager = require("../utils/test-manager");
 const { getRandomAddress } = require("../utils/utilities.js");
 
 const MODULE_NOT_AUTHORISED_FOR_WALLET = "RM: module not authorised";
-const INVALID_DATA_REVERT_MSG = "RM: Invalid data";
+const INVALID_DATA_REVERT_MSG = "RM: Invalid dataWallet";
 const DUPLICATE_REQUEST_REVERT_MSG = "RM: Duplicate request";
+const INVALID_WALLET_REVERT_MSG = "RM: Target of _data != _wallet";
+const ZERO_BYTES32 = ethers.constants.HashZero;
 
 describe("RelayManager", function () {
   this.timeout(10000);
@@ -31,7 +34,10 @@ describe("RelayManager", function () {
   const { deployer } = manager;
   let { getNonceForRelay } = manager;
   getNonceForRelay = getNonceForRelay.bind(manager);
+
+  const infrastructure = accounts[0].signer;
   const owner = accounts[1].signer;
+  const recipient = accounts[3].signer;
 
   let registry;
   let guardianStorage;
@@ -101,7 +107,7 @@ describe("RelayManager", function () {
     it("should fail when the first param is not a wallet ", async () => {
       const params = [owner.address, 4]; // the first argument is not the wallet address, which should make the relaying revert
       await assert.revertWith(
-        manager.relay(testModule, "setIntOwnerOnly", params, wallet, [owner]), MODULE_NOT_AUTHORISED_FOR_WALLET,
+        manager.relay(testModule, "setIntOwnerOnly", params, wallet, [owner]), INVALID_WALLET_REVERT_MSG,
       );
     });
 
@@ -156,28 +162,53 @@ describe("RelayManager", function () {
       await assert.revertWith(recoveryManager.transferOwnership(wallet.contractAddress, randomAddress), "BM: must be a module");
     });
 
-    it("should fail to refund", async () => {
+    it("should refund when there is enough ETH", async () => {
+
+      // make sure the wallet has some ETH for the refund
+      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("10000000000000000") });
+
+      let erc721 = await deployer.deploy(ERC721);
+      let tokenId = 1;
+      await erc721.mint(wallet.contractAddress, tokenId);
       const nonce = await getNonceForRelay();
 
-      const newowner = accounts[5].signer;
-      const guardian = accounts[6].signer;
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
-
+      let before = await deployer.provider.getBalance(wallet.contractAddress);
       const txReceipt = await manager.relay(
-        recoveryManager,
-        "transferOwnership",
-        [wallet.contractAddress, newowner.address],
+        nftTransferModule,
+        "transferNFT",
+        [wallet.contractAddress, erc721.contractAddress, recipient.address, tokenId, false, ZERO_BYTES32],
         wallet,
-        [owner, guardian],
+        [owner],
         accounts[9].signer,
         false,
         2000000,
         nonce,
-        1,
+        100,
       );
+      let after = await deployer.provider.getBalance(wallet.contractAddress);
 
-      const { error } = parseRelayReceipt(txReceipt);
-      assert.equal(error, "RM: refund failed");
+      await assert.isTrue(after.lt(before), "should have refunded");
+    });
+
+    it("should fail when there is not enough ETH for the refund", async () => {
+
+      let erc721 = await deployer.deploy(ERC721);
+      let tokenId = 1;
+      await erc721.mint(wallet.contractAddress, tokenId);
+      const nonce = await getNonceForRelay();
+
+      await assert.revertWith(manager.relay(
+        nftTransferModule,
+        "transferNFT",
+        [wallet.contractAddress, erc721.contractAddress, recipient.address, tokenId, false, ZERO_BYTES32],
+        wallet,
+        [owner],
+        accounts[9].signer,
+        false,
+        2000000,
+        nonce,
+        100
+      ), "BM: wallet invoke reverted");
     });
 
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
@@ -188,46 +219,46 @@ describe("RelayManager", function () {
     });
   });
 
-  // describe("addModule transactions", () => {
-  //   it("should succeed when relayed on OnlyOwnerModule modules", async () => {
-  //     await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
-  //     const params = [wallet.contractAddress, testModuleNew.contractAddress];
-  //     await manager.relay(nftTransferModule, "addModule", params, wallet, [owner]);
+  describe("addModule transactions", () => {
+    it("should succeed when relayed on OnlyOwnerModule modules", async () => {
+      await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
+      const params = [wallet.contractAddress, testModuleNew.contractAddress];
+      await manager.relay(nftTransferModule, "addModule", params, wallet, [owner]);
 
-  //     const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
-  //     assert.isTrue(isModuleAuthorised);
-  //   });
+      const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
+      assert.isTrue(isModuleAuthorised);
+    });
 
-  //   it("should succeed when called directly on OnlyOwnerModule modules", async () => {
-  //     await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
-  //     await nftTransferModule.from(owner).addModule(wallet.contractAddress, testModuleNew.contractAddress);
+    it("should succeed when called directly on OnlyOwnerModule modules", async () => {
+      await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
+      await nftTransferModule.from(owner).addModule(wallet.contractAddress, testModuleNew.contractAddress);
 
-  //     const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
-  //     assert.isTrue(isModuleAuthorised);
-  //   });
+      const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
+      assert.isTrue(isModuleAuthorised);
+    });
 
-  //   it("should fail when relayed on non-OnlyOwnerModule modules", async () => {
-  //     await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
-  //     const params = [wallet.contractAddress, testModuleNew.contractAddress];
-  //     const txReceipt = await manager.relay(approvedTransfer, "addModule", params, wallet, [owner]);
-  //     const { success, error } = parseRelayReceipt(txReceipt);
-  //     assert.isFalse(success);
-  //     assert.equal(error, "BM: msg.sender must be an owner for the wallet");
+    it("should fail when relayed on non-OnlyOwnerModule modules", async () => {
+      await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
+      const params = [wallet.contractAddress, testModuleNew.contractAddress];
+      const txReceipt = await manager.relay(approvedTransfer, "addModule", params, wallet, [owner]);
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "BM: must be owner");
 
-  //     const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
-  //     assert.isFalse(isModuleAuthorised);
-  //   });
+      const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
+      assert.isFalse(isModuleAuthorised);
+    });
 
-  //   it("should succeed when called directly on non-OnlyOwnerModule modules", async () => {
-  //     await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
-  //     await approvedTransfer.from(owner).addModule(wallet.contractAddress, testModuleNew.contractAddress);
-  //     const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
-  //     assert.isTrue(isModuleAuthorised);
-  //   });
+    it("should succeed when called directly on non-OnlyOwnerModule modules", async () => {
+      await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
+      await approvedTransfer.from(owner).addModule(wallet.contractAddress, testModuleNew.contractAddress);
+      const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
+      assert.isTrue(isModuleAuthorised);
+    });
 
-  //   it("should fail to add module which is not registered", async () => {
-  //     await assert.revertWith(approvedTransfer.from(owner).addModule(wallet.contractAddress, testModuleNew.contractAddress),
-  //       "BM: module is not registered");
-  //   });
-  // });
+    it("should fail to add module which is not registered", async () => {
+      await assert.revertWith(approvedTransfer.from(owner).addModule(wallet.contractAddress, testModuleNew.contractAddress),
+        "BM: module is not registered");
+    });
+  });
 });

@@ -57,6 +57,7 @@ contract RelayerModule is BaseModule, LimitManager {
 
     /**
     * @dev Executes a relayed transaction.
+    * @param _wallet The target wallet.
     * @param _module The target module.
     * @param _data The data for the relayed transaction
     * @param _nonce The nonce used to prevent replay attacks.
@@ -65,6 +66,7 @@ contract RelayerModule is BaseModule, LimitManager {
     * @param _gasLimit The gas limit to use for the gas refund.
     */
     function execute(
+        address _wallet,
         address _module,
         bytes calldata _data,
         uint256 _nonce,
@@ -76,7 +78,8 @@ contract RelayerModule is BaseModule, LimitManager {
         returns (bool)
     {
         uint startGas = gasleft();
-        address wallet = getWalletFromData(_data);
+        address wallet = _wallet; // avoids a stack too deep error
+        require(verifyData(wallet, _data), "RM: Target of _data != _wallet");
         require(isModule(wallet, _module), "RM: module not authorised");
         bytes32 signHash = getSignHash(address(this), _module, 0, _data, _nonce, _gasPrice, _gasLimit);
         (uint256 requiredSignatures, OwnerSignature ownerSignatureRequirement) = IModule(_module).getRequiredSignatures(wallet, _data);
@@ -287,16 +290,18 @@ contract RelayerModule is BaseModule, LimitManager {
     }
 
    /**
-    * @dev Gets the address of the target wallet as the first parameter of an encoded function call.
-    * @param _data The data.
-    * @return _wallet the address of the target wallet.
+    * @dev Checks that the wallet address provided as the first parameter of the relayed data is the same
+    * as the wallet passed as the input of the execute() method.
+    @return false if the addresses are different.
     */
-    function getWalletFromData(bytes memory _data) private pure returns (address _wallet) {
-        require(_data.length >= 36, "RM: Invalid data");
+    function verifyData(address _wallet, bytes memory _data) private pure returns (bool) {
+        require(_data.length >= 36, "RM: Invalid dataWallet");
+        address dataWallet;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             //_data = {length:32}{sig:4}{_wallet:32}{...}
-            _wallet := mload(add(_data, 0x24))
+            dataWallet := mload(add(_data, 0x24))
         }
+        return dataWallet == _wallet;
     }
 }
