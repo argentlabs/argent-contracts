@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../../lib/other/ERC20.sol";
+import "../../../lib/other/IERC20Extended.sol";
 import "../../infrastructure/base/Managed.sol";
 
 contract TokenPriceProvider is Managed {
@@ -24,22 +24,19 @@ contract TokenPriceProvider is Managed {
 
     mapping(address => uint256) public cachedPrices;
 
-    event TokenDecimalsMissing(address indexed token);
-
     /**
      * @dev Converts the value of _amount tokens in ether.
      * @param _amount the amount of tokens to convert (in 'token wei' twei)
-     * @param _token the ERC20 token contract
+     * @param _token the token address
      * @return the ether value (in wei) of _amount tokens with contract _token
      */
     function getEtherValue(uint256 _amount, address _token) external view returns (uint256) {
         uint256 decimals;
 
-        try ERC20(_token).decimals() returns (uint _decimals) {
+        try IERC20Extended(_token).decimals() returns (uint _decimals) {
             decimals = _decimals;
         }
-        catch (bytes memory lowLevelData) {
-            emit TokenDecimalsMissing(_token);
+        catch (bytes memory /*lowLevelData*/) {
         }
 
         uint256 price = cachedPrices[_token];
