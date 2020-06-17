@@ -30,7 +30,6 @@ describe("Token Price Provider", function () {
     erc20First = await deployer.deploy(TestERC20, {}, [infrastructure.address], 10000000, 18);
     erc20Second = await deployer.deploy(TestERC20, {}, [infrastructure.address], 10000000, 18);
     erc20ZeroDecimals = await deployer.deploy(TestERC20, {}, [infrastructure.address], 10000000, 0);
-    await erc20ZeroDecimals._setup
     baseERC20 = await deployer.deploy(DSTokenBase, {}, 10000000);
   });
 
@@ -56,7 +55,7 @@ describe("Token Price Provider", function () {
     });
 
     it("should be able to get the ether value for a token with no decimals property", async () => {
-      await priceProvider.from(priceProviderManager).setPrice(baseERC20.contractAddress, "192297647000000000"); // Using a mock price for DGD token 
+      await priceProvider.from(priceProviderManager).setPrice(baseERC20.contractAddress, "192297647000000000"); // Using a mock price for DGD token
       const etherValue = await priceProvider.getEtherValue(100, baseERC20.contractAddress);
       assert.equal(etherValue.toString(), "19229764700000000000");
     });
