@@ -86,7 +86,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         paraswapProxy = IAugustusSwapper(_paraswap).getTokenTransferProxy();
         referrer = _referrer;
 
-        for (uint i; i < _authorisedExchanges.length; i++) {
+        for (uint i = 0; i < _authorisedExchanges.length; i++) {
             authorisedExchanges[_authorisedExchanges[i]] = true;
         }
     }
@@ -106,8 +106,8 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
     {
         // Verify that the exchange adapters used have been authorised
-        for (uint i; i < _path.length; i++) {
-            for (uint j; j < _path[i].routes.length; j++) {
+        for (uint i = 0; i < _path.length; i++) {
+            for (uint j = 0; j < _path[i].routes.length; j++) {
                 require(authorisedExchanges[_path[i].routes[j].exchange], "TE: Unauthorised Exchange");
             }
         }
