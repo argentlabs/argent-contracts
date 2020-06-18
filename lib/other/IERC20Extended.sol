@@ -4,7 +4,7 @@ pragma solidity >=0.5.4 <0.7.0;
  * Extended ERC20 contract interface to include the decimals property.
  */
 interface IERC20Extended {
-    function decimals() external view returns (uint);
+    function decimals() external view returns (uint8);
     function totalSupply() external view returns (uint);
     function balanceOf(address tokenOwner) external view returns (uint balance);
     function allowance(address tokenOwner, address spender) external view returns (uint remaining);

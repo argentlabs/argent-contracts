@@ -31,16 +31,16 @@ contract TokenPriceProvider is Managed {
      * @return the ether value (in wei) of _amount tokens with contract _token
      */
     function getEtherValue(uint256 _amount, address _token) external view returns (uint256) {
-        uint256 decimals;
+        uint8 decimals;
 
-        try IERC20Extended(_token).decimals() returns (uint _decimals) {
+        try IERC20Extended(_token).decimals() returns (uint8 _decimals) {
             decimals = _decimals;
         }
         catch (bytes memory /*lowLevelData*/) {
         }
 
         uint256 price = cachedPrices[_token];
-        uint256 etherValue = decimals == 0 ? price.mul(_amount) : price.mul(_amount).div(10**decimals);
+        uint256 etherValue = decimals == 0 ? price.mul(_amount) : price.mul(_amount).div(10**uint(decimals));
         return etherValue;
     }
 
