@@ -56,6 +56,8 @@
   "homepage": "https://github.com/argentlabs/argent-contracts#readme",
   "dependencies": {
     "@openzeppelin/contracts": "3.0.1",
+    "@uniswap/lib": "^1.1.2",
+    "@uniswap/v2-core": "^1.0.1",
     "ajv": "^6.10.0",
     "aws-sdk": "^2.521.0",
     "bip39": "^3.0.2",
