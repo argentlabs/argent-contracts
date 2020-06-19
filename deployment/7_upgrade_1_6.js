@@ -1,25 +1,19 @@
 const semver = require("semver");
 const childProcess = require("child_process");
-const ApprovedTransfer = require("../build/ApprovedTransfer");
 const RecoveryManager = require("../build/RecoveryManager");
 const MultiSig = require("../build/MultiSigWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const Upgrader = require("../build/SimpleUpgrader");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
-const MakerRegistry = require("../build/MakerRegistry");
-const ScdMcdMigration = require("../build/ScdMcdMigration");
-const MakerV2Manager = require("../build/MakerV2Manager");
-const TransferManager = require("../build/TransferManager");
 
 const utils = require("../utils/utilities.js");
 
 const TARGET_VERSION = "1.6.0";
-const MODULES_TO_ENABLE = ["ApprovedTransfer", "RecoveryManager", "MakerV2Manager", "TransferManager"];
-const MODULES_TO_DISABLE = ["UniswapManager"];
+const MODULES_TO_ENABLE = ["RecoveryManager"];
+const MODULES_TO_DISABLE = [];
 
-const BACKWARD_COMPATIBILITY = 1;
+const BACKWARD_COMPATIBILITY = 2;
 
 const deploy = async (network) => {
   if (!["kovan", "kovan-fork", "staging", "prod"].includes(network)) {
@@ -51,31 +45,8 @@ const deploy = async (network) => {
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
 
   // //////////////////////////////////
-  // Deploy infrastructure contracts
-  // //////////////////////////////////
-
-  // Deploy and configure Maker Registry
-  const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, config.defi.maker.migration);
-  const vatAddress = await ScdMcdMigrationWrapper.vat();
-  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry, {}, vatAddress);
-  const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
-  const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
-  await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
-  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
-  const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
-
-  // //////////////////////////////////
   // Deploy new modules
   // //////////////////////////////////
-
-  const ApprovedTransferWrapper = await deployer.deploy(
-    ApprovedTransfer,
-    {},
-    config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
-  );
-  newModuleWrappers.push(ApprovedTransferWrapper);
 
   const RecoveryManagerWrapper = await deployer.deploy(
     RecoveryManager,
@@ -89,46 +60,12 @@ const deploy = async (network) => {
   );
   newModuleWrappers.push(RecoveryManagerWrapper);
 
-  const MakerV2ManagerWrapper = await deployer.deploy(
-    MakerV2Manager,
-    {},
-    config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
-    config.defi.maker.migration,
-    config.defi.maker.pot,
-    config.defi.maker.jug,
-    MakerRegistryWrapper.contractAddress,
-    config.defi.uniswap.factory,
-  );
-  newModuleWrappers.push(MakerV2ManagerWrapper);
-
-  const TransferManagerWrapper = await deployer.deploy(
-    TransferManager,
-    {},
-    config.contracts.ModuleRegistry,
-    config.modules.TransferStorage,
-    config.modules.GuardianStorage,
-    TokenPriceProviderWrapper.contractAddress,
-    config.settings.securityPeriod || 0,
-    config.settings.securityWindow || 0,
-    config.settings.defaultLimit || "1000000000000000000",
-    ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
-  );
-  newModuleWrappers.push(TransferManagerWrapper);
-
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
 
   configurator.updateModuleAddresses({
-    ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     RecoveryManager: RecoveryManagerWrapper.contractAddress,
-    MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
-    TransferManager: TransferManagerWrapper.contractAddress,
-  });
-
-  configurator.updateInfrastructureAddresses({
-    MakerRegistry: MakerRegistryWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -136,11 +73,7 @@ const deploy = async (network) => {
   await configurator.save();
 
   await Promise.all([
-    abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(RecoveryManagerWrapper, "modules"),
-    abiUploader.upload(MakerV2ManagerWrapper, "modules"),
-    abiUploader.upload(TransferManagerWrapper, "modules"),
-    abiUploader.upload(MakerRegistryWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
@@ -156,7 +89,6 @@ const deploy = async (network) => {
   // //////////////////////////////////
   // Deploy and Register upgraders
   // //////////////////////////////////
-
 
   let fingerprint;
   const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
@@ -207,7 +139,6 @@ const deploy = async (network) => {
 
   await versionUploader.upload(newVersion);
 };
-
 
 module.exports = {
   deploy,
