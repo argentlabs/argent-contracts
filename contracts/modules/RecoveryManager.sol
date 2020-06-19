@@ -180,7 +180,10 @@ contract RecoveryManager is RelayerModule {
     function getRequiredSignatures(address _wallet, bytes memory _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
-            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            uint walletGuardians = guardianStorage.guardianCount(_wallet);
+            require(walletGuardians > 0, "RM: no guardians set on wallet");
+            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(walletGuardians, 2);
+
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
