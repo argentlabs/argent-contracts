@@ -27,14 +27,14 @@ import "../../infrastructure/storage/ILimitStorage.sol";
 abstract contract LimitManager is BaseModule {
 
     // large limit when the limit can be considered disabled
-    uint256 constant internal LIMIT_DISABLED = uint256(-1);
+    uint128 constant internal LIMIT_DISABLED = uint128(-1);
 
     using SafeMath for uint256;
 
     // The storage contract
     ILimitStorage public lStorage;
     // The default limit
-    uint256 public defaultLimit;
+    uint128 public defaultLimit;
 
     // *************** Events *************************** //
 
@@ -44,7 +44,7 @@ abstract contract LimitManager is BaseModule {
 
     constructor(ILimitStorage _limitStorage, uint256 _defaultLimit) public {
         lStorage = _limitStorage;
-        defaultLimit = _defaultLimit;
+        defaultLimit = safe128(_defaultLimit);
     }
 
     // *************** Internal Functions ********************* //
@@ -65,7 +65,7 @@ abstract contract LimitManager is BaseModule {
         // solium-disable-next-line security/no-block-members
         uint256 currentLimit = (changeAfter > 0 && changeAfter < now) ? pending : current;
         // solium-disable-next-line security/no-block-members
-        lStorage.setLimit(_wallet, currentLimit, _newLimit, now.add(_securityPeriod));
+        lStorage.setLimit(_wallet, safe128(currentLimit), safe128(_newLimit), safe64(now.add(_securityPeriod)));
         // solium-disable-next-line security/no-block-members
         emit LimitChanged(_wallet, _newLimit, uint64(now.add(_securityPeriod)));
     }
@@ -86,17 +86,17 @@ abstract contract LimitManager is BaseModule {
     * @param _amount The amount for the transfer
     * @return true if the transfer is withing the daily limit.
     */
-    function checkAndUpdateDailySpent(address _wallet, uint _amount) internal returns (bool) {
+    function checkAndUpdateDailySpent(address _wallet, uint256 _amount) internal returns (bool) {
         (uint256 current, uint256 pending, uint256 changeAfter, uint256 alreadySpent, uint256 periodEnd) = getLimitAndDailySpent(_wallet);
         uint256 currentLimit = currentLimit(current, pending, changeAfter);
         if (_amount == 0 || currentLimit == LIMIT_DISABLED) {
             return true;
         } else if (periodEnd <= now && _amount <= currentLimit) {
             // solium-disable-next-line security/no-block-members
-            lStorage.setDailySpent(_wallet, _amount, now + 24 hours);
+            lStorage.setDailySpent(_wallet, safe128(_amount), safe64(now + 24 hours));
             return true;
         } else if (periodEnd > now && alreadySpent.add(_amount) <= currentLimit) {
-            lStorage.setDailySpent(_wallet, alreadySpent.add(_amount), periodEnd);
+            lStorage.setDailySpent(_wallet, safe128(alreadySpent.add(_amount)), safe64(periodEnd));
             return true;
         }
         return false;
@@ -108,7 +108,7 @@ abstract contract LimitManager is BaseModule {
     * @param _amount The amount for the transfer
     * @return true if the transfer is withing the daily limit.
     */
-    function checkDailySpent(address _wallet, uint _amount) internal view returns (bool) {
+    function checkDailySpent(address _wallet, uint256 _amount) internal view returns (bool) {
         (uint256 current, uint256 pending, uint256 changeAfter, uint256 alreadySpent, uint256 periodEnd) = getLimitAndDailySpent(_wallet);
         uint256 currentLimit = currentLimit(current, pending, changeAfter);
         if (currentLimit == LIMIT_DISABLED) {
@@ -151,6 +151,16 @@ abstract contract LimitManager is BaseModule {
             return _pending;
         }
         return _current;
+    }
+
+    function safe128(uint256 _num) internal pure returns (uint128) {
+        require(_num < 2**128, "LM: more then 128 bits");
+        return uint128(_num);
+    }
+
+    function safe64(uint256 _num) internal pure returns (uint128) {
+        require(_num < 2**64, "LM: more then 64 bits");
+        return uint64(_num);
     }
 
 }

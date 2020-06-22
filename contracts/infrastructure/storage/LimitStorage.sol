@@ -53,49 +53,49 @@ contract LimitStorage is ILimitStorage, Storage {
     // wallet specific storage
     mapping (address => LimitManagerConfig) internal limits;
 
-    function setLimit(address _wallet, uint256 _current, uint256 _pending, uint256 _changeAfter) external onlyModule(_wallet) {
+    function setLimit(address _wallet, uint128 _current, uint128 _pending, uint64 _changeAfter) external onlyModule(_wallet) {
         Limit storage limit = limits[_wallet].limit;
-        limit.current = uint128(_current);
-        limit.pending = uint128(_pending);
-        limit.changeAfter = uint64(_changeAfter);
+        limit.current = _current;
+        limit.pending = _pending;
+        limit.changeAfter = _changeAfter;
     }
 
-    function getLimit(address _wallet) external view returns (uint256, uint256, uint256) {
+    function getLimit(address _wallet) external view returns (uint128, uint128, uint64) {
         Limit storage limit = limits[_wallet].limit;
         return (limit.current, limit.pending, limit.changeAfter);
     }
 
-    function setDailySpent(address _wallet, uint256 _alreadySpent, uint256 _periodEnd) external onlyModule(_wallet) {
+    function setDailySpent(address _wallet, uint128 _alreadySpent, uint64 _periodEnd) external onlyModule(_wallet) {
         DailySpent storage expense = limits[_wallet].dailySpent;
-        expense.alreadySpent = uint128(_alreadySpent);
-        expense.periodEnd = uint64(_periodEnd);
+        expense.alreadySpent = _alreadySpent;
+        expense.periodEnd = _periodEnd;
     }
 
-    function getDailySpent(address _wallet) external view returns (uint256, uint256) {
+    function getDailySpent(address _wallet) external view returns (uint128, uint64) {
         DailySpent storage expense = limits[_wallet].dailySpent;
         return (expense.alreadySpent, expense.periodEnd);
     }
 
     function setLimitAndDailySpent(
         address _wallet,
-        uint256 _current,
-        uint256 _pending,
-        uint256 _changeAfter,
-        uint256 _alreadySpent,
-        uint256 _periodEnd
+        uint128 _current,
+        uint128 _pending,
+        uint64 _changeAfter,
+        uint128 _alreadySpent,
+        uint64 _periodEnd
     )
         external
         onlyModule(_wallet)
     {
         LimitManagerConfig storage config = limits[_wallet];
-        config.limit.current = uint128(_current);
-        config.limit.pending = uint128(_pending);
-        config.limit.changeAfter = uint64(_changeAfter);
-        config.dailySpent.alreadySpent = uint128(_alreadySpent);
-        config.dailySpent.periodEnd = uint64(_periodEnd);
+        config.limit.current = _current;
+        config.limit.pending = _pending;
+        config.limit.changeAfter = _changeAfter;
+        config.dailySpent.alreadySpent = _alreadySpent;
+        config.dailySpent.periodEnd = _periodEnd;
     }
 
-    function getLimitAndDailySpent(address _wallet) external view returns (uint256, uint256, uint256, uint256, uint256) {
+    function getLimitAndDailySpent(address _wallet) external view returns (uint128, uint128, uint64, uint128, uint64) {
         Limit storage limit = limits[_wallet].limit;
         DailySpent storage expense = limits[_wallet].dailySpent;
         return (limit.current, limit.pending, limit.changeAfter, expense.alreadySpent, expense.periodEnd);

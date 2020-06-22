@@ -118,15 +118,15 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
                 (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
                 // solium-disable-next-line security/no-block-members
                 if (periodEnd < now) {
-                    lStorage.setLimit(_wallet, current, pending, changeAfter);
+                    lStorage.setLimit(_wallet, safe128(current), safe128(pending), safe64(changeAfter));
                 } else {
                     lStorage.setLimitAndDailySpent(
                         _wallet,
-                        current,
-                        pending,
-                        changeAfter,
-                        current.sub(unspent),
-                        periodEnd);
+                        safe128(current),
+                        safe128(pending),
+                        safe64(changeAfter),
+                        safe128(current.sub(unspent)),
+                        safe64(periodEnd));
                 }
             }
         }

@@ -20,23 +20,23 @@ pragma solidity >=0.5.4 <0.7.0;
  */
 interface ILimitStorage {
 
-    function setLimit(address _wallet, uint256 _current, uint256 _pending, uint256 _changeAfter) external;
+    function setLimit(address _wallet, uint128 _current, uint128 _pending, uint64 _changeAfter) external;
 
-    function getLimit(address _wallet) external view returns (uint256, uint256, uint256);
+    function getLimit(address _wallet) external view returns (uint128, uint128, uint64);
 
-    function setDailySpent(address _wallet, uint256 _alreadySpent, uint256 _periodEnd) external;
+    function setDailySpent(address _wallet, uint128 _alreadySpent, uint64 _periodEnd) external;
 
-    function getDailySpent(address _wallet) external view returns (uint256, uint256);
+    function getDailySpent(address _wallet) external view returns (uint128, uint64);
 
     function setLimitAndDailySpent(
         address _wallet,
-        uint256 _current,
-        uint256 _pending,
-        uint256 _changeAfter,
-        uint256 _alreadySpent,
-        uint256 _periodEnd
+        uint128 _current,
+        uint128 _pending,
+        uint64 _changeAfter,
+        uint128 _alreadySpent,
+        uint64 _periodEnd
     )
         external;
 
-    function getLimitAndDailySpent(address _wallet) external view returns (uint256, uint256, uint256, uint256, uint256);
+    function getLimitAndDailySpent(address _wallet) external view returns (uint128, uint128, uint64, uint128, uint64);
 }
