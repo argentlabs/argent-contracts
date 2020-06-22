@@ -19,6 +19,7 @@ const BaseWallet = require("../build/BaseWallet");
 const FakeWallet = require("../build/FakeWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferStorage = require("../build/TransferStorage");
+const LimitStorage = require("../build/LimitStorage");
 const TransferManager = require("../build/TransferManager");
 const BadModule = require("../build/TestModuleRelayer");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
@@ -63,11 +64,11 @@ describe("MakerV2 Vaults", function () {
       mk.sai, mk.dai, mk.gov, mk.bat, mk.weth, mk.vat, mk.batJoin, mk.cdpManager, mk.pot, mk.jug, mk.migration,
     ];
     const { wethJoin, tub } = mk;
-
+    
     // Deploy Uniswap
     const uni = await deployUniswap(deployer, manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
     uniswapFactory = uni.uniswapFactory;
-
+    
     // Deploy MakerV2Manager
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
@@ -84,7 +85,7 @@ describe("MakerV2 Vaults", function () {
       makerRegistry.contractAddress,
       uniswapFactory.contractAddress,
     );
-
+    
     // Deploy MakerManager
     makerV1 = await deployer.deploy(
       MakerV1Manager,
@@ -94,20 +95,22 @@ describe("MakerV2 Vaults", function () {
       tub.contractAddress,
       uniswapFactory.contractAddress,
     );
-
+    
     // Deploy TransferManager
     const priceProvider = await deployer.deploy(TokenPriceProvider);
     const transferStorage = await deployer.deploy(TransferStorage);
+    const limitStorage = await deployer.deploy(LimitStorage);
     transferManager = await deployer.deploy(TransferManager, {},
       AddressZero,
       transferStorage.contractAddress,
       guardianStorage.contractAddress,
+      limitStorage.contractAddress,
       priceProvider.contractAddress,
       3600,
       3600,
       10000,
       AddressZero);
-
+      
     walletImplementation = await deployer.deploy(BaseWallet);
   });
 

@@ -118,7 +118,6 @@ abstract contract LimitManager is BaseModule {
         if (periodEnd < now) {
             return (_amount <= currentLimit);
         } 
-        // should use safemath
         return (alreadySpent.add(_amount) <= currentLimit);
     }
 
