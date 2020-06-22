@@ -64,11 +64,11 @@ describe("MakerV2 Vaults", function () {
       mk.sai, mk.dai, mk.gov, mk.bat, mk.weth, mk.vat, mk.batJoin, mk.cdpManager, mk.pot, mk.jug, mk.migration,
     ];
     const { wethJoin, tub } = mk;
-    
+
     // Deploy Uniswap
     const uni = await deployUniswap(deployer, manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
     uniswapFactory = uni.uniswapFactory;
-    
+
     // Deploy MakerV2Manager
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
@@ -85,7 +85,7 @@ describe("MakerV2 Vaults", function () {
       makerRegistry.contractAddress,
       uniswapFactory.contractAddress,
     );
-    
+
     // Deploy MakerManager
     makerV1 = await deployer.deploy(
       MakerV1Manager,
@@ -95,7 +95,7 @@ describe("MakerV2 Vaults", function () {
       tub.contractAddress,
       uniswapFactory.contractAddress,
     );
-    
+
     // Deploy TransferManager
     const priceProvider = await deployer.deploy(TokenPriceProvider);
     const transferStorage = await deployer.deploy(TransferStorage);
@@ -110,7 +110,7 @@ describe("MakerV2 Vaults", function () {
       3600,
       10000,
       AddressZero);
-      
+
     walletImplementation = await deployer.deploy(BaseWallet);
   });
 

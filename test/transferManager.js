@@ -186,7 +186,7 @@ describe("TransferManager", function () {
     });
   });
 
-  describe("Token transfers", () => { 
+  describe("Token transfers", () => {
     async function doDirectTransfer({
       token, signer = owner, to, amount, relayed = false,
     }) {
