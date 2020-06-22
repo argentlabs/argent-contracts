@@ -158,7 +158,7 @@ abstract contract LimitManager is BaseModule {
         return uint128(_num);
     }
 
-    function safe64(uint256 _num) internal pure returns (uint128) {
+    function safe64(uint256 _num) internal pure returns (uint64) {
         require(_num < 2**64, "LM: more then 64 bits");
         return uint64(_num);
     }
