@@ -117,7 +117,32 @@ describe("TransferManager", function () {
     });
   });
 
-  describe("Managing limit and whitelist ", () => {
+  describe("Managing the whitelist", () => {
+    it("should add/remove an account to/from the whitelist", async () => {
+      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
+      let isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
+      assert.equal(isTrusted, false, "should not be trusted during the security period");
+      await manager.increaseTime(3);
+      isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
+      assert.equal(isTrusted, true, "should be trusted after the security period");
+      await transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address);
+      isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
+      assert.equal(isTrusted, false, "should no removed from whitelist immediately");
+    });
+
+    it("should not be able to whitelist a token twice", async () => {
+      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
+      await manager.increaseTime(3);
+      await assert.revertWith(transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address), "TT: target already whitelisted");
+    });
+
+    it("should not be able to remove a non-whitelisted token from the whitelist", async () => {
+      await assert.revertWith(transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address),
+        "TT: target not whitelisted");
+    });
+  });
+
+  describe("Daily limit", () => {
     it("should migrate the limit for existing wallets", async () => {
       // create wallet with previous module and funds
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
@@ -127,7 +152,7 @@ describe("TransferManager", function () {
       await infrastructure.sendTransaction({ to: existingWallet.contractAddress, value: ethers.utils.bigNumberify("100000000") });
       // change the limit
       await previousTransferModule.from(owner).changeLimit(existingWallet.contractAddress, 4000000);
-      await manager.increaseTime(3);
+      await manager.increaseTime(SECURITY_PERIOD + 1);
       let limit = await previousTransferModule.getCurrentLimit(existingWallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
       // transfer some funds
@@ -150,39 +175,56 @@ describe("TransferManager", function () {
       await transferModule.from(owner).changeLimit(wallet.contractAddress, 4000000);
       let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
       assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
-      await manager.increaseTime(3);
+      await manager.increaseTime(SECURITY_PERIOD + 1);
       limit = await transferModule.getCurrentLimit(wallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
     });
 
     it("should change the limit via relayed transaction", async () => {
       await manager.relay(transferModule, "changeLimit", [wallet.contractAddress, 4000000], wallet, [owner]);
-      await manager.increaseTime(3);
+      await manager.increaseTime(SECURITY_PERIOD + 1);
       const limit = await transferModule.getCurrentLimit(wallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
     });
 
-    it("should add/remove an account to/from the whitelist", async () => {
-      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
-      let isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
-      assert.equal(isTrusted, false, "should not be trusted during the security period");
-      await manager.increaseTime(3);
-      isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
-      assert.equal(isTrusted, true, "should be trusted after the security period");
-      await transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address);
-      isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
-      assert.equal(isTrusted, false, "should no removed from whitelist immediately");
+    it.skip("should not be able to change the limit to 0", async () => {
+      await transferModule.from(owner).changeLimit(wallet.contractAddress, 0);
+      await manager.increaseTime(SECURITY_PERIOD);
+      const limit = await transferModule.getCurrentLimit(wallet.contractAddress);
+      assert.equal(limit.toNumber(), 0);
     });
 
-    it("should not be able to whitelist a token twice", async () => {
-      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
-      await manager.increaseTime(3);
-      await assert.revertWith(transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address), "TT: target already whitelisted");
+    it("should correctly set the pending limit", async () => {
+      const tx = await transferModule.from(owner).changeLimit(wallet.contractAddress, 20000);
+      const txReceipt = await transferModule.verboseWaitForTransaction(tx);
+      const timestamp = await manager.getTimestamp(txReceipt.block);
+      const { _pendingLimit, _changeAfter } = await transferModule.getPendingLimit(wallet.contractAddress);
+      assert.equal(_pendingLimit.toNumber(), 20000);
+      assert.equal(_changeAfter.toNumber(), timestamp + SECURITY_PERIOD);
     });
 
-    it("should not be able to remove a non-whitelisted token from the whitelist", async () => {
-      await assert.revertWith(transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address),
-        "TT: target not whitelisted");
+    it("should be able to disable the limit", async () => {
+      await transferModule.from(owner).disableLimit(wallet.contractAddress);
+      let limitDisabled = await transferModule.isLimitDisabled(wallet.contractAddress);
+      assert.isFalse(limitDisabled);
+      await manager.increaseTime(SECURITY_PERIOD + 1);
+      limitDisabled = await transferModule.isLimitDisabled(wallet.contractAddress);
+      assert.isTrue(limitDisabled);
+    });
+
+    it("should return the correct unspent daily limit amount", async () => {
+      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify(ETH_LIMIT) });
+      const transferAmount = ETH_LIMIT - 100;
+      await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, transferAmount, ZERO_BYTES32);
+      const { _unspent } = await transferModule.getDailyUnspent(wallet.contractAddress);
+      assert.equal(_unspent.toNumber(), 100);
+    });
+
+    it("should return 0 if the entire daily limit amount has been spent", async () => {
+      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify(ETH_LIMIT) });
+      await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, ETH_LIMIT, ZERO_BYTES32);
+      const { _unspent } = await transferModule.getDailyUnspent(wallet.contractAddress);
+      assert.equal(_unspent.toNumber(), 0);
     });
   });
 
