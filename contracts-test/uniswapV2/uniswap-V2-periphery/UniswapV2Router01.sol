@@ -1,12 +1,15 @@
 pragma solidity ^0.6.10;
 
-import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
 import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
 
 import './libraries/UniswapV2Library.sol';
 import './interfaces/IUniswapV2Router01.sol';
-import './interfaces/IERC20.sol';
 import './interfaces/IWETH.sol';
+// !! Argent Modification !!
+// The following two imports were removed from the original file
+// because they are already imported in the modified UniswapV2Library.sol
+// import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol';
+// import './interfaces/IERC20.sol';
 
 contract UniswapV2Router01 is IUniswapV2Router01 {
     address public immutable override factory;

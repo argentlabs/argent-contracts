@@ -23,13 +23,13 @@ step_setup_global_packages: &step_setup_global_packages
     command: |
       npm install
 step_setup_slither: &step_setup_slither
-    run:
-      name: "Setup slither analyser https://github.com/crytic/slither"
-      command: |
-        wget https://github.com/ethereum/solidity/releases/download/v0.5.4/solc-static-linux
-        chmod +x solc-static-linux
-        sudo mv solc-static-linux /usr/local/bin/solc
-        sudo pip3 install slither-analyzer
+  run:
+    name: "Setup slither analyser https://github.com/crytic/slither"
+    command: |
+      wget https://github.com/ethereum/solidity/releases/download/v0.5.4/solc-static-linux
+      chmod +x solc-static-linux
+      sudo mv solc-static-linux /usr/local/bin/solc
+      sudo pip3 install slither-analyzer
 jobs:
   unit-test:
     <<: *job_common

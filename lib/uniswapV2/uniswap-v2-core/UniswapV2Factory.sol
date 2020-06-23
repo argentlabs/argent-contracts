@@ -20,10 +20,12 @@ contract UniswapV2Factory is IUniswapV2Factory {
         return allPairs.length;
     }
 
-    function getKeccakOfPairCreationCode() external view returns (bytes32) {
-        bytes memory bc = type(UniswapV2Pair).creationCode;
-        return keccak256(bc);
+    // !! Argent Modification !!
+    // The following method was added to be able to use the correct UniswapV2Pair init code in UniswapV2Library
+    function getKeccakOfPairCreationCode() external pure returns (bytes32) {
+        return keccak256(type(UniswapV2Pair).creationCode);
     }
+
     function createPair(address tokenA, address tokenB) external returns (address pair) {
         require(tokenA != tokenB, 'UniswapV2: IDENTICAL_ADDRESSES');
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);

@@ -14,4 +14,8 @@ interface IUniswapV2Factory {
 
     function setFeeTo(address) external;
     function setFeeToSetter(address) external;
+
+    // !! Argent Modification !!
+    // The following method was added to be able to use the correct UniswapV2Pair init code in UniswapV2Library
+    function getKeccakOfPairCreationCode() external pure returns (bytes32);
 }
