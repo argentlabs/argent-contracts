@@ -106,21 +106,54 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         onlyWhenUnlocked(_wallet)
     {
         // Verify that the exchange adapters used have been authorised
+        verifyExchangeAdapters(_path);
+        // Approve source amount if required
+        approveToken(_wallet, _srcToken, _srcAmount);
+        // Perform trade and emit event
+        doMultiSwap(
+            _wallet,
+            _srcToken,
+            _destToken,
+            _srcAmount,
+            _minDestAmount,
+            _expectedDestAmount,
+            _path,
+            _mintPrice);
+    }
+
+    // Internal & Private Methods
+
+    function verifyExchangeAdapters(Path[] calldata _path) internal {
         for (uint i = 0; i < _path.length; i++) {
             for (uint j = 0; j < _path[i].routes.length; j++) {
                 require(authorisedExchanges[_path[i].routes[j].exchange], "TE: Unauthorised Exchange");
             }
         }
+    }
 
-        // Approve source amount if required
-        if (_srcToken != ETH_TOKEN_ADDRESS) {
-            bytes memory approveData = abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, _srcAmount);
-            invokeWallet(_wallet, _srcToken, 0, approveData);
+    function approveToken(address _wallet, address _token, uint _amount) internal {
+        if (_token != ETH_TOKEN_ADDRESS) {
+            bytes memory approveData = abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, _amount);
+            invokeWallet(_wallet, _token, 0, approveData);
         }
+    }
 
+    function doMultiSwap(
+        address _wallet,
+        address _srcToken,
+        address _destToken,
+        uint256 _srcAmount,
+        uint256 _minDestAmount,
+        uint256 _expectedDestAmount,
+        Path[] calldata _path,
+        uint256 _mintPrice
+    )
+        internal
+    {
         // Perform the trade
+        string memory ref = referrer;
         bytes memory multiSwapData = abi.encodeWithSelector(MULTISWAP,
-            _srcToken, _destToken, _srcAmount, _minDestAmount, _expectedDestAmount, _path, _mintPrice, address(0), 0, referrer);
+            _srcToken, _destToken, _srcAmount, _minDestAmount, _expectedDestAmount, _path, _mintPrice, address(0), 0, ref);
         bytes memory swapRes = invokeWallet(_wallet, paraswapSwapper, _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, multiSwapData);
 
         // Emit event with best possible estimate of destination amount
