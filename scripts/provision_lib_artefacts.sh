@@ -27,7 +27,6 @@ cp build/DSValue.json .coverage_artifacts/DSValue.json
 cp build/CryptoKittyTest.json .coverage_artifacts/CryptoKittyTest.json
 cp build/TestRegistry.json .coverage_artifacts/TestRegistry.json
 cp build/GemJoin.json .coverage_artifacts/GemJoin.json
-cp build-legacy/v1.3.0//OldTestModule.json .coverage_artifacts/OldTestModule.json
 cp build/NewTestModule.json .coverage_artifacts/NewTestModule.json
 cp build/NonCompliantGuardian.json .coverage_artifacts/NonCompliantGuardian.json
 cp build/FaucetUser.json .coverage_artifacts/FaucetUser.json
