@@ -16,10 +16,10 @@
 pragma solidity ^0.5.4;
 import "../../../lib/ens/ENS.sol";
 import "../../../lib/utils/strings.sol";
-import "./IENSManager.sol";
+import "../../infrastructure/ens/IENSManager.sol";
 import "./ENSResolver.sol";
 import "./ENSReverseRegistrar.sol";
-import "../base/Managed.sol";
+import "../../infrastructure/base/Managed.sol";
 
 /**
  * @title ArgentENSManager

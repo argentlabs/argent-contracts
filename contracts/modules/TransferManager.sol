@@ -104,7 +104,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
 
-        // migrate the limit and daily spent
         if (address(oldLimitManager) == address(0)) {
             initLimit(_wallet);
         } else {
@@ -405,7 +404,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     * @return _changeAfter The time at which the pending limit will become effective.
     */
     function getPendingLimit(address _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
-        (uint256 current, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
+        (, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
         // solium-disable-next-line security/no-block-members
         return ((now < changeAfter)? (pending, uint64(changeAfter)) : (0,0));
     }

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.10;
 
 import "./Storage.sol";
 import "./ILimitStorage.sol";
@@ -53,25 +53,25 @@ contract LimitStorage is ILimitStorage, Storage {
     // wallet specific storage
     mapping (address => LimitManagerConfig) internal limits;
 
-    function setLimit(address _wallet, uint128 _current, uint128 _pending, uint64 _changeAfter) external onlyModule(_wallet) {
+    function setLimit(address _wallet, uint128 _current, uint128 _pending, uint64 _changeAfter) external override onlyModule(_wallet) {
         Limit storage limit = limits[_wallet].limit;
         limit.current = _current;
         limit.pending = _pending;
         limit.changeAfter = _changeAfter;
     }
 
-    function getLimit(address _wallet) external view returns (uint128, uint128, uint64) {
+    function getLimit(address _wallet) external override view returns (uint128, uint128, uint64) {
         Limit storage limit = limits[_wallet].limit;
         return (limit.current, limit.pending, limit.changeAfter);
     }
 
-    function setDailySpent(address _wallet, uint128 _alreadySpent, uint64 _periodEnd) external onlyModule(_wallet) {
+    function setDailySpent(address _wallet, uint128 _alreadySpent, uint64 _periodEnd) external override onlyModule(_wallet) {
         DailySpent storage expense = limits[_wallet].dailySpent;
         expense.alreadySpent = _alreadySpent;
         expense.periodEnd = _periodEnd;
     }
 
-    function getDailySpent(address _wallet) external view returns (uint128, uint64) {
+    function getDailySpent(address _wallet) external override view returns (uint128, uint64) {
         DailySpent storage expense = limits[_wallet].dailySpent;
         return (expense.alreadySpent, expense.periodEnd);
     }
@@ -85,6 +85,7 @@ contract LimitStorage is ILimitStorage, Storage {
         uint64 _periodEnd
     )
         external
+        override
         onlyModule(_wallet)
     {
         LimitManagerConfig storage config = limits[_wallet];
@@ -95,7 +96,7 @@ contract LimitStorage is ILimitStorage, Storage {
         config.dailySpent.periodEnd = _periodEnd;
     }
 
-    function getLimitAndDailySpent(address _wallet) external view returns (uint128, uint128, uint64, uint128, uint64) {
+    function getLimitAndDailySpent(address _wallet) external override view returns (uint128, uint128, uint64, uint128, uint64) {
         Limit storage limit = limits[_wallet].limit;
         DailySpent storage expense = limits[_wallet].dailySpent;
         return (limit.current, limit.pending, limit.changeAfter, expense.alreadySpent, expense.periodEnd);

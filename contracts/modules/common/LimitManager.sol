@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
-import "./BaseModule.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../infrastructure/storage/ILimitStorage.sol"; 
 
 /**
@@ -24,7 +24,7 @@ import "../../infrastructure/storage/ILimitStorage.sol";
  * @dev Module to manage a daily spending limit
  * @author Julien Niset - <julien@argent.xyz>
  */
-abstract contract LimitManager is BaseModule {
+abstract contract LimitManager {
 
     // large limit when the limit can be considered disabled
     uint128 constant internal LIMIT_DISABLED = uint128(-1);
