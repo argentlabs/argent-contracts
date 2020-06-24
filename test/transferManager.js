@@ -220,6 +220,20 @@ describe("TransferManager", function () {
       assert.equal(_unspent.toNumber(), 100);
     });
 
+    it("should return the correct spent daily limit amount", async () => {
+      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify(ETH_LIMIT) });
+      // Transfer 100 wei
+      const tx = await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, 100, ZERO_BYTES32);
+      const txReceipt = await transferModule.verboseWaitForTransaction(tx);
+      const timestamp = await manager.getTimestamp(txReceipt.block);
+      // Then transfer 200 wei more
+      await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, 200, ZERO_BYTES32);
+
+      const dailySpent = await limitStorage.getDailySpent(wallet.contractAddress);
+      assert.equal(dailySpent[0].toNumber(), 300);
+      assert.equal(dailySpent[1].toNumber(), timestamp + (3600 * 24));
+    });
+
     it("should return 0 if the entire daily limit amount has been spent", async () => {
       await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify(ETH_LIMIT) });
       await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, ETH_LIMIT, ZERO_BYTES32);
