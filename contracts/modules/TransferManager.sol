@@ -18,7 +18,7 @@ pragma solidity ^0.6.10;
 
 import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
-import "./common/LimitManager.sol";
+import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
 import "./common/TokenPriceProvider.sol";
 import "../../lib/other/ERC20.sol";
@@ -29,7 +29,7 @@ import "../../lib/other/ERC20.sol";
  * This module is the V2 of TokenTransfer.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
+contract TransferManager is OnlyOwnerModule, BaseTransfer {
 
     bytes32 constant NAME = "TransferManager";
 
@@ -52,12 +52,16 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     uint256 public securityPeriod;
     // The execution window
     uint256 public securityWindow;
+    // The default limit
+    uint128 public defaultLimit;
     // The Token storage
     ITransferStorage public transferStorage;
     // The Token price provider
     TokenPriceProvider public priceProvider;
     // The previous limit manager needed to migrate the limits
     TransferManager public oldLimitManager;
+    // The limit storage
+    ILimitStorage public limitStorage;
 
     // *************** Events *************************** //
 
@@ -74,7 +78,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
         IModuleRegistry _registry,
         ITransferStorage _transferStorage,
         IGuardianStorage _guardianStorage,
-        ILimitStorage _storageLimit,
+        ILimitStorage _limitStorage,
         address _priceProvider,
         uint256 _securityPeriod,
         uint256 _securityWindow,
@@ -82,13 +86,14 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
         TransferManager _oldLimitManager
     )
         BaseModule(_registry, _guardianStorage, NAME)
-        LimitManager(_storageLimit, _defaultLimit)
         public
     {
         transferStorage = _transferStorage;
+        limitStorage = _limitStorage;
         priceProvider = TokenPriceProvider(_priceProvider);
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
+        defaultLimit = LimitUtils.safe128(_defaultLimit);
         oldLimitManager = _oldLimitManager;
     }
 
@@ -105,26 +110,26 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
 
         if (address(oldLimitManager) == address(0)) {
-            initLimit(_wallet);
+            limitStorage.setLimit(_wallet, defaultLimit, 0, 0);
         } else {
             uint256 current = oldLimitManager.getCurrentLimit(_wallet);
             (uint256 pending, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
             if (current == 0 && changeAfter == 0) {
                 // new wallet: we setup the default limit
-                initLimit(_wallet);
+                limitStorage.setLimit(_wallet, defaultLimit, 0, 0);
             } else {
                 // migrate limit and daily spent (if we are in a rolling period)
                 (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
                 // solium-disable-next-line security/no-block-members
                 if (periodEnd < now) {
-                    lStorage.setLimit(_wallet, safe128(current), safe128(pending), changeAfter);
+                    limitStorage.setLimit(_wallet, LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter);
                 } else {
-                    lStorage.setLimitAndDailySpent(
+                    limitStorage.setLimitAndDailySpent(
                         _wallet,
-                        safe128(current),
-                        safe128(pending),
+                        LimitUtils.safe128(current),
+                        LimitUtils.safe128(pending),
                         changeAfter,
-                        safe128(current.sub(unspent)),
+                        LimitUtils.safe128(current.sub(unspent)),
                         periodEnd);
                 }
             }
@@ -161,7 +166,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
             doTransfer(_wallet, _token, _to, _amount, _data);
         } else {
             uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : priceProvider.getEtherValue(_amount, _token);
-            if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
+            if (LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
             } else {
@@ -202,7 +207,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
                 uint256 deltaInEth = priceProvider.getEtherValue(delta, _token);
-                require(checkAndUpdateDailySpent(_wallet, deltaInEth), "TM: Approve above daily limit");
+                require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, deltaInEth), "TM: Approve above daily limit");
                 // approve if under the limit
                 doApproveToken(_wallet, _token, _spender, _amount);
             }
@@ -233,7 +238,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
             // call to whitelist
             doCallContract(_wallet, _contract, _value, _data);
         } else {
-            require(checkAndUpdateDailySpent(_wallet, _value), "TM: Call contract above daily limit");
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, _value), "TM: Call contract above daily limit");
             // call under the limit
             doCallContract(_wallet, _contract, _value, _data);
         }
@@ -268,7 +273,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
             // check if the amount is under the daily limit
             // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
             uint256 valueInEth = priceProvider.getEtherValue(_amount, _token);
-            require(checkAndUpdateDailySpent(_wallet, valueInEth), "TM: Approve above daily limit");
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
         }
 
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
@@ -364,7 +369,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
      * @param _newLimit The new limit.
      */
     function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
-        changeLimit(_wallet, _newLimit, securityPeriod);
+        LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
     }
 
     /**
@@ -373,7 +378,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
      * @param _wallet The target wallet.
      */
     function disableLimit(address _wallet) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
-        disableLimit(_wallet, securityPeriod);
+        LimitUtils.disableLimit(limitStorage, _wallet, securityPeriod);
     }
 
     /**
@@ -382,8 +387,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     * @return _currentLimit The current limit expressed in ETH.
     */
     function getCurrentLimit(address _wallet) external view returns (uint256 _currentLimit) {
-        (uint256 current, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
-        return currentLimit(current, pending, changeAfter);
+        (uint256 current, uint256 pending, uint256 changeAfter) = limitStorage.getLimit(_wallet);
+        return LimitUtils.currentLimit(current, pending, changeAfter);
     }
 
     /**
@@ -392,9 +397,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     * @return _limitDisabled true if the daily limit is disabled, false otherwise.
     */
     function isLimitDisabled(address _wallet) public view returns (bool _limitDisabled) {
-        (uint256 current, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
-        uint256 currentLimit = currentLimit(current, pending, changeAfter);
-        return (currentLimit == LIMIT_DISABLED);
+        return LimitUtils.isLimitDisabled(limitStorage, _wallet);
     }
 
     /**
@@ -404,7 +407,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     * @return _changeAfter The time at which the pending limit will become effective.
     */
     function getPendingLimit(address _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
-        (, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
+        (, uint256 pending, uint256 changeAfter) = limitStorage.getLimit(_wallet);
         // solium-disable-next-line security/no-block-members
         return ((now < changeAfter)? (pending, uint64(changeAfter)) : (0,0));
     }
@@ -416,8 +419,14 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     * @return _periodEnd The end of the daily period.
     */
     function getDailyUnspent(address _wallet) external view returns (uint256 _unspent, uint64 _periodEnd) {
-        (uint256 current, uint256 pending, uint256 changeAfter, uint256 alreadySpent, uint256 periodEnd) = getLimitAndDailySpent(_wallet);
-        uint256 currentLimit = currentLimit(current, pending, changeAfter);
+        (
+            uint256 current,
+            uint256 pending,
+            uint256 changeAfter,
+            uint256 alreadySpent,
+            uint256 periodEnd
+        ) = limitStorage.getLimitAndDailySpent(_wallet);
+        uint256 currentLimit = LimitUtils.currentLimit(current, pending, changeAfter);
         // solium-disable-next-line security/no-block-members
         if (now > periodEnd) {
             // solium-disable-next-line security/no-block-members
@@ -541,7 +550,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
             } else {
                 amount = amount * _gasPrice;
             }
-            checkAndUpdateDailySpent(_wallet, amount);
+            LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, amount);
             invokeWallet(_wallet, _relayer, amount, EMPTY_BYTES);
         }
     }
@@ -550,7 +559,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer, LimitManager {
     function verifyRefund(address _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal override view returns (bool) {
         if (_gasPrice > 0 && _signatures > 0 && (
             _wallet.balance < _gasUsed * _gasPrice ||
-            checkDailySpent(_wallet, _gasUsed * _gasPrice) == false ||
+            LimitUtils.checkDailySpent(limitStorage, _wallet, _gasUsed * _gasPrice) == false ||
             IWallet(_wallet).authorised(address(this)) == false
         ))
         {

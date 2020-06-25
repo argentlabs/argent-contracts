@@ -17,55 +17,47 @@
 pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../infrastructure/storage/ILimitStorage.sol"; 
+import "../../infrastructure/storage/ILimitStorage.sol";
 
 /**
  * @title LimitManager
- * @dev Module to manage a daily spending limit
+ * @dev Helper library to manage the daily limit and interface with a IILimitStorage contract.
  * @author Julien Niset - <julien@argent.xyz>
  */
-abstract contract LimitManager {
+library LimitUtils {
 
     // large limit when the limit can be considered disabled
     uint128 constant internal LIMIT_DISABLED = uint128(-1);
 
     using SafeMath for uint256;
 
-    // The storage contract
-    ILimitStorage public lStorage;
-    // The default limit
-    uint128 public defaultLimit;
-
     // *************** Events *************************** //
 
     event LimitChanged(address indexed wallet, uint indexed newLimit, uint64 indexed startAfter);
 
-    // *************** Constructor ********************** //
-
-    constructor(ILimitStorage _limitStorage, uint256 _defaultLimit) public {
-        lStorage = _limitStorage;
-        defaultLimit = safe128(_defaultLimit);
-    }
-
     // *************** Internal Functions ********************* //
-
-    function initLimit(address _wallet) internal {
-        lStorage.setLimit(_wallet, defaultLimit, 0, 0);
-    }
 
     /**
      * @dev Changes the daily limit.
      * The limit is expressed in ETH and the change is pending for the security period.
+     * @param _lStorage The storage contract.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      * @param _securityPeriod The security period.
      */
-    function changeLimit(address _wallet, uint256 _newLimit, uint256 _securityPeriod) internal {
-        (uint256 current, uint256 pending, uint256 changeAfter) = getLimit(_wallet);
+    function changeLimit(
+        ILimitStorage _lStorage,
+        address _wallet,
+        uint256 _newLimit,
+        uint256 _securityPeriod
+    )
+        internal
+    {
+        (uint256 current, uint256 pending, uint256 changeAfter) = _lStorage.getLimit(_wallet);
         // solium-disable-next-line security/no-block-members
         uint256 currentLimit = (changeAfter > 0 && changeAfter < now) ? pending : current;
         // solium-disable-next-line security/no-block-members
-        lStorage.setLimit(_wallet, safe128(currentLimit), safe128(_newLimit), safe64(now.add(_securityPeriod)));
+        _lStorage.setLimit(_wallet, safe128(currentLimit), safe128(_newLimit), safe64(now.add(_securityPeriod)));
         // solium-disable-next-line security/no-block-members
         emit LimitChanged(_wallet, _newLimit, uint64(now.add(_securityPeriod)));
     }
@@ -73,43 +65,90 @@ abstract contract LimitManager {
      /**
      * @dev Disable the daily limit.
      * The change is pending for the security period.
+     * @param _lStorage The storage contract.
      * @param _wallet The target wallet.
      * @param _securityPeriod The security period.
      */
-    function disableLimit(address _wallet, uint256 _securityPeriod) internal {
-        changeLimit(_wallet, LIMIT_DISABLED, _securityPeriod);
+    function disableLimit(
+        ILimitStorage _lStorage,
+        address _wallet,
+        uint256 _securityPeriod
+    )
+        internal
+    {
+        changeLimit(_lStorage, _wallet, LIMIT_DISABLED, _securityPeriod);
+    }
+
+    /**
+    * @dev Returns whether the daily limit is disabled for a wallet.
+    * @param _wallet The target wallet.
+    * @return _limitDisabled true if the daily limit is disabled, false otherwise.
+    */
+    function isLimitDisabled(ILimitStorage _lStorage, address _wallet) internal view returns (bool) {
+        (uint256 current, uint256 pending, uint256 changeAfter) = _lStorage.getLimit(_wallet);
+        uint256 currentLimit = currentLimit(current, pending, changeAfter);
+        return (currentLimit == LIMIT_DISABLED);
     }
 
     /**
     * @dev Checks if a transfer is within the limit. If yes the daily spent is updated.
+    * @param _lStorage The storage contract.
     * @param _wallet The target wallet.
     * @param _amount The amount for the transfer
     * @return true if the transfer is withing the daily limit.
     */
-    function checkAndUpdateDailySpent(address _wallet, uint256 _amount) internal returns (bool) {
-        (uint256 current, uint256 pending, uint256 changeAfter, uint256 alreadySpent, uint256 periodEnd) = getLimitAndDailySpent(_wallet);
+    function checkAndUpdateDailySpent(
+        ILimitStorage _lStorage,
+        address _wallet,
+        uint256 _amount
+    )
+        internal
+        returns (bool)
+    {
+        (
+            uint256 current,
+            uint256 pending,
+            uint256 changeAfter,
+            uint256 alreadySpent,
+            uint256 periodEnd
+        ) = _lStorage.getLimitAndDailySpent(_wallet);
         uint256 currentLimit = currentLimit(current, pending, changeAfter);
         if (_amount == 0 || currentLimit == LIMIT_DISABLED) {
             return true;
         } else if (periodEnd <= now && _amount <= currentLimit) {
             // solium-disable-next-line security/no-block-members
-            lStorage.setDailySpent(_wallet, safe128(_amount), safe64(now + 24 hours));
+            _lStorage.setDailySpent(_wallet, safe128(_amount), safe64(now + 24 hours));
             return true;
         } else if (periodEnd > now && alreadySpent.add(_amount) <= currentLimit) {
-            lStorage.setDailySpent(_wallet, safe128(alreadySpent.add(_amount)), safe64(periodEnd));
+            _lStorage.setDailySpent(_wallet, safe128(alreadySpent.add(_amount)), safe64(periodEnd));
             return true;
         }
         return false;
     }
 
     /**
-    * @dev Checks if a transfer is within the limit. If yes the daily spent is not updated.
+    * @dev Checks if a transfer is within the limit.
+    * @param _lStorage The storage contract.
     * @param _wallet The target wallet.
     * @param _amount The amount for the transfer
     * @return true if the transfer is withing the daily limit.
     */
-    function checkDailySpent(address _wallet, uint256 _amount) internal view returns (bool) {
-        (uint256 current, uint256 pending, uint256 changeAfter, uint256 alreadySpent, uint256 periodEnd) = getLimitAndDailySpent(_wallet);
+    function checkDailySpent(
+        ILimitStorage _lStorage,
+        address _wallet,
+        uint256 _amount
+    )
+        internal
+        view
+        returns (bool)
+    {
+        (
+            uint256 current,
+            uint256 pending,
+            uint256 changeAfter,
+            uint256 alreadySpent,
+            uint256 periodEnd
+        ) = _lStorage.getLimitAndDailySpent(_wallet);
         uint256 currentLimit = currentLimit(current, pending, changeAfter);
         if (currentLimit == LIMIT_DISABLED) {
             return true;
@@ -117,26 +156,8 @@ abstract contract LimitManager {
         // solium-disable-next-line security/no-block-members
         if (periodEnd < now) {
             return (_amount <= currentLimit);
-        } 
+        }
         return (alreadySpent.add(_amount) <= currentLimit);
-    }
-
-    /**
-    * @dev Gets from storage the limit object of a wellet.
-    * @param _wallet The target wallet.
-    * @return the limit object.
-    */
-    function getLimit(address _wallet) internal view returns (uint256, uint256, uint256) {
-        return lStorage.getLimit(_wallet);
-    }
-
-    /**
-    * @dev Gets from storage the limit object and the daily spent object of a wellet.
-    * @param _wallet The target wallet.
-    * @return the limit and daily spent objects.
-    */
-    function getLimitAndDailySpent(address _wallet) internal view returns (uint256, uint256, uint256, uint256, uint256) {
-        return lStorage.getLimitAndDailySpent(_wallet);
     }
 
     /**
@@ -145,7 +166,15 @@ abstract contract LimitManager {
     * @param _pending The value of the pending parameter
     * @param _changeAfter The value of the changeAfter parameter
     */
-    function currentLimit(uint256 _current, uint256 _pending, uint256 _changeAfter) internal view returns (uint256) {
+    function currentLimit(
+        uint256 _current,
+        uint256 _pending,
+        uint256 _changeAfter
+    )
+        internal
+        view
+        returns (uint256)
+    {
         // solium-disable-next-line security/no-block-members
         if (_changeAfter > 0 && _changeAfter < now) {
             return _pending;
