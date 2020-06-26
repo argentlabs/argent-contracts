@@ -218,7 +218,7 @@ describe("Token Exchanger V2", function () {
   }
 
   function getParams({
-    method = "multiSwap", fromToken, toToken, fixedAmount, variableAmount, expectedDestAmount = "123", _wallet = wallet,
+    method, fromToken, toToken, fixedAmount, variableAmount, expectedDestAmount = "123", _wallet = wallet,
   }) {
     let routes;
     let srcAmount;
@@ -243,7 +243,7 @@ describe("Token Exchanger V2", function () {
   }
 
   async function testTrade({
-    method = "multiSwap", fromToken, toToken, relayed = true, _wallet = wallet,
+    method, fromToken, toToken, relayed = true, _wallet = wallet,
   }) {
     const beforeFrom = await getBalance(fromToken, _wallet);
     const beforeTo = await getBalance(toToken, _wallet);
@@ -320,24 +320,28 @@ describe("Token Exchanger V2", function () {
     it("can exclude exchanges", async () => {
       const fromToken = tokenA.contractAddress;
       const toToken = tokenB.contractAddress;
-      const exchangerExcludingUniswapV2 = await deployer.deploy(
+      const exchangerExcludingAllExchanges = await deployer.deploy(
         TokenExchanger,
         {},
         registry.contractAddress,
         guardianStorage.contractAddress,
         paraswap.contractAddress,
         "argent",
-        [kyberAdapter.contractAddress], // UniswapV2 excluded
+        [], // no exchange whitelisted
       );
       const fixedAmount = parseEther("0.01");
       const variableAmount = method === "multiSwap" ? "1" : await getBalance(fromToken, wallet);
       const params = getParams({
-        fromToken, toToken, fixedAmount, variableAmount,
+        method,
+        fromToken,
+        toToken,
+        fixedAmount,
+        variableAmount,
       });
-      await assert.revertWith(exchangerExcludingUniswapV2.from(owner).multiSwap(...params, { gasLimit: 2000000 }), "TE: Unauthorised Exchange");
+      await assert.revertWith(exchangerExcludingAllExchanges.from(owner)[method](...params, { gasLimit: 2000000 }), "TE: Unauthorised Exchange");
     });
 
-    it("lets old wallets call multiSwap successfully", async () => {
+    it(`lets old wallets call ${method} successfully`, async () => {
       // create wallet
       const oldWalletImplementation = await deployer.deploy(OldWallet);
       const proxy = await deployer.deploy(Proxy, {}, oldWalletImplementation.contractAddress);
@@ -345,7 +349,7 @@ describe("Token Exchanger V2", function () {
       await oldWallet.init(owner.address, [exchanger.contractAddress]);
       // fund wallet
       await infrastructure.sendTransaction({ to: oldWallet.contractAddress, value: parseEther("0.1") });
-      // call multiSwap
+      // call multiSwap/buy
       await testTrade({
         method,
         fromToken: ETH_TOKEN,
