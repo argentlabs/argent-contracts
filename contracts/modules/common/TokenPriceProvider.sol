@@ -36,11 +36,11 @@ contract TokenPriceProvider is Managed {
         try IERC20Extended(_token).decimals() returns (uint8 _decimals) {
             decimals = _decimals;
         }
-        catch (bytes memory /*lowLevelData*/) {
+        catch {
         }
 
         uint256 price = cachedPrices[_token];
-        uint256 etherValue = decimals == 0 ? price.mul(_amount) : price.mul(_amount).div(10**uint(decimals));
+        uint256 etherValue = price.mul(_amount).div(10**uint(decimals));
         return etherValue;
     }
 
