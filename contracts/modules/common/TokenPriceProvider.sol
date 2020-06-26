@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../../../lib/other/IERC20Extended.sol";
+import "../../../lib/other/ERC20.sol";
 import "../../infrastructure/base/Managed.sol";
 
 contract TokenPriceProvider is Managed {
@@ -31,16 +31,16 @@ contract TokenPriceProvider is Managed {
      * @return the ether value (in wei) of _amount tokens with contract _token
      */
     function getEtherValue(uint256 _amount, address _token) external view returns (uint256) {
-        uint8 decimals;
+        uint decimals;
 
-        try IERC20Extended(_token).decimals() returns (uint8 _decimals) {
+        try ERC20(_token).decimals() returns (uint _decimals) {
             decimals = _decimals;
         }
         catch {
         }
 
         uint256 price = cachedPrices[_token];
-        uint256 etherValue = price.mul(_amount).div(10**uint(decimals));
+        uint256 etherValue = price.mul(_amount).div(10**decimals);
         return etherValue;
     }
 
