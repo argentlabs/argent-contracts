@@ -33,7 +33,7 @@ contract KyberNetworkTest is KyberNetwork {
     * @param _decimals The number of decimals for the token
     */
     function addToken(ERC20 _token, uint256 _rate, uint256 _decimals) public {
-        require(msg.sender == owner, "unauthorized");
+        require(msg.sender == owner, "KyberNetwork: unauthorized");
         tokens[address(_token)] = Token({exists: true, rate: _rate, decimals: _decimals});
     }
 
@@ -54,7 +54,7 @@ contract KyberNetworkTest is KyberNetwork {
             expectedRate = tokens[address(_src)].rate;
             slippageRate = expectedRate;
         } else {
-            revert("Unknown token pair");
+            revert("KyberNetwork: Unknown token pair");
         }
     }
 
@@ -83,12 +83,13 @@ contract KyberNetworkTest is KyberNetwork {
             } else {
                 srcAmount = _srcAmount;
             }
-            require(msg.value >= srcAmount, "not enough ETH provided");
+            require(msg.value >= srcAmount, "KyberNetwork: not enough ETH provided");
             if (msg.value > srcAmount) {
                 // refund
-                msg.sender.transfer(msg.value - srcAmount);
+                (bool success,) = msg.sender.call{value: msg.value - srcAmount}("");
+                require(success, "KyberNetwork: ETH refund failed");
             }
-            require(ERC20(_dest).transfer(_destAddress, destAmount), "ERC20 transfer failed");
+            require(ERC20(_dest).transfer(_destAddress, destAmount), "KyberNetwork: ERC20 transfer failed");
         } else if (address(_dest) == ETH_TOKEN_ADDRESS) {
             expectedRate = tokens[address(_src)].rate;
             destAmount = expectedRate.mul(_srcAmount).div(10**tokens[address(_src)].decimals);
@@ -98,10 +99,12 @@ contract KyberNetworkTest is KyberNetwork {
             } else {
                 srcAmount = _srcAmount;
             }
-            require(_src.transferFrom(msg.sender, address(this), srcAmount), "not enough ERC20 provided");
-            _destAddress.transfer(destAmount);
+            require(_src.transferFrom(msg.sender, address(this), srcAmount), "KyberNetwork: not enough ERC20 provided");
+            require(address(this).balance >= destAmount, "KyberNetwork: not enough ETH in reserve");
+            (bool success,) = _destAddress.call{value: destAmount}("");
+            require(success, "KyberNetwork: Sending ETH back failed");
         } else {
-            revert("Unknown token pair");
+            revert("KyberNetwork: Unknown token pair");
         }
     }
 }

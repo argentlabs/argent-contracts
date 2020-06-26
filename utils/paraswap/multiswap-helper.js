@@ -22,13 +22,9 @@ const getPayLoad = (fromToken, toToken, exchange, data) => {
 
 const getRouteParams = (srcToken, destToken, route, exchanges, targetExchanges) => {
   const exchangeName = route.exchange.toLowerCase();
-
   const networkFee = route.data.networkFee ? route.data.networkFee : 0;
-
   const payload = getPayLoad(srcToken, destToken, exchangeName, route.data, networkFee);
-
   const targetExchange = getTargetExchange(srcToken, exchangeName, route.data.exchange, targetExchanges);
-
   return {
     exchange: exchanges[exchangeName],
     targetExchange,
@@ -38,7 +34,7 @@ const getRouteParams = (srcToken, destToken, route, exchanges, targetExchanges) 
   };
 };
 
-const getPath = (srcToken, destToken, priceRoute, exchanges, targetExchanges, isMultiPath) => {
+const makePathes = (srcToken, destToken, priceRoute, exchanges, targetExchanges, isMultiPath) => {
   if (isMultiPath) {
     return priceRoute.map((_routes) => {
       const { tokenFrom, tokenTo } = _routes[0].data;
@@ -63,5 +59,5 @@ const getPath = (srcToken, destToken, priceRoute, exchanges, targetExchanges, is
 };
 
 module.exports = {
-  getPath,
+  makePathes,
 };

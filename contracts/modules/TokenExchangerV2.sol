@@ -60,6 +60,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     // Signatures of Paraswap's trade methods
     bytes4 constant internal MULTISWAP = 0xcbd1603e;
+    bytes4 constant internal BUY = 0xbb2a349b;
 
     // The address of the Paraswap Proxy contract
     address public paraswapProxy;
@@ -121,13 +122,49 @@ contract TokenExchangerV2 is OnlyOwnerModule {
             _mintPrice);
     }
 
+    function buy(
+        address _wallet,
+        address _srcToken,
+        address _destToken,
+        uint256 _maxSrcAmount,
+        uint256 _destAmount,
+        uint256 _expectedDestAmount,
+        BuyRoute[] calldata _routes,
+        uint256 _mintPrice
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        // Verify that the exchange adapters used have been authorised
+        verifyExchangeAdapters(_routes);
+        // Approve source amount if required
+        approveToken(_wallet, _srcToken, _maxSrcAmount);
+        // Perform trade and emit event
+        doBuy(
+            _wallet,
+            _srcToken,
+            _destToken,
+            _maxSrcAmount,
+            _destAmount,
+            _expectedDestAmount,
+            _routes,
+            _mintPrice);
+    }
+
     // Internal & Private Methods
 
-    function verifyExchangeAdapters(Path[] calldata _path) internal {
+    function verifyExchangeAdapters(Path[] calldata _path) internal view {
         for (uint i = 0; i < _path.length; i++) {
             for (uint j = 0; j < _path[i].routes.length; j++) {
                 require(authorisedExchanges[_path[i].routes[j].exchange], "TE: Unauthorised Exchange");
             }
+        }
+    }
+
+    function verifyExchangeAdapters(BuyRoute[] calldata _routes) internal view {
+        for (uint j = 0; j < _routes.length; j++) {
+            require(authorisedExchanges[_routes[j].exchange], "TE: Unauthorised Exchange");
         }
     }
 
@@ -148,6 +185,29 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         }
     }
 
+    function doTradeAndEmitEvent(
+        address _wallet,
+        address _srcToken,
+        address _destToken,
+        uint256 _srcAmount,
+        uint256 _destAmount,
+        bytes memory tradeData
+    )
+        internal
+    {
+        // Perform the trade
+        bytes memory swapRes = invokeWallet(_wallet, paraswapSwapper, _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, tradeData);
+
+        // Emit event with best possible estimate of destination amount
+        uint256 estimatedDestAmount;
+        if (swapRes.length > 0) {
+            (estimatedDestAmount) = abi.decode(swapRes, (uint256));
+        } else {
+            estimatedDestAmount = _destAmount;
+        }
+        emit TokenExchanged(_wallet, _srcToken, _srcAmount, _destToken, estimatedDestAmount);
+    }
+
     function doMultiSwap(
         address _wallet,
         address _srcToken,
@@ -160,20 +220,34 @@ contract TokenExchangerV2 is OnlyOwnerModule {
     )
         internal
     {
-        // Perform the trade
+        // Build the calldata
         string memory ref = referrer;
-        bytes memory multiSwapData = abi.encodeWithSelector(MULTISWAP,
+        bytes memory tradeData = abi.encodeWithSelector(MULTISWAP,
             _srcToken, _destToken, _srcAmount, _minDestAmount, _expectedDestAmount, _path, _mintPrice, address(0), 0, ref);
-        bytes memory swapRes = invokeWallet(_wallet, paraswapSwapper, _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, multiSwapData);
 
-        // Emit event with best possible estimate of destination amount
-        uint256 estimatedDestAmount;
-        if (swapRes.length > 0) {
-            (estimatedDestAmount) = abi.decode(swapRes, (uint256));
-        } else {
-            estimatedDestAmount = _minDestAmount;
-        }
-        emit TokenExchanged(_wallet, _srcToken, _srcAmount, _destToken, estimatedDestAmount);
+        // Perform the trade
+        doTradeAndEmitEvent(_wallet, _srcToken, _destToken, _srcAmount, _minDestAmount, tradeData);
+    }
+
+    function doBuy(
+        address _wallet,
+        address _srcToken,
+        address _destToken,
+        uint256 _maxSrcAmount,
+        uint256 _destAmount,
+        uint256 _expectedDestAmount,
+        BuyRoute[] calldata _routes,
+        uint256 _mintPrice
+    )
+        internal
+    {
+        // Build the calldata
+        string memory ref = referrer;
+        bytes memory tradeData = abi.encodeWithSelector(BUY,
+            _srcToken, _destToken, _maxSrcAmount, _destAmount, _expectedDestAmount, _routes, _mintPrice, address(0), 0, ref);
+
+        // Perform the trade
+        doTradeAndEmitEvent(_wallet, _srcToken, _destToken, _maxSrcAmount, _destAmount, tradeData);
     }
 
 }
