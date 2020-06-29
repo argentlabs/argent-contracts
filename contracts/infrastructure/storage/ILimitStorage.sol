@@ -13,6 +13,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
+pragma experimental ABIEncoderV2;
 
 /**
  * @title ILimitStorage
@@ -20,23 +21,31 @@ pragma solidity ^0.6.10;
  */
 interface ILimitStorage {
 
-    function setLimit(address _wallet, uint128 _current, uint128 _pending, uint64 _changeAfter) external;
+    struct Limit {
+        // the current limit
+        uint128 current;
+        // the pending limit if any
+        uint128 pending;
+        // when the pending limit becomes the current limit
+        uint64 changeAfter;
+    }
 
-    function getLimit(address _wallet) external view returns (uint128, uint128, uint64);
+    struct DailySpent {
+        // The amount already spent during the current period
+        uint128 alreadySpent;
+        // The end of the current period
+        uint64 periodEnd;
+    }
 
-    function setDailySpent(address _wallet, uint128 _alreadySpent, uint64 _periodEnd) external;
+    function setLimit(address _wallet, Limit memory _limit) external;
 
-    function getDailySpent(address _wallet) external view returns (uint128, uint64);
+    function getLimit(address _wallet) external view returns (Limit memory _limit);
 
-    function setLimitAndDailySpent(
-        address _wallet,
-        uint128 _current,
-        uint128 _pending,
-        uint64 _changeAfter,
-        uint128 _alreadySpent,
-        uint64 _periodEnd
-    )
-        external;
+    function setDailySpent(address _wallet, DailySpent memory _dailySpent) external;
 
-    function getLimitAndDailySpent(address _wallet) external view returns (uint128, uint128, uint64, uint128, uint64);
+    function getDailySpent(address _wallet) external view returns (DailySpent memory _dailySpent);
+
+    function setLimitAndDailySpent(address _wallet, Limit memory _limit, DailySpent memory _dailySpent) external;
+
+    function getLimitAndDailySpent(address _wallet) external view returns (Limit memory _limit, DailySpent memory _dailySpent);
 }

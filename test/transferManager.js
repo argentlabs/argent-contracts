@@ -187,13 +187,6 @@ describe("TransferManager", function () {
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
     });
 
-    it.skip("should not be able to change the limit to 0", async () => {
-      await transferModule.from(owner).changeLimit(wallet.contractAddress, 0);
-      await manager.increaseTime(SECURITY_PERIOD);
-      const limit = await transferModule.getCurrentLimit(wallet.contractAddress);
-      assert.equal(limit.toNumber(), 0);
-    });
-
     it("should correctly set the pending limit", async () => {
       const tx = await transferModule.from(owner).changeLimit(wallet.contractAddress, 20000);
       const txReceipt = await transferModule.verboseWaitForTransaction(tx);

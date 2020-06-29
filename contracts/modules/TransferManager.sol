@@ -15,6 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
+pragma experimental ABIEncoderV2;
 
 import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
@@ -59,7 +60,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     // The Token price provider
     TokenPriceProvider public priceProvider;
     // The previous limit manager needed to migrate the limits
-    TransferManager public oldLimitManager;
+    TransferManager public oldTransferManager;
     // The limit storage
     ILimitStorage public limitStorage;
 
@@ -83,7 +84,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit,
-        TransferManager _oldLimitManager
+        TransferManager _oldTransferManager
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public
@@ -94,7 +95,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
         defaultLimit = LimitUtils.safe128(_defaultLimit);
-        oldLimitManager = _oldLimitManager;
+        oldTransferManager = _oldTransferManager;
     }
 
     /**
@@ -109,28 +110,26 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
 
-        if (address(oldLimitManager) == address(0)) {
-            limitStorage.setLimit(_wallet, defaultLimit, 0, 0);
+        if (address(oldTransferManager) == address(0)) {
+            limitStorage.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
         } else {
-            uint256 current = oldLimitManager.getCurrentLimit(_wallet);
-            (uint256 pending, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
+            uint256 current = oldTransferManager.getCurrentLimit(_wallet);
+            (uint256 pending, uint64 changeAfter) = oldTransferManager.getPendingLimit(_wallet);
             if (current == 0 && changeAfter == 0) {
                 // new wallet: we setup the default limit
-                limitStorage.setLimit(_wallet, defaultLimit, 0, 0);
+                limitStorage.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
             } else {
                 // migrate limit and daily spent (if we are in a rolling period)
-                (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
+                (uint256 unspent, uint64 periodEnd) = oldTransferManager.getDailyUnspent(_wallet);
                 // solium-disable-next-line security/no-block-members
                 if (periodEnd < now) {
-                    limitStorage.setLimit(_wallet, LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter);
+                    limitStorage.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
                 } else {
                     limitStorage.setLimitAndDailySpent(
                         _wallet,
-                        LimitUtils.safe128(current),
-                        LimitUtils.safe128(pending),
-                        changeAfter,
-                        LimitUtils.safe128(current.sub(unspent)),
-                        periodEnd);
+                        ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter),
+                        ILimitStorage.DailySpent(LimitUtils.safe128(current.sub(unspent)), periodEnd)
+                    );
                 }
             }
         }
@@ -387,8 +386,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     * @return _currentLimit The current limit expressed in ETH.
     */
     function getCurrentLimit(address _wallet) external view returns (uint256 _currentLimit) {
-        (uint256 current, uint256 pending, uint256 changeAfter) = limitStorage.getLimit(_wallet);
-        return LimitUtils.currentLimit(current, pending, changeAfter);
+        ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
+        return LimitUtils.currentLimit(limit);
     }
 
     /**
@@ -407,9 +406,9 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     * @return _changeAfter The time at which the pending limit will become effective.
     */
     function getPendingLimit(address _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
-        (, uint256 pending, uint256 changeAfter) = limitStorage.getLimit(_wallet);
+        ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
         // solium-disable-next-line security/no-block-members
-        return ((now < changeAfter)? (pending, uint64(changeAfter)) : (0,0));
+        return ((now < limit.changeAfter)? (limit.pending, uint64(limit.changeAfter)) : (0,0));
     }
 
     /**
@@ -420,21 +419,18 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     */
     function getDailyUnspent(address _wallet) external view returns (uint256 _unspent, uint64 _periodEnd) {
         (
-            uint256 current,
-            uint256 pending,
-            uint256 changeAfter,
-            uint256 alreadySpent,
-            uint256 periodEnd
+            ILimitStorage.Limit memory limit,
+            ILimitStorage.DailySpent memory dailySpent
         ) = limitStorage.getLimitAndDailySpent(_wallet);
-        uint256 currentLimit = LimitUtils.currentLimit(current, pending, changeAfter);
+        uint256 currentLimit = LimitUtils.currentLimit(limit);
         // solium-disable-next-line security/no-block-members
-        if (now > periodEnd) {
+        if (now > dailySpent.periodEnd) {
             // solium-disable-next-line security/no-block-members
             return (currentLimit, uint64(now.add(24 hours)));
-        } else if (alreadySpent < currentLimit) {
-            return (currentLimit.sub(alreadySpent),uint64(periodEnd));
+        } else if (dailySpent.alreadySpent < currentLimit) {
+            return (currentLimit.sub(dailySpent.alreadySpent), dailySpent.periodEnd);
         } else {
-            return (0, uint64(periodEnd));
+            return (0, dailySpent.periodEnd);
         }
     }
 

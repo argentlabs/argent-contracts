@@ -21,7 +21,7 @@ import "../../infrastructure/storage/ILimitStorage.sol";
 
 /**
  * @title LimitManager
- * @dev Helper library to manage the daily limit and interface with a IILimitStorage contract.
+ * @dev Helper library to manage the daily limit and interact with a contract implementing the ILimitStorage interface.
  * @author Julien Niset - <julien@argent.xyz>
  */
 library LimitUtils {
@@ -42,24 +42,28 @@ library LimitUtils {
      * The limit is expressed in ETH and the change is pending for the security period.
      * @param _lStorage The storage contract.
      * @param _wallet The target wallet.
-     * @param _newLimit The new limit.
+     * @param _targetLimit The target limit.
      * @param _securityPeriod The security period.
      */
     function changeLimit(
         ILimitStorage _lStorage,
         address _wallet,
-        uint256 _newLimit,
+        uint256 _targetLimit,
         uint256 _securityPeriod
     )
         internal
     {
-        (uint256 current, uint256 pending, uint256 changeAfter) = _lStorage.getLimit(_wallet);
+        ILimitStorage.Limit memory limit = _lStorage.getLimit(_wallet);
         // solium-disable-next-line security/no-block-members
-        uint256 currentLimit = (changeAfter > 0 && changeAfter < now) ? pending : current;
-        // solium-disable-next-line security/no-block-members
-        _lStorage.setLimit(_wallet, safe128(currentLimit), safe128(_newLimit), safe64(now.add(_securityPeriod)));
-        // solium-disable-next-line security/no-block-members
-        emit LimitChanged(_wallet, _newLimit, uint64(now.add(_securityPeriod)));
+        uint256 currentLimit = currentLimit(limit);
+        ILimitStorage.Limit memory newLimit = ILimitStorage.Limit(
+            safe128(currentLimit),
+            safe128(_targetLimit),
+            // solium-disable-next-line security/no-block-members
+            safe64(now.add(_securityPeriod))
+        );
+        _lStorage.setLimit(_wallet, newLimit);
+        emit LimitChanged(_wallet, _targetLimit, newLimit.changeAfter);
     }
 
      /**
@@ -85,8 +89,8 @@ library LimitUtils {
     * @return _limitDisabled true if the daily limit is disabled, false otherwise.
     */
     function isLimitDisabled(ILimitStorage _lStorage, address _wallet) internal view returns (bool) {
-        (uint256 current, uint256 pending, uint256 changeAfter) = _lStorage.getLimit(_wallet);
-        uint256 currentLimit = currentLimit(current, pending, changeAfter);
+        ILimitStorage.Limit memory limit = _lStorage.getLimit(_wallet);
+        uint256 currentLimit = currentLimit(limit);
         return (currentLimit == LIMIT_DISABLED);
     }
 
@@ -105,22 +109,20 @@ library LimitUtils {
         internal
         returns (bool)
     {
-        (
-            uint256 current,
-            uint256 pending,
-            uint256 changeAfter,
-            uint256 alreadySpent,
-            uint256 periodEnd
-        ) = _lStorage.getLimitAndDailySpent(_wallet);
-        uint256 currentLimit = currentLimit(current, pending, changeAfter);
+        (ILimitStorage.Limit memory limit, ILimitStorage.DailySpent memory dailySpent) = _lStorage.getLimitAndDailySpent(_wallet);
+        uint256 currentLimit = currentLimit(limit);
         if (_amount == 0 || currentLimit == LIMIT_DISABLED) {
             return true;
-        } else if (periodEnd <= now && _amount <= currentLimit) {
+        }
+        ILimitStorage.DailySpent memory newDailySpent;
+        if (dailySpent.periodEnd <= now && _amount <= currentLimit) {
             // solium-disable-next-line security/no-block-members
-            _lStorage.setDailySpent(_wallet, safe128(_amount), safe64(now + 24 hours));
+            newDailySpent = ILimitStorage.DailySpent(safe128(_amount), safe64(now + 24 hours));
+            _lStorage.setDailySpent(_wallet, newDailySpent);
             return true;
-        } else if (periodEnd > now && alreadySpent.add(_amount) <= currentLimit) {
-            _lStorage.setDailySpent(_wallet, safe128(alreadySpent.add(_amount)), safe64(periodEnd));
+        } else if (dailySpent.periodEnd > now && _amount.add(dailySpent.alreadySpent) <= currentLimit) {
+            newDailySpent = ILimitStorage.DailySpent(safe128(_amount.add(dailySpent.alreadySpent)), safe64(dailySpent.periodEnd));
+            _lStorage.setDailySpent(_wallet, newDailySpent);
             return true;
         }
         return false;
@@ -142,53 +144,37 @@ library LimitUtils {
         view
         returns (bool)
     {
-        (
-            uint256 current,
-            uint256 pending,
-            uint256 changeAfter,
-            uint256 alreadySpent,
-            uint256 periodEnd
-        ) = _lStorage.getLimitAndDailySpent(_wallet);
-        uint256 currentLimit = currentLimit(current, pending, changeAfter);
+        (ILimitStorage.Limit memory limit, ILimitStorage.DailySpent memory dailySpent) = _lStorage.getLimitAndDailySpent(_wallet);
+        uint256 currentLimit = currentLimit(limit);
         if (currentLimit == LIMIT_DISABLED) {
             return true;
         }
         // solium-disable-next-line security/no-block-members
-        if (periodEnd < now) {
+        if (dailySpent.periodEnd < now) {
             return (_amount <= currentLimit);
         }
-        return (alreadySpent.add(_amount) <= currentLimit);
+        return (_amount.add(dailySpent.alreadySpent) <= currentLimit);
     }
 
     /**
     * @dev Helper method to get the current limit from a Limit struct.
-    * @param _current The value of the current parameter
-    * @param _pending The value of the pending parameter
-    * @param _changeAfter The value of the changeAfter parameter
+    * @param _limit The limit struct
     */
-    function currentLimit(
-        uint256 _current,
-        uint256 _pending,
-        uint256 _changeAfter
-    )
-        internal
-        view
-        returns (uint256)
-    {
+    function currentLimit(ILimitStorage.Limit memory _limit) internal view returns (uint256) {
         // solium-disable-next-line security/no-block-members
-        if (_changeAfter > 0 && _changeAfter < now) {
-            return _pending;
+        if (_limit.changeAfter > 0 && _limit.changeAfter < now) {
+            return _limit.pending;
         }
-        return _current;
+        return _limit.current;
     }
 
     function safe128(uint256 _num) internal pure returns (uint128) {
-        require(_num < 2**128, "LM: more then 128 bits");
+        require(_num < 2**128, "LU: more then 128 bits");
         return uint128(_num);
     }
 
     function safe64(uint256 _num) internal pure returns (uint64) {
-        require(_num < 2**64, "LM: more then 64 bits");
+        require(_num < 2**64, "LU: more then 64 bits");
         return uint64(_num);
     }
 
