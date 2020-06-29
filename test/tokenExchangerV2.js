@@ -366,6 +366,9 @@ describe("Token Exchanger V2", function () {
       await testTrade({
         method, fromToken: tokenA.contractAddress, toToken: ETH_TOKEN, relayed: false,
       });
+      // check that the pre-existing allowance is restored
+      const newAllowance = await tokenA.allowance(wallet.contractAddress, spender);
+      assert.equal(newAllowance.toString(), allowance.toString(), "Pre-existing allowance not restored");
     };
 
     it(`calls ${method} successfully with a pre-existing allowance`, async () => {

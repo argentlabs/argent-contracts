@@ -109,7 +109,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         // Verify that the exchange adapters used have been authorised
         verifyExchangeAdapters(_path);
         // Approve source amount if required
-        approveToken(_wallet, _srcToken, _srcAmount);
+        uint previousAllowance = approveToken(_wallet, _srcToken, _srcAmount);
         // Perform trade and emit event
         doMultiSwap(
             _wallet,
@@ -120,6 +120,10 @@ contract TokenExchangerV2 is OnlyOwnerModule {
             _expectedDestAmount,
             _path,
             _mintPrice);
+        // Restore the previous allowance if needed. This should only be needed when the previous allowance
+        // was infinite. In other cases, paraswap.multiSwap() should have used exactly the additional allowance
+        // granted to it and therefore the previous allowance should have been restored.
+        restoreAllowance(_wallet, _srcToken, previousAllowance);
     }
 
     function buy(
@@ -139,7 +143,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         // Verify that the exchange adapters used have been authorised
         verifyExchangeAdapters(_routes);
         // Approve source amount if required
-        approveToken(_wallet, _srcToken, _maxSrcAmount);
+        uint previousAllowance = approveToken(_wallet, _srcToken, _maxSrcAmount);
         // Perform trade and emit event
         doBuy(
             _wallet,
@@ -150,6 +154,8 @@ contract TokenExchangerV2 is OnlyOwnerModule {
             _expectedDestAmount,
             _routes,
             _mintPrice);
+        // Restore the previous allowance if needed (paraswap.buy() may not have used exactly the additional allowance granted to it)
+        restoreAllowance(_wallet, _srcToken, previousAllowance);
     }
 
     // Internal & Private Methods
@@ -168,19 +174,27 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         }
     }
 
-    function approveToken(address _wallet, address _token, uint _amount) internal {
+    function approveToken(address _wallet, address _token, uint _amount) internal returns (uint256 _existingAllowance) {
         // TODO: Use a "safe approve" logic similar to the one implemented below in other modules
         if (_token != ETH_TOKEN_ADDRESS) {
-            uint256 allowance = ERC20(_token).allowance(_wallet, paraswapProxy);
-            if (allowance < uint256(-1)) {
-                if (allowance > 0) {
+            _existingAllowance = ERC20(_token).allowance(_wallet, paraswapProxy);
+            if (_existingAllowance < uint256(-1)) {
+                if (_existingAllowance > 0) {
                     // Clear the existing allowance to avoid issues with tokens like USDT that do not allow changing a non-zero allowance
                     invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, 0));
                 }
                 // Increase the allowance to include the required amount
-                uint256 newAllowance = SafeMath.add(allowance, _amount);
+                uint256 newAllowance = SafeMath.add(_existingAllowance, _amount);
                 invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, newAllowance));
-                // Exactly `_amount` tokens should have been transferred so there is no need to readjust the allowance
+            }
+        }
+    }
+
+    function restoreAllowance(address _wallet, address _token, uint _previousAllowance) internal {
+        if (_token != ETH_TOKEN_ADDRESS) {
+            uint allowance = ERC20(_token).allowance(_wallet, paraswapProxy);
+            if (allowance != _previousAllowance) {
+                invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, _previousAllowance));
             }
         }
     }
