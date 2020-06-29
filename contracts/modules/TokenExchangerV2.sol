@@ -15,7 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
-//solium-disable-next-line no-experimental
+// solium-disable-next-line no-experimental
 pragma experimental ABIEncoderV2;
 
 import "./common/OnlyOwnerModule.sol";
@@ -32,29 +32,6 @@ contract TokenExchangerV2 is OnlyOwnerModule {
     bytes32 constant NAME = "TokenExchangerV2";
 
     using SafeMath for uint256;
-
-    struct Route {
-        address payable exchange;
-        address targetExchange;
-        uint percent;
-        bytes payload;
-        uint256 networkFee; // only used for 0xV3
-    }
-
-    struct Path {
-        address to;
-        uint256 totalNetworkFee; // only used for 0xV3
-        Route[] routes;
-    }
-
-    struct BuyRoute {
-        address payable exchange;
-        address targetExchange;
-        uint256 fromAmount;
-        uint256 toAmount;
-        bytes payload;
-        uint256 networkFee; // only used for 0xV3
-    }
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -92,6 +69,19 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         }
     }
 
+    /**
+     * @dev Lets the owner of the wallet execute a "sell" trade (fixed source amount, variable destination amount).
+     * @param _wallet The target wallet
+     * @param _srcToken The address of the source token.
+     * @param _destToken The address of the destination token.
+     * @param _srcAmount The exact amount of source tokens to sell.
+     * @param _minDestAmount The minimum amount of destination tokens required for the trade.
+     * @param _expectedDestAmount The expected amount of destination tokens (used only in ParaSwap's events).
+     * @param _path Sequence of sets of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (exact) amount of a given
+     * source token into a given (minimum) amount of a given destination token. The path is a sequence of sets of weighted routes where the destination
+     * token of a set of weighted routes matches the source token of the next set of weighted routes in the path.
+     * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minte by ParaSwap. 0 means gas token will not be used by ParaSwap
+     */
     function multiSwap(
         address _wallet,
         address _srcToken,
@@ -99,7 +89,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         uint256 _srcAmount,
         uint256 _minDestAmount,
         uint256 _expectedDestAmount,
-        Path[] calldata _path,
+        IAugustusSwapper.Path[] calldata _path,
         uint256 _mintPrice
     )
         external
@@ -126,6 +116,18 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         restoreAllowance(_wallet, _srcToken, previousAllowance);
     }
 
+    /**
+     * @dev Lets the owner of the wallet execute a "buy" trade (fixed destination amount, variable source amount).
+     * @param _wallet The target wallet
+     * @param _srcToken The address of the source token.
+     * @param _destToken The address of the destination token.
+     * @param _maxSrcAmount The maximum amount of source tokens to use for the trade.
+     * @param _destAmount The exact amount of destination tokens to buy.
+     * @param _expectedDestAmount The expected amount of destination tokens (used only in ParaSwap's events).
+     * @param _routes Set of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (maximum) amount of a given
+     * source token into a given (exact) amount of a given destination token.
+     * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minte by ParaSwap. 0 means gas token will not be used by ParaSwap
+     */
     function buy(
         address _wallet,
         address _srcToken,
@@ -133,7 +135,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         uint256 _maxSrcAmount,
         uint256 _destAmount,
         uint256 _expectedDestAmount,
-        BuyRoute[] calldata _routes,
+        IAugustusSwapper.BuyRoute[] calldata _routes,
         uint256 _mintPrice
     )
         external
@@ -160,7 +162,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
 
     // Internal & Private Methods
 
-    function verifyExchangeAdapters(Path[] calldata _path) internal view {
+    function verifyExchangeAdapters(IAugustusSwapper.Path[] calldata _path) internal view {
         for (uint i = 0; i < _path.length; i++) {
             for (uint j = 0; j < _path[i].routes.length; j++) {
                 require(authorisedExchanges[_path[i].routes[j].exchange], "TE: Unauthorised Exchange");
@@ -168,7 +170,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         }
     }
 
-    function verifyExchangeAdapters(BuyRoute[] calldata _routes) internal view {
+    function verifyExchangeAdapters(IAugustusSwapper.BuyRoute[] calldata _routes) internal view {
         for (uint j = 0; j < _routes.length; j++) {
             require(authorisedExchanges[_routes[j].exchange], "TE: Unauthorised Exchange");
         }
@@ -229,7 +231,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         uint256 _srcAmount,
         uint256 _minDestAmount,
         uint256 _expectedDestAmount,
-        Path[] calldata _path,
+        IAugustusSwapper.Path[] calldata _path,
         uint256 _mintPrice
     )
         internal
@@ -250,7 +252,7 @@ contract TokenExchangerV2 is OnlyOwnerModule {
         uint256 _maxSrcAmount,
         uint256 _destAmount,
         uint256 _expectedDestAmount,
-        BuyRoute[] calldata _routes,
+        IAugustusSwapper.BuyRoute[] calldata _routes,
         uint256 _mintPrice
     )
         internal
