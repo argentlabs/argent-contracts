@@ -34,6 +34,8 @@ contract TokenPriceProvider is Managed {
         uint decimals;
 
         try ERC20(_token).decimals() returns (uint _decimals) {
+            // Ensure when we cast down, decimals value doesn't overflow.
+            require(_decimals < 256, "TPP: token decimals overflow");
             decimals = _decimals;
         }
         catch {
