@@ -27,6 +27,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const TokenExchanger = require("../build/TokenExchanger");
 const ERC20 = require("../build/TestERC20");
 const TransferStorage = require("../build/TransferStorage");
+const LimitStorage = require("../build/LimitStorage");
 const TransferManager = require("../build/TransferManager");
 const TokenPriceProvider = require("../build/TokenPriceProvider");
 
@@ -131,10 +132,12 @@ describe("Token Exchanger V2", function () {
     // Deploy TransferManager module
     const priceProvider = await deployer.deploy(TokenPriceProvider);
     const transferStorage = await deployer.deploy(TransferStorage);
+    const limitStorage = await deployer.deploy(LimitStorage);
     transferManager = await deployer.deploy(TransferManager, {},
       AddressZero,
       transferStorage.contractAddress,
       guardianStorage.contractAddress,
+      limitStorage.contractAddress,
       priceProvider.contractAddress,
       3600,
       3600,

@@ -50,6 +50,9 @@ contract TokenExchanger is OnlyOwnerModule {
 
     event TokenExchanged(address indexed wallet, address srcToken, uint srcAmount, address destToken, uint destAmount);
 
+
+    // *************** Constructor ********************** //
+
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
