@@ -31,8 +31,9 @@ class Configurator {
     this._config.ENS.ensRegistry = address;
   }
 
-  updateKyberContract(address) {
-    this._config.Kyber.contract = address;
+  updateParaswap(address, authorisedExchanges) {
+    this._config.defi.paraswap.contract = address;
+    this._config.defi.paraswap.authorisedExchanges = { ...authorisedExchanges };
   }
 
   updateMakerMigration(address) {

@@ -1,17 +1,18 @@
 const ENSRegistry = require("../build/ENSRegistry");
 const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
-const Kyber = require("../build/KyberNetworkTest");
-const ERC20 = require("../build/TestERC20");
 const UniswapFactory = require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = require("../lib/uniswap/UniswapExchange");
 const MakerMigration = require("../build/MockScdMcdMigration");
 
+// Paraswap
+const AugustusSwapper = require("../build/AugustusSwapper");
+const Whitelisted = require("../build/Whitelisted");
+const PartnerRegistry = require("../build/PartnerRegistry");
+const PartnerDeployer = require("../build/PartnerDeployer");
+const KyberAdapter = require("../build/Kyber");
+
 const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");
-
-const TEST_ERC20_SUPPLY = 1000000000; // 10**9
-const TEST_ERC20_DECIMALS = 10;
-const TEST_ERC20_RATE = 6 * 10 ** 14; // 1 AGT = 0.0006 ETH
 
 const BYTES32_NULL = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -38,16 +39,23 @@ async function deployENSRegistry(deployer, owner, domain) {
   return ENSWrapper.contractAddress;
 }
 
-// For development purpose
-async function deployKyber(deployer) {
-  const { gasPrice } = deployer.defaultOverrides;
-  const KyberWrapper = await deployer.deploy(Kyber);
-  const ERC20Wrapper = await deployer.deploy(ERC20, {}, [KyberWrapper.contractAddress], TEST_ERC20_SUPPLY, TEST_ERC20_DECIMALS);
-
-  const addToken = await KyberWrapper.contract.addToken(ERC20Wrapper.contractAddress, TEST_ERC20_RATE, TEST_ERC20_DECIMALS, { gasPrice });
-  await KyberWrapper.verboseWaitForTransaction(addToken, "Add test token to Kyber");
-
-  return KyberWrapper.contractAddress;
+async function deployParaswap(deployer) {
+  const deploymentAccount = await deployer.signer.getAddress();
+  const whitelist = await deployer.deploy(Whitelisted);
+  const partnerDeployer = await deployer.deploy(PartnerDeployer);
+  const partnerRegistry = await deployer.deploy(PartnerRegistry, {}, partnerDeployer.contractAddress);
+  const paraswap = await deployer.deploy(
+    AugustusSwapper,
+    {},
+    whitelist.contractAddress,
+    deploymentAccount,
+    partnerRegistry.contractAddress,
+    deploymentAccount,
+    deploymentAccount,
+  );
+  const kyberAdapter = await deployer.deploy(KyberAdapter, {}, deploymentAccount);
+  await whitelist.addWhitelisted(kyberAdapter.contractAddress);
+  return { paraswap: paraswap.contractAddress, kyberAdapter: kyberAdapter.contractAddress };
 }
 
 const deploy = async (network) => {
@@ -68,10 +76,9 @@ const deploy = async (network) => {
     configurator.updateENSRegistry(address);
   }
 
-  if (config.Kyber.deployOwn) {
-    // Deploy Kyber Network if needed
-    const address = await deployKyber(deployer);
-    configurator.updateKyberContract(address);
+  if (config.defi.paraswap.deployOwn) {
+    const { paraswap, kyberAdapter } = await deployParaswap(deployer);
+    configurator.updateParaswap(paraswap, { Kyber: kyberAdapter });
   }
 
   if (config.defi.uniswap.deployOwn) {
