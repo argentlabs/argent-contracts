@@ -6,6 +6,8 @@ const Upgrader = require("../build/SimpleUpgrader");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
+const LimitStorage = require("../build/LimitStorage");
+
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const CompoundManager = require("../build/CompoundManager");
 const GuardianManager = require("../build/GuardianManager");
@@ -79,6 +81,8 @@ const deploy = async (network) => {
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
     ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
+  // Deploy the new LimitStorage
+  const LimitStorageWrapper = await deployer.deploy(LimitStorage);
 
   // //////////////////////////////////
   // Deploy new modules
@@ -171,6 +175,7 @@ const deploy = async (network) => {
     config.contracts.ModuleRegistry,
     config.modules.TransferStorage,
     config.modules.GuardianStorage,
+    LimitStorageWrapper.contractAddress,
     TokenPriceProviderWrapper.contractAddress,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
@@ -209,6 +214,7 @@ const deploy = async (network) => {
   // /////////////////////////////////////////////////
 
   configurator.updateModuleAddresses({
+    LimitStorage: LimitStorageWrapper.contractAddress,
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
     GuardianManager: GuardianManagerWrapper.contractAddress,
@@ -231,6 +237,7 @@ const deploy = async (network) => {
   await configurator.save();
 
   await Promise.all([
+    abiUploader.upload(LimitStorageWrapper, "modules"),
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
     abiUploader.upload(GuardianManagerWrapper, "contracts"),

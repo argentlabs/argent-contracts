@@ -15,8 +15,8 @@
 
 pragma solidity ^0.5.4;
 
-import "./Storage.sol";
-import "./ITransferStorage.sol";
+import "../../infrastructure/storage/Storage.sol";
+import "../../infrastructure/storage/ITransferStorage.sol";
 
 /**
  * @title TransferStorage

@@ -162,6 +162,9 @@
         "GuardianStorage": {
           "$ref": "#/definitions/ethaddress"
         },
+        "LimitStorage": {
+          "$ref": "#/definitions/ethaddress"
+        },
         "LockManager": {
           "$ref": "#/definitions/ethaddress"
         },

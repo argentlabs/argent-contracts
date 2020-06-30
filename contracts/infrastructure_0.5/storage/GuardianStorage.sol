@@ -15,8 +15,8 @@
 
 pragma solidity ^0.5.4;
 
-import "./Storage.sol";
-import "./IGuardianStorage.sol";
+import "../../infrastructure/storage/Storage.sol";
+import "../../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title GuardianStorage

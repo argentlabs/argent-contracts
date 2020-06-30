@@ -46,6 +46,46 @@ describe("BaseWallet", function () {
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
   });
 
+  describe("Registering modules", () => {
+    it("should register a module with the correct info", async () => {
+      const name = ethers.utils.formatBytes32String("module1");
+      await registry.registerModule(module1.contractAddress, name);
+      const isRegistered = await registry["isRegisteredModule(address)"](module1.contractAddress);
+      assert.isTrue(isRegistered, "module should be registered");
+      const info = await registry.moduleInfo(module1.contractAddress);
+      assert.equal(name, info, "name should be correct");
+    });
+
+    it("should deregister a module", async () => {
+      const name = ethers.utils.formatBytes32String("module2");
+      await registry.registerModule(module2.contractAddress, name);
+      let isRegistered = await registry["isRegisteredModule(address)"](module2.contractAddress);
+      assert.isTrue(isRegistered, "module should be registered");
+      await registry.deregisterModule(module2.contractAddress);
+      isRegistered = await registry["isRegisteredModule(address)"](module2.contractAddress);
+      assert.isFalse(isRegistered, "module should be deregistered");
+    });
+
+    it("should register an upgrader with the correct info", async () => {
+      const name = ethers.utils.formatBytes32String("upgrader1");
+      await registry.registerUpgrader(module1.contractAddress, name);
+      const isRegistered = await registry.isRegisteredUpgrader(module1.contractAddress);
+      assert.isTrue(isRegistered, "module should be registered");
+      const info = await registry.upgraderInfo(module1.contractAddress);
+      assert.equal(name, info, "name should be correct");
+    });
+
+    it("should deregister an upgrader", async () => {
+      const name = ethers.utils.formatBytes32String("upgrader2");
+      await registry.registerUpgrader(module2.contractAddress, name);
+      let isRegistered = await registry.isRegisteredUpgrader(module2.contractAddress);
+      assert.isTrue(isRegistered, "upgrader should be registered");
+      await registry.deregisterUpgrader(module2.contractAddress);
+      isRegistered = await registry.isRegisteredUpgrader(module2.contractAddress);
+      assert.isFalse(isRegistered, "upgrader should be deregistered");
+    });
+  });
+
   describe("Old and New BaseWallets", () => {
     describe("wallet init", () => {
       it("should create a wallet with the correct owner", async () => {
