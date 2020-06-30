@@ -86,4 +86,13 @@ workflows:
   commit:
     jobs:
       - unit-test
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 1 * * *" # 1am UTC
+          filters:
+            branches:
+              only:
+                - develop
+    jobs:
       - security-test
