@@ -21,7 +21,7 @@ import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
-import "./common/TokenPriceProvider.sol";
+import "../infrastructure/storage/ITokenPriceStorage.sol";
 import "../../lib/other/ERC20.sol";
 
 /**
@@ -57,12 +57,12 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     uint128 public defaultLimit;
     // The Token storage
     ITransferStorage public transferStorage;
-    // The Token price provider
-    TokenPriceProvider public priceProvider;
     // The previous limit manager needed to migrate the limits
     TransferManager public oldTransferManager;
     // The limit storage
     ILimitStorage public limitStorage;
+    // The token price storage
+    ITokenPriceStorage public tokenPriceStorage;
 
     // *************** Events *************************** //
 
@@ -81,7 +81,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         ITransferStorage _transferStorage,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
-        address _priceProvider,
+        ITokenPriceStorage _tokenPriceStorage,
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit,
@@ -92,7 +92,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     {
         transferStorage = _transferStorage;
         limitStorage = _limitStorage;
-        priceProvider = TokenPriceProvider(_priceProvider);
+        tokenPriceStorage = _tokenPriceStorage;
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
         defaultLimit = LimitUtils.safe128(_defaultLimit);
@@ -165,7 +165,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             // transfer to whitelist
             doTransfer(_wallet, _token, _to, _amount, _data);
         } else {
-            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : priceProvider.getEtherValue(_amount, _token);
+            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : getEtherValue(_amount, _token);
             if (LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
@@ -175,6 +175,22 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
                 emit PendingTransferCreated(_wallet, id, executeAfter, _token, _to, _amount, _data);
             }
         }
+    }
+
+    function getEtherValue(uint256 _amount, address _token) public view returns (uint256) {
+        uint decimals;
+
+        try ERC20(_token).decimals() returns (uint _decimals) {
+            // Ensure when we cast down, decimals value doesn't overflow.
+            require(_decimals < 256, "TPP: token decimals overflow");
+            decimals = _decimals;
+        }
+        catch {
+        }
+
+        uint256 price = tokenPriceStorage.getTokenPrice(_token);
+        uint256 etherValue = price.mul(_amount).div(10**decimals);
+        return etherValue;
     }
 
     /**
@@ -206,7 +222,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             } else {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
-                uint256 deltaInEth = priceProvider.getEtherValue(delta, _token);
+                uint256 deltaInEth = getEtherValue(delta, _token);
                 require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, deltaInEth), "TM: Approve above daily limit");
                 // approve if under the limit
                 doApproveToken(_wallet, _token, _spender, _amount);
@@ -272,7 +288,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         if (!isWhitelisted(_wallet, _spender)) {
             // check if the amount is under the daily limit
             // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
-            uint256 valueInEth = priceProvider.getEtherValue(_amount, _token);
+            uint256 valueInEth = getEtherValue(_amount, _token);
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
         }
 
@@ -522,7 +538,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         require(
             _contract != _wallet && // not the wallet itself
             !IWallet(_wallet).authorised(_contract) && // not an authorised module
-            (priceProvider.cachedPrices(_contract) == 0 || isLimitDisabled(_wallet)), // not an ERC20 listed in the provider (or limit disabled)
+            (tokenPriceStorage.getTokenPrice(_contract) == 0 || isLimitDisabled(_wallet)), // not an ERC20 listed in the provider (or limit disabled)
             "TM: Forbidden contract");
     }
 
