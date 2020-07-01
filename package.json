@@ -60,6 +60,7 @@
     "bip39": "^3.0.2",
     "bn-chai": "^1.0.1",
     "bn.js": "^5.1.1",
+    "chai": "^4.2.0",
     "cli-table2": "^0.2.0",
     "dotenv": "^6.2.0",
     "ethereumjs-wallet": "^0.6.3",
