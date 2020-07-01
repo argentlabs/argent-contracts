@@ -1,5 +1,12 @@
 /* global accounts, utils */
 const ethers = require("ethers");
+const chai = require("chai");
+const BN = require("bn.js");
+const bnChai = require("bn-chai");
+
+
+const { expect } = chai;
+chai.use(bnChai(BN));
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
@@ -13,7 +20,6 @@ const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
-const DSTokenBase = require("../build/DSTokenBase");
 
 const { ETH_TOKEN } = require("../utils/utilities.js");
 
@@ -151,51 +157,48 @@ describe("TransferManager", function () {
     let erc20First;
     let erc20Second;
     let erc20ZeroDecimals;
-    let baseERC20;
 
     beforeEach(async () => {
       erc20First = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 18);
       erc20Second = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 18);
       erc20ZeroDecimals = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 0);
-      baseERC20 = await deployer.deploy(DSTokenBase, {}, 10000000);
     });
 
     it("should set token price correctly", async () => {
-      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, 1800);
-      const tokenPrice = await tokenPriceStorage.cachedPrices(erc20First.contractAddress);
-      assert.equal(tokenPrice.toNumber(), 1800);
+      const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
+      const tokenPriceSet = await tokenPriceStorage.cachedPrices(erc20First.contractAddress);
+      expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
     });
 
     it("should set multiple token prices correctly", async () => {
       await tokenPriceStorage.from(infrastructure).setPriceForTokenList([erc20First.contractAddress, erc20Second.contractAddress], [1800, 1900]);
-      const tokenPrice1 = await tokenPriceStorage.cachedPrices(erc20First.contractAddress);
-      assert.equal(tokenPrice1.toNumber(), 1800);
-      const tokenPrice2 = await tokenPriceStorage.cachedPrices(erc20Second.contractAddress);
-      assert.equal(tokenPrice2.toNumber(), 1900);
+      const tokenPrice1Set = await tokenPriceStorage.cachedPrices(erc20First.contractAddress);
+      expect(1800).to.eq.BN(tokenPrice1Set.toString());
+      const tokenPrice2Set = await tokenPriceStorage.cachedPrices(erc20Second.contractAddress);
+      expect(1900).to.eq.BN(tokenPrice2Set.toString());
     });
 
     it("should be able to get the ether value of a given amount of tokens", async () => {
-      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, 1800);
+      const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
       const etherValue = await transferModule.getEtherValue("15000000000000000000", erc20First.contractAddress);
-      assert.isTrue(etherValue.eq(1800 * 15));
-    });
-
-    it("should be able to get the ether value for a token with no decimals property", async () => {
-      await tokenPriceStorage.from(infrastructure).setPrice(baseERC20.contractAddress, "192297647000000000"); // Using a mock price for DGD token
-      const etherValue = await transferModule.getEtherValue(100, baseERC20.contractAddress);
-      assert.equal(etherValue.toString(), "19229764700000000000");
+      // 1800*10^(36-18) * 15*10^18 / 10^36 = 27,000
+      expect(27000).to.eq.BN(etherValue.toString());
     });
 
     it("should be able to get the ether value for a token with 0 decimals", async () => {
-      await tokenPriceStorage.from(infrastructure).setPrice(erc20ZeroDecimals.contractAddress, 23000);
+      const tokenPrice = new BN(10).pow(new BN(36)).muln(23000);
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20ZeroDecimals.contractAddress, tokenPrice.toString());
       const etherValue = await transferModule.getEtherValue(100, erc20ZeroDecimals.contractAddress);
+      // ether value = 23000 * 100 / 10^0 = 2,300,000
       assert.equal(etherValue.toString(), 2300000);
     });
 
     it("should return 0 as the ether value for a low priced token", async () => {
-      await priceProvider.from(infrastructure).setPrice(erc20First.contractAddress, 23000);
-      const etherValue = await priceProvider.getEtherValue(100, erc20First.contractAddress);
-      assert.equal(etherValue.toString(), 0); // 2300000
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, 23000);
+      const etherValue = await transferModule.getEtherValue(100, erc20First.contractAddress);
+      assert.equal(etherValue.toString(), 0); // 2,300,000
     });
   });
 

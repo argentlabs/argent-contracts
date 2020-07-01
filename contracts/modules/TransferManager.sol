@@ -180,23 +180,14 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     /**
     * @notice Get the ether value equavalent to the token amount.
     * @dev For low value amounts of tokens we accept this to return zero as these are small enough to disregard.
+    * Note that the price stored for tokens = price for 1 token * 10^(36-token decimals).
     * @param _amount The token amount.
     * @param _token The address of the token.
-    * @return The ether value for _amount of _token. 
+    * @return The ether value for _amount of _token.
     */
     function getEtherValue(uint256 _amount, address _token) public view returns (uint256) {
-        uint decimals;
-
-        try ERC20(_token).decimals() returns (uint _decimals) {
-            // Ensure when we cast down, decimals value doesn't overflow.
-            require(_decimals < 256, "TPP: token decimals overflow");
-            decimals = _decimals;
-        }
-        catch {
-        }
-
         uint256 price = tokenPriceStorage.getTokenPrice(_token);
-        uint256 etherValue = price.mul(_amount).div(10**decimals);
+        uint256 etherValue = price.mul(_amount).div(10**36);
         return etherValue;
     }
 
