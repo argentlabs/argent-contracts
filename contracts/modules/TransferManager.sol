@@ -177,6 +177,13 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         }
     }
 
+    /**
+    * @notice Get the ether value equavalent to the token amount.
+    * @dev For low value amounts of tokens we accept this to return zero as these are small enough to disregard.
+    * @param _amount The token amount.
+    * @param _token The address of the token.
+    * @return The ether value for _amount of _token. 
+    */
     function getEtherValue(uint256 _amount, address _token) public view returns (uint256) {
         uint decimals;
 

@@ -191,6 +191,12 @@ describe("TransferManager", function () {
       const etherValue = await transferModule.getEtherValue(100, erc20ZeroDecimals.contractAddress);
       assert.equal(etherValue.toString(), 2300000);
     });
+
+    it("should return 0 as the ether value for a low priced token", async () => {
+      await priceProvider.from(infrastructure).setPrice(erc20First.contractAddress, 23000);
+      const etherValue = await priceProvider.getEtherValue(100, erc20First.contractAddress);
+      assert.equal(etherValue.toString(), 0); // 2300000
+    });
   });
 
   describe("Daily limit", () => {
