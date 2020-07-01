@@ -2,7 +2,7 @@ const ModuleRegistry = require("../build/ModuleRegistry");
 const ENSManager = require("../build/ArgentENSManager");
 const ENSResolver = require("../build/ArgentENSResolver");
 const WalletFactory = require("../build/WalletFactory");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
+const TokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
 const CompoundRegistry = require("../build/CompoundRegistry");
 
 const DeployManager = require("../utils/deploy-manager.js");
