@@ -1,5 +1,6 @@
 /* global accounts */
 const ethers = require("ethers");
+const BN = require("bn.js");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
@@ -13,9 +14,6 @@ const TestContract = require("../build/TestContract");
 
 const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN } = require("../utils/utilities.js");
-
-const DECIMALS = 12; // number of decimal for TOKN contract
-const TOKEN_RATE = 51 * 10 ** 13; // 1 TOKN = 0.00051 ETH
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -60,8 +58,11 @@ describe("Approved Transfer", function () {
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
     await wallet.init(owner.address, [approvedTransfer.contractAddress, guardianManager.contractAddress]);
-    erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await tokenPriceStorage.setPrice(erc20.contractAddress, TOKEN_RATE);
+
+    const decimals = 12; // number of decimal for TOKN contract
+    const tokenRate = new BN(10).pow(new BN(37)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => * 10^(36-decimals) = 0.00051*10^18 * 10^24 = 51 * 10^37
+    erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
+    await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
   });
 
