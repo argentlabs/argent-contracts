@@ -43,10 +43,7 @@ abstract contract OnlyOwnerModule is BaseModule {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(address _wallet, address _module) public override virtual
-    onlyWalletOwner(_wallet)
-    onlyWhenUnlocked(_wallet)
-    {
+    function addModule(address _wallet, address _module) public override virtual onlyOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
     }

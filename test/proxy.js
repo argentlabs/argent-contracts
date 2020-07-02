@@ -5,7 +5,7 @@ const TestManager = require("../utils/test-manager");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
-const Module = require("../build/BaseModule");
+const Module = require("../build/TestModule");
 const Registry = require("../build/ModuleRegistry");
 
 describe("Proxy", function () {

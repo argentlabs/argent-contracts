@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 import "../contracts/modules/common/BaseModule.sol";
-import "../contracts/modules/common/RelayerModule.sol";
+import "./TestDapp.sol";
 
 /**
- * @title TestModuleRelayer
- * @dev Basic test module subclassing RelayerModule
+ * @title TestModule
+ * @dev Basic test module
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TestModule is OnlyOwnerModule {
+contract TestModule is BaseModule {
 
     bytes32 constant NAME = "TestModule";
 
@@ -33,6 +33,10 @@ contract TestModule is OnlyOwnerModule {
     }
 
     // used to simulate a bad module in MakerV2Loan tests
+    function isNewVersion(address _addr) external view returns (bytes32) {
+        return bytes4(keccak256("isNewVersion(address)"));
+    }
+
     function callContract(address _contract, uint256 _value, bytes calldata _data) external {
         // solium-disable-next-line security/no-call-value
         (bool success,) = _contract.call{value: _value}(_data);
@@ -44,6 +48,7 @@ contract TestModule is OnlyOwnerModule {
             }
         }
     }
+    /////////////////
 
     function init(address _wallet) public override onlyWallet(_wallet) {
         enableStaticCalls(_wallet, address(this));
@@ -88,5 +93,9 @@ contract TestModule is OnlyOwnerModule {
 
     function fail(address _wallet, string calldata reason) external {
         invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
+    }
+
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 }

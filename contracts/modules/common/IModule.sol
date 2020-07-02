@@ -25,6 +25,12 @@ pragma solidity >=0.5.4 <0.7.0;
  */
 interface IModule {
 
+    enum OwnerSignature {
+        Required,
+        Optional,
+        Disallowed
+    }
+
     /**
     * @notice Utility method to recover any ERC20 token that was sent to the module by mistake.
     * @param _token The token to recover.
@@ -43,4 +49,13 @@ interface IModule {
      * @param _module The modules to authorise.
      */
     function addModule(address _wallet, address _module) external;
+
+    /**
+    * @dev Gets the number of valid signatures that must be provided to execute a
+    * specific relayed transaction.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view returns (uint256, OwnerSignature);
 }

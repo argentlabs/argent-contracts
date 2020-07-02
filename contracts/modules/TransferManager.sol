@@ -21,6 +21,7 @@ import "./common/Utils.sol";
 import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitUtils.sol";
+import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
 import "../../lib/other/ERC20.sol";
@@ -137,7 +138,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         }
     }
 
-    function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerModule) onlyWalletOwner(_wallet) {
+    function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerModule) onlyOwnerOrModule(_wallet) {
         OnlyOwnerModule.addModule(_wallet, _module);
     }
 
@@ -383,7 +384,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(address _wallet, uint256 _newLimit) external onlyOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
     }
 
@@ -392,7 +393,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * The limit is disabled by setting it to an arbitrary large value.
      * @param _wallet The target wallet.
      */
-    function disableLimit(address _wallet) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function disableLimit(address _wallet) external onlyOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         LimitUtils.disableLimit(limitStorage, _wallet, securityPeriod);
     }
 
@@ -539,44 +540,5 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             !IWallet(_wallet).authorised(_contract) && // not an authorised module
             (tokenPriceStorage.getTokenPrice(_contract) == 0 || isLimitDisabled(_wallet)), // not an ERC20 listed in the provider (or limit disabled)
             "TM: Forbidden contract");
-    }
-
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    // Overrides refund to add the refund in the daily limit.
-    function refund(
-        address _wallet,
-        uint _gasUsed,
-        uint _gasPrice,
-        uint _gasLimit,
-        uint _signatures,
-        address _relayer
-    )
-        internal override
-    {
-        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
-        uint256 amount = 36616 + _gasUsed;
-        if (_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
-            if (_gasPrice > tx.gasprice) {
-                amount = amount * tx.gasprice;
-            } else {
-                amount = amount * _gasPrice;
-            }
-            LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, amount);
-            invokeWallet(_wallet, _relayer, amount, EMPTY_BYTES);
-        }
-    }
-
-    // Overrides verifyRefund to add the refund in the daily limit.
-    function verifyRefund(address _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal override view returns (bool) {
-        if (_gasPrice > 0 && _signatures > 0 && (
-            _wallet.balance < _gasUsed * _gasPrice ||
-            LimitUtils.checkDailySpent(limitStorage, _wallet, _gasUsed * _gasPrice) == false ||
-            IWallet(_wallet).authorised(address(this)) == false
-        ))
-        {
-            return false;
-        }
-        return true;
     }
 }

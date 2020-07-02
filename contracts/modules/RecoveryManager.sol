@@ -17,6 +17,7 @@
 pragma solidity ^0.6.10;
 
 import "./common/Utils.sol";
+import "./common/ArgentSafeMath.sol";
 import "./common/BaseModule.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 

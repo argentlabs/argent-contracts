@@ -1,10 +1,10 @@
 /* global accounts */
 const ethers = require("ethers");
-
-const Wallet = require("../build/BaseWallet");
-const OldWallet = require("../build/LegacyBaseWallet");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
+const OldWalletV1_6 = require("../build-legacy/v1.6.0/BaseWallet");
+const OldWalletV1_3 = require("../build-legacy/v1.3.0/BaseWallet");
 const TestModule = require("../build/TestModule");
-const OldTestModule = require("../build/OldTestModule");
 const Registry = require("../build/ModuleRegistry");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
 const GuardianStorage = require("../build/GuardianStorage");
@@ -37,8 +37,7 @@ describe("BaseWallet", function () {
     module1 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, true, 42);
     module2 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, false, 42);
     module3 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, true, 42);
-    oldModule = await deployer.deploy(OldTestModule, {}, registry.contractAddress);
-    newModule = module1;
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {
@@ -86,7 +85,7 @@ describe("BaseWallet", function () {
     });
   });
 
-  describe("Old and New BaseWallets", () => {
+  describe("Initialze Wallets", () => {
     describe("wallet init", () => {
       it("should create a wallet with the correct owner", async () => {
         let walletOwner = await wallet.owner();
@@ -191,35 +190,23 @@ describe("BaseWallet", function () {
     });
   });
 
-  describe("New BaseWallet", () => {
-    it("should work with old modules", async () => {
-      await wallet.init(owner.address, [oldModule.contractAddress]);
-      await oldModule.callDapp(wallet.contractAddress);
-      await oldModule.callDapp2(wallet.contractAddress);
-    });
+  describe("Old BaseWallet V1.3", () => {
     it("should work with new modules", async () => {
-      await wallet.init(owner.address, [newModule.contractAddress]);
-      await newModule.callDapp(wallet.contractAddress);
-      await newModule.callDapp2(wallet.contractAddress, 2, true);
-    });
-    it("should bubble the reason message up when reverting", async () => {
-      await wallet.init(owner.address, [newModule.contractAddress]);
-      const reason = "I'm hereby reverting this transaction using a reason message that is longer than 32 bytes!";
-      try {
-        await newModule.fail(wallet.contractAddress, reason);
-      } catch (e) {
-        assert.isTrue(await manager.isRevertReason(e, reason), "invalid reason message");
-      }
+      const oldWallet = await deployer.deploy(OldWalletV1_3);
+      await oldWallet.init(owner.address, [module1.contractAddress]);
+      await module1.callDapp(oldWallet.contractAddress);
+      await module1.callDapp2(oldWallet.contractAddress, 2, false);
+      await assert.revert(module1.fail(oldWallet.contractAddress, "just because"));
     });
   });
 
-  describe("Old BaseWallet", () => {
+  describe("Old BaseWallet V1.6", () => {
     it("should work with new modules", async () => {
-      const oldWallet = await deployer.deploy(OldWallet);
-      await oldWallet.init(owner.address, [oldModule.contractAddress, newModule.contractAddress]);
-      await newModule.callDapp(oldWallet.contractAddress);
-      await newModule.callDapp2(oldWallet.contractAddress, 2, false);
-      await assert.revert(newModule.fail(oldWallet.contractAddress, "just because"));
+      const oldWallet = await deployer.deploy(OldWalletV1_6);
+      await oldWallet.init(owner.address, [module1.contractAddress]);
+      await module1.callDapp(oldWallet.contractAddress);
+      await module1.callDapp2(oldWallet.contractAddress, 2, true);
+      await assert.revert(module1.fail(oldWallet.contractAddress, "just because"));
     });
   });
 });

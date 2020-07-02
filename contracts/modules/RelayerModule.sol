@@ -15,24 +15,28 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
+pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
 import "./common/BaseModule.sol";
-import "./common/LimitManager.sol";
 import "./common/GuardianUtils.sol";
+import "./common/LimitUtils.sol";
+import "../infrastructure/storage/ILimitStorage.sol";
 
 /**
  * @title RelayerModule
  * @dev Module to execute transactions signed by eth-less accounts and sent by a relayer.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
-contract RelayerModule is BaseModule, LimitManager {
+contract RelayerModule is BaseModule {
 
     bytes32 constant NAME = "RelayerModule";
 
     uint256 constant internal BLOCKBOUND = 10000;
 
     mapping (address => RelayerConfig) public relayer;
+
+    ILimitStorage public limitStorage;
 
     struct RelayerConfig {
         uint256 nonce;
@@ -46,13 +50,12 @@ contract RelayerModule is BaseModule, LimitManager {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
-        ILimitStorage _storageLimit
+        ILimitStorage _limitStorage
     )
         BaseModule(_registry, _guardianStorage, NAME)
-        LimitManager(_storageLimit, 0)
         public
     {
-
+        limitStorage = _limitStorage;
     }
 
     /**
@@ -284,7 +287,7 @@ contract RelayerModule is BaseModule, LimitManager {
             } else {
                 amount = amount * _gasPrice;
             }
-            checkAndUpdateDailySpent(_wallet, amount);
+            LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, amount);
             invokeWallet(_wallet, _relayer, amount, EMPTY_BYTES);
         }
     }

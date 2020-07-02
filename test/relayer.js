@@ -5,7 +5,7 @@ const { parseRelayReceipt } = require("../utils/utilities.js");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
-const BadModuleRelayer = require("../build/BadModuleRelayer");
+const BadModule = require("../build/BadModule");
 const RelayerModule = require("../build/RelayerModule");
 const TestModule = require("../build/TestModule");
 const Registry = require("../build/ModuleRegistry");
@@ -105,7 +105,7 @@ describe("RelayManager", function () {
     });
 
     it("should fail when the RelayerModule is not authorised", async () => {
-      let wrongWallet = await deployer.deploy(Wallet);
+      let wrongWallet = await deployer.deploy(BaseWallet);
       await wrongWallet.init(owner.address, [testModule.contractAddress]);
       const params = [wrongWallet.contractAddress, 2];
       const txReceipt = await manager.relay(testModule, "setIntOwnerOnly", params, wrongWallet, [owner]);
@@ -222,9 +222,9 @@ describe("RelayManager", function () {
     });
 
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
-      const badRelayerModule = await deployer.deploy(BadModuleRelayer, {}, registry.contractAddress, guardianStorage.contractAddress);
+      const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, guardianStorage.contractAddress);
       await assert.revertWith(
-        manager.relay(badRelayerModule, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner]), "RM: Wrong number of required signatures",
+        manager.relay(badModule, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner]), "RM: Wrong number of required signatures",
       );
     });
   });

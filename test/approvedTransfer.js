@@ -48,6 +48,7 @@ describe("Approved Transfer", function () {
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {}, registry.contractAddress, guardianStorage.contractAddress);
     relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
+    walletImplementation = await deployer.deploy(BaseWallet);
   });
 
   beforeEach(async () => {

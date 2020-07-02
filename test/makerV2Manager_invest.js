@@ -8,6 +8,7 @@ const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const MakerRegistry = require("../build/MakerRegistry");
+const RelayerModule = require("../build/RelayerModule");
 
 const DAI_SENT = WAD.div(100000000);
 
@@ -23,6 +24,7 @@ describe("MakerV2 DSR", function () {
 
   let wallet;
   let walletImplementation;
+  let relayerModule;
   let makerV2;
   let sai;
   let dai;
@@ -59,13 +61,16 @@ describe("MakerV2 DSR", function () {
     );
 
     walletImplementation = await deployer.deploy(BaseWallet);
+
+    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-    await wallet.init(owner.address, [makerV2.contractAddress]);
+    await wallet.init(owner.address, [makerV2.contractAddress, relayerModule.contractAddress]);
     await sai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
     await dai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
   });

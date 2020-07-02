@@ -15,6 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../infrastructure/storage/ILimitStorage.sol";
@@ -126,34 +127,6 @@ library LimitUtils {
             return true;
         }
         return false;
-    }
-
-    /**
-    * @dev Checks if a transfer is within the limit.
-    * @param _lStorage The storage contract.
-    * @param _wallet The target wallet.
-    * @param _amount The amount for the transfer
-    * @return true if the transfer is withing the daily limit.
-    */
-    function checkDailySpent(
-        ILimitStorage _lStorage,
-        address _wallet,
-        uint256 _amount
-    )
-        internal
-        view
-        returns (bool)
-    {
-        (ILimitStorage.Limit memory limit, ILimitStorage.DailySpent memory dailySpent) = _lStorage.getLimitAndDailySpent(_wallet);
-        uint256 currentLimit = currentLimit(limit);
-        if (currentLimit == LIMIT_DISABLED) {
-            return true;
-        }
-        // solium-disable-next-line security/no-block-members
-        if (dailySpent.periodEnd < now) {
-            return (_amount <= currentLimit);
-        }
-        return (_amount.add(dailySpent.alreadySpent) <= currentLimit);
     }
 
     /**

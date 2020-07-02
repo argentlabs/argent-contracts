@@ -40,12 +40,11 @@ describe("LockManager", function () {
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-
-    await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress, relayerModule.contractAddress]);
     relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+    await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress, relayerModule.contractAddress]);
   });
 
   describe("(Un)Lock by EOA guardians", () => {

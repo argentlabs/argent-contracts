@@ -15,6 +15,7 @@ const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const LimitStorage = require("../build/LimitStorage");
 const TokenPriceStorage = require("../build/TokenPriceStorage");
+const RelayerModule = require("../build/RelayerModule");
 const TransferModule = require("../build/TransferManager");
 const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
@@ -92,12 +93,15 @@ describe("TransferManager", function () {
     await registry.registerModule(transferModule.contractAddress, ethers.utils.formatBytes32String("TransferModule"));
 
     walletImplementation = await deployer.deploy(BaseWallet);
+
+    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, limitStorage.contractAddress);
+    manager.setRelayerModule(relayerModule);
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [transferModule.contractAddress]);
+    await wallet.init(owner.address, [transferModule.contractAddress, relayerModule.contractAddress]);
 
     const decimals = 12; // number of decimal for TOKN contract
     const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
@@ -398,7 +402,7 @@ describe("TransferManager", function () {
           });
           assert.fail("transfer should have failed");
         } catch (error) {
-          assert.ok(await manager.isRevertReason(error, "BM: must be wallet owner"));
+          assert.ok(await manager.isRevertReason(error, "BM: must be owner or module"));
         }
       });
 
@@ -569,7 +573,7 @@ describe("TransferManager", function () {
         await doDirectApprove({ signer: nonowner, amount: 10 });
         assert.fail("approve should have failed");
       } catch (error) {
-        assert.ok(await manager.isRevertReason(error, "BM: must be wallet owner"));
+        assert.ok(await manager.isRevertReason(error, "BM: must be owner or module"));
       }
     });
     it("should appprove an ERC20 immediately when the spender is whitelisted ", async () => {

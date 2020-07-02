@@ -30,7 +30,7 @@ import "./IUniswapFactory.sol";
  */
 abstract contract MakerV2Loan is MakerV2Base {
 
-    bytes4 private constant IS_UPGRADER = bytes4(keccak256("isUpgrader(address)"));
+    bytes4 private constant IS_NEW_VERSION = bytes4(keccak256("isNewVersion(address)"));
 
     // The address of the MKR token
     GemLike internal mkrToken;
@@ -92,9 +92,9 @@ abstract contract MakerV2Loan is MakerV2Base {
         _notEntered = true;
     }
 
-    modifier onlyUpgrader() {
-        (bool success, bytes memory res) = msg.sender.call(abi.encodeWithSignature("isUpgrader(address)", address(this)));
-        require(success && abi.decode(res, (bytes4)) == IS_UPGRADER , "MV2: not an upgrader");
+    modifier onlyNewVersion() {
+        (bool success, bytes memory res) = msg.sender.call(abi.encodeWithSignature("isNewVersion(address)", address(this)));
+        require(success && abi.decode(res, (bytes4)) == IS_NEW_VERSION , "MV2: not a new version");
         _;
     }
 
@@ -336,7 +336,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     )
         external
         onlyModule(_wallet)
-        onlyUpgrader
+        onlyNewVersion
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);

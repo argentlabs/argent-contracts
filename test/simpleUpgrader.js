@@ -6,7 +6,7 @@ const {
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const OnlyOwnerModule = require("../build/TestOnlyOwnerModule");
-const Module = require("../build/TestModuleRelayer");
+const Module = require("../build/TestModule");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
 const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
@@ -14,6 +14,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
 const RecoveryManager = require("../build/RecoveryManager");
 
+const RelayerModule = require("../build/RelayerModule");
 const TestManager = require("../utils/test-manager");
 
 const IS_ONLY_OWNER_MODULE = keccak256(toUtf8Bytes("isOnlyOwnerModule()")).slice(0, 10);
@@ -41,6 +42,8 @@ describe("SimpleUpgrader", function () {
 
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
   });
 
   describe("Registering modules", () => {
@@ -125,6 +128,7 @@ describe("SimpleUpgrader", function () {
   });
 
   describe("Upgrading modules", () => {
+
     async function testUpgradeModule({ relayed, useOnlyOwnerModule, modulesToAdd = (moduleV2) => [moduleV2] }) {
       // create module V1
       let moduleV1;
@@ -135,16 +139,20 @@ describe("SimpleUpgrader", function () {
       }
       // register module V1
       await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
-      // create wallet with module V1
-      await wallet.init(owner.address, [moduleV1.contractAddress]);
+      // create wallet with module V1 and relayer module
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+      await wallet.init(owner.address, [moduleV1.contractAddress, relayerModule.contractAddress]);
       // create module V2
       const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
       // register module V2
       await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
-      // create upgrader
+      // create upgraders
       const toAdd = modulesToAdd(moduleV2.contractAddress);
-      const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], toAdd);
-      await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
+      const upgrader1 = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], toAdd);
+      const upgrader2 = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress, relayerModule.contractAddress], toAdd);
+      await registry.registerModule(upgrader1.contractAddress, formatBytes32String("V1toV2_1"));
+      await registry.registerModule(upgrader2.contractAddress, formatBytes32String("V1toV2_2"));
       // check that module V1 can be used to add the upgrader module
       if (useOnlyOwnerModule) {
         assert.equal(await moduleV1.isOnlyOwnerModule(), IS_ONLY_OWNER_MODULE);
@@ -152,33 +160,34 @@ describe("SimpleUpgrader", function () {
 
       // upgrade from V1 to V2
       let txReceipt;
-      const params = [wallet.contractAddress, upgrader.contractAddress];
+      const params1 = [wallet.contractAddress, upgrader1.contractAddress];
+      const params2 = [wallet.contractAddress, upgrader2.contractAddress];
 
-      // if no module is added, the upgrade should fail
+      // if no module is added and all modules are removed, the upgrade should fail
       if (toAdd.length === 0) {
         if (relayed) {
-          txReceipt = await manager.relay(moduleV1, "addModule", params, wallet, [owner]);
-          assert.isTrue(!txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success,
-            "Relayed upgrade to 0 module should have failed.");
+          txReceipt = await manager.relay(moduleV1, "addModule", params2, wallet, [owner]);
+          let success = (await utils.parseLogs(txReceipt, relayerModule, "TransactionExecuted"))[0].success; 
+          assert.isTrue(!success, "Relayed upgrade to 0 module should have failed.");
         } else {
-          assert.revert(moduleV1.from(owner).addModule(...params));
+          assert.revert(moduleV1.from(owner).addModule(...params2));
         }
         return;
       }
 
       if (relayed) {
-        txReceipt = await manager.relay(moduleV1, "addModule", params, wallet, [owner]);
-        assert.equal(txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, useOnlyOwnerModule,
-          "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
+        txReceipt = await manager.relay(moduleV1, "addModule", params1, wallet, [owner]);
+        let success = (await utils.parseLogs(txReceipt, relayerModule, "TransactionExecuted"))[0].success;
+        assert.equal(success, useOnlyOwnerModule, "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
       } else {
-        const tx = await moduleV1.from(owner).addModule(...params);
+        const tx = await moduleV1.from(owner).addModule(...params1);
         txReceipt = await moduleV1.verboseWaitForTransaction(tx);
       }
 
       // test event ordering
       const logs = utils.parseLogs(txReceipt, wallet, "AuthorisedModule");
-      const upgraderAuthorisedLogIndex = logs.findIndex((e) => e.module === upgrader.contractAddress && e.value === true);
-      const upgraderUnauthorisedLogIndex = logs.findIndex((e) => e.module === upgrader.contractAddress && e.value === false);
+      const upgraderAuthorisedLogIndex = logs.findIndex((e) => e.module === upgrader1.contractAddress && e.value === true);
+      const upgraderUnauthorisedLogIndex = logs.findIndex((e) => e.module === upgrader1.contractAddress && e.value === false);
       if (!relayed || useOnlyOwnerModule) {
         assert.isBelow(upgraderAuthorisedLogIndex, upgraderUnauthorisedLogIndex,
           "AuthorisedModule(upgrader, false) should come after AuthorisedModule(upgrader, true)");
@@ -190,12 +199,12 @@ describe("SimpleUpgrader", function () {
       // test if the upgrade worked
       const isV1Authorised = await wallet.authorised(moduleV1.contractAddress);
       const isV2Authorised = await wallet.authorised(moduleV2.contractAddress);
-      const isUpgraderAuthorised = await wallet.authorised(upgrader.contractAddress);
+      const isUpgraderAuthorised = await wallet.authorised(upgrader1.contractAddress);
       const numModules = await wallet.modules();
       assert.equal(isV1Authorised, relayed && !useOnlyOwnerModule, "moduleV1 should only be unauthorised if the upgrade went through");
       assert.equal(isV2Authorised, !relayed || useOnlyOwnerModule, "moduleV2 should only be authorised if the upgrade went through");
       assert.equal(isUpgraderAuthorised, false, "upgrader should not be authorised");
-      assert.equal(numModules, 1, "only one module (moduleV2) should be authorised");
+      assert.equal(numModules, 2, "only two module (moduleV2 and relayerModule) should be authorised");
     }
 
     it("should upgrade modules (blockchain tx)", async () => {

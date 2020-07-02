@@ -137,8 +137,6 @@ describe("Loan Module", function () {
     await compoundRegistry.addCToken(token2.contractAddress, cToken2.contractAddress);
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
-    manager.setRelayerModule(relayerModule);
 
     loanManager = await deployer.deploy(
       CompoundManager,
@@ -150,6 +148,9 @@ describe("Loan Module", function () {
     );
 
     walletImplementation = await deployer.deploy(BaseWallet);
+
+    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
   });
 
   beforeEach(async () => {
@@ -186,8 +187,8 @@ describe("Loan Module", function () {
         const tx = await loanManager.from(owner).openLoan(...params);
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
-      assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanOpened"), "should have generated LoanOpened event");
-      const loanId = txReceipt.events.find((e) => e.event === "LoanOpened").args._loanId;
+      assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanOpened"), "should have generated LoanOpened event"); 
+      const loanId = (await utils.parseLogs(txReceipt, loanManager, "LoanOpened"))[0]._loanId; 
       assert.isDefined(loanId, "Loan ID should be defined");
 
       const collateralAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)

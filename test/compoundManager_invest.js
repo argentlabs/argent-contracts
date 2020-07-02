@@ -44,6 +44,7 @@ describe("Invest Manager with Compound", function () {
   let deployer;
   let wallet;
   let walletImplementation;
+  let registry;
   let investManager;
   let relayerModule;
   let compoundRegistry;
@@ -117,7 +118,7 @@ describe("Invest Manager with Compound", function () {
     compoundRegistry = await deployer.deploy(CompoundRegistry);
     await compoundRegistry.addCToken(ETH_TOKEN, cEther.contractAddress);
     await compoundRegistry.addCToken(token.contractAddress, cToken.contractAddress);
-    const registry = await deployer.deploy(Registry);
+    registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
     investManager = await deployer.deploy(
       CompoundManager,
@@ -129,18 +130,14 @@ describe("Invest Manager with Compound", function () {
     );
 
     walletImplementation = await deployer.deploy(BaseWallet);
-  });
 
-  beforeEach(async () => {
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [investManager.contractAddress]);
     relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ZERO_ADDRESS);
     manager.setRelayerModule(relayerModule);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [investManager.contractAddress, relayerModule.contractAddress]);
   });
 
