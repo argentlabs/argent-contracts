@@ -22,6 +22,8 @@ interface ITokenPriceStorage {
 
     function getTokenPrice(address _token) external view returns (uint256 _price);
 
+    function getPriceForTokenList(address[] calldata _tokens) external view returns (uint256[] memory _prices);
+
     function setPriceForTokenList(address[] calldata _tokens, uint256[] calldata _prices) external;
 
     function setPrice(address _token, uint256 _price) external;

@@ -166,6 +166,20 @@ describe("TransferManager", function () {
       erc20ZeroDecimals = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 0);
     });
 
+    it("should get a token price correctly", async () => {
+      const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
+      const tokenPriceSet = await tokenPriceStorage.getTokenPrice(erc20First.contractAddress);
+      expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
+    });
+
+    it("should get multiple token prices correctly", async () => {
+      await tokenPriceStorage.from(infrastructure).setPriceForTokenList([erc20First.contractAddress, erc20Second.contractAddress], [1800, 1900]);
+      const tokenPricesSet = await tokenPriceStorage.getPriceForTokenList([erc20First.contractAddress, erc20Second.contractAddress]);
+      expect(1800).to.eq.BN(tokenPricesSet[0].toString());
+      expect(1900).to.eq.BN(tokenPricesSet[1].toString());
+    });
+
     it("should set token price correctly", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
       await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());

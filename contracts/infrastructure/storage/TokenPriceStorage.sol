@@ -34,6 +34,14 @@ contract TokenPriceStorage is ITokenPriceStorage, Storage, Managed {
         _price = cachedPrices[_token];
     }
 
+    function getPriceForTokenList(address[] calldata _tokens) external override view returns (uint256[] memory) {
+        uint256[] memory prices = new uint256[](_tokens.length);
+        for (uint i = 0; i < _tokens.length; i++) {
+            prices[i] = cachedPrices[_tokens[i]];
+        }
+        return prices;
+    }
+
     function setPriceForTokenList(address[] calldata _tokens, uint256[] calldata _prices) external override onlyManager {
         for (uint16 i = 0; i < _tokens.length; i++) {
             cachedPrices[_tokens[i]] = _prices[i];
