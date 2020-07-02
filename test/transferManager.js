@@ -100,7 +100,7 @@ describe("TransferManager", function () {
     await wallet.init(owner.address, [transferModule.contractAddress]);
 
     const decimals = 12; // number of decimal for TOKN contract
-    const tokenRate = new BN(10).pow(new BN(37)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => * 10^(36-decimals) = 0.00051*10^18 * 10^24 = 51 * 10^37
+    const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
 
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
@@ -199,16 +199,18 @@ describe("TransferManager", function () {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
       await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
       const etherValue = await transferModule.getEtherValue("15000000000000000000", erc20First.contractAddress);
-      // 1800*10^(36-18) * 15*10^18 / 10^36 = 27,000
-      expect(27000).to.eq.BN(etherValue.toString());
+      // expectedValue = 1800*10^18/10^18 (price for 1 token wei) * 15*10^18 (amount) = 1800 * 15*10^18 = 27,000 * 10^18
+      const expectedValue = new BN(10).pow(new BN(18)).muln(27000);
+      expect(expectedValue).to.eq.BN(etherValue.toString());
     });
 
     it("should be able to get the ether value for a token with 0 decimals", async () => {
       const tokenPrice = new BN(10).pow(new BN(36)).muln(23000);
       await tokenPriceStorage.from(infrastructure).setPrice(erc20ZeroDecimals.contractAddress, tokenPrice.toString());
       const etherValue = await transferModule.getEtherValue(100, erc20ZeroDecimals.contractAddress);
-      // ether value = 23000 * 100 / 10^0 = 2,300,000
-      assert.equal(etherValue.toString(), 2300000);
+      // expectedValue = 23000*10^36 * 100 / 10^18 = 2,300,000 * 10^18
+      const expectedValue = new BN(10).pow(new BN(18)).muln(2300000);
+      expect(expectedValue).to.eq.BN(etherValue.toString());
     });
 
     it("should return 0 as the ether value for a low priced token", async () => {
@@ -421,32 +423,32 @@ describe("TransferManager", function () {
     describe("Large token transfers ", () => {
       it("should create and execute a pending ETH transfer", async () => {
         await doPendingTransfer({
-          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: false,
+          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 3, relayed: false,
         });
       });
 
       it("should create and execute a pending ETH transfer (relayed)", async () => {
         await doPendingTransfer({
-          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: true,
+          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 3, relayed: true,
         });
       });
 
       it("should create and execute a pending ERC20 transfer", async () => {
         await doPendingTransfer({
-          token: erc20, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: false,
+          token: erc20, to: recipient, amount: ETH_LIMIT * 2, delay: 3, relayed: false,
         });
       });
 
       it("should create and execute a pending ERC20 transfer (relayed)", async () => {
         await doPendingTransfer({
-          token: erc20, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: true,
+          token: erc20, to: recipient, amount: ETH_LIMIT * 2, delay: 3, relayed: true,
         });
       });
 
       it("should not execute a pending ETH transfer before the confirmation window", async () => {
         try {
           await doPendingTransfer({
-            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 1, relayed: false,
+            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 1, relayed: false,
           });
         } catch (error) {
           assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
@@ -456,7 +458,7 @@ describe("TransferManager", function () {
       it("should not execute a pending ETH transfer before the confirmation window (relayed)", async () => {
         try {
           await doPendingTransfer({
-            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 1, relayed: true,
+            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 1, relayed: true,
           });
         } catch (error) {
           assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
@@ -466,7 +468,7 @@ describe("TransferManager", function () {
       it("should not execute a pending ETH transfer after the confirmation window", async () => {
         try {
           await doPendingTransfer({
-            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 10, relayed: false,
+            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 10, relayed: false,
           });
         } catch (error) {
           assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
@@ -476,7 +478,7 @@ describe("TransferManager", function () {
       it("should not execute a pending ETH transfer after the confirmation window (relayed)", async () => {
         try {
           await doPendingTransfer({
-            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 10, relayed: true,
+            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 10, relayed: true,
           });
         } catch (error) {
           assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
@@ -485,7 +487,7 @@ describe("TransferManager", function () {
 
       it("should cancel a pending ETH transfer", async () => {
         const id = await doPendingTransfer({
-          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 0,
+          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 0,
         });
         await manager.increaseTime(1);
         const tx = await transferModule.from(owner).cancelPendingTransfer(wallet.contractAddress, id);
@@ -498,7 +500,7 @@ describe("TransferManager", function () {
 
       it("should cancel a pending ERC20 transfer", async () => {
         const id = await doPendingTransfer({
-          token: erc20, to: recipient, amount: ETH_LIMIT + 10000, delay: 0,
+          token: erc20, to: recipient, amount: ETH_LIMIT * 2, delay: 0,
         });
         await manager.increaseTime(1);
         const tx = await transferModule.from(owner).cancelPendingTransfer(wallet.contractAddress, id);
@@ -512,13 +514,13 @@ describe("TransferManager", function () {
       it("should send immediately ETH to a whitelisted address", async () => {
         await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
         await manager.increaseTime(3);
-        await doDirectTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000 });
+        await doDirectTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2 });
       });
 
       it("should send immediately ERC20 to a whitelisted address", async () => {
         await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
         await manager.increaseTime(3);
-        await doDirectTransfer({ token: erc20, to: recipient, amount: ETH_LIMIT + 10000 });
+        await doDirectTransfer({ token: erc20, to: recipient, amount: ETH_LIMIT * 2 });
       });
     });
   });
