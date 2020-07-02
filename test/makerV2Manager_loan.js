@@ -20,9 +20,9 @@ const FakeWallet = require("../build/FakeWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TransferStorage = require("../build/TransferStorage");
 const LimitStorage = require("../build/LimitStorage");
+const TokenPriceStorage = require("../build/TokenPriceStorage");
 const TransferManager = require("../build/TransferManager");
 const BadModule = require("../build/TestModuleRelayer");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
 
 /* global accounts */
 describe("MakerV2 Vaults", function () {
@@ -97,15 +97,15 @@ describe("MakerV2 Vaults", function () {
     );
 
     // Deploy TransferManager
-    const priceProvider = await deployer.deploy(TokenPriceProvider);
     const transferStorage = await deployer.deploy(TransferStorage);
     const limitStorage = await deployer.deploy(LimitStorage);
+    const tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
     transferManager = await deployer.deploy(TransferManager, {},
       AddressZero,
       transferStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
-      priceProvider.contractAddress,
+      tokenPriceStorage.contractAddress,
       3600,
       3600,
       10000,

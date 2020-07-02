@@ -6,7 +6,7 @@ const ENS = require("../build/ENSRegistryWithFallback");
 const ENSManager = require("../build/ArgentENSManager");
 const ENSResolver = require("../build/ArgentENSResolver");
 const WalletFactory = require("../build/WalletFactory");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
+const TokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
 const MakerRegistry = require("../build/MakerRegistry");
 const ScdMcdMigration = require("../build/ScdMcdMigration");
 

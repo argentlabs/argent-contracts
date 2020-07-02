@@ -7,6 +7,7 @@ const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const LimitStorage = require("../build/LimitStorage");
+const TokenPriceStorage = require("../build/TokenPriceStorage");
 
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const CompoundManager = require("../build/CompoundManager");
@@ -20,7 +21,6 @@ const TransferManager = require("../build/TransferManager");
 
 const BaseWallet = require("../build/BaseWallet");
 const WalletFactory = require("../build/WalletFactory");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
 const ENSManager = require("../build/ArgentENSManager");
 
 const utils = require("../utils/utilities.js");
@@ -76,13 +76,13 @@ const deploy = async (network) => {
 
   // Deploy the Base Wallet Library
   const BaseWalletWrapper = await deployer.deploy(BaseWallet);
-  // Deploy TokenPriceProvider
-  const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider);
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
     ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
   // Deploy the new LimitStorage
   const LimitStorageWrapper = await deployer.deploy(LimitStorage);
+  // Deploy the new TokenPriceStorage
+  const TokenPriceStorageWrapper = await deployer.deploy(TokenPriceStorage);
 
   // //////////////////////////////////
   // Deploy new modules
@@ -176,7 +176,7 @@ const deploy = async (network) => {
     config.modules.TransferStorage,
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,
-    TokenPriceProviderWrapper.contractAddress,
+    TokenPriceStorageWrapper.contractAddress,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
@@ -194,9 +194,9 @@ const deploy = async (network) => {
     const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
     await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
 
-    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account, { gasPrice });
-    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
-      `Set ${account} as the manager of the TokenPriceProvider`);
+    const TokenPriceStorageAddManagerTx = await TokenPriceStorageWrapper.contract.addManager(account, { gasPrice });
+    await TokenPriceStorageWrapper.verboseWaitForTransaction(TokenPriceStorageAddManagerTx,
+      `Set ${account} as the manager of the TokenPriceStorage`);
   }
 
   // //////////////////////////////////
@@ -206,8 +206,8 @@ const deploy = async (network) => {
   let changeOwnerTx = await WalletFactoryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await WalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of WalletFactory");
 
-  changeOwnerTx = await TokenPriceProviderWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await TokenPriceProviderWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceProviderWrapper");
+  changeOwnerTx = await TokenPriceStorageWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  await TokenPriceStorageWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceStorageWrapper");
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -215,6 +215,7 @@ const deploy = async (network) => {
 
   configurator.updateModuleAddresses({
     LimitStorage: LimitStorageWrapper.contractAddress,
+    TokenPriceStorage: TokenPriceStorageWrapper.contractAddress,
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
     GuardianManager: GuardianManagerWrapper.contractAddress,
@@ -229,7 +230,6 @@ const deploy = async (network) => {
   configurator.updateInfrastructureAddresses({
     BaseWallet: BaseWalletWrapper.contractAddress,
     WalletFactory: WalletFactoryWrapper.contractAddress,
-    TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -238,6 +238,7 @@ const deploy = async (network) => {
 
   await Promise.all([
     abiUploader.upload(LimitStorageWrapper, "modules"),
+    abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
     abiUploader.upload(GuardianManagerWrapper, "contracts"),
@@ -249,7 +250,6 @@ const deploy = async (network) => {
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
-    abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////

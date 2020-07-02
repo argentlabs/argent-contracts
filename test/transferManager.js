@@ -1,5 +1,12 @@
 /* global accounts, utils */
 const ethers = require("ethers");
+const chai = require("chai");
+const BN = require("bn.js");
+const bnChai = require("bn-chai");
+
+
+const { expect } = chai;
+chai.use(bnChai(BN));
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
@@ -7,9 +14,10 @@ const Registry = require("../build/ModuleRegistry");
 const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const LimitStorage = require("../build/LimitStorage");
+const TokenPriceStorage = require("../build/TokenPriceStorage");
 const TransferModule = require("../build/TransferManager");
 const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
+const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
 
@@ -18,8 +26,6 @@ const { ETH_TOKEN } = require("../utils/utilities.js");
 const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
-const DECIMALS = 12; // number of decimal for TOKN contract
-const TOKEN_RATE = ethers.utils.bigNumberify(51 * 10 ** 13); // 1 TOKN = 0.00051 ETH
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const ACTION_TRANSFER = 0;
@@ -43,6 +49,7 @@ describe("TransferManager", function () {
   let transferStorage;
   let guardianStorage;
   let limitStorage;
+  let tokenPriceStorage;
   let transferModule;
   let previousTransferModule;
   let wallet;
@@ -52,12 +59,14 @@ describe("TransferManager", function () {
   before(async () => {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(Registry);
-    priceProvider = await deployer.deploy(TokenPriceProvider);
+    priceProvider = await deployer.deploy(LegacyTokenPriceProvider);
     await priceProvider.addManager(infrastructure.address);
 
     transferStorage = await deployer.deploy(TransferStorage);
     guardianStorage = await deployer.deploy(GuardianStorage);
     limitStorage = await deployer.deploy(LimitStorage);
+    tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
+    await tokenPriceStorage.addManager(infrastructure.address);
 
     previousTransferModule = await deployer.deploy(LegacyTransferManager, {},
       registry.contractAddress,
@@ -74,7 +83,7 @@ describe("TransferManager", function () {
       transferStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
-      priceProvider.contractAddress,
+      tokenPriceStorage.contractAddress,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       ETH_LIMIT,
@@ -89,8 +98,12 @@ describe("TransferManager", function () {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [transferModule.contractAddress]);
-    erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, DECIMALS); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await priceProvider.setPrice(erc20.contractAddress, TOKEN_RATE);
+
+    const decimals = 12; // number of decimal for TOKN contract
+    const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
+
+    erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
+    await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("1000000000000000000") });
   });
 
@@ -101,7 +114,7 @@ describe("TransferManager", function () {
         transferStorage.contractAddress,
         guardianStorage.contractAddress,
         limitStorage.contractAddress,
-        priceProvider.contractAddress,
+        tokenPriceStorage.contractAddress,
         SECURITY_PERIOD,
         SECURITY_WINDOW,
         10,
@@ -139,6 +152,71 @@ describe("TransferManager", function () {
     it("should not be able to remove a non-whitelisted token from the whitelist", async () => {
       await assert.revertWith(transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address),
         "TT: target not whitelisted");
+    });
+  });
+
+  describe("Reading and writing token prices", () => {
+    let erc20First;
+    let erc20Second;
+    let erc20ZeroDecimals;
+
+    beforeEach(async () => {
+      erc20First = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 18);
+      erc20Second = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 18);
+      erc20ZeroDecimals = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, 0);
+    });
+
+    it("should get a token price correctly", async () => {
+      const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
+      const tokenPriceSet = await tokenPriceStorage.getTokenPrice(erc20First.contractAddress);
+      expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
+    });
+
+    it("should get multiple token prices correctly", async () => {
+      await tokenPriceStorage.from(infrastructure).setPriceForTokenList([erc20First.contractAddress, erc20Second.contractAddress], [1800, 1900]);
+      const tokenPricesSet = await tokenPriceStorage.getPriceForTokenList([erc20First.contractAddress, erc20Second.contractAddress]);
+      expect(1800).to.eq.BN(tokenPricesSet[0].toString());
+      expect(1900).to.eq.BN(tokenPricesSet[1].toString());
+    });
+
+    it("should set token price correctly", async () => {
+      const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
+      const tokenPriceSet = await tokenPriceStorage.cachedPrices(erc20First.contractAddress);
+      expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
+    });
+
+    it("should set multiple token prices correctly", async () => {
+      await tokenPriceStorage.from(infrastructure).setPriceForTokenList([erc20First.contractAddress, erc20Second.contractAddress], [1800, 1900]);
+      const tokenPrice1Set = await tokenPriceStorage.cachedPrices(erc20First.contractAddress);
+      expect(1800).to.eq.BN(tokenPrice1Set.toString());
+      const tokenPrice2Set = await tokenPriceStorage.cachedPrices(erc20Second.contractAddress);
+      expect(1900).to.eq.BN(tokenPrice2Set.toString());
+    });
+
+    it("should be able to get the ether value of a given amount of tokens", async () => {
+      const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
+      const etherValue = await transferModule.getEtherValue("15000000000000000000", erc20First.contractAddress);
+      // expectedValue = 1800*10^18/10^18 (price for 1 token wei) * 15*10^18 (amount) = 1800 * 15*10^18 = 27,000 * 10^18
+      const expectedValue = new BN(10).pow(new BN(18)).muln(27000);
+      expect(expectedValue).to.eq.BN(etherValue.toString());
+    });
+
+    it("should be able to get the ether value for a token with 0 decimals", async () => {
+      const tokenPrice = new BN(10).pow(new BN(36)).muln(23000);
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20ZeroDecimals.contractAddress, tokenPrice.toString());
+      const etherValue = await transferModule.getEtherValue(100, erc20ZeroDecimals.contractAddress);
+      // expectedValue = 23000*10^36 * 100 / 10^18 = 2,300,000 * 10^18
+      const expectedValue = new BN(10).pow(new BN(18)).muln(2300000);
+      expect(expectedValue).to.eq.BN(etherValue.toString());
+    });
+
+    it("should return 0 as the ether value for a low priced token", async () => {
+      await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, 23000);
+      const etherValue = await transferModule.getEtherValue(100, erc20First.contractAddress);
+      assert.equal(etherValue.toString(), 0); // 2,300,000
     });
   });
 
@@ -253,7 +331,7 @@ describe("TransferManager", function () {
       const fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
-      const ethValue = (token === ETH_TOKEN ? amount : (await priceProvider.getEtherValue(amount, token.contractAddress)).toNumber());
+      const ethValue = (token === ETH_TOKEN ? amount : (await transferModule.getEtherValue(amount, token.contractAddress)).toNumber());
       if (ethValue < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), ethValue, "should have updated the daily spent in ETH");
       }
@@ -296,19 +374,23 @@ describe("TransferManager", function () {
       it("should let the owner send ETH", async () => {
         await doDirectTransfer({ token: ETH_TOKEN, to: recipient, amount: 10000 });
       });
+
       it("should let the owner send ETH (relayed)", async () => {
         await doDirectTransfer({
           token: ETH_TOKEN, to: recipient, amount: 10000, relayed: true,
         });
       });
+
       it("should let the owner send ERC20", async () => {
         await doDirectTransfer({ token: erc20, to: recipient, amount: 10 });
       });
+
       it("should let the owner send ERC20 (relayed)", async () => {
         await doDirectTransfer({
           token: erc20, to: recipient, amount: 10, relayed: true,
         });
       });
+
       it("should only let the owner send ETH", async () => {
         try {
           await doDirectTransfer({
@@ -319,83 +401,93 @@ describe("TransferManager", function () {
           assert.ok(await manager.isRevertReason(error, "BM: must be wallet owner"));
         }
       });
+
       it("should calculate the daily unspent when the owner send ETH", async () => {
         let unspent = await transferModule.getDailyUnspent(wallet.contractAddress);
         assert.equal(unspent[0].toNumber(), ETH_LIMIT, "unspent should be the limit at the beginning of a period");
         await doDirectTransfer({ token: ETH_TOKEN, to: recipient, amount: 10000 });
         unspent = await transferModule.getDailyUnspent(wallet.contractAddress);
-        assert.equal(unspent[0].toNumber(), ETH_LIMIT - 10000, "should be the limit minuss the transfer");
+        assert.equal(unspent[0].toNumber(), ETH_LIMIT - 10000, "should be the limit minus the transfer");
       });
+
       it("should calculate the daily unspent in ETH when the owner send ERC20", async () => {
         let unspent = await transferModule.getDailyUnspent(wallet.contractAddress);
         assert.equal(unspent[0].toNumber(), ETH_LIMIT, "unspent should be the limit at the beginning of a period");
         await doDirectTransfer({ token: erc20, to: recipient, amount: 10 });
         unspent = await transferModule.getDailyUnspent(wallet.contractAddress);
-        const ethValue = await priceProvider.getEtherValue(10, erc20.contractAddress);
-        assert.equal(unspent[0].toNumber(), ETH_LIMIT - ethValue.toNumber(), "should be the limit minuss the transfer");
+        const ethValue = await transferModule.getEtherValue(10, erc20.contractAddress);
+        assert.equal(unspent[0].toNumber(), ETH_LIMIT - ethValue.toNumber(), "should be the limit minus the transfer");
       });
     });
 
     describe("Large token transfers ", () => {
       it("should create and execute a pending ETH transfer", async () => {
         await doPendingTransfer({
-          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: false,
+          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 3, relayed: false,
         });
       });
+
       it("should create and execute a pending ETH transfer (relayed)", async () => {
         await doPendingTransfer({
-          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: true,
+          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 3, relayed: true,
         });
       });
+
       it("should create and execute a pending ERC20 transfer", async () => {
         await doPendingTransfer({
-          token: erc20, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: false,
+          token: erc20, to: recipient, amount: ETH_LIMIT * 2, delay: 3, relayed: false,
         });
       });
+
       it("should create and execute a pending ERC20 transfer (relayed)", async () => {
         await doPendingTransfer({
-          token: erc20, to: recipient, amount: ETH_LIMIT + 10000, delay: 3, relayed: true,
+          token: erc20, to: recipient, amount: ETH_LIMIT * 2, delay: 3, relayed: true,
         });
       });
+
       it("should not execute a pending ETH transfer before the confirmation window", async () => {
         try {
           await doPendingTransfer({
-            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 1, relayed: false,
+            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 1, relayed: false,
           });
         } catch (error) {
           assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
         }
       });
+
       it("should not execute a pending ETH transfer before the confirmation window (relayed)", async () => {
         try {
           await doPendingTransfer({
-            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 1, relayed: true,
+            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 1, relayed: true,
           });
         } catch (error) {
           assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
         }
       });
+
       it("should not execute a pending ETH transfer after the confirmation window", async () => {
         try {
           await doPendingTransfer({
-            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 10, relayed: false,
+            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 10, relayed: false,
           });
         } catch (error) {
           assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
         }
       });
+
       it("should not execute a pending ETH transfer after the confirmation window (relayed)", async () => {
         try {
           await doPendingTransfer({
-            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 10, relayed: true,
+            token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 10, relayed: true,
           });
         } catch (error) {
           assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
         }
       });
+
       it("should cancel a pending ETH transfer", async () => {
         const id = await doPendingTransfer({
-          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000, delay: 0,
+          token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 0,
         });
         await manager.increaseTime(1);
         const tx = await transferModule.from(owner).cancelPendingTransfer(wallet.contractAddress, id);
@@ -405,9 +497,10 @@ describe("TransferManager", function () {
         const executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
         assert.equal(executeAfter, 0, "should have cancelled the pending transfer");
       });
+
       it("should cancel a pending ERC20 transfer", async () => {
         const id = await doPendingTransfer({
-          token: erc20, to: recipient, amount: ETH_LIMIT + 10000, delay: 0,
+          token: erc20, to: recipient, amount: ETH_LIMIT * 2, delay: 0,
         });
         await manager.increaseTime(1);
         const tx = await transferModule.from(owner).cancelPendingTransfer(wallet.contractAddress, id);
@@ -417,15 +510,17 @@ describe("TransferManager", function () {
         const executeAfter = await transferModule.getPendingTransfer(wallet.contractAddress, id);
         assert.equal(executeAfter, 0, "should have cancelled the pending transfer");
       });
+
       it("should send immediately ETH to a whitelisted address", async () => {
         await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
         await manager.increaseTime(3);
-        await doDirectTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT + 10000 });
+        await doDirectTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2 });
       });
+
       it("should send immediately ERC20 to a whitelisted address", async () => {
         await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
         await manager.increaseTime(3);
-        await doDirectTransfer({ token: erc20, to: recipient, amount: ETH_LIMIT + 10000 });
+        await doDirectTransfer({ token: erc20, to: recipient, amount: ETH_LIMIT * 2 });
       });
     });
   });
@@ -444,7 +539,7 @@ describe("TransferManager", function () {
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "Approved"), "should have generated Approved event");
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
 
-      const amountInEth = await priceProvider.getEtherValue(amount, erc20.contractAddress);
+      const amountInEth = await transferModule.getEtherValue(amount, erc20.contractAddress);
       if (amountInEth < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, "should have updated the daily limit");
       }
@@ -567,7 +662,7 @@ describe("TransferManager", function () {
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "ApprovedAndCalledContract"), "should have generated CalledContract event");
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
-      const amountInEth = await priceProvider.getEtherValue(amount, erc20.contractAddress);
+      const amountInEth = await transferModule.getEtherValue(amount, erc20.contractAddress);
 
       if (amountInEth < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, "should have updated the daily limit");
