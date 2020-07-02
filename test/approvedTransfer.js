@@ -1,6 +1,5 @@
 /* global accounts */
 const ethers = require("ethers");
-const BN = require("bn.js");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
@@ -8,7 +7,6 @@ const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
 const GuardianManager = require("../build/GuardianManager");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
-const TokenPriceStorage = require("../build/TokenPriceStorage");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
 
@@ -37,7 +35,6 @@ describe("Approved Transfer", function () {
   let walletImplementation;
   let guardianManager;
   let approvedTransfer;
-  let tokenPriceStorage;
   let erc20;
   const amountToTransfer = 10000;
 
@@ -45,8 +42,6 @@ describe("Approved Transfer", function () {
     deployer = manager.newDeployer();
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
-    tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
-    await tokenPriceStorage.addManager(infrastructure.address);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {}, registry.contractAddress, guardianStorage.contractAddress);
 
@@ -60,9 +55,7 @@ describe("Approved Transfer", function () {
     await wallet.init(owner.address, [approvedTransfer.contractAddress, guardianManager.contractAddress]);
 
     const decimals = 12; // number of decimal for TOKN contract
-    const tokenRate = new BN(10).pow(new BN(37)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => * 10^(36-decimals) = 0.00051*10^18 * 10^24 = 51 * 10^37
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
   });
 
