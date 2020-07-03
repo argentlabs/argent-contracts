@@ -25,9 +25,6 @@ import "./BaseModule.sol";
  */
 abstract contract BaseTransfer is BaseModule {
 
-    // Mock token address for ETH
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     // *************** Events *************************** //
 
     event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);

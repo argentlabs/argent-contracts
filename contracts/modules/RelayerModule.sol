@@ -22,6 +22,7 @@ import "./common/BaseModule.sol";
 import "./common/GuardianUtils.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
+import "./common/TokenPriceProvider.sol";
 
 /**
  * @title RelayerModule
@@ -31,16 +32,27 @@ import "../infrastructure/storage/ILimitStorage.sol";
 contract RelayerModule is BaseModule {
 
     bytes32 constant NAME = "RelayerModule";
-
     uint256 constant internal BLOCKBOUND = 10000;
+
+    using SafeMath for uint256;
 
     mapping (address => RelayerConfig) public relayer;
 
+    // The storage of the limit
     ILimitStorage public limitStorage;
+    // The Token price provider
+    TokenPriceProvider public priceProvider;
 
     struct RelayerConfig {
         uint256 nonce;
         mapping (bytes32 => bool) executedTx;
+    }
+
+    // Used to avoid stack too deep error
+    struct StackExtension {
+        uint256 requiredSignatures;
+        OwnerSignature ownerSignatureRequirement;
+        bytes32 signHash;
     }
 
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
@@ -50,12 +62,14 @@ contract RelayerModule is BaseModule {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
-        ILimitStorage _limitStorage
+        ILimitStorage _limitStorage,
+        TokenPriceProvider _priceProvider
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
         limitStorage = _limitStorage;
+        priceProvider = _priceProvider;
     }
 
     /**
@@ -67,6 +81,8 @@ contract RelayerModule is BaseModule {
     * @param _signatures The signatures as a concatenated byte array.
     * @param _gasPrice The gas price to use for the gas refund.
     * @param _gasLimit The gas limit to use for the gas refund.
+    * @param _refundToken The token to use for the gas refund.
+    * @param _refundAddress The address refunded to prevents front-running.
     */
     function execute(
         address _wallet,
@@ -75,32 +91,48 @@ contract RelayerModule is BaseModule {
         uint256 _nonce,
         bytes calldata _signatures,
         uint256 _gasPrice,
-        uint256 _gasLimit
+        uint256 _gasLimit,
+        address _refundToken,
+        address _refundAddress
     )
         external
         returns (bool)
     {
-        uint startGas = gasleft();
-        address wallet = _wallet; // avoids a stack too deep error
-        require(verifyData(wallet, _data), "RM: Target of _data != _wallet");
-        require(isModule(wallet, _module), "RM: module not authorised");
-        bytes32 signHash = getSignHash(address(this), _module, 0, _data, _nonce, _gasPrice, _gasLimit);
-        (uint256 requiredSignatures, OwnerSignature ownerSignatureRequirement) = IModule(_module).getRequiredSignatures(wallet, _data);
-        require(requiredSignatures > 0 || ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong number of required signatures");
-        require(checkAndUpdateUniqueness(wallet, _nonce, signHash, requiredSignatures, ownerSignatureRequirement), "RM: Duplicate request");
-        require(requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
-        require(validateSignatures(wallet, signHash, _signatures, ownerSignatureRequirement), "RM: Invalid signatures");
-        // solium-disable-next-line security/no-low-level-calls
-        (bool success, bytes memory returnData) = _module.call(_data);
-        refund(
-            wallet,
-            startGas - gasleft(),
+        require(gasleft() >= _gasLimit, "RM: not enough gas provided");
+        require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
+        require(isModule(_wallet, _module), "RM: module not authorised");
+        StackExtension memory stack;
+        (stack.requiredSignatures, stack.ownerSignatureRequirement) = IModule(_module).getRequiredSignatures(_wallet, _data);
+        require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
+        require(stack.requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
+        stack.signHash = getSignHash(
+            address(this),
+            _module,
+            0,
+            _data,
+            _nonce,
             _gasPrice,
             _gasLimit,
-            requiredSignatures,
-            ownerSignatureRequirement,
-            msg.sender);
-        emit TransactionExecuted(wallet, success, returnData, signHash);
+            _refundToken,
+            _refundAddress);
+        require(checkAndUpdateUniqueness(
+            _wallet,
+            _nonce,
+            stack.signHash,
+            stack.requiredSignatures,
+            stack.ownerSignatureRequirement), "RM: Duplicate request");
+        require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
+        // solium-disable-next-line security/no-low-level-calls
+        (bool success, bytes memory returnData) = _module.call(_data);
+        if (shouldRefund(_gasPrice, stack.ownerSignatureRequirement)) {
+            refund(
+                _wallet,
+                _gasPrice,
+                _gasLimit,
+                _refundToken,
+                _refundAddress);
+        }
+        emit TransactionExecuted(_wallet, success, returnData, stack.signHash);
         return success;
     }
 
@@ -127,13 +159,15 @@ contract RelayerModule is BaseModule {
 
     /**
     * @dev Generates the signed hash of a relayed transaction according to ERC 1077.
-    * @param _from The starting address for the relayed transaction (should be the module)
-    * @param _to The destination address for the relayed transaction (should be the wallet)
-    * @param _value The value for the relayed transaction
-    * @param _data The data for the relayed transaction
+    * @param _from The starting address for the relayed transaction (should be the relayer module)
+    * @param _to The destination address for the relayed transaction (should be the target module)
+    * @param _value The value for the relayed transaction.
+    * @param _data The data for the relayed transaction which includes the wallet address.
     * @param _nonce The nonce used to prevent replay attacks.
     * @param _gasPrice The gas price to use for the gas refund.
     * @param _gasLimit The gas limit to use for the gas refund.
+    * @param _refundToken The token to use for the gas refund.
+    * @param _refundAddress The address refunded to prevents front-running.
     */
     function getSignHash(
         address _from,
@@ -142,7 +176,9 @@ contract RelayerModule is BaseModule {
         bytes memory _data,
         uint256 _nonce,
         uint256 _gasPrice,
-        uint256 _gasLimit
+        uint256 _gasLimit,
+        address _refundToken,
+        address _refundAddress
     )
         internal
         pure
@@ -151,7 +187,18 @@ contract RelayerModule is BaseModule {
         return keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(byte(0x19), byte(0), _from, _to, _value, _data, _nonce, _gasPrice, _gasLimit))
+                keccak256(abi.encodePacked(
+                    byte(0x19),
+                    byte(0),
+                    _from,
+                    _to,
+                    _value,
+                    _data,
+                    _nonce,
+                    _gasPrice,
+                    _gasLimit,
+                    _refundToken,
+                    _refundAddress))
         ));
     }
 
@@ -255,40 +302,42 @@ contract RelayerModule is BaseModule {
         return true;
     }
 
-
+    /**
+    * @dev Checks if the call should be refunded.
+    * We only refund when the gas price is non-zero and the owner has signed the transaction.
+    * @param _gasPrice The gas price for the refund.
+    * @param _ownerSignatureRequirement The owner signature requirement.
+    */
+    function shouldRefund(uint _gasPrice, OwnerSignature _ownerSignatureRequirement) internal returns (bool) {
+        return _gasPrice > 0 && _ownerSignatureRequirement == OwnerSignature.Required;
+    }
 
     /**
     * @dev Refunds the gas used to the Relayer.
-    * For security reasons the default behavior is to not refund calls with 0 or 1 signatures unless the owner is signing.
     * @param _wallet The target wallet.
-    * @param _gasUsed The gas used.
     * @param _gasPrice The gas price for the refund.
     * @param _gasLimit The gas limit for the refund.
-    * @param _signatures The number of signatures used in the call.
-    * @param _ownerSignatureRequirement The owner signature requirement.
-    * @param _relayer The address of the Relayer.
+    * @param _refundToken The token to use for the gas refund.
+    * @param _refundAddress The address refunded to prevents front-running.
     */
     function refund(
         address _wallet,
-        uint _gasUsed,
         uint _gasPrice,
         uint _gasLimit,
-        uint _signatures,
-        OwnerSignature _ownerSignatureRequirement,
-        address _relayer
+        address _refundToken,
+        address _refundAddress
     )
         internal
     {
-        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
-        uint256 amount = 36616 + _gasUsed;
-        if (_gasPrice > 0 && _signatures > 0 && _ownerSignatureRequirement == OwnerSignature.Required && amount <= _gasLimit) {
-            if (_gasPrice > tx.gasprice) {
-                amount = amount * tx.gasprice;
-            } else {
-                amount = amount * _gasPrice;
-            }
-            LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, amount);
-            invokeWallet(_wallet, _relayer, amount, EMPTY_BYTES);
+        address refundAddress = _refundAddress != address(0) ? _refundAddress : msg.sender;
+        uint256 refundAmount = _gasLimit.mul(_gasPrice);
+        uint256 ethAmount = priceProvider.getEtherValue(refundAmount, _refundToken);
+        require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limt");
+        if (_refundToken == ETH_TOKEN) {
+            invokeWallet(_wallet, refundAddress, ethAmount, EMPTY_BYTES);
+        } else {
+            bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
+		    invokeWallet(_wallet, _refundToken, 0, methodData);
         }
     }
 

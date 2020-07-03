@@ -26,9 +26,10 @@ pragma solidity >=0.5.4 <0.7.0;
 interface IModule {
 
     enum OwnerSignature {
-        Required,
-        Optional,
-        Disallowed
+        Anyone,             // Anyone
+        Required,           // Owner required
+        Optional,           // Owner and/or guardians
+        Disallowed          // guardians only
     }
 
     /**
