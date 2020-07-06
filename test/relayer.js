@@ -121,6 +121,14 @@ describe("RelayManager", function () {
       );
     });
 
+    it("should fail when the gas of the transaction is less then the gasLimit ", async () => {
+      
+    });
+
+    it("should fail when a wrong number of signatures is provided", async () => {
+      
+    });
+
     it("should fail a duplicate transaction", async () => {
       const params = [wallet.contractAddress, 2];
       const nonce = await getNonceForRelay();
@@ -142,83 +150,32 @@ describe("RelayManager", function () {
       assert.equal(nonce, updatedNonceHex);
     });
 
-    it("should only allow ApprovedTransfer and RecoveryManager module functions to be called by the RelayerModule", async () => {
-      const randomAddress = await getRandomAddress();
+  });
 
-      await assert.revertWith(
-        approvedTransfer.transferToken(wallet.contractAddress, randomAddress, randomAddress, 1, ethers.constants.HashZero),
-        "BM: must be a module",
-      );
+  describe("refund", () => {
 
-      await assert.revertWith(
-        approvedTransfer.callContract(wallet.contractAddress, randomAddress, 1, ethers.constants.HashZero),
-        "BM: must be a module",
-      );
-
-      await assert.revertWith(
-        approvedTransfer.approveTokenAndCallContract(
-          wallet.contractAddress,
-          randomAddress,
-          randomAddress,
-          1,
-          randomAddress,
-          ethers.constants.HashZero,
-        ),
-        "BM: must be a module",
-      );
-
-      await assert.revertWith(recoveryManager.executeRecovery(wallet.contractAddress, randomAddress), "BM: must be a module");
-      await assert.revertWith(recoveryManager.cancelRecovery(wallet.contractAddress), "BM: must be a module");
-      await assert.revertWith(recoveryManager.transferOwnership(wallet.contractAddress, randomAddress), "BM: must be a module");
+    it("should refund in ETH", async () => {
+      
     });
 
-    it("should refund when there is enough ETH", async () => {
-
-      // make sure the wallet has some ETH for the refund
-      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("10000000000000000") });
-
-      let erc721 = await deployer.deploy(ERC721);
-      let tokenId = 1;
-      await erc721.mint(wallet.contractAddress, tokenId);
-      const nonce = await getNonceForRelay();
-
-      let before = await deployer.provider.getBalance(wallet.contractAddress);
-      const txReceipt = await manager.relay(
-        nftTransferModule,
-        "transferNFT",
-        [wallet.contractAddress, erc721.contractAddress, recipient.address, tokenId, false, ZERO_BYTES32],
-        wallet,
-        [owner],
-        accounts[9].signer,
-        false,
-        2000000,
-        nonce,
-        100,
-      );
-      let after = await deployer.provider.getBalance(wallet.contractAddress);
-
-      await assert.isTrue(after.lt(before), "should have refunded");
+    it("should refund in ERC20", async () => {
+      
     });
 
-    it("should fail when there is not enough ETH for the refund", async () => {
+    it("should fail the transaction when when there is not enough ETH for the refund", async () => {
+      
+    });
 
-      let erc721 = await deployer.deploy(ERC721);
-      let tokenId = 1;
-      await erc721.mint(wallet.contractAddress, tokenId);
-      const nonce = await getNonceForRelay();
+    it("should fail the transaction when when there is not enough ERC20 for the refund", async () => {
+      
+    });
 
-      await assert.revertWith(manager.relay(
-        nftTransferModule,
-        "transferNFT",
-        [wallet.contractAddress, erc721.contractAddress, recipient.address, tokenId, false, ZERO_BYTES32],
-        wallet,
-        [owner],
-        accounts[9].signer,
-        false,
-        2000000,
-        nonce,
-        100
-      ), "BM: wallet invoke reverted");
+    it("should include the refund in the dailuy limit", async () => {
+      
+    });
+
+    it("should fail the transaction when the refund is over the daily limit", async () => {
+      
     });
 
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {

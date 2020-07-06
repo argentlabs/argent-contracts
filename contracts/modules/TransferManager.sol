@@ -167,7 +167,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             // transfer to whitelist
             doTransfer(_wallet, _token, _to, _amount, _data);
         } else {
-            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : getEtherValue(_amount, _token);
+            uint256 etherAmount = (_token == LimitUtils.ETH_TOKEN) ? _amount : LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
             if (LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
@@ -177,20 +177,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
                 emit PendingTransferCreated(_wallet, id, executeAfter, _token, _to, _amount, _data);
             }
         }
-    }
-
-    /**
-    * @notice Get the ether value equivalent to the token amount.
-    * @dev For low value amounts of tokens we accept this to return zero as these are small enough to disregard.
-    * Note that the price stored for tokens = price for 1 token (in ETH wei) * 10^(18-token decimals).
-    * @param _amount The token amount.
-    * @param _token The address of the token.
-    * @return The ether value for _amount of _token.
-    */
-    function getEtherValue(uint256 _amount, address _token) public view returns (uint256) {
-        uint256 price = tokenPriceStorage.getTokenPrice(_token);
-        uint256 etherValue = price.mul(_amount).div(10**18);
-        return etherValue;
     }
 
     /**
@@ -222,7 +208,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             } else {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
-                uint256 deltaInEth = getEtherValue(delta, _token);
+                uint256 deltaInEth = LimitUtils.getEtherValue(tokenPriceStorage, delta, _token);
                 require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, deltaInEth), "TM: Approve above daily limit");
                 // approve if under the limit
                 doApproveToken(_wallet, _token, _spender, _amount);
@@ -288,7 +274,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         if (!isWhitelisted(_wallet, _spender)) {
             // check if the amount is under the daily limit
             // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
-            uint256 valueInEth = getEtherValue(_amount, _token);
+            uint256 valueInEth = LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
         }
 

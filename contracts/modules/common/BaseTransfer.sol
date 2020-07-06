@@ -17,6 +17,7 @@
 pragma solidity ^0.6.10;
 
 import "./BaseModule.sol";
+import "./LimitUtils.sol";
 
 /**
  * @title BaseTransfer
@@ -50,7 +51,7 @@ abstract contract BaseTransfer is BaseModule {
     * @param _data The data to *log* with the transfer.
     */
     function doTransfer(address _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
-        if (_token == ETH_TOKEN) {
+        if (_token == LimitUtils.ETH_TOKEN) {
             invokeWallet(_wallet, _to, _value, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);

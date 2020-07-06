@@ -17,7 +17,7 @@
 pragma solidity ^0.6.10;
 
 import "./common/Utils.sol";
-import "./common/ArgentSafeMath.sol";
+import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 
@@ -182,7 +182,7 @@ contract RecoveryManager is BaseModule {
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
             uint walletGuardians = guardianStorage.guardianCount(_wallet);
             require(walletGuardians > 0, "RM: no guardians set on wallet");
-            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(walletGuardians, 2);
+            uint numberOfSignaturesRequired = Utils.ceil(walletGuardians, 2);
 
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }

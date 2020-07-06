@@ -57,7 +57,7 @@ library Utils {
     }
 
     /**
-    * @dev Helper method to return ceil(a / b).
+    * @dev Returns ceil(a / b).
     */
     function ceil(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a / b;
@@ -66,5 +66,12 @@ library Utils {
         } else {
             return c + 1;
         }
+    }
+
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (a < b) {
+            return a;
+        }
+        return b;
     }
 }

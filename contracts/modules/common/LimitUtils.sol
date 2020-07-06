@@ -19,6 +19,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../infrastructure/storage/ILimitStorage.sol";
+import "../../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
  * @title LimitManager
@@ -29,6 +30,8 @@ library LimitUtils {
 
     // large limit when the limit can be considered disabled
     uint128 constant internal LIMIT_DISABLED = uint128(-1);
+    // Mock token address for ETH
+    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     using SafeMath for uint256;
 
@@ -127,6 +130,23 @@ library LimitUtils {
             return true;
         }
         return false;
+    }
+
+    /**
+    * @notice Helper method to get the ether value equivalent of a token amount.
+    * @dev For low value amounts of tokens we accept this to return zero as these are small enough to disregard.
+    * Note that the price stored for tokens = price for 1 token (in ETH wei) * 10^(18-token decimals).
+    * @param _amount The token amount.
+    * @param _token The address of the token.
+    * @return The ether value for _amount of _token.
+    */
+    function getEtherValue(ITokenPriceStorage _priceStorage, uint256 _amount, address _token) internal view returns (uint256) {
+        if (_token == ETH_TOKEN) {
+            return _amount;
+        }
+        uint256 price = _priceStorage.getTokenPrice(_token);
+        uint256 etherValue = price.mul(_amount).div(10**18);
+        return etherValue;
     }
 
     /**

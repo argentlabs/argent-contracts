@@ -22,8 +22,7 @@ import "./common/BaseModule.sol";
 import "./common/GuardianUtils.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
-import "./common/TokenPriceProvider.sol";
-
+import "../infrastructure/storage/ITokenPriceStorage.sol";
 /**
  * @title RelayerModule
  * @dev Module to execute transactions signed by eth-less accounts and sent by a relayer.
@@ -40,8 +39,8 @@ contract RelayerModule is BaseModule {
 
     // The storage of the limit
     ILimitStorage public limitStorage;
-    // The Token price provider
-    TokenPriceProvider public priceProvider;
+    // The Token price storage
+    ITokenPriceStorage public tokenPriceStorage;
 
     struct RelayerConfig {
         uint256 nonce;
@@ -53,6 +52,8 @@ contract RelayerModule is BaseModule {
         uint256 requiredSignatures;
         OwnerSignature ownerSignatureRequirement;
         bytes32 signHash;
+        bool success;
+        bytes returnData;
     }
 
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
@@ -63,13 +64,13 @@ contract RelayerModule is BaseModule {
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
-        TokenPriceProvider _priceProvider
+        ITokenPriceStorage _tokenPriceStorage
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
         limitStorage = _limitStorage;
-        priceProvider = _priceProvider;
+        tokenPriceStorage = _tokenPriceStorage;
     }
 
     /**
@@ -98,7 +99,8 @@ contract RelayerModule is BaseModule {
         external
         returns (bool)
     {
-        require(gasleft() >= _gasLimit, "RM: not enough gas provided");
+        uint startGas = gasleft();
+        require(startGas >= _gasLimit, "RM: not enough gas provided");
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
         require(isModule(_wallet, _module), "RM: module not authorised");
         StackExtension memory stack;
@@ -123,17 +125,18 @@ contract RelayerModule is BaseModule {
             stack.ownerSignatureRequirement), "RM: Duplicate request");
         require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
         // solium-disable-next-line security/no-low-level-calls
-        (bool success, bytes memory returnData) = _module.call(_data);
+        (stack.success, stack.returnData) = _module.call(_data);
         if (shouldRefund(_gasPrice, stack.ownerSignatureRequirement)) {
             refund(
                 _wallet,
+                startGas,
                 _gasPrice,
                 _gasLimit,
                 _refundToken,
                 _refundAddress);
         }
-        emit TransactionExecuted(_wallet, success, returnData, stack.signHash);
-        return success;
+        emit TransactionExecuted(_wallet, stack.success, stack.returnData, stack.signHash);
+        return stack.success;
     }
 
     /**
@@ -315,6 +318,7 @@ contract RelayerModule is BaseModule {
     /**
     * @dev Refunds the gas used to the Relayer.
     * @param _wallet The target wallet.
+    * @param _startGas The gas provided at the start of the execution.
     * @param _gasPrice The gas price for the refund.
     * @param _gasLimit The gas limit for the refund.
     * @param _refundToken The token to use for the gas refund.
@@ -322,6 +326,7 @@ contract RelayerModule is BaseModule {
     */
     function refund(
         address _wallet,
+        uint _startGas,
         uint _gasPrice,
         uint _gasLimit,
         address _refundToken,
@@ -329,11 +334,12 @@ contract RelayerModule is BaseModule {
     )
         internal
     {
-        address refundAddress = _refundAddress != address(0) ? _refundAddress : msg.sender;
-        uint256 refundAmount = _gasLimit.mul(_gasPrice);
-        uint256 ethAmount = priceProvider.getEtherValue(refundAmount, _refundToken);
+        address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
+        uint256 gasConsumed = uint256(5000).add(_startGas).sub(gasleft()); // 5000: amount to define
+        uint256 refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
+        uint256 ethAmount = LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
         require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limt");
-        if (_refundToken == ETH_TOKEN) {
+        if (_refundToken == LimitUtils.ETH_TOKEN) {
             invokeWallet(_wallet, refundAddress, ethAmount, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);

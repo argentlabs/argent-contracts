@@ -35,7 +35,7 @@ module.exports = {
     });
   }),
 
-  signOffchain: async (signers, from, to, value, data, nonce, gasPrice, gasLimit) => {
+  signOffchain: async (signers, from, to, value, data, nonce, gasPrice, gasLimit, refundToken, refundAddress) => {
     const input = `0x${[
       "0x19",
       "0x00",
@@ -46,6 +46,8 @@ module.exports = {
       nonce,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(gasPrice), 32),
       ethers.utils.hexZeroPad(ethers.utils.hexlify(gasLimit), 32),
+      refundToken,
+      refundAddress,
     ].map((hex) => hex.slice(2)).join("")}`;
 
     const signedData = ethers.utils.keccak256(input);
