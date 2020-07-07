@@ -16,9 +16,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
-import "./common/ArgentSafeMath.sol";
-import "./common/RelayerModule.sol";
-import "../infrastructure/storage/IGuardianStorage.sol";
+import "./ArgentSafeMath.sol";
+import "./RelayerModule.sol";
+import "./IGuardianStorage.sol";
 
 /**
  * @title RecoveryManager
@@ -51,6 +51,10 @@ contract RecoveryManager is RelayerModule {
     uint256 public recoveryPeriod;
     // Lock period
     uint256 public lockPeriod;
+    // Security period used for (non-recovery) ownership transfer
+    uint256 public securityPeriod;
+    // Security window used for (non-recovery) ownership transfer
+    uint256 public securityWindow;
 
     // *************** Events *************************** //
 
@@ -83,14 +87,18 @@ contract RecoveryManager is RelayerModule {
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
         uint256 _recoveryPeriod,
-        uint256 _lockPeriod
+        uint256 _lockPeriod,
+        uint256 _securityPeriod,
+        uint256 _securityWindow
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        require(_lockPeriod >= _recoveryPeriod, "RM: insecure security periods");
+        require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow, "RM: insecure security periods");
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
+        securityPeriod = _securityPeriod;
+        securityWindow = _securityWindow;
     }
 
     // *************** External functions ************************ //
@@ -109,7 +117,7 @@ contract RecoveryManager is RelayerModule {
         config.recovery = _recovery;
         config.executeAfter = uint64(now + recoveryPeriod);
         config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
-        guardianStorage.setLock(_wallet, now + lockPeriod);
+        guardianStorage.setLock(_wallet, now + recoveryPeriod + lockPeriod);
         emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
     }
 

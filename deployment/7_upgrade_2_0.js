@@ -140,8 +140,6 @@ const deploy = async (network) => {
     config.modules.GuardianStorage,
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0,
-    config.settings.securityPeriod || 0,
-    config.settings.securityWindow || 0,
   );
   newModuleWrappers.push(RecoveryManagerWrapper);
 

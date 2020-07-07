@@ -52,7 +52,7 @@ describe("RelayerModule", function () {
       guardianStorage.contractAddress,
       cryptoKittyTest.contractAddress);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-    recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 120, 24, 12);
+    recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 120);
 
     testModule = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);
     testModuleNew = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);

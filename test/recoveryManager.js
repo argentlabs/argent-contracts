@@ -48,7 +48,7 @@ describe("RecoveryManager", function () {
     guardianStorage = await deployer.deploy(GuardianStorage);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
-    recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5, 24, 12);
+    recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
     recoveryPeriod = await recoveryManager.recoveryPeriod();
 
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
@@ -313,12 +313,7 @@ describe("RecoveryManager", function () {
 
   describe("RecoveryManager high level logic", () => {
     it("should not be able to instantiate the RecoveryManager with lock period shorter than the recovery period", async () => {
-      await assert.revertWith(deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 35, 24, 12),
-        "RM: insecure security periods");
-    });
-
-    it("should not be able to instantiate the RecoveryManager with recovery period shorter than security period + security window", async () => {
-      await assert.revertWith(deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5, 24, 13),
+      await assert.revertWith(deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 35),
         "RM: insecure security periods");
     });
   });
