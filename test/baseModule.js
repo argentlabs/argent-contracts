@@ -52,15 +52,10 @@ describe("BaseModule", function () {
       assert.equal(moduleregistryBalance, 10000000);
     });
 
-    it.skip("should be able to recover non-ERC20 compliant tokens sent to the module", async () => {
+    it("should be able to recover non-ERC20 compliant tokens sent to the module", async () => {
       const nonCompliantToken = await deployer.deploy(NonCompliantERC20, {});
-      await nonCompliantToken.mint(owner.address, 10000000);
-
+      await nonCompliantToken.mint(baseModule.contractAddress, 10000000);
       let balance = await nonCompliantToken.balanceOf(baseModule.contractAddress);
-      assert.equal(balance, 0);
-
-      await nonCompliantToken.from(owner).transfer(baseModule.contractAddress, 10000000);
-      balance = await nonCompliantToken.balanceOf(baseModule.contractAddress);
       assert.equal(balance, 10000000);
 
       await baseModule.recoverToken(nonCompliantToken.contractAddress);
