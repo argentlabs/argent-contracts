@@ -87,8 +87,7 @@ contract BaseModule is IModule {
     */
     function recoverToken(address _token) external override {
         uint total = ERC20(_token).balanceOf(address(this));
-        bool success = ERC20(_token).transfer(address(registry), total);
-        require(success, "BM: recover token transfer failed");
+        _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, address(registry), total));
     }
 
     /**
