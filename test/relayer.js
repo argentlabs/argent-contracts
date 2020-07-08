@@ -54,8 +54,8 @@ describe("RelayerModule", function () {
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 120);
 
-    testModule = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);
-    testModuleNew = await deployer.deploy(TestModule, {}, registry.contractAddress, false, 0);
+    testModule = await deployer.deploy(TestModule, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
+    testModuleNew = await deployer.deploy(TestModule, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
 
     const walletImplementation = await deployer.deploy(BaseWallet);
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);

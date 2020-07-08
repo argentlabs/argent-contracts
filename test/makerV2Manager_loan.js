@@ -810,7 +810,7 @@ describe("MakerV2 Vaults", function () {
 
     it("should not allow (fake) module to give unowned vault", async () => {
       // Deploy and register a (fake) bad module
-      const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, false, 0);
+      const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
       await registry.registerModule(badModule.contractAddress, formatBytes32String("BadModule"));
       // Add the bad module to the wallet
       await makerV2.from(owner).addModule(walletAddress, badModule.contractAddress, { gasLimit: 2000000 });
