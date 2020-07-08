@@ -42,7 +42,7 @@ contract BaseModule is IModule {
      * @dev Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(address _wallet) {
-        verifyUnlocked(_wallet);
+        require(!guardianStorage.isLocked(_wallet), "BM: wallet locked");
         _;
     }
 
@@ -104,17 +104,12 @@ contract BaseModule is IModule {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(address _wallet, address _module) public virtual override strictOnlyWalletOwner(_wallet) {
+    function addModule(address _wallet, address _module) public virtual override
+    strictOnlyWalletOwner(_wallet)
+    onlyWhenUnlocked(_wallet)
+    {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
-    }
-
-    /**
-     * @dev Verify that the wallet is unlocked.
-     * @param _wallet The target wallet.
-     */
-    function verifyUnlocked(address _wallet) internal view {
-        require(!guardianStorage.isLocked(_wallet), "BM: wallet locked");
     }
 
      /**
