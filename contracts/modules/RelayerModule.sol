@@ -23,6 +23,7 @@ import "./common/GuardianUtils.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
+
 /**
  * @title RelayerModule
  * @dev Module to execute transactions signed by eth-less accounts and sent by a relayer.
@@ -57,6 +58,7 @@ contract RelayerModule is BaseModule {
     }
 
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
+    event Refund(address indexed wallet, address indexed refundAddress, address refundToken, uint256 refundAmount);
 
     /* ***************** External methods ************************* */
 
@@ -126,15 +128,15 @@ contract RelayerModule is BaseModule {
         require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
         // solium-disable-next-line security/no-low-level-calls
         (stack.success, stack.returnData) = _module.call(_data);
-        if (shouldRefund(_gasPrice, stack.ownerSignatureRequirement)) {
-            refund(
-                _wallet,
-                startGas,
-                _gasPrice,
-                _gasLimit,
-                _refundToken,
-                _refundAddress);
-        }
+        refund(
+            _wallet,
+            startGas,
+            _gasPrice,
+            _gasLimit,
+            _refundToken,
+            _refundAddress,
+            stack.requiredSignatures,
+            stack.ownerSignatureRequirement);
         emit TransactionExecuted(_wallet, stack.success, stack.returnData, stack.signHash);
         return stack.success;
     }
@@ -306,16 +308,6 @@ contract RelayerModule is BaseModule {
     }
 
     /**
-    * @dev Checks if the call should be refunded.
-    * We only refund when the gas price is non-zero and the owner has signed the transaction.
-    * @param _gasPrice The gas price for the refund.
-    * @param _ownerSignatureRequirement The owner signature requirement.
-    */
-    function shouldRefund(uint _gasPrice, OwnerSignature _ownerSignatureRequirement) internal returns (bool) {
-        return _gasPrice > 0 && _ownerSignatureRequirement == OwnerSignature.Required;
-    }
-
-    /**
     * @dev Refunds the gas used to the Relayer.
     * @param _wallet The target wallet.
     * @param _startGas The gas provided at the start of the execution.
@@ -330,21 +322,36 @@ contract RelayerModule is BaseModule {
         uint _gasPrice,
         uint _gasLimit,
         address _refundToken,
-        address _refundAddress
+        address _refundAddress,
+        uint256 requiredSignatures,
+        OwnerSignature _ownerSignatureRequirement
     )
         internal
     {
+        // only refund when approved by owner and positive gas price
+        if (_gasPrice == 0 || _ownerSignatureRequirement != OwnerSignature.Required) {
+            return;
+        }
         address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
-        uint256 gasConsumed = uint256(5000).add(_startGas).sub(gasleft()); // 5000: amount to define
-        uint256 refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
-        uint256 ethAmount = LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
-        require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limt");
+        uint256 gasConsumed = _startGas.sub(gasleft()).add(30000);
+        uint256 refundAmount;
+        // skip daily limit when approved by guardians (and signed by owner)
+        if (requiredSignatures > 1) {
+            refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
+        } else {
+            gasConsumed = gasConsumed.add(10000);
+            refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
+            uint256 ethAmount = LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limt");
+        }
+        // refund in ETH or ERC20
         if (_refundToken == LimitUtils.ETH_TOKEN) {
-            invokeWallet(_wallet, refundAddress, ethAmount, EMPTY_BYTES);
+            invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
 		    invokeWallet(_wallet, _refundToken, 0, methodData);
         }
+        emit Refund(_wallet, refundAddress, _refundToken, refundAmount);
     }
 
    /**

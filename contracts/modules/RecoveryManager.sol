@@ -183,7 +183,6 @@ contract RecoveryManager is BaseModule {
             uint walletGuardians = guardianStorage.guardianCount(_wallet);
             require(walletGuardians > 0, "RM: no guardians set on wallet");
             uint numberOfSignaturesRequired = Utils.ceil(walletGuardians, 2);
-
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {

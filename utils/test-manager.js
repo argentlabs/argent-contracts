@@ -76,9 +76,9 @@ class TestManager {
     _nonce,
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
-    _refundAddress) {
+    _refundAddress = _relayer.address,
+    _gasLimitRelay = (_gasLimit * 1.1)) {
     const nonce = _nonce || await this.getNonceForRelay();
-    const refundAddress = _refundAddress || _relayer;
     const methodData = _module.contract.interface.functions[_method].encode(_params);
     const signatures = await signOffchain(
       _signers,
@@ -114,7 +114,7 @@ class TestManager {
       _gasLimit,
       _refundToken,
       _refundAddress,
-      { gasLimit: _gasLimit, gasPrice: _gasPrice });
+      { gasLimit: _gasLimitRelay, gasPrice: _gasPrice });
     const txReceipt = await _module.verboseWaitForTransaction(tx);
     return txReceipt;
   }
