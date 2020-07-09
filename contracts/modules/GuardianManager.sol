@@ -215,7 +215,7 @@ contract GuardianManager is RelayerModule {
         bytes4 methodId = functionPrefix(_data);
 
         if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {
-            return (0, OwnerSignature.Required);
+            return (0, OwnerSignature.Anyone);
         } else {
             return (1, OwnerSignature.Required);
         }

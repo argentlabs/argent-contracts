@@ -37,6 +37,7 @@ abstract contract RelayerModule is BaseModule {
     }
 
     enum OwnerSignature {
+        Anyone,
         Required,
         Optional,
         Disallowed
