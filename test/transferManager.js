@@ -59,7 +59,7 @@ describe("TransferManager", function () {
   before(async () => {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(Registry);
-    priceProvider = await deployer.deploy(LegacyTokenPriceProvider);
+    priceProvider = await deployer.deploy(LegacyTokenPriceProvider, {}, ethers.constants.AddressZero);
     await priceProvider.addManager(infrastructure.address);
 
     transferStorage = await deployer.deploy(TransferStorage);
