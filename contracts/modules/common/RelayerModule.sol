@@ -91,6 +91,10 @@ abstract contract RelayerModule is BaseModule {
         require(checkAndUpdateUniqueness(_wallet, _nonce, signHash), "RM: Duplicate request");
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
         (uint256 requiredSignatures, OwnerSignature ownerSignatureRequirement) = getRequiredSignatures(_wallet, _data);
+        if (requiredSignatures == 0) {
+            require(ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong number of required signatures");
+        }
+
         require(requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         require(requiredSignatures == 0 || validateSignatures(_wallet, signHash, _signatures, ownerSignatureRequirement),
          "RM: Invalid signatures");
