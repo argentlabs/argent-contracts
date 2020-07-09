@@ -26,7 +26,7 @@ const { ETH_TOKEN } = require("../utils/utilities.js");
 const MODULE_NOT_AUTHORISED_FOR_WALLET = "RM: module not authorised";
 const INVALID_DATA_REVERT_MSG = "RM: Invalid dataWallet";
 const DUPLICATE_REQUEST_REVERT_MSG = "RM: Duplicate request";
-const INVALID_WALLET_REVERT_MSG = "RM: Target of _data != _wallet"; 
+const INVALID_WALLET_REVERT_MSG = "RM: Target of _data != _wallet";
 const RELAYER_NOT_AUTHORISED_FOR_WALLET = "BM: must be owner or module";
 const GAS_LESS_THAN_GASLIMIT = "RM: not enough gas provided";
 const WRONG_NUMBER_SIGNATURES = "RM: Wrong number of signatures";
@@ -51,7 +51,6 @@ describe("RelayManager", function () {
   let recoveryManager;
   let wallet;
   let approvedTransfer;
-  let nftTransferModule;
   let testModule;
   let testModuleNew;
   let testOnlyOwnerModule;
@@ -65,10 +64,10 @@ describe("RelayManager", function () {
     limitStorage = await deployer.deploy(LimitStorage);
     tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
     await tokenPriceStorage.addManager(infrastructure.address);
-    relayerModule = await deployer.deploy(RelayerModule, {}, 
+    relayerModule = await deployer.deploy(RelayerModule, {},
       registry.contractAddress, guardianStorage.contractAddress, limitStorage.contractAddress, tokenPriceStorage.contractAddress);
     manager.setRelayerModule(relayerModule);
-  })
+  });
 
   beforeEach(async () => {
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {}, registry.contractAddress, guardianStorage.contractAddress);
@@ -77,7 +76,7 @@ describe("RelayManager", function () {
 
     testModule = await deployer.deploy(TestModule, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
     testModuleNew = await deployer.deploy(TestModule, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
-    testOnlyOwnerModule = await deployer.deploy(TestOnlyOwnerModule, {}, registry.contractAddress, guardianStorage.contractAddress); 
+    testOnlyOwnerModule = await deployer.deploy(TestOnlyOwnerModule, {}, registry.contractAddress, guardianStorage.contractAddress);
     limitModule = await deployer.deploy(TestLimitModule, {}, registry.contractAddress, guardianStorage.contractAddress, limitStorage.contractAddress);
 
     const walletImplementation = await deployer.deploy(BaseWallet);
@@ -95,7 +94,6 @@ describe("RelayManager", function () {
   });
 
   describe("relaying module transactions", () => {
-
     it("should fail when _data is less than 36 bytes", async () => {
       const params = []; // the first argument is not the wallet address, which should make the relaying rever
       await assert.revertWith(
@@ -111,7 +109,7 @@ describe("RelayManager", function () {
     });
 
     it("should fail when the RelayerModule is not authorised", async () => {
-      let wrongWallet = await deployer.deploy(BaseWallet);
+      const wrongWallet = await deployer.deploy(BaseWallet);
       await wrongWallet.init(owner.address, [testModule.contractAddress]);
       const params = [wrongWallet.contractAddress, 2];
       const txReceipt = await manager.relay(testModule, "setIntOwnerOnly", params, wrongWallet, [owner]);
@@ -174,29 +172,28 @@ describe("RelayManager", function () {
       const updatedNonceHex = await ethers.utils.hexZeroPad(updatedNonce.toHexString(), 32);
       assert.equal(nonce, updatedNonceHex);
     });
-
   });
 
   describe("refund", () => {
-
+    let erc20;
     beforeEach(async () => {
       const decimals = 12; // number of decimal for TOKN contract
       const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
       erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, decimals); // TOKN contract with 10M tokens (10M TOKN for account[0])
       await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
       await limitModule.setLimitAndDailySpent(wallet.contractAddress, 10000000000, 0);
-    })
+    });
 
     async function provisionFunds(ethAmount, erc20Amount) {
       if (ethAmount) {
-        await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethAmount});
+        await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethAmount });
       }
       if (erc20Amount) {
         await erc20.transfer(wallet.contractAddress, erc20Amount);
       }
     }
 
-    async function callAndRefund({refundToken}) {
+    async function callAndRefund({ refundToken }) {
       const nonce = await getNonceForRelay();
       const relayParams = [
         testModule,
@@ -205,66 +202,66 @@ describe("RelayManager", function () {
         wallet,
         [owner],
         accounts[9].signer,
-        false, 
+        false,
         2000000,
         nonce,
         10,
         refundToken,
         recipient.address];
-      let txReceipt = await manager.relay(...relayParams);
+      const txReceipt = await manager.relay(...relayParams);
       return txReceipt;
     }
 
-    async function setLimitAndDailySpent({limit, alreadySpent}) {
+    async function setLimitAndDailySpent({ limit, alreadySpent }) {
       await limitModule.setLimitAndDailySpent(wallet.contractAddress, limit, alreadySpent);
     }
 
     it("should refund in ETH", async () => {
       await provisionFunds(ethers.utils.bigNumberify("100000000000000"), 0);
-      let wBalanceStart = await deployer.provider.getBalance(wallet.contractAddress);
-      let rBalanceStart = await deployer.provider.getBalance(recipient.address);
-      await callAndRefund({refundToken: ETH_TOKEN});
-      let wBalanceEnd = await deployer.provider.getBalance(wallet.contractAddress);
-      let rBalanceEnd = await deployer.provider.getBalance(recipient.address);
-      let refund = wBalanceStart.sub(wBalanceEnd);
+      const wBalanceStart = await deployer.provider.getBalance(wallet.contractAddress);
+      const rBalanceStart = await deployer.provider.getBalance(recipient.address);
+      await callAndRefund({ refundToken: ETH_TOKEN });
+      const wBalanceEnd = await deployer.provider.getBalance(wallet.contractAddress);
+      const rBalanceEnd = await deployer.provider.getBalance(recipient.address);
+      const refund = wBalanceStart.sub(wBalanceEnd);
       assert.isTrue(refund.gt(0), "should have refunded ETH");
       assert.isTrue(refund.eq(rBalanceEnd.sub(rBalanceStart)), "should have refunded the recipient");
     });
 
     it("should refund in ERC20", async () => {
       await provisionFunds(0, ethers.utils.bigNumberify("100000000000000"));
-      let wBalanceStart = await erc20.balanceOf(wallet.contractAddress);
-      let rBalanceStart = await erc20.balanceOf(recipient.address);
-      await callAndRefund({refundToken: erc20.contractAddress});
-      let wBalanceEnd = await erc20.balanceOf(wallet.contractAddress);
-      let rBalanceEnd = await erc20.balanceOf(recipient.address);
-      let refund = wBalanceStart.sub(wBalanceEnd);
+      const wBalanceStart = await erc20.balanceOf(wallet.contractAddress);
+      const rBalanceStart = await erc20.balanceOf(recipient.address);
+      await callAndRefund({ refundToken: erc20.contractAddress });
+      const wBalanceEnd = await erc20.balanceOf(wallet.contractAddress);
+      const rBalanceEnd = await erc20.balanceOf(recipient.address);
+      const refund = wBalanceStart.sub(wBalanceEnd);
       assert.isTrue(refund.gt(0), "should have refunded ERC20");
       assert.isTrue(refund.eq(rBalanceEnd.sub(rBalanceStart)), "should have refunded the recipient");
     });
 
     it("should emit the Refund event", async () => {
       await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
-      let txReceipt = await callAndRefund({refundToken: ETH_TOKEN});
+      const txReceipt = await callAndRefund({ refundToken: ETH_TOKEN });
       assert.isTrue(await utils.hasEvent(txReceipt, relayerModule, "Refund"), "should have generated Refund event");
     });
 
     it("should fail the transaction when when there is not enough ETH for the refund", async () => {
       await provisionFunds(ethers.utils.bigNumberify("10"), 0);
-      await assert.revertWith(callAndRefund({refundToken: ETH_TOKEN}), "BM: wallet invoke reverted");
+      await assert.revertWith(callAndRefund({ refundToken: ETH_TOKEN }), "BM: wallet invoke reverted");
     });
 
     it("should fail the transaction when when there is not enough ERC20 for the refund", async () => {
       await provisionFunds(0, ethers.utils.bigNumberify("10"));
-      await assert.revertWith(callAndRefund({refundToken: erc20.contractAddress}), "ERC20: transfer amount exceeds balance");
+      await assert.revertWith(callAndRefund({ refundToken: erc20.contractAddress }), "ERC20: transfer amount exceeds balance");
     });
 
     it("should include the refund in the daily limit", async () => {
       await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
-      await setLimitAndDailySpent({limit: 1000000000, alreadySpent: 10});
+      await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
-      assert.isTrue(dailySpent == 10, "initial daily spent should be 10");
-      await callAndRefund({refundToken: ETH_TOKEN});
+      assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
+      await callAndRefund({ refundToken: ETH_TOKEN });
       dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
       assert.isTrue(dailySpent > 10, "Daily spent should be greater then 10");
     });
@@ -272,9 +269,9 @@ describe("RelayManager", function () {
     it("should not include the refund in the daily limit when approved by guardians", async () => {
       // set funds and limit/daily spent
       await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
-      await setLimitAndDailySpent({limit: 1000000000, alreadySpent: 10});
+      await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
-      assert.isTrue(dailySpent == 10, "initial daily spent should be 10");
+      assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
       // add a guardian
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
       // call approvedTransfer
@@ -297,23 +294,21 @@ describe("RelayManager", function () {
         gasLimit * 1.1];
       await manager.relay(...relayParams);
       dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
-      assert.isTrue(dailySpent == 10, "daily spent should still be 10");
+      assert.isTrue(dailySpent.toNumber() === 10, "daily spent should still be 10");
     });
 
-<<<<<<< HEAD
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
       const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, guardianStorage.contractAddress);
       await assert.revertWith(
         manager.relay(badModule, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner]), "RM: Wrong number of required signatures",
       );
-=======
+
     it("should fail the transaction when the refund is over the daily limit", async () => {
       await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
-      await setLimitAndDailySpent({limit: 1000000000, alreadySpent: 999999990});
-      let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
-      assert.isTrue(dailySpent == 999999990, "initial daily spent should be 999999990");
-      await assert.revertWith(callAndRefund({refundToken: ETH_TOKEN}), "RM: refund is above daily limt");
->>>>>>> refund not included in daily limit for actions approved by guardians
+      await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 999999990 });
+      const dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
+      assert.isTrue(dailySpent.toNumber() === 999999990, "initial daily spent should be 999999990");
+      await assert.revertWith(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limt");
     });
   });
 

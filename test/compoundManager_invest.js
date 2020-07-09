@@ -2,13 +2,12 @@
 const {
   parseEther, formatBytes32String, bigNumberify,
 } = require("ethers").utils;
-
+const ethers = require("ethers");
 const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
-const Wallet = require("../build/BaseWallet");
 const RelayerModule = require("../build/RelayerModule");
 const CompoundManager = require("../build/CompoundManager");
 
@@ -24,7 +23,6 @@ const CompoundRegistry = require("../build/CompoundRegistry");
 
 const WAD = bigNumberify("1000000000000000000"); // 10**18
 const ETH_EXCHANGE_RATE = bigNumberify("200000000000000000000000000");
-const ZERO_ADDRESS = ethers.constants.AddressZero;
 
 const ERC20 = require("../build/TestERC20");
 
@@ -131,7 +129,11 @@ describe("Invest Manager with Compound", function () {
 
     walletImplementation = await deployer.deploy(BaseWallet);
 
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ZERO_ADDRESS);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
   });
 

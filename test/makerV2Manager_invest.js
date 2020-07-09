@@ -1,3 +1,4 @@
+const ethers = require("ethers");
 const {
   deployMaker, deployUniswap, WAD, ETH_PER_DAI, ETH_PER_MKR,
 } = require("../utils/defi-deployer");
@@ -62,7 +63,11 @@ describe("MakerV2 DSR", function () {
 
     walletImplementation = await deployer.deploy(BaseWallet);
 
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
   });
 

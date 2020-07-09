@@ -12,7 +12,6 @@ const USE_ETHERLIME_GANACHE_MNEMONIC = true;
 const MNEMONIC = "myth like bonus scare over problem client lizard pioneer submit female collect";
 
 class TestManager {
-
   constructor(_accounts = null, network = "ganache", deployer) {
     this.network = network;
     this.accounts = _accounts || this.loadAccounts();
@@ -90,7 +89,8 @@ class TestManager {
       _gasPrice,
       _gasLimit,
       _refundToken,
-      _refundAddress);
+      _refundAddress,
+    );
     if (_estimate === true) {
       const gasUsed = await this.relayerModule.estimate.execute(
         _wallet.contractAddress,
@@ -101,7 +101,8 @@ class TestManager {
         _gasPrice,
         _gasLimit,
         _refundToken,
-        _refundAddress);
+        _refundAddress,
+      );
       return gasUsed;
     }
     const tx = await this.relayerModule.execute(
@@ -114,7 +115,8 @@ class TestManager {
       _gasLimit,
       _refundToken,
       _refundAddress,
-      { gasLimit: _gasLimitRelay, gasPrice: _gasPrice });
+      { gasLimit: _gasLimitRelay, gasPrice: _gasPrice },
+    );
     const txReceipt = await _module.verboseWaitForTransaction(tx);
     return txReceipt;
   }

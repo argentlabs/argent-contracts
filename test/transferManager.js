@@ -56,6 +56,7 @@ describe("TransferManager", function () {
   let wallet;
   let walletImplementation;
   let erc20;
+  let relayerModule;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -94,7 +95,11 @@ describe("TransferManager", function () {
 
     walletImplementation = await deployer.deploy(BaseWallet);
 
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, limitStorage.contractAddress);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      limitStorage.contractAddress,
+      tokenPriceStorage.contractAddress);
     manager.setRelayerModule(relayerModule);
   });
 
@@ -110,6 +115,15 @@ describe("TransferManager", function () {
     await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("1000000000000000000") });
   });
+
+  async function getEtherValue(amount, token) {
+    if (token === ETH_TOKEN) {
+      return amount;
+    }
+    const price = await tokenPriceStorage.getTokenPrice(token);
+    const ethPrice = new BN(price.toString()).mul(new BN(amount)).div(new BN(10).pow(new BN(18)));
+    return ethPrice;
+  }
 
   describe("Initialising the module", () => {
     it("when no previous transfer manager is passed, should initialise with default limit", async () => {
@@ -202,24 +216,24 @@ describe("TransferManager", function () {
     it("should be able to get the ether value of a given amount of tokens", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
       await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
-      const etherValue = await transferModule.getEtherValue("15000000000000000000", erc20First.contractAddress);
+      const etherValue = await getEtherValue("15000000000000000000", erc20First.contractAddress);
       // expectedValue = 1800*10^18/10^18 (price for 1 token wei) * 15*10^18 (amount) = 1800 * 15*10^18 = 27,000 * 10^18
       const expectedValue = new BN(10).pow(new BN(18)).muln(27000);
-      expect(expectedValue).to.eq.BN(etherValue.toString());
+      expect(expectedValue).to.eq.BN(etherValue);
     });
 
     it("should be able to get the ether value for a token with 0 decimals", async () => {
       const tokenPrice = new BN(10).pow(new BN(36)).muln(23000);
       await tokenPriceStorage.from(infrastructure).setPrice(erc20ZeroDecimals.contractAddress, tokenPrice.toString());
-      const etherValue = await transferModule.getEtherValue(100, erc20ZeroDecimals.contractAddress);
+      const etherValue = await getEtherValue(100, erc20ZeroDecimals.contractAddress);
       // expectedValue = 23000*10^36 * 100 / 10^18 = 2,300,000 * 10^18
       const expectedValue = new BN(10).pow(new BN(18)).muln(2300000);
-      expect(expectedValue).to.eq.BN(etherValue.toString());
+      expect(expectedValue).to.eq.BN(etherValue);
     });
 
     it("should return 0 as the ether value for a low priced token", async () => {
       await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, 23000);
-      const etherValue = await transferModule.getEtherValue(100, erc20First.contractAddress);
+      const etherValue = await getEtherValue(100, erc20First.contractAddress);
       assert.equal(etherValue.toString(), 0); // 2,300,000
     });
   });
@@ -335,7 +349,7 @@ describe("TransferManager", function () {
       const fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
-      const ethValue = (token === ETH_TOKEN ? amount : (await transferModule.getEtherValue(amount, token.contractAddress)).toNumber());
+      const ethValue = (token === ETH_TOKEN ? amount : (await getEtherValue(amount, token.contractAddress)).toNumber());
       if (ethValue < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), ethValue, "should have updated the daily spent in ETH");
       }
@@ -419,7 +433,7 @@ describe("TransferManager", function () {
         assert.equal(unspent[0].toNumber(), ETH_LIMIT, "unspent should be the limit at the beginning of a period");
         await doDirectTransfer({ token: erc20, to: recipient, amount: 10 });
         unspent = await transferModule.getDailyUnspent(wallet.contractAddress);
-        const ethValue = await transferModule.getEtherValue(10, erc20.contractAddress);
+        const ethValue = await getEtherValue(10, erc20.contractAddress);
         assert.equal(unspent[0].toNumber(), ETH_LIMIT - ethValue.toNumber(), "should be the limit minus the transfer");
       });
     });
@@ -543,7 +557,7 @@ describe("TransferManager", function () {
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "Approved"), "should have generated Approved event");
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
 
-      const amountInEth = await transferModule.getEtherValue(amount, erc20.contractAddress);
+      const amountInEth = await getEtherValue(amount, erc20.contractAddress);
       if (amountInEth < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, "should have updated the daily limit");
       }
@@ -666,7 +680,7 @@ describe("TransferManager", function () {
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "ApprovedAndCalledContract"), "should have generated CalledContract event");
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
-      const amountInEth = await transferModule.getEtherValue(amount, erc20.contractAddress);
+      const amountInEth = await getEtherValue(amount, erc20.contractAddress);
 
       if (amountInEth < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, "should have updated the daily limit");

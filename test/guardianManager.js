@@ -1,4 +1,5 @@
 /* global accounts */
+const ethers = require("ethers");
 const GuardianManager = require("../build/GuardianManager");
 const GuardianStorage = require("../build/GuardianStorage");
 const Proxy = require("../build/Proxy");
@@ -38,7 +39,11 @@ describe("GuardianManager", function () {
   beforeEach(async () => {
     const registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);

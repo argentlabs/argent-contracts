@@ -30,6 +30,7 @@ cp build/GemJoin.json .coverage_artifacts/GemJoin.json
 cp build/NewTestModule.json .coverage_artifacts/NewTestModule.json
 cp build/NonCompliantERC20.json .coverage_artifacts/NonCompliantERC20.json
 cp build/TestModule.json .coverage_artifacts/TestModule.json
+cp build/TestLimitModule.json .coverage_artifacts/TestLimitModule.json
 cp build/NonCompliantGuardian.json .coverage_artifacts/NonCompliantGuardian.json
 cp build/FaucetUser.json .coverage_artifacts/FaucetUser.json
 cp build/TestCdpManager.json .coverage_artifacts/TestCdpManager.json

@@ -1,8 +1,8 @@
+const ethers = require("ethers");
 /* global accounts, utils */
 const {
   keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String,
 } = require("ethers").utils;
-
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const OnlyOwnerModule = require("../build/TestOnlyOwnerModule");
@@ -30,6 +30,7 @@ describe("SimpleUpgrader", function () {
   let guardianStorage;
   let walletImplementation;
   let wallet;
+  let relayerModule;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -42,7 +43,11 @@ describe("SimpleUpgrader", function () {
 
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.AddressZero);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
   });
 
@@ -128,7 +133,6 @@ describe("SimpleUpgrader", function () {
   });
 
   describe("Upgrading modules", () => {
-
     async function testUpgradeModule({ relayed, useOnlyOwnerModule, modulesToAdd = (moduleV2) => [moduleV2] }) {
       // create module V1
       let moduleV1;
@@ -150,7 +154,13 @@ describe("SimpleUpgrader", function () {
       // create upgraders
       const toAdd = modulesToAdd(moduleV2.contractAddress);
       const upgrader1 = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress], toAdd);
-      const upgrader2 = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [moduleV1.contractAddress, relayerModule.contractAddress], toAdd);
+      const upgrader2 = await deployer.deploy(
+        SimpleUpgrader,
+        {},
+        registry.contractAddress,
+        [moduleV1.contractAddress, relayerModule.contractAddress],
+        toAdd,
+      );
       await registry.registerModule(upgrader1.contractAddress, formatBytes32String("V1toV2_1"));
       await registry.registerModule(upgrader2.contractAddress, formatBytes32String("V1toV2_2"));
       // check that module V1 can be used to add the upgrader module
@@ -167,7 +177,7 @@ describe("SimpleUpgrader", function () {
       if (toAdd.length === 0) {
         if (relayed) {
           txReceipt = await manager.relay(moduleV1, "addModule", params2, wallet, [owner]);
-          let success = (await utils.parseLogs(txReceipt, relayerModule, "TransactionExecuted"))[0].success; 
+          const { success } = (await utils.parseLogs(txReceipt, relayerModule, "TransactionExecuted"))[0];
           assert.isTrue(!success, "Relayed upgrade to 0 module should have failed.");
         } else {
           assert.revert(moduleV1.from(owner).addModule(...params2));
@@ -177,7 +187,7 @@ describe("SimpleUpgrader", function () {
 
       if (relayed) {
         txReceipt = await manager.relay(moduleV1, "addModule", params1, wallet, [owner]);
-        let success = (await utils.parseLogs(txReceipt, relayerModule, "TransactionExecuted"))[0].success;
+        const { success } = (await utils.parseLogs(txReceipt, relayerModule, "TransactionExecuted"))[0];
         assert.equal(success, useOnlyOwnerModule, "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
       } else {
         const tx = await moduleV1.from(owner).addModule(...params1);

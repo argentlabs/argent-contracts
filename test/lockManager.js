@@ -1,4 +1,5 @@
 /* global accounts */
+const ethers = require("ethers");
 const RelayerModule = require("../build/RelayerModule");
 const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
@@ -40,11 +41,19 @@ describe("LockManager", function () {
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress, relayerModule.contractAddress]);
+    await wallet.init(owner.address,
+      [guardianManager.contractAddress,
+        lockManager.contractAddress,
+        recoveryManager.contractAddress,
+        relayerModule.contractAddress]);
   });
 
   describe("(Un)Lock by EOA guardians", () => {
@@ -60,7 +69,7 @@ describe("LockManager", function () {
 
     it("should be locked/unlocked by EOA guardians (blockchain transaction)", async () => {
       // lock
-      await lockManager.from(guardian1).lock(wallet.contractAddress); 
+      await lockManager.from(guardian1).lock(wallet.contractAddress);
       let state = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(state, "should be locked by guardian");
       let releaseTime = await lockManager.getLock(wallet.contractAddress);

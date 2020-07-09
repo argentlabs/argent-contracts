@@ -2,8 +2,8 @@
 const ethers = require("ethers");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
-const OldWalletV1_6 = require("../build-legacy/v1.6.0/BaseWallet");
-const OldWalletV1_3 = require("../build-legacy/v1.3.0/BaseWallet");
+const OldWalletV16 = require("../build-legacy/v1.6.0/BaseWallet");
+const OldWalletV13 = require("../build-legacy/v1.3.0/BaseWallet");
 const TestModule = require("../build/TestModule");
 const Registry = require("../build/ModuleRegistry");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
@@ -26,8 +26,6 @@ describe("BaseWallet", function () {
   let module1;
   let module2;
   let module3;
-  let oldModule;
-  let newModule;
   let guardianStorage;
 
   before(async () => {
@@ -179,7 +177,7 @@ describe("BaseWallet", function () {
         // removing module 1
         const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, [module1.contractAddress], []);
         await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("Removing module1"));
-        await module1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress); 
+        await module1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress);
         module1IsAuthorised = await wallet.authorised(module1.contractAddress);
         assert.equal(module1IsAuthorised, false, "module1 should not be authorised");
 
@@ -192,7 +190,7 @@ describe("BaseWallet", function () {
 
   describe("Old BaseWallet V1.3", () => {
     it("should work with new modules", async () => {
-      const oldWallet = await deployer.deploy(OldWalletV1_3);
+      const oldWallet = await deployer.deploy(OldWalletV13);
       await oldWallet.init(owner.address, [module1.contractAddress]);
       await module1.callDapp(oldWallet.contractAddress);
       await module1.callDapp2(oldWallet.contractAddress, 2, false);
@@ -202,7 +200,7 @@ describe("BaseWallet", function () {
 
   describe("Old BaseWallet V1.6", () => {
     it("should work with new modules", async () => {
-      const oldWallet = await deployer.deploy(OldWalletV1_6);
+      const oldWallet = await deployer.deploy(OldWalletV16);
       await oldWallet.init(owner.address, [module1.contractAddress]);
       await module1.callDapp(oldWallet.contractAddress);
       await module1.callDapp2(oldWallet.contractAddress, 2, true);

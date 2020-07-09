@@ -31,6 +31,7 @@ describe("Token Transfer", function () {
   let deployer;
   let nftModule;
   let walletImplementation;
+  let relayerModule;
   let wallet1;
   let wallet2;
   let erc721;
@@ -45,7 +46,11 @@ describe("Token Transfer", function () {
     walletImplementation = await deployer.deploy(BaseWallet);
 
     const guardianStorage = await deployer.deploy(GuardianStorage);
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
     ck = await deployer.deploy(CK);
     nftModule = await deployer.deploy(NftModule, {},
