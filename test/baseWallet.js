@@ -9,6 +9,7 @@ const OldTestModule = require("../build-legacy/v1.3.0/OldTestModule");
 const NewTestModule = require("../build/NewTestModule");
 const Registry = require("../build/ModuleRegistry");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
+const GuardianStorage = require("../build/GuardianStorage");
 
 const TestManager = require("../utils/test-manager");
 
@@ -29,13 +30,15 @@ describe("BaseWallet", function () {
   let module3;
   let oldModule;
   let newModule;
+  let guardianStorage;
 
   before(async () => {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(Registry);
-    module1 = await deployer.deploy(Module, {}, registry.contractAddress, true, 42);
-    module2 = await deployer.deploy(Module, {}, registry.contractAddress, false, 42);
-    module3 = await deployer.deploy(Module, {}, registry.contractAddress, true, 42);
+    guardianStorage = await deployer.deploy(GuardianStorage);
+    module1 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, true, 42);
+    module2 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, false, 42);
+    module3 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, true, 42);
     oldModule = await deployer.deploy(OldTestModule, {}, registry.contractAddress);
     newModule = await deployer.deploy(NewTestModule, {}, registry.contractAddress);
     walletImplementation = await deployer.deploy(BaseWallet);

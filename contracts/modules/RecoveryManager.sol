@@ -51,10 +51,6 @@ contract RecoveryManager is RelayerModule {
     uint256 public recoveryPeriod;
     // Lock period
     uint256 public lockPeriod;
-    // Security period used for (non-recovery) ownership transfer
-    uint256 public securityPeriod;
-    // Security window used for (non-recovery) ownership transfer
-    uint256 public securityWindow;
 
     // *************** Events *************************** //
 
@@ -87,18 +83,17 @@ contract RecoveryManager is RelayerModule {
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
         uint256 _recoveryPeriod,
-        uint256 _lockPeriod,
-        uint256 _securityPeriod,
-        uint256 _securityWindow
+        uint256 _lockPeriod
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
-        require(_lockPeriod >= _recoveryPeriod && _recoveryPeriod >= _securityPeriod + _securityWindow, "RM: insecure security periods");
+        // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
+        // where securityPeriod and securityWindow are the security parameters of adding/removing guardians
+        // and confirming large transfers.
+        require(_lockPeriod >= _recoveryPeriod, "RM: insecure security periods");
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
-        securityPeriod = _securityPeriod;
-        securityWindow = _securityWindow;
     }
 
     // *************** External functions ************************ //
