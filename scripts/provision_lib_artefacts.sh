@@ -38,7 +38,6 @@ cp build/TestUpgradedMakerV2Manager.json .coverage_artifacts/TestUpgradedMakerV2
 cp build/ERC20Approver.json .coverage_artifacts/ERC20Approver.json
 cp build/TestOnlyOwnerModule.json .coverage_artifacts/TestOnlyOwnerModule.json
 cp build/FakeWallet.json .coverage_artifacts/FakeWallet.json
-cp build/BadModuleRelayer.json .coverage_artifacts/BadModuleRelayer.json
 cp build/AugustusSwapper.json .coverage_artifacts/AugustusSwapper.json
 cp build/Whitelisted.json .coverage_artifacts/Whitelisted.json
 cp build/PartnerRegistry.json .coverage_artifacts/PartnerRegistry.json
@@ -48,4 +47,5 @@ cp build/UniswapV2.json .coverage_artifacts/UniswapV2.json
 cp build/UniswapV2Factory.json .coverage_artifacts/UniswapV2Factory.json
 cp build/UniswapV2Router01.json .coverage_artifacts/UniswapV2Router01.json
 cp build/WETH9.json .coverage_artifacts/WETH9.json
+cp build/BadModule.json .coverage_artifacts/BadModule.json
 cp build/DS*.json .coverage_artifacts
