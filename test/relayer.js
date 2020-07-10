@@ -57,6 +57,7 @@ describe("RelayManager", function () {
   let relayerModule;
   let tokenPriceStorage;
   let limitModule;
+  let badModule;
 
   before(async () => {
     registry = await deployer.deploy(Registry);
@@ -78,6 +79,7 @@ describe("RelayManager", function () {
     testModuleNew = await deployer.deploy(TestModule, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
     testOnlyOwnerModule = await deployer.deploy(TestOnlyOwnerModule, {}, registry.contractAddress, guardianStorage.contractAddress);
     limitModule = await deployer.deploy(TestLimitModule, {}, registry.contractAddress, guardianStorage.contractAddress, limitStorage.contractAddress);
+    badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, guardianStorage.contractAddress);
 
     const walletImplementation = await deployer.deploy(BaseWallet);
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
@@ -90,7 +92,8 @@ describe("RelayManager", function () {
         recoveryManager.contractAddress,
         testModule.contractAddress,
         limitModule.contractAddress,
-        testOnlyOwnerModule.contractAddress]);
+        testOnlyOwnerModule.contractAddress,
+        badModule.contractAddress]);
   });
 
   describe("relaying module transactions", () => {
@@ -298,10 +301,10 @@ describe("RelayManager", function () {
     });
 
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
-      const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, guardianStorage.contractAddress);
       await assert.revertWith(
-        manager.relay(badModule, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner]), "RM: Wrong number of required signatures",
+        manager.relay(badModule, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner]), "RM: Wrong signature requirement",
       );
+    });
 
     it("should fail the transaction when the refund is over the daily limit", async () => {
       await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);

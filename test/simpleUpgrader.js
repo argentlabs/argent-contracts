@@ -45,7 +45,7 @@ describe("SimpleUpgrader", function () {
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     relayerModule = await deployer.deploy(RelayerModule, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
+      guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
@@ -145,7 +145,7 @@ describe("SimpleUpgrader", function () {
       await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
       // create wallet with module V1 and relayer module
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-      const wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+      wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
       await wallet.init(owner.address, [moduleV1.contractAddress, relayerModule.contractAddress]);
       // create module V2
       const moduleV2 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
@@ -260,7 +260,13 @@ describe("SimpleUpgrader", function () {
       recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
 
       // Setup the wallet with the initial set of modules
-      await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
+      await wallet.init(owner.address,
+        [
+          relayerModule.contractAddress,
+          guardianManager.contractAddress,
+          lockManager.contractAddress,
+          recoveryManager.contractAddress,
+        ]);
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
 
       // Setup module v2 for the upgrade
@@ -300,13 +306,17 @@ describe("SimpleUpgrader", function () {
 
       // Put the wallet under recovery
       await manager.relay(recoveryManager, "executeRecovery", [wallet.contractAddress, newowner.address], wallet, [guardian]);
+      // check that the wallet is locked
+      let locked = await lockManager.isLocked(wallet.contractAddress);
+      assert.isTrue(locked, "wallet should be locked");
 
       // Try to upgrade while wallet is under recovery
       await assert.revertWith(recoveryManager.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress), "BM: wallet locked");
 
       // Check wallet is still locked
-      const locked = await lockManager.isLocked(wallet.contractAddress);
-      assert.isTrue(locked);
+      locked = await lockManager.isLocked(wallet.contractAddress);
+      assert.isTrue(locked, "wallet should still be locked");
+
       // Check upgrade failed
       const isV1Authorised = await wallet.authorised(recoveryManager.contractAddress);
       const isV2Authorised = await wallet.authorised(moduleV2.contractAddress);

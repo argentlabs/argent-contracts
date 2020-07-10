@@ -32,9 +32,9 @@ describe("BaseWallet", function () {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    module1 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, true, 42);
-    module2 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, false, 42);
-    module3 = await deployer.deploy(Module, {}, registry.contractAddress, guardianStorage.contractAddress, true, 42);
+    module1 = await deployer.deploy(TestModule, {}, registry.contractAddress, guardianStorage.contractAddress, true, 42);
+    module2 = await deployer.deploy(TestModule, {}, registry.contractAddress, guardianStorage.contractAddress, false, 42);
+    module3 = await deployer.deploy(TestModule, {}, registry.contractAddress, guardianStorage.contractAddress, true, 42);
     walletImplementation = await deployer.deploy(BaseWallet);
   });
 

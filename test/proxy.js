@@ -5,7 +5,7 @@ const TestManager = require("../utils/test-manager");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
-const Module = require("../build/TestModule");
+const Module = require("../build/TestOnlyOwnerModule");
 const Registry = require("../build/ModuleRegistry");
 
 describe("Proxy", function () {
@@ -27,9 +27,9 @@ describe("Proxy", function () {
     deployer = manager.newDeployer();
     const registry = await deployer.deploy(Registry);
     walletImplementation = await deployer.deploy(BaseWallet);
-    module1 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
-    module2 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
-    module3 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero, ethers.constants.HashZero);
+    module1 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero);
+    module2 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero);
+    module3 = await deployer.deploy(Module, {}, registry.contractAddress, ethers.constants.AddressZero);
   });
 
   beforeEach(async () => {
