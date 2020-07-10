@@ -38,7 +38,7 @@ interface IModule {
     function init(address _wallet) external;
 
     /**
-     * @notice Adds a module to a wallet. Cannot execute when walelt is locked (or under recovery)
+     * @notice Adds a module to a wallet. Cannot execute when wallet is locked (or under recovery)
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
