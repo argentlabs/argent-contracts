@@ -320,7 +320,7 @@ describe("TransferManager", function () {
 
       const dailySpent = await limitStorage.getDailySpent(wallet.contractAddress);
       assert.equal(dailySpent[0].toNumber(), 300);
-      assert.equal(dailySpent[1].toNumber(), timestamp + (3600 * 24));
+      assert.isTrue(Math.abs(dailySpent[1].sub(timestamp + (3600 * 24)).toNumber()) <= 1); // timestamp is sometimes off by 1
     });
 
     it("should return 0 if the entire daily limit amount has been spent", async () => {

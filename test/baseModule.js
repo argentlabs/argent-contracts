@@ -3,7 +3,7 @@ const ethers = require("ethers");
 
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
-const BaseModule = require("../build/BaseModule");
+const BaseModule = require("../build/TestModule");
 const ERC20 = require("../build/TestERC20");
 const NonCompliantERC20 = require("../build/NonCompliantERC20");
 

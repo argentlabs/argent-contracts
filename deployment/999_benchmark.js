@@ -18,6 +18,7 @@ const TransferManager = require("../build/TransferManager");
 const NftTransfer = require("../build/NftTransfer");
 const CompoundManager = require("../build/CompoundManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
+const RelayerModule = require("../build/RelayerModule");
 
 const DeployManager = require("../utils/deploy-manager");
 const TestManager = require("../utils/test-manager");
@@ -112,6 +113,7 @@ class Benchmark {
     this.NftTransferWrapper = await this.deployer.wrapDeployedContract(NftTransfer, config.modules.NftTransfer);
     this.CompoundManagerWrapper = await this.deployer.wrapDeployedContract(CompoundManager, config.modules.CompoundManager);
     this.MakerV2ManagerWrapper = await this.deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
+    this.RelayerModuleWrapper = await this.deployer.wrapDeployedContract(RelayerModule, config.modules.RelayerModule);
 
     this.ModuleRegistryWrapper = await this.deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
     this.MultiSigWrapper = await this.deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
@@ -119,14 +121,19 @@ class Benchmark {
     this.BaseWalletWrapper = await this.deployer.wrapDeployedContract(BaseWallet, config.contracts.BaseWallet);
 
     this.multisigExecutor = new MultisigExecutor(this.MultiSigWrapper, this.signers[0], true);
+
+    this.testManager.setRelayerModule(this.RelayerModuleWrapper);
   }
 
   async setupWallet() {
-    this.oneModule = [this.GuardianManagerWrapper.contractAddress];
-    this.twoModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress];
-    this.threeModules = [this.GuardianManagerWrapper.contractAddress, this.LockManagerWrapper.contractAddress,
+    this.oneModule = [this.RelayerModuleWrapper.contractAddress];
+    this.twoModules = [this.RelayerModuleWrapper.contractAddress, this.GuardianManagerWrapper.contractAddress];
+    this.threeModules = [
+      this.RelayerModuleWrapper.contractAddress,
+      this.GuardianManagerWrapper.contractAddress,
       this.RecoveryManagerWrapper.contractAddress];
     this.allModules = [
+      this.RelayerModuleWrapper.contractAddress,
       this.GuardianManagerWrapper.contractAddress,
       this.LockManagerWrapper.contractAddress,
       this.RecoveryManagerWrapper.contractAddress,
@@ -212,7 +219,9 @@ class Benchmark {
     const gasUsed = await this.relayEstimate(
       this.GuardianManagerWrapper,
       "addGuardian",
-      [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]],
+      [this.walletAddress, this.accounts[1]],
+      this.wallet,
+      [this.signers[0]],
     );
     this._logger.addItem("Add a guardian (relayed)", gasUsed);
   }
@@ -226,7 +235,9 @@ class Benchmark {
     const gasUsed = await this.relayEstimate(
       this.GuardianManagerWrapper,
       "revokeGuardian",
-      [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]],
+      [this.walletAddress, this.accounts[1]],
+      this.wallet,
+      [this.signers[0]],
     );
     this._logger.addItem("Revoke a guardian (relayed)", gasUsed);
   }
@@ -259,8 +270,13 @@ class Benchmark {
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
 
     // estimate lock wallet
-    const gasUsed = await this.relayEstimate(this.LockManagerWrapper, "lock",
-      [this.walletAddress], this.wallet, [this.signers[1]]);
+    const gasUsed = await this.relayEstimate(
+      this.LockManagerWrapper,
+      "lock",
+      [this.walletAddress],
+      this.wallet,
+      [this.signers[1]],
+    );
     this._logger.addItem("Lock wallet (relayed)", gasUsed);
   }
 

@@ -18,6 +18,7 @@ const RecoveryManager = require("../build/RecoveryManager");
 const TokenExchanger = require("../build/TokenExchanger");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const TransferManager = require("../build/TransferManager");
+const RelayerModule = require("../build/RelayerModule");
 
 const BaseWallet = require("../build/BaseWallet");
 const WalletFactory = require("../build/WalletFactory");
@@ -35,7 +36,9 @@ const MODULES_TO_ENABLE = [
   "RecoveryManager",
   "TokenExchanger",
   "MakerV2Manager",
-  "TransferManager"];
+  "TransferManager",
+  "RelayerModule",
+];
 const MODULES_TO_DISABLE = ["MakerManager"];
 
 const BACKWARD_COMPATIBILITY = 1;
@@ -182,6 +185,16 @@ const deploy = async (network) => {
   );
   newModuleWrappers.push(TransferManagerWrapper);
 
+  const RelayerModuleWrapper = await deployer.deploy(
+    RelayerModule,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    LimitStorageWrapper.contractAddress,
+    TokenPriceStorageWrapper.contractAddress,
+  );
+  newModuleWrappers.push(RelayerModuleWrapper);
+
   // //////////////////////////////////
   // Set contracts' managers
   // //////////////////////////////////
@@ -223,6 +236,7 @@ const deploy = async (network) => {
     TokenExchanger: TokenExchangerWrapper.contractAddress,
     MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
     TransferManager: TransferManagerWrapper.contractAddress,
+    RelayerModule: RelayerModuleWrapper.contractAddress,
   });
 
   configurator.updateInfrastructureAddresses({
@@ -246,6 +260,7 @@ const deploy = async (network) => {
     abiUploader.upload(TokenExchangerWrapper, "contracts"),
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
+    abiUploader.upload(RelayerModuleWrapper, "modules"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
   ]);

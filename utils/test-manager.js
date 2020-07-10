@@ -75,7 +75,7 @@ class TestManager {
     _nonce,
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
-    _refundAddress = _relayer.address,
+    _refundAddress = ethers.constants.AddressZero,
     _gasLimitRelay = (_gasLimit * 1.1)) {
     const nonce = _nonce || await this.getNonceForRelay();
     const methodData = _module.contract.interface.functions[_method].encode(_params);
@@ -102,10 +102,11 @@ class TestManager {
         _gasLimit,
         _refundToken,
         _refundAddress,
+        { gasLimit: _gasLimitRelay, gasPrice: _gasPrice },
       );
       return gasUsed;
     }
-    const tx = await this.relayerModule.execute(
+    const tx = await this.relayerModule.from(_relayer).execute(
       _wallet.contractAddress,
       _module.contractAddress,
       methodData,
