@@ -289,7 +289,7 @@ describe("TransferManager", function () {
       const timestamp = await manager.getTimestamp(txReceipt.block);
       const { _pendingLimit, _changeAfter } = await transferModule.getPendingLimit(wallet.contractAddress);
       assert.equal(_pendingLimit.toNumber(), 20000);
-      assert.equal(_changeAfter.toNumber(), timestamp + SECURITY_PERIOD);
+      assert.isTrue(Math.abs(_changeAfter.sub(timestamp + SECURITY_PERIOD).toNumber()) <= 1); // timestamp is sometimes off by 1
     });
 
     it("should be able to disable the limit", async () => {
