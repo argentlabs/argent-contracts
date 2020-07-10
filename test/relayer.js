@@ -2,7 +2,7 @@
 const ethers = require("ethers");
 const BN = require("bn.js");
 const { formatBytes32String } = require("ethers").utils;
-const { parseRelayReceipt } = require("../utils/utilities.js");
+const { parseRelayReceipt, hasEvent } = require("../utils/utilities.js");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
@@ -243,7 +243,7 @@ describe("RelayManager", function () {
     it("should emit the Refund event", async () => {
       await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
       const txReceipt = await callAndRefund({ refundToken: ETH_TOKEN });
-      assert.isTrue(await utils.hasEvent(txReceipt, relayerModule, "Refund"), "should have generated Refund event");
+      assert.isTrue(await hasEvent(txReceipt, relayerModule, "Refund"), "should have generated Refund event");
     });
 
     it("should fail the transaction when when there is not enough ETH for the refund", async () => {

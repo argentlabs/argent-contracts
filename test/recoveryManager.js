@@ -11,7 +11,12 @@ const Registry = require("../build/ModuleRegistry");
 const RelayerModule = require("../build/RelayerModule");
 
 const TestManager = require("../utils/test-manager");
-const { ETH_TOKEN, sortWalletByAddress, parseRelayReceipt, signOffchain } = require("../utils/utilities.js");
+const {
+  ETH_TOKEN,
+  sortWalletByAddress,
+  parseRelayReceipt,
+  signOffchain,
+} = require("../utils/utilities.js");
 
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";

@@ -90,6 +90,27 @@ module.exports = {
     return { success: args.success, error };
   },
 
+  parseLogs(txReceipt, contract, eventName) {
+    const filter = txReceipt.logs.filter((e) => (
+      e.topics.find((t) => (
+        contract.interface.events[eventName].topic === t
+      )) !== undefined
+    ));
+    const res = [];
+    for (const f of filter) {
+      res.push(contract.interface.events[eventName].decode(f.data, f.topics));
+    }
+    return res;
+  },
+
+  hasEvent(txReceipt, contract, eventName) {
+    return txReceipt.logs.find((e) => (
+      e.topics.find((t) => (
+        contract.interface.events[eventName].topic === t
+      )) !== undefined
+    )) !== undefined;
+  },
+
   versionFingerprint(modules) {
     const concat = modules.map((module) => module.address).sort((m1, m2) => {
       const bn1 = ethers.utils.bigNumberify(m1);
