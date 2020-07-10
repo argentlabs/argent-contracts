@@ -6,6 +6,7 @@ const { parseRelayReceipt } = require("../utils/utilities.js");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const TestModule = require("../build/TestModuleRelayer");
+const BadModuleRelayer = require("../build/BadModuleRelayer");
 const Registry = require("../build/ModuleRegistry");
 const GuardianManager = require("../build/GuardianManager");
 const GuardianStorage = require("../build/GuardianStorage");
@@ -135,7 +136,7 @@ describe("RelayerModule", function () {
       await assert.revertWith(recoveryManager.transferOwnership(wallet.contractAddress, randomAddress), "RM: must be called via execute()");
     });
 
-    it("should fail to refund ", async () => {
+    it("should fail to refund", async () => {
       const nonce = await getNonceForRelay();
 
       const newowner = accounts[5].signer;
@@ -157,6 +158,13 @@ describe("RelayerModule", function () {
 
       const { error } = parseRelayReceipt(txReceipt);
       assert.equal(error, "RM: refund failed");
+    });
+
+    it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
+      const badRelayerModule = await deployer.deploy(BadModuleRelayer, {}, registry.contractAddress, guardianStorage.contractAddress);
+      await assert.revertWith(
+        manager.relay(badRelayerModule, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner]), "RM: Wrong number of required signatures",
+      );
     });
   });
 
