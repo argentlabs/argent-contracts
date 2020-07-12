@@ -106,6 +106,7 @@ contract WalletFactory is Owned, Managed {
     )
         external
         onlyManager
+        returns (address _wallet)
     {
         _validateInputs(_owner, _modules, _label, _guardian);
 
@@ -113,6 +114,7 @@ contract WalletFactory is Owned, Managed {
         Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
         address payable wallet = address(proxy);
         _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
+        return wallet;
     }
 
     /**
