@@ -44,28 +44,22 @@ contract WalletFactory is Owned, Managed {
 
     event ModuleRegistryChanged(address addr);
     event ENSManagerChanged(address addr);
-    event GuardianStorageChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
-
-    // *************** Modifiers *************************** //
-
-    /**
-     * @dev Throws if the guardian storage address is not set.
-     */
-    modifier guardianStorageDefined {
-        require(guardianStorage != address(0), "IGuardianStorage address not defined");
-        _;
-    }
 
     // *************** Constructor ********************** //
 
     /**
      * @dev Default constructor.
      */
-    constructor(address _moduleRegistry, address _walletImplementation, address _ensManager) public {
+    constructor(address _moduleRegistry, address _walletImplementation, address _ensManager, address _guardianStorage) public {
+        require(_moduleRegistry != address(0), "WF: ModuleRegistry address not defined");
+        require(_walletImplementation != address(0), "WF: WalletImplementation address not defined");
+        require(_ensManager != address(0), "WF: ENSManager address not defined");
+        require(_guardianStorage != address(0), "WF: GuardianStorage address not defined");
         moduleRegistry = _moduleRegistry;
         walletImplementation = _walletImplementation;
         ensManager = _ensManager;
+        guardianStorage = _guardianStorage;
     }
 
     // *************** External Functions ********************* //
@@ -86,7 +80,6 @@ contract WalletFactory is Owned, Managed {
     )
         external
         onlyManager
-        guardianStorageDefined
     {
         _validateInputs(_owner, _modules, _label, _guardian);
         Proxy proxy = new Proxy(walletImplementation);
@@ -113,7 +106,6 @@ contract WalletFactory is Owned, Managed {
     )
         external
         onlyManager
-        guardianStorageDefined
     {
         _validateInputs(_owner, _modules, _label, _guardian);
 
@@ -166,16 +158,6 @@ contract WalletFactory is Owned, Managed {
         require(_ensManager != address(0), "WF: address cannot be null");
         ensManager = _ensManager;
         emit ENSManagerChanged(_ensManager);
-    }
-
-    /**
-     * @dev Lets the owner change the address of the IGuardianStorage contract.
-     * @param _guardianStorage The address of the IGuardianStorage contract.
-     */
-    function changeGuardianStorage(address _guardianStorage) external onlyOwner {
-        require(_guardianStorage != address(0), "WF: address cannot be null");
-        guardianStorage = _guardianStorage;
-        emit GuardianStorageChanged(_guardianStorage);
     }
 
     /**

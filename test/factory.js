@@ -45,7 +45,8 @@ describe("Wallet Factory", function () {
   let moduleRegistry;
   let guardianStorage;
   let factory;
-  let factoryWithoutGuardianStorage;
+  let module1;
+  let module2;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -71,25 +72,14 @@ describe("Wallet Factory", function () {
     implementation = await deployer.deploy(BaseWallet);
     moduleRegistry = await deployer.deploy(ModuleRegistry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-
     factory = await deployer.deploy(Factory, {},
       moduleRegistry.contractAddress,
       implementation.contractAddress,
-      ensManager.contractAddress);
+      ensManager.contractAddress,
+      guardianStorage.contractAddress);
     await factory.addManager(infrastructure.address);
-    await factory.changeGuardianStorage(guardianStorage.contractAddress);
     await ensManager.addManager(factory.contractAddress);
-
-    factoryWithoutGuardianStorage = await deployer.deploy(Factory, {},
-      moduleRegistry.contractAddress,
-      implementation.contractAddress,
-      ensManager.contractAddress);
-    await factoryWithoutGuardianStorage.addManager(infrastructure.address);
-    await ensManager.addManager(factoryWithoutGuardianStorage.contractAddress);
   });
-
-  let module1;
-  let module2;
 
   beforeEach(async () => {
     // Restore the good state of factory (we set these to bad addresses in some tests)
@@ -104,7 +94,39 @@ describe("Wallet Factory", function () {
     index += 1;
   });
 
-  describe("Configure the factory", () => {
+  describe("Create and configure the factory", () => {
+    it("should not allow to be created with empty ModuleRegistry", async () => {
+      await assert.revertWith(deployer.deploy(Factory, {},
+        ZERO_ADDRESS,
+        implementation.contractAddress,
+        ensManager.contractAddress,
+        guardianStorage.contractAddress), "WF: ModuleRegistry address not defined");
+    });
+
+    it("should not allow to be created with empty WalletImplementation", async () => {
+      await assert.revertWith(deployer.deploy(Factory, {},
+        moduleRegistry.contractAddress,
+        ZERO_ADDRESS,
+        ensManager.contractAddress,
+        guardianStorage.contractAddress), "WF: WalletImplementation address not defined");
+    });
+
+    it("should not allow to be created with empty ENSManager", async () => {
+      await assert.revertWith(deployer.deploy(Factory, {},
+        moduleRegistry.contractAddress,
+        implementation.contractAddress,
+        ZERO_ADDRESS,
+        guardianStorage.contractAddress), "WF: ENSManager address not defined");
+    });
+
+    it("should not allow to be created with empty GuardianStorage", async () => {
+      await assert.revertWith(deployer.deploy(Factory, {},
+        moduleRegistry.contractAddress,
+        implementation.contractAddress,
+        ensManager.contractAddress,
+        ZERO_ADDRESS), "WF: GuardianStorage address not defined");
+    });
+
     it("should allow owner to change the module registry", async () => {
       const randomAddress = utilities.getRandomAddress();
       await factory.changeModuleRegistry(randomAddress);
@@ -135,10 +157,6 @@ describe("Wallet Factory", function () {
     it("should not allow non-owner to change the ens manager", async () => {
       const randomAddress = utilities.getRandomAddress();
       await assert.revertWith(factory.from(other).changeENSManager(randomAddress), "Must be owner");
-    });
-
-    it("should not allow guardian storage address to be set to zero", async () => {
-      await assert.revertWith(factory.changeGuardianStorage(ethers.constants.AddressZero), "WF: address cannot be null");
     });
 
     it("should return the correct ENSManager", async () => {
@@ -201,14 +219,6 @@ describe("Wallet Factory", function () {
       assert.equal(nodeOwner, walletAddr);
       const res = await ensRegistry.resolver(labelNode);
       assert.equal(res, ensResolver.contractAddress);
-    });
-
-    it("should fail to create with a guardian when the guardian storage is not defined", async () => {
-      const label = `wallet${index}`;
-      const modules = [module1.contractAddress, module2.contractAddress];
-      await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure)
-        .createWallet(owner.address, modules, label, guardian.address),
-      "GuardianStorage address not defined");
     });
 
     it("should fail to create when the guardian is empty", async () => {
@@ -425,15 +435,6 @@ describe("Wallet Factory", function () {
       const log = await utils.parseLogs(txReceipt, wallet, "Received");
       assert.equal(log[0].value.toNumber(), amount, "should log the correct amount");
       assert.equal(log[0].sender, "0x0000000000000000000000000000000000000000", "sender should be address(0)");
-    });
-
-    it("should fail to create with a guardian when the guardian storage is not defined", async () => {
-      const salt = utilities.generateSaltValue();
-      const label = `wallet${index}`;
-      const modules = [module1.contractAddress, module2.contractAddress];
-      await assert.revertWith(factoryWithoutGuardianStorage.from(infrastructure)
-        .createCounterfactualWallet(owner.address, modules, label, guardian.address, salt),
-      "GuardianStorage address not defined");
     });
 
     it("should fail to get an address when the guardian is empty", async () => {
