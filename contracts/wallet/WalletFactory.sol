@@ -217,11 +217,7 @@ contract WalletFactory is Owned, Managed {
      * @param _guardian The guardian address.
      */
     function _newSalt(bytes32 _salt, address _owner, address[] memory _modules, address _guardian) internal pure returns (bytes32) {
-        if (_guardian == address(0)) {
-            return keccak256(abi.encodePacked(_salt, _owner, _modules));
-        } else {
-            return keccak256(abi.encodePacked(_salt, _owner, _modules, _guardian));
-        }
+        return keccak256(abi.encodePacked(_salt, _owner, _modules, _guardian));
     }
 
     /**
