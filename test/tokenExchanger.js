@@ -29,7 +29,7 @@ const ERC20 = require("../build/TestERC20");
 const TransferStorage = require("../build/TransferStorage");
 const LimitStorage = require("../build/LimitStorage");
 const TransferManager = require("../build/TransferManager");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
+const TokenPriceStorage = require("../build/TokenPriceStorage");
 
 // Utils
 const { makePathes } = require("../utils/paraswap/multiswap-helper");
@@ -42,7 +42,7 @@ const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts
 const TOKEN_A_RATE = parseEther("0.06");
 const TOKEN_B_RATE = parseEther("0.03");
 
-describe("Token Exchanger V2", function () {
+describe("Token Exchanger", function () {
   this.timeout(10000);
 
   const manager = new TestManager();
@@ -130,15 +130,15 @@ describe("Token Exchanger V2", function () {
     );
 
     // Deploy TransferManager module
-    const priceProvider = await deployer.deploy(TokenPriceProvider);
+    const tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
     const transferStorage = await deployer.deploy(TransferStorage);
     const limitStorage = await deployer.deploy(LimitStorage);
     transferManager = await deployer.deploy(TransferManager, {},
-      AddressZero,
+      registry.contractAddress,
       transferStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
-      priceProvider.contractAddress,
+      tokenPriceStorage.contractAddress,
       3600,
       3600,
       10000,
