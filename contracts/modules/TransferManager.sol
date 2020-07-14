@@ -536,7 +536,9 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         require(
             _contract != _wallet && // not the wallet itself
             !IWallet(_wallet).authorised(_contract) && // not an authorised module
-            (tokenPriceStorage.getTokenPrice(_contract) == 0 || isLimitDisabled(_wallet)), // not an ERC20 listed in the provider (or limit disabled)
+            (tokenPriceStorage.getTokenPrice(_contract) == 0 ||
+            isLimitDisabled(_wallet) || // not an ERC20 listed in the provider (or limit disabled)
+            isWhitelisted(_wallet, _contract)),
             "TM: Forbidden contract");
     }
 }
