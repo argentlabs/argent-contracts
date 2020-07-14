@@ -179,7 +179,7 @@ contract WalletFactory is Owned, Managed {
      * @param _owner The account address.
      * @param _modules The list of modules.
      * @param _label ENS label of the new wallet, e.g. franck.
-     * @param _guardian (Optional) The guardian address.
+     * @param _guardian The guardian address.
      */
     function _configureWallet(
         BaseWallet _wallet,
