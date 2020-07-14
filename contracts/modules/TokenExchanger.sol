@@ -36,8 +36,10 @@ contract TokenExchanger is OnlyOwnerModule {
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     // Signatures of Paraswap's trade methods
-    bytes4 constant internal MULTISWAP = 0xcbd1603e;
-    bytes4 constant internal BUY = 0xbb2a349b;
+    // solium-disable-next-line max-len
+    bytes4 constant internal MULTISWAP = 0xcbd1603e; // bytes4(keccak256("multiSwap(address,address,uint256,uint256,uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[],uint256,address,uint256,string)"))
+    // solium-disable-next-line max-len
+    bytes4 constant internal BUY = 0xbb2a349b; // bytes4(keccak256("buy(address,address,uint256,uint256,uint256,(address,address,uint256,uint256,bytes,uint256)[],uint256,address,uint256,string)"))
 
     // The address of the Paraswap Proxy contract
     address public paraswapProxy;
@@ -79,7 +81,7 @@ contract TokenExchanger is OnlyOwnerModule {
      * @param _destToken The address of the destination token.
      * @param _srcAmount The exact amount of source tokens to sell.
      * @param _minDestAmount The minimum amount of destination tokens required for the trade.
-     * @param _expectedDestAmount The expected amount of destination tokens (used only in ParaSwap's events).
+     * @param _expectedDestAmount The expected amount of destination tokens (used only in ParaSwap's Swapped event).
      * @param _path Sequence of sets of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (exact) amount of a given
      * source token into a given (minimum) amount of a given destination token. The path is a sequence of sets of weighted routes where the destination
      * token of a set of weighted routes matches the source token of the next set of weighted routes in the path.
@@ -126,7 +128,7 @@ contract TokenExchanger is OnlyOwnerModule {
      * @param _destToken The address of the destination token.
      * @param _maxSrcAmount The maximum amount of source tokens to use for the trade.
      * @param _destAmount The exact amount of destination tokens to buy.
-     * @param _expectedDestAmount The expected amount of destination tokens (used only in ParaSwap's events).
+     * @param _expectedSrcAmount The expected amount of source tokens (used only in ParaSwap's Bought event).
      * @param _routes Set of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (maximum) amount of a given
      * source token into a given (exact) amount of a given destination token.
      * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minte by ParaSwap. 0 means gas token will not be used by ParaSwap
@@ -137,7 +139,7 @@ contract TokenExchanger is OnlyOwnerModule {
         address _destToken,
         uint256 _maxSrcAmount,
         uint256 _destAmount,
-        uint256 _expectedDestAmount,
+        uint256 _expectedSrcAmount,
         IAugustusSwapper.BuyRoute[] calldata _routes,
         uint256 _mintPrice
     )
@@ -156,7 +158,7 @@ contract TokenExchanger is OnlyOwnerModule {
             _destToken,
             _maxSrcAmount,
             _destAmount,
-            _expectedDestAmount,
+            _expectedSrcAmount,
             _routes,
             _mintPrice);
         // Restore the previous allowance if needed (paraswap.buy() may not have used exactly the additional allowance granted to it)
@@ -254,7 +256,7 @@ contract TokenExchanger is OnlyOwnerModule {
         address _destToken,
         uint256 _maxSrcAmount,
         uint256 _destAmount,
-        uint256 _expectedDestAmount,
+        uint256 _expectedSrcAmount,
         IAugustusSwapper.BuyRoute[] calldata _routes,
         uint256 _mintPrice
     )
@@ -263,7 +265,7 @@ contract TokenExchanger is OnlyOwnerModule {
         // Build the calldata
         string memory ref = referrer;
         bytes memory tradeData = abi.encodeWithSelector(BUY,
-            _srcToken, _destToken, _maxSrcAmount, _destAmount, _expectedDestAmount, _routes, _mintPrice, address(0), 0, ref);
+            _srcToken, _destToken, _maxSrcAmount, _destAmount, _expectedSrcAmount, _routes, _mintPrice, address(0), 0, ref);
 
         // Perform the trade
         doTradeAndEmitEvent(_wallet, _srcToken, _destToken, _maxSrcAmount, _destAmount, tradeData);
