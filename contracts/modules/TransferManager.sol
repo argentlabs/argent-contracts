@@ -244,7 +244,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         external
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
-        authorisedContractCall(_wallet, _contract)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
         if (!isWhitelisted(_wallet, _contract)) {
             // Make sure we don't call a supported ERC20 that's not whitelisted
@@ -277,7 +277,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         external
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
-        authorisedContractCall(_wallet, _contract)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
         if (!isWhitelisted(_wallet, _spender)) {
             // Make sure we don't call a supported ERC20 that's not whitelisted

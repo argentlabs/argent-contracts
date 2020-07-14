@@ -46,7 +46,7 @@ abstract contract BaseTransfer is BaseModule {
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
      */
-    modifier authorisedContractCall(address _wallet, address _contract) {
+    modifier onlyAuthorisedContractCall(address _wallet, address _contract) {
         require(_contract != _wallet && !IWallet(_wallet).authorised(_contract), "BT: Forbidden contract");
         _;
     }

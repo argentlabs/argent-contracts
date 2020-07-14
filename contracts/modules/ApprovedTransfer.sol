@@ -70,7 +70,7 @@ contract ApprovedTransfer is BaseTransfer {
         external
         onlyWalletModule(_wallet)
         onlyWhenUnlocked(_wallet)
-        authorisedContractCall(_wallet, _contract)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
         doCallContract(_wallet, _contract, _value, _data);
     }
@@ -97,7 +97,7 @@ contract ApprovedTransfer is BaseTransfer {
         external
         onlyWalletModule(_wallet)
         onlyWhenUnlocked(_wallet)
-        authorisedContractCall(_wallet, _contract)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
     }
