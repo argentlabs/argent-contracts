@@ -245,17 +245,14 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        // Make sure we don't call a module, the wallet itself, or a supported ERC20
+        // Make sure we don't call a module, the wallet itself, or a supported ERC20 that's not whitelisted
         authoriseContractCall(_wallet, _contract);
 
-        if (isWhitelisted(_wallet, _contract)) {
-            // call to whitelist
-            doCallContract(_wallet, _contract, _value, _data);
-        } else {
+        if (!isWhitelisted(_wallet, _contract)) {
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, _value), "TM: Call contract above daily limit");
-            // call under the limit
-            doCallContract(_wallet, _contract, _value, _data);
         }
+
+        doCallContract(_wallet, _contract, _value, _data);
     }
 
     /**
@@ -280,7 +277,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        // Make sure we don't call a module, the wallet itself, or a supported ERC20
+        // Make sure we don't call a module, the wallet itself, or a supported ERC20 that's not whitelisted
         authoriseContractCall(_wallet, _contract);
 
         if (!isWhitelisted(_wallet, _spender)) {
