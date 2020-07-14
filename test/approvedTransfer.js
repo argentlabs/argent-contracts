@@ -248,7 +248,7 @@ describe("Approved Transfer", function () {
           [owner, ...sortWalletByAddress([guardian1, guardian2])]);
         const { success, error } = parseRelayReceipt(txReceipt);
         assert.isFalse(success);
-        assert.equal(error, "AT: Forbidden contract");
+        assert.equal(error, "BT: Forbidden contract");
       });
     });
   });
@@ -272,7 +272,7 @@ describe("Approved Transfer", function () {
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
           const { success, error } = parseRelayReceipt(txReceipt);
           assert.isFalse(success);
-          assert.equal(error, "AT: Forbidden contract");
+          assert.equal(error, "BT: Forbidden contract");
         }
 
         it("should revert when target contract is the wallet", async () => {

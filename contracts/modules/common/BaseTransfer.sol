@@ -41,9 +41,18 @@ abstract contract BaseTransfer is BaseModule {
         bytes data
     );
     // *************** Internal Functions ********************* //
+    /**
+    * @notice Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
+    * @param _wallet The target wallet.
+    * @param _contract The address of the contract.
+     */
+    modifier authorisedContractCall(address _wallet, address _contract) {
+        require(_contract != _wallet && !IWallet(_wallet).authorised(_contract), "BT: Forbidden contract");
+        _;
+    }
 
     /**
-    * @dev Helper method to transfer ETH or ERC20 for a wallet.
+    * @notice Helper method to transfer ETH or ERC20 for a wallet.
     * @param _wallet The target wallet.
     * @param _token The ERC20 address.
     * @param _to The recipient.
@@ -61,7 +70,7 @@ abstract contract BaseTransfer is BaseModule {
     }
 
     /**
-    * @dev Helper method to approve spending the ERC20 of a wallet.
+    * @notice Helper method to approve spending the ERC20 of a wallet.
     * @param _wallet The target wallet.
     * @param _token The ERC20 address.
     * @param _spender The spender address.
@@ -74,7 +83,7 @@ abstract contract BaseTransfer is BaseModule {
     }
 
     /**
-    * @dev Helper method to call an external contract.
+    * @notice Helper method to call an external contract.
     * @param _wallet The target wallet.
     * @param _contract The contract address.
     * @param _value The ETH value to transfer.
@@ -86,7 +95,7 @@ abstract contract BaseTransfer is BaseModule {
     }
 
     /**
-    * @dev Helper method to approve a certain amount of token and call an external contract.
+    * @notice Helper method to approve a certain amount of token and call an external contract.
     * The address that spends the _token and the address that is called with _data can be different.
     * @param _wallet The target wallet.
     * @param _token The ERC20 address.
