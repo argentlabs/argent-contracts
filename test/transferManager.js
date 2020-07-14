@@ -813,5 +813,19 @@ describe("TransferManager", function () {
         assert.ok(await manager.isRevertReason(error, "above daily limit"));
       }
     });
+
+    it("should fail to approve token if the amount to be approved is greater than the current balance", async () => {
+      const startingBalance = await erc20.balanceOf(wallet.contractAddress);
+      await erc20.burn(wallet.contractAddress, startingBalance);
+      const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.contractAddress, 1]);
+      await assert.revertWith(transferModule.from(owner).approveTokenAndCallContract(
+        wallet.contractAddress,
+        erc20.contractAddress,
+        contract.contractAddress,
+        1,
+        contract.contractAddress,
+        dataToTransfer,
+      ), "BT: insufficient balance");
+    });
   });
 });

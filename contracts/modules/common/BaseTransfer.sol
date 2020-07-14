@@ -114,6 +114,10 @@ abstract contract BaseTransfer is BaseModule {
     )
         internal
     {
+        // Ensure there is sufficient balance of token before we approve
+        uint256 balance = ERC20(_token).balanceOf(_wallet);
+        require(balance >= _amount, "BT: insufficient balance");
+
         uint256 existingAllowance = ERC20(_token).allowance(_wallet, _spender);
         uint256 totalAllowance = SafeMath.add(existingAllowance, _amount);
         // Approve the desired amount plus existing amount. This logic allows for potential gas saving later
