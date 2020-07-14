@@ -43,7 +43,7 @@ abstract contract OnlyOwnerModule is BaseModule {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(address _wallet, address _module) public override virtual onlyOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function addModule(address _wallet, address _module) public override virtual onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
     }
@@ -54,7 +54,7 @@ abstract contract OnlyOwnerModule is BaseModule {
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures and the wallet owner signature requirement.
     */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
 }

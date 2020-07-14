@@ -104,7 +104,7 @@ contract RelayerModule is BaseModule {
         uint startGas = gasleft();
         require(startGas >= _gasLimit, "RM: not enough gas provided");
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
-        require(isModule(_wallet, _module), "RM: module not authorised");
+        require(isAuthorisedModule(_wallet, _module), "RM: module not authorised");
         StackExtension memory stack;
         (stack.requiredSignatures, stack.ownerSignatureRequirement) = IModule(_module).getRequiredSignatures(_wallet, _data);
         require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
@@ -147,17 +147,6 @@ contract RelayerModule is BaseModule {
     */
     function getNonce(address _wallet) external view returns (uint256 nonce) {
         return relayer[_wallet].nonce;
-    }
-
-    /**
-    * @dev Implementation of the getRequiredSignatures from the IModule interface.
-    * The method should not be called and will always revert.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @return always reverts.
-    */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual override view returns (uint256, OwnerSignature) {
-        revert("RM: disabled method");
     }
 
     /* ***************** Internal & Private methods ************************* */
@@ -341,11 +330,11 @@ contract RelayerModule is BaseModule {
         } else {
             gasConsumed = gasConsumed.add(10000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
-            uint256 ethAmount = LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
+            uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limt");
         }
         // refund in ETH or ERC20
-        if (_refundToken == LimitUtils.ETH_TOKEN) {
+        if (_refundToken == ETH_TOKEN) {
             invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
@@ -359,14 +348,9 @@ contract RelayerModule is BaseModule {
     * as the wallet passed as the input of the execute() method.
     @return false if the addresses are different.
     */
-    function verifyData(address _wallet, bytes memory _data) private pure returns (bool) {
+    function verifyData(address _wallet, bytes calldata _data) private pure returns (bool) {
         require(_data.length >= 36, "RM: Invalid dataWallet");
-        address dataWallet;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            //_data = {length:32}{sig:4}{_wallet:32}{...}
-            dataWallet := mload(add(_data, 0x24))
-        }
+        address dataWallet = abi.decode(_data[4:], (address));
         return dataWallet == _wallet;
     }
 }

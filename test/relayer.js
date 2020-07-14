@@ -31,7 +31,7 @@ const RELAYER_NOT_AUTHORISED_FOR_WALLET = "BM: must be owner or module";
 const GAS_LESS_THAN_GASLIMIT = "RM: not enough gas provided";
 const WRONG_NUMBER_SIGNATURES = "RM: Wrong number of signatures";
 
-describe("RelayManager", function () {
+describe("RelayerModule", function () {
   this.timeout(10000);
 
   const manager = new TestManager();
@@ -163,6 +163,26 @@ describe("RelayManager", function () {
       await manager.relay(...relayParams);
       await assert.revertWith(
         manager.relay(...relayParams), DUPLICATE_REQUEST_REVERT_MSG,
+      );
+    });
+
+    it("should fail when relaying to itself", async () => {
+      const dataMethod = "setIntOwnerOnly";
+      const dataParam = [wallet.contractAddress, 2];
+      const methodData = testModule.contract.interface.functions[dataMethod].encode(dataParam);
+      const params = [
+        wallet.contractAddress,
+        testModule.contractAddress,
+        methodData,
+        0,
+        ethers.constants.HashZero,
+        0,
+        200000,
+        ETH_TOKEN,
+        ethers.constants.AddressZero,
+      ];
+      await assert.revertWith(
+        manager.relay(relayerModule, "execute", params, wallet, [owner]), "BM: disabled method",
       );
     });
 
@@ -339,7 +359,7 @@ describe("RelayManager", function () {
       const txReceipt = await manager.relay(approvedTransfer, "addModule", params, wallet, [owner]);
       const { success, error } = parseRelayReceipt(txReceipt);
       assert.isFalse(success);
-      assert.equal(error, "BM: must be owner");
+      assert.equal(error, "BM: must be wallet owner");
 
       const isModuleAuthorised = await wallet.authorised(testModuleNew.contractAddress);
       assert.isFalse(isModuleAuthorised);

@@ -83,7 +83,7 @@ describe("BaseWallet", function () {
     });
   });
 
-  describe("Initialze Wallets", () => {
+  describe("Initialize Wallets", () => {
     describe("wallet init", () => {
       it("should create a wallet with the correct owner", async () => {
         let walletOwner = await wallet.owner();

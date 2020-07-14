@@ -144,7 +144,7 @@ contract TokenExchanger is OnlyOwnerModule {
         uint256 _mintPrice
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Verify that the exchange adapters used have been authorised

@@ -289,7 +289,7 @@ describe("TransferManager", function () {
       const timestamp = await manager.getTimestamp(txReceipt.block);
       const { _pendingLimit, _changeAfter } = await transferModule.getPendingLimit(wallet.contractAddress);
       assert.equal(_pendingLimit.toNumber(), 20000);
-      assert.isTrue(Math.abs(_changeAfter.sub(timestamp + SECURITY_PERIOD).toNumber()) <= 1); // timestamp is sometimes off by 1
+      assert.closeTo(_changeAfter.toNumber(), timestamp + SECURITY_PERIOD, 1); // timestamp is sometimes off by 1
     });
 
     it("should be able to disable the limit", async () => {
@@ -320,7 +320,7 @@ describe("TransferManager", function () {
 
       const dailySpent = await limitStorage.getDailySpent(wallet.contractAddress);
       assert.equal(dailySpent[0].toNumber(), 300);
-      assert.isTrue(Math.abs(dailySpent[1].sub(timestamp + (3600 * 24)).toNumber()) <= 1); // timestamp is sometimes off by 1
+      assert.closeTo(dailySpent[1].toNumber(), timestamp + (3600 * 24), 1); // timestamp is sometimes off by 1
     });
 
     it("should return 0 if the entire daily limit amount has been spent", async () => {

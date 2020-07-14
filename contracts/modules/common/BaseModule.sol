@@ -28,10 +28,12 @@ import "../../../lib/other/ERC20.sol";
  * @dev Basic module that contains some methods common to all modules.
  * @author Julien Niset - <julien@argent.im>
  */
-abstract contract BaseModule is IModule {
+contract BaseModule is IModule {
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
+    // Mock token address for ETH
+    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // The adddress of the module registry.
     IModuleRegistry internal registry;
@@ -60,25 +62,25 @@ abstract contract BaseModule is IModule {
     /**
      * @dev Throws if the sender is not the owner of the target wallet.
      */
-    modifier onlyOwner(address _wallet) {
-        require(isOwner(_wallet, msg.sender), "BM: must be owner");
+    modifier onlyWalletOwner(address _wallet) {
+        require(isOwner(_wallet, msg.sender), "BM: must be wallet owner");
         _;
     }
 
     /**
      * @dev Throws if the sender is not an authorised module of the target wallet.
      */
-    modifier onlyModule(address _wallet) {
-        require(isModule(_wallet, msg.sender), "BM: must be a module");
+    modifier onlyWalletModule(address _wallet) {
+        require(isAuthorisedModule(_wallet, msg.sender), "BM: must be a wallet module");
         _;
     }
 
     /**
      * @dev Throws if the sender is not the owner of the target wallet or the module itself.
      */
-    modifier onlyOwnerOrModule(address _wallet) {
+    modifier onlyWalletOwnerOrModule(address _wallet) {
         // Wrapping in an internal method reduces deployment cost by avoiding duplication of inlined code
-        verifyOwnerOrModule(_wallet, msg.sender);
+        verifyOwnerOrAuthorisedModule(_wallet, msg.sender);
         _;
     }
 
@@ -112,18 +114,20 @@ abstract contract BaseModule is IModule {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(address _wallet, address _module) public virtual override onlyOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function addModule(address _wallet, address _module) public virtual override onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
     }
 
-     /**
-     * @dev Verify that the caller is an authorised module or the wallet owner.
-     * @param _wallet The target wallet.
-     * @param _sender The caller.
-     */
-    function verifyOwnerOrModule(address _wallet, address _sender) internal view {
-        require(isModule(_wallet, _sender) || isOwner(_wallet, _sender), "BM: must be owner or module");
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * Unless overriden the method always revert.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return always reverts.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual override view returns (uint256, OwnerSignature) {
+        revert("BM: disabled method");
     }
 
     /**
@@ -140,8 +144,17 @@ abstract contract BaseModule is IModule {
      * @param _wallet The target wallet.
      * @param _module The address.
      */
-    function isModule(address _wallet, address _module) internal view returns (bool) {
+    function isAuthorisedModule(address _wallet, address _module) internal view returns (bool) {
         return IWallet(_wallet).authorised(_module);
+    }
+
+    /**
+     * @dev Verify that the caller is an authorised module or the wallet owner.
+     * @param _wallet The target wallet.
+     * @param _sender The caller.
+     */
+    function verifyOwnerOrAuthorisedModule(address _wallet, address _sender) internal view {
+        require(isAuthorisedModule(_wallet, _sender) || isOwner(_wallet, _sender), "BM: must be owner or module");
     }
 
     /**

@@ -27,7 +27,7 @@ contract TestModule is BaseModule {
         IWallet(_wallet).setOwner(address(0)); // this should fail
     }
 
-    function setIntOwnerOnly(address _wallet, uint _val) external onlyOwnerOrModule(_wallet) {
+    function setIntOwnerOnly(address _wallet, uint _val) external onlyWalletOwnerOrModule(_wallet) {
         uintVal = _val;
     }
     function clearInt() external {

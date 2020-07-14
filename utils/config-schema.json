@@ -216,7 +216,7 @@
         "MakerManager",
         "MakerV2Manager"
       ],
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "backend": {
       "type": "object",

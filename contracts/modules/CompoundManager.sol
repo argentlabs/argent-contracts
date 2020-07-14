@@ -104,7 +104,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
@@ -127,7 +127,7 @@ contract CompoundManager is OnlyOwnerModule {
         bytes32 _loanId
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address[] memory markets = comptroller.getAssetsIn(_wallet);
@@ -159,7 +159,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _collateralAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address cToken = compoundRegistry.getCToken(_collateral);
@@ -182,7 +182,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _collateralAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address cToken = compoundRegistry.getCToken(_collateral);
@@ -205,7 +205,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
@@ -228,7 +228,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
@@ -280,7 +280,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _period
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
@@ -302,7 +302,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _fraction
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(_fraction <= 10000, "CompoundV2: invalid fraction value");

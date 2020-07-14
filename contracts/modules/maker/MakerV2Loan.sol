@@ -141,7 +141,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
@@ -165,7 +165,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _collateralAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -187,7 +187,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _collateralAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -209,7 +209,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -231,7 +231,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -250,7 +250,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         bytes32 _loanId
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -273,7 +273,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     )
         external
         nonReentrant
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(cdpManager.owns(uint256(_loanId)) == _wallet, "MV2: wrong vault owner");
@@ -300,7 +300,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         bytes32 _cup
     )
         external
-        onlyOwnerOrModule(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
@@ -335,7 +335,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         bytes32 _loanId
     )
         external
-        onlyModule(_wallet)
+        onlyWalletModule(_wallet)
         onlyNewVersion
         onlyWhenUnlocked(_wallet)
     {

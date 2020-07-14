@@ -57,7 +57,7 @@ contract LockManager is BaseModule {
      */
     modifier onlyGuardianOrModule(address _wallet) {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), msg.sender);
-        require(isModule(_wallet, msg.sender) || isGuardian, "LM: must be guardian or module");
+        require(isAuthorisedModule(_wallet, msg.sender) || isGuardian, "LM: must be guardian or module");
         _;
     }
 

@@ -822,7 +822,7 @@ describe("MakerV2 Vaults", function () {
     });
 
     it("should not allow non-module to give vault", async () => {
-      await assert.revertWith(makerV2.from(owner).giveVault(walletAddress, formatBytes32String("")), "BM: must be a module");
+      await assert.revertWith(makerV2.from(owner).giveVault(walletAddress, formatBytes32String("")), "BM: must be a wallet module");
     });
 
     it("should not allow (fake) module to give unowned vault", async () => {
