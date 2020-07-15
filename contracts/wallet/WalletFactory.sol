@@ -81,7 +81,8 @@ contract WalletFactory is Owned, Managed {
         external
         onlyManager
     {
-        _validateInputs(_owner, _modules, _label, _guardian);
+        _validateInputs(_owner, _modules, _guardian);
+        validateENSLabel(_label);
         Proxy proxy = new Proxy(walletImplementation);
         address payable wallet = address(proxy);
         _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
@@ -108,7 +109,8 @@ contract WalletFactory is Owned, Managed {
         onlyManager
         returns (address _wallet)
     {
-        _validateInputs(_owner, _modules, _label, _guardian);
+        _validateInputs(_owner, _modules, _guardian);
+        validateENSLabel(_label);
 
         bytes32 newsalt = _newSalt(_salt, _owner, _modules, _guardian);
         Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
@@ -135,7 +137,7 @@ contract WalletFactory is Owned, Managed {
         view
         returns (address _wallet)
     {
-        require(_guardian != (address(0)), "WF: guardian cannot be null");
+        _validateInputs(_owner, _modules, _guardian);
         bytes32 newsalt = _newSalt(_salt, _owner, _modules, _guardian);
         bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
@@ -225,13 +227,16 @@ contract WalletFactory is Owned, Managed {
      * @param _owner The owner address.
      * @param _modules The list of modules.
      */
-    function _validateInputs(address _owner, address[] memory _modules, string memory _label, address _guardian) internal view {
+    function _validateInputs(address _owner, address[] memory _modules, address _guardian) internal view {
         require(_owner != address(0), "WF: owner cannot be null");
         require(_modules.length > 0, "WF: cannot assign with less than 1 module");
         require(IModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
+        require(_guardian != (address(0)), "WF: guardian cannot be null");
+    }
+
+    function validateENSLabel(string memory _label) internal pure {
         bytes memory labelBytes = bytes(_label);
         require(labelBytes.length != 0, "WF: ENS label must be defined");
-        require(_guardian != (address(0)), "WF: guardian cannot be null");
     }
 
     /**
