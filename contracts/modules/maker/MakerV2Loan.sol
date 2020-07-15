@@ -57,9 +57,6 @@ abstract contract MakerV2Loan is MakerV2Base {
     // Lock used by nonReentrant()
     bool private _notEntered = true;
 
-    // Mock token address for ETH
-    address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     // ****************** Events *************************** //
 
     // Emitted when an SCD CDP is converted into an MCD vault
@@ -374,7 +371,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     function verifySupportedCollateral(address _collateral) internal view {
-        if (_collateral != ETH_TOKEN_ADDRESS) {
+        if (_collateral != ETH_TOKEN) {
             (bool collateralSupported,,,) = makerRegistry.collaterals(_collateral);
             require(collateralSupported, "MV2: unsupported collateral");
         }
@@ -529,7 +526,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         returns (uint256 _cdpId)
     {
         // Continue with WETH as collateral instead of ETH if needed
-        if (_collateral == ETH_TOKEN_ADDRESS) {
+        if (_collateral == ETH_TOKEN) {
             _collateral = address(wethToken);
         }
         // Get the ilk for the collateral

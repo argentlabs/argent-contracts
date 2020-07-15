@@ -52,9 +52,6 @@ contract CompoundManager is OnlyOwnerModule {
     // The registry mapping underlying with cTokens
     ICompoundRegistry public compoundRegistry;
 
-    // Mock token address for ETH
-    address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     event InvestmentAdded(address indexed _wallet, address _token, uint256 _invested, uint256 _period);
     event InvestmentRemoved(address indexed _wallet, address _token, uint256 _fraction);
     event LoanOpened(
@@ -346,7 +343,7 @@ contract CompoundManager is OnlyOwnerModule {
     function mint(address _wallet, address _cToken, address _token, uint256 _amount) internal {
         require(_cToken != address(0), "Compound: No market for target token");
         require(_amount > 0, "Compound: amount cannot be 0");
-        if (_token == ETH_TOKEN_ADDRESS) {
+        if (_token == ETH_TOKEN) {
             invokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("mint()"));
         } else {
             invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
