@@ -85,7 +85,7 @@ contract TokenExchanger is OnlyOwnerModule {
      * @param _path Sequence of sets of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (exact) amount of a given
      * source token into a given (minimum) amount of a given destination token. The path is a sequence of sets of weighted routes where the destination
      * token of a set of weighted routes matches the source token of the next set of weighted routes in the path.
-     * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minte by ParaSwap. 0 means gas token will not be used by ParaSwap
+     * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minted by ParaSwap. 0 means gas token will not be used by ParaSwap
      */
     function sell(
         address _wallet,
@@ -131,7 +131,7 @@ contract TokenExchanger is OnlyOwnerModule {
      * @param _expectedSrcAmount The expected amount of source tokens (used only in ParaSwap's Bought event).
      * @param _routes Set of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (maximum) amount of a given
      * source token into a given (exact) amount of a given destination token.
-     * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minte by ParaSwap. 0 means gas token will not be used by ParaSwap
+     * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minted by ParaSwap. 0 means gas token will not be used by ParaSwap
      */
     function buy(
         address _wallet,
