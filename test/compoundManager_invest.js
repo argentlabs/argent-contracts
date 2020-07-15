@@ -303,7 +303,7 @@ describe("Invest Manager with Compound", function () {
 
       it("should fail to remove all of an ERC20 investment when it collateralizes a loan", async () => {
         const collateralAmount = parseEther("1");
-        const debtAmount = parseEther("0.01");
+        const debtAmount = parseEther("0.001");
         await token.from(infrastructure).transfer(wallet.contractAddress, collateralAmount);
         const openLoanParams = [
           wallet.contractAddress,
