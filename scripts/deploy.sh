@@ -21,6 +21,7 @@ else
     shift
 fi
 
+rm -rf build
 npm run compile:lib
 npm run compile
 

@@ -1,1 +1,43 @@
-{"version":"2.0.0","createdAt":1592906609,"modules":[{"address":"0x2CF059D2eA2e507cB38E8e676e3Ca37343631A57","name":"ApprovedTransfer"},{"address":"0x16624996BBafE4930fEbb8087DD7cB5cf5d6f1a4","name":"CompoundManager"},{"address":"0x037031b1E76Af7E8D7E3866F9a43d4B677E86D0F","name":"GuardianManager"},{"address":"0x6D3E69cA1b61BFEAee8AABd60538D1c20363CF7A","name":"LockManager"},{"address":"0x626A72d22809C6a1836A140340758171e6AaAB86","name":"NftTransfer"},{"address":"0x19237aE7cD944ce26eA833213a32B32C67AC0624","name":"RecoveryManager"},{"address":"0x866d8e06FD73B0B6B80ef2345c7474bad02c3687","name":"TokenExchanger"},{"address":"0xCE2F3BB2b9d2458240f8847b2A8DB5Cd79028bb1","name":"MakerV2Manager"},{"address":"0xaa7a60edfE2221a89f25Fc935A7FA2bc0Aa46675","name":"TransferManager"}],"fingerprint":"0x52dbcc8a"}
+{
+  "version": "2.0.0",
+  "createdAt": 1593531116,
+  "modules": [
+    {
+      "address": "0x4B46A214cc901442E42efCA6aebdf6796f42A5e3",
+      "name": "ApprovedTransfer"
+    },
+    {
+      "address": "0x106184263612FFA53d43b4413fC653110E83C401",
+      "name": "CompoundManager"
+    },
+    {
+      "address": "0x7f8F7c7C8375147f156454f168C0BE3F8CB2EC3D",
+      "name": "GuardianManager"
+    },
+    {
+      "address": "0xF75906b09bf2c81385D7dd8638ce41cd6e3778c3",
+      "name": "LockManager"
+    },
+    {
+      "address": "0xec1673d31931F80F87c356131B91cFd6BdEDa775",
+      "name": "NftTransfer"
+    },
+    {
+      "address": "0x4d9FCB195564bB1787D8d5b63eF23813d9713e3c",
+      "name": "RecoveryManager"
+    },
+    {
+      "address": "0xFe88Cd426b598c6EF68b206D8903Ff0AC79010CE",
+      "name": "TokenExchanger"
+    },
+    {
+      "address": "0xF4686793788627E4Dc8C33Af3B5a1b6bd67Fbf22",
+      "name": "MakerV2Manager"
+    },
+    {
+      "address": "0x47c46C9e250C1B3bfda7F10d9c46f18D49abbec4",
+      "name": "TransferManager"
+    }
+  ],
+  "fingerprint": "0x05fb0b50"
+}

@@ -148,9 +148,9 @@ const deploy = async (network) => {
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
-    config.Kyber.contract,
-    config.contracts.MultiSigWallet,
-    config.settings.feeRatio || 0,
+    config.defi.paraswap.contract,
+    "argent",
+    Object.values(config.defi.paraswap.authorisedExchanges),
   );
   newModuleWrappers.push(TokenExchangerWrapper);
 
