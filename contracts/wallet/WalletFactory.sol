@@ -81,11 +81,11 @@ contract WalletFactory is Owned, Managed {
         external
         onlyManager
     {
-        _validateInputs(_owner, _modules, _guardian);
+        validateInputs(_owner, _modules, _guardian);
         validateENSLabel(_label);
         Proxy proxy = new Proxy(walletImplementation);
         address payable wallet = address(proxy);
-        _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
+        configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
     }
      
     /**
@@ -109,13 +109,13 @@ contract WalletFactory is Owned, Managed {
         onlyManager
         returns (address _wallet)
     {
-        _validateInputs(_owner, _modules, _guardian);
+        validateInputs(_owner, _modules, _guardian);
         validateENSLabel(_label);
 
-        bytes32 newsalt = _newSalt(_salt, _owner, _modules, _guardian);
+        bytes32 newsalt = newSalt(_salt, _owner, _modules, _guardian);
         Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
         address payable wallet = address(proxy);
-        _configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
+        configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
         return wallet;
     }
 
@@ -137,8 +137,8 @@ contract WalletFactory is Owned, Managed {
         view
         returns (address _wallet)
     {
-        _validateInputs(_owner, _modules, _guardian);
-        bytes32 newsalt = _newSalt(_salt, _owner, _modules, _guardian);
+        validateInputs(_owner, _modules, _guardian);
+        bytes32 newsalt = newSalt(_salt, _owner, _modules, _guardian);
         bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _wallet = address(uint160(uint256(hash)));
@@ -183,7 +183,7 @@ contract WalletFactory is Owned, Managed {
      * @param _label ENS label of the new wallet, e.g. franck.
      * @param _guardian The guardian address.
      */
-    function _configureWallet(
+    function configureWallet(
         BaseWallet _wallet,
         address _owner,
         address[] memory _modules,
@@ -204,7 +204,7 @@ contract WalletFactory is Owned, Managed {
         IGuardianStorage(guardianStorage).addGuardian(address(_wallet), _guardian);
 
         // register ENS
-        _registerWalletENS(address(_wallet), _label);
+        registerWalletENS(address(_wallet), _label);
         // remove the factory from the authorised modules
         _wallet.authoriseModule(address(this), false);
         // emit event
@@ -218,7 +218,7 @@ contract WalletFactory is Owned, Managed {
      * @param _modules The list of modules.
      * @param _guardian The guardian address.
      */
-    function _newSalt(bytes32 _salt, address _owner, address[] memory _modules, address _guardian) internal pure returns (bytes32) {
+    function newSalt(bytes32 _salt, address _owner, address[] memory _modules, address _guardian) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(_salt, _owner, _modules, _guardian));
     }
 
@@ -227,7 +227,7 @@ contract WalletFactory is Owned, Managed {
      * @param _owner The owner address.
      * @param _modules The list of modules.
      */
-    function _validateInputs(address _owner, address[] memory _modules, address _guardian) internal view {
+    function validateInputs(address _owner, address[] memory _modules, address _guardian) internal view {
         require(_owner != address(0), "WF: owner cannot be null");
         require(_modules.length > 0, "WF: cannot assign with less than 1 module");
         require(IModuleRegistry(moduleRegistry).isRegisteredModule(_modules), "WF: one or more modules are not registered");
@@ -244,7 +244,7 @@ contract WalletFactory is Owned, Managed {
      * @param _wallet The wallet address.
      * @param _label ENS label of the new wallet (e.g. franck).
      */
-    function _registerWalletENS(address payable _wallet, string memory _label) internal {
+    function registerWalletENS(address payable _wallet, string memory _label) internal {
         // claim reverse
         address ensResolver = IENSManager(ensManager).ensResolver();
         bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
