@@ -87,7 +87,7 @@ contract TokenExchanger is OnlyOwnerModule {
      * token of a set of weighted routes matches the source token of the next set of weighted routes in the path.
      * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minte by ParaSwap. 0 means gas token will not be used by ParaSwap
      */
-    function multiSwap(
+    function sell(
         address _wallet,
         address _srcToken,
         address _destToken,
@@ -106,7 +106,7 @@ contract TokenExchanger is OnlyOwnerModule {
         // Approve source amount if required
         uint previousAllowance = approveToken(_wallet, _srcToken, _srcAmount);
         // Perform trade and emit event
-        doMultiSwap(
+        doSell(
             _wallet,
             _srcToken,
             _destToken,
@@ -229,7 +229,7 @@ contract TokenExchanger is OnlyOwnerModule {
         emit TokenExchanged(_wallet, _srcToken, _srcAmount, _destToken, estimatedDestAmount);
     }
 
-    function doMultiSwap(
+    function doSell(
         address _wallet,
         address _srcToken,
         address _destToken,

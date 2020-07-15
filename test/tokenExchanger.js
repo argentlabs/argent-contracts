@@ -32,7 +32,7 @@ const TransferManager = require("../build/TransferManager");
 const TokenPriceStorage = require("../build/TokenPriceStorage");
 
 // Utils
-const { makePathes } = require("../utils/paraswap/multiswap-helper");
+const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
 const { ETH_TOKEN } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
@@ -226,7 +226,7 @@ describe("Token Exchanger", function () {
     let routes;
     let srcAmount;
     let destAmount;
-    if (method === "multiSwap") {
+    if (method === "sell") {
       srcAmount = fixedAmount;
       destAmount = variableAmount;
       routes = buildPathes({
@@ -251,15 +251,15 @@ describe("Token Exchanger", function () {
     const beforeFrom = await getBalance(fromToken, _wallet);
     const beforeTo = await getBalance(toToken, _wallet);
     const fixedAmount = parseEther("0.01");
-    const variableAmount = method === "multiSwap" ? 1 : beforeFrom;
-    if (method === "multiSwap") { assert.isTrue(beforeFrom.gte(fixedAmount), "wallet should have enough of fromToken"); }
+    const variableAmount = method === "sell" ? 1 : beforeFrom;
+    if (method === "sell") { assert.isTrue(beforeFrom.gte(fixedAmount), "wallet should have enough of fromToken"); }
 
     const params = getParams({
       method,
       fromToken,
       toToken,
-      fixedAmount, // srcAmount for multiSwap; destAmount for buy
-      variableAmount, // destAmount for multiSwap; srcAmount for buy
+      fixedAmount, // srcAmount for sell; destAmount for buy
+      variableAmount, // destAmount for sell; srcAmount for buy
       _wallet,
     });
 
@@ -275,7 +275,7 @@ describe("Token Exchanger", function () {
     const afterFrom = await getBalance(fromToken, _wallet);
     const afterTo = await getBalance(toToken, _wallet);
 
-    if (method === "multiSwap") {
+    if (method === "sell") {
       assert.isTrue(beforeFrom.sub(afterFrom).eq(fixedAmount), "should send the exact amount of fromToken");
       assert.isTrue(afterTo.gt(beforeTo), "should receive some toToken");
       assert.isTrue(destAmount.gte(variableAmount), "should receive more toToken than minimum specified");
@@ -333,7 +333,7 @@ describe("Token Exchanger", function () {
         [], // no exchange whitelisted
       );
       const fixedAmount = parseEther("0.01");
-      const variableAmount = method === "multiSwap" ? "1" : await getBalance(fromToken, wallet);
+      const variableAmount = method === "sell" ? "1" : await getBalance(fromToken, wallet);
       const params = getParams({
         method,
         fromToken,
@@ -352,7 +352,7 @@ describe("Token Exchanger", function () {
       await oldWallet.init(owner.address, [exchanger.contractAddress]);
       // fund wallet
       await infrastructure.sendTransaction({ to: oldWallet.contractAddress, value: parseEther("0.1") });
-      // call multiSwap/buy
+      // call sell/buy
       await testTrade({
         method,
         fromToken: ETH_TOKEN,
@@ -365,7 +365,7 @@ describe("Token Exchanger", function () {
     const testTradeWithPreExistingAllowance = async (allowance) => {
       const spender = await paraswap.getTokenTransferProxy();
       await transferManager.from(owner).approveToken(wallet.contractAddress, tokenA.contractAddress, spender, allowance);
-      // call multiSwap
+      // call sell
       await testTrade({
         method, fromToken: tokenA.contractAddress, toToken: ETH_TOKEN, relayed: false,
       });
@@ -385,6 +385,6 @@ describe("Token Exchanger", function () {
     });
   }
 
-  describe("MultiSwap", () => testsForMethod("multiSwap"));
+  describe("Sell", () => testsForMethod("sell"));
   describe("Buy", () => testsForMethod("buy"));
 });
