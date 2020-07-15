@@ -183,26 +183,12 @@ describe("Invest Manager with Compound", function () {
     }
 
     async function addInvestment(tokenAddress, amount, days, relay = false) {
-      let tx; let
-        txReceipt;
+      let tx;
+      let txReceipt;
       const investInEth = (tokenAddress === ETH_TOKEN);
 
       if (investInEth) {
-        // const bef = (await deployer.provider.getBalance(infrastructure.address)).toString()
-        // console.log('infra before', bef);
-        // console.log({ to: wallet.contractAddress, value: amount });
-
         tx = await infrastructure.sendTransaction({ to: wallet.contractAddress, value: amount });
-        // tx = await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 100);
-        // txReceipt = await wallet.verboseWaitForTransaction(tx);
-
-        // console.log('resu', txReceipt)
-        // const aft = (await deployer.provider.getBalance(infrastructure.address)).toString()
-        // const aftW = (await deployer.provider.getBalance(wallet.contractAddress)).toString()
-        // console.log('infra after', aft);
-        // console.log('W after', aftW);
-        // console.log('inc?', aft !=== bef)
-        // return
       } else {
         await token.from(infrastructure).transfer(wallet.contractAddress, amount);
       }
@@ -210,8 +196,6 @@ describe("Invest Manager with Compound", function () {
       if (relay) {
         txReceipt = await manager.relay(investManager, "addInvestment", params, wallet, [owner]);
       } else {
-        // console.log(owner.address, 'bal=', await deployer.provider.getBalance(wallet.contractAddress), 'p', wallet.contractAddress, tokenAddress, amount.toString(), 0);
-
         tx = await investManager.from(owner).addInvestment(...params);
         txReceipt = await investManager.verboseWaitForTransaction(tx);
       }
@@ -248,6 +232,8 @@ describe("Invest Manager with Compound", function () {
     }
 
     describe("Add Investment", () => {
+      // Successes
+
       it("should invest in ERC20 for 1 year and gain interests (blockchain tx)", async () => {
         await addInvestment(token.contractAddress, parseEther("1"), 365, false);
       });
@@ -263,9 +249,28 @@ describe("Invest Manager with Compound", function () {
       it("should invest in ETH for 1 year and gain interests (relay tx)", async () => {
         await addInvestment(ETH_TOKEN, parseEther("1"), 365, true);
       });
+
+      // Reverts
+
+      it("should fail to invest in ERC20 with an unknown token", async () => {
+        const params = [wallet.contractAddress, ethers.constants.AddressZero, parseEther("1"), 0];
+        await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: No market for target token");
+      });
+
+      it("should fail to invest in ERC20 with an amount of zero", async () => {
+        const params = [wallet.contractAddress, token.contractAddress, 0, 0];
+        await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: amount cannot be 0");
+      });
+
+      it("should fail to invest in ERC20 when not holding any ERC20", async () => {
+        const params = [wallet.contractAddress, token.contractAddress, parseEther("1"), 0];
+        await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: mint failed");
+      });
     });
 
     describe("Remove Investment", () => {
+      // Successes
+
       function testRemoveERC20Investment(fraction, relay) {
         it(`should remove ${fraction / 100}% of an ERC20 investment (${relay ? "relay" : "blockchain"} tx)`, async () => {
           await removeInvestment(token.contractAddress, fraction, relay);
@@ -283,6 +288,33 @@ describe("Invest Manager with Compound", function () {
         testRemoveETHInvestment(i * 2000, true);
         testRemoveETHInvestment(i * 2000, false);
       }
+
+      // Reverts
+
+      it("should fail to remove an ERC20 investment when passing an invalid fraction value", async () => {
+        const params = [wallet.contractAddress, token.contractAddress, 50000];
+        await assert.revertWith(investManager.from(owner).removeInvestment(...params), "CM: invalid fraction value");
+      });
+
+      it("should fail to remove an ERC20 investment when not holding any of the corresponding cToken", async () => {
+        const params = [wallet.contractAddress, token.contractAddress, 5000];
+        await assert.revertWith(investManager.from(owner).removeInvestment(...params), "CM: amount cannot be 0");
+      });
+
+      it("should fail to remove all of an ERC20 investment when it collateralizes a loan", async () => {
+        const collateralAmount = parseEther("1");
+        const debtAmount = parseEther("0.01");
+        await token.from(infrastructure).transfer(wallet.contractAddress, collateralAmount);
+        const openLoanParams = [
+          wallet.contractAddress,
+          token.contractAddress,
+          collateralAmount,
+          ETH_TOKEN,
+          debtAmount];
+        await investManager.from(owner).openLoan(...openLoanParams);
+        const removeInvestmentParams = [wallet.contractAddress, token.contractAddress, 10000];
+        await assert.revertWith(investManager.from(owner).removeInvestment(...removeInvestmentParams), "CM: redeem failed");
+      });
     });
   });
 });
