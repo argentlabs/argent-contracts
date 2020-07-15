@@ -69,7 +69,7 @@ contract WalletFactory is Owned, Managed {
      * The wallet is created using the CREATE opcode.
      * @param _owner The account address.
      * @param _modules The list of modules.
-     * @param _label ENS label of the new wallet, e.g. franck.
+     * @param _label Optional ENS label of the new wallet, e.g. franck.
      * @param _guardian The guardian address.
      */
     function createWallet(
@@ -82,7 +82,6 @@ contract WalletFactory is Owned, Managed {
         onlyManager
     {
         validateInputs(_owner, _modules, _guardian);
-        validateENSLabel(_label);
         Proxy proxy = new Proxy(walletImplementation);
         address payable wallet = address(proxy);
         configureWallet(BaseWallet(wallet), _owner, _modules, _label, _guardian);
@@ -94,7 +93,7 @@ contract WalletFactory is Owned, Managed {
      * The wallet is created using the CREATE2 opcode.
      * @param _owner The account address.
      * @param _modules The list of modules.
-     * @param _label ENS label of the new wallet, e.g. franck.
+     * @param _label Optional ENS label of the new wallet, e.g. franck.
      * @param _guardian The guardian address.
      * @param _salt The salt.
      */
@@ -110,8 +109,6 @@ contract WalletFactory is Owned, Managed {
         returns (address _wallet)
     {
         validateInputs(_owner, _modules, _guardian);
-        validateENSLabel(_label);
-
         bytes32 newsalt = newSalt(_salt, _owner, _modules, _guardian);
         Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
         address payable wallet = address(proxy);
@@ -180,7 +177,7 @@ contract WalletFactory is Owned, Managed {
      * @param _wallet The target wallet
      * @param _owner The account address.
      * @param _modules The list of modules.
-     * @param _label ENS label of the new wallet, e.g. franck.
+     * @param _label Optional ENS label of the new wallet, e.g. franck.
      * @param _guardian The guardian address.
      */
     function configureWallet(
@@ -203,7 +200,7 @@ contract WalletFactory is Owned, Managed {
         // add guardian
         IGuardianStorage(guardianStorage).addGuardian(address(_wallet), _guardian);
 
-        // register ENS
+        // register ENS if needed
         registerWalletENS(address(_wallet), _label);
         // remove the factory from the authorised modules
         _wallet.authoriseModule(address(this), false);
@@ -234,23 +231,20 @@ contract WalletFactory is Owned, Managed {
         require(_guardian != (address(0)), "WF: guardian cannot be null");
     }
 
-    function validateENSLabel(string memory _label) internal pure {
-        bytes memory labelBytes = bytes(_label);
-        require(labelBytes.length != 0, "WF: ENS label must be defined");
-    }
-
     /**
      * @dev Register an ENS subname to a wallet.
      * @param _wallet The wallet address.
      * @param _label ENS label of the new wallet (e.g. franck).
      */
     function registerWalletENS(address payable _wallet, string memory _label) internal {
-        // claim reverse
-        address ensResolver = IENSManager(ensManager).ensResolver();
-        bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
-        address ensReverseRegistrar = IENSManager(ensManager).getENSReverseRegistrar();
-        BaseWallet(_wallet).invoke(ensReverseRegistrar, 0, methodData);
-        // register with ENS manager
-        IENSManager(ensManager).register(_label, _wallet);
+        if (bytes(_label).length > 0) {
+            // claim reverse
+            address ensResolver = IENSManager(ensManager).ensResolver();
+            bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
+            address ensReverseRegistrar = IENSManager(ensManager).getENSReverseRegistrar();
+            BaseWallet(_wallet).invoke(ensReverseRegistrar, 0, methodData);
+            // register with ENS manager
+            IENSManager(ensManager).register(_label, _wallet);
+        }
     }
 }
