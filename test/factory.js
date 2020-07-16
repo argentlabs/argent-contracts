@@ -227,7 +227,7 @@ describe("Wallet Factory", function () {
       const tx = await factory.from(infrastructure).createWallet(owner.address, modules, NO_ENS, guardian.address);
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
-      assert.notEqual(walletAddr, ZERO_ADDRESS, "wallet shoudl be created");
+      assert.notEqual(walletAddr, ZERO_ADDRESS, "wallet should be created");
     });
 
     it("should fail to create when the guardian is empty", async () => {
