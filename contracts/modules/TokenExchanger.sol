@@ -35,7 +35,9 @@ contract TokenExchanger is OnlyOwnerModule {
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     // Signatures of Paraswap's trade methods
+    // solhint-disable-next-line max-line-length
     bytes4 constant internal MULTISWAP = 0xcbd1603e; // bytes4(keccak256("multiSwap(address,address,uint256,uint256,uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[],uint256,address,uint256,string)"))
+    // solhint-disable-next-line max-line-length
     bytes4 constant internal BUY = 0xbb2a349b; // bytes4(keccak256("buy(address,address,uint256,uint256,uint256,(address,address,uint256,uint256,bytes,uint256)[],uint256,address,uint256,string)"))
 
     // The address of the Paraswap Proxy contract
@@ -79,9 +81,9 @@ contract TokenExchanger is OnlyOwnerModule {
      * @param _srcAmount The exact amount of source tokens to sell.
      * @param _minDestAmount The minimum amount of destination tokens required for the trade.
      * @param _expectedDestAmount The expected amount of destination tokens (used only in ParaSwap's Swapped event).
-     * @param _path Sequence of sets of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (exact) amount of a given
-     * source token into a given (minimum) amount of a given destination token. The path is a sequence of sets of weighted routes where the destination
-     * token of a set of weighted routes matches the source token of the next set of weighted routes in the path.
+     * @param _path Sequence of sets of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (exact) amount of
+     * a given source token into a given (minimum) amount of a given destination token. The path is a sequence of sets of weighted routes where
+     * the destination token of a set of weighted routes matches the source token of the next set of weighted routes in the path.
      * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minted by ParaSwap. 0 means gas token will not be used by ParaSwap
      */
     function sell(
