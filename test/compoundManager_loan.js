@@ -1,6 +1,6 @@
 /* global accounts, utils */
 const ethers = require("ethers");
-const { parseEther, bigNumberify } = require("ethers").utils;
+const { parseEther, bigNumberify, formatBytes32String } = require("ethers").utils;
 
 const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
@@ -320,6 +320,8 @@ describe("Loan Module", function () {
     });
 
     describe("Add/Remove Collateral", () => {
+      // Successes
+
       it("should add ETH collateral to a loan (blockchain tx)", async () => {
         await fundWallet({ ethAmount: parseEther("0.2"), token1Amount: 0 });
         const loanId = await testOpenLoan({
@@ -398,6 +400,44 @@ describe("Loan Module", function () {
         await testChangeCollateral({
           loanId, collateral: token1, amount: parseEther("0.1"), add: false, relayed: true,
         });
+      });
+
+      // Reverts
+
+      it("should fail to borrow an unknown token", async () => {
+        const params = [wallet.contractAddress, formatBytes32String(""), ethers.constants.AddressZero, parseEther("1")];
+        await assert.revertWith(loanManager.from(owner).addDebt(...params), "CM: No market for target token");
+      });
+
+      it("should fail to borrow 0 token", async () => {
+        const params = [wallet.contractAddress, formatBytes32String(""), ETH_TOKEN, parseEther("0")];
+        await assert.revertWith(loanManager.from(owner).addDebt(...params), "CM: amount cannot be 0");
+      });
+
+      it("should fail to borrow token with no collateral", async () => {
+        const params = [wallet.contractAddress, formatBytes32String(""), ETH_TOKEN, parseEther("1")];
+        await assert.revertWith(loanManager.from(owner).addDebt(...params), "CM: borrow failed to increase token balance");
+      });
+
+      it("should fail to repay an unknown token", async () => {
+        const params = [wallet.contractAddress, formatBytes32String(""), ethers.constants.AddressZero, parseEther("1")];
+        await assert.revertWith(loanManager.from(owner).removeDebt(...params), "CM: No market for target token");
+      });
+
+      it("should fail to repay 0 token", async () => {
+        const params = [wallet.contractAddress, formatBytes32String(""), ETH_TOKEN, parseEther("0")];
+        await assert.revertWith(loanManager.from(owner).removeDebt(...params), "CM: amount cannot be 0");
+      });
+
+      it("should fail to repay too much debt token", async () => {
+        const collateralAmount = parseEther("1");
+        const debtAmount = parseEther("0.001");
+        await fundWallet({ ethAmount: collateralAmount, token1Amount: 0 });
+        const loanId = await testOpenLoan({
+          collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
+        });
+        const removeDebtParams = [wallet.contractAddress, loanId, token1.contractAddress, parseEther("0.002")];
+        await assert.revertWith(loanManager.from(owner).removeDebt(...removeDebtParams), "CM: repayBorrow failed to reduce token balance");
       });
     });
 
