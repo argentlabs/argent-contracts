@@ -427,7 +427,7 @@ describe("Loan Module", function () {
 
       it("should fail to borrow token with no collateral", async () => {
         const params = [wallet.contractAddress, ZERO_BYTES32, ETH_TOKEN, parseEther("1")];
-        await assert.revertWith(loanManager.from(owner).addDebt(...params), "CM: borrow failed to increase token balance");
+        await assert.revertWith(loanManager.from(owner).addDebt(...params), "CM: borrow failed");
       });
 
       it("should fail to repay an unknown token", async () => {
@@ -448,7 +448,28 @@ describe("Loan Module", function () {
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
         const removeDebtParams = [wallet.contractAddress, loanId, token1.contractAddress, parseEther("0.002")];
-        await assert.revertWith(loanManager.from(owner).removeDebt(...removeDebtParams), "CM: repayBorrow failed to reduce token balance");
+        await assert.revertWith(loanManager.from(owner).removeDebt(...removeDebtParams), "CM: repayBorrow failed");
+      });
+
+      it("should fail to remove an unknown collateral token", async () => {
+        const params = [wallet.contractAddress, ZERO_BYTES32, ethers.constants.AddressZero, parseEther("1")];
+        await assert.revertWith(loanManager.from(owner).removeCollateral(...params), "CM: No market for target token");
+      });
+
+      it("should fail to remove 0 collateral token", async () => {
+        const params = [wallet.contractAddress, ZERO_BYTES32, ETH_TOKEN, parseEther("0")];
+        await assert.revertWith(loanManager.from(owner).removeCollateral(...params), "CM: amount cannot be 0");
+      });
+
+      it("should fail to remove too much collateral token", async () => {
+        const collateralAmount = parseEther("1");
+        const debtAmount = parseEther("0.001");
+        await fundWallet({ ethAmount: collateralAmount, token1Amount: 0 });
+        const loanId = await testOpenLoan({
+          collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
+        });
+        const removeDebtParams = [wallet.contractAddress, loanId, token1.contractAddress, parseEther("0.002")];
+        await assert.revertWith(loanManager.from(owner).removeCollateral(...removeDebtParams), "CM: redeemUnderlying failed");
       });
     });
 

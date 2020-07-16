@@ -396,7 +396,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 initialTokenAmount = _token == ETH_TOKEN ? _wallet.balance : ERC20(_token).balanceOf(_wallet);
         invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("borrow(uint256)", _amount));
         uint256 finalTokenAmount = _token == ETH_TOKEN ? _wallet.balance : ERC20(_token).balanceOf(_wallet);
-        require(finalTokenAmount > initialTokenAmount, "CM: borrow failed to increase token balance");
+        require(finalTokenAmount > initialTokenAmount, "CM: borrow failed");
     }
 
     /**
@@ -422,7 +422,7 @@ contract CompoundManager is OnlyOwnerModule {
             invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
             finalTokenAmount = ERC20(token).balanceOf(_wallet);
         }
-        require(finalTokenAmount < initialTokenAmount, "CM: repayBorrow failed to reduce token balance");
+        require(finalTokenAmount < initialTokenAmount, "CM: repayBorrow failed");
     }
 
     /**
