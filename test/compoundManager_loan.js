@@ -322,11 +322,15 @@ describe("Loan Module", function () {
         assert.isTrue(loan._status === 1 && loan._ethValue.gt(0), "should have obtained the liquidity info of the loan");
 
         await oracle.setUnderlyingPrice(cToken1.contractAddress, WAD.mul(10));
-
         loan = await loanManager.getLoan(wallet.contractAddress, ZERO_BYTES32);
         assert.isTrue(loan._status === 2 && loan._ethValue.gt(0), "should have obtained the shortfall info of the loan");
 
+        await oracle.setUnderlyingPrice(cToken1.contractAddress, 0);
+        await assert.revertWith(loanManager.getLoan(wallet.contractAddress, ZERO_BYTES32), "CM: failed to get account liquidity");
+
         await oracle.setUnderlyingPrice(cToken1.contractAddress, WAD.div(10));
+        loan = await loanManager.getLoan(ethers.constants.AddressZero, ZERO_BYTES32);
+        assert.isTrue(loan._status === 0 && loan._ethValue.eq(0), "should have obtained (0,0) for the non-existing loan info");
       });
     });
 
