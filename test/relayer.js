@@ -331,7 +331,7 @@ describe("RelayerModule", function () {
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 999999990 });
       const dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
       assert.isTrue(dailySpent.toNumber() === 999999990, "initial daily spent should be 999999990");
-      await assert.revertWith(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limt");
+      await assert.revertWith(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limit");
     });
   });
 
