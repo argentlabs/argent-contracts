@@ -33,7 +33,6 @@ contract Proxy {
     }
 
     fallback() external payable {
-        // solium-disable-next-line security/no-inline-assembly
         assembly {
             let target := sload(0)
             calldatacopy(0, 0, calldatasize())

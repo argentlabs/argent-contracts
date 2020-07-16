@@ -987,7 +987,6 @@ contract Comptroller is ComptrollerV1Storage, ComptrollerInterface, ComptrollerE
         bool initializing = (
                 msg.sender == comptrollerImplementation
                 &&
-                //solium-disable-next-line security/no-tx-origin
                 tx.origin == admin
         );
         bool isAdmin = msg.sender == admin;

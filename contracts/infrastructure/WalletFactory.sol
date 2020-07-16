@@ -166,7 +166,7 @@ contract WalletFactory is Owned, Managed {
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
-    function init(BaseWallet _wallet) external pure { // solium-disable-line no-empty-blocks
+    function init(BaseWallet _wallet) external pure {
         //do nothing
     }
 

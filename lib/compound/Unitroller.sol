@@ -139,7 +139,6 @@ contract Unitroller is UnitrollerAdminStorage, ComptrollerErrorReporter {
         // delegate all other functions to current implementation
         (bool success, ) = comptrollerImplementation.delegatecall(msg.data);
 
-        // solium-disable-next-line security/no-inline-assembly
         assembly {
               let free_mem_ptr := mload(0x40)
               returndatacopy(free_mem_ptr, 0, returndatasize)

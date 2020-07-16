@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
-// solium-disable-next-line no-experimental
 pragma experimental ABIEncoderV2;
 
 import "./common/OnlyOwnerModule.sol";
@@ -36,9 +35,7 @@ contract TokenExchanger is OnlyOwnerModule {
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     // Signatures of Paraswap's trade methods
-    // solium-disable-next-line max-len
     bytes4 constant internal MULTISWAP = 0xcbd1603e; // bytes4(keccak256("multiSwap(address,address,uint256,uint256,uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[],uint256,address,uint256,string)"))
-    // solium-disable-next-line max-len
     bytes4 constant internal BUY = 0xbb2a349b; // bytes4(keccak256("buy(address,address,uint256,uint256,uint256,(address,address,uint256,uint256,bytes,uint256)[],uint256,address,uint256,string)"))
 
     // The address of the Paraswap Proxy contract

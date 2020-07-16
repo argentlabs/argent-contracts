@@ -390,7 +390,6 @@ abstract contract MakerV2Loan is MakerV2Base {
         if (tokenBalance < _tokenAmountRequired) {
             // Not enough tokens => Convert some ETH into tokens with Uniswap
             uint256 etherValueOfTokens = _uniswapExchange.getEthToTokenOutputPrice(_tokenAmountRequired - tokenBalance);
-            // solium-disable-next-line security/no-block-members
             invokeWallet(_wallet, address(_uniswapExchange), etherValueOfTokens, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, now));
         }
     }
@@ -515,7 +514,6 @@ abstract contract MakerV2Loan is MakerV2Base {
      * @param _debtAmount The amount of DAI to draw from the vault
      * @return _cdpId The id of the created vault.
      */
-    // solium-disable-next-line security/no-assign-params
     function openVault(
         address _wallet,
         address _collateral,

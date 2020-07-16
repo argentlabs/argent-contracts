@@ -37,7 +37,6 @@
 // pragma solidity ^0.4.14;
 pragma solidity ^0.5.4;
 
-/* solium-disable */
 library strings {
     struct slice {
         uint _len;

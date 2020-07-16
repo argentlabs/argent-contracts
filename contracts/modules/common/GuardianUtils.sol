@@ -59,7 +59,6 @@ library GuardianUtils {
     */
     function isContract(address _addr) internal view returns (bool) {
         uint32 size;
-        // solium-disable-next-line security/no-inline-assembly
         assembly {
             size := extcodesize(_addr)
         }
@@ -75,7 +74,7 @@ library GuardianUtils {
     function isGuardianOwner(address _guardian, address _owner) internal view returns (bool) {
         address owner = address(0);
         bytes4 sig = bytes4(keccak256("owner()"));
-        // solium-disable-next-line security/no-inline-assembly
+
         assembly {
             let ptr := mload(0x40)
             mstore(ptr,sig)
