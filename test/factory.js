@@ -3,7 +3,7 @@ const ethers = require("ethers");
 const { bigNumberify } = require("ethers").utils;
 
 const BaseWallet = require("../build/BaseWallet");
-const Module = require("../build/BaseModule");
+const Module = require("../build/TestOnlyOwnerModule");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const ENSRegistry = require("../build/ENSRegistry");
 const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
@@ -86,8 +86,8 @@ describe("Wallet Factory", function () {
     await factory.changeModuleRegistry(moduleRegistry.contractAddress);
     await factory.changeENSManager(ensManager.contractAddress);
 
-    module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress, ZERO_BYTES32);
-    module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress, ZERO_BYTES32);
+    module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress);
+    module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress);
     await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
     await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
 
@@ -282,8 +282,8 @@ describe("Wallet Factory", function () {
 
   describe("Create wallets with CREATE2", () => {
     beforeEach(async () => {
-      module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress, ZERO_BYTES32);
-      module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress, ZERO_BYTES32);
+      module1 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress);
+      module2 = await deployer.deploy(Module, {}, moduleRegistry.contractAddress, guardianStorage.contractAddress);
       await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
       await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
     });

@@ -8,9 +8,15 @@ const GuardianStorage = require("../build/GuardianStorage");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
+const RelayerModule = require("../build/RelayerModule");
 
 const TestManager = require("../utils/test-manager");
-const { sortWalletByAddress, parseRelayReceipt, signOffchain } = require("../utils/utilities.js");
+const {
+  ETH_TOKEN,
+  sortWalletByAddress,
+  parseRelayReceipt,
+  signOffchain,
+} = require("../utils/utilities.js");
 
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
@@ -37,6 +43,7 @@ describe("RecoveryManager", function () {
   let recoveryPeriod;
   let wallet;
   let walletImplementation;
+  let relayerModule;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -51,10 +58,22 @@ describe("RecoveryManager", function () {
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
     recoveryPeriod = await recoveryManager.recoveryPeriod();
 
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
+
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-
-    await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
+    await wallet.init(owner.address,
+      [
+        guardianManager.contractAddress,
+        lockManager.contractAddress,
+        recoveryManager.contractAddress,
+        relayerModule.contractAddress,
+      ]);
   });
 
   async function addGuardians(guardians) {
@@ -415,14 +434,33 @@ describe("RecoveryManager", function () {
         // Replace the `executeRecovery` method signature: b0ba4da0 with a non-existent one: e0b6fcfc
         methodData = methodData.replace("b0ba4da0", "e0b6fcfc");
 
-        const signatures = await signOffchain([guardian1], recoveryManager.contractAddress, wallet.contractAddress, 0, methodData, nonce, 0, 700000);
-        let errorReason;
-        try {
-          await recoveryManager.from(nonowner2).execute(wallet.contractAddress, methodData, nonce, signatures, 0, 700000, { gasLimit: 700000 });
-        } catch (err) {
-          errorReason = err.data[err.transactionHash].reason;
-        }
-        assert.equal(errorReason, "RM: unknown method");
+        const signatures = await signOffchain(
+          [guardian1],
+          relayerModule.contractAddress,
+          recoveryManager.contractAddress,
+          0,
+          methodData,
+          nonce,
+          0,
+          700000,
+          ETH_TOKEN,
+          ethers.constants.AddressZero,
+        );
+        await assert.revertWith(
+          relayerModule.from(nonowner2).execute(
+            wallet.contractAddress,
+            recoveryManager.contractAddress,
+            methodData,
+            nonce,
+            signatures,
+            0,
+            700000,
+            ETH_TOKEN,
+            ethers.constants.AddressZero,
+            { gasLimit: 800000 },
+          ),
+          "RM: unknown method",
+        );
       });
     });
   });

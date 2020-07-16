@@ -15,9 +15,11 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../infrastructure/storage/ILimitStorage.sol";
+import "../../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
  * @title LimitManager
@@ -129,31 +131,17 @@ library LimitUtils {
     }
 
     /**
-    * @dev Checks if a transfer is within the limit.
-    * @param _lStorage The storage contract.
-    * @param _wallet The target wallet.
-    * @param _amount The amount for the transfer
-    * @return true if the transfer is withing the daily limit.
+    * @notice Helper method to get the ether value equivalent of a token amount.
+    * @dev For low value amounts of tokens we accept this to return zero as these are small enough to disregard.
+    * Note that the price stored for tokens = price for 1 token (in ETH wei) * 10^(18-token decimals).
+    * @param _amount The token amount.
+    * @param _token The address of the token.
+    * @return The ether value for _amount of _token.
     */
-    function checkDailySpent(
-        ILimitStorage _lStorage,
-        address _wallet,
-        uint256 _amount
-    )
-        internal
-        view
-        returns (bool)
-    {
-        (ILimitStorage.Limit memory limit, ILimitStorage.DailySpent memory dailySpent) = _lStorage.getLimitAndDailySpent(_wallet);
-        uint256 currentLimit = currentLimit(limit);
-        if (currentLimit == LIMIT_DISABLED) {
-            return true;
-        }
-        // solium-disable-next-line security/no-block-members
-        if (dailySpent.periodEnd < now) {
-            return (_amount <= currentLimit);
-        }
-        return (_amount.add(dailySpent.alreadySpent) <= currentLimit);
+    function getEtherValue(ITokenPriceStorage _priceStorage, uint256 _amount, address _token) internal view returns (uint256) {
+        uint256 price = _priceStorage.getTokenPrice(_token);
+        uint256 etherValue = price.mul(_amount).div(10**18);
+        return etherValue;
     }
 
     /**

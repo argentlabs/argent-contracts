@@ -1,4 +1,5 @@
 /* global accounts */
+const ethers = require("ethers");
 const { bigNumberify, parseEther } = require("ethers").utils;
 const { AddressZero } = require("ethers").constants;
 
@@ -25,6 +26,7 @@ const BaseWallet = require("../build/BaseWallet");
 const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
 const GuardianStorage = require("../build/GuardianStorage");
 const TokenExchanger = require("../build/TokenExchanger");
+const RelayerModule = require("../build/RelayerModule");
 const ERC20 = require("../build/TestERC20");
 const TransferStorage = require("../build/TransferStorage");
 const LimitStorage = require("../build/LimitStorage");
@@ -34,7 +36,7 @@ const TokenPriceStorage = require("../build/TokenPriceStorage");
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, parseLogs } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
 // Constants
@@ -56,7 +58,7 @@ describe("Token Exchanger", function () {
   let walletImplementation;
   let exchanger;
   let transferManager;
-
+  let relayerModule;
   let kyberNetwork;
   let kyberAdapter;
   let uniswapRouter;
@@ -69,6 +71,15 @@ describe("Token Exchanger", function () {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(ModuleRegistry);
     guardianStorage = await deployer.deploy(GuardianStorage);
+    relayerModule = await deployer.deploy(
+      RelayerModule,
+      {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+    );
+    manager.setRelayerModule(relayerModule);
 
     // Deploy test tokens
     tokenA = await deployer.deploy(ERC20, {}, [infrastructure.address], parseEther("1000"), DECIMALS);
@@ -152,7 +163,7 @@ describe("Token Exchanger", function () {
     // create wallet
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [exchanger.contractAddress, transferManager.contractAddress]);
+    await wallet.init(owner.address, [exchanger.contractAddress, transferManager.contractAddress, relayerModule.contractAddress]);
 
     // fund wallet
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther("0.1") });
@@ -266,11 +277,12 @@ describe("Token Exchanger", function () {
     let txR;
     if (relayed) {
       txR = await manager.relay(exchanger, method, params, _wallet, [owner]);
-      assert.isTrue(txR.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
+      const { success } = (await parseLogs(txR, relayerModule, "TransactionExecuted"))[0];
+      assert.isTrue(success, "Relayed tx should succeed");
     } else {
       txR = await (await exchanger.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
     }
-    const { destAmount } = txR.events.find((log) => log.event === "TokenExchanged").args;
+    const { destAmount } = (await parseLogs(txR, exchanger, "TokenExchanged"))[0];
 
     const afterFrom = await getBalance(fromToken, _wallet);
     const afterTo = await getBalance(toToken, _wallet);

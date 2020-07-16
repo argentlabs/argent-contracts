@@ -17,6 +17,7 @@
 pragma solidity ^0.6.10;
 
 import "./BaseModule.sol";
+import "./LimitUtils.sol";
 
 /**
  * @title BaseTransfer
@@ -24,9 +25,6 @@ import "./BaseModule.sol";
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 abstract contract BaseTransfer is BaseModule {
-
-    // Mock token address for ETH
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // *************** Events *************************** //
 

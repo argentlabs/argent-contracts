@@ -17,9 +17,11 @@
 pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2;
 
+import "./common/Utils.sol";
 import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitUtils.sol";
+import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
 import "../../lib/other/ERC20.sol";
@@ -136,8 +138,20 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         }
     }
 
-    function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerModule) onlyWalletOwner(_wallet) {
+    function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerModule) onlyWalletOwnerOrModule(_wallet) {
         OnlyOwnerModule.addModule(_wallet, _module);
+    }
+
+    function getRequiredSignatures(
+        address _wallet,
+        bytes calldata _data
+    )
+        external
+        override(BaseModule, OnlyOwnerModule)
+        view
+        returns (uint256, OwnerSignature)
+    {
+        return (1, OwnerSignature.Required);
     }
 
     // *************** External/Public Functions ********************* //
@@ -158,14 +172,14 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _to)) {
             // transfer to whitelist
             doTransfer(_wallet, _token, _to, _amount, _data);
         } else {
-            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : getEtherValue(_amount, _token);
+            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
             if (LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
@@ -175,20 +189,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
                 emit PendingTransferCreated(_wallet, id, executeAfter, _token, _to, _amount, _data);
             }
         }
-    }
-
-    /**
-    * @notice Get the ether value equivalent to the token amount.
-    * @dev For low value amounts of tokens we accept this to return zero as these are small enough to disregard.
-    * Note that the price stored for tokens = price for 1 token (in ETH wei) * 10^(18-token decimals).
-    * @param _amount The token amount.
-    * @param _token The address of the token.
-    * @return The ether value for _amount of _token.
-    */
-    function getEtherValue(uint256 _amount, address _token) public view returns (uint256) {
-        uint256 price = tokenPriceStorage.getTokenPrice(_token);
-        uint256 etherValue = price.mul(_amount).div(10**18);
-        return etherValue;
     }
 
     /**
@@ -205,7 +205,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         uint256 _amount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _spender)) {
@@ -220,7 +220,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             } else {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
-                uint256 deltaInEth = getEtherValue(delta, _token);
+                uint256 deltaInEth = LimitUtils.getEtherValue(tokenPriceStorage, delta, _token);
                 require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, deltaInEth), "TM: Approve above daily limit");
                 // approve if under the limit
                 doApproveToken(_wallet, _token, _spender, _amount);
@@ -242,7 +242,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Make sure we don't call a module, the wallet itself, or a supported ERC20
@@ -277,7 +277,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Make sure we don't call a module, the wallet itself, or a supported ERC20
@@ -286,7 +286,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         if (!isWhitelisted(_wallet, _spender)) {
             // check if the amount is under the daily limit
             // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
-            uint256 valueInEth = getEtherValue(_amount, _token);
+            uint256 valueInEth = LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
         }
 
@@ -303,7 +303,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         address _target
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
@@ -323,7 +323,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         address _target
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(isWhitelisted(_wallet, _target), "TT: target not whitelisted");
@@ -368,7 +368,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes32 _id
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(configs[_wallet].pendingActions[_id] > 0, "TT: unknown pending action");
@@ -382,7 +382,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
     }
 
@@ -391,7 +391,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * The limit is disabled by setting it to an arbitrary large value.
      * @param _wallet The target wallet.
      */
-    function disableLimit(address _wallet) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function disableLimit(address _wallet) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         LimitUtils.disableLimit(limitStorage, _wallet, securityPeriod);
     }
 
@@ -491,7 +491,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     */
     function isValidSignature(bytes32 _msgHash, bytes memory _signature) public view returns (bytes4) {
         require(_signature.length == 65, "TM: invalid signature length");
-        address signer = recoverSigner(_msgHash, _signature, 0);
+        address signer = Utils.recoverSigner(_msgHash, _signature, 0);
         require(isOwner(msg.sender, signer), "TM: Invalid signer");
         return ERC1271_ISVALIDSIGNATURE_BYTES32;
     }
@@ -538,44 +538,5 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             !IWallet(_wallet).authorised(_contract) && // not an authorised module
             (tokenPriceStorage.getTokenPrice(_contract) == 0 || isLimitDisabled(_wallet)), // not an ERC20 listed in the provider (or limit disabled)
             "TM: Forbidden contract");
-    }
-
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    // Overrides refund to add the refund in the daily limit.
-    function refund(
-        address _wallet,
-        uint _gasUsed,
-        uint _gasPrice,
-        uint _gasLimit,
-        uint _signatures,
-        address _relayer
-    )
-        internal override
-    {
-        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
-        uint256 amount = 36616 + _gasUsed;
-        if (_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
-            if (_gasPrice > tx.gasprice) {
-                amount = amount * tx.gasprice;
-            } else {
-                amount = amount * _gasPrice;
-            }
-            LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, amount);
-            invokeWallet(_wallet, _relayer, amount, EMPTY_BYTES);
-        }
-    }
-
-    // Overrides verifyRefund to add the refund in the daily limit.
-    function verifyRefund(address _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal override view returns (bool) {
-        if (_gasPrice > 0 && _signatures > 0 && (
-            _wallet.balance < _gasUsed * _gasPrice ||
-            LimitUtils.checkDailySpent(limitStorage, _wallet, _gasUsed * _gasPrice) == false ||
-            IWallet(_wallet).authorised(address(this)) == false
-        ))
-        {
-            return false;
-        }
-        return true;
     }
 }

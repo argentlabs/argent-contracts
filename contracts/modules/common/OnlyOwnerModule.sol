@@ -17,7 +17,6 @@
 pragma solidity ^0.6.10;
 
 import "./BaseModule.sol";
-import "./RelayerModule.sol";
 
 /**
  * @title OnlyOwnerModule
@@ -25,7 +24,7 @@ import "./RelayerModule.sol";
  * must be called with one signature frm the owner.
  * @author Julien Niset - <julien@argent.im>
  */
-abstract contract OnlyOwnerModule is BaseModule, RelayerModule {
+abstract contract OnlyOwnerModule is BaseModule {
 
     // bytes4 private constant IS_ONLY_OWNER_MODULE = bytes4(keccak256("isOnlyOwnerModule()"));
 
@@ -44,22 +43,18 @@ abstract contract OnlyOwnerModule is BaseModule, RelayerModule {
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
-    function addModule(address _wallet, address _module) public override virtual
-    onlyWalletOwner(_wallet)
-    onlyWhenUnlocked(_wallet)
-    {
+    function addModule(address _wallet, address _module) public override virtual onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
     }
 
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
-        return checkAndUpdateNonce(_wallet, _nonce);
-    }
-
-    function getRequiredSignatures(address /* _wallet */, bytes memory /* _data */) public view override returns (uint256, OwnerSignature) {
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
 }

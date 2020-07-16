@@ -1,4 +1,6 @@
 /* global accounts */
+const ethers = require("ethers");
+const RelayerModule = require("../build/RelayerModule");
 const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
 const GuardianStorage = require("../build/GuardianStorage");
@@ -26,6 +28,7 @@ describe("LockManager", function () {
   let recoveryManager;
   let wallet;
   let walletImplementation;
+  let relayerModule;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -38,10 +41,19 @@ describe("LockManager", function () {
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-
-    await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
+    await wallet.init(owner.address,
+      [guardianManager.contractAddress,
+        lockManager.contractAddress,
+        recoveryManager.contractAddress,
+        relayerModule.contractAddress]);
   });
 
   describe("(Un)Lock by EOA guardians", () => {
@@ -150,7 +162,7 @@ describe("LockManager", function () {
       await lockManager.from(guardian1).unlock(wallet.contractAddress);
       // try to unlock again
       await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress),
-        "VM Exception while processing transaction: revert GD: wallet must be locked");
+        "VM Exception while processing transaction: revert LM: wallet must be locked");
     });
 
     it("should not be able to unlock a wallet, locked by another module", async () => {

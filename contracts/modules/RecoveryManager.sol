@@ -16,8 +16,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
-import "./common/ArgentSafeMath.sol";
-import "./common/RelayerModule.sol";
+import "./common/Utils.sol";
+import "./common/BaseModule.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
@@ -29,7 +29,7 @@ import "../infrastructure/storage/IGuardianStorage.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract RecoveryManager is RelayerModule {
+contract RecoveryManager is BaseModule {
 
     bytes32 constant NAME = "RecoveryManager";
 
@@ -106,7 +106,7 @@ contract RecoveryManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _recovery The address to which ownership should be transferred.
      */
-    function executeRecovery(address _wallet, address _recovery) external onlyExecute notWhenRecovery(_wallet) {
+    function executeRecovery(address _wallet, address _recovery) external onlyWalletModule(_wallet) notWhenRecovery(_wallet) {
         require(_recovery != address(0), "RM: recovery address cannot be null");
         RecoveryConfig storage config = recoveryConfigs[_wallet];
         config.recovery = _recovery;
@@ -138,7 +138,7 @@ contract RecoveryManager is RelayerModule {
      * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2) - 1.
      * @param _wallet The target wallet.
      */
-    function cancelRecovery(address _wallet) external onlyExecute onlyWhenRecovery(_wallet) {
+    function cancelRecovery(address _wallet) external onlyWalletModule(_wallet) onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
@@ -154,7 +154,7 @@ contract RecoveryManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function transferOwnership(address _wallet, address _newOwner) external onlyExecute onlyWhenUnlocked(_wallet) {
+    function transferOwnership(address _wallet, address _newOwner) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
         IWallet(_wallet).setOwner(_newOwner);
 
@@ -170,26 +170,29 @@ contract RecoveryManager is RelayerModule {
         return (config.recovery, config.executeAfter, config.guardianCount);
     }
 
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    function getRequiredSignatures(address _wallet, bytes memory _data) public view override returns (uint256, OwnerSignature) {
-        bytes4 methodId = functionPrefix(_data);
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+        bytes4 methodId = Utils.functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {
             uint walletGuardians = guardianStorage.guardianCount(_wallet);
             require(walletGuardians > 0, "RM: no guardians set on wallet");
-            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(walletGuardians, 2);
-
+            uint numberOfSignaturesRequired = Utils.ceil(walletGuardians, 2);
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
         if (methodId == FINALIZE_RECOVERY_PREFIX) {
             return (0, OwnerSignature.Anyone);
         }
         if (methodId == CANCEL_RECOVERY_PREFIX) {
-            uint numberOfSignaturesRequired = ArgentSafeMath.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
+            uint numberOfSignaturesRequired = Utils.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
             return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
         if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
-            uint majorityGuardians = ArgentSafeMath.ceil(guardianStorage.guardianCount(_wallet), 2);
+            uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
             uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
             return (numberOfSignaturesRequired, OwnerSignature.Required);
         }

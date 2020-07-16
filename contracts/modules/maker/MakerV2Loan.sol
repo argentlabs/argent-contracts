@@ -30,6 +30,8 @@ import "./IUniswapFactory.sol";
  */
 abstract contract MakerV2Loan is MakerV2Base {
 
+    bytes4 private constant IS_NEW_VERSION = bytes4(keccak256("isNewVersion(address)"));
+
     // The address of the MKR token
     GemLike internal mkrToken;
     // The address of the WETH token
@@ -55,9 +57,6 @@ abstract contract MakerV2Loan is MakerV2Base {
     // Lock used by nonReentrant()
     bool private _notEntered = true;
 
-    // Mock token address for ETH
-    address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     // ****************** Events *************************** //
 
     // Emitted when an SCD CDP is converted into an MCD vault
@@ -81,14 +80,6 @@ abstract contract MakerV2Loan is MakerV2Base {
     // *************** Modifiers *************************** //
 
     /**
-     * @dev Throws if the sender is not an authorised module.
-     */
-    modifier onlyModule(address _wallet) {
-        require(IWallet(_wallet).authorised(msg.sender), "MV2: sender unauthorized");
-        _;
-    }
-
-    /**
      * @dev Prevents call reentrancy
      */
     modifier nonReentrant() {
@@ -96,6 +87,12 @@ abstract contract MakerV2Loan is MakerV2Base {
         _notEntered = false;
         _;
         _notEntered = true;
+    }
+
+    modifier onlyNewVersion() {
+        (bool success, bytes memory res) = msg.sender.call(abi.encodeWithSignature("isNewVersion(address)", address(this)));
+        require(success && abi.decode(res, (bytes4)) == IS_NEW_VERSION , "MV2: not a new version");
+        _;
     }
 
     // *************** Constructor ********************** //
@@ -141,7 +138,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
@@ -165,7 +162,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _collateralAmount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -187,7 +184,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _collateralAmount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -209,7 +206,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -231,7 +228,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -250,7 +247,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         bytes32 _loanId
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -273,7 +270,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     )
         external
         nonReentrant
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(cdpManager.owns(uint256(_loanId)) == _wallet, "MV2: wrong vault owner");
@@ -300,7 +297,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         bytes32 _cup
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
@@ -335,7 +332,8 @@ abstract contract MakerV2Loan is MakerV2Base {
         bytes32 _loanId
     )
         external
-        onlyModule(_wallet)
+        onlyWalletModule(_wallet)
+        onlyNewVersion
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -373,7 +371,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     function verifySupportedCollateral(address _collateral) internal view {
-        if (_collateral != ETH_TOKEN_ADDRESS) {
+        if (_collateral != ETH_TOKEN) {
             (bool collateralSupported,,,) = makerRegistry.collaterals(_collateral);
             require(collateralSupported, "MV2: unsupported collateral");
         }
@@ -528,7 +526,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         returns (uint256 _cdpId)
     {
         // Continue with WETH as collateral instead of ETH if needed
-        if (_collateral == ETH_TOKEN_ADDRESS) {
+        if (_collateral == ETH_TOKEN) {
             _collateral = address(wethToken);
         }
         // Get the ilk for the collateral

@@ -7,6 +7,7 @@ const Registry = require("../build/ModuleRegistry");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
+const RelayerModule = require("../build/RelayerModule");
 const CompoundManager = require("../build/CompoundManager");
 
 // Compound
@@ -21,7 +22,6 @@ const CompoundRegistry = require("../build/CompoundRegistry");
 
 const WAD = bigNumberify("1000000000000000000"); // 10**18
 const ETH_EXCHANGE_RATE = bigNumberify("200000000000000000000000000");
-
 
 const ERC20 = require("../build/TestERC20");
 
@@ -52,6 +52,7 @@ describe("Loan Module", function () {
   let cEther;
   let comptroller;
   let oracleProxy;
+  let relayerModule;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -148,12 +149,19 @@ describe("Loan Module", function () {
     );
 
     walletImplementation = await deployer.deploy(BaseWallet);
+
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [loanManager.contractAddress]);
+    await wallet.init(owner.address, [loanManager.contractAddress, relayerModule.contractAddress]);
   });
 
   async function fundWallet({ ethAmount, token1Amount, token2Amount = 0 }) {
@@ -185,7 +193,7 @@ describe("Loan Module", function () {
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanOpened"), "should have generated LoanOpened event");
-      const loanId = txReceipt.events.find((e) => e.event === "LoanOpened").args._loanId;
+      const loanId = (await utils.parseLogs(txReceipt, loanManager, "LoanOpened"))[0]._loanId;
       assert.isDefined(loanId, "Loan ID should be defined");
 
       const collateralAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)

@@ -1,8 +1,10 @@
 /* global accounts */
+const ethers = require("ethers");
 const GuardianManager = require("../build/GuardianManager");
 const GuardianStorage = require("../build/GuardianStorage");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
+const RelayerModule = require("../build/RelayerModule");
 const Registry = require("../build/ModuleRegistry");
 const DumbContract = require("../build/TestContract");
 const NonCompliantGuardian = require("../build/NonCompliantGuardian");
@@ -27,6 +29,7 @@ describe("GuardianManager", function () {
   let walletImplementation;
   let guardianStorage;
   let guardianManager;
+  let relayerModule;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -36,10 +39,16 @@ describe("GuardianManager", function () {
   beforeEach(async () => {
     const registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [guardianManager.contractAddress]);
+    await wallet.init(owner.address, [guardianManager.contractAddress, relayerModule.contractAddress]);
   });
 
   describe("Adding Guardians", () => {
@@ -113,7 +122,7 @@ describe("GuardianManager", function () {
 
       it("should only let the owner add an EOA guardian", async () => {
         await assert.revertWith(guardianManager.from(nonowner).addGuardian(wallet.contractAddress, guardian1.address),
-          "BM: must be wallet owner");
+          "BM: must be owner or module");
       });
 
       it("should not allow adding wallet owner as guardian", async () => {

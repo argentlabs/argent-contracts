@@ -9,6 +9,7 @@ import "../contracts/modules/maker/MakerV2Manager.sol";
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract TestUpgradedMakerV2Manager is MakerV2Manager {
+
     MakerV2Manager private previousMakerV2Manager;
 
     constructor(
@@ -37,6 +38,12 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
         previousMakerV2Manager = _previousMakerV2Manager;
     }
 
+    function isNewVersion(address _addr) external view returns (bytes32) {
+        if (_addr == address(previousMakerV2Manager)) {
+            return bytes4(keccak256("isNewVersion(address)"));
+        }
+    }
+
     function init(address _wallet) public override onlyWallet(_wallet) {
         address[] memory tokens = makerRegistry.getCollateralTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -47,5 +54,4 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
             }
         }
     }
-
 }

@@ -15,6 +15,7 @@ const TransferStorage = require("../build/TransferStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const LimitStorage = require("../build/LimitStorage");
 const TokenPriceStorage = require("../build/TokenPriceStorage");
+const RelayerModule = require("../build/RelayerModule");
 const TransferModule = require("../build/TransferManager");
 const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
@@ -55,6 +56,7 @@ describe("TransferManager", function () {
   let wallet;
   let walletImplementation;
   let erc20;
+  let relayerModule;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -92,12 +94,19 @@ describe("TransferManager", function () {
     await registry.registerModule(transferModule.contractAddress, ethers.utils.formatBytes32String("TransferModule"));
 
     walletImplementation = await deployer.deploy(BaseWallet);
+
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      limitStorage.contractAddress,
+      tokenPriceStorage.contractAddress);
+    manager.setRelayerModule(relayerModule);
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [transferModule.contractAddress]);
+    await wallet.init(owner.address, [transferModule.contractAddress, relayerModule.contractAddress]);
 
     const decimals = 12; // number of decimal for TOKN contract
     const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
@@ -106,6 +115,15 @@ describe("TransferManager", function () {
     await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("1000000000000000000") });
   });
+
+  async function getEtherValue(amount, token) {
+    if (token === ETH_TOKEN) {
+      return amount;
+    }
+    const price = await tokenPriceStorage.getTokenPrice(token);
+    const ethPrice = new BN(price.toString()).mul(new BN(amount)).div(new BN(10).pow(new BN(18)));
+    return ethPrice;
+  }
 
   describe("Initialising the module", () => {
     it("when no previous transfer manager is passed, should initialise with default limit", async () => {
@@ -198,24 +216,24 @@ describe("TransferManager", function () {
     it("should be able to get the ether value of a given amount of tokens", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
       await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, tokenPrice.toString());
-      const etherValue = await transferModule.getEtherValue("15000000000000000000", erc20First.contractAddress);
+      const etherValue = await getEtherValue("15000000000000000000", erc20First.contractAddress);
       // expectedValue = 1800*10^18/10^18 (price for 1 token wei) * 15*10^18 (amount) = 1800 * 15*10^18 = 27,000 * 10^18
       const expectedValue = new BN(10).pow(new BN(18)).muln(27000);
-      expect(expectedValue).to.eq.BN(etherValue.toString());
+      expect(expectedValue).to.eq.BN(etherValue);
     });
 
     it("should be able to get the ether value for a token with 0 decimals", async () => {
       const tokenPrice = new BN(10).pow(new BN(36)).muln(23000);
       await tokenPriceStorage.from(infrastructure).setPrice(erc20ZeroDecimals.contractAddress, tokenPrice.toString());
-      const etherValue = await transferModule.getEtherValue(100, erc20ZeroDecimals.contractAddress);
+      const etherValue = await getEtherValue(100, erc20ZeroDecimals.contractAddress);
       // expectedValue = 23000*10^36 * 100 / 10^18 = 2,300,000 * 10^18
       const expectedValue = new BN(10).pow(new BN(18)).muln(2300000);
-      expect(expectedValue).to.eq.BN(etherValue.toString());
+      expect(expectedValue).to.eq.BN(etherValue);
     });
 
     it("should return 0 as the ether value for a low priced token", async () => {
       await tokenPriceStorage.from(infrastructure).setPrice(erc20First.contractAddress, 23000);
-      const etherValue = await transferModule.getEtherValue(100, erc20First.contractAddress);
+      const etherValue = await getEtherValue(100, erc20First.contractAddress);
       assert.equal(etherValue.toString(), 0); // 2,300,000
     });
   });
@@ -271,7 +289,7 @@ describe("TransferManager", function () {
       const timestamp = await manager.getTimestamp(txReceipt.block);
       const { _pendingLimit, _changeAfter } = await transferModule.getPendingLimit(wallet.contractAddress);
       assert.equal(_pendingLimit.toNumber(), 20000);
-      assert.equal(_changeAfter.toNumber(), timestamp + SECURITY_PERIOD);
+      assert.closeTo(_changeAfter.toNumber(), timestamp + SECURITY_PERIOD, 1); // timestamp is sometimes off by 1
     });
 
     it("should be able to disable the limit", async () => {
@@ -302,7 +320,7 @@ describe("TransferManager", function () {
 
       const dailySpent = await limitStorage.getDailySpent(wallet.contractAddress);
       assert.equal(dailySpent[0].toNumber(), 300);
-      assert.equal(dailySpent[1].toNumber(), timestamp + (3600 * 24));
+      assert.closeTo(dailySpent[1].toNumber(), timestamp + (3600 * 24), 1); // timestamp is sometimes off by 1
     });
 
     it("should return 0 if the entire daily limit amount has been spent", async () => {
@@ -331,7 +349,7 @@ describe("TransferManager", function () {
       const fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to.address) : await token.balanceOf(to.address));
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
-      const ethValue = (token === ETH_TOKEN ? amount : (await transferModule.getEtherValue(amount, token.contractAddress)).toNumber());
+      const ethValue = (token === ETH_TOKEN ? amount : (await getEtherValue(amount, token.contractAddress)).toNumber());
       if (ethValue < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), ethValue, "should have updated the daily spent in ETH");
       }
@@ -398,7 +416,7 @@ describe("TransferManager", function () {
           });
           assert.fail("transfer should have failed");
         } catch (error) {
-          assert.ok(await manager.isRevertReason(error, "BM: must be wallet owner"));
+          assert.ok(await manager.isRevertReason(error, "BM: must be owner or module"));
         }
       });
 
@@ -415,7 +433,7 @@ describe("TransferManager", function () {
         assert.equal(unspent[0].toNumber(), ETH_LIMIT, "unspent should be the limit at the beginning of a period");
         await doDirectTransfer({ token: erc20, to: recipient, amount: 10 });
         unspent = await transferModule.getDailyUnspent(wallet.contractAddress);
-        const ethValue = await transferModule.getEtherValue(10, erc20.contractAddress);
+        const ethValue = await getEtherValue(10, erc20.contractAddress);
         assert.equal(unspent[0].toNumber(), ETH_LIMIT - ethValue.toNumber(), "should be the limit minus the transfer");
       });
     });
@@ -539,7 +557,7 @@ describe("TransferManager", function () {
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "Approved"), "should have generated Approved event");
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
 
-      const amountInEth = await transferModule.getEtherValue(amount, erc20.contractAddress);
+      const amountInEth = await getEtherValue(amount, erc20.contractAddress);
       if (amountInEth < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, "should have updated the daily limit");
       }
@@ -569,7 +587,7 @@ describe("TransferManager", function () {
         await doDirectApprove({ signer: nonowner, amount: 10 });
         assert.fail("approve should have failed");
       } catch (error) {
-        assert.ok(await manager.isRevertReason(error, "BM: must be wallet owner"));
+        assert.ok(await manager.isRevertReason(error, "BM: must be owner or module"));
       }
     });
     it("should appprove an ERC20 immediately when the spender is whitelisted ", async () => {
@@ -662,7 +680,7 @@ describe("TransferManager", function () {
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "ApprovedAndCalledContract"), "should have generated CalledContract event");
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
-      const amountInEth = await transferModule.getEtherValue(amount, erc20.contractAddress);
+      const amountInEth = await getEtherValue(amount, erc20.contractAddress);
 
       if (amountInEth < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, "should have updated the daily limit");

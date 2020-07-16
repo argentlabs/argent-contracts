@@ -16,8 +16,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
+import "./common/Utils.sol";
 import "./common/GuardianUtils.sol";
-import "./common/RelayerModule.sol";
+import "./common/BaseModule.sol";
 
 /**
  * @title GuardianManager
@@ -31,7 +32,7 @@ import "./common/RelayerModule.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract GuardianManager is RelayerModule {
+contract GuardianManager is BaseModule {
 
     bytes32 constant NAME = "GuardianManager";
 
@@ -83,7 +84,7 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to add.
      */
-    function addGuardian(address _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function addGuardian(address _wallet, address _guardian) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         require(!isOwner(_wallet, _guardian), "GM: target guardian cannot be owner");
         require(!isGuardian(_wallet, _guardian), "GM: target is already a guardian");
         // Guardians must either be an EOA or a contract with an owner()
@@ -129,7 +130,7 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function cancelGuardianAddition(address _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function cancelGuardianAddition(address _wallet, address _guardian) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
         GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
@@ -143,7 +144,7 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
-    function revokeGuardian(address _wallet, address _guardian) external onlyWalletOwner(_wallet) {
+    function revokeGuardian(address _wallet, address _guardian) external onlyWalletOwnerOrModule(_wallet) {
         require(isGuardian(_wallet, _guardian), "GM: must be an existing guardian");
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[_wallet];
@@ -177,7 +178,7 @@ contract GuardianManager is RelayerModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function cancelGuardianRevokation(address _wallet, address _guardian) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
+    function cancelGuardianRevokation(address _wallet, address _guardian) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");
@@ -204,16 +205,14 @@ contract GuardianManager is RelayerModule {
         return guardianStorage.guardianCount(_wallet);
     }
 
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
-        return checkAndUpdateNonce(_wallet, _nonce);
-    }
-
-    function getRequiredSignatures(address /* _wallet */, bytes memory _data) public view override returns (uint256, OwnerSignature) {
-        bytes4 methodId = functionPrefix(_data);
-
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+        bytes4 methodId = Utils.functionPrefix(_data);
         if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {
             return (0, OwnerSignature.Anyone);
         } else {

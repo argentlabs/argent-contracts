@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
-import "./common/RelayerModule.sol";
+import "./common/BaseModule.sol";
 import "./common/GuardianUtils.sol";
 
 /**
@@ -29,7 +29,7 @@ import "./common/GuardianUtils.sol";
  * @author Julien Niset - <julien@argent.im>
  * @author Olivier Van Den Biggelaar - <olivier@argent.im>
  */
-contract LockManager is RelayerModule {
+contract LockManager is BaseModule {
 
     bytes32 constant NAME = "LockManager";
 
@@ -48,16 +48,16 @@ contract LockManager is RelayerModule {
      */
     modifier onlyWhenLocked(address _wallet) {
         // solium-disable-next-line security/no-block-members
-        require(guardianStorage.isLocked(_wallet), "GD: wallet must be locked");
+        require(guardianStorage.isLocked(_wallet), "LM: wallet must be locked");
         _;
     }
 
     /**
      * @dev Throws if the caller is not a guardian for the wallet.
      */
-    modifier onlyGuardian(address _wallet) {
+    modifier onlyGuardianOrModule(address _wallet) {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), msg.sender);
-        require(msg.sender == address(this) || isGuardian, "GD: wallet must be unlocked");
+        require(isAuthorisedModule(_wallet, msg.sender) || isGuardian, "LM: must be guardian or module");
         _;
     }
 
@@ -78,7 +78,7 @@ contract LockManager is RelayerModule {
      * @dev Lets a guardian lock a wallet.
      * @param _wallet The target wallet.
      */
-    function lock(address _wallet) external onlyGuardian(_wallet) onlyWhenUnlocked(_wallet) {
+    function lock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         guardianStorage.setLock(_wallet, now + lockPeriod);
         emit Locked(_wallet, uint64(now + lockPeriod));
     }
@@ -87,7 +87,7 @@ contract LockManager is RelayerModule {
      * @dev Lets a guardian unlock a locked wallet.
      * @param _wallet The target wallet.
      */
-    function unlock(address _wallet) external onlyGuardian(_wallet) onlyWhenLocked(_wallet) {
+    function unlock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenLocked(_wallet) {
         address locker = guardianStorage.getLocker(_wallet);
         require(locker == address(this), "LM: cannot unlock a wallet that was locked by another module");
         guardianStorage.setLock(_wallet, 0);
@@ -115,14 +115,13 @@ contract LockManager is RelayerModule {
         return guardianStorage.isLocked(_wallet);
     }
 
-    // *************** Implementation of RelayerModule methods ********************* //
-
-    // Overrides to use the incremental nonce and save some gas
-    function checkAndUpdateUniqueness(address _wallet, uint256 _nonce, bytes32 /* _signHash */) internal override returns (bool) {
-        return checkAndUpdateNonce(_wallet, _nonce);
-    }
-
-    function getRequiredSignatures(address /* _wallet */, bytes memory /* _data */) public view override returns (uint256, OwnerSignature) {
+    /**
+    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @param _wallet The target wallet.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Disallowed);
     }
 }

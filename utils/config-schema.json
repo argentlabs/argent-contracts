@@ -197,6 +197,9 @@
         },
         "MakerV2Manager": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "RelayerModule": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": [

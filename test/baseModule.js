@@ -1,9 +1,9 @@
 /* global accounts */
-const ethers = require("ethers");
+require("ethers");
 
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
-const BaseModule = require("../build/BaseModule");
+const BaseModule = require("../build/TestOnlyOwnerModule");
 const ERC20 = require("../build/TestERC20");
 const NonCompliantERC20 = require("../build/NonCompliantERC20");
 
@@ -30,8 +30,7 @@ describe("BaseModule", function () {
     guardianStorage = await deployer.deploy(GuardianStorage);
     token = await deployer.deploy(ERC20, {}, [owner.address], 10, 18);
 
-    const name = ethers.utils.formatBytes32String("BaseModule");
-    baseModule = await deployer.deploy(BaseModule, {}, registry.contractAddress, guardianStorage.contractAddress, name);
+    baseModule = await deployer.deploy(BaseModule, {}, registry.contractAddress, guardianStorage.contractAddress);
   });
 
   describe("Recover tokens", async () => {

@@ -3,6 +3,7 @@ const ethers = require("ethers");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
+const RelayerModule = require("../build/RelayerModule");
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
 const GuardianManager = require("../build/GuardianManager");
@@ -35,6 +36,7 @@ describe("Approved Transfer", function () {
   let walletImplementation;
   let guardianManager;
   let approvedTransfer;
+  let relayerModule;
   let erc20;
   const amountToTransfer = 10000;
 
@@ -44,7 +46,12 @@ describe("Approved Transfer", function () {
     const guardianStorage = await deployer.deploy(GuardianStorage);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {}, registry.contractAddress, guardianStorage.contractAddress);
-
+    relayerModule = await deployer.deploy(RelayerModule, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
+    manager.setRelayerModule(relayerModule);
     walletImplementation = await deployer.deploy(BaseWallet);
   });
 
@@ -52,7 +59,7 @@ describe("Approved Transfer", function () {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-    await wallet.init(owner.address, [approvedTransfer.contractAddress, guardianManager.contractAddress]);
+    await wallet.init(owner.address, [approvedTransfer.contractAddress, guardianManager.contractAddress, relayerModule.contractAddress]);
 
     const decimals = 12; // number of decimal for TOKN contract
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])

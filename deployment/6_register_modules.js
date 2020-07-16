@@ -1,15 +1,15 @@
 const ModuleRegistry = require("../build/ModuleRegistry");
 const MultiSig = require("../build/MultiSigWallet");
 
-const GuardianManager = require("../build/GuardianManager");
-const TokenExchanger = require("../build/TokenExchanger");
-const LockManager = require("../build/LockManager");
+const GuardianManager = require("../build-legacy/v1.6.0/GuardianManager");
+const TokenExchanger = require("../build-legacy/v1.6.0/TokenExchanger");
+const LockManager = require("../build-legacy/v1.6.0/LockManager");
 const RecoveryManager = require("../build-legacy/v1.6.0/RecoveryManager");
-const ApprovedTransfer = require("../build/ApprovedTransfer");
-const TransferManager = require("../build/TransferManager");
-const NftTransfer = require("../build/NftTransfer");
-const CompoundManager = require("../build/CompoundManager");
-const MakerV2Manager = require("../build/MakerV2Manager");
+const ApprovedTransfer = require("../build-legacy/v1.6.0/ApprovedTransfer");
+const TransferManager = require("../build-legacy/v1.6.0/TransferManager");
+const NftTransfer = require("../build-legacy/v1.6.0/NftTransfer");
+const CompoundManager = require("../build-legacy/v1.6.0/CompoundManager");
+const MakerV2Manager = require("../build-legacy/v1.6.0/MakerV2Manager");
 
 const utils = require("../utils/utilities.js");
 
