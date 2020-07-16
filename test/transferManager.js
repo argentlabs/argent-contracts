@@ -267,13 +267,21 @@ describe("TransferManager", function () {
       assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
     });
 
-    it("should only change the limit after the security period", async () => {
+    it("should only increase the limit after the security period", async () => {
       await transferModule.from(owner).changeLimit(wallet.contractAddress, 4000000);
       let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
       assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
       await manager.increaseTime(SECURITY_PERIOD + 1);
       limit = await transferModule.getCurrentLimit(wallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
+    });
+
+    it("should decrease the limit immediately", async () => {
+      let limit = await transferModule.getCurrentLimit(wallet.contractAddress);
+      assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
+      await transferModule.from(owner).changeLimit(wallet.contractAddress, ETH_LIMIT / 2);
+      limit = await transferModule.getCurrentLimit(wallet.contractAddress);
+      assert.equal(limit.toNumber(), ETH_LIMIT / 2, "limit should be decreased immediately");
     });
 
     it("should change the limit via relayed transaction", async () => {
@@ -284,11 +292,11 @@ describe("TransferManager", function () {
     });
 
     it("should correctly set the pending limit", async () => {
-      const tx = await transferModule.from(owner).changeLimit(wallet.contractAddress, 20000);
+      const tx = await transferModule.from(owner).changeLimit(wallet.contractAddress, 4000000);
       const txReceipt = await transferModule.verboseWaitForTransaction(tx);
       const timestamp = await manager.getTimestamp(txReceipt.block);
       const { _pendingLimit, _changeAfter } = await transferModule.getPendingLimit(wallet.contractAddress);
-      assert.equal(_pendingLimit.toNumber(), 20000);
+      assert.equal(_pendingLimit.toNumber(), 4000000);
       assert.closeTo(_changeAfter.toNumber(), timestamp + SECURITY_PERIOD, 1); // timestamp is sometimes off by 1
     });
 

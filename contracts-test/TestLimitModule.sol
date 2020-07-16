@@ -45,6 +45,11 @@ contract TestLimitModule is BaseModule {
         return dailySpent.alreadySpent;
     }
 
+    function getLimit(address _wallet) external view returns (uint256) {
+        ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
+        return limit.current;
+    }
+
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
