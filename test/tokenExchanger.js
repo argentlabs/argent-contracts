@@ -1,4 +1,5 @@
 /* global accounts */
+const ethers = require("ethers");
 const { bigNumberify, parseEther } = require("ethers").utils;
 const { AddressZero } = require("ethers").constants;
 
@@ -35,7 +36,7 @@ const TokenPriceStorage = require("../build/TokenPriceStorage");
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, parseLogs } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
 // Constants
@@ -70,7 +71,14 @@ describe("Token Exchanger", function () {
     deployer = manager.newDeployer();
     registry = await deployer.deploy(ModuleRegistry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    relayerModule = await deployer.deploy(RelayerModule, {}, registry.contractAddress, guardianStorage.contractAddress, ethers.constants.AddressZero);
+    relayerModule = await deployer.deploy(
+      RelayerModule,
+      {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+    );
     manager.setRelayerModule(relayerModule);
 
     // Deploy test tokens
@@ -269,11 +277,12 @@ describe("Token Exchanger", function () {
     let txR;
     if (relayed) {
       txR = await manager.relay(exchanger, method, params, _wallet, [owner]);
-      assert.isTrue(txR.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
+      const { success } = (await parseLogs(txR, relayerModule, "TransactionExecuted"))[0];
+      assert.isTrue(success, "Relayed tx should succeed");
     } else {
       txR = await (await exchanger.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
     }
-    const { destAmount } = txR.events.find((log) => log.event === "TokenExchanged").args;
+    const { destAmount } = (await parseLogs(txR, exchanger, "TokenExchanged"))[0];
 
     const afterFrom = await getBalance(fromToken, _wallet);
     const afterTo = await getBalance(toToken, _wallet);
