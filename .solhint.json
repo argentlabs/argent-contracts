@@ -1,0 +1,12 @@
+{
+  "extends": "solhint:recommended",
+  "plugins": [],
+    "rules": {
+      "compiler-version": ["off"],
+      "no-inline-assembly": ["off"],
+      "max-line-length": ["error", 150],
+      "func-param-name-mixedcase": "error",
+      "modifier-name-mixedcase": "error",
+      "func-order": "warn"
+    }
+}
