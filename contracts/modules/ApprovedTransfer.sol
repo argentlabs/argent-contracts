@@ -70,8 +70,8 @@ contract ApprovedTransfer is BaseTransfer {
         external
         onlyWalletModule(_wallet)
         onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
-        require(!IWallet(_wallet).authorised(_contract) && _contract != _wallet, "AT: Forbidden contract");
         doCallContract(_wallet, _contract, _value, _data);
     }
 
@@ -97,8 +97,8 @@ contract ApprovedTransfer is BaseTransfer {
         external
         onlyWalletModule(_wallet)
         onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
-        require(!IWallet(_wallet).authorised(_contract) && _contract != _wallet, "AT: Forbidden contract");
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
     }
 

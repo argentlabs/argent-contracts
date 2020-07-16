@@ -590,11 +590,13 @@ describe("TransferManager", function () {
         assert.ok(await manager.isRevertReason(error, "BM: must be owner or module"));
       }
     });
+
     it("should appprove an ERC20 immediately when the spender is whitelisted ", async () => {
       await transferModule.from(owner).addToWhitelist(wallet.contractAddress, spender.address);
       await manager.increaseTime(3);
       await doDirectApprove({ amount: ETH_LIMIT + 10000 });
     });
+
     it("should fail to appprove an ERC20 when the amount is above the daily limit ", async () => {
       try {
         await doDirectApprove({ amount: ETH_LIMIT + 10000 });
@@ -605,25 +607,22 @@ describe("TransferManager", function () {
   });
 
   describe("Call contract", () => {
-    let contract; let
-      dataToTransfer;
+    let contract;
 
     beforeEach(async () => {
       contract = await deployer.deploy(TestContract);
       assert.equal(await contract.state(), 0, "initial contract state should be 0");
     });
 
-    async function doCallContract({
-      signer = owner, value, state, relayed = false,
-    }) {
-      dataToTransfer = contract.contract.interface.functions.setState.encode([state]);
+    async function doCallContract({ value, state, relayed = false }) {
+      const dataToTransfer = contract.contract.interface.functions.setState.encode([state]);
       const unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
       const params = [wallet.contractAddress, contract.contractAddress, value, dataToTransfer];
       let txReceipt;
       if (relayed) {
-        txReceipt = await manager.relay(transferModule, "callContract", params, wallet, [signer]);
+        txReceipt = await manager.relay(transferModule, "callContract", params, wallet, [owner]);
       } else {
-        const tx = await transferModule.from(signer).callContract(...params);
+        const tx = await transferModule.from(owner).callContract(...params);
         txReceipt = await transferModule.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "CalledContract"), "should have generated CalledContract event");
@@ -635,24 +634,48 @@ describe("TransferManager", function () {
       return txReceipt;
     }
 
-    it("should call a contract and transfer ETH under the limit", async () => {
+    it("should not be able to call the wallet itselt", async () => {
+      const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
+      const params = [wallet.contractAddress, wallet.contractAddress, 10, dataToTransfer];
+      await assert.revertWith(transferModule.from(owner).callContract(...params), "BT: Forbidden contract");
+    });
+
+    it("should not be able to call a module of the wallet", async () => {
+      const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
+      const params = [wallet.contractAddress, transferModule.contractAddress, 10, dataToTransfer];
+      await assert.revertWith(transferModule.from(owner).callContract(...params), "BT: Forbidden contract");
+    });
+
+    it("should not be able to call a supported ERC20 token contract", async () => {
+      const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
+      const params = [wallet.contractAddress, erc20.contractAddress, 10, dataToTransfer];
+      await assert.revertWith(transferModule.from(owner).callContract(...params), "TM: Forbidden contract");
+    });
+
+    it("should be able to call a supported token contract which is whitelisted", async () => {
+      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, erc20.contractAddress);
+      await manager.increaseTime(3);
+      const dataToTransfer = erc20.contract.interface.functions.transfer.encode([infrastructure.address, 4]);
+      const params = [wallet.contractAddress, erc20.contractAddress, 0, dataToTransfer];
+      await transferModule.from(owner).callContract(...params);
+    });
+
+    it("should call a contract and transfer ETH value when under the daily limit", async () => {
       await doCallContract({ value: 10, state: 3 });
     });
-    it("should call a contract and transfer ETH under the limit (relayed) ", async () => {
+
+    it("should call a contract and transfer ETH value when under the daily limit (relayed) ", async () => {
       await doCallContract({ value: 10, state: 3, relayed: true });
     });
 
-    it("should call a contract and transfer ETH above my limit value when the contract is whitelisted ", async () => {
+    it("should call a contract and transfer ETH value above the daily limit when the contract is whitelisted", async () => {
       await transferModule.from(owner).addToWhitelist(wallet.contractAddress, contract.contractAddress);
       await manager.increaseTime(3);
       await doCallContract({ value: ETH_LIMIT + 10000, state: 6 });
     });
+
     it("should fail to call a contract and transfer ETH when the amount is above the daily limit ", async () => {
-      try {
-        await doCallContract({ value: ETH_LIMIT + 10000, state: 6 });
-      } catch (error) {
-        assert.ok(await manager.isRevertReason(error, "above daily limit"));
-      }
+      await assert.revertWith(doCallContract({ value: ETH_LIMIT + 10000, state: 6 }, "above daily limit"));
     });
   });
 

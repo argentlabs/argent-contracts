@@ -244,18 +244,16 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         external
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
-        // Make sure we don't call a module, the wallet itself, or a supported ERC20
-        authoriseContractCall(_wallet, _contract);
+        if (!isWhitelisted(_wallet, _contract)) {
+            // Make sure we don't call a supported ERC20 that's not whitelisted
+            require(!coveredByDailyLimit(_wallet, _contract), "TM: Forbidden contract");
 
-        if (isWhitelisted(_wallet, _contract)) {
-            // call to whitelist
-            doCallContract(_wallet, _contract, _value, _data);
-        } else {
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, _value), "TM: Call contract above daily limit");
-            // call under the limit
-            doCallContract(_wallet, _contract, _value, _data);
         }
+
+        doCallContract(_wallet, _contract, _value, _data);
     }
 
     /**
@@ -279,11 +277,11 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         external
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
-        // Make sure we don't call a module, the wallet itself, or a supported ERC20
-        authoriseContractCall(_wallet, _contract);
-
         if (!isWhitelisted(_wallet, _spender)) {
+            // Make sure we don't call a supported ERC20 that's not whitelisted
+            require(!coveredByDailyLimit(_wallet, _contract), "TM: Forbidden contract");
             // check if the amount is under the daily limit
             // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
             uint256 valueInEth = LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
@@ -532,11 +530,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
      */
-    function authoriseContractCall(address _wallet, address _contract) internal view {
-        require(
-            _contract != _wallet && // not the wallet itself
-            !IWallet(_wallet).authorised(_contract) && // not an authorised module
-            (tokenPriceStorage.getTokenPrice(_contract) == 0 || isLimitDisabled(_wallet)), // not an ERC20 listed in the provider (or limit disabled)
-            "TM: Forbidden contract");
+    function coveredByDailyLimit(address _wallet, address _contract) internal view returns (bool) {
+        return (tokenPriceStorage.getTokenPrice(_contract) > 0 && !isLimitDisabled(_wallet));
     }
 }
