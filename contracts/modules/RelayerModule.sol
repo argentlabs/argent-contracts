@@ -85,7 +85,7 @@ contract RelayerModule is BaseModule {
     * @param _gasPrice The gas price to use for the gas refund.
     * @param _gasLimit The gas limit to use for the gas refund.
     * @param _refundToken The token to use for the gas refund.
-    * @param _refundAddress The address refunded to prevents front-running.
+    * @param _refundAddress The address refunded to prevent front-running.
     */
     function execute(
         address _wallet,
@@ -149,6 +149,15 @@ contract RelayerModule is BaseModule {
         return relayer[_wallet].nonce;
     }
 
+    /**
+    * @dev Checks if a transaction identified by its sign hash has already been executed.
+    * @param _wallet The target wallet.
+    * @param _signHash The sign hash of the transaction.
+    */
+    function isExecutedTx(address _wallet, bytes32 _signHash) external view returns (bool executed) {
+        return relayer[_wallet].executedTx[_signHash];
+    }
+
     /* ***************** Internal & Private methods ************************* */
 
     /**
@@ -161,7 +170,7 @@ contract RelayerModule is BaseModule {
     * @param _gasPrice The gas price to use for the gas refund.
     * @param _gasLimit The gas limit to use for the gas refund.
     * @param _refundToken The token to use for the gas refund.
-    * @param _refundAddress The address refunded to prevents front-running.
+    * @param _refundAddress The address refunded to prevent front-running.
     */
     function getSignHash(
         address _from,
@@ -303,7 +312,7 @@ contract RelayerModule is BaseModule {
     * @param _gasPrice The gas price for the refund.
     * @param _gasLimit The gas limit for the refund.
     * @param _refundToken The token to use for the gas refund.
-    * @param _refundAddress The address refunded to prevents front-running.
+    * @param _refundAddress The address refunded to prevent front-running.
     */
     function refund(
         address _wallet,
@@ -331,7 +340,7 @@ contract RelayerModule is BaseModule {
             gasConsumed = gasConsumed.add(10000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
             uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
-            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limt");
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limit");
         }
         // refund in ETH or ERC20
         if (_refundToken == ETH_TOKEN) {
