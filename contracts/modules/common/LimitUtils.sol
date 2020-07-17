@@ -33,10 +33,6 @@ library LimitUtils {
 
     using SafeMath for uint256;
 
-    // *************** Events *************************** //
-
-    event LimitChanged(address indexed wallet, uint indexed newLimit, uint64 indexed startAfter);
-
     // *************** Internal Functions ********************* //
 
     /**
@@ -54,19 +50,21 @@ library LimitUtils {
         uint256 _securityPeriod
     )
         internal
+        returns (ILimitStorage.Limit memory)
     {
         ILimitStorage.Limit memory limit = _lStorage.getLimit(_wallet);
         uint256 currentLimit = currentLimit(limit);
         ILimitStorage.Limit memory newLimit;
         if (_targetLimit <= currentLimit) {
+            uint128 targetLimit = safe128(_targetLimit);
             // solium-disable-next-line security/no-block-members
-            newLimit = ILimitStorage.Limit(safe128(_targetLimit), uint128(0), safe64(now));
+            newLimit = ILimitStorage.Limit(targetLimit, targetLimit, safe64(now));
         } else {
             // solium-disable-next-line security/no-block-members
             newLimit = ILimitStorage.Limit(safe128(currentLimit), safe128(_targetLimit), safe64(now.add(_securityPeriod)));
         }
         _lStorage.setLimit(_wallet, newLimit);
-        emit LimitChanged(_wallet, _targetLimit, newLimit.changeAfter);
+        return newLimit;
     }
 
      /**
@@ -129,6 +127,15 @@ library LimitUtils {
             return true;
         }
         return false;
+    }
+
+    /**
+    * @dev Helper method to Reset the daily consumption, i.e. DailySpent.alreadySpent = 0 and DailySpent.periodEnd = now.
+    * @param _wallet The target wallet.
+    */
+    function resetDailySpent(ILimitStorage _lStorage, address _wallet) internal {
+        // solium-disable-next-line security/no-block-members
+        _lStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(uint128(0), safe64(now)));
     }
 
     /**

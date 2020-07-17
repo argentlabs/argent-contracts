@@ -369,7 +369,7 @@ describe("Approved Transfer", function () {
     it("should reset the daily consumption", async () => {
       let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
       assert.equal(dailySpent.toNumber(), 500, "dailySpent should be 500");
-      await manager.relay(approvedTransfer, "resetLimit", [wallet.contractAddress], wallet, [owner, guardian1]);
+      await manager.relay(approvedTransfer, "resetDailySpent", [wallet.contractAddress], wallet, [owner, guardian1]);
       dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
       assert.equal(dailySpent.toNumber(), 0, "dailySpent should be 0");
     });

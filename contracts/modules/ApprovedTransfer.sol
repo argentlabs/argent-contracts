@@ -65,7 +65,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyWhenUnlocked(_wallet)
     {
         doTransfer(_wallet, _token, _to, _amount, _data);
-        doResetLimit(_wallet);
+        LimitUtils.resetDailySpent(limitStorage, _wallet);
     }
 
     /**
@@ -87,7 +87,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doCallContract(_wallet, _contract, _value, _data);
-        doResetLimit(_wallet);
+        LimitUtils.resetDailySpent(limitStorage, _wallet);
     }
 
     /**
@@ -115,7 +115,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
-        doResetLimit(_wallet);
+        LimitUtils.resetDailySpent(limitStorage, _wallet);
     }
 
     /**
@@ -124,18 +124,22 @@ contract ApprovedTransfer is BaseTransfer {
      * @param _newLimit The new limit.
      */
     function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
-        limitStorage.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(_newLimit), uint128(0), uint64(0)));
-        doResetLimit(_wallet);
+        uint128 targetLimit = LimitUtils.safe128(_newLimit);
         // solium-disable-next-line security/no-block-members
-        emit LimitChanged(_wallet, _newLimit, uint64(now));
+        ILimitStorage.Limit memory newLimit = ILimitStorage.Limit(targetLimit, targetLimit, LimitUtils.safe64(now));
+        // solium-disable-next-line security/no-block-members
+        ILimitStorage.DailySpent memory resetDailySpent = ILimitStorage.DailySpent(uint128(0), LimitUtils.safe64(now));
+        // change limit and reset daily spent in one call
+        limitStorage.setLimitAndDailySpent(_wallet, newLimit, resetDailySpent);
+        emit LimitChanged(_wallet, _newLimit, newLimit.changeAfter);
     }
 
     /**
-    * @dev Resets the daily consumtion, i.e. DailySpent.alreadySpent = 0 and DailySpent.periodEnd = now.
+    * @dev Resets the daily consumtion.
     * @param _wallet The target wallet.
     */
-    function resetLimit(address _wallet) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
-        doResetLimit(_wallet);
+    function resetDailySpent(address _wallet) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
+        LimitUtils.resetDailySpent(limitStorage, _wallet);
     }
 
     /**
@@ -148,14 +152,5 @@ contract ApprovedTransfer is BaseTransfer {
         // owner  + [n/2] guardians
         uint numberOfSignatures = 1 + Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
         return (numberOfSignatures, OwnerSignature.Required);
-    }
-
-    /**
-    * @dev Helper to Reset the daily consumption.
-    * @param _wallet The target wallet.
-    */
-    function doResetLimit(address _wallet) internal {
-        // solium-disable-next-line security/no-block-members
-        limitStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(uint128(0), LimitUtils.safe64(now)));
     }
 }

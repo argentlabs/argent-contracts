@@ -380,7 +380,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * @param _newLimit The new limit.
      */
     function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
-        LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
+        ILimitStorage.Limit memory limit = LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
+        emit LimitChanged(_wallet, _newLimit, limit.changeAfter);
     }
 
     /**
