@@ -2,7 +2,7 @@ version: 2
 
 job_common: &job_common
   docker:
-    - image: circleci/node:10.12-stretch
+    - image: circleci/node:10.14-stretch
   working_directory: ~/argent-contracts
 job_python: &job_python
   docker:
