@@ -130,12 +130,11 @@ library LimitUtils {
     }
 
     /**
-    * @dev Helper method to Reset the daily consumption, i.e. DailySpent.alreadySpent = 0 and DailySpent.periodEnd = now.
+    * @dev Helper method to Reset the daily consumption.
     * @param _wallet The target wallet.
     */
     function resetDailySpent(ILimitStorage _lStorage, address _wallet) internal {
-        // solium-disable-next-line security/no-block-members
-        _lStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(uint128(0), safe64(now)));
+        _lStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(uint128(0), uint64(0)));
     }
 
     /**
