@@ -110,7 +110,7 @@ contract CompoundManager is OnlyOwnerModule {
         markets[1] = compoundRegistry.getCToken(_debtToken);
         invokeWallet(_wallet, address(comptroller), 0, abi.encodeWithSignature("enterMarkets(address[])", markets));
         mint(_wallet, markets[0], _collateral, _collateralAmount);
-        borrow(_wallet, markets[1], _debtAmount);
+        borrow(_wallet, _debtToken, markets[1], _debtAmount);
         emit LoanOpened(_wallet, _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
     }
 
@@ -207,7 +207,7 @@ contract CompoundManager is OnlyOwnerModule {
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
         enterMarketIfNeeded(_wallet, dToken, address(comptroller));
-        borrow(_wallet, dToken, _debtAmount);
+        borrow(_wallet, _debtToken, dToken, _debtAmount);
         emit DebtAdded(_wallet, _loanId, _debtToken, _debtAmount);
     }
 
@@ -250,7 +250,7 @@ contract CompoundManager is OnlyOwnerModule {
         returns (uint8 _status, uint256 _ethValue)
     {
         (uint error, uint liquidity, uint shortfall) = comptroller.getAccountLiquidity(_wallet);
-        require(error == 0, "Compound: failed to get account liquidity");
+        require(error == 0, "CM: failed to get account liquidity");
         if (liquidity > 0) {
             return (1, liquidity);
         }
@@ -302,7 +302,7 @@ contract CompoundManager is OnlyOwnerModule {
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        require(_fraction <= 10000, "CompoundV2: invalid fraction value");
+        require(_fraction <= 10000, "CM: invalid fraction value");
         address cToken = compoundRegistry.getCToken(_token);
         uint shares = ICToken(cToken).balanceOf(_wallet);
         redeem(_wallet, cToken, shares.mul(_fraction).div(10000));
@@ -341,14 +341,16 @@ contract CompoundManager is OnlyOwnerModule {
      * @param _amount The amount of underlying token to add.
      */
     function mint(address _wallet, address _cToken, address _token, uint256 _amount) internal {
-        require(_cToken != address(0), "Compound: No market for target token");
-        require(_amount > 0, "Compound: amount cannot be 0");
+        require(_cToken != address(0), "CM: No market for target token");
+        require(_amount > 0, "CM: amount cannot be 0");
+        uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
         if (_token == ETH_TOKEN) {
             invokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("mint()"));
         } else {
             invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
             invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("mint(uint256)", _amount));
         }
+        require(ERC20(_cToken).balanceOf(_wallet) > initialCTokenAmount, "CM: mint failed");
     }
 
     /**
@@ -358,9 +360,13 @@ contract CompoundManager is OnlyOwnerModule {
      * @param _amount The amount of cToken to redeem.
      */
     function redeem(address _wallet, address _cToken, uint256 _amount) internal {
-        require(_cToken != address(0), "Compound: No market for target token");
-        require(_amount > 0, "Compound: amount cannot be 0");
+        // The following commented `require()` is not necessary as `ICToken(cToken).balanceOf(_wallet)` in `removeInvestment()` would have reverted if `_cToken == address(0)`
+        // It is however left as a comment as a reminder to include it if `removeInvestment()` is changed to use amounts instead of fractions.
+        // require(_cToken != address(0), "CM: No market for target token");
+        require(_amount > 0, "CM: amount cannot be 0");
+        uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
         invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeem(uint256)", _amount));
+        require(ERC20(_cToken).balanceOf(_wallet) < initialCTokenAmount, "CM: redeem failed");
     }
 
     /**
@@ -370,21 +376,27 @@ contract CompoundManager is OnlyOwnerModule {
      * @param _amount The amount of underlying token to redeem.
      */
     function redeemUnderlying(address _wallet, address _cToken, uint256 _amount) internal {
-        require(_cToken != address(0), "Compound: No market for target token");
-        require(_amount > 0, "Compound: amount cannot be 0");
+        require(_cToken != address(0), "CM: No market for target token");
+        require(_amount > 0, "CM: amount cannot be 0");
+        uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
         invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeemUnderlying(uint256)", _amount));
+        require(ERC20(_cToken).balanceOf(_wallet) < initialCTokenAmount, "CM: redeemUnderlying failed");
     }
 
     /**
      * @dev Borrows underlying tokens from a cToken contract.
      * @param _wallet The target wallet.
+     * @param _token The token contract.
      * @param _cToken The cToken contract.
      * @param _amount The amount of underlying tokens to borrow.
      */
-    function borrow(address _wallet, address _cToken, uint256 _amount) internal {
-        require(_cToken != address(0), "Compound: No market for target token");
-        require(_amount > 0, "Compound: amount cannot be 0");
+    function borrow(address _wallet, address _token, address _cToken, uint256 _amount) internal {
+        require(_cToken != address(0), "CM: No market for target token");
+        require(_amount > 0, "CM: amount cannot be 0");
+        uint256 initialTokenAmount = _token == ETH_TOKEN ? _wallet.balance : ERC20(_token).balanceOf(_wallet);
         invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("borrow(uint256)", _amount));
+        uint256 finalTokenAmount = _token == ETH_TOKEN ? _wallet.balance : ERC20(_token).balanceOf(_wallet);
+        require(finalTokenAmount > initialTokenAmount, "CM: borrow failed");
     }
 
     /**
@@ -394,16 +406,23 @@ contract CompoundManager is OnlyOwnerModule {
      * @param _amount The amount of underlying to repay.
      */
     function repayBorrow(address _wallet, address _cToken, uint256 _amount) internal {
-        require(_cToken != address(0), "Compound: No market for target token");
-        require(_amount > 0, "Compound: amount cannot be 0");
+        require(_cToken != address(0), "CM: No market for target token");
+        require(_amount > 0, "CM: amount cannot be 0");
         string memory symbol = ICToken(_cToken).symbol();
+        uint256 initialTokenAmount;
+        uint256 finalTokenAmount;
         if (keccak256(abi.encodePacked(symbol)) == keccak256(abi.encodePacked("cETH"))) {
+            initialTokenAmount = _wallet.balance;
             invokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
+            finalTokenAmount = _wallet.balance;
         } else {
             address token = ICToken(_cToken).underlying();
+            initialTokenAmount = ERC20(token).balanceOf(_wallet);
             invokeWallet(_wallet, token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
             invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
+            finalTokenAmount = ERC20(token).balanceOf(_wallet);
         }
+        require(finalTokenAmount < initialTokenAmount, "CM: repayBorrow failed");
     }
 
     /**
