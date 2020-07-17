@@ -100,7 +100,7 @@ const deploy = async (network) => {
     {},
     config.contracts.ModuleRegistry,
     GuardianStorageWrapper.contractAddress,
-    config.Kyber.contract,
+    config.Kyber ? config.Kyber.contract : "0x0000000000000000000000000000000000000000",
     config.contracts.MultiSigWallet,
     config.settings.feeRatio || 0,
   );

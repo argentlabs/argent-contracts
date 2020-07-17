@@ -45,7 +45,11 @@ const deploy = async (network) => {
   // Deploy the MultiSig
   const MultiSigWrapper = await deployer.deploy(MultiSig, {}, newConfig.multisig.threshold, newConfig.multisig.owners);
   // Deploy TokenPriceProvider
-  const TokenPriceProviderWrapper = await deployer.deploy(TokenPriceProvider, {}, newConfig.Kyber.contract);
+  const TokenPriceProviderWrapper = await deployer.deploy(
+    TokenPriceProvider,
+    {},
+    newConfig.Kyber ? newConfig.Kyber.contract : "0x0000000000000000000000000000000000000000",
+  );
   // Deploy Module Registry
   const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
   // Deploy Compound Registry
