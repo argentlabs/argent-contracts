@@ -160,27 +160,27 @@ class Benchmark {
   // ///////////////////
 
   async estimateCreateWalletOneModule() {
-    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.oneModule, "hoy");
+    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.oneModule, "", this.accounts[5]);
     this._logger.addItem("Create a wallet without ENS (1 module)", gasUsed);
   }
 
   async estimateCreateWalletTwoModules() {
-    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.twoModules, "heya");
+    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.twoModules, "", this.accounts[4]);
     this._logger.addItem("Create a wallet without ENS (2 module)", gasUsed);
   }
 
   async estimateCreateWalletThreeModules() {
-    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.threeModules, "meh");
+    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.threeModules, "", this.accounts[4]);
     this._logger.addItem("Create a wallet without ENS (3 module)", gasUsed);
   }
 
   async estimateCreateWalletAllModules() {
-    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.allModules, "moo");
+    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.allModules, "", this.accounts[4]);
     this._logger.addItem("Create a wallet without ENS (all modules)", gasUsed);
   }
 
   async estimateCreateWalletWithENS() {
-    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.allModules, "helloworld");
+    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.allModules, "helloworld", this.accounts[4]);
     this._logger.addItem("Create a wallet with ENS (all modules)", gasUsed);
   }
 
