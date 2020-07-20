@@ -27,7 +27,6 @@
     "test:coverage": "bash ./scripts/provision_lib_artefacts.sh & npx etherlime coverage && istanbul check-coverage --statements 94 --branches 83 --functions 96 --lines 94",
     "lint:js": "eslint .",
     "lint:contracts": "npx solhint contracts/**/*.sol",
-    "lint:contracts:staged": "bash ./scripts/solhint.sh",
     "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`",
     "test:benchmark": "./scripts/deploy.sh ganache 999",
     "security:slither": "npm run security:slither:infrastructure && npm run security:slither:modules",
@@ -45,7 +44,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run lint:contracts:staged && lint-staged"
+      "pre-commit": "solhint contracts/**/*.sol && lint-staged"
     }
   },
   "repository": {
