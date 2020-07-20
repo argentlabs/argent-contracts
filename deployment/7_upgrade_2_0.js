@@ -96,6 +96,7 @@ const deploy = async (network) => {
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,
+    config.defi.weth,
   );
   newModuleWrappers.push(ApprovedTransferWrapper);
 
@@ -182,6 +183,7 @@ const deploy = async (network) => {
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
+    config.defi.weth,
     ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
   );
   newModuleWrappers.push(TransferManagerWrapper);

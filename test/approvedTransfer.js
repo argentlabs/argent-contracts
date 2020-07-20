@@ -10,6 +10,7 @@ const LimitStorage = require("../build/LimitStorage");
 const GuardianManager = require("../build/GuardianManager");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const ERC20 = require("../build/TestERC20");
+const WETH = require("../build/WETH9");
 const TestContract = require("../build/TestContract");
 const TestLimitModule = require("../build/TestLimitModule");
 
@@ -46,6 +47,7 @@ describe("Approved Transfer", function () {
 
   before(async () => {
     deployer = manager.newDeployer();
+    const weth = await deployer.deploy(WETH);
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
     const limitStorage = await deployer.deploy(LimitStorage);
@@ -53,7 +55,9 @@ describe("Approved Transfer", function () {
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
       registry.contractAddress,
       guardianStorage.contractAddress,
-      limitStorage.contractAddress);
+      limitStorage.contractAddress,
+      weth.contractAddress
+    );
     relayerModule = await deployer.deploy(RelayerModule, {},
       registry.contractAddress,
       guardianStorage.contractAddress,

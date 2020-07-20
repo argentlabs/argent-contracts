@@ -153,6 +153,7 @@ describe("Token Exchanger", function () {
       3600,
       3600,
       10000,
+      AddressZero,
       AddressZero);
 
     // Deploy wallet implementation

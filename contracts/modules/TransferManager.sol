@@ -86,9 +86,11 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit,
+        address _wethToken,
         TransferManager _oldTransferManager
     )
         BaseModule(_registry, _guardianStorage, NAME)
+        BaseTransfer(_wethToken)
         public
     {
         transferStorage = _transferStorage;
@@ -245,13 +247,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
-        if (!isWhitelisted(_wallet, _contract)) {
-            // Make sure we don't call a supported ERC20 that's not whitelisted
-            require(!coveredByDailyLimit(_wallet, _contract), "TM: Forbidden contract");
-
-            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, _value), "TM: Call contract above daily limit");
-        }
-
+        checkAndUpdateDailySpentIfNeeded(_wallet, ETH_TOKEN, _contract, _value, _contract);
         doCallContract(_wallet, _contract, _value, _data);
     }
 
@@ -278,16 +274,33 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
-        if (!isWhitelisted(_wallet, _spender)) {
-            // Make sure we don't call a supported ERC20 that's not whitelisted
-            require(!coveredByDailyLimit(_wallet, _contract), "TM: Forbidden contract");
-            // check if the amount is under the daily limit
-            // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
-            uint256 valueInEth = LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
-            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
-        }
-
+        checkAndUpdateDailySpentIfNeeded(_wallet, _token, _spender, _amount, _contract);
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
+    }
+
+    /**
+    * @dev lets the owner wrap ETH into WETH, approve the WETH and call a contract.
+    * We assume that the contract will pull the tokens and does not require ETH.
+    * @param _wallet The target wallet.
+    * @param _spender The address to approve.
+    * @param _amount The amount of ETH to wrap and approve.
+    * @param _contract The address of the contract.
+    * @param _data The encoded method data
+    */
+    function approveWethAndCallContract(
+        address _wallet,
+        address _spender,
+        uint256 _amount,
+        address _contract,
+        bytes calldata _data
+    )
+        external
+        onlyWalletOwnerOrModule(_wallet)
+        onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
+    {
+        checkAndUpdateDailySpentIfNeeded(_wallet, wethToken, _spender, _amount, _contract);
+        doApproveWethAndCallContract(_wallet, _spender, _amount, _contract, _data);
     }
 
     /**
@@ -531,5 +544,41 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      */
     function coveredByDailyLimit(address _wallet, address _contract) internal view returns (bool) {
         return (tokenPriceStorage.getTokenPrice(_contract) > 0 && !isLimitDisabled(_wallet));
+    }
+
+    /**
+    * @dev Verify and update the daily spent if the spender is not whitelisted.
+    * Reverts if the daily spent is insufficient or if the contract to call is
+    * protected by the daily limit (i.e. is a token contract).
+    * @param _wallet The target wallet.
+    * @param _token The token that the spender will spend.
+    * @param _spender The address that will spend the token amount.
+    * @param _amount The amount of ERC20 or ETH that the spender will spend.
+    * @param _contract The address of the contract called by the wallet for the spend to occur.
+    */
+
+    function checkAndUpdateDailySpentIfNeeded(
+        address _wallet,
+        address _token,
+        address _spender,
+        uint256 _amount,
+        address _contract
+    )
+        internal
+    {
+        if (!isWhitelisted(_wallet, _spender)) {
+            // Make sure we don't call a supported ERC20 that's not whitelisted
+            require(!coveredByDailyLimit(_wallet, _contract), "TM: Forbidden contract");
+
+            // Check if the amount is under the daily limit.
+            // Check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
+            uint256 valueInEth;
+            if (_token == ETH_TOKEN || _token == wethToken) {
+                valueInEth = _amount;
+            } else {
+                valueInEth = LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
+            }
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
+        }
     }
 }

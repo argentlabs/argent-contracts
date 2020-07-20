@@ -37,9 +37,11 @@ contract ApprovedTransfer is BaseTransfer {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
-        ILimitStorage _limitStorage
+        ILimitStorage _limitStorage,
+        address _wethToken
     )
         BaseModule(_registry, _guardianStorage, NAME)
+        BaseTransfer(_wethToken)
         public
     {
         limitStorage = _limitStorage;
@@ -137,6 +139,31 @@ contract ApprovedTransfer is BaseTransfer {
     */
     function resetDailySpent(address _wallet) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
         LimitUtils.resetDailySpent(limitStorage, _wallet);
+    }
+
+    /**
+    * @dev lets the owner wrap ETH into WETH, approve the WETH and call a contract.
+    * The address to approve may be different than the contract to call.
+    * We assume that the contract does not require ETH.
+    * @param _wallet The target wallet.
+    * @param _spender The address to approve.
+    * @param _amount The amount of ERC20 tokens to approve.
+    * @param _contract The contract to call.
+    * @param _data The encoded method data
+    */
+    function approveWethAndCallContract(
+        address _wallet,
+        address _spender,
+        uint256 _amount,
+        address _contract,
+        bytes calldata _data
+    )
+        external
+        onlyWalletModule(_wallet)
+        onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
+    {
+        doApproveWethAndCallContract(_wallet, _spender, _amount, _contract, _data);
     }
 
     /**

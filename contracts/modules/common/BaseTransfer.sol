@@ -26,6 +26,9 @@ import "./LimitUtils.sol";
  */
 abstract contract BaseTransfer is BaseModule {
 
+    // The address of the WETH token
+    address public wethToken;
+
     // *************** Events *************************** //
 
     event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
@@ -42,6 +45,14 @@ abstract contract BaseTransfer is BaseModule {
     );
     event LimitChanged(address indexed wallet, uint indexed newLimit, uint64 indexed startAfter);
 
+
+    // *************** Constructor ********************** //
+
+    constructor(address _wethToken) public {
+        wethToken = _wethToken;
+    }
+
+            
     // *************** Internal Functions ********************* //
     /**
     * @notice Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
@@ -149,5 +160,32 @@ abstract contract BaseTransfer is BaseModule {
             _amount,
             usedAllowance,
             _data);
+    }
+
+    /**
+    * @notice Helper method to wrap ETH into WETH, approve a certain amount of WETH and call an external contract.
+    * The address that spends the WETH and the address that is called with _data can be different.
+    * @param _wallet The target wallet.
+    * @param _spender The spender address.
+    * @param _amount The amount of tokens to transfer.
+    * @param _contract The contract address.
+    * @param _data The method data.
+    */
+    function doApproveWethAndCallContract(
+        address _wallet,
+        address _spender,
+        uint256 _amount,
+        address _contract,
+        bytes memory _data
+    )
+        internal
+    {
+        uint256 wethBalance = ERC20(wethToken).balanceOf(_wallet);
+        if (wethBalance < _amount) {
+            // Wrap ETH into WETH
+            invokeWallet(_wallet, wethToken, _amount - wethBalance, abi.encodeWithSignature("deposit()"));
+        }
+
+        doApproveTokenAndCallContract(_wallet, wethToken, _spender, _amount, _contract, _data);
     }
 }
