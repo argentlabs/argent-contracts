@@ -4,6 +4,8 @@
     "rules": {
       "compiler-version": ["off"],
       "no-inline-assembly": ["off"],
+      "not-rely-on-time": ["off"],
+      "avoid-low-level-calls": ["off"],
       "max-line-length": ["error", 150],
       "func-param-name-mixedcase": "error",
       "modifier-name-mixedcase": "error",
