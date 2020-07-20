@@ -125,11 +125,8 @@ contract ApprovedTransfer is BaseTransfer {
      */
     function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
         uint128 targetLimit = LimitUtils.safe128(_newLimit);
-        // solium-disable-next-line security/no-block-members
         ILimitStorage.Limit memory newLimit = ILimitStorage.Limit(targetLimit, targetLimit, LimitUtils.safe64(now));
-        // solium-disable-next-line security/no-block-members
         ILimitStorage.DailySpent memory resetDailySpent = ILimitStorage.DailySpent(uint128(0), uint64(0));
-        // change limit and reset daily spent in one call
         limitStorage.setLimitAndDailySpent(_wallet, newLimit, resetDailySpent);
         emit LimitChanged(_wallet, _newLimit, newLimit.changeAfter);
     }
