@@ -3,7 +3,7 @@
   "plugins": [],
     "rules": {
       "compiler-version": ["off"],
-      "no-inline-assembly": ["off"],
+      "no-inline-assembly": ["error"],
       "not-rely-on-time": ["off"],
       "avoid-low-level-calls": ["off"],
       "max-line-length": ["error", 150],

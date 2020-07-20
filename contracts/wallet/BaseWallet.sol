@@ -124,6 +124,7 @@ contract BaseWallet is IWallet {
         bool success;
         (success, _result) = _target.call{value: _value}(_data);
         if (!success) {
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 returndatacopy(0, 0, returndatasize())
                 revert(0, returndatasize())
@@ -143,6 +144,7 @@ contract BaseWallet is IWallet {
         } else {
             require(authorised[module], "BW: must be an authorised module for static call");
 
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 calldatacopy(0, 0, calldatasize())
                 let result := staticcall(gas(), module, 0, calldatasize(), 0, 0)

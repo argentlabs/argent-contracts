@@ -33,6 +33,7 @@ contract Proxy {
     }
 
     fallback() external payable {
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             let target := sload(0)
             calldatacopy(0, 0, calldatasize())
