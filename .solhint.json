@@ -9,7 +9,6 @@
       "max-line-length": ["error", 150],
       "func-param-name-mixedcase": "error",
       "modifier-name-mixedcase": "error",
-      "func-order": "warn",
       "reason-string": ["error", { "maxLength":60 }]
     }
 }
