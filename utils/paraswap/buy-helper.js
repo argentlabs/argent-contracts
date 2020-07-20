@@ -34,7 +34,6 @@ const getPayLoad = (fromToken, toToken, exchange, data) => {
   }
 };
 
-
 const getRouteParams = (srcToken, destToken, route, exchanges, targetExchanges) => {
   const exchangeName = route.exchange.toLowerCase();
   const networkFee = route.data.networkFee ? route.data.networkFee : 0;
@@ -64,7 +63,6 @@ const makeRoutes = (srcToken, destToken, priceRoutes, exchanges, targetExchanges
   const routes = priceRoutes.map((route) => getRouteParams(srcToken, destToken, route, exchanges, targetExchanges));
   return routes;
 };
-
 
 module.exports = {
   makeRoutes,

@@ -72,7 +72,6 @@ describe("Token Transfer", function () {
     await erc721.mint(wallet1.contractAddress, tokenId);
   });
 
-
   describe("NFT transfers", () => {
     async function testNftTransfer({
       safe = true, relayed, recipientAddress, nftContract = erc721, nftId = tokenId, shouldSucceed = true, expectedError,
@@ -112,7 +111,6 @@ describe("Token Transfer", function () {
       it("should allow safe NFT transfer from wallet1 to an EOA account", async () => {
         await testNftTransfer({ safe: true, relayed: false, recipientAddress: eoaRecipient.address });
       });
-
 
       it("should allow unsafe NFT transfer from wallet1 to an EOA account (relayed)", async () => {
         await testNftTransfer({ safe: false, relayed: true, recipientAddress: eoaRecipient.address });

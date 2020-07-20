@@ -1,4 +1,3 @@
-
 const { parseEther, bigNumberify, formatBytes32String } = require("ethers").utils;
 const etherlime = require("etherlime-lib");
 
@@ -88,7 +87,6 @@ module.exports = {
     await tub.mold(formatBytes32String("mat"), MAT);
     // Set the governance fee to 7.5% APR
     await tub.mold(formatBytes32String("fee"), "1000000002293273137447730714");
-
 
     //
     // Deploy and setup MCD

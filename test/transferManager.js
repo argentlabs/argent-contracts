@@ -4,7 +4,6 @@ const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-
 const { expect } = chai;
 chai.use(bnChai(BN));
 

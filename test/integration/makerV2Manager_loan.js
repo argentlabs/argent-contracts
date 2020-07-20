@@ -131,7 +131,6 @@ describe("Test MakerV2 Vaults", function () {
       await (await makerV2.closeLoan(walletAddress, lastLoanId, { gasLimit: 4500000 })).wait();
     }
 
-
     const ethBalance = await deployer.provider.getBalance(walletAddress);
     const daiBalance = await daiToken.balanceOf(walletAddress);
     await (await transferManager.transferToken(walletAddress, ETH_TOKEN, owner.address, ethBalance, HashZero, { gasLimit: 2000000 })).wait();

@@ -4,7 +4,6 @@ const MultiSig = require("../build/MultiSigWallet");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-
 async function main() {
   let add;
 
