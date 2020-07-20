@@ -74,7 +74,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     address token, address to, uint256 amount, bytes data);
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
-    event LimitChanged(address indexed wallet, uint indexed newLimit, uint64 indexed startAfter);
 
     // *************** Constructor ********************** //
 
@@ -381,7 +380,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * @param _newLimit The new limit.
      */
     function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
-        LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
+        ILimitStorage.Limit memory limit = LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
+        emit LimitChanged(_wallet, _newLimit, limit.changeAfter);
     }
 
     /**

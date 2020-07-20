@@ -33,15 +33,11 @@ library LimitUtils {
 
     using SafeMath for uint256;
 
-    // *************** Events *************************** //
-
-    event LimitChanged(address indexed wallet, uint indexed newLimit, uint64 indexed startAfter);
-
     // *************** Internal Functions ********************* //
 
     /**
-     * @dev Changes the daily limit.
-     * The limit is expressed in ETH and the change is pending for the security period.
+     * @dev Changes the daily limit (expressed in ETH).
+     * Decreasing the limit is immediate while increasing the limit is pending for the security period.
      * @param _lStorage The storage contract.
      * @param _wallet The target wallet.
      * @param _targetLimit The target limit.
@@ -54,18 +50,21 @@ library LimitUtils {
         uint256 _securityPeriod
     )
         internal
+        returns (ILimitStorage.Limit memory)
     {
         ILimitStorage.Limit memory limit = _lStorage.getLimit(_wallet);
-        // solium-disable-next-line security/no-block-members
         uint256 currentLimit = currentLimit(limit);
-        ILimitStorage.Limit memory newLimit = ILimitStorage.Limit(
-            safe128(currentLimit),
-            safe128(_targetLimit),
+        ILimitStorage.Limit memory newLimit;
+        if (_targetLimit <= currentLimit) {
+            uint128 targetLimit = safe128(_targetLimit);
             // solium-disable-next-line security/no-block-members
-            safe64(now.add(_securityPeriod))
-        );
+            newLimit = ILimitStorage.Limit(targetLimit, targetLimit, safe64(now));
+        } else {
+            // solium-disable-next-line security/no-block-members
+            newLimit = ILimitStorage.Limit(safe128(currentLimit), safe128(_targetLimit), safe64(now.add(_securityPeriod)));
+        }
         _lStorage.setLimit(_wallet, newLimit);
-        emit LimitChanged(_wallet, _targetLimit, newLimit.changeAfter);
+        return newLimit;
     }
 
      /**
@@ -128,6 +127,14 @@ library LimitUtils {
             return true;
         }
         return false;
+    }
+
+    /**
+    * @dev Helper method to Reset the daily consumption.
+    * @param _wallet The target wallet.
+    */
+    function resetDailySpent(ILimitStorage _lStorage, address _wallet) internal {
+        _lStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(uint128(0), uint64(0)));
     }
 
     /**

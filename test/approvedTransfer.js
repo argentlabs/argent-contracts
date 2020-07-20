@@ -6,10 +6,12 @@ const BaseWallet = require("../build/BaseWallet");
 const RelayerModule = require("../build/RelayerModule");
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
+const LimitStorage = require("../build/LimitStorage");
 const GuardianManager = require("../build/GuardianManager");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const ERC20 = require("../build/TestERC20");
 const TestContract = require("../build/TestContract");
+const TestLimitModule = require("../build/TestLimitModule");
 
 const TestManager = require("../utils/test-manager");
 const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN } = require("../utils/utilities.js");
@@ -36,30 +38,44 @@ describe("Approved Transfer", function () {
   let walletImplementation;
   let guardianManager;
   let approvedTransfer;
+  let limitModule;
   let relayerModule;
   let erc20;
   const amountToTransfer = 10000;
+  let contract;
 
   before(async () => {
     deployer = manager.newDeployer();
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
+    const limitStorage = await deployer.deploy(LimitStorage);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-    approvedTransfer = await deployer.deploy(ApprovedTransfer, {}, registry.contractAddress, guardianStorage.contractAddress);
+    approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      limitStorage.contractAddress);
     relayerModule = await deployer.deploy(RelayerModule, {},
       registry.contractAddress,
       guardianStorage.contractAddress,
-      ethers.constants.AddressZero,
+      limitStorage.contractAddress,
       ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
     walletImplementation = await deployer.deploy(BaseWallet);
+
+    limitModule = await deployer.deploy(TestLimitModule, {}, registry.contractAddress, guardianStorage.contractAddress, limitStorage.contractAddress);
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-    await wallet.init(owner.address, [approvedTransfer.contractAddress, guardianManager.contractAddress, relayerModule.contractAddress]);
+    await wallet.init(owner.address,
+      [
+        approvedTransfer.contractAddress,
+        guardianManager.contractAddress,
+        relayerModule.contractAddress,
+        limitModule.contractAddress,
+      ]);
 
     const decimals = 12; // number of decimal for TOKN contract
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
@@ -95,16 +111,27 @@ describe("Approved Transfer", function () {
     return wallets;
   }
 
-  describe("Transfer", () => {
-    async function transferToken(_token, _signers) {
-      const to = recipient.address;
-      const before = _token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await erc20.balanceOf(to);
-      await manager.relay(approvedTransfer, "transferToken",
-        [wallet.contractAddress, _token, to, amountToTransfer, ZERO_BYTES32], wallet, _signers);
-      const after = _token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await erc20.balanceOf(to);
-      assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the amount");
-    }
+  async function transferToken(_token, _signers) {
+    const to = recipient.address;
+    const before = _token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await erc20.balanceOf(to);
+    await manager.relay(approvedTransfer, "transferToken",
+      [wallet.contractAddress, _token, to, amountToTransfer, ZERO_BYTES32], wallet, _signers);
+    const after = _token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await erc20.balanceOf(to);
+    assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the amount");
+  }
 
+  async function callContract(_signers) {
+    const before = await deployer.provider.getBalance(contract.contractAddress);
+    const newState = parseInt((await contract.state()).toString(), 10) + 1;
+    const dataToTransfer = contract.contract.interface.functions.setState.encode([newState]);
+    await manager.relay(approvedTransfer, "callContract",
+      [wallet.contractAddress, contract.contractAddress, amountToTransfer, dataToTransfer], wallet, _signers);
+    const after = await deployer.provider.getBalance(contract.contractAddress);
+    assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
+    assert.equal((await contract.state()).toNumber(), newState, "the state of the external contract should have been changed");
+  }
+
+  describe("Transfer", () => {
     async function expectFailingTransferToken(_token, _signers, _reason) {
       await assert.revertWith(
         manager.relay(
@@ -216,24 +243,11 @@ describe("Approved Transfer", function () {
 
   describe("Contract call", () => {
     describe("Approved by 1 EOA and 2 smart-contract guardians", () => {
-      let contract;
-
       beforeEach(async () => {
         contract = await deployer.deploy(TestContract);
         assert.equal(await contract.state(), 0, "initial contract state should be 0");
         await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
       });
-
-      async function callContract(_signers) {
-        const before = await deployer.provider.getBalance(contract.contractAddress);
-        const newState = parseInt((await contract.state()).toString(), 10) + 1;
-        const dataToTransfer = contract.contract.interface.functions.setState.encode([newState]);
-        await manager.relay(approvedTransfer, "callContract",
-          [wallet.contractAddress, contract.contractAddress, amountToTransfer, dataToTransfer], wallet, _signers);
-        const after = await deployer.provider.getBalance(contract.contractAddress);
-        assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
-        assert.equal((await contract.state()).toNumber(), newState, "the state of the external contract should have been changed");
-      }
 
       it("should call a contract and transfer ETH with 1 EOA guardian and 2 smart-contract guardians", async () => {
         await callContract([owner, ...sortWalletByAddress([guardian1, guardian2])]);
@@ -255,7 +269,6 @@ describe("Approved Transfer", function () {
 
   describe("Approve token and Contract call", () => {
     describe("Approved by 1 EOA and 2 smart-contract guardians", () => {
-      let contract;
       const amountToApprove = 10000;
 
       beforeEach(async () => {
@@ -336,6 +349,45 @@ describe("Approved Transfer", function () {
           assert.equal(allowanceAfter.toNumber(), allowanceBefore.toNumber());
         });
       });
+    });
+  });
+
+  describe("Daily Limit", () => {
+    beforeEach(async () => {
+      await addGuardians([guardian1]);
+      await limitModule.setLimitAndDailySpent(wallet.contractAddress, 1000000, 500);
+    });
+
+    it("should change the limit immediately", async () => {
+      let limit = await limitModule.getLimit(wallet.contractAddress);
+      assert.equal(limit.toNumber(), 1000000, "limit should be 1000000");
+      await manager.relay(approvedTransfer, "changeLimit", [wallet.contractAddress, 4000000], wallet, [owner, guardian1]);
+      limit = await limitModule.getLimit(wallet.contractAddress);
+      assert.equal(limit.toNumber(), 4000000, "limit should be changed immediately");
+    });
+
+    it("should reset the daily consumption", async () => {
+      let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
+      assert.equal(dailySpent.toNumber(), 500, "dailySpent should be 500");
+      await manager.relay(approvedTransfer, "resetDailySpent", [wallet.contractAddress], wallet, [owner, guardian1]);
+      dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
+      assert.equal(dailySpent.toNumber(), 0, "dailySpent should be 0");
+    });
+
+    it("should reset the daily consumption after a transfer", async () => {
+      let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
+      assert.equal(dailySpent.toNumber(), 500, "dailySpent should be 500");
+      await transferToken(ETH_TOKEN, [owner, guardian1]);
+      dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
+      assert.equal(dailySpent.toNumber(), 0, "dailySpent should be 0");
+    });
+
+    it("should reset the daily consumption after a call contract", async () => {
+      let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
+      assert.equal(dailySpent.toNumber(), 500, "dailySpent should be 500");
+      await callContract([owner, guardian1]);
+      dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
+      assert.equal(dailySpent.toNumber(), 0, "dailySpent should be 0");
     });
   });
 });

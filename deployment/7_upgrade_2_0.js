@@ -95,6 +95,7 @@ const deploy = async (network) => {
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
+    LimitStorageWrapper.contractAddress,
   );
   newModuleWrappers.push(ApprovedTransferWrapper);
 

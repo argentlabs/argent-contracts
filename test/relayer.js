@@ -71,7 +71,10 @@ describe("RelayerModule", function () {
   });
 
   beforeEach(async () => {
-    approvedTransfer = await deployer.deploy(ApprovedTransfer, {}, registry.contractAddress, guardianStorage.contractAddress);
+    approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
+      registry.contractAddress,
+      guardianStorage.contractAddress,
+      limitStorage.contractAddress);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 120);
 
@@ -289,12 +292,13 @@ describe("RelayerModule", function () {
       assert.isTrue(dailySpent > 10, "Daily spent should be greater then 10");
     });
 
-    it("should not include the refund in the daily limit when approved by guardians", async () => {
+    it("should refund and reset the daily limit when approved by guardians", async () => {
       // set funds and limit/daily spent
       await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
+      const rBalanceStart = await deployer.provider.getBalance(recipient.address);
       // add a guardian
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
       // call approvedTransfer
@@ -317,7 +321,9 @@ describe("RelayerModule", function () {
         gasLimit * 1.1];
       await manager.relay(...relayParams);
       dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
-      assert.isTrue(dailySpent.toNumber() === 10, "daily spent should still be 10");
+      assert.isTrue(dailySpent.toNumber() === 0, "daily spent should be reset");
+      const rBalanceEnd = await deployer.provider.getBalance(recipient.address);
+      assert.isTrue(rBalanceEnd.gt(rBalanceStart), "should have refunded the recipient");
     });
 
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {

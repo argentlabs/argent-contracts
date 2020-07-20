@@ -15,21 +15,34 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
+pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
+import "./common/LimitUtils.sol";
 import "./common/BaseTransfer.sol";
+import "../infrastructure/storage/ILimitStorage.sol";
 
 /**
  * @title ApprovedTransfer
- * @dev Module to transfer tokens (ETH or ERC20) with the approval of guardians.
- * @author Julien Niset - <julien@argent.im>
+ * @dev Module to transfer tokens (ETH or ERC20) or call third-party contracts with the approval of guardians.
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract ApprovedTransfer is BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
-    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage) BaseModule(_registry, _guardianStorage, NAME) public {
+    // The limit storage
+    ILimitStorage public limitStorage;
 
+    constructor(
+        IModuleRegistry _registry,
+        IGuardianStorage _guardianStorage,
+        ILimitStorage _limitStorage
+    )
+        BaseModule(_registry, _guardianStorage, NAME)
+        public
+    {
+        limitStorage = _limitStorage;
     }
 
     /**
@@ -52,6 +65,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyWhenUnlocked(_wallet)
     {
         doTransfer(_wallet, _token, _to, _amount, _data);
+        LimitUtils.resetDailySpent(limitStorage, _wallet);
     }
 
     /**
@@ -73,6 +87,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doCallContract(_wallet, _contract, _value, _data);
+        LimitUtils.resetDailySpent(limitStorage, _wallet);
     }
 
     /**
@@ -100,6 +115,31 @@ contract ApprovedTransfer is BaseTransfer {
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
+        LimitUtils.resetDailySpent(limitStorage, _wallet);
+    }
+
+    /**
+     * @dev Changes the daily limit. The change is immediate.
+     * @param _wallet The target wallet.
+     * @param _newLimit The new limit.
+     */
+    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
+        uint128 targetLimit = LimitUtils.safe128(_newLimit);
+        // solium-disable-next-line security/no-block-members
+        ILimitStorage.Limit memory newLimit = ILimitStorage.Limit(targetLimit, targetLimit, LimitUtils.safe64(now));
+        // solium-disable-next-line security/no-block-members
+        ILimitStorage.DailySpent memory resetDailySpent = ILimitStorage.DailySpent(uint128(0), uint64(0));
+        // change limit and reset daily spent in one call
+        limitStorage.setLimitAndDailySpent(_wallet, newLimit, resetDailySpent);
+        emit LimitChanged(_wallet, _newLimit, newLimit.changeAfter);
+    }
+
+    /**
+    * @dev Resets the daily consumtion.
+    * @param _wallet The target wallet.
+    */
+    function resetDailySpent(address _wallet) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
+        LimitUtils.resetDailySpent(limitStorage, _wallet);
     }
 
     /**

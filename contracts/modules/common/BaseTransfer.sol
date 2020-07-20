@@ -21,7 +21,7 @@ import "./LimitUtils.sol";
 
 /**
  * @title BaseTransfer
- * @dev Module containing internal methods to execute or approve transfers
+ * @dev Module containing internal methods to transfer tokens or call third-party contracts.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 abstract contract BaseTransfer is BaseModule {
@@ -40,6 +40,8 @@ abstract contract BaseTransfer is BaseModule {
         uint256 amountSpent,
         bytes data
     );
+    event LimitChanged(address indexed wallet, uint indexed newLimit, uint64 indexed startAfter);
+
     // *************** Internal Functions ********************* //
     /**
     * @notice Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
