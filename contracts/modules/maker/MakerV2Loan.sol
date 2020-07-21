@@ -390,7 +390,12 @@ abstract contract MakerV2Loan is MakerV2Base {
         if (tokenBalance < _tokenAmountRequired) {
             // Not enough tokens => Convert some ETH into tokens with Uniswap
             uint256 etherValueOfTokens = _uniswapExchange.getEthToTokenOutputPrice(_tokenAmountRequired - tokenBalance);
-            invokeWallet(_wallet, address(_uniswapExchange), etherValueOfTokens, abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, now));
+            invokeWallet(
+                _wallet,
+                address(_uniswapExchange),
+                etherValueOfTokens,
+                abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, now)
+            );
         }
     }
 

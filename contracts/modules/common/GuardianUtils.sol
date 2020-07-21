@@ -59,6 +59,7 @@ library GuardianUtils {
     */
     function isContract(address _addr) internal view returns (bool) {
         uint32 size;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             size := extcodesize(_addr)
         }
@@ -75,6 +76,7 @@ library GuardianUtils {
         address owner = address(0);
         bytes4 sig = bytes4(keccak256("owner()"));
 
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             let ptr := mload(0x40)
             mstore(ptr,sig)

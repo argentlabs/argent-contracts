@@ -170,6 +170,7 @@ contract BaseModule is IModule {
         if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
             (_res) = abi.decode(_res, (bytes));
         } else if (_res.length > 0) {
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 returndatacopy(0, 0, returndatasize())
                 revert(0, returndatasize())
