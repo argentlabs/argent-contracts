@@ -852,7 +852,7 @@ describe("TransferManager", function () {
       await doApproveTokenAndCallContract({ amount: 10, state: 3, wrapEth: true });
     });
 
-    it("should approve WETH and call the contract under the limit when already holder the WETH", async () => {
+    it("should approve WETH and call the contract under the limit when already holding the WETH", async () => {
       const amount = 10;
       await weth.from(infrastructure).deposit({ value: amount });
       await weth.from(infrastructure).transfer(wallet.contractAddress, amount);
