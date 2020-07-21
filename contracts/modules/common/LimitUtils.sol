@@ -57,10 +57,8 @@ library LimitUtils {
         ILimitStorage.Limit memory newLimit;
         if (_targetLimit <= currentLimit) {
             uint128 targetLimit = safe128(_targetLimit);
-            // solium-disable-next-line security/no-block-members
             newLimit = ILimitStorage.Limit(targetLimit, targetLimit, safe64(now));
         } else {
-            // solium-disable-next-line security/no-block-members
             newLimit = ILimitStorage.Limit(safe128(currentLimit), safe128(_targetLimit), safe64(now.add(_securityPeriod)));
         }
         _lStorage.setLimit(_wallet, newLimit);
@@ -117,7 +115,6 @@ library LimitUtils {
         }
         ILimitStorage.DailySpent memory newDailySpent;
         if (dailySpent.periodEnd <= now && _amount <= currentLimit) {
-            // solium-disable-next-line security/no-block-members
             newDailySpent = ILimitStorage.DailySpent(safe128(_amount), safe64(now + 24 hours));
             _lStorage.setDailySpent(_wallet, newDailySpent);
             return true;
@@ -156,7 +153,6 @@ library LimitUtils {
     * @param _limit The limit struct
     */
     function currentLimit(ILimitStorage.Limit memory _limit) internal view returns (uint256) {
-        // solium-disable-next-line security/no-block-members
         if (_limit.changeAfter > 0 && _limit.changeAfter < now) {
             return _limit.pending;
         }

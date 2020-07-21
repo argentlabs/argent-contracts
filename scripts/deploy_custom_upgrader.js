@@ -8,7 +8,6 @@ const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-
 async function deploy() {
   const network = "test";
   const modulesToRemove = [];

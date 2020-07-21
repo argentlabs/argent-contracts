@@ -90,7 +90,6 @@ contract GuardianManager is BaseModule {
         // Guardians must either be an EOA or a contract with an owner()
         // method that returns an address with a 5000 gas stipend.
         // Note that this test is not meant to be strict and can be bypassed by custom malicious contracts.
-        // solium-disable-next-line security/no-low-level-calls
         (bool success,) = _guardian.call{gas: 5000}(abi.encodeWithSignature("owner()"));
         require(success, "GM: guardian must be EOA or implement owner()");
         if (guardianStorage.guardianCount(_wallet) == 0) {

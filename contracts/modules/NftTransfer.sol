@@ -127,17 +127,14 @@ contract NftTransfer is OnlyOwnerModule {
     * @return true if the contract is an ERC721, false otherwise.
     */
     function isERC721(address _nftContract, uint256 _tokenId) internal returns (bool) {
-        // solium-disable-next-line security/no-low-level-calls
         (bool success, bytes memory result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x80ac58cd));
         if (success && result[0] != 0x0)
             return true;
 
-        // solium-disable-next-line security/no-low-level-calls
         (success, result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x6466353c));
         if (success && result[0] != 0x0)
             return true;
 
-        // solium-disable-next-line security/no-low-level-calls
         (success,) = _nftContract.call(abi.encodeWithSignature("ownerOf(uint256)", _tokenId));
         return success;
     }

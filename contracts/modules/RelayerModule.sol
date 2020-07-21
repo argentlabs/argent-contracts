@@ -126,7 +126,7 @@ contract RelayerModule is BaseModule {
             stack.requiredSignatures,
             stack.ownerSignatureRequirement), "RM: Duplicate request");
         require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
-        // solium-disable-next-line security/no-low-level-calls
+
         (stack.success, stack.returnData) = _module.call(_data);
         refund(
             _wallet,

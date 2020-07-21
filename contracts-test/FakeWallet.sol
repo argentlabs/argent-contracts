@@ -136,11 +136,10 @@ contract FakeWallet is IWallet {
                 // change the owner to itself to enable reentrancy in a module
                 owner = address(this);
             }
-            // solium-disable-next-line security/no-call-value
+
             (bool success,) = target.call{value: value}(data);
             owner = prevOwner;
             if (!success) {
-                // solium-disable-next-line security/no-inline-assembly
                 assembly {
                     returndatacopy(0, 0, returndatasize())
                     revert(0, returndatasize())
@@ -159,7 +158,7 @@ contract FakeWallet is IWallet {
             emit Received(msg.value, msg.sender, msg.data);
         } else {
             require(authorised[module], "BW: must be an authorised module for static call");
-            // solium-disable-next-line security/no-inline-assembly
+
             assembly {
                 calldatacopy(0, 0, calldatasize())
                 let result := staticcall(gas(), module, 0, calldatasize(), 0, 0)

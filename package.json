@@ -25,12 +25,10 @@
     "ctest": "npm run compile && npm run test",
     "provision:lib:artefacts": "bash ./scripts/provision_lib_artefacts.sh",
     "test:coverage": "bash ./scripts/provision_lib_artefacts.sh & npx etherlime coverage && istanbul check-coverage --statements 94 --branches 83 --functions 96 --lines 94",
-    "lint:contracts": "npx ethlint --dir .",
-    "lint:contracts:staged": "bash ./scripts/ethlint.sh",
+    "lint:js": "eslint .",
+    "lint:contracts": "npx solhint contracts/**/*.sol && npx solhint contracts/**/**/*.sol",
     "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`",
     "test:benchmark": "./scripts/deploy.sh ganache 999",
-    "lint:js": "eslint .",
-    "lint:js:staged": "bash ./scripts/eslint.sh",
     "security:slither": "npm run security:slither:infrastructure && npm run security:slither:modules",
     "security:slither:infrastructure": "rm -rf build && npm run compile:infrastructure && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
     "security:slither:modules": "rm -rf build && npm run compile:modules && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
@@ -39,9 +37,14 @@
     "security:slither:modules:triage": "rm -rf build && npm run compile:modules && slither . --ignore-compile --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
     "security:slither:wallet:triage": "rm -rf build && npm run compile:wallet && slither . --ignore-compile --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external"
   },
+  "lint-staged": {
+    "*.js": [
+      "npm run lint:js"
+    ]
+  },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run lint:contracts:staged && npm run lint:js:staged"
+      "pre-commit": "solhint contracts/**/*.sol && npx solhint contracts/**/**/*.sol && lint-staged"
     }
   },
   "repository": {
@@ -70,16 +73,17 @@
     "etherlime-argent": "2.3.5",
     "etherlime-lib": "1.1.3",
     "ethers": "^4.0.28",
-    "ethlint": "^1.2.5",
     "ganache-cli": "^6.9.1",
     "husky": "^4.2.3",
     "inquirer": "^7.0.0",
     "istanbul": "^0.4.5",
+    "lint-staged": "^10.2.11",
     "node-fetch": "^2.3.0",
     "openzeppelin-solidity": "2.3",
     "ps-node": "^0.1.6",
     "semver": "^7.1.3",
     "solc": "0.6.10",
+    "solhint": "^3.0.0",
     "tinyreq": "^3.4.1",
     "web3-eth-abi": "^1.2.9"
   },

@@ -40,10 +40,8 @@ contract TestModule is BaseModule {
     }
 
     function callContract(address _contract, uint256 _value, bytes calldata _data) external {
-        // solium-disable-next-line security/no-call-value
         (bool success,) = _contract.call{value: _value}(_data);
         if (!success) {
-            // solium-disable-next-line security/no-inline-assembly
             assembly {
                 returndatacopy(0, 0, returndatasize())
                 revert(0, returndatasize())

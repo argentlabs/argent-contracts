@@ -280,7 +280,6 @@ const deploy = async (network) => {
   // Deploy and Register upgraders
   // //////////////////////////////////
 
-
   let fingerprint;
   const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
   for (let idx = 0; idx < versions.length; idx += 1) {
@@ -329,7 +328,6 @@ const deploy = async (network) => {
 
   await versionUploader.upload(newVersion);
 };
-
 
 module.exports = {
   deploy,

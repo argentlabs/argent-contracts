@@ -92,7 +92,6 @@ contract MultiSigWallet {
             if (isOwner[recovered]) {
                 valid += 1;
                 if (valid >= threshold) {
-                    // solium-disable-next-line security/no-call-value
                     (bool success,) = _to.call.value(_value)(_data);
                     require(success, "MSW: External call failed");
                     emit Executed(_to, _value, _data);
@@ -151,7 +150,6 @@ contract MultiSigWallet {
         // we jump 32 (0x20) as the first slot of bytes contains the length
         // we jump 65 (0x41) per signature
         // for v we load 32 bytes ending with v (the first 31 come from s) tehn apply a mask
-        // solium-disable-next-line security/no-inline-assembly
         assembly {
             r := mload(add(_signatures, add(0x20,mul(0x41,_index))))
             s := mload(add(_signatures, add(0x40,mul(0x41,_index))))

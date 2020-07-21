@@ -166,12 +166,11 @@ contract BaseModule is IModule {
      */
     function invokeWallet(address _wallet, address _to, uint256 _value, bytes memory _data) internal returns (bytes memory _res) {
         bool success;
-        // solium-disable-next-line security/no-call-value
         (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
         if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
             (_res) = abi.decode(_res, (bytes));
         } else if (_res.length > 0) {
-            // solium-disable-next-line security/no-inline-assembly
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 returndatacopy(0, 0, returndatasize())
                 revert(0, returndatasize())

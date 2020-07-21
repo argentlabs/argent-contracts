@@ -47,7 +47,6 @@ contract LockManager is BaseModule {
      * @dev Throws if the wallet is not locked.
      */
     modifier onlyWhenLocked(address _wallet) {
-        // solium-disable-next-line security/no-block-members
         require(guardianStorage.isLocked(_wallet), "LM: wallet must be locked");
         _;
     }

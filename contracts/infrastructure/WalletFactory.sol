@@ -16,13 +16,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.10;
 
-import "./Proxy.sol";
-import "./BaseWallet.sol";
-import "../infrastructure/base/Owned.sol";
-import "../infrastructure/base/Managed.sol";
-import "../infrastructure/storage/IGuardianStorage.sol";
-import "../infrastructure/ens/IENSManager.sol";
-import "../infrastructure/IModuleRegistry.sol";
+import "../wallet/Proxy.sol";
+import "../wallet/BaseWallet.sol";
+import "./base/Owned.sol";
+import "./base/Managed.sol";
+import "./storage/IGuardianStorage.sol";
+import "./ens/IENSManager.sol";
+import "./IModuleRegistry.sol";
 
 /**
  * @title WalletFactory
@@ -166,7 +166,7 @@ contract WalletFactory is Owned, Managed {
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
-    function init(BaseWallet _wallet) external pure { // solium-disable-line no-empty-blocks
+    function init(BaseWallet _wallet) external pure {
         //do nothing
     }
 

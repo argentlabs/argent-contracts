@@ -299,7 +299,6 @@ describe("Token Exchanger", function () {
     }
   }
 
-
   function testsForMethod(method) {
     it("trades ETH to ERC20 (blockchain tx)", async () => {
       await testTrade({

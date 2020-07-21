@@ -122,10 +122,9 @@ contract BaseWallet is IWallet {
      */
     function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly returns (bytes memory _result) {
         bool success;
-        // solium-disable-next-line security/no-call-value
         (success, _result) = _target.call{value: _value}(_data);
         if (!success) {
-            // solium-disable-next-line security/no-inline-assembly
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 returndatacopy(0, 0, returndatasize())
                 revert(0, returndatasize())
@@ -144,7 +143,8 @@ contract BaseWallet is IWallet {
             emit Received(msg.value, msg.sender, msg.data);
         } else {
             require(authorised[module], "BW: must be an authorised module for static call");
-            // solium-disable-next-line security/no-inline-assembly
+
+            // solhint-disable-next-line no-inline-assembly
             assembly {
                 calldatacopy(0, 0, calldatasize())
                 let result := staticcall(gas(), module, 0, calldatasize(), 0, 0)

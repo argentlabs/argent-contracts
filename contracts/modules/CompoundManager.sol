@@ -360,7 +360,8 @@ contract CompoundManager is OnlyOwnerModule {
      * @param _amount The amount of cToken to redeem.
      */
     function redeem(address _wallet, address _cToken, uint256 _amount) internal {
-        // The following commented `require()` is not necessary as `ICToken(cToken).balanceOf(_wallet)` in `removeInvestment()` would have reverted if `_cToken == address(0)`
+        // The following commented `require()` is not necessary as `ICToken(cToken).balanceOf(_wallet)` in `removeInvestment()`
+        // would have reverted if `_cToken == address(0)`
         // It is however left as a comment as a reminder to include it if `removeInvestment()` is changed to use amounts instead of fractions.
         // require(_cToken != address(0), "CM: No market for target token");
         require(_amount > 0, "CM: amount cannot be 0");
