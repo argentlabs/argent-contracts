@@ -1,4 +1,4 @@
-pragma solidity ^0.6.10;
+pragma solidity ^0.6.12;
 
 import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
 
