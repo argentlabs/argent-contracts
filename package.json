@@ -82,7 +82,7 @@
     "openzeppelin-solidity": "2.3",
     "ps-node": "^0.1.6",
     "semver": "^7.1.3",
-    "solc": "0.6.10",
+    "solc": "0.6.12",
     "solhint": "^3.0.0",
     "tinyreq": "^3.4.1",
     "web3-eth-abi": "^1.2.9"
