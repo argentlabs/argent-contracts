@@ -56,7 +56,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        // Execute drip to get the chi rate updated to rho == now, otherwise join will fail
+        // Execute drip to get the chi rate updated to rho == block.timestamp, otherwise join will fail
         pot.drip();
         // Approve DAI adapter to take the DAI amount
         invokeWallet(_wallet, address(daiToken), 0, abi.encodeWithSignature("approve(address,uint256)", address(daiJoin), _amount));

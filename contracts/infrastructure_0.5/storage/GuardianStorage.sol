@@ -128,7 +128,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @return true if the lock is set for the wallet.
      */
     function isLocked(address _wallet) external view returns (bool) {
-        return configs[_wallet].lock > now;
+        return configs[_wallet].lock > block.timestamp;
     }
 
     /**

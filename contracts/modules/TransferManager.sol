@@ -126,7 +126,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
                 // migrate limit and daily spent (if we are in a rolling period)
                 (uint256 unspent, uint64 periodEnd) = oldTransferManager.getDailyUnspent(_wallet);
 
-                if (periodEnd < now) {
+                if (periodEnd < block.timestamp) {
                     limitStorage.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
                 } else {
                     limitStorage.setLimitAndDailySpent(
@@ -318,7 +318,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
 
-        uint256 whitelistAfter = now.add(securityPeriod);
+        uint256 whitelistAfter = block.timestamp.add(securityPeriod);
         transferStorage.setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }
@@ -367,7 +367,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         require(executeAfter > 0, "TT: unknown pending transfer");
         uint executeBefore = executeAfter.add(securityWindow);
 
-        require(executeAfter <= now && now <= executeBefore, "TT: transfer outside of the execution window");
+        require(executeAfter <= block.timestamp && block.timestamp <= executeBefore, "TT: transfer outside of the execution window");
         delete configs[_wallet].pendingActions[id];
         doTransfer(_wallet, _token, _to, _amount, _data);
         emit PendingTransferExecuted(_wallet, id);
@@ -434,7 +434,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     function getPendingLimit(address _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
         ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
 
-        return ((now < limit.changeAfter)? (limit.pending, uint64(limit.changeAfter)) : (0,0));
+        return ((block.timestamp < limit.changeAfter)? (limit.pending, uint64(limit.changeAfter)) : (0,0));
     }
 
     /**
@@ -450,8 +450,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         ) = limitStorage.getLimitAndDailySpent(_wallet);
         uint256 currentLimit = LimitUtils.currentLimit(limit);
 
-        if (now > dailySpent.periodEnd) {
-            return (currentLimit, uint64(now.add(24 hours)));
+        if (block.timestamp > dailySpent.periodEnd) {
+            return (currentLimit, uint64(block.timestamp.add(24 hours)));
         } else if (dailySpent.alreadySpent < currentLimit) {
             return (currentLimit.sub(dailySpent.alreadySpent), dailySpent.periodEnd);
         } else {
@@ -468,7 +468,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
         uint whitelistAfter = transferStorage.getWhitelist(_wallet, _target);
         
-        return whitelistAfter > 0 && whitelistAfter < now;
+        return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
 
     /**
@@ -533,7 +533,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, block.number));
         require(configs[_wallet].pendingActions[id] == 0, "TM: duplicate pending action");
 
-        executeAfter = now.add(securityPeriod);
+        executeAfter = block.timestamp.add(securityPeriod);
         configs[_wallet].pendingActions[id] = executeAfter;
     }
 

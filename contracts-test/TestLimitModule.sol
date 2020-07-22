@@ -37,7 +37,7 @@ contract TestLimitModule is BaseModule {
         external
     {
         limitStorage.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(_limit), 0, 0));
-        limitStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(LimitUtils.safe128(_alredySpent), LimitUtils.safe64(now.add(100))));
+        limitStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(LimitUtils.safe128(_alredySpent), LimitUtils.safe64(block.timestamp.add(100))));
     }
 
     function getDailySpent(address _wallet) external view returns (uint256) {

@@ -394,7 +394,7 @@ abstract contract MakerV2Loan is MakerV2Base {
                 _wallet,
                 address(_uniswapExchange),
                 etherValueOfTokens,
-                abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, now)
+                abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, block.timestamp)
             );
         }
     }

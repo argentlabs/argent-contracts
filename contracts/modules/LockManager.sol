@@ -78,8 +78,8 @@ contract LockManager is BaseModule {
      * @param _wallet The target wallet.
      */
     function lock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenUnlocked(_wallet) {
-        guardianStorage.setLock(_wallet, now + lockPeriod);
-        emit Locked(_wallet, uint64(now + lockPeriod));
+        guardianStorage.setLock(_wallet, block.timestamp + lockPeriod);
+        emit Locked(_wallet, uint64(block.timestamp + lockPeriod));
     }
 
     /**
@@ -100,7 +100,7 @@ contract LockManager is BaseModule {
      */
     function getLock(address _wallet) external view returns(uint64 _releaseAfter) {
         uint256 lockEnd = guardianStorage.getLock(_wallet);
-        if (lockEnd > now) {
+        if (lockEnd > block.timestamp) {
             _releaseAfter = uint64(lockEnd);
         }
     }
