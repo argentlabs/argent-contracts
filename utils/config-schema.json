@@ -22,9 +22,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "deployOwnRegistry"
-      ],
+      "required": ["deployOwnRegistry"],
       "if": {
         "properties": {
           "deployOwnRegistry": {
@@ -33,9 +31,7 @@
         }
       },
       "then": {
-        "required": [
-          "ensRegistry"
-        ]
+        "required": ["ensRegistry"]
       },
       "additionalProperties": false
     },
@@ -49,9 +45,7 @@
           "$ref": "#/definitions/ethaddress"
         }
       },
-      "required": [
-        "deployOwn"
-      ],
+      "required": ["deployOwn"],
       "if": {
         "properties": {
           "deployOwn": {
@@ -60,9 +54,7 @@
         }
       },
       "then": {
-        "required": [
-          "contract"
-        ]
+        "required": ["contract"]
       },
       "additionalProperties": false
     },
@@ -73,13 +65,14 @@
           "$ref": "#/definitions/ethaddress"
         }
       },
-      "required": [
-        "contract"
-      ]
+      "required": ["contract"]
     },
     "defi": {
       "type": "object",
       "properties": {
+        "weth": {
+          "$ref": "#/definitions/ethaddress"
+        },
         "maker": {
           "type": "object",
           "properties": {
@@ -228,9 +221,7 @@
           }
         }
       },
-      "required": [
-        "accounts"
-      ],
+      "required": ["accounts"],
       "additionalProperties": false
     },
     "multisig": {
@@ -250,10 +241,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "owners",
-        "threshold"
-      ],
+      "required": ["owners", "threshold"],
       "additionalProperties": false
     },
     "settings": {
@@ -264,19 +252,13 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "ganache",
-                "infura",
-                "jsonrpc"
-              ]
+              "enum": ["ganache", "infura", "jsonrpc"]
             },
             "options": {
               "type": "object"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         },
         "privateKey": {
@@ -284,18 +266,13 @@
           "properties": {
             "type": {
               "type": "string",
-              "enum": [
-                "plain",
-                "s3"
-              ]
+              "enum": ["plain", "s3"]
             },
             "options": {
               "type": "object"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "additionalProperties": false
         },
         "abiUpload": {
@@ -305,9 +282,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "bucket"
-          ],
+          "required": ["bucket"],
           "additionalProperties": false
         },
         "versionUpload": {
@@ -320,10 +295,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "bucket",
-            "url"
-          ],
+          "required": ["bucket", "url"],
           "additionalProperties": false
         },
         "lockPeriod": {
@@ -345,9 +317,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "deployer"
-      ],
+      "required": ["deployer"],
       "additionalProperties": false
     }
   }

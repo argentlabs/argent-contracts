@@ -10,6 +10,7 @@ const LimitStorage = require("../build/LimitStorage");
 const GuardianManager = require("../build/GuardianManager");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const ERC20 = require("../build/TestERC20");
+const WETH = require("../build/WETH9");
 const TestContract = require("../build/TestContract");
 const TestLimitModule = require("../build/TestLimitModule");
 
@@ -41,11 +42,13 @@ describe("Approved Transfer", function () {
   let limitModule;
   let relayerModule;
   let erc20;
+  let weth;
   const amountToTransfer = 10000;
   let contract;
 
   before(async () => {
     deployer = manager.newDeployer();
+    weth = await deployer.deploy(WETH);
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
     const limitStorage = await deployer.deploy(LimitStorage);
@@ -53,7 +56,8 @@ describe("Approved Transfer", function () {
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
       registry.contractAddress,
       guardianStorage.contractAddress,
-      limitStorage.contractAddress);
+      limitStorage.contractAddress,
+      weth.contractAddress);
     relayerModule = await deployer.deploy(RelayerModule, {},
       registry.contractAddress,
       guardianStorage.contractAddress,
@@ -298,21 +302,26 @@ describe("Approved Transfer", function () {
       });
 
       describe("Valid Target", () => {
-        async function approveTokenAndCallContract(_signers, _consumerAddress = contract.contractAddress) {
+        async function approveTokenAndCallContract(_signers, _consumerAddress = contract.contractAddress, _wrapEth = false) {
           const newState = parseInt((await contract.state()).toString(), 10) + 1;
+          const token = _wrapEth ? weth : erc20;
           const fun = _consumerAddress === contract.contractAddress ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
           const data = contract.contract.interface.functions[fun].encode(
-            [newState, erc20.contractAddress, amountToApprove],
+            [newState, token.contractAddress, amountToApprove],
           );
-          const before = await erc20.balanceOf(contract.contractAddress);
+          const before = await token.balanceOf(contract.contractAddress);
+          const params = [wallet.contractAddress]
+            .concat(_wrapEth ? [] : [erc20.contractAddress])
+            .concat([_consumerAddress, amountToApprove, contract.contractAddress, data]);
+          const method = _wrapEth ? "approveWethAndCallContract" : "approveTokenAndCallContract";
           await manager.relay(
             approvedTransfer,
-            "approveTokenAndCallContract",
-            [wallet.contractAddress, erc20.contractAddress, _consumerAddress, amountToApprove, contract.contractAddress, data],
+            method,
+            params,
             wallet,
             _signers,
           );
-          const after = await erc20.balanceOf(contract.contractAddress);
+          const after = await token.balanceOf(contract.contractAddress);
           assert.equal(after.sub(before).toNumber(), amountToApprove, "should have approved and transfered the token amount");
           assert.equal((await contract.state()).toNumber(), newState, "the state of the external contract should have been changed");
         }
@@ -321,6 +330,12 @@ describe("Approved Transfer", function () {
           await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian2])]);
           await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian3])]);
           await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian2, guardian3])]);
+        });
+
+        it("should approve WETH for a spender then call a contract with 3 guardians, spender = contract", async () => {
+          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian2])], contract.contractAddress, true);
+          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian3])], contract.contractAddress, true);
+          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian2, guardian3])], contract.contractAddress, true);
         });
 
         it("should approve token for a spender then call a contract with 3 guardians, spender != contract", async () => {

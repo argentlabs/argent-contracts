@@ -111,6 +111,7 @@ describe("MakerV2 Vaults", function () {
       3600,
       3600,
       10000,
+      AddressZero,
       AddressZero);
 
     walletImplementation = await deployer.deploy(BaseWallet);

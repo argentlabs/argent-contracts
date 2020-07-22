@@ -4,14 +4,22 @@
     "ensRegistry": "0xaFABA6074aC589347C74eAfc01675780fc41B5C6",
     "domain": "argent.xyz"
   },
-  "backend": { "accounts": ["0xD9995BAE12FEe327256FFec1e3184d492bD94C31"] },
+  "backend": {
+    "accounts": [
+      "0xD9995BAE12FEe327256FFec1e3184d492bD94C31"
+    ]
+  },
   "multisig": {
-    "owners": ["0xD9995BAE12FEe327256FFec1e3184d492bD94C31"],
+    "owners": [
+      "0xD9995BAE12FEe327256FFec1e3184d492bD94C31"
+    ],
     "threshold": 1,
     "autosign": true
   },
   "settings": {
-    "deployer": { "type": "ganache" },
+    "deployer": {
+      "type": "ganache"
+    },
     "lockPeriod": 480,
     "recoveryPeriod": 480,
     "securityPeriod": 240,
@@ -19,8 +27,11 @@
     "feeRatio": 15,
     "defaultLimit": "1000000000000000000"
   },
-  "CryptoKitties": { "contract": "0x0000000000000000000000000000000000000000" },
+  "CryptoKitties": {
+    "contract": "0x0000000000000000000000000000000000000000"
+  },
   "defi": {
+    "weth": "0x0000000000000000000000000000000000000000",
     "maker": {
       "deployOwn": true,
       "tub": "0x0000000000000000000000000000000000000000",

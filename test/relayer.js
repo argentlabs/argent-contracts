@@ -74,7 +74,8 @@ describe("RelayerModule", function () {
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
       registry.contractAddress,
       guardianStorage.contractAddress,
-      limitStorage.contractAddress);
+      limitStorage.contractAddress,
+      ethers.constants.AddressZero);
     guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 120);
 
@@ -101,7 +102,7 @@ describe("RelayerModule", function () {
 
   describe("relaying module transactions", () => {
     it("should fail when _data is less than 36 bytes", async () => {
-      const params = []; // the first argument is not the wallet address, which should make the relaying rever
+      const params = []; // the first argument is not the wallet address, which should make the relaying revert
       await assert.revertWith(
         manager.relay(testModule, "clearInt", params, wallet, [owner]), INVALID_DATA_REVERT_MSG,
       );

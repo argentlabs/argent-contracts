@@ -19,6 +19,7 @@ const TransferModule = require("../build/TransferManager");
 const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
 const ERC20 = require("../build/TestERC20");
+const WETH = require("../build/WETH9");
 const TestContract = require("../build/TestContract");
 
 const { ETH_TOKEN } = require("../utils/utilities.js");
@@ -55,10 +56,12 @@ describe("TransferManager", function () {
   let wallet;
   let walletImplementation;
   let erc20;
+  let weth;
   let relayerModule;
 
   before(async () => {
     deployer = manager.newDeployer();
+    weth = await deployer.deploy(WETH);
     registry = await deployer.deploy(Registry);
     priceProvider = await deployer.deploy(LegacyTokenPriceProvider, {}, ethers.constants.AddressZero);
     await priceProvider.addManager(infrastructure.address);
@@ -88,6 +91,7 @@ describe("TransferManager", function () {
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       ETH_LIMIT,
+      weth.contractAddress,
       previousTransferModule.contractAddress);
 
     await registry.registerModule(transferModule.contractAddress, ethers.utils.formatBytes32String("TransferModule"));
@@ -135,6 +139,7 @@ describe("TransferManager", function () {
         SECURITY_PERIOD,
         SECURITY_WINDOW,
         10,
+        ethers.constants.AddressZero,
         ethers.constants.AddressZero);
 
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
@@ -695,31 +700,37 @@ describe("TransferManager", function () {
     });
 
     async function doApproveTokenAndCallContract({
-      signer = owner, consumer = contract.contractAddress, amount, state, relayed = false,
+      signer = owner, consumer = contract.contractAddress, amount, state, relayed = false, wrapEth = false,
     }) {
       const fun = consumer === contract.contractAddress ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
-      const dataToTransfer = contract.contract.interface.functions[fun].encode([state, erc20.contractAddress, amount]);
+      const token = wrapEth ? weth : erc20;
+      const dataToTransfer = contract.contract.interface.functions[fun].encode([state, token.contractAddress, amount]);
       const unspentBefore = await transferModule.getDailyUnspent(wallet.contractAddress);
-      const params = [wallet.contractAddress, erc20.contractAddress, consumer, amount, contract.contractAddress, dataToTransfer];
+      const params = [wallet.contractAddress]
+        .concat(wrapEth ? [] : [erc20.contractAddress])
+        .concat([consumer, amount, contract.contractAddress, dataToTransfer]);
+      const method = wrapEth ? "approveWethAndCallContract" : "approveTokenAndCallContract";
       let txReceipt;
       if (relayed) {
-        txReceipt = await manager.relay(transferModule, "approveTokenAndCallContract", params, wallet, [signer]);
+        txReceipt = await manager.relay(transferModule, method, params, wallet, [signer]);
       } else {
-        const tx = await transferModule.from(signer).approveTokenAndCallContract(...params);
+        const tx = await transferModule.from(signer)[method](...params);
         txReceipt = await transferModule.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferModule, "ApprovedAndCalledContract"), "should have generated CalledContract event");
       const unspentAfter = await transferModule.getDailyUnspent(wallet.contractAddress);
-      const amountInEth = await getEtherValue(amount, erc20.contractAddress);
+      const amountInEth = wrapEth ? amount : await getEtherValue(amount, erc20.contractAddress);
 
       if (amountInEth < ETH_LIMIT) {
         assert.equal(unspentBefore[0].sub(unspentAfter[0]).toNumber(), amountInEth, "should have updated the daily limit");
       }
       assert.equal((await contract.state()).toNumber(), state, "the state of the external contract should have been changed");
-      const erc20Balance = await erc20.balanceOf(contract.contractAddress);
-      assert.equal(erc20Balance.toNumber(), amount, "the contract should have transfered the tokens");
+      const tokenBalance = await token.balanceOf(contract.contractAddress);
+      assert.equal(tokenBalance.toNumber(), amount, "the contract should have transfered the tokens");
       return txReceipt;
     }
+
+    // approveTokenAndCallContract
 
     it("should approve the token and call the contract when under the limit", async () => {
       await doApproveTokenAndCallContract({ amount: 10, state: 3 });
@@ -833,6 +844,19 @@ describe("TransferManager", function () {
         contract.contractAddress,
         dataToTransfer,
       ), "BT: insufficient balance");
+    });
+
+    // approveWethAndCallContract
+
+    it("should approve WETH and call the contract when under the limit", async () => {
+      await doApproveTokenAndCallContract({ amount: 10, state: 3, wrapEth: true });
+    });
+
+    it("should approve WETH and call the contract under the limit when already holding the WETH", async () => {
+      const amount = 10;
+      await weth.from(infrastructure).deposit({ value: amount });
+      await weth.from(infrastructure).transfer(wallet.contractAddress, amount);
+      await doApproveTokenAndCallContract({ amount, state: 3, wrapEth: true });
     });
   });
 });
