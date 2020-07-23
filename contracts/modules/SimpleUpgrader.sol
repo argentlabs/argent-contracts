@@ -21,7 +21,7 @@ import "./common/BaseModule.sol";
 /**
  * @title SimpleUpgrader
  * @dev Temporary module used to add/remove other modules.
- * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.im>
+ * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
 contract SimpleUpgrader is BaseModule {
 

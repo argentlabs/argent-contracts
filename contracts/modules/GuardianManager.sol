@@ -29,8 +29,8 @@ import "./common/BaseModule.sol";
  * of a wallet and must be confirmed after a security period (e.g. 24 hours).
  * The list of guardians for a wallet is stored on a saparate
  * contract to facilitate its use by other modules.
- * @author Julien Niset - <julien@argent.im>
- * @author Olivier Van Den Biggelaar - <olivier@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
+ * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract GuardianManager is BaseModule {
 

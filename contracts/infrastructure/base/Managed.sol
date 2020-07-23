@@ -21,7 +21,7 @@ import "./Owned.sol";
 /**
  * @title Managed
  * @dev Basic contract that defines a set of managers. Only the owner can add/remove managers.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract Managed is Owned {
 

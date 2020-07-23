@@ -19,7 +19,7 @@ pragma solidity >=0.5.4 <0.7.0;
 /**
  * @title Owned
  * @dev Basic contract to define an owner.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract Owned {
 

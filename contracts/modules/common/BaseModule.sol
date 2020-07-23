@@ -26,7 +26,7 @@ import "../../../lib/other/ERC20.sol";
 /**
  * @title BaseModule
  * @dev Basic module that contains some methods common to all modules.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract BaseModule is IModule {
 

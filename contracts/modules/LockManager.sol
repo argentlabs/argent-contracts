@@ -26,8 +26,8 @@ import "./common/GuardianUtils.sol";
  * should be authorised or blocked. Only the guardians of a wallet can lock and unlock it.
  * The lock automatically unlocks after a given period. The lock state is stored on a saparate
  * contract to facilitate its use by other modules.
- * @author Julien Niset - <julien@argent.im>
- * @author Olivier Van Den Biggelaar - <olivier@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
+ * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract LockManager is BaseModule {
 

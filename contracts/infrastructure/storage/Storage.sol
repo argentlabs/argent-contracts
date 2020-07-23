@@ -21,7 +21,7 @@ import "../../wallet/IWallet.sol";
 /**
  * @title Storage
  * @dev Base contract for the storage of a wallet.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract Storage {
 

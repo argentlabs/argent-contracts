@@ -22,7 +22,7 @@ import "./BaseModule.sol";
  * @title OnlyOwnerModule
  * @dev Module that extends BaseModule and RelayerModule for modules where the execute() method
  * must be called with one signature frm the owner.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract OnlyOwnerModule is BaseModule {
 

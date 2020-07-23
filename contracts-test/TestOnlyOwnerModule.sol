@@ -6,7 +6,7 @@ import "../contracts/modules/common/OnlyOwnerModule.sol";
 /**
  * @title TestOnlyOwnerModule
  * @dev Basic test onlyowner module.
- * @author Julien Niset - <julien@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract TestOnlyOwnerModule is OnlyOwnerModule {
 

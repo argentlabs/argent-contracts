@@ -26,8 +26,8 @@ import "../infrastructure/storage/IGuardianStorage.sol";
  * Recovery is executed by a consensus of the wallet's guardians and takes
  * 24 hours before it can be finalized. Once finalised the ownership of the wallet
  * is transfered to a new address.
- * @author Julien Niset - <julien@argent.im>
- * @author Olivier Van Den Biggelaar - <olivier@argent.im>
+ * @author Julien Niset - <julien@argent.xyz>
+ * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract RecoveryManager is BaseModule {
 
