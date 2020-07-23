@@ -18,7 +18,7 @@ import "../infrastructure/base/Owned.sol";
 
 /**
  * @title CompoundRegistry
- * @dev Simple registry containing a mapping between underlying assets and their corresponding cToken.
+ * @notice Simple registry containing a mapping between underlying assets and their corresponding cToken.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract CompoundRegistry is Owned {
@@ -37,7 +37,7 @@ contract CompoundRegistry is Owned {
     event CTokenRemoved(address indexed _underlying);
 
     /**
-     * @dev Adds a new cToken to the registry.
+     * @notice Adds a new cToken to the registry.
      * @param _underlying The underlying asset.
      * @param _cToken The cToken.
      */
@@ -50,7 +50,7 @@ contract CompoundRegistry is Owned {
     }
 
     /**
-     * @dev Removes a cToken from the registry.
+     * @notice Removes a cToken from the registry.
      * @param _underlying The underlying asset.
      */
     function removeCToken(address _underlying) external onlyOwner {
@@ -67,7 +67,7 @@ contract CompoundRegistry is Owned {
     }
 
     /**
-     * @dev Gets the cToken for a given underlying asset.
+     * @notice Gets the cToken for a given underlying asset.
      * @param _underlying The underlying asset.
      */
     function getCToken(address _underlying) external view returns (address) {
@@ -75,7 +75,7 @@ contract CompoundRegistry is Owned {
     }
 
     /**
-    * @dev Gets the list of supported underlyings.
+    * @notice Gets the list of supported underlyings.
     */
     function listUnderlyings() external view returns (address[] memory) {
         address[] memory underlyings = new address[](tokens.length);

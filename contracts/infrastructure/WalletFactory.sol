@@ -26,7 +26,7 @@ import "./IModuleRegistry.sol";
 
 /**
  * @title WalletFactory
- * @dev The WalletFactory contract creates and assigns wallets to accounts.
+ * @notice The WalletFactory contract creates and assigns wallets to accounts.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract WalletFactory is Owned, Managed {
@@ -49,7 +49,7 @@ contract WalletFactory is Owned, Managed {
     // *************** Constructor ********************** //
 
     /**
-     * @dev Default constructor.
+     * @notice Default constructor.
      */
     constructor(address _moduleRegistry, address _walletImplementation, address _ensManager, address _guardianStorage) public {
         require(_moduleRegistry != address(0), "WF: ModuleRegistry address not defined");
@@ -64,7 +64,7 @@ contract WalletFactory is Owned, Managed {
 
     // *************** External Functions ********************* //
     /**
-     * @dev Lets the manager create a wallet for an owner account.
+     * @notice Lets the manager create a wallet for an owner account.
      * The wallet is initialised with a list of modules, a first guardian, and an ENS.
      * The wallet is created using the CREATE opcode.
      * @param _owner The account address.
@@ -88,7 +88,7 @@ contract WalletFactory is Owned, Managed {
     }
      
     /**
-     * @dev Lets the manager create a wallet for an owner account at a specific address.
+     * @notice Lets the manager create a wallet for an owner account at a specific address.
      * The wallet is initialised with a list of modules, a first guardian, and an ENS.
      * The wallet is created using the CREATE2 opcode.
      * @param _owner The account address.
@@ -117,7 +117,7 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Gets the address of a counterfactual wallet with a first default guardian.
+     * @notice Gets the address of a counterfactual wallet with a first default guardian.
      * @param _owner The account address.
      * @param _modules The list of modules.
      * @param _guardian The guardian address.
@@ -142,7 +142,7 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Lets the owner change the address of the module registry contract.
+     * @notice Lets the owner change the address of the module registry contract.
      * @param _moduleRegistry The address of the module registry contract.
      */
     function changeModuleRegistry(address _moduleRegistry) external onlyOwner {
@@ -152,7 +152,7 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Lets the owner change the address of the ENS manager contract.
+     * @notice Lets the owner change the address of the ENS manager contract.
      * @param _ensManager The address of the ENS manager contract.
      */
     function changeENSManager(address _ensManager) external onlyOwner {
@@ -162,7 +162,7 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Inits the module for a wallet by logging an event.
+     * @notice Inits the module for a wallet by logging an event.
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
@@ -173,7 +173,7 @@ contract WalletFactory is Owned, Managed {
     // *************** Internal Functions ********************* //
 
     /**
-     * @dev Helper method to configure a wallet for a set of input parameters.
+     * @notice Helper method to configure a wallet for a set of input parameters.
      * @param _wallet The target wallet
      * @param _owner The account address.
      * @param _modules The list of modules.
@@ -209,7 +209,7 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Generates a new salt based on a provided salt, an owner, a list of modules and an optional guardian.
+     * @notice Generates a new salt based on a provided salt, an owner, a list of modules and an optional guardian.
      * @param _salt The slat provided.
      * @param _owner The owner address.
      * @param _modules The list of modules.
@@ -220,7 +220,7 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Throws if the owner and the modules are not valid.
+     * @notice Throws if the owner and the modules are not valid.
      * @param _owner The owner address.
      * @param _modules The list of modules.
      */
@@ -232,7 +232,7 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @dev Register an ENS subname to a wallet.
+     * @notice Register an ENS subname to a wallet.
      * @param _wallet The wallet address.
      * @param _label ENS label of the new wallet (e.g. franck).
      */

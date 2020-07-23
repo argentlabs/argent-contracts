@@ -19,7 +19,7 @@ import "../../lib/other/ERC20.sol";
 
 /**
  * @title ModuleRegistry
- * @dev Registry of authorised modules.
+ * @notice Registry of authorised modules.
  * Modules must be registered before they can be authorised on a wallet.
  * @author Julien Niset - <julien@argent.im>
  */
@@ -39,7 +39,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-     * @dev Registers a module.
+     * @notice Registers a module.
      * @param _module The module.
      * @param _name The unique name of the module.
      */
@@ -50,7 +50,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-     * @dev Deregisters a module.
+     * @notice Deregisters a module.
      * @param _module The module.
      */
     function deregisterModule(address _module) external onlyOwner {
@@ -60,7 +60,7 @@ contract ModuleRegistry is Owned {
     }
 
         /**
-     * @dev Registers an upgrader.
+     * @notice Registers an upgrader.
      * @param _upgrader The upgrader.
      * @param _name The unique name of the upgrader.
      */
@@ -71,7 +71,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-     * @dev Deregisters an upgrader.
+     * @notice Deregisters an upgrader.
      * @param _upgrader The _upgrader.
      */
     function deregisterUpgrader(address _upgrader) external onlyOwner {
@@ -81,7 +81,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-    * @dev Utility method enbaling the owner of the registry to claim any ERC20 token that was sent to the
+    * @notice Utility method enbaling the owner of the registry to claim any ERC20 token that was sent to the
     * registry.
     * @param _token The token to recover.
     */
@@ -91,7 +91,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-     * @dev Gets the name of a module from its address.
+     * @notice Gets the name of a module from its address.
      * @param _module The module address.
      * @return the name.
      */
@@ -100,7 +100,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-     * @dev Gets the name of an upgrader from its address.
+     * @notice Gets the name of an upgrader from its address.
      * @param _upgrader The upgrader address.
      * @return the name.
      */
@@ -109,7 +109,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-     * @dev Checks if a module is registered.
+     * @notice Checks if a module is registered.
      * @param _module The module address.
      * @return true if the module is registered.
      */
@@ -118,7 +118,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-     * @dev Checks if a list of modules are registered.
+     * @notice Checks if a list of modules are registered.
      * @param _modules The list of modules address.
      * @return true if all the modules are registered.
      */
@@ -132,7 +132,7 @@ contract ModuleRegistry is Owned {
     }
 
     /**
-     * @dev Checks if an upgrader is registered.
+     * @notice Checks if an upgrader is registered.
      * @param _upgrader The upgrader address.
      * @return true if the upgrader is registered.
      */

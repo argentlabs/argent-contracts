@@ -18,7 +18,7 @@ pragma solidity >=0.5.4 <0.7.0;
 
 /**
  * @title IModuleRegistry
- * @dev Interface for the registry of authorised modules.
+ * @notice Interface for the registry of authorised modules.
  */
 interface IModuleRegistry {
     function registerModule(address _module, bytes32 _name) external;

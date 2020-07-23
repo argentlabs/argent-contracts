@@ -5,7 +5,7 @@ import "../contracts/modules/maker/MakerV2Manager.sol";
 
 /**
  * @title TestUpgradedMakerV2Manager
- * @dev Test upgraded MakerV2 module.
+ * @notice Test upgraded MakerV2 module.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract TestUpgradedMakerV2Manager is MakerV2Manager {

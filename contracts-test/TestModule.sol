@@ -5,7 +5,7 @@ import "./TestDapp.sol";
 
 /**
  * @title TestModule
- * @dev Basic test module
+ * @notice Basic test module
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract TestModule is BaseModule {

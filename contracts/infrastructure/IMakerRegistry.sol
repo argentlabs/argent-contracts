@@ -19,7 +19,7 @@ pragma solidity >=0.5.4 <0.7.0;
 import "../../lib/maker/MakerInterfaces.sol";
 /**
  * @title IMakerRegistry
- * @dev Interface for the MakerRegistry
+ * @notice Interface for the MakerRegistry
  */
 interface IMakerRegistry {
     function collaterals(address _collateral) external view returns (bool exists, uint128 index, JoinLike join, bytes32 ilk);

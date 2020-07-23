@@ -25,7 +25,7 @@ import "../../../lib/other/ERC20.sol";
 
 /**
  * @title BaseModule
- * @dev Basic module that contains some methods common to all modules.
+ * @notice Basic module that contains some methods common to all modules.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract BaseModule is IModule {
@@ -44,7 +44,7 @@ contract BaseModule is IModule {
     event ModuleInitialised(address wallet);
 
     /**
-     * @dev Throws if the wallet is locked.
+     * @notice Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(address _wallet) {
         require(!guardianStorage.isLocked(_wallet), "BM: wallet locked");
@@ -52,7 +52,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Throws if the sender is not the target wallet of the call.
+     * @notice Throws if the sender is not the target wallet of the call.
      */
     modifier onlyWallet(address _wallet) {
         require(msg.sender == _wallet, "BM: caller must be wallet");
@@ -60,7 +60,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Throws if the sender is not the owner of the target wallet.
+     * @notice Throws if the sender is not the owner of the target wallet.
      */
     modifier onlyWalletOwner(address _wallet) {
         require(isOwner(_wallet, msg.sender), "BM: must be wallet owner");
@@ -68,7 +68,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Throws if the sender is not an authorised module of the target wallet.
+     * @notice Throws if the sender is not an authorised module of the target wallet.
      */
     modifier onlyWalletModule(address _wallet) {
         require(isAuthorisedModule(_wallet, msg.sender), "BM: must be a wallet module");
@@ -76,7 +76,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Throws if the sender is not the owner of the target wallet or the module itself.
+     * @notice Throws if the sender is not the owner of the target wallet or the module itself.
      */
     modifier onlyWalletOwnerOrModule(address _wallet) {
         // Wrapping in an internal method reduces deployment cost by avoiding duplication of inlined code
@@ -91,7 +91,7 @@ contract BaseModule is IModule {
     }
 
     /**
-    * @dev Utility method enabling anyone to recover ERC20 token sent to the
+    * @notice Utility method enabling anyone to recover ERC20 token sent to the
     * module by mistake and transfer them to the Module Registry.
     * @param _token The token to recover.
     */
@@ -101,7 +101,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Inits the module for a wallet by logging an event.
+     * @notice Inits the module for a wallet by logging an event.
      * The method can only be called by the wallet itself.
      * @param _wallet The wallet.
      */
@@ -110,7 +110,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Adds a module to a wallet. First checks that the module is registered.
+     * @notice Adds a module to a wallet. First checks that the module is registered.
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
      */
@@ -120,7 +120,7 @@ contract BaseModule is IModule {
     }
 
     /**
-    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @notice Implementation of the getRequiredSignatures from the IModule interface.
     * Unless overriden the method always revert.
     * @param _wallet The target wallet.
     * @param _data The data of the relayed transaction.
@@ -131,7 +131,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Helper method to check if an address is the owner of a target wallet.
+     * @notice Helper method to check if an address is the owner of a target wallet.
      * @param _wallet The target wallet.
      * @param _addr The address.
      */
@@ -140,7 +140,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Helper method to check if an address is an authorised module of a target wallet.
+     * @notice Helper method to check if an address is an authorised module of a target wallet.
      * @param _wallet The target wallet.
      * @param _module The address.
      */
@@ -149,7 +149,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Verify that the caller is an authorised module or the wallet owner.
+     * @notice Verify that the caller is an authorised module or the wallet owner.
      * @param _wallet The target wallet.
      * @param _sender The caller.
      */
@@ -158,7 +158,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @dev Helper method to invoke a wallet.
+     * @notice Helper method to invoke a wallet.
      * @param _wallet The target wallet.
      * @param _to The target address for the transaction.
      * @param _value The value of the transaction.

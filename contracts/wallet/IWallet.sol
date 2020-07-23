@@ -18,7 +18,7 @@ pragma solidity >=0.5.4 <0.7.0;
 
 /**
  * @title IWallet
- * @dev Interface for the BaseWallet
+ * @notice Interface for the BaseWallet
  */
 interface IWallet {
     function owner() external view returns (address);

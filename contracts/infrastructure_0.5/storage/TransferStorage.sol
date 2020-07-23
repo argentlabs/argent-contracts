@@ -20,7 +20,7 @@ import "../../infrastructure/storage/ITransferStorage.sol";
 
 /**
  * @title TransferStorage
- * @dev Contract storing the state of wallets related to transfers (limit and whitelist).
+ * @notice Contract storing the state of wallets related to transfers (limit and whitelist).
  * The contract only defines basic setters and getters with no logic. Only modules authorised
  * for a wallet can modify its state.
  * @author Julien Niset - <julien@argent.im>
@@ -33,7 +33,7 @@ contract TransferStorage is ITransferStorage, Storage {
     // *************** External Functions ********************* //
 
     /**
-     * @dev Lets an authorised module add or remove an account from the whitelist of a wallet.
+     * @notice Lets an authorised module add or remove an account from the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The account to add/remove.
      * @param _value True for addition, false for revokation.
@@ -43,7 +43,7 @@ contract TransferStorage is ITransferStorage, Storage {
     }
 
     /**
-     * @dev Gets the whitelist state of an account for a wallet.
+     * @notice Gets the whitelist state of an account for a wallet.
      * @param _wallet The target wallet.
      * @param _target The account.
      * @return the epoch time at which an account strats to be whitelisted, or zero if the account is not whitelisted.

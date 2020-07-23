@@ -22,7 +22,7 @@ import "./Storage.sol";
 
 /**
  * @title LimitStorage
- * @dev Contract storing the state of wallets related daily limits.
+ * @notice Contract storing the state of wallets related daily limits.
  * The contract only defines basic setters and getters with no logic.
  * Only the modules of a wallet can modify its state.
  * @author Julien Niset - <julien@argent.xyz>

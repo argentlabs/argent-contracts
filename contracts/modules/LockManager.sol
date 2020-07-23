@@ -21,7 +21,7 @@ import "./common/GuardianUtils.sol";
 
 /**
  * @title LockManager
- * @dev Module to manage the state of a wallet's lock.
+ * @notice Module to manage the state of a wallet's lock.
  * Other modules can use the state of the lock to determine if their operations
  * should be authorised or blocked. Only the guardians of a wallet can lock and unlock it.
  * The lock automatically unlocks after a given period. The lock state is stored on a saparate
@@ -44,7 +44,7 @@ contract LockManager is BaseModule {
     // *************** Modifiers ************************ //
 
     /**
-     * @dev Throws if the wallet is not locked.
+     * @notice Throws if the wallet is not locked.
      */
     modifier onlyWhenLocked(address _wallet) {
         require(guardianStorage.isLocked(_wallet), "LM: wallet must be locked");
@@ -52,7 +52,7 @@ contract LockManager is BaseModule {
     }
 
     /**
-     * @dev Throws if the caller is not a guardian for the wallet.
+     * @notice Throws if the caller is not a guardian for the wallet.
      */
     modifier onlyGuardianOrModule(address _wallet) {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), msg.sender);
@@ -74,7 +74,7 @@ contract LockManager is BaseModule {
     // *************** External functions ************************ //
 
     /**
-     * @dev Lets a guardian lock a wallet.
+     * @notice Lets a guardian lock a wallet.
      * @param _wallet The target wallet.
      */
     function lock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenUnlocked(_wallet) {
@@ -83,7 +83,7 @@ contract LockManager is BaseModule {
     }
 
     /**
-     * @dev Lets a guardian unlock a locked wallet.
+     * @notice Lets a guardian unlock a locked wallet.
      * @param _wallet The target wallet.
      */
     function unlock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenLocked(_wallet) {
@@ -94,7 +94,7 @@ contract LockManager is BaseModule {
     }
 
     /**
-     * @dev Returns the release time of a wallet lock or 0 if the wallet is unlocked.
+     * @notice Returns the release time of a wallet lock or 0 if the wallet is unlocked.
      * @param _wallet The target wallet.
      * @return _releaseAfter The epoch time at which the lock will release (in seconds).
      */
@@ -106,7 +106,7 @@ contract LockManager is BaseModule {
     }
 
     /**
-     * @dev Checks if a wallet is locked.
+     * @notice Checks if a wallet is locked.
      * @param _wallet The target wallet.
      * @return _isLocked true if the wallet is locked.
      */
@@ -115,7 +115,7 @@ contract LockManager is BaseModule {
     }
 
     /**
-    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @notice Implementation of the getRequiredSignatures from the IModule interface.
     * @param _wallet The target wallet.
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures and the wallet owner signature requirement.

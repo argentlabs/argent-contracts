@@ -21,7 +21,7 @@ import "./IWallet.sol";
 
 /**
  * @title BaseWallet
- * @dev Simple modular wallet that authorises modules to call its invoke() method.
+ * @notice Simple modular wallet that authorises modules to call its invoke() method.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract BaseWallet is IWallet {
@@ -44,7 +44,7 @@ contract BaseWallet is IWallet {
     event OwnerChanged(address owner);
 
     /**
-     * @dev Throws if the sender is not an authorised module.
+     * @notice Throws if the sender is not an authorised module.
      */
     modifier moduleOnly {
         require(authorised[msg.sender], "BW: msg.sender not an authorized module");
@@ -52,7 +52,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-     * @dev Inits the wallet by setting the owner and authorising a list of modules.
+     * @notice Inits the wallet by setting the owner and authorising a list of modules.
      * @param _owner The owner.
      * @param _modules The modules to authorise.
      */
@@ -73,7 +73,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-     * @dev Enables/Disables a module.
+     * @notice Enables/Disables a module.
      * @param _module The target module.
      * @param _value Set to true to authorise the module.
      */
@@ -93,7 +93,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-    * @dev Enables a static method by specifying the target module to which the call
+    * @notice Enables a static method by specifying the target module to which the call
     * must be delegated.
     * @param _module The target module.
     * @param _method The static method signature.
@@ -105,7 +105,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-     * @dev Sets a new owner for the wallet.
+     * @notice Sets a new owner for the wallet.
      * @param _newOwner The new owner.
      */
     function setOwner(address _newOwner) external override moduleOnly {
@@ -115,7 +115,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-     * @dev Performs a generic transaction.
+     * @notice Performs a generic transaction.
      * @param _target The address for the transaction.
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
@@ -134,7 +134,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-     * @dev This method delegates the static call to a target contract if the data corresponds
+     * @notice This method delegates the static call to a target contract if the data corresponds
      * to an enabled module, or logs the call otherwise.
      */
     fallback() external payable {

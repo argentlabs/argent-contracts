@@ -17,7 +17,7 @@ pragma solidity ^0.5.4;
 
 /**
  * @title MultiSig
- * @dev Simple MultiSig using off-chain signing.
+ * @notice Simple MultiSig using off-chain signing.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract MultiSigWallet {
@@ -41,8 +41,8 @@ contract MultiSigWallet {
     event Received(uint256 indexed value, address indexed from);
 
     /**
-     * @dev Throws if the calling account is not the multisig.
-     * @dev Mainly used for enforcing the use of internal functions through the "execute" function
+     * @notice Throws if the calling account is not the multisig.
+     * @notice Mainly used for enforcing the use of internal functions through the "execute" function
      */
     modifier onlyWallet() {
         require(msg.sender == address(this), "MSW: Calling account is not wallet");
@@ -50,7 +50,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Constructor.
+     * @notice Constructor.
      * @param _threshold The threshold of the multisig.
      * @param _owners The initial set of owners of the multisig.
      */
@@ -67,7 +67,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Only entry point of the multisig. The method will execute any transaction provided that it
+     * @notice Only entry point of the multisig. The method will execute any transaction provided that it
      * receieved enough signatures from the wallet owners.
      * @param _to The destination address for the transaction to execute.
      * @param _value The value parameter for the transaction to execute.
@@ -104,7 +104,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Adds an owner to the multisig. This method can only be called by the multisig itself
+     * @notice Adds an owner to the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
      * @param _owner The address of the new owner.
      */
@@ -117,7 +117,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Removes an owner from the multisig. This method can only be called by the multisig itself
+     * @notice Removes an owner from the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
      * @param _owner The address of the owner to be removed.
      */
@@ -130,7 +130,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Changes the threshold of the multisig. This method can only be called by the multisig itself
+     * @notice Changes the threshold of the multisig. This method can only be called by the multisig itself
      * (i.e. it must go through the execute method and be confirmed by the owners).
      * @param _newThreshold The new threshold.
      */
@@ -141,7 +141,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Parses the signatures and extract (r, s, v) for a signature at a given index.
+     * @notice Parses the signatures and extract (r, s, v) for a signature at a given index.
      * A signature is {bytes32 r}{bytes32 s}{uint8 v} in compact form where the signatures are concatenated.
      * @param _signatures concatenated signatures
      * @param _index which signature to read (0, 1, 2, ...)
@@ -159,7 +159,7 @@ contract MultiSigWallet {
     }
 
     /**
-     * @dev Fallback function to allow the multisig to receive ETH, which will fail if not implemented
+     * @notice Fallback function to allow the multisig to receive ETH, which will fail if not implemented
      */
     function () external payable {
         emit Received(msg.value, msg.sender);

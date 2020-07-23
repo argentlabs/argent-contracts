@@ -24,7 +24,7 @@ import "../infrastructure/storage/ILimitStorage.sol";
 
 /**
  * @title ApprovedTransfer
- * @dev Module to transfer tokens (ETH or ERC20) or call third-party contracts with the approval of guardians.
+ * @notice Module to transfer tokens (ETH or ERC20) or call third-party contracts with the approval of guardians.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract ApprovedTransfer is BaseTransfer {
@@ -48,7 +48,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @dev transfers tokens (ETH or ERC20) from a wallet.
+    * @notice transfers tokens (ETH or ERC20) from a wallet.
     * @param _wallet The target wallet.
     * @param _token The address of the token to transfer.
     * @param _to The destination address
@@ -71,7 +71,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @dev call a contract.
+    * @notice call a contract.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
     * @param _value The amount of ETH to transfer as part of call
@@ -93,7 +93,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @dev lets the owner do an ERC20 approve followed by a call to a contract.
+    * @notice lets the owner do an ERC20 approve followed by a call to a contract.
     * The address to approve may be different than the contract to call.
     * We assume that the contract does not require ETH.
     * @param _wallet The target wallet.
@@ -121,7 +121,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-     * @dev Changes the daily limit. The change is immediate.
+     * @notice Changes the daily limit. The change is immediate.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
@@ -134,7 +134,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @dev Resets the daily consumtion.
+    * @notice Resets the daily consumtion.
     * @param _wallet The target wallet.
     */
     function resetDailySpent(address _wallet) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
@@ -142,7 +142,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @dev lets the owner wrap ETH into WETH, approve the WETH and call a contract.
+    * @notice lets the owner wrap ETH into WETH, approve the WETH and call a contract.
     * The address to approve may be different than the contract to call.
     * We assume that the contract does not require ETH.
     * @param _wallet The target wallet.
@@ -167,7 +167,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @notice Implementation of the getRequiredSignatures from the IModule interface.
     * @param _wallet The target wallet.
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures and the wallet owner signature requirement.

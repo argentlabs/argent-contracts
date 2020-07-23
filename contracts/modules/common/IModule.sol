@@ -18,7 +18,7 @@ pragma solidity >=0.5.4 <0.7.0;
 
 /**
  * @title IModule
- * @dev Interface for a module.
+ * @notice Interface for a module.
  * A module MUST implement the addModule() method to ensure that a wallet with at least one module
  * can never end up in a "frozen" state.
  * @author Julien Niset - <julien@argent.xyz>
@@ -52,7 +52,7 @@ interface IModule {
     function addModule(address _wallet, address _module) external;
 
     /**
-    * @dev Gets the number of valid signatures that must be provided to execute a
+    * @notice Gets the number of valid signatures that must be provided to execute a
     * specific relayed transaction.
     * @param _wallet The target wallet.
     * @param _data The data of the relayed transaction.

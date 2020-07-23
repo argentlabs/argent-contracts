@@ -8,7 +8,7 @@ import "../contracts/modules/common/LimitUtils.sol";
 
 /**
  * @title TestLimitModule
- * @dev Basic module to set the daily limit
+ * @notice Basic module to set the daily limit
  */
 contract TestLimitModule is BaseModule {
 

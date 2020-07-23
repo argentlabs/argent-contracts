@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 
 /**
- * @dev ENS Reverse Registrar interface.
+ * @notice ENS Reverse Registrar interface.
  */
 contract ENSReverseRegistrar {
     function claim(address _owner) public returns (bytes32);

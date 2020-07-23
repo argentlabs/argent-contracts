@@ -21,7 +21,7 @@ contract BasicToken {
 
 
     /**
-    * @dev Fix for the ERC20 short address attack.
+    * @notice Fix for the ERC20 short address attack.
     */
     modifier onlyPayloadSize(uint size) {
         if (msg.data.length < size + 4) {
@@ -31,7 +31,7 @@ contract BasicToken {
     }
 
     /**
-    * @dev transfer token for a specified address
+    * @notice transfer token for a specified address
     * @param _to The address to transfer to.
     * @param _value The amount to be transferred.
     */
@@ -42,7 +42,7 @@ contract BasicToken {
     }
 
     /**
-    * @dev Gets the balance of the specified address.
+    * @notice Gets the balance of the specified address.
     * @param _owner The address to query the the balance of.
     * @return balance An uint representing the amount owned by the passed address.
     */
@@ -56,7 +56,7 @@ contract StandardToken is BasicToken {
     mapping (address => mapping (address => uint)) allowed;
 
     /**
-    * @dev Transfer tokens from one address to another
+    * @notice Transfer tokens from one address to another
     * @param _from address The address which you want to send tokens from
     * @param _to address The address which you want to transfer to
     * @param _value uint the amout of tokens to be transfered
@@ -74,7 +74,7 @@ contract StandardToken is BasicToken {
     }
 
     /**
-    * @dev Aprove the passed address to spend the specified amount of tokens on beahlf of msg.sender.
+    * @notice Aprove the passed address to spend the specified amount of tokens on beahlf of msg.sender.
     * @param _spender The address which will spend the funds.
     * @param _value The amount of tokens to be spent.
     */
@@ -92,7 +92,7 @@ contract StandardToken is BasicToken {
     }
 
     /**
-    * @dev Function to check the amount of tokens than an owner allowed to a spender.
+    * @notice Function to check the amount of tokens than an owner allowed to a spender.
     * @param _owner address The address which owns the funds.
     * @param _spender address The address which will spend the funds.
     * @return remaining A uint specifing the amount of tokens still avaible for the spender.
@@ -118,7 +118,7 @@ contract MintableToken is StandardToken {
     }
 
     /**
-    * @dev Function to mint tokens
+    * @notice Function to mint tokens
     * @param _to The address that will recieve the minted tokens.
     * @param _amount The amount of tokens to mint.
     * @return A boolean that indicates if the operation was successful.
@@ -131,7 +131,7 @@ contract MintableToken is StandardToken {
     }
 
     /**
-    * @dev Function to stop minting new tokens.
+    * @notice Function to stop minting new tokens.
     * @return True if the operation was successful.
     */
     function finishMinting() public returns (bool) {

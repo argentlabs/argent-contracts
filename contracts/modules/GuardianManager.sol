@@ -22,7 +22,7 @@ import "./common/BaseModule.sol";
 
 /**
  * @title GuardianManager
- * @dev Module to manage the guardians of wallets.
+ * @notice Module to manage the guardians of wallets.
  * Guardians are accounts (EOA or contracts) that are authorized to perform specific
  * security operations on wallets such as toggle a safety lock, start a recovery procedure,
  * or confirm transactions. Addition or revokation of guardians is initiated by the owner
@@ -78,7 +78,7 @@ contract GuardianManager is BaseModule {
     // *************** External Functions ********************* //
 
     /**
-     * @dev Lets the owner add a guardian to its wallet.
+     * @notice Lets the owner add a guardian to its wallet.
      * The first guardian is added immediately. All following additions must be confirmed
      * by calling the confirmGuardianAddition() method.
      * @param _wallet The target wallet.
@@ -107,7 +107,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-     * @dev Confirms the pending addition of a guardian to a wallet.
+     * @notice Confirms the pending addition of a guardian to a wallet.
      * The method must be called during the confirmation window and
      * can be called by anyone to enable orchestration.
      * @param _wallet The target wallet.
@@ -125,7 +125,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-     * @dev Lets the owner cancel a pending guardian addition.
+     * @notice Lets the owner cancel a pending guardian addition.
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
@@ -138,7 +138,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-     * @dev Lets the owner revoke a guardian from its wallet.
+     * @notice Lets the owner revoke a guardian from its wallet.
      * Revokation must be confirmed by calling the confirmGuardianRevokation() method.
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
@@ -155,7 +155,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-     * @dev Confirms the pending revokation of a guardian to a wallet.
+     * @notice Confirms the pending revokation of a guardian to a wallet.
      * The method must be called during the confirmation window and
      * can be called by anyone to enable orchestration.
      * @param _wallet The target wallet.
@@ -173,7 +173,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-     * @dev Lets the owner cancel a pending guardian revokation.
+     * @notice Lets the owner cancel a pending guardian revokation.
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
@@ -186,7 +186,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-     * @dev Checks if an address is a guardian for a wallet.
+     * @notice Checks if an address is a guardian for a wallet.
      * @param _wallet The target wallet.
      * @param _guardian The address to check.
      * @return _isGuardian true if the address if a guardian for the wallet.
@@ -196,7 +196,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-     * @dev Counts the number of active guardians for a wallet.
+     * @notice Counts the number of active guardians for a wallet.
      * @param _wallet The target wallet.
      * @return _count The number of active guardians for a wallet.
      */
@@ -205,7 +205,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @notice Implementation of the getRequiredSignatures from the IModule interface.
     * @param _wallet The target wallet.
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures and the wallet owner signature requirement.

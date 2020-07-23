@@ -22,7 +22,7 @@ import "./IUniswapFactory.sol";
 
 /**
  * @title MakerV2Loan
- * @dev Module to migrate old CDPs and open and manage new vaults. The vaults managed by
+ * @notice Module to migrate old CDPs and open and manage new vaults. The vaults managed by
  * this module are directly owned by the module. This is to prevent a compromised wallet owner
  * from being able to use `TransferManager.callContract()` to transfer ownership of a vault
  * (a type of asset NOT protected by a wallet's daily limit) to another account.
@@ -80,7 +80,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     // *************** Modifiers *************************** //
 
     /**
-     * @dev Prevents call reentrancy
+     * @notice Prevents call reentrancy
      */
     modifier nonReentrant() {
         require(_notEntered, "MV2: reentrant call");
@@ -122,7 +122,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     /* ********************************** Implementation of Loan ************************************* */
 
    /**
-     * @dev Opens a collateralized loan.
+     * @notice Opens a collateralized loan.
      * @param _wallet The target wallet.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral token provided.
@@ -149,7 +149,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Adds collateral to a loan identified by its ID.
+     * @notice Adds collateral to a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId The ID of the target vault.
      * @param _collateral The token used as a collateral.
@@ -171,7 +171,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Removes collateral from a loan identified by its ID.
+     * @notice Removes collateral from a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId The ID of the target vault.
      * @param _collateral The token used as a collateral.
@@ -193,7 +193,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Increases the debt by borrowing more token from a loan identified by its ID.
+     * @notice Increases the debt by borrowing more token from a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId The ID of the target vault.
      * @param _debtToken The token borrowed (must be the address of the DAI contract).
@@ -215,7 +215,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Decreases the debt by repaying some token from a loan identified by its ID.
+     * @notice Decreases the debt by repaying some token from a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId The ID of the target vault.
      * @param _debtToken The token to repay (must be the address of the DAI contract).
@@ -238,7 +238,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Closes a collateralized loan by repaying all debts (plus interest) and redeeming all collateral.
+     * @notice Closes a collateralized loan by repaying all debts (plus interest) and redeeming all collateral.
      * @param _wallet The target wallet.
      * @param _loanId The ID of the target vault.
      */
@@ -259,7 +259,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     /* *************************************** Other vault methods ***************************************** */
 
     /**
-     * @dev Lets a vault owner transfer their vault from their wallet to the present module so the vault
+     * @notice Lets a vault owner transfer their vault from their wallet to the present module so the vault
      * can be managed by the module.
      * @param _wallet The target wallet.
      * @param _loanId The ID of the target vault.
@@ -287,7 +287,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Lets a SCD CDP owner migrate their CDP to use the new MCD engine.
+     * @notice Lets a SCD CDP owner migrate their CDP to use the new MCD engine.
      * Requires MKR or ETH to pay the SCD governance fee
      * @param _wallet The target wallet.
      * @param _cup id of the old SCD CDP to migrate
@@ -323,7 +323,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Lets a future upgrade of this module transfer a vault to itself
+     * @notice Lets a future upgrade of this module transfer a vault to itself
      * @param _wallet The target wallet.
      * @param _loanId The ID of the target vault.
      */
@@ -511,7 +511,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
      /**
-     * @dev Lets the owner of a wallet open a new vault. The owner must have enough collateral
+     * @notice Lets the owner of a wallet open a new vault. The owner must have enough collateral
      * in their wallet.
      * @param _wallet The target wallet
      * @param _collateral The token to use as collateral in the vault.
@@ -550,7 +550,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a vault add more collateral to their vault. The owner must have enough of the
+     * @notice Lets the owner of a vault add more collateral to their vault. The owner must have enough of the
      * collateral token in their wallet.
      * @param _wallet The target wallet
      * @param _cdpId The id of the vault.
@@ -570,7 +570,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a vault remove some collateral from their vault
+     * @notice Lets the owner of a vault remove some collateral from their vault
      * @param _wallet The target wallet
      * @param _cdpId The id of the vault.
      * @param _collateralAmount The amount of collateral to remove from the vault.
@@ -597,7 +597,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a vault draw more DAI from their vault.
+     * @notice Lets the owner of a vault draw more DAI from their vault.
      * @param _wallet The target wallet
      * @param _cdpId The id of the vault.
      * @param _amount The amount of additional DAI to draw from the vault.
@@ -614,7 +614,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a vault partially repay their debt. The repayment is made up of
+     * @notice Lets the owner of a vault partially repay their debt. The repayment is made up of
      * the outstanding DAI debt plus the DAI stability fee.
      * The method will use the user's DAI tokens in priority and will, if needed, convert the required
      * amount of ETH to cover for any missing DAI tokens.
@@ -641,7 +641,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @dev Lets the owner of a vault close their vault. The method will:
+     * @notice Lets the owner of a vault close their vault. The method will:
      * 1) repay all debt and fee
      * 2) free all collateral
      * @param _wallet The target wallet

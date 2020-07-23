@@ -17,7 +17,7 @@ pragma experimental ABIEncoderV2;
 
 /**
  * @title ILimitStorage
- * @dev LimitStorage interface
+ * @notice LimitStorage interface
  */
 interface ILimitStorage {
 

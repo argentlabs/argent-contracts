@@ -17,7 +17,7 @@
 pragma solidity >=0.5.4 <0.7.0;
 
 /**
- * @dev Interface for an ENS Mananger.
+ * @notice Interface for an ENS Mananger.
  */
 interface IENSManager {
     event RootnodeOwnerChange(bytes32 indexed _rootnode, address indexed _newOwner);

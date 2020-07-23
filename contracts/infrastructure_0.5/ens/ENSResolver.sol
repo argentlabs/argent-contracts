@@ -16,7 +16,7 @@
 pragma solidity ^0.5.4;
 
 /**
- * @dev ENS Resolver interface.
+ * @notice ENS Resolver interface.
  */
 contract ENSResolver {
     event AddrChanged(bytes32 indexed _node, address _addr);

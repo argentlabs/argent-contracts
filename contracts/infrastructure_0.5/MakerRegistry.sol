@@ -4,7 +4,7 @@ import "../../lib/maker/MakerInterfaces.sol";
 
 /**
  * @title MakerRegistry
- * @dev Simple registry containing a mapping between token collaterals and their corresponding Maker Join adapters.
+ * @notice Simple registry containing a mapping between token collaterals and their corresponding Maker Join adapters.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract MakerRegistry is Owned {
@@ -29,7 +29,7 @@ contract MakerRegistry is Owned {
     }
 
     /**
-     * @dev Adds a new token as possible CDP collateral.
+     * @notice Adds a new token as possible CDP collateral.
      * @param _joinAdapter The Join Adapter for the token.
      */
     function addCollateral(JoinLike _joinAdapter) external onlyOwner {
@@ -46,7 +46,7 @@ contract MakerRegistry is Owned {
     }
 
     /**
-     * @dev Removes a token as possible CDP collateral.
+     * @notice Removes a token as possible CDP collateral.
      * @param _token The token to remove as collateral.
      */
     function removeCollateral(address _token) external onlyOwner {
@@ -65,7 +65,7 @@ contract MakerRegistry is Owned {
     }
 
     /**
-    * @dev Gets the list of supported collaterals.
+    * @notice Gets the list of supported collaterals.
     */
     function getCollateralTokens() external view returns (address[] memory _tokens) {
         _tokens = new address[](tokens.length);
@@ -76,7 +76,7 @@ contract MakerRegistry is Owned {
     }
 
     /**
-     * @dev Gets the ilk for a given token collateral.
+     * @notice Gets the ilk for a given token collateral.
      * @param _token The token collateral.
      */
     function getIlk(address _token) external view returns (bytes32 _ilk) {
@@ -84,7 +84,7 @@ contract MakerRegistry is Owned {
     }
 
     /**
-    * @dev Gets the join adapter and collateral token for a given ilk.
+    * @notice Gets the join adapter and collateral token for a given ilk.
     */
     function getCollateral(bytes32 _ilk) external view returns (JoinLike _join, GemLike _token) {
         _token = GemLike(collateralTokensByIlks[_ilk]);

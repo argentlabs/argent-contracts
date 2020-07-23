@@ -20,7 +20,7 @@ import "./BaseModule.sol";
 
 /**
  * @title OnlyOwnerModule
- * @dev Module that extends BaseModule and RelayerModule for modules where the execute() method
+ * @notice Module that extends BaseModule and RelayerModule for modules where the execute() method
  * must be called with one signature frm the owner.
  * @author Julien Niset - <julien@argent.xyz>
  */
@@ -29,7 +29,7 @@ abstract contract OnlyOwnerModule is BaseModule {
     // bytes4 private constant IS_ONLY_OWNER_MODULE = bytes4(keccak256("isOnlyOwnerModule()"));
 
    /**
-    * @dev Returns a constant that indicates that the module is an OnlyOwnerModule.
+    * @notice Returns a constant that indicates that the module is an OnlyOwnerModule.
     * @return The constant bytes4(keccak256("isOnlyOwnerModule()"))
     */
     function isOnlyOwnerModule() external pure returns (bytes4) {
@@ -38,7 +38,7 @@ abstract contract OnlyOwnerModule is BaseModule {
     }
 
     /**
-     * @dev Adds a module to a wallet. First checks that the module is registered.
+     * @notice Adds a module to a wallet. First checks that the module is registered.
      * Unlike its overrided parent, this method can be called via the RelayerModule's execute()
      * @param _wallet The target wallet.
      * @param _module The modules to authorise.
@@ -49,7 +49,7 @@ abstract contract OnlyOwnerModule is BaseModule {
     }
 
     /**
-    * @dev Implementation of the getRequiredSignatures from the IModule interface.
+    * @notice Implementation of the getRequiredSignatures from the IModule interface.
     * @param _wallet The target wallet.
     * @param _data The data of the relayed transaction.
     * @return The number of required signatures and the wallet owner signature requirement.
