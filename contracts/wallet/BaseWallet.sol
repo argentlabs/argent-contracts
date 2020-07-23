@@ -73,9 +73,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-     * @notice Enables/Disables a module.
-     * @param _module The target module.
-     * @param _value Set to true to authorise the module.
+     * @inheritdoc IWallet
      */
     function authoriseModule(address _module, bool _value) external override moduleOnly {
         if (authorised[_module] != _value) {
@@ -93,10 +91,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-    * @notice Enables a static method by specifying the target module to which the call
-    * must be delegated.
-    * @param _module The target module.
-    * @param _method The static method signature.
+    * @inheritdoc IWallet
     */
     function enableStaticCall(address _module, bytes4 _method) external override moduleOnly {
         require(authorised[_module], "BW: must be an authorised module for static call");
@@ -105,8 +100,7 @@ contract BaseWallet is IWallet {
     }
 
     /**
-     * @notice Sets a new owner for the wallet.
-     * @param _newOwner The new owner.
+     * @inheritdoc IWallet
      */
     function setOwner(address _newOwner) external override moduleOnly {
         require(_newOwner != address(0), "BW: address cannot be null");

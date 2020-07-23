@@ -18,7 +18,7 @@ pragma solidity ^0.6.12;
 
 /**
  * @title Utils
- * @notice Common utility methods used by some of the modules.
+ * @notice Common utility methods used by modules.
  */
 library Utils {
 

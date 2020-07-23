@@ -16,6 +16,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
+/**
+ * @title GuardianUtils
+ * @notice Bundles guardian read logic.
+ */
 library GuardianUtils {
 
     /**

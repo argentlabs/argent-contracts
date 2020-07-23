@@ -23,12 +23,10 @@ import "./common/BaseModule.sol";
 /**
  * @title GuardianManager
  * @notice Module to manage the guardians of wallets.
- * Guardians are accounts (EOA or contracts) that are authorized to perform specific
- * security operations on wallets such as toggle a safety lock, start a recovery procedure,
- * or confirm transactions. Addition or revokation of guardians is initiated by the owner
- * of a wallet and must be confirmed after a security period (e.g. 24 hours).
- * The list of guardians for a wallet is stored on a saparate
- * contract to facilitate its use by other modules.
+ * Guardians are accounts (EOA or contracts) that are authorized to perform specific security operations on wallet
+ * such as toggle a safety lock, start a recovery procedure, or confirm transactions.
+ * Addition or revokation of guardians is initiated by the owner of a wallet and must be confirmed after a security period (e.g. 24 hours).
+ * The list of guardians for a wallet is stored on a separate contract to facilitate its use by other modules.
  * @author Julien Niset - <julien@argent.xyz>
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
@@ -40,15 +38,15 @@ contract GuardianManager is BaseModule {
     bytes4 constant internal CONFIRM_REVOKATION_PREFIX = bytes4(keccak256("confirmGuardianRevokation(address,address)"));
 
     struct GuardianManagerConfig {
-        // the time at which a guardian addition or revokation will be confirmable by the owner
+        // The time at which a guardian addition or revokation will be confirmable by the owner
         mapping (bytes32 => uint256) pending;
     }
 
-    // the wallet specific storage
+    // The wallet specific storage
     mapping (address => GuardianManagerConfig) internal configs;
-    // the security period
+    // The security period
     uint256 public securityPeriod;
-    // the security window
+    // The security window
     uint256 public securityWindow;
 
     // *************** Events *************************** //
@@ -108,8 +106,7 @@ contract GuardianManager is BaseModule {
 
     /**
      * @notice Confirms the pending addition of a guardian to a wallet.
-     * The method must be called during the confirmation window and
-     * can be called by anyone to enable orchestration.
+     * The method must be called during the confirmation window and can be called by anyone to enable orchestration.
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
@@ -139,7 +136,7 @@ contract GuardianManager is BaseModule {
 
     /**
      * @notice Lets the owner revoke a guardian from its wallet.
-     * Revokation must be confirmed by calling the confirmGuardianRevokation() method.
+     * @dev Revokation must be confirmed by calling the confirmGuardianRevokation() method.
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
@@ -156,8 +153,7 @@ contract GuardianManager is BaseModule {
 
     /**
      * @notice Confirms the pending revokation of a guardian to a wallet.
-     * The method must be called during the confirmation window and
-     * can be called by anyone to enable orchestration.
+     * The method must be called during the confirmation window and can be called by anyone to enable orchestration.
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
@@ -189,7 +185,7 @@ contract GuardianManager is BaseModule {
      * @notice Checks if an address is a guardian for a wallet.
      * @param _wallet The target wallet.
      * @param _guardian The address to check.
-     * @return _isGuardian true if the address if a guardian for the wallet.
+     * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
      */
     function isGuardian(address _wallet, address _guardian) public view returns (bool _isGuardian) {
         (_isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), _guardian);
@@ -205,11 +201,8 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-    * @notice Implementation of the getRequiredSignatures from the IModule interface.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @return The number of required signatures and the wallet owner signature requirement.
-    */
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
         if (methodId == CONFIRM_ADDITION_PREFIX || methodId == CONFIRM_REVOKATION_PREFIX) {

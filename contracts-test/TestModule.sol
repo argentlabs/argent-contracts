@@ -95,6 +95,9 @@ contract TestModule is BaseModule {
         invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
     }
 
+    /**
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }

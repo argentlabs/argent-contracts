@@ -26,7 +26,7 @@ import "../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
  * @title RelayerModule
- * @notice Module to execute transactions signed by eth-less accounts and sent by a relayer.
+ * @notice Module to execute transactions signed by ETH-less accounts and sent by a relayer.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
 contract RelayerModule is BaseModule {
@@ -355,7 +355,7 @@ contract RelayerModule is BaseModule {
    /**
     * @notice Checks that the wallet address provided as the first parameter of the relayed data is the same
     * as the wallet passed as the input of the execute() method.
-    @return false if the addresses are different.
+    * @return false if the addresses are different.
     */
     function verifyData(address _wallet, bytes calldata _data) private pure returns (bool) {
         require(_data.length >= 36, "RM: Invalid dataWallet");

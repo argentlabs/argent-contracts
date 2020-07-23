@@ -48,11 +48,11 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @notice transfers tokens (ETH or ERC20) from a wallet.
+    * @notice Transfers tokens (ETH or ERC20) from a wallet.
     * @param _wallet The target wallet.
     * @param _token The address of the token to transfer.
     * @param _to The destination address
-    * @param _amount The amoutnof token to transfer
+    * @param _amount The amount of token to transfer
     * @param _data  The data for the transaction (only for ETH transfers)
     */
     function transferToken(
@@ -71,7 +71,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @notice call a contract.
+    * @notice Call a contract.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
     * @param _value The amount of ETH to transfer as part of call
@@ -93,7 +93,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @notice lets the owner do an ERC20 approve followed by a call to a contract.
+    * @notice Lets the owner do an ERC20 approve followed by a call to a contract.
     * The address to approve may be different than the contract to call.
     * We assume that the contract does not require ETH.
     * @param _wallet The target wallet.
@@ -134,7 +134,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @notice Resets the daily consumtion.
+    * @notice Resets the daily spent amount.
     * @param _wallet The target wallet.
     */
     function resetDailySpent(address _wallet) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
@@ -167,11 +167,8 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-    * @notice Implementation of the getRequiredSignatures from the IModule interface.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @return The number of required signatures and the wallet owner signature requirement.
-    */
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         // owner  + [n/2] guardians
         uint numberOfSignatures = 1 + Utils.ceil(guardianStorage.guardianCount(_wallet), 2);

@@ -20,8 +20,7 @@ import "./BaseModule.sol";
 
 /**
  * @title OnlyOwnerModule
- * @notice Module that extends BaseModule and RelayerModule for modules where the execute() method
- * must be called with one signature frm the owner.
+ * @notice Base contract for modules where the execute() method must be called with one signature from the owner.
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract OnlyOwnerModule is BaseModule {
@@ -38,10 +37,8 @@ abstract contract OnlyOwnerModule is BaseModule {
     }
 
     /**
-     * @notice Adds a module to a wallet. First checks that the module is registered.
-     * Unlike its overrided parent, this method can be called via the RelayerModule's execute()
-     * @param _wallet The target wallet.
-     * @param _module The modules to authorise.
+     * @inheritdoc IModule
+     * @dev Unlike its overrided parent, this method can be called via the RelayerModule's execute()
      */
     function addModule(address _wallet, address _module) public override virtual onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
@@ -49,11 +46,8 @@ abstract contract OnlyOwnerModule is BaseModule {
     }
 
     /**
-    * @notice Implementation of the getRequiredSignatures from the IModule interface.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @return The number of required signatures and the wallet owner signature requirement.
-    */
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }

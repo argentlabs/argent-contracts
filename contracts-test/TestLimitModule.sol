@@ -50,6 +50,9 @@ contract TestLimitModule is BaseModule {
         return limit.current;
     }
 
+    /**
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }

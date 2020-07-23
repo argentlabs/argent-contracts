@@ -81,7 +81,7 @@ contract NftTransfer is OnlyOwnerModule {
     }
 
     /**
-    * @notice lets the owner transfer NFTs from a wallet.
+    * @notice Lets the owner transfer NFTs from a wallet.
     * @param _wallet The target wallet.
     * @param _nftContract The ERC721 address.
     * @param _to The recipient.
@@ -124,7 +124,7 @@ contract NftTransfer is OnlyOwnerModule {
     * @notice Check whether a given contract complies with ERC721.
     * @param _nftContract The contract to check.
     * @param _tokenId The tokenId to use for the check.
-    * @return true if the contract is an ERC721, false otherwise.
+    * @return `true` if the contract is an ERC721, `false` otherwise.
     */
     function isERC721(address _nftContract, uint256 _tokenId) internal returns (bool) {
         (bool success, bytes memory result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x80ac58cd));

@@ -24,7 +24,7 @@ import "./common/GuardianUtils.sol";
  * @notice Module to manage the state of a wallet's lock.
  * Other modules can use the state of the lock to determine if their operations
  * should be authorised or blocked. Only the guardians of a wallet can lock and unlock it.
- * The lock automatically unlocks after a given period. The lock state is stored on a saparate
+ * The lock automatically unlocks after a given period. The lock state is stored on a separate
  * contract to facilitate its use by other modules.
  * @author Julien Niset - <julien@argent.xyz>
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
@@ -108,18 +108,15 @@ contract LockManager is BaseModule {
     /**
      * @notice Checks if a wallet is locked.
      * @param _wallet The target wallet.
-     * @return _isLocked true if the wallet is locked.
+     * @return _isLocked `true` if the wallet is locked otherwise `false`.
      */
     function isLocked(address _wallet) external view returns (bool _isLocked) {
         return guardianStorage.isLocked(_wallet);
     }
 
     /**
-    * @notice Implementation of the getRequiredSignatures from the IModule interface.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @return The number of required signatures and the wallet owner signature requirement.
-    */
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Disallowed);
     }

@@ -25,7 +25,7 @@ import "../../../lib/other/ERC20.sol";
 
 /**
  * @title BaseModule
- * @notice Basic module that contains some methods common to all modules.
+ * @notice Basic module that contains methods common to all modules.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract BaseModule is IModule {
@@ -91,9 +91,7 @@ contract BaseModule is IModule {
     }
 
     /**
-    * @notice Utility method enabling anyone to recover ERC20 token sent to the
-    * module by mistake and transfer them to the Module Registry.
-    * @param _token The token to recover.
+    * @inheritdoc IModule
     */
     function recoverToken(address _token) external override {
         uint total = ERC20(_token).balanceOf(address(this));
@@ -110,9 +108,7 @@ contract BaseModule is IModule {
     }
 
     /**
-     * @notice Adds a module to a wallet. First checks that the module is registered.
-     * @param _wallet The target wallet.
-     * @param _module The modules to authorise.
+     * @inheritdoc IModule
      */
     function addModule(address _wallet, address _module) public virtual override onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
         require(registry.isRegisteredModule(_module), "BM: module is not registered");
@@ -120,12 +116,8 @@ contract BaseModule is IModule {
     }
 
     /**
-    * @notice Implementation of the getRequiredSignatures from the IModule interface.
-    * Unless overriden the method always revert.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @return always reverts.
-    */
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual override view returns (uint256, OwnerSignature) {
         revert("BM: disabled method");
     }

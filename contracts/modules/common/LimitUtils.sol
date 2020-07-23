@@ -22,7 +22,7 @@ import "../../infrastructure/storage/ILimitStorage.sol";
 import "../../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
- * @title LimitManager
+ * @title LimitUtils
  * @notice Helper library to manage the daily limit and interact with a contract implementing the ILimitStorage interface.
  * @author Julien Niset - <julien@argent.xyz>
  */

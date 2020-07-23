@@ -46,8 +46,7 @@ contract SimpleUpgrader is BaseModule {
     // *************** External/Public Functions ********************* //
 
     /**
-     * @notice Perform the upgrade for a wallet. This method gets called
-     * when SimpleUpgrader is temporarily added as a module.
+     * @notice Perform the upgrade for a wallet. This method gets called when SimpleUpgrader is temporarily added as a module.
      * @param _wallet The target wallet.
      */
     function init(address _wallet) public override onlyWallet(_wallet) {

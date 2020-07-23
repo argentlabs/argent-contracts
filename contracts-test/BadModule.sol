@@ -16,6 +16,9 @@ contract BadModule is BaseModule {
         uintVal = _val;
     }
 
+    /**
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address /* _wallet */, bytes memory /*_data */) public view override returns (uint256, OwnerSignature) {
         return (0, OwnerSignature.Required);
     }

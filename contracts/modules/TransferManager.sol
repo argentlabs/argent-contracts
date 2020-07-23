@@ -139,10 +139,16 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         }
     }
 
+    /**
+     * @inheritdoc IModule
+     */
     function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerModule) onlyWalletOwnerOrModule(_wallet) {
         OnlyOwnerModule.addModule(_wallet, _module);
     }
 
+    /**
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(
         address _wallet,
         bytes calldata _data
@@ -158,7 +164,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     // *************** External/Public Functions ********************* //
 
     /**
-    * @notice lets the owner transfer tokens (ETH or ERC20) from a wallet.
+    * @notice Lets the owner transfer tokens (ETH or ERC20) from a wallet.
     * @param _wallet The target wallet.
     * @param _token The address of the token to transfer.
     * @param _to The destination address
@@ -193,7 +199,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @notice lets the owner approve an allowance of ERC20 tokens for a spender (dApp).
+    * @notice Lets the owner approve an allowance of ERC20 tokens for a spender (dApp).
     * @param _wallet The target wallet.
     * @param _token The address of the token to transfer.
     * @param _spender The address of the spender
@@ -230,7 +236,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @notice lets the owner call a contract.
+    * @notice Lets the owner call a contract.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
     * @param _value The amount of ETH to transfer as part of call
@@ -252,7 +258,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @notice lets the owner do an ERC20 approve followed by a call to a contract.
+    * @notice Lets the owner do an ERC20 approve followed by a call to a contract.
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
     * @param _token The token to approve.
@@ -279,7 +285,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @notice lets the owner wrap ETH into WETH, approve the WETH and call a contract.
+    * @notice Lets the owner wrap ETH into WETH, approve the WETH and call a contract.
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
     * @param _spender The address to approve.
