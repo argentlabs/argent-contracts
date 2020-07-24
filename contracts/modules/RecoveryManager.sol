@@ -110,9 +110,9 @@ contract RecoveryManager is BaseModule {
         require(_recovery != address(0), "RM: recovery address cannot be null");
         RecoveryConfig storage config = recoveryConfigs[_wallet];
         config.recovery = _recovery;
-        config.executeAfter = uint64(now + recoveryPeriod);
+        config.executeAfter = uint64(block.timestamp + recoveryPeriod);
         config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
-        guardianStorage.setLock(_wallet, now + lockPeriod);
+        guardianStorage.setLock(_wallet, block.timestamp + lockPeriod);
         emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
     }
 
@@ -123,7 +123,7 @@ contract RecoveryManager is BaseModule {
      */
     function finalizeRecovery(address _wallet) external onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        require(uint64(now) > config.executeAfter, "RM: the recovery period is not over yet");
+        require(uint64(block.timestamp) > config.executeAfter, "RM: the recovery period is not over yet");
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
 

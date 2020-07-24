@@ -99,10 +99,10 @@ contract GuardianManager is BaseModule {
             bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
             GuardianManagerConfig storage config = configs[_wallet];
             require(
-                config.pending[id] == 0 || now > config.pending[id] + securityWindow,
+                config.pending[id] == 0 || block.timestamp > config.pending[id] + securityWindow,
                 "GM: addition of target as guardian is already pending");
-            config.pending[id] = now + securityPeriod;
-            emit GuardianAdditionRequested(_wallet, _guardian, now + securityPeriod);
+            config.pending[id] = block.timestamp + securityPeriod;
+            emit GuardianAdditionRequested(_wallet, _guardian, block.timestamp + securityPeriod);
         }
     }
 
@@ -117,8 +117,8 @@ contract GuardianManager is BaseModule {
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
         GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
-        require(config.pending[id] < now, "GM: Too early to confirm guardian addition");
-        require(now < config.pending[id] + securityWindow, "GM: Too late to confirm guardian addition");
+        require(config.pending[id] < block.timestamp, "GM: Too early to confirm guardian addition");
+        require(block.timestamp < config.pending[id] + securityWindow, "GM: Too late to confirm guardian addition");
         guardianStorage.addGuardian(_wallet, _guardian);
         delete config.pending[id];
         emit GuardianAdded(_wallet, _guardian);
@@ -148,10 +148,10 @@ contract GuardianManager is BaseModule {
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[_wallet];
         require(
-            config.pending[id] == 0 || now > config.pending[id] + securityWindow,
+            config.pending[id] == 0 || block.timestamp > config.pending[id] + securityWindow,
             "GM: revokation of target as guardian is already pending"); // TODO need to allow if confirmation window passed
-        config.pending[id] = now + securityPeriod;
-        emit GuardianRevokationRequested(_wallet, _guardian, now + securityPeriod);
+        config.pending[id] = block.timestamp + securityPeriod;
+        emit GuardianRevokationRequested(_wallet, _guardian, block.timestamp + securityPeriod);
     }
 
     /**
@@ -165,8 +165,8 @@ contract GuardianManager is BaseModule {
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");
-        require(config.pending[id] < now, "GM: Too early to confirm guardian revokation");
-        require(now < config.pending[id] + securityWindow, "GM: Too late to confirm guardian revokation");
+        require(config.pending[id] < block.timestamp, "GM: Too early to confirm guardian revokation");
+        require(block.timestamp < config.pending[id] + securityWindow, "GM: Too late to confirm guardian revokation");
         guardianStorage.revokeGuardian(_wallet, _guardian);
         delete config.pending[id];
         emit GuardianRevoked(_wallet, _guardian);
