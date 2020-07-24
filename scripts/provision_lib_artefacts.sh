@@ -27,7 +27,6 @@ cp build/DSValue.json .coverage_artifacts/DSValue.json
 cp build/CryptoKittyTest.json .coverage_artifacts/CryptoKittyTest.json
 cp build/TestRegistry.json .coverage_artifacts/TestRegistry.json
 cp build/GemJoin.json .coverage_artifacts/GemJoin.json
-cp build/NewTestModule.json .coverage_artifacts/NewTestModule.json
 cp build/NonCompliantERC20.json .coverage_artifacts/NonCompliantERC20.json
 cp build/TestModule.json .coverage_artifacts/TestModule.json
 cp build/TestLimitModule.json .coverage_artifacts/TestLimitModule.json
