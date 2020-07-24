@@ -18,7 +18,7 @@ pragma solidity >=0.5.4 <0.7.0;
 
 /**
  * @title ICompoundRegistry
- * @dev Interface for CompoundRegistry
+ * @notice Interface for CompoundRegistry
  */
 interface ICompoundRegistry {
     function addCToken(address _underlying, address _cToken) external;

@@ -18,12 +18,12 @@ pragma solidity ^0.6.12;
 
 /**
  * @title Utils
- * @dev Common utility methods used by some of the modules.
+ * @notice Common utility methods used by modules.
  */
 library Utils {
 
     /**
-    * @dev Helper method to recover the signer at a given position from a list of concatenated signatures.
+    * @notice Helper method to recover the signer at a given position from a list of concatenated signatures.
     * @param _signedHash The signed hash
     * @param _signatures The concatenated signatures.
     * @param _index The index of the signature to recover.
@@ -46,7 +46,7 @@ library Utils {
     }
 
     /**
-    * @dev Helper method to parse data and extract the method signature.
+    * @notice Helper method to parse data and extract the method signature.
     */
     function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
         require(_data.length >= 4, "RM: Invalid functionPrefix");
@@ -57,7 +57,7 @@ library Utils {
     }
 
     /**
-    * @dev Returns ceil(a / b).
+    * @notice Returns ceil(a / b).
     */
     function ceil(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a / b;

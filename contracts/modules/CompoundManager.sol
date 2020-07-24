@@ -40,7 +40,7 @@ interface ICToken {
 
 /**
  * @title CompoundManager
- * @dev Module to invest and borrow tokens with CompoundV2
+ * @notice Module to invest and borrow tokens with CompoundV2
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract CompoundManager is OnlyOwnerModule {
@@ -85,7 +85,7 @@ contract CompoundManager is OnlyOwnerModule {
     /* ********************************** Implementation of Loan ************************************* */
 
     /**
-     * @dev Opens a collateralized loan.
+     * @notice Opens a collateralized loan.
      * @param _wallet The target wallet.
      * @param _collateral The token used as a collateral.
      * @param _collateralAmount The amount of collateral token provided.
@@ -115,7 +115,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Closes the collateralized loan in all markets by repaying all debts (plus interest). Note that it does not redeem the collateral.
+     * @notice Closes the collateralized loan in all markets by repaying all debts (plus interest). Note that it does not redeem the collateral.
      * @param _wallet The target wallet.
      * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      */
@@ -143,7 +143,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Adds collateral to a loan identified by its ID.
+     * @notice Adds collateral to a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      * @param _collateral The token used as a collateral.
@@ -166,7 +166,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Removes collateral from a loan identified by its ID.
+     * @notice Removes collateral from a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      * @param _collateral The token used as a collateral.
@@ -189,7 +189,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Increases the debt by borrowing more token from a loan identified by its ID.
+     * @notice Increases the debt by borrowing more token from a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      * @param _debtToken The token borrowed.
@@ -212,7 +212,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Decreases the debt by repaying some token from a loan identified by its ID.
+     * @notice Decreases the debt by repaying some token from a loan identified by its ID.
      * @param _wallet The target wallet.
      * @param _loanId bytes32(0) as Compound does not allow the creation of multiple loans.
      * @param _debtToken The token to repay.
@@ -235,7 +235,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Gets information about the loan status on Compound.
+     * @notice Gets information about the loan status on Compound.
      * @param _wallet The target wallet.
      * @return _status Status [0: no loan, 1: loan is safe, 2: loan is unsafe and can be liquidated]
      * @return _ethValue Value (in ETH) representing the value that could still be borrowed when status = 1; or the value of the collateral
@@ -263,7 +263,7 @@ contract CompoundManager is OnlyOwnerModule {
     /* ********************************** Implementation of Invest ************************************* */
 
     /**
-     * @dev Invest tokens for a given period.
+     * @notice Invest tokens for a given period.
      * @param _wallet The target wallet.
      * @param _token The token address.
      * @param _amount The amount of tokens to invest.
@@ -288,7 +288,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Exit invested postions.
+     * @notice Exit invested postions.
      * @param _wallet The target wallet.
      * @param _token The token address.
      * @param _fraction The fraction of invested tokens to exit in per 10000.
@@ -310,7 +310,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Get the amount of investment in a given token.
+     * @notice Get the amount of investment in a given token.
      * @param _wallet The target wallet.
      * @param _token The token address.
      * @return _tokenValue The value in tokens of the investment (including interests).
@@ -334,7 +334,7 @@ contract CompoundManager is OnlyOwnerModule {
     /* ****************************************** Compound wrappers ******************************************* */
 
     /**
-     * @dev Adds underlying tokens to a cToken contract.
+     * @notice Adds underlying tokens to a cToken contract.
      * @param _wallet The target wallet.
      * @param _cToken The cToken contract.
      * @param _token The underlying token.
@@ -354,7 +354,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Redeems underlying tokens from a cToken contract.
+     * @notice Redeems underlying tokens from a cToken contract.
      * @param _wallet The target wallet.
      * @param _cToken The cToken contract.
      * @param _amount The amount of cToken to redeem.
@@ -371,7 +371,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Redeems underlying tokens from a cToken contract.
+     * @notice Redeems underlying tokens from a cToken contract.
      * @param _wallet The target wallet.
      * @param _cToken The cToken contract.
      * @param _amount The amount of underlying token to redeem.
@@ -385,7 +385,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Borrows underlying tokens from a cToken contract.
+     * @notice Borrows underlying tokens from a cToken contract.
      * @param _wallet The target wallet.
      * @param _token The token contract.
      * @param _cToken The cToken contract.
@@ -401,7 +401,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Repays some borrowed underlying tokens to a cToken contract.
+     * @notice Repays some borrowed underlying tokens to a cToken contract.
      * @param _wallet The target wallet.
      * @param _cToken The cToken contract.
      * @param _amount The amount of underlying to repay.
@@ -427,7 +427,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Enters a cToken market if it was not entered before.
+     * @notice Enters a cToken market if it was not entered before.
      * @param _wallet The target wallet.
      * @param _cToken The cToken contract.
      * @param _comptroller The comptroller contract.
@@ -442,7 +442,7 @@ contract CompoundManager is OnlyOwnerModule {
     }
 
     /**
-     * @dev Exits a cToken market if there is no more collateral and debt.
+     * @notice Exits a cToken market if there is no more collateral and debt.
      * @param _wallet The target wallet.
      * @param _cToken The cToken contract.
      * @param _comptroller The comptroller contract.

@@ -20,7 +20,7 @@ import "../../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title GuardianStorage
- * @dev Contract storing the state of wallets related to guardians and lock.
+ * @notice Contract storing the state of wallets related to guardians and lock.
  * The contract only defines basic setters and getters with no logic. Only modules authorised
  * for a wallet can modify its state.
  * @author Julien Niset - <julien@argent.im>
@@ -50,7 +50,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     // *************** External Functions ********************* //
 
     /**
-     * @dev Lets an authorised module add a guardian to a wallet.
+     * @notice Lets an authorised module add a guardian to a wallet.
      * @param _wallet The target wallet.
      * @param _guardian The guardian to add.
      */
@@ -61,7 +61,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     }
 
     /**
-     * @dev Lets an authorised module revoke a guardian from a wallet.
+     * @notice Lets an authorised module revoke a guardian from a wallet.
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
@@ -78,7 +78,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     }
 
     /**
-     * @dev Returns the number of guardians for a wallet.
+     * @notice Returns the number of guardians for a wallet.
      * @param _wallet The target wallet.
      * @return the number of guardians.
      */
@@ -87,7 +87,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     }
 
     /**
-     * @dev Gets the list of guaridans for a wallet.
+     * @notice Gets the list of guaridans for a wallet.
      * @param _wallet The target wallet.
      * @return the list of guardians.
      */
@@ -101,7 +101,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     }
 
     /**
-     * @dev Checks if an account is a guardian for a wallet.
+     * @notice Checks if an account is a guardian for a wallet.
      * @param _wallet The target wallet.
      * @param _guardian The account.
      * @return true if the account is a guardian for a wallet.
@@ -111,7 +111,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     }
 
     /**
-     * @dev Lets an authorised module set the lock for a wallet.
+     * @notice Lets an authorised module set the lock for a wallet.
      * @param _wallet The target wallet.
      * @param _releaseAfter The epoch time at which the lock should automatically release.
      */
@@ -123,7 +123,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     }
 
     /**
-     * @dev Checks if the lock is set for a wallet.
+     * @notice Checks if the lock is set for a wallet.
      * @param _wallet The target wallet.
      * @return true if the lock is set for the wallet.
      */
@@ -132,7 +132,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     }
 
     /**
-     * @dev Gets the time at which the lock of a wallet will release.
+     * @notice Gets the time at which the lock of a wallet will release.
      * @param _wallet The target wallet.
      * @return the time at which the lock of a wallet will release, or zero if there is no lock set.
      */
@@ -141,7 +141,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
     }
 
     /**
-     * @dev Gets the address of the last module that modified the lock for a wallet.
+     * @notice Gets the address of the last module that modified the lock for a wallet.
      * @param _wallet The target wallet.
      * @return the address of the last module that modified the lock for a wallet.
      */

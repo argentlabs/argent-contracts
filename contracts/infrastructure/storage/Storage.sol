@@ -20,13 +20,13 @@ import "../../wallet/IWallet.sol";
 
 /**
  * @title Storage
- * @dev Base contract for the storage of a wallet.
- * @author Julien Niset - <julien@argent.im>
+ * @notice Base contract for the storage of a wallet.
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract Storage {
 
     /**
-     * @dev Throws if the caller is not an authorised module.
+     * @notice Throws if the caller is not an authorised module.
      */
     modifier onlyModule(address _wallet) {
         require(IWallet(_wallet).authorised(msg.sender), "TS: must be an authorized module to call this method");

@@ -22,12 +22,11 @@ import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RecoveryManager
- * @dev Module to manage the recovery of a wallet owner.
- * Recovery is executed by a consensus of the wallet's guardians and takes
- * 24 hours before it can be finalized. Once finalised the ownership of the wallet
- * is transfered to a new address.
- * @author Julien Niset - <julien@argent.im>
- * @author Olivier Van Den Biggelaar - <olivier@argent.im>
+ * @notice Module to manage the recovery of a wallet owner.
+ * Recovery is executed by a consensus of the wallet's guardians and takes 24 hours before it can be finalized.
+ * Once finalised the ownership of the wallet is transfered to a new address.
+ * @author Julien Niset - <julien@argent.xyz>
+ * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract RecoveryManager is BaseModule {
 
@@ -62,7 +61,7 @@ contract RecoveryManager is BaseModule {
     // *************** Modifiers ************************ //
 
     /**
-     * @dev Throws if there is no ongoing recovery procedure.
+     * @notice Throws if there is no ongoing recovery procedure.
      */
     modifier onlyWhenRecovery(address _wallet) {
         require(recoveryConfigs[_wallet].executeAfter > 0, "RM: there must be an ongoing recovery");
@@ -70,7 +69,7 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-     * @dev Throws if there is an ongoing recovery procedure.
+     * @notice Throws if there is an ongoing recovery procedure.
      */
     modifier notWhenRecovery(address _wallet) {
         require(recoveryConfigs[_wallet].executeAfter == 0, "RM: there cannot be an ongoing recovery");
@@ -99,9 +98,8 @@ contract RecoveryManager is BaseModule {
     // *************** External functions ************************ //
 
     /**
-     * @dev Lets the guardians start the execution of the recovery procedure.
-     * Once triggered the recovery is pending for the security period before it can
-     * be finalised.
+     * @notice Lets the guardians start the execution of the recovery procedure.
+     * Once triggered the recovery is pending for the security period before it can be finalised.
      * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2).
      * @param _wallet The target wallet.
      * @param _recovery The address to which ownership should be transferred.
@@ -117,7 +115,7 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-     * @dev Finalizes an ongoing recovery procedure if the security period is over.
+     * @notice Finalizes an ongoing recovery procedure if the security period is over.
      * The method is public and callable by anyone to enable orchestration.
      * @param _wallet The target wallet.
      */
@@ -134,7 +132,7 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-     * @dev Lets the owner cancel an ongoing recovery procedure.
+     * @notice Lets the owner cancel an ongoing recovery procedure.
      * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2) - 1.
      * @param _wallet The target wallet.
      */
@@ -148,9 +146,8 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-     * @dev Lets the owner start the execution of the ownership transfer procedure.
-     * Once triggered the ownership transfer is pending for the security period before it can
-     * be finalised.
+     * @notice Lets the owner start the execution of the ownership transfer procedure.
+     * Once triggered the ownership transfer is pending for the security period before it can be finalised.
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
@@ -162,7 +159,7 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-    * @dev Gets the details of the ongoing recovery procedure if any.
+    * @notice Gets the details of the ongoing recovery procedure if any.
     * @param _wallet The target wallet.
     */
     function getRecovery(address _wallet) external view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
@@ -171,11 +168,8 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-    * @dev Implementation of the getRequiredSignatures from the IModule interface.
-    * @param _wallet The target wallet.
-    * @param _data The data of the relayed transaction.
-    * @return The number of required signatures and the wallet owner signature requirement.
-    */
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
         if (methodId == EXECUTE_RECOVERY_PREFIX) {

@@ -20,7 +20,7 @@ import "./MakerV2Base.sol";
 
 /**
  * @title MakerV2Invest
- * @dev Module to lock/unlock MCD DAI into/from Maker's Pot
+ * @notice Module to lock/unlock MCD DAI into/from Maker's Pot
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 abstract contract MakerV2Invest is MakerV2Base {
@@ -44,7 +44,7 @@ abstract contract MakerV2Invest is MakerV2Base {
     // *************** External/Public Functions ********************* //
 
     /**
-    * @dev Lets the wallet owner deposit MCD DAI into the DSR Pot.
+    * @notice Lets the wallet owner deposit MCD DAI into the DSR Pot.
     * @param _wallet The target wallet.
     * @param _amount The amount of DAI to deposit
     */
@@ -73,7 +73,7 @@ abstract contract MakerV2Invest is MakerV2Base {
     }
 
     /**
-    * @dev Lets the wallet owner withdraw MCD DAI from the DSR pot.
+    * @notice Lets the wallet owner withdraw MCD DAI from the DSR pot.
     * @param _wallet The target wallet.
     * @param _amount The amount of DAI to withdraw.
     */
@@ -104,7 +104,7 @@ abstract contract MakerV2Invest is MakerV2Base {
     }
 
     /**
-    * @dev Lets the wallet owner withdraw their entire MCD DAI balance from the DSR pot.
+    * @notice Lets the wallet owner withdraw their entire MCD DAI balance from the DSR pot.
     * @param _wallet The target wallet.
     */
     function exitAllDsr(
@@ -130,7 +130,7 @@ abstract contract MakerV2Invest is MakerV2Base {
     }
 
     /**
-    * @dev Returns the amount of DAI currently held in the DSR pot.
+    * @notice Returns the amount of DAI currently held in the DSR pot.
     * @param _wallet The target wallet.
     * @return _balance The DSR balance.
     */
@@ -141,7 +141,7 @@ abstract contract MakerV2Invest is MakerV2Base {
     /* ****************************************** Internal method ******************************************* */
 
     /**
-    * @dev Grant access to the wallet's internal DAI balance in the VAT to an operator.
+    * @notice Grant access to the wallet's internal DAI balance in the VAT to an operator.
     * @param _wallet The target wallet.
     * @param _operator The grantee of the access
     */

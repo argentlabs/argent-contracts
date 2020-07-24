@@ -16,10 +16,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
+/**
+ * @title GuardianUtils
+ * @notice Bundles guardian read logic.
+ */
 library GuardianUtils {
 
     /**
-    * @dev Checks if an address is an account guardian or an account authorised to sign on behalf of a smart-contract guardian
+    * @notice Checks if an address is an account guardian or an account authorised to sign on behalf of a smart-contract guardian
     * given a list of guardians.
     * @param _guardians the list of guardians
     * @param _guardian the address to test
@@ -54,7 +58,7 @@ library GuardianUtils {
     }
 
    /**
-    * @dev Checks if an address is a contract.
+    * @notice Checks if an address is a contract.
     * @param _addr The address.
     */
     function isContract(address _addr) internal view returns (bool) {
@@ -67,7 +71,7 @@ library GuardianUtils {
     }
 
     /**
-    * @dev Checks if an address is the owner of a guardian contract.
+    * @notice Checks if an address is the owner of a guardian contract.
     * The method does not revert if the call to the owner() method consumes more then 5000 gas.
     * @param _guardian The guardian contract
     * @param _owner The owner to verify.

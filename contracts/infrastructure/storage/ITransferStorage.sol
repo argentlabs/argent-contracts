@@ -18,7 +18,7 @@ pragma solidity >=0.5.4 <0.7.0;
 
 /**
  * @title ITransferStorage
- * @dev TransferStorage interface
+ * @notice TransferStorage interface
  */
 interface ITransferStorage {
     function setWhitelist(address _wallet, address _target, uint256 _value) external;

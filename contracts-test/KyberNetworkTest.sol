@@ -27,7 +27,7 @@ contract KyberNetworkTest is KyberNetwork {
     receive() external payable {}
 
     /**
-    * @dev Adds a tradable token to the Kyber instance
+    * @notice Adds a tradable token to the Kyber instance
     * @param _token The token
     * @param _rate The rate for the token as 1 TOKN = (rate/10**18) ETH
     * @param _decimals The number of decimals for the token

@@ -28,7 +28,7 @@ import "../../lib/other/ERC20.sol";
 
 /**
  * @title TransferManager
- * @dev Module to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
+ * @notice Module to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
  * This module is the V2 of TokenTransfer.
  * @author Julien Niset - <julien@argent.xyz>
  */
@@ -103,7 +103,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-     * @dev Inits the module for a wallet by setting up the isValidSignature (EIP 1271)
+     * @notice Inits the module for a wallet by setting up the isValidSignature (EIP 1271)
      * static call redirection from the wallet to the module and copying all the parameters
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
@@ -139,10 +139,16 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         }
     }
 
+    /**
+     * @inheritdoc IModule
+     */
     function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerModule) onlyWalletOwnerOrModule(_wallet) {
         OnlyOwnerModule.addModule(_wallet, _module);
     }
 
+    /**
+     * @inheritdoc IModule
+     */
     function getRequiredSignatures(
         address _wallet,
         bytes calldata _data
@@ -158,7 +164,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     // *************** External/Public Functions ********************* //
 
     /**
-    * @dev lets the owner transfer tokens (ETH or ERC20) from a wallet.
+    * @notice Lets the owner transfer tokens (ETH or ERC20) from a wallet.
     * @param _wallet The target wallet.
     * @param _token The address of the token to transfer.
     * @param _to The destination address
@@ -193,7 +199,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev lets the owner approve an allowance of ERC20 tokens for a spender (dApp).
+    * @notice Lets the owner approve an allowance of ERC20 tokens for a spender (dApp).
     * @param _wallet The target wallet.
     * @param _token The address of the token to transfer.
     * @param _spender The address of the spender
@@ -230,7 +236,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev lets the owner call a contract.
+    * @notice Lets the owner call a contract.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
     * @param _value The amount of ETH to transfer as part of call
@@ -252,7 +258,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev lets the owner do an ERC20 approve followed by a call to a contract.
+    * @notice Lets the owner do an ERC20 approve followed by a call to a contract.
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
     * @param _token The token to approve.
@@ -279,7 +285,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev lets the owner wrap ETH into WETH, approve the WETH and call a contract.
+    * @notice Lets the owner wrap ETH into WETH, approve the WETH and call a contract.
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
     * @param _spender The address to approve.
@@ -304,7 +310,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-     * @dev Adds an address to the whitelist of a wallet.
+     * @notice Adds an address to the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
@@ -324,7 +330,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-     * @dev Removes an address from the whitelist of a wallet.
+     * @notice Removes an address from the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
@@ -342,7 +348,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Executes a pending transfer for a wallet.
+    * @notice Executes a pending transfer for a wallet.
     * The method can be called by anyone to enable orchestration.
     * @param _wallet The target wallet.
     * @param _token The token of the pending transfer.
@@ -387,7 +393,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-     * @dev Lets the owner of a wallet change its daily limit.
+     * @notice Lets the owner of a wallet change its daily limit.
      * The limit is expressed in ETH. Changes to the limit take 24 hours.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
@@ -398,7 +404,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-     * @dev Convenience method to disable the limit
+     * @notice Convenience method to disable the limit
      * The limit is disabled by setting it to an arbitrary large value.
      * @param _wallet The target wallet.
      */
@@ -407,7 +413,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Gets the current daily limit for a wallet.
+    * @notice Gets the current daily limit for a wallet.
     * @param _wallet The target wallet.
     * @return _currentLimit The current limit expressed in ETH.
     */
@@ -417,7 +423,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Returns whether the daily limit is disabled for a wallet.
+    * @notice Returns whether the daily limit is disabled for a wallet.
     * @param _wallet The target wallet.
     * @return _limitDisabled true if the daily limit is disabled, false otherwise.
     */
@@ -426,7 +432,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Gets a pending limit for a wallet if any.
+    * @notice Gets a pending limit for a wallet if any.
     * @param _wallet The target wallet.
     * @return _pendingLimit The pending limit (in ETH).
     * @return _changeAfter The time at which the pending limit will become effective.
@@ -438,7 +444,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Gets the amount of tokens that has not yet been spent during the current period.
+    * @notice Gets the amount of tokens that has not yet been spent during the current period.
     * @param _wallet The target wallet.
     * @return _unspent The amount of tokens (in ETH) that has not been spent yet.
     * @return _periodEnd The end of the daily period.
@@ -460,7 +466,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Checks if an address is whitelisted for a wallet.
+    * @notice Checks if an address is whitelisted for a wallet.
     * @param _wallet The target wallet.
     * @param _target The address.
     * @return _isWhitelisted true if the address is whitelisted.
@@ -472,7 +478,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Gets the info of a pending transfer for a wallet.
+    * @notice Gets the info of a pending transfer for a wallet.
     * @param _wallet The target wallet.
     * @param _id The pending transfer ID.
     * @return _executeAfter The epoch time at which the pending transfer can be executed.
@@ -482,7 +488,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Implementation of EIP 1271.
+    * @notice Implementation of EIP 1271.
     * Should return whether the signature provided is valid for the provided data.
     * @param _data Arbitrary length data signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _data
@@ -494,7 +500,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Implementation of EIP 1271.
+    * @notice Implementation of EIP 1271.
     * Should return whether the signature provided is valid for the provided data.
     * @param _msgHash Hash of a message signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _msgHash
@@ -509,7 +515,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     // *************** Internal Functions ********************* //
 
     /**
-     * @dev Creates a new pending action for a wallet.
+     * @notice Creates a new pending action for a wallet.
      * @param _action The target action.
      * @param _wallet The target wallet.
      * @param _token The target token for the action.
@@ -538,7 +544,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
+    * @notice Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
      */
@@ -547,7 +553,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @dev Verify and update the daily spent if the spender is not whitelisted.
+    * @notice Verify and update the daily spent if the spender is not whitelisted.
     * Reverts if the daily spent is insufficient or if the contract to call is
     * protected by the daily limit (i.e. is a token contract).
     * @param _wallet The target wallet.

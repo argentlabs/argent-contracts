@@ -26,7 +26,7 @@ import "../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
  * @title RelayerModule
- * @dev Module to execute transactions signed by eth-less accounts and sent by a relayer.
+ * @notice Module to execute transactions signed by ETH-less accounts and sent by a relayer.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
 contract RelayerModule is BaseModule {
@@ -76,7 +76,7 @@ contract RelayerModule is BaseModule {
     }
 
     /**
-    * @dev Executes a relayed transaction.
+    * @notice Executes a relayed transaction.
     * @param _wallet The target wallet.
     * @param _module The target module.
     * @param _data The data for the relayed transaction
@@ -142,7 +142,7 @@ contract RelayerModule is BaseModule {
     }
 
     /**
-    * @dev Gets the current nonce for a wallet.
+    * @notice Gets the current nonce for a wallet.
     * @param _wallet The target wallet.
     */
     function getNonce(address _wallet) external view returns (uint256 nonce) {
@@ -150,7 +150,7 @@ contract RelayerModule is BaseModule {
     }
 
     /**
-    * @dev Checks if a transaction identified by its sign hash has already been executed.
+    * @notice Checks if a transaction identified by its sign hash has already been executed.
     * @param _wallet The target wallet.
     * @param _signHash The sign hash of the transaction.
     */
@@ -161,7 +161,7 @@ contract RelayerModule is BaseModule {
     /* ***************** Internal & Private methods ************************* */
 
     /**
-    * @dev Generates the signed hash of a relayed transaction according to ERC 1077.
+    * @notice Generates the signed hash of a relayed transaction according to ERC 1077.
     * @param _from The starting address for the relayed transaction (should be the relayer module)
     * @param _to The destination address for the relayed transaction (should be the target module)
     * @param _value The value for the relayed transaction.
@@ -206,7 +206,7 @@ contract RelayerModule is BaseModule {
     }
 
     /**
-    * @dev Checks if the relayed transaction is unique. If yes the state is updated.
+    * @notice Checks if the relayed transaction is unique. If yes the state is updated.
     * For actions requiring 1 signature by the owner we use the incremental nonce.
     * For all other actions we check/store the signHash in a mapping.
     * @param _wallet The target wallet.
@@ -248,7 +248,7 @@ contract RelayerModule is BaseModule {
     }
 
     /**
-    * @dev Validates the signatures provided with a relayed transaction.
+    * @notice Validates the signatures provided with a relayed transaction.
     * The method MUST throw if one or more signatures are not valid.
     * @param _wallet The target wallet.
     * @param _signHash The signed hash representing the relayed transaction.
@@ -306,7 +306,7 @@ contract RelayerModule is BaseModule {
     }
 
     /**
-    * @dev Refunds the gas used to the Relayer.
+    * @notice Refunds the gas used to the Relayer.
     * @param _wallet The target wallet.
     * @param _startGas The gas provided at the start of the execution.
     * @param _gasPrice The gas price for the refund.
@@ -353,9 +353,9 @@ contract RelayerModule is BaseModule {
     }
 
    /**
-    * @dev Checks that the wallet address provided as the first parameter of the relayed data is the same
+    * @notice Checks that the wallet address provided as the first parameter of the relayed data is the same
     * as the wallet passed as the input of the execute() method.
-    @return false if the addresses are different.
+    * @return false if the addresses are different.
     */
     function verifyData(address _wallet, bytes calldata _data) private pure returns (bool) {
         require(_data.length >= 36, "RM: Invalid dataWallet");

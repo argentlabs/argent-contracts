@@ -20,7 +20,7 @@ import "./ENSResolver.sol";
 
 /**
  * @title ArgentENSResolver
- * @dev Basic implementation of a Resolver.
+ * @notice Basic implementation of a Resolver.
  * The contract defines a manager role who is the only role that can add a new name
  * to the list of resolved names.
  * @author Julien Niset - <julien@argent.im>
@@ -42,7 +42,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
     // *************** Public Functions ********************* //
 
     /**
-     * @dev Lets the manager set the address associated with an ENS node.
+     * @notice Lets the manager set the address associated with an ENS node.
      * @param _node The node to update.
      * @param _addr The address to set.
      */
@@ -52,7 +52,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
     }
 
     /**
-     * @dev Lets the manager set the name associated with an ENS node.
+     * @notice Lets the manager set the name associated with an ENS node.
      * @param _node The node to update.
      * @param _name The name to set.
      */
@@ -62,7 +62,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
     }
 
     /**
-     * @dev Gets the address associated to an ENS node.
+     * @notice Gets the address associated to an ENS node.
      * @param _node The target node.
      * @return the address of the target node.
      */
@@ -71,7 +71,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
     }
 
     /**
-     * @dev Gets the name associated to an ENS node.
+     * @notice Gets the name associated to an ENS node.
      * @param _node The target ENS node.
      * @return the name of the target ENS node.
      */
@@ -80,7 +80,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
     }
 
     /**
-     * @dev Returns true if the resolver implements the interface specified by the provided hash.
+     * @notice Returns true if the resolver implements the interface specified by the provided hash.
      * @param _interfaceID The ID of the interface to check for.
      * @return True if the contract implements the requested interface.
      */

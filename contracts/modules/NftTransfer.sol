@@ -20,7 +20,7 @@ import "./common/OnlyOwnerModule.sol";
 
 /**
  * @title NftTransfer
- * @dev Module to transfer NFTs (ERC721),
+ * @notice Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract NftTransfer is OnlyOwnerModule {
@@ -53,7 +53,7 @@ contract NftTransfer is OnlyOwnerModule {
     // *************** External/Public Functions ********************* //
 
     /**
-     * @dev Inits the module for a wallet by setting up the onERC721Received
+     * @notice Inits the module for a wallet by setting up the onERC721Received
      * static call redirection from the wallet to the module.
      * @param _wallet The target wallet.
      */
@@ -63,7 +63,7 @@ contract NftTransfer is OnlyOwnerModule {
 
     /**
      * @notice Handle the receipt of an NFT
-     * @dev An ERC721 smart contract calls this function on the recipient contract
+     * @notice An ERC721 smart contract calls this function on the recipient contract
      * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received
      * will be forwarded to the method onERC721Received of the present module.
      * @return bytes4 `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
@@ -81,7 +81,7 @@ contract NftTransfer is OnlyOwnerModule {
     }
 
     /**
-    * @dev lets the owner transfer NFTs from a wallet.
+    * @notice Lets the owner transfer NFTs from a wallet.
     * @param _wallet The target wallet.
     * @param _nftContract The ERC721 address.
     * @param _to The recipient.
@@ -121,10 +121,10 @@ contract NftTransfer is OnlyOwnerModule {
     // *************** Internal Functions ********************* //
 
     /**
-    * @dev Check whether a given contract complies with ERC721.
+    * @notice Check whether a given contract complies with ERC721.
     * @param _nftContract The contract to check.
     * @param _tokenId The tokenId to use for the check.
-    * @return true if the contract is an ERC721, false otherwise.
+    * @return `true` if the contract is an ERC721, `false` otherwise.
     */
     function isERC721(address _nftContract, uint256 _tokenId) internal returns (bool) {
         (bool success, bytes memory result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x80ac58cd));

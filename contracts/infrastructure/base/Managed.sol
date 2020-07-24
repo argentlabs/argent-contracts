@@ -20,8 +20,8 @@ import "./Owned.sol";
 
 /**
  * @title Managed
- * @dev Basic contract that defines a set of managers. Only the owner can add/remove managers.
- * @author Julien Niset - <julien@argent.im>
+ * @notice Basic contract that defines a set of managers. Only the owner can add/remove managers.
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract Managed is Owned {
 
@@ -29,7 +29,7 @@ contract Managed is Owned {
     mapping (address => bool) public managers;
 
     /**
-     * @dev Throws if the sender is not a manager.
+     * @notice Throws if the sender is not a manager.
      */
     modifier onlyManager {
         require(managers[msg.sender] == true, "M: Must be manager");
@@ -40,7 +40,7 @@ contract Managed is Owned {
     event ManagerRevoked(address indexed _manager);
 
     /**
-    * @dev Adds a manager.
+    * @notice Adds a manager.
     * @param _manager The address of the manager.
     */
     function addManager(address _manager) external onlyOwner {
@@ -52,7 +52,7 @@ contract Managed is Owned {
     }
 
     /**
-    * @dev Revokes a manager.
+    * @notice Revokes a manager.
     * @param _manager The address of the manager.
     */
     function revokeManager(address _manager) external onlyOwner {

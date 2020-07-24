@@ -18,16 +18,39 @@ pragma solidity >=0.5.4 <0.7.0;
 
 /**
  * @title IWallet
- * @dev Interface for the BaseWallet
+ * @notice Interface for the BaseWallet
  */
 interface IWallet {
+    /**
+     * @notice Returns the wallet owner.
+     * @return The wallet owner address.
+     */
     function owner() external view returns (address);
 
+    /**
+     * @notice Sets a new owner for the wallet.
+     * @param _newOwner The new owner.
+     */
     function setOwner(address _newOwner) external;
 
-    function authorised(address) external view returns (bool);
+    /**
+     * @notice Checks if a module is authorised on the wallet.
+     * @param _module The module address to check.
+     * @return `true` if the module is authorised, otherwise `false`.
+     */
+    function authorised(address _module) external view returns (bool);
 
+    /**
+     * @notice Enables/Disables a module.
+     * @param _module The target module.
+     * @param _value Set to `true` to authorise the module.
+     */
     function authoriseModule(address _module, bool _value) external;
 
+    /**
+    * @notice Enables a static method by specifying the target module to which the call must be delegated.
+    * @param _module The target module.
+    * @param _method The static method signature.
+    */
     function enableStaticCall(address _module, bytes4 _method) external;
 }

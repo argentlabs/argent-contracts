@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title TestContract
- * @dev Represents an arbitrary contract.
- * @author Olivier Vdb - <olivier@argent.im>
+ * @notice Represents an arbitrary contract.
+ * @author Olivier Vdb - <olivier@argent.xyz>
  */
 contract TestContract {
 

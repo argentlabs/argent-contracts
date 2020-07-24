@@ -24,7 +24,7 @@ import "../../../lib/maker/DS/DSMath.sol";
 
 /**
  * @title MakerV2Base
- * @dev Common base to MakerV2Invest and MakerV2Loan.
+ * @notice Common base to MakerV2Invest and MakerV2Loan.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 abstract contract MakerV2Base is DSMath, OnlyOwnerModule {

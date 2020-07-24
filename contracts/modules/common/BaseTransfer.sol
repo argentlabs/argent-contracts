@@ -21,7 +21,7 @@ import "./LimitUtils.sol";
 
 /**
  * @title BaseTransfer
- * @dev Module containing internal methods to transfer tokens or call third-party contracts.
+ * @notice Contains common methods to transfer tokens or call third-party contracts.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 abstract contract BaseTransfer is BaseModule {

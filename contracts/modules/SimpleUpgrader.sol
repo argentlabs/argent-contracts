@@ -20,8 +20,8 @@ import "./common/BaseModule.sol";
 
 /**
  * @title SimpleUpgrader
- * @dev Temporary module used to add/remove other modules.
- * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.im>
+ * @notice Temporary module used to add/remove other modules.
+ * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
 contract SimpleUpgrader is BaseModule {
 
@@ -46,8 +46,7 @@ contract SimpleUpgrader is BaseModule {
     // *************** External/Public Functions ********************* //
 
     /**
-     * @dev Perform the upgrade for a wallet. This method gets called
-     * when SimpleUpgrader is temporarily added as a module.
+     * @notice Perform the upgrade for a wallet. This method gets called when SimpleUpgrader is temporarily added as a module.
      * @param _wallet The target wallet.
      */
     function init(address _wallet) public override onlyWallet(_wallet) {

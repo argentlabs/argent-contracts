@@ -23,7 +23,7 @@ import "../../infrastructure/base/Managed.sol";
 
 /**
  * @title ArgentENSManager
- * @dev Implementation of an ENS manager that orchestrates the complete
+ * @notice Implementation of an ENS manager that orchestrates the complete
  * registration of subdomains for a single root (e.g. argent.eth).
  * The contract defines a manager role who is the only role that can trigger the registration of
  * a new subdomain.
@@ -47,7 +47,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     // *************** Constructor ********************** //
 
     /**
-     * @dev Constructor that sets the ENS root name and root node to manage.
+     * @notice Constructor that sets the ENS root name and root node to manage.
      * @param _rootName The root name (e.g. argentx.eth).
      * @param _rootNode The node of the root name (e.g. namehash(argentx.eth)).
      * @param _ensRegistry The address of the ENS registry
@@ -63,7 +63,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     // *************** External Functions ********************* //
 
     /**
-     * @dev This function must be called when the ENS Manager contract is replaced
+     * @notice This function must be called when the ENS Manager contract is replaced
      * and the address of the new Manager should be provided.
      * @param _newOwner The address of the new ENS manager that will manage the root node.
      */
@@ -73,7 +73,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     }
 
     /**
-     * @dev Lets the owner change the address of the ENS resolver contract.
+     * @notice Lets the owner change the address of the ENS resolver contract.
      * @param _ensResolver The address of the ENS resolver contract.
      */
     function changeENSResolver(address _ensResolver) external onlyOwner {
@@ -83,7 +83,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     }
 
     /**
-    * @dev Lets the manager assign an ENS subdomain of the root node to a target address.
+    * @notice Lets the manager assign an ENS subdomain of the root node to a target address.
     * Registers both the forward and reverse ENS.
     * @param _label The subdomain label.
     * @param _owner The owner of the subdomain.
@@ -111,7 +111,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     }
 
     /**
-    * @dev Gets the official ENS reverse registrar.
+    * @notice Gets the official ENS reverse registrar.
     * @return Address of the ENS reverse registrar.
     */
     function getENSReverseRegistrar() external view returns (address) {
@@ -121,7 +121,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     // *************** Public Functions ********************* //
 
     /**
-     * @dev Returns true is a given subnode is available.
+     * @notice Returns true is a given subnode is available.
      * @param _subnode The target subnode.
      * @return true if the subnode is available.
      */

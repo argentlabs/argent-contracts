@@ -16,7 +16,7 @@ pragma solidity ^0.6.12;
 
 /**
  * @title ITokenPriceStorage
- * @dev TokenPriceStorage interface
+ * @notice TokenPriceStorage interface
  */
 interface ITokenPriceStorage {
 

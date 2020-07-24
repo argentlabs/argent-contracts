@@ -18,7 +18,7 @@ pragma solidity ^0.6.12;
 
 /**
  * @title Proxy
- * @dev Basic proxy that delegates all calls to a fixed implementing contract.
+ * @notice Basic proxy that delegates all calls to a fixed implementing contract.
  * The implementing contract cannot be upgraded.
  * @author Julien Niset - <julien@argent.xyz>
  */

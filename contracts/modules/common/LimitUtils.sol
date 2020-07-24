@@ -22,8 +22,8 @@ import "../../infrastructure/storage/ILimitStorage.sol";
 import "../../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
- * @title LimitManager
- * @dev Helper library to manage the daily limit and interact with a contract implementing the ILimitStorage interface.
+ * @title LimitUtils
+ * @notice Helper library to manage the daily limit and interact with a contract implementing the ILimitStorage interface.
  * @author Julien Niset - <julien@argent.xyz>
  */
 library LimitUtils {
@@ -36,7 +36,7 @@ library LimitUtils {
     // *************** Internal Functions ********************* //
 
     /**
-     * @dev Changes the daily limit (expressed in ETH).
+     * @notice Changes the daily limit (expressed in ETH).
      * Decreasing the limit is immediate while increasing the limit is pending for the security period.
      * @param _lStorage The storage contract.
      * @param _wallet The target wallet.
@@ -66,7 +66,7 @@ library LimitUtils {
     }
 
      /**
-     * @dev Disable the daily limit.
+     * @notice Disable the daily limit.
      * The change is pending for the security period.
      * @param _lStorage The storage contract.
      * @param _wallet The target wallet.
@@ -83,7 +83,7 @@ library LimitUtils {
     }
 
     /**
-    * @dev Returns whether the daily limit is disabled for a wallet.
+    * @notice Returns whether the daily limit is disabled for a wallet.
     * @param _wallet The target wallet.
     * @return _limitDisabled true if the daily limit is disabled, false otherwise.
     */
@@ -94,7 +94,7 @@ library LimitUtils {
     }
 
     /**
-    * @dev Checks if a transfer is within the limit. If yes the daily spent is updated.
+    * @notice Checks if a transfer is within the limit. If yes the daily spent is updated.
     * @param _lStorage The storage contract.
     * @param _wallet The target wallet.
     * @param _amount The amount for the transfer
@@ -127,7 +127,7 @@ library LimitUtils {
     }
 
     /**
-    * @dev Helper method to Reset the daily consumption.
+    * @notice Helper method to Reset the daily consumption.
     * @param _wallet The target wallet.
     */
     function resetDailySpent(ILimitStorage _lStorage, address _wallet) internal {
@@ -136,7 +136,7 @@ library LimitUtils {
 
     /**
     * @notice Helper method to get the ether value equivalent of a token amount.
-    * @dev For low value amounts of tokens we accept this to return zero as these are small enough to disregard.
+    * @notice For low value amounts of tokens we accept this to return zero as these are small enough to disregard.
     * Note that the price stored for tokens = price for 1 token (in ETH wei) * 10^(18-token decimals).
     * @param _amount The token amount.
     * @param _token The address of the token.
@@ -149,7 +149,7 @@ library LimitUtils {
     }
 
     /**
-    * @dev Helper method to get the current limit from a Limit struct.
+    * @notice Helper method to get the current limit from a Limit struct.
     * @param _limit The limit struct
     */
     function currentLimit(ILimitStorage.Limit memory _limit) internal view returns (uint256) {

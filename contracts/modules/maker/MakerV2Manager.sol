@@ -22,7 +22,7 @@ import "./MakerV2Loan.sol";
 
 /**
  * @title MakerV2Manager
- * @dev Module to lock/unlock MCD DAI into/from Maker's Pot,
+ * @notice Module to lock/unlock MCD DAI into/from Maker's Pot,
  * migrate old CDPs and open and manage new CDPs.
  * @author Olivier VDB - <olivier@argent.xyz>
  */

@@ -23,7 +23,7 @@ import "../../lib/paraswap/IAugustusSwapper.sol";
 
 /**
  * @title TokenExchanger
- * @dev Module to trade tokens (ETH or ERC20) using ParaSwap.
+ * @notice Module to trade tokens (ETH or ERC20) using ParaSwap.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract TokenExchanger is OnlyOwnerModule {
@@ -74,7 +74,7 @@ contract TokenExchanger is OnlyOwnerModule {
     }
 
     /**
-     * @dev Lets the owner of the wallet execute a "sell" trade (fixed source amount, variable destination amount).
+     * @notice Lets the owner of the wallet execute a "sell" trade (fixed source amount, variable destination amount).
      * @param _wallet The target wallet
      * @param _srcToken The address of the source token.
      * @param _destToken The address of the destination token.
@@ -121,7 +121,7 @@ contract TokenExchanger is OnlyOwnerModule {
     }
 
     /**
-     * @dev Lets the owner of the wallet execute a "buy" trade (fixed destination amount, variable source amount).
+     * @notice Lets the owner of the wallet execute a "buy" trade (fixed destination amount, variable source amount).
      * @param _wallet The target wallet
      * @param _srcToken The address of the source token.
      * @param _destToken The address of the destination token.
