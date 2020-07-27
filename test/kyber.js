@@ -39,7 +39,7 @@ describe("Kyber", function () {
     const beforeETH = await deployer.provider.getBalance(trader.address);
     assert.equal(beforeERC20.toNumber(), 0, "trader should have no ERC20");
     await kyber.from(trader).trade(ETH_TOKEN, 10000, erc20.contractAddress, trader.address,
-      ethers.utils.bigNumberify("10000000000000000000000"), 1, "0x0000000000000000000000000000000000000000", { value: 10000 });
+      ethers.BigNumber.from("10000000000000000000000"), 1, "0x0000000000000000000000000000000000000000", { value: 10000 });
     const afterERC20 = await erc20.balanceOf(trader.address);
     const afterETH = await deployer.provider.getBalance(trader.address);
     assert.equal(beforeETH.sub(afterETH).gt(10000), true, "trader should have exchanged 10000 wei");
@@ -50,22 +50,22 @@ describe("Kyber", function () {
     // provision ERC20 to trader
     await kyber.trade(
       ETH_TOKEN,
-      ethers.utils.bigNumberify("1000000000000000000"),
+      ethers.BigNumber.from("1000000000000000000"),
       erc20.contractAddress,
       trader.address,
-      ethers.utils.bigNumberify("10000000000000000000000"),
+      ethers.BigNumber.from("10000000000000000000000"),
       1,
       "0x0000000000000000000000000000000000000000",
-      { value: ethers.utils.bigNumberify("1000000000000000000") },
+      { value: ethers.BigNumber.from("1000000000000000000") },
     );
     const beforeERC20 = await erc20.balanceOf(trader.address);
     const beforeETH = await deployer.provider.getBalance(trader.address);
     assert.equal(beforeERC20 > 0, true, "trader should have some ERC20");
     // exchange ERC20
-    const srcAmount = beforeERC20.div(ethers.utils.bigNumberify(2));
+    const srcAmount = beforeERC20.div(ethers.BigNumber.from(2));
     await erc20.from(trader).approve(kyber.contractAddress, srcAmount);
     await kyber.from(trader).trade(erc20.contractAddress, srcAmount, ETH_TOKEN, trader.address,
-      ethers.utils.bigNumberify("10000000000000000000000"), 1, "0x0000000000000000000000000000000000000000");
+      ethers.BigNumber.from("10000000000000000000000"), 1, "0x0000000000000000000000000000000000000000");
     const afterERC20 = await erc20.balanceOf(trader.address);
     const afterETH = await deployer.provider.getBalance(trader.address);
     assert.equal(beforeERC20.sub(afterERC20).eq(srcAmount), true, "trader should have exchanged ERC20");

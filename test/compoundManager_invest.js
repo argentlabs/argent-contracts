@@ -1,7 +1,5 @@
 /* global accounts, utils */
-const {
-  parseEther, formatBytes32String, bigNumberify,
-} = require("ethers").utils;
+const { parseEther, formatBytes32String } = require("ethers").utils;
 const ethers = require("ethers");
 const GuardianStorage = require("../build/GuardianStorage");
 const Registry = require("../build/ModuleRegistry");
@@ -21,8 +19,8 @@ const CEther = require("../build/CEther");
 const CErc20 = require("../build/CErc20");
 const CompoundRegistry = require("../build/CompoundRegistry");
 
-const WAD = bigNumberify("1000000000000000000"); // 10**18
-const ETH_EXCHANGE_RATE = bigNumberify("200000000000000000000000000");
+const WAD = ethers.BigNumber.from("1000000000000000000"); // 10**18
+const ETH_EXCHANGE_RATE = ethers.BigNumber.from("200000000000000000000000000");
 
 const ERC20 = require("../build/TestERC20");
 

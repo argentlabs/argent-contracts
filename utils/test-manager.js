@@ -3,7 +3,7 @@ const ethers = require("ethers");
 const ps = require("ps-node");
 const hdkey = require("ethereumjs-wallet/hdkey");
 const bip39 = require("bip39");
-const { signOffchain, bigNumberify, ETH_TOKEN } = require("./utilities.js");
+const { signOffchain, ETH_TOKEN } = require("./utilities.js");
 
 const USE_ETHERLIME_GANACHE_MNEMONIC = true;
 
@@ -40,7 +40,7 @@ class TestManager {
 
   newDeployer() {
     const defaultConfigs = {
-      gasLimit: bigNumberify(20700000),
+      gasLimit: ethers.BigNumber.from(20700000),
     };
     const deployerInstance = new etherlime.EtherlimeGanacheDeployer(this.accounts[0].secretKey);
     deployerInstance.setDefaultOverrides(defaultConfigs);

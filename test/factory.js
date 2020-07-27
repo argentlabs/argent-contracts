@@ -1,6 +1,5 @@
 /* global accounts, utils */
 const ethers = require("ethers");
-const { bigNumberify } = require("ethers").utils;
 
 const BaseWallet = require("../build/BaseWallet");
 const Module = require("../build/TestOnlyOwnerModule");
@@ -423,7 +422,7 @@ describe("Wallet Factory", function () {
       const salt = utilities.generateSaltValue();
       const label = `wallet${index}`;
       const modules = [module1.contractAddress, module2.contractAddress];
-      const amount = bigNumberify("10000000000000");
+      const amount = ethers.BigNumber.from("10000000000000");
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, modules, guardian.address, salt);
       // We send ETH to the address

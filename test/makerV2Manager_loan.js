@@ -4,7 +4,7 @@ const {
   deployMaker, deployUniswap, RAY, ETH_PER_DAI, ETH_PER_MKR,
 } = require("../utils/defi-deployer");
 
-const { parseEther, formatBytes32String, bigNumberify } = ethers.utils;
+const { parseEther, formatBytes32String } = ethers.utils;
 const { HashZero, AddressZero } = ethers.constants;
 
 const TestManager = require("../utils/test-manager");
@@ -321,7 +321,7 @@ describe("MakerV2 Vaults", function () {
     it("should not remove collateral with invalid collateral amount", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await assert.revertWith(
-        makerV2.from(owner).removeCollateral(walletAddress, loanId, ETH_TOKEN, bigNumberify(2).pow(255)),
+        makerV2.from(owner).removeCollateral(walletAddress, loanId, ETH_TOKEN, ethers.BigNumber.from(2).pow(255)),
         "MV2: int overflow",
       );
     });
@@ -651,7 +651,7 @@ describe("MakerV2 Vaults", function () {
 
     it("should not allow reentrancy in acquireLoan", async () => {
       // Deploy a fake wallet capable of reentrancy
-      const acquireLoanCallData = makerV2.contract.interface.functions.acquireLoan.encode([AddressZero, bigNumToBytes32(bigNumberify(0))]);
+      const acquireLoanCallData = makerV2.contract.interface.functions.acquireLoan.encode([AddressZero, bigNumToBytes32(ethers.BigNumber.from(0))]);
       const fakeWallet = await deployer.deploy(FakeWallet, {}, true, makerV2.contractAddress, 0, acquireLoanCallData);
       await fakeWallet.init(owner.address, [makerV2.contractAddress]);
       // Create the vault with `owner` as owner
@@ -833,7 +833,7 @@ describe("MakerV2 Vaults", function () {
       // Add the bad module to the wallet
       await makerV2.from(owner).addModule(walletAddress, badModule.contractAddress, { gasLimit: 2000000 });
       // Use the bad module to attempt a bad giveVault call
-      const callData = makerV2.contract.interface.functions.giveVault.encode([walletAddress, bigNumToBytes32(bigNumberify(666))]);
+      const callData = makerV2.contract.interface.functions.giveVault.encode([walletAddress, bigNumToBytes32(ethers.BigNumber.from(666))]);
       await assert.revertWith(badModule.from(owner).callContract(makerV2.contractAddress, 0, callData), "MV2: unauthorized loanId");
     });
   });
