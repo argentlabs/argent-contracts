@@ -1,3 +1,5 @@
+/* global artifacts */
+
 const { parseEther, formatBytes32String } = require("ethers").utils;
 const etherlime = require("etherlime-lib");
 const ethers = require("ethers");
@@ -5,19 +7,19 @@ const ethers = require("ethers");
 const UniswapFactory = require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = require("../lib/uniswap/UniswapExchange");
 
-const ScdMcdMigration = require("../build/ScdMcdMigration");
-const DSValue = require("../build/DSValue");
-const DSToken = require("../build/DSToken");
-const Dai = require("../build/Dai");
-const Vox = require("../build/SaiVox");
-const Tub = require("../build/SaiTub");
-const WETH = require("../build/WETH9");
-const Vat = require("../build/Vat");
-const Pot = require("../build/Pot");
-const Jug = require("../build/Jug");
-const CdpManager = require("../build/DssCdpManager");
-const GemJoin = require("../build/GemJoin");
-const DaiJoin = require("../build/DaiJoin");
+const ScdMcdMigration = artifacts.require("ScdMcdMigration");
+const DSValue = artifacts.require("DSValue");
+const DSToken = artifacts.require("DSToken");
+const Dai = artifacts.require("Dai");
+const Vox = artifacts.require("SaiVox");
+const Tub = artifacts.require("SaiTub");
+const WETH = artifacts.require("WETH9");
+const Vat = artifacts.require("Vat");
+const Pot = artifacts.require("Pot");
+const Jug = artifacts.require("Jug");
+const CdpManager = artifacts.require("DssCdpManager");
+const GemJoin = artifacts.require("GemJoin");
+const DaiJoin = artifacts.require("DaiJoin");
 
 const RAY = ethers.BigNumber.from("1000000000000000000000000000"); // 10**27
 const WAD = ethers.BigNumber.from("1000000000000000000"); // 10**18

@@ -1,4 +1,5 @@
-/* global accounts, utils */
+/* global artifacts */
+
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
@@ -7,22 +8,22 @@ const bnChai = require("bn-chai");
 const { expect } = chai;
 chai.use(bnChai(BN));
 
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const Registry = require("../build/ModuleRegistry");
-const VersionManager = require("../build/VersionManager");
-const TransferStorage = require("../build/TransferStorage");
-const LockStorage = require("../build/LockStorage");
-const GuardianStorage = require("../build/GuardianStorage");
-const LimitStorage = require("../build/LimitStorage");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const RelayerManager = require("../build/RelayerManager");
-const TransferManager = require("../build/TransferManager");
-const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
-const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
-const ERC20 = require("../build/TestERC20");
-const WETH = require("../build/WETH9");
-const TestContract = require("../build/TestContract");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const Registry = artifacts.require("ModuleRegistry");
+const VersionManager = artifacts.require("VersionManager");
+const TransferStorage = artifacts.require("TransferStorage");
+const LockStorage = artifacts.require("LockStorage");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const LimitStorage = artifacts.require("LimitStorage");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const RelayerManager = artifacts.require("RelayerManager");
+const TransferManager = artifacts.require("TransferManager");
+const LegacyTransferManager = artifacts.require("../build-legacy/v1.6.0/TransferManager");
+const LegacyTokenPriceProvider = artifacts.require("../build-legacy/v1.6.0/TokenPriceProvider");
+const ERC20 = artifacts.require("TestERC20");
+const WETH = artifacts.require("WETH9");
+const TestContract = artifacts.require("TestContract");
 
 const { ETH_TOKEN, hasEvent, personalSign } = require("../utils/utilities.js");
 

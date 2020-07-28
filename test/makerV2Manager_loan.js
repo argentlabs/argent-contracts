@@ -1,3 +1,5 @@
+/* global artifacts */
+
 const ethers = require("ethers");
 const {
   bigNumToBytes32, ETH_TOKEN, parseLogs, hasEvent,
@@ -10,23 +12,23 @@ const { parseEther, formatBytes32String } = ethers.utils;
 const { AddressZero } = ethers.constants;
 
 const TestManager = require("../utils/test-manager");
-const GemJoin = require("../build/GemJoin");
-const Registry = require("../build/ModuleRegistry");
-const MakerV2Manager = require("../build/MakerV2Manager");
-const UpgradedMakerV2Manager = require("../build/TestUpgradedMakerV2Manager");
-const MakerRegistry = require("../build/MakerRegistry");
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const FakeWallet = require("../build/FakeWallet");
-const GuardianStorage = require("../build/GuardianStorage");
-const LockStorage = require("../build/LockStorage");
-const TransferStorage = require("../build/TransferStorage");
-const LimitStorage = require("../build/LimitStorage");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const TransferManager = require("../build/TransferManager");
-const BadFeature = require("../build/TestFeature");
-const RelayerManager = require("../build/RelayerManager");
-const VersionManager = require("../build/VersionManager");
+const GemJoin = artifacts.require("GemJoin");
+const Registry = artifacts.require("ModuleRegistry");
+const MakerV2Manager = artifacts.require("MakerV2Manager");
+const UpgradedMakerV2Manager = artifacts.require("TestUpgradedMakerV2Manager");
+const MakerRegistry = artifacts.require("MakerRegistry");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const FakeWallet = artifacts.require("FakeWallet");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const LockStorage = artifacts.require("LockStorage");
+const TransferStorage = artifacts.require("TransferStorage");
+const LimitStorage = artifacts.require("LimitStorage");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const TransferManager = artifacts.require("TransferManager");
+const BadFeature = artifacts.require("TestFeature");
+const RelayerManager = artifacts.require("RelayerManager");
+const VersionManager = artifacts.require("VersionManager");
 
 /* global accounts */
 describe("MakerV2 Vaults", function () {

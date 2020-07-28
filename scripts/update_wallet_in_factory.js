@@ -8,9 +8,10 @@
 //     - network = [ganache, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
-const BaseWallet = require("../build/BaseWallet");
-const WalletFactory = require("../build/WalletFactory");
-const MultiSigWallet = require("../build/MultiSigWallet");
+const BaseWallet = artifacts.require("BaseWallet");
+const WalletFactory = artifacts.require("WalletFactory");
+const MultiSigWallet = artifacts.require("MultiSigWallet");
+
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const DeployManager = require("../utils/deploy-manager.js");
 

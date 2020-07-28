@@ -1,16 +1,16 @@
 const childProcess = require("child_process");
 
-const ApprovedTransfer = require("../build/ApprovedTransfer");
-const CompoundManager = require("../build/CompoundManager");
-const GuardianManager = require("../build/GuardianManager");
-const LockManager = require("../build/LockManager");
-const NftTransfer = require("../build/NftTransfer");
-const RecoveryManager = require("../build/RecoveryManager");
-const TokenExchanger = require("../build/TokenExchanger");
-const MakerV2Manager = require("../build/MakerV2Manager");
-const TransferManager = require("../build/TransferManager");
-const RelayerManager = require("../build/RelayerManager");
-const VersionManager = require("../build/VersionManager");
+const ApprovedTransfer = artifacts.require("ApprovedTransfer");
+const CompoundManager = artifacts.require("CompoundManager");
+const GuardianManager = artifacts.require("GuardianManager");
+const LockManager = artifacts.require("LockManager");
+const NftTransfer = artifacts.require("NftTransfer");
+const RecoveryManager = artifacts.require("RecoveryManager");
+const TokenExchanger = artifacts.require("TokenExchanger");
+const MakerV2Manager = artifacts.require("MakerV2Manager");
+const TransferManager = artifacts.require("TransferManager");
+const RelayerManager = artifacts.require("RelayerManager");
+const VersionManager = artifacts.require("VersionManager");
 
 const DeployManager = require("../utils/deploy-manager.js");
 

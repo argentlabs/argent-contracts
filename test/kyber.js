@@ -1,8 +1,8 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
 
-const KyberNetwork = require("../build/KyberNetworkTest");
-const ERC20 = require("../build/TestERC20");
+const KyberNetwork = artifacts.require("KyberNetworkTest");
+const ERC20 = artifacts.require("TestERC20");
 
 const TestManager = require("../utils/test-manager");
 const { ETH_TOKEN } = require("../utils/utilities.js");

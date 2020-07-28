@@ -1,6 +1,6 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
-const Managed = require("../build/Managed");
+const Managed = artifacts.require("Managed");
 
 const TestManager = require("../utils/test-manager");
 

@@ -1,15 +1,15 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
-const GuardianManager = require("../build/GuardianManager");
-const LockStorage = require("../build/LockStorage");
-const GuardianStorage = require("../build/GuardianStorage");
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const RelayerManager = require("../build/RelayerManager");
-const VersionManager = require("../build/VersionManager");
-const Registry = require("../build/ModuleRegistry");
-const DumbContract = require("../build/TestContract");
-const NonCompliantGuardian = require("../build/NonCompliantGuardian");
+const GuardianManager = artifacts.require("GuardianManager");
+const LockStorage = artifacts.require("LockStorage");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const RelayerManager = artifacts.require("RelayerManager");
+const VersionManager = artifacts.require("VersionManager");
+const Registry = artifacts.require("ModuleRegistry");
+const DumbContract = artifacts.require("TestContract");
+const NonCompliantGuardian = artifacts.require("NonCompliantGuardian");
 
 const TestManager = require("../utils/test-manager");
 

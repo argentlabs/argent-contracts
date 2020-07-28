@@ -7,11 +7,11 @@ const DeployManager = require("../utils/deploy-manager.js");
 const UniswapFactory = require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = require("../lib/uniswap/UniswapExchange");
 
-const Vox = require("../build/SaiVox");
-const Tub = require("../build/SaiTub");
-const DSToken = require("../build/DSToken");
-const WETH = require("../build/WETH9");
-const DSValue = require("../build/DSValue");
+const Vox = artifacts.require("SaiVox");
+const Tub = artifacts.require("SaiTub");
+const DSToken = artifacts.require("DSToken");
+const WETH = artifacts.require("WETH9");
+const DSValue = artifacts.require("DSValue");
 
 const RAY = ethers.BigNumber.from("1000000000000000000000000000"); // 10**27
 const WAD = ethers.BigNumber.from("1000000000000000000"); // 10**18

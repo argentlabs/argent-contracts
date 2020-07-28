@@ -1,40 +1,41 @@
-/* global accounts */
+/* global artifacts */
+
 const ethers = require("ethers");
 const { parseEther } = require("ethers").utils;
 const { AddressZero } = require("ethers").constants;
 
 // Paraswap
-const AugustusSwapper = require("../build/AugustusSwapper");
-const Whitelisted = require("../build/Whitelisted");
-const PartnerRegistry = require("../build/PartnerRegistry");
-const PartnerDeployer = require("../build/PartnerDeployer");
-const Kyber = require("../build/Kyber");
-const UniswapV2 = require("../build/UniswapV2");
+const AugustusSwapper = artifacts.require("AugustusSwapper");
+const Whitelisted = artifacts.require("Whitelisted");
+const PartnerRegistry = artifacts.require("PartnerRegistry");
+const PartnerDeployer = artifacts.require("PartnerDeployer");
+const Kyber = artifacts.require("Kyber");
+const UniswapV2 = artifacts.require("UniswapV2");
 
 // Kyber
-const KyberNetwork = require("../build/KyberNetworkTest");
+const KyberNetwork = artifacts.require("KyberNetworkTest");
 
 // UniswapV2
-const UniswapV2Factory = require("../build/UniswapV2Factory");
-const UniswapV2Router01 = require("../build/UniswapV2Router01");
-const WETH = require("../build/WETH9");
+const UniswapV2Factory = artifacts.require("UniswapV2Factory");
+const UniswapV2Router01 = artifacts.require("UniswapV2Router01");
+const WETH = artifacts.require("WETH9");
 
 // Argent
-const ModuleRegistry = require("../build/ModuleRegistry");
-const DexRegistry = require("../build/DexRegistry");
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
-const GuardianStorage = require("../build/GuardianStorage");
-const LockStorage = require("../build/LockStorage");
-const TokenExchanger = require("../build/TokenExchanger");
-const RelayerManager = require("../build/RelayerManager");
-const ERC20 = require("../build/TestERC20");
-const TransferStorage = require("../build/TransferStorage");
-const LimitStorage = require("../build/LimitStorage");
-const TransferManager = require("../build/TransferManager");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const VersionManager = require("../build/VersionManager");
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const DexRegistry = artifacts.require("DexRegistry");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const OldWallet = artifacts.require("../build-legacy/v1.3.0/BaseWallet");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const LockStorage = artifacts.require("LockStorage");
+const TokenExchanger = artifacts.require("TokenExchanger");
+const RelayerManager = artifacts.require("RelayerManager");
+const ERC20 = artifacts.require("TestERC20");
+const TransferStorage = artifacts.require("TransferStorage");
+const LimitStorage = artifacts.require("LimitStorage");
+const TransferManager = artifacts.require("TransferManager");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const VersionManager = artifacts.require("VersionManager");
 
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");

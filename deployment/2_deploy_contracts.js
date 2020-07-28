@@ -1,22 +1,22 @@
-const GuardianStorage = require("../build/GuardianStorage");
-const TransferStorage = require("../build/TransferStorage");
-const LockStorage = require("../build/LockStorage");
-const LimitStorage = require("../build/LimitStorage");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const TransferStorage = artifacts.require("TransferStorage");
+const LockStorage = artifacts.require("LockStorage");
+const LimitStorage = artifacts.require("LimitStorage");
 
-const BaseWallet = require("../build/BaseWallet");
-const ModuleRegistry = require("../build/ModuleRegistry");
-const CompoundRegistry = require("../build/CompoundRegistry");
-const MultiSig = require("../build/MultiSigWallet");
-const ENS = require("../build/ENSRegistryWithFallback");
-const ENSManager = require("../build/ArgentENSManager");
-const ENSResolver = require("../build/ArgentENSResolver");
-const WalletFactory = require("../build/WalletFactory");
+const BaseWallet = artifacts.require("BaseWallet");
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const CompoundRegistry = artifacts.require("CompoundRegistry");
+const MultiSig = artifacts.require("MultiSigWallet");
+const ENS = artifacts.require("ENSRegistryWithFallback");
+const ENSManager = artifacts.require("ArgentENSManager");
+const ENSResolver = artifacts.require("ArgentENSResolver");
+const WalletFactory = artifacts.require("WalletFactory");
 
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const DexRegistry = require("../build/DexRegistry");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const DexRegistry = artifacts.require("DexRegistry");
 
-const MakerRegistry = require("../build/MakerRegistry");
-const ScdMcdMigration = require("../build/ScdMcdMigration");
+const MakerRegistry = artifacts.require("MakerRegistry");
+const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 
 const utils = require("../utils/utilities.js");
 
