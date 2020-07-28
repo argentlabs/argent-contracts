@@ -1,16 +1,16 @@
 require("dotenv").config();
 const etherlime = require("etherlime-lib");
 const path = require("path");
+const ethers = require("ethers");
 
 const Configurator = require("./configurator.js");
 const ConfiguratorLoader = require("./configurator-loader.js");
 const PrivateKeyLoader = require("./private-key-loader.js");
 const ABIUploader = require("./abi-uploader.js");
 const VersionUploader = require("./version-uploader.js");
-const utils = require("./utilities.js");
 
 const defaultConfigs = {
-  gasPrice: utils.bigNumberify(process.env.DEPLOYER_GAS_PRICE || 20000000000),
+  gasPrice: ethers.BigNumber.from(process.env.DEPLOYER_GAS_PRICE || 20000000000),
   gasLimit: 6000000,
 };
 

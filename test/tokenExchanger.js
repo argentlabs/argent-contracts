@@ -1,6 +1,6 @@
 /* global accounts */
 const ethers = require("ethers");
-const { bigNumberify, parseEther } = require("ethers").utils;
+const { parseEther } = require("ethers").utils;
 const { AddressZero } = require("ethers").constants;
 
 // Paraswap
@@ -392,7 +392,7 @@ describe("Token Exchanger", function () {
     });
     it(`calls ${method} successfully with a pre-existing infinite allowance`, async () => {
       // Make the wallet grant an infinite allowance to the Paraswap proxy
-      const infiniteAllowance = bigNumberify(2).pow(256).sub(1);
+      const infiniteAllowance = ethers.BigNumber.from(2).pow(256).sub(1);
       await testTradeWithPreExistingAllowance(infiniteAllowance);
     });
   }

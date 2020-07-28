@@ -244,7 +244,7 @@ describe("RelayerModule", function () {
     }
 
     it("should refund in ETH", async () => {
-      await provisionFunds(ethers.utils.bigNumberify("100000000000000"), 0);
+      await provisionFunds(ethers.BigNumber.from("100000000000000"), 0);
       const wBalanceStart = await deployer.provider.getBalance(wallet.contractAddress);
       const rBalanceStart = await deployer.provider.getBalance(recipient.address);
       await callAndRefund({ refundToken: ETH_TOKEN });
@@ -256,7 +256,7 @@ describe("RelayerModule", function () {
     });
 
     it("should refund in ERC20", async () => {
-      await provisionFunds(0, ethers.utils.bigNumberify("100000000000000"));
+      await provisionFunds(0, ethers.BigNumber.from("100000000000000"));
       const wBalanceStart = await erc20.balanceOf(wallet.contractAddress);
       const rBalanceStart = await erc20.balanceOf(recipient.address);
       await callAndRefund({ refundToken: erc20.contractAddress });
@@ -268,23 +268,23 @@ describe("RelayerModule", function () {
     });
 
     it("should emit the Refund event", async () => {
-      await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
+      await provisionFunds(ethers.BigNumber.from("100000000000"), 0);
       const txReceipt = await callAndRefund({ refundToken: ETH_TOKEN });
       assert.isTrue(await hasEvent(txReceipt, relayerModule, "Refund"), "should have generated Refund event");
     });
 
     it("should fail the transaction when when there is not enough ETH for the refund", async () => {
-      await provisionFunds(ethers.utils.bigNumberify("10"), 0);
+      await provisionFunds(ethers.BigNumber.from("10"), 0);
       await assert.revertWith(callAndRefund({ refundToken: ETH_TOKEN }), "BM: wallet invoke reverted");
     });
 
     it("should fail the transaction when when there is not enough ERC20 for the refund", async () => {
-      await provisionFunds(0, ethers.utils.bigNumberify("10"));
+      await provisionFunds(0, ethers.BigNumber.from("10"));
       await assert.revertWith(callAndRefund({ refundToken: erc20.contractAddress }), "ERC20: transfer amount exceeds balance");
     });
 
     it("should include the refund in the daily limit", async () => {
-      await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
+      await provisionFunds(ethers.BigNumber.from("100000000000"), 0);
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
@@ -295,7 +295,7 @@ describe("RelayerModule", function () {
 
     it("should refund and reset the daily limit when approved by guardians", async () => {
       // set funds and limit/daily spent
-      await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
+      await provisionFunds(ethers.BigNumber.from("100000000000"), 0);
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
@@ -334,7 +334,7 @@ describe("RelayerModule", function () {
     });
 
     it("should fail the transaction when the refund is over the daily limit", async () => {
-      await provisionFunds(ethers.utils.bigNumberify("100000000000"), 0);
+      await provisionFunds(ethers.BigNumber.from("100000000000"), 0);
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 999999990 });
       const dailySpent = await limitModule.getDailySpent(wallet.contractAddress);
       assert.isTrue(dailySpent.toNumber() === 999999990, "initial daily spent should be 999999990");

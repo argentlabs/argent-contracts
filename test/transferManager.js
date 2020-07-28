@@ -116,7 +116,7 @@ describe("TransferManager", function () {
 
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
-    await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify("1000000000000000000") });
+    await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.BigNumber.from("1000000000000000000") });
   });
 
   async function getEtherValue(amount, token) {
@@ -249,7 +249,7 @@ describe("TransferManager", function () {
       const existingWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
       await existingWallet.init(owner.address, [previousTransferModule.contractAddress]);
-      await infrastructure.sendTransaction({ to: existingWallet.contractAddress, value: ethers.utils.bigNumberify("100000000") });
+      await infrastructure.sendTransaction({ to: existingWallet.contractAddress, value: ethers.BigNumber.from("100000000") });
       // change the limit
       await previousTransferModule.from(owner).changeLimit(existingWallet.contractAddress, 4000000);
       await manager.increaseTime(SECURITY_PERIOD + 1);
@@ -314,7 +314,7 @@ describe("TransferManager", function () {
     });
 
     it("should return the correct unspent daily limit amount", async () => {
-      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify(ETH_LIMIT) });
+      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.BigNumber.from(ETH_LIMIT) });
       const transferAmount = ETH_LIMIT - 100;
       await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, transferAmount, ZERO_BYTES32);
       const { _unspent } = await transferModule.getDailyUnspent(wallet.contractAddress);
@@ -322,7 +322,7 @@ describe("TransferManager", function () {
     });
 
     it("should return the correct spent daily limit amount", async () => {
-      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify(ETH_LIMIT) });
+      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.BigNumber.from(ETH_LIMIT) });
       // Transfer 100 wei
       const tx = await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, 100, ZERO_BYTES32);
       const txReceipt = await transferModule.verboseWaitForTransaction(tx);
@@ -336,7 +336,7 @@ describe("TransferManager", function () {
     });
 
     it("should return 0 if the entire daily limit amount has been spent", async () => {
-      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.utils.bigNumberify(ETH_LIMIT) });
+      await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.BigNumber.from(ETH_LIMIT) });
       await transferModule.from(owner).transferToken(wallet.contractAddress, ETH_TOKEN, recipient.address, ETH_LIMIT, ZERO_BYTES32);
       const { _unspent } = await transferModule.getDailyUnspent(wallet.contractAddress);
       assert.equal(_unspent.toNumber(), 0);

@@ -20,8 +20,6 @@ module.exports = {
 
   asciiToBytes32: (input) => ethers.utils.formatBytes32String(input), // return ethers.utils.hexlify(ethers.utils.toUtf8Bytes(input));
 
-  bigNumberify: (input) => ethers.utils.bigNumberify(input),
-
   bigNumToBytes32: (input) => ethers.utils.hexZeroPad(input.toHexString(), 32),
 
   waitForUserInput: (text) => new Promise((resolve) => {
@@ -64,8 +62,8 @@ module.exports = {
 
   sortWalletByAddress(wallets, addressKey = "address") {
     return wallets.sort((s1, s2) => {
-      const bn1 = ethers.utils.bigNumberify(s1[addressKey]);
-      const bn2 = ethers.utils.bigNumberify(s2[addressKey]);
+      const bn1 = ethers.BigNumber.from(s1[addressKey]);
+      const bn2 = ethers.BigNumber.from(s2[addressKey]);
       if (bn1.lt(bn2)) return -1;
       if (bn1.gt(bn2)) return 1;
       return 0;
@@ -113,8 +111,8 @@ module.exports = {
 
   versionFingerprint(modules) {
     const concat = modules.map((module) => module.address).sort((m1, m2) => {
-      const bn1 = ethers.utils.bigNumberify(m1);
-      const bn2 = ethers.utils.bigNumberify(m2);
+      const bn1 = ethers.BigNumber.from(m1);
+      const bn2 = ethers.BigNumber.from(m2);
       if (bn1.lt(bn2)) {
         return 1;
       }
@@ -132,7 +130,7 @@ module.exports = {
 
   generateSaltValue() {
     return ethers.utils.hexZeroPad(
-      ethers.utils.bigNumberify(ethers.utils.randomBytes(32)).toHexString(),
+      ethers.BigNumber.from(ethers.utils.randomBytes(32)).toHexString(),
       32,
     );
   },
