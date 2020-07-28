@@ -12,9 +12,7 @@ const utils = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 
-contract("WalletFactory", function (accounts) {
-  this.timeout(10000);
-
+contract("WalletFactory", (accounts) => {
   const manager = new TestManager();
 
   const infrastructure = accounts[0].signer;

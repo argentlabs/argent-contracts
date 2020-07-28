@@ -8,9 +8,7 @@ const BaseWallet = artifacts.require("BaseWallet");
 const VersionManager = artifacts.require("VersionManager");
 const Registry = artifacts.require("ModuleRegistry");
 
-contract("Proxy", function (accounts) {
-  this.timeout(10000);
-
+contract("Proxy", (accounts) => {
   const owner = accounts[1].signer;
   const nonowner = accounts[2].signer;
 

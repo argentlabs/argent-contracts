@@ -37,9 +37,7 @@ const ACTION_TRANSFER = 0;
 
 const TestManager = require("../utils/test-manager");
 
-contract("TransferManager", function (accounts) {
-  this.timeout(10000);
-
+contract("TransferManager", (accounts) => {
   const manager = new TestManager();
 
   const infrastructure = accounts[0].signer;

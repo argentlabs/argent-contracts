@@ -34,9 +34,7 @@ const TestManager = require("../utils/test-manager");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
-contract("Loan Module", function (accounts) {
-  this.timeout(1000000);
-
+contract("Loan Module", (accounts) => {
   const manager = new TestManager();
 
   const infrastructure = accounts[0].signer;

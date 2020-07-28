@@ -14,9 +14,7 @@ const NonCompliantGuardian = artifacts.require("NonCompliantGuardian");
 
 const TestManager = require("../utils/test-manager");
 
-contract("GuardianManager", function (accounts) {
-  this.timeout(10000);
-
+contract("GuardianManager", (accounts) => {
   const manager = new TestManager(accounts);
 
   const owner = accounts[1].signer;

@@ -17,9 +17,7 @@ const VersionManager = artifacts.require("VersionManager");
 
 const DAI_SENT = WAD.div(100000000);
 
-contract("MakerV2Invest", function (accounts) {
-  this.timeout(100000);
-
+contract("MakerV2Invest", (accounts) => {
   const manager = new TestManager();
   const { deployer } = manager;
 

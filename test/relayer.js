@@ -32,9 +32,7 @@ const RELAYER_NOT_AUTHORISED_FOR_WALLET = "BF: must be owner or feature";
 const GAS_LESS_THAN_GASLIMIT = "RM: not enough gas provided";
 const WRONG_NUMBER_SIGNATURES = "RM: Wrong number of signatures";
 
-contract("RelayerManager", function (accounts) {
-  this.timeout(10000);
-
+contract("RelayerManager", (accounts) => {
   const manager = new TestManager();
   const { deployer } = manager;
   let { getNonceForRelay } = manager;
