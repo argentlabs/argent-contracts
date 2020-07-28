@@ -21,8 +21,8 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 const TestManager = require("../utils/test-manager");
 const { parseRelayReceipt, callStatic } = require("../utils/utilities.js");
 
-describe("Token Transfer", function () {
-  this.timeout(100000);
+contract("NftTransfer", function (accounts) {
+  this.timeout(10000);
 
   const manager = new TestManager();
 

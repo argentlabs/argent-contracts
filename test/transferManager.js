@@ -25,7 +25,8 @@ const ERC20 = artifacts.require("TestERC20");
 const WETH = artifacts.require("WETH9");
 const TestContract = artifacts.require("TestContract");
 
-const { ETH_TOKEN, hasEvent, personalSign } = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
 
 const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
@@ -36,8 +37,8 @@ const ACTION_TRANSFER = 0;
 
 const TestManager = require("../utils/test-manager");
 
-describe("TransferManager", function () {
-  this.timeout(100000);
+contract("TransferManager", function (accounts) {
+  this.timeout(10000);
 
   const manager = new TestManager();
 
@@ -286,7 +287,7 @@ describe("TransferManager", function () {
       await previousTransferManager.from(owner).addModule(existingWallet.contractAddress, versionManager.contractAddress);
       const tx = await versionManager.from(owner).upgradeWallet(existingWallet.contractAddress, await versionManager.lastVersion());
       const txReceipt = await previousTransferManager.verboseWaitForTransaction(tx);
-      assert.isTrue(hasEvent(txReceipt, transferManager, "DailyLimitMigrated"));
+      assert.isTrue(utils.hasEvent(txReceipt, transferManager, "DailyLimitMigrated"));
       // check result
       limit = await transferManager.getCurrentLimit(existingWallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should have been migrated");
@@ -335,7 +336,7 @@ describe("TransferManager", function () {
     it("should be able to disable the limit", async () => {
       const tx = await transferManager.from(owner).disableLimit(wallet.contractAddress);
       const txReceipt = await transferManager.verboseWaitForTransaction(tx);
-      assert.isTrue(hasEvent(txReceipt, transferManager, "DailyLimitDisabled"));
+      assert.isTrue(utils.hasEvent(txReceipt, transferManager, "DailyLimitDisabled"));
       let limitDisabled = await transferManager.isLimitDisabled(wallet.contractAddress);
       assert.isFalse(limitDisabled);
       await manager.increaseTime(SECURITY_PERIOD + 1);
@@ -898,14 +899,14 @@ describe("TransferManager", function () {
 
       const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
       const signHash = ethers.utils.keccak256("0x1234");
-      const sig = await personalSign(signHash, owner);
+      const sig = await utils.personalSign(signHash, owner);
       const valid = await walletAsTransferManager.isValidSignature(signHash, sig);
       assert.equal(valid, ERC1271_ISVALIDSIGNATURE_BYTES32);
     });
     it("should revert isValidSignature static call for invalid signature", async () => {
       const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
       const signHash = ethers.utils.keccak256("0x1234");
-      const sig = `${await personalSign(signHash, owner)}a1`;
+      const sig = `${await utils.personalSign(signHash, owner)}a1`;
 
       await assert.revertWith(
         walletAsTransferManager.isValidSignature(signHash, sig), "TM: invalid signature length",
@@ -914,7 +915,7 @@ describe("TransferManager", function () {
     it("should revert isValidSignature static call for invalid signer", async () => {
       const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
       const signHash = ethers.utils.keccak256("0x1234");
-      const sig = await personalSign(signHash, nonowner);
+      const sig = await utils.personalSign(signHash, nonowner);
 
       await assert.revertWith(
         walletAsTransferManager.isValidSignature(signHash, sig), "TM: Invalid signer",

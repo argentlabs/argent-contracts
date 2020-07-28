@@ -1,15 +1,17 @@
-const ENSRegistry = require("../build/ENSRegistry");
-const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
-const UniswapFactory = require("../lib/uniswap/UniswapFactory");
-const UniswapExchange = require("../lib/uniswap/UniswapExchange");
-const MakerMigration = require("../build/MockScdMcdMigration");
+/* global artifacts */
+
+const ENSRegistry = artifacts.require("ENSRegistry");
+const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
+const UniswapFactory = artifacts.require("../lib/uniswap/UniswapFactory");
+const UniswapExchange = artifacts.require("../lib/uniswap/UniswapExchange");
+const MakerMigration = artifacts.require("MockScdMcdMigration");
 
 // Paraswap
-const AugustusSwapper = require("../build/AugustusSwapper");
-const Whitelisted = require("../build/Whitelisted");
-const PartnerRegistry = require("../build/PartnerRegistry");
-const PartnerDeployer = require("../build/PartnerDeployer");
-const KyberAdapter = require("../build/Kyber");
+const AugustusSwapper = artifacts.require("AugustusSwapper");
+const Whitelisted = artifacts.require("Whitelisted");
+const PartnerRegistry = artifacts.require("PartnerRegistry");
+const PartnerDeployer = artifacts.require("PartnerDeployer");
+const KyberAdapter = artifacts.require("Kyber");
 
 const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");

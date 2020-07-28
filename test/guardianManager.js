@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+
 const GuardianManager = artifacts.require("GuardianManager");
 const LockStorage = artifacts.require("LockStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
@@ -13,8 +14,8 @@ const NonCompliantGuardian = artifacts.require("NonCompliantGuardian");
 
 const TestManager = require("../utils/test-manager");
 
-describe("GuardianManager", function () {
-  this.timeout(100000);
+contract("GuardianManager", function (accounts) {
+  this.timeout(10000);
 
   const manager = new TestManager(accounts);
 

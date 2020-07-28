@@ -14,6 +14,7 @@ const { AddressZero } = ethers.constants;
 const TestManager = require("../utils/test-manager");
 const GemJoin = artifacts.require("GemJoin");
 const Registry = artifacts.require("ModuleRegistry");
+
 const MakerV2Manager = artifacts.require("MakerV2Manager");
 const UpgradedMakerV2Manager = artifacts.require("TestUpgradedMakerV2Manager");
 const MakerRegistry = artifacts.require("MakerRegistry");
@@ -30,8 +31,7 @@ const BadFeature = artifacts.require("TestFeature");
 const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = artifacts.require("VersionManager");
 
-/* global accounts */
-describe("MakerV2 Vaults", function () {
+contract("MakerV2Loan", function (accounts) {
   this.timeout(100000);
 
   const manager = new TestManager();

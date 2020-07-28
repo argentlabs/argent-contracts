@@ -1,6 +1,8 @@
 /* global artifacts */
+
 const ethers = require("ethers");
 const { parseEther } = require("ethers").utils;
+const utils = require("../utils/utilities.js");
 
 const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");
@@ -32,7 +34,7 @@ const TestManager = require("../utils/test-manager");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
-describe("Loan Module", function () {
+contract("Loan Module", function (accounts) {
   this.timeout(1000000);
 
   const manager = new TestManager();
