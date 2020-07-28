@@ -5,37 +5,11 @@ const hdkey = require("ethereumjs-wallet/hdkey");
 const bip39 = require("bip39");
 const { signOffchain, ETH_TOKEN } = require("./utilities.js");
 
-const USE_ETHERLIME_GANACHE_MNEMONIC = true;
-
-// this is the same mnemonic as that used by ganache-cli --deterministic
-// this mnemonic will not be used if `USE_ETHERLIME_GANACHE_MNEMONIC` is set to `true`
-const MNEMONIC = "myth like bonus scare over problem client lizard pioneer submit female collect";
-
 class TestManager {
-  constructor(_accounts = null, network = "ganache", deployer) {
+  constructor(network = "ganache", deployer) {
     this.network = network;
-    this.accounts = _accounts || this.loadAccounts();
-    global.accounts = this.accounts;
     this.deployer = deployer || this.newDeployer();
     this.provider = this.deployer.provider;
-  }
-
-  loadAccounts() { // eslint-disable-line class-methods-use-this
-    if (USE_ETHERLIME_GANACHE_MNEMONIC) return global.accounts;
-
-    // ignore (global) accounts loaded from cli-commands/ganache/setup.json
-    // and instead generate accounts matching those used by ganache-cli in determistic mode
-    const hdWallet = hdkey.fromMasterSeed(bip39.mnemonicToSeedSync(MNEMONIC));
-    const localNodeProvider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
-    const accounts = [];
-    for (let i = 0; i < 10; i += 1) {
-      const privKey = hdWallet.derivePath(`m/44'/60'/0'/0/${i}`).getWallet().getPrivateKeyString();
-      accounts.push({
-        secretKey: privKey,
-        signer: new ethers.Wallet(privKey, localNodeProvider),
-      });
-    }
-    return accounts;
   }
 
   newDeployer() {

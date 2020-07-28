@@ -27,12 +27,12 @@ const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 contract("ApprovedTransfer", (accounts) => {
   const manager = new TestManager();
 
-  const infrastructure = accounts[0].signer;
-  const owner = accounts[1].signer;
-  const guardian1 = accounts[2].signer;
-  const guardian2 = accounts[3].signer;
-  const guardian3 = accounts[4].signer;
-  const recipient = accounts[5].signer;
+  const infrastructure = accounts[0];
+  const owner = accounts[1];
+  const guardian1 = accounts[2];
+  const guardian2 = accounts[3];
+  const guardian3 = accounts[4];
+  const recipient = accounts[5];
 
   let deployer;
   let wallet;
@@ -93,18 +93,18 @@ contract("ApprovedTransfer", (accounts) => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await wallet.init(owner, [versionManager.contractAddress]);
     await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
 
     const decimals = 12; // number of decimal for TOKN contract
-    erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
+    erc20 = await deployer.deploy(ERC20, {}, [infrastructure, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
   });
 
   async function addGuardians(guardians) {
     // guardians can be BaseWallet or ContractWrapper objects
     const guardianAddresses = guardians.map((guardian) => {
-      if (guardian.address) return guardian.address;
+      if (guardian) return guardian;
       return guardian.contractAddress;
     });
 
@@ -124,7 +124,7 @@ contract("ApprovedTransfer", (accounts) => {
     const wallets = [];
     for (const g of guardians) {
       const guardianWallet = await deployer.deploy(BaseWallet);
-      await guardianWallet.init(g.address, [versionManager.contractAddress]);
+      await guardianWallet.init(g, [versionManager.contractAddress]);
       await versionManager.from(g).upgradeWallet(guardianWallet.contractAddress, await versionManager.lastVersion());
       wallets.push(guardianWallet);
     }
@@ -132,7 +132,7 @@ contract("ApprovedTransfer", (accounts) => {
   }
 
   async function transferToken(_token, _signers) {
-    const to = recipient.address;
+    const to = recipient;
     const before = _token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await erc20.balanceOf(to);
     await manager.relay(approvedTransfer, "transferToken",
       [wallet.contractAddress, _token, to, amountToTransfer, ZERO_BYTES32], wallet, _signers);
@@ -157,7 +157,7 @@ contract("ApprovedTransfer", (accounts) => {
         manager.relay(
           approvedTransfer,
           "transferToken",
-          [wallet.contractAddress, _token, recipient.address, amountToTransfer, ZERO_BYTES32],
+          [wallet.contractAddress, _token, recipient, amountToTransfer, ZERO_BYTES32],
           wallet,
           _signers,
         ), _reason,

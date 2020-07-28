@@ -37,10 +37,10 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 contract("Loan Module", (accounts) => {
   const manager = new TestManager();
 
-  const infrastructure = accounts[0].signer;
-  const owner = accounts[1].signer;
-  const liquidityProvider = accounts[2].signer;
-  const borrower = accounts[3].signer;
+  const infrastructure = accounts[0];
+  const owner = accounts[1];
+  const liquidityProvider = accounts[2];
+  const borrower = accounts[3];
 
   let deployer;
   let wallet;
@@ -86,8 +86,8 @@ contract("Loan Module", (accounts) => {
     );
 
     // deploy token
-    token1 = await deployer.deploy(ERC20, {}, [infrastructure.address, liquidityProvider.address, borrower.address], 10000000, 18);
-    token2 = await deployer.deploy(ERC20, {}, [infrastructure.address, liquidityProvider.address, borrower.address], 10000000, 18);
+    token1 = await deployer.deploy(ERC20, {}, [infrastructure, liquidityProvider, borrower], 10000000, 18);
+    token2 = await deployer.deploy(ERC20, {}, [infrastructure, liquidityProvider, borrower], 10000000, 18);
     // deploy CToken
     cToken1 = await deployer.deploy(
       CErc20,
@@ -178,7 +178,7 @@ contract("Loan Module", (accounts) => {
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await wallet.init(owner, [versionManager.contractAddress]);
     await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
@@ -613,7 +613,7 @@ contract("Loan Module", (accounts) => {
         const params = [wallet.contractAddress, loanId];
         let txReceipt;
         if (relayed) {
-          txReceipt = await manager.relay(loanManager, method, params, wallet, [owner], accounts[9].signer, false, 2000000);
+          txReceipt = await manager.relay(loanManager, method, params, wallet, [owner], accounts[9], false, 2000000);
         } else {
           const tx = await loanManager.from(owner)[method](...params);
           txReceipt = await loanManager.verboseWaitForTransaction(tx);

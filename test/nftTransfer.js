@@ -24,10 +24,10 @@ const { parseRelayReceipt, callStatic } = require("../utils/utilities.js");
 contract("NftTransfer", (accounts) => {
   const manager = new TestManager();
 
-  const infrastructure = accounts[0].signer;
-  const owner1 = accounts[1].signer;
-  const owner2 = accounts[2].signer;
-  const eoaRecipient = accounts[3].signer;
+  const infrastructure = accounts[0];
+  const owner1 = accounts[1];
+  const owner2 = accounts[2];
+  const eoaRecipient = accounts[3];
   const tokenId = 1;
 
   let deployer;
@@ -68,7 +68,7 @@ contract("NftTransfer", (accounts) => {
     manager.setRelayerManager(relayerManager);
     ck = await deployer.deploy(CK);
     tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
-    await tokenPriceRegistry.addManager(infrastructure.address);
+    await tokenPriceRegistry.addManager(infrastructure);
     nftFeature = await deployer.deploy(NftTransfer, {},
       lockStorage.contractAddress,
       tokenPriceRegistry.contractAddress,
@@ -85,8 +85,8 @@ contract("NftTransfer", (accounts) => {
     const proxy2 = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy2.contractAddress);
 
-    await wallet1.init(owner1.address, [versionManager.contractAddress]);
-    await wallet2.init(owner2.address, [versionManager.contractAddress]);
+    await wallet1.init(owner1, [versionManager.contractAddress]);
+    await wallet2.init(owner2, [versionManager.contractAddress]);
     await versionManager.from(owner1).upgradeWallet(wallet1.contractAddress, await versionManager.lastVersion());
     await versionManager.from(owner2).upgradeWallet(wallet2.contractAddress, await versionManager.lastVersion());
 
@@ -127,19 +127,19 @@ contract("NftTransfer", (accounts) => {
 
     describe("transfer to EOA account", () => {
       it("should allow unsafe NFT transfer from wallet1 to an EOA account", async () => {
-        await testNftTransfer({ safe: false, relayed: false, recipientAddress: eoaRecipient.address });
+        await testNftTransfer({ safe: false, relayed: false, recipientAddress: eoaRecipient });
       });
 
       it("should allow safe NFT transfer from wallet1 to an EOA account", async () => {
-        await testNftTransfer({ safe: true, relayed: false, recipientAddress: eoaRecipient.address });
+        await testNftTransfer({ safe: true, relayed: false, recipientAddress: eoaRecipient });
       });
 
       it("should allow unsafe NFT transfer from wallet1 to an EOA account (relayed)", async () => {
-        await testNftTransfer({ safe: false, relayed: true, recipientAddress: eoaRecipient.address });
+        await testNftTransfer({ safe: false, relayed: true, recipientAddress: eoaRecipient });
       });
 
       it("should allow safe NFT transfer from wallet1 to an EOA account (relayed)", async () => {
-        await testNftTransfer({ safe: true, relayed: true, recipientAddress: eoaRecipient.address });
+        await testNftTransfer({ safe: true, relayed: true, recipientAddress: eoaRecipient });
       });
     });
 
@@ -181,13 +181,13 @@ contract("NftTransfer", (accounts) => {
 
       it("should allow CK transfer from wallet1 to EOA account", async () => {
         await testNftTransfer({
-          relayed: false, nftId: ckId, nftContract: ck, recipientAddress: eoaRecipient.address,
+          relayed: false, nftId: ckId, nftContract: ck, recipientAddress: eoaRecipient,
         });
       });
 
       it("should allow CK transfer from wallet1 to EOA account (relayed)", async () => {
         await testNftTransfer({
-          relayed: true, nftId: ckId, nftContract: ck, recipientAddress: eoaRecipient.address,
+          relayed: true, nftId: ckId, nftContract: ck, recipientAddress: eoaRecipient,
         });
       });
     });

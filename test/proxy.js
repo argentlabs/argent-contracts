@@ -9,8 +9,8 @@ const VersionManager = artifacts.require("VersionManager");
 const Registry = artifacts.require("ModuleRegistry");
 
 contract("Proxy", (accounts) => {
-  const owner = accounts[1].signer;
-  const nonowner = accounts[2].signer;
+  const owner = accounts[1];
+  const nonowner = accounts[2];
 
   let deployer;
   let walletImplementation;
@@ -50,13 +50,13 @@ contract("Proxy", (accounts) => {
   it("should init the wallet with the correct owner", async () => {
     let walletOwner = await wallet.owner();
     assert.equal(walletOwner, ethers.constants.AddressZero, "owner should be null before init");
-    await wallet.init(owner.address, [module1.contractAddress]);
+    await wallet.init(owner, [module1.contractAddress]);
     walletOwner = await wallet.owner();
-    assert.equal(walletOwner, owner.address, "owner should be the owner after init");
+    assert.equal(walletOwner, owner, "owner should be the owner after init");
   });
 
   it("should init a wallet with the correct modules", async () => {
-    await wallet.init(owner.address, [module1.contractAddress, module2.contractAddress]);
+    await wallet.init(owner, [module1.contractAddress, module2.contractAddress]);
     const module1IsAuthorised = await wallet.authorised(module1.contractAddress);
     const module2IsAuthorised = await wallet.authorised(module2.contractAddress);
     const module3IsAuthorised = await wallet.authorised(module3.contractAddress);

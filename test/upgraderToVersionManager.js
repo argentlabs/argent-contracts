@@ -101,7 +101,7 @@ describe("UpgraderToVersionManager", function () {
   it("should fail to upgrade a pre-VersionManager wallet to a version lower than minVersion", async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [previousTransferManager.contractAddress]);
+    await wallet.init(owner, [previousTransferManager.contractAddress]);
     const prevVersion = await versionManager.lastVersion();
     await versionManager.addVersion([], []);
     const lastVersion = await versionManager.lastVersion();
@@ -118,17 +118,17 @@ describe("UpgraderToVersionManager", function () {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-      await wallet.init(owner.address, [previousTransferManager.contractAddress]);
+      await wallet.init(owner, [previousTransferManager.contractAddress]);
       await previousTransferManager.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress);
     });
 
     it("should add/remove an account to/from the whitelist", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
+      await transferManager.from(owner).addToWhitelist(wallet.contractAddress, recipient);
       await manager.increaseTime(SECURITY_PERIOD + 1);
-      let isTrusted = await transferManager.isWhitelisted(wallet.contractAddress, recipient.address);
+      let isTrusted = await transferManager.isWhitelisted(wallet.contractAddress, recipient);
       assert.equal(isTrusted, true, "should be trusted after the security period");
-      await transferManager.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address);
-      isTrusted = await transferManager.isWhitelisted(wallet.contractAddress, recipient.address);
+      await transferManager.from(owner).removeFromWhitelist(wallet.contractAddress, recipient);
+      isTrusted = await transferManager.isWhitelisted(wallet.contractAddress, recipient);
       assert.equal(isTrusted, false, "should no removed from whitelist immediately");
     });
 

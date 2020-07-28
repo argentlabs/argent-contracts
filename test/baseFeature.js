@@ -47,7 +47,7 @@ describe("BaseFeature", function () {
       versionManager.contractAddress);
     await versionManager.addVersion([relayerManager.contractAddress], []);
 
-    token = await deployer.deploy(ERC20, {}, [owner.address], 10, 18);
+    token = await deployer.deploy(ERC20, {}, [owner], 10, 18);
   });
 
   describe("Recover tokens", async () => {
@@ -69,7 +69,7 @@ describe("BaseFeature", function () {
 
       await versionManager.recoverToken(token.contractAddress);
 
-      const adminBalance = await token.balanceOf(accounts[0].signer.address);
+      const adminBalance = await token.balanceOf(accounts[0]);
       assert.equal(adminBalance, 10000000);
     });
 
@@ -89,7 +89,7 @@ describe("BaseFeature", function () {
 
       await versionManager.recoverToken(nonCompliantToken.contractAddress);
 
-      const adminBalance = await nonCompliantToken.balanceOf(accounts[0].signer.address);
+      const adminBalance = await nonCompliantToken.balanceOf(accounts[0]);
       assert.equal(adminBalance, 10000000);
     });
   });

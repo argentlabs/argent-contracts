@@ -21,7 +21,7 @@ const TestManager = artifacts.require("test-manager");
 contract("SimpleUpgrader", (accounts) => {
   const manager = new TestManager();
 
-  const owner = accounts[1].signer;
+  const owner = accounts[1];
   let deployer;
   let registry;
   let guardianStorage;
@@ -83,7 +83,7 @@ contract("SimpleUpgrader", (accounts) => {
       await registry.registerModule(initialModule.contractAddress, formatBytes32String("initial"));
       await registry.registerModule(moduleToAdd.contractAddress, formatBytes32String("added"));
 
-      await wallet.init(owner.address, [initialModule.contractAddress]);
+      await wallet.init(owner, [initialModule.contractAddress]);
       await initialModule.from(owner).upgradeWallet(wallet.contractAddress, await initialModule.lastVersion());
       let isAuthorised = await wallet.authorised(initialModule.contractAddress);
       assert.equal(isAuthorised, true, "initial module should be authorised");
@@ -101,7 +101,7 @@ contract("SimpleUpgrader", (accounts) => {
       // register initial module only
       await registry.registerModule(initialModule.contractAddress, formatBytes32String("initial"));
 
-      await wallet.init(owner.address, [initialModule.contractAddress]);
+      await wallet.init(owner, [initialModule.contractAddress]);
       await initialModule.from(owner).upgradeWallet(wallet.contractAddress, await initialModule.lastVersion());
       let isAuthorised = await wallet.authorised(initialModule.contractAddress);
       assert.equal(isAuthorised, true, "initial module should be authorised");
@@ -117,7 +117,7 @@ contract("SimpleUpgrader", (accounts) => {
       // register module V1
       await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
 
-      await wallet.init(owner.address, [moduleV1.contractAddress]);
+      await wallet.init(owner, [moduleV1.contractAddress]);
       await moduleV1.from(owner).upgradeWallet(wallet.contractAddress, await moduleV1.lastVersion());
       // create module V2
       const { module: moduleV2 } = await deployTestModule();
@@ -155,7 +155,7 @@ contract("SimpleUpgrader", (accounts) => {
       // create wallet with module V1 and relayer feature
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-      await wallet.init(owner.address, [moduleV1.contractAddress]);
+      await wallet.init(owner, [moduleV1.contractAddress]);
       await moduleV1.from(owner).upgradeWallet(wallet.contractAddress, await moduleV1.lastVersion());
 
       // create module V2
@@ -235,8 +235,8 @@ contract("SimpleUpgrader", (accounts) => {
     let lockManager;
     let recoveryManager;
     let moduleV2;
-    const guardian = accounts[2].signer;
-    const newowner = accounts[3].signer;
+    const guardian = accounts[2];
+    const newowner = accounts[3];
 
     beforeEach(async () => {
       // Setup the module for wallet
@@ -276,9 +276,9 @@ contract("SimpleUpgrader", (accounts) => {
         recoveryManager.contractAddress,
         relayerManager.contractAddress,
       ], []);
-      await wallet.init(owner.address, [versionManager.contractAddress]);
+      await wallet.init(owner, [versionManager.contractAddress]);
       await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian);
 
       // Setup module v2 for the upgrade
       const { module } = await deployTestModule();
@@ -319,7 +319,7 @@ contract("SimpleUpgrader", (accounts) => {
       await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
 
       // Put the wallet under recovery
-      await manager.relay(recoveryManager, "executeRecovery", [wallet.contractAddress, newowner.address], wallet, [guardian]);
+      await manager.relay(recoveryManager, "executeRecovery", [wallet.contractAddress, newowner], wallet, [guardian]);
       // check that the wallet is locked
       let locked = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(locked, "wallet should be locked");
