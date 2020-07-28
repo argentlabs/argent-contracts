@@ -6,7 +6,7 @@
 \graphicspath{ {./images/} }
 
 \title{Argent Smart Wallet Specification}
-\author{v1.6}
+\author{v2.0}
 \date{\today}
 
 
@@ -73,11 +73,13 @@ where the first signature is the owner and $n$ is the total number of guardians.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Daily Transfer Limit}
 \label{sec:dailylimit}
-The wallet is protected by a daily limit (rolling for 24 hours). The owner can spend up to the daily limit in a given 24 hours period. The daily limit default value is 1 ETH and can be modified by the owner but it takes 24 hours for the new limit to be effective.
+The wallet is protected by a daily limit (rolling for 24 hours). The owner can spend up to the daily limit in a given 24 hours period. The daily limit default value is 1 ETH and can be modified by the owner. A reduction of the limit applies immediately. It takes 24 hours for an increase of the limit to be effective, unless the increase is approved by guardians (the number of guardians required is given in Section~\ref{sec:approved-transfer}), in which case the change is immediate.
 
 Any transfer exceeding the daily limit will be set as pending, and can be executed only after 24 hours.
 
-Transfers to whitelisted addresses (see Section~\ref{sec:whitelist}) and transfers approved by guardians (see Section~\ref{sec:approved-transfer}) do not contribute to the daily limit.
+Transfers (and ERC20 token approvals) to whitelisted addresses (see Section~\ref{sec:whitelist}) and transfers (and ERC20 token approvals) approved by guardians (see Section~\ref{sec:approved-transfer}) do not contribute to the daily limit.
+
+The daily spend of a user is reset after 24 hours or after each transaction made via the \emph{ApprovedTransfer} module, which involves a majority of guardians (see Section~\ref{sec:approved-transfer}).
 
 The daily limit is cross-token (ETH + ERC20) and we're using an on-chain oracle to get the conversion rates for ERC20 tokens.
 
@@ -93,7 +95,7 @@ Adding an address to the whitelist is an action triggered by the wallet owner an
 \subsection{Approved Transfer}
 \label{sec:approved-transfer}
 
-Transfers exceeding the daily limit can be executed immediately by the owner, provided that he obtains approval from their guardians. The number of required signatures for an approved transfer is given by
+Transfers and ERC20 token approvals exceeding the daily limit can be executed immediately by the owner, provided that they obtain approval from their guardians. The number of required signatures for an approved transfer is given by
 \begin{equation*}
     1+\left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
@@ -102,7 +104,7 @@ where the first signature is the owner and $n$ is the total number of guardians.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{ERC20 Exchange}
 
-The owner is able to exchange ETH against ERC20 tokens through the KyberNetwork on-chain exchange and a fee of 0,15\% is charged on every transaction. The fee is paid in ETH. 
+The owner is able to trade ETH and ERC20 tokens through an integration with Paraswap exchange.
 
 Swapping tokens is not constrained by the daily limit since no value is leaving the wallet.
 
@@ -170,12 +172,11 @@ Our architecture is made up of multiple contracts (see Figure~\ref{fig:sc-arch-1
     \item \textbf{Module Registry:} The Module Registry maintains a list of the registered \emph{Module} contracts that can be used with user wallets. It also maintains a list of registered \emph{Upgrader} contracts that a user can use to migrate the modules used with their wallet (see Section~\ref{sec:upgradability}).
     \item \textbf{Compound Registry:} Registry maintaining a mapping between underlying assets (ETH, DAI, BAT, etc) and their corresponding Compound Token (cETH, cDAI, cBAT, etc).
     \item \textbf{Maker Registry:} Registry maintaining a mapping between token collaterals (ETH, BAT, USDC, WBTC) and their corresponding Maker Join adapters.
-    \item \textbf{Token Price Provider:} On-chain price oracle for ERC20 tokens. It is used by wallets to estimate the value in ETH of ERC-20 transfers and update the daily limit. 
 \end{itemize}
 
 A second group of contracts implements the functionalities of the wallet:
 \begin{itemize}
-    \item \textbf{Modules:} Different functionalities of the wallet are encapsulated in different modules. In general, a single module contract (e.g. \emph{GuardianManager}) is used by all wallets to handle a specific set of operations (e.g. adding and revoking guardians). New modules can be added, existing modules can be upgraded and old modules can be deprecated by Argent. This follows a wallet design pattern recently introduced by Nick Johnson\footnote{https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 and https://gist.github.com/Arachnid/6a5c8ff96869fbdf0736a3a7be91b84e}: instead of directly calling a method in their wallet to perform a given operation (e.g. transfering a token), users call a method in the appropriate module contract (e.g. \emph{transferToken()} in the \emph{TokenTransfer} module), which  verifies that the user holds the required authorization and if so, calls an appropriate method on the wallet (e.g. \emph{invoke()}, to call an ERC20 contract).
+    \item \textbf{Modules:} Different functionalities of the wallet are encapsulated in different modules. In general, a single module contract (e.g. \emph{GuardianManager}) is used by all wallets to handle a specific set of operations (e.g. adding and revoking guardians). New modules can be added, existing modules can be upgraded and old modules can be deprecated by Argent. This follows a wallet design pattern introduced by Nick Johnson\footnote{https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 and https://gist.github.com/Arachnid/6a5c8ff96869fbdf0736a3a7be91b84e}: instead of directly calling a method in their wallet to perform a given operation (e.g. transfering a token), users call a method in the appropriate module contract (e.g. \emph{transferToken()} in the \emph{TransferManager} module), which  verifies that the user holds the required authorization and if so, calls an appropriate method on the wallet (e.g. \emph{invoke()}, to call an ERC20 contract).
     \item \textbf{Module Storages:} Some modules store part of their states in a dedicated storage contract (see Section~\ref{sec:storage}).
     \item \textbf{Proxy Wallet:} Lightweight proxy contract that delegates all calls to a Base Wallet library-like contract. There is one proxy deployed per wallet. Note that the rationale for using the Proxy-Implementation design pattern\footnote{ introduced by Nick Johnson in https://gist.github.com/Arachnid/4ca9da48d51e23e5cfe0f0e14dd6318f} is \emph{not} to enable wallet upgradability (we use upgradable modules for that) but simply to reduce the deployment cost of each new wallet.
     \item \textbf{Base Wallet:} The Base Wallet is a simple library-like contract implementing basic wallet functionalities used by proxy wallets (via delegatecalls), that are not expected to ever change. These functionalities include changing the owner of the wallet, (de)authorizating modules and performing (value-carrying) internal transactions to third-party contracts.
@@ -185,8 +186,7 @@ A second group of contracts implements the functionalities of the wallet:
 \subsection{Upgradability}
 \label{sec:upgradability}
 
-Argent maintains an evolving set of registered \emph{Module} contracts. A subset of these \emph{Module} contracts are \emph{SimpleUpgrader} modules that define a migration path from a particular set of old modules to a new set of registered modules, i.e. it contains the list of modules to disable and the list of modules to enable to go from the old set to the new set. A user can perform an upgrade of their modules using one of the registered \emph{SimpleUpgrader} contracts.
-
+Argent maintains an evolving set of registered \emph{Module} contracts. A subset of these \emph{Module} contracts are \emph{SimpleUpgrader} modules that define a migration path from a particular set of old modules to a new set of registered modules, i.e. it contains the list of modules to disable and the list of modules to enable to go from the old set to the new set. A user can perform an upgrade of their modules using one of the registered \emph{SimpleUpgrader} contracts. A wallet cannot be upgraded while it is locked.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -194,15 +194,27 @@ Argent maintains an evolving set of registered \emph{Module} contracts. A subset
 \label{sec:storage}
 In general, each module stores the entire state pertaining to all the wallets that use that module. For example, the \emph{TransferManager} module stores how much of their daily allowance has been used by each wallet. Some modules such as \emph{TransferManager} make use of an additional storage contract (e.g. \emph{TransferStorage}). This is the case when their storage needs to be accessed by other modules and/or to simplify the upgradability of that module in the future.
 
+Storage contracts include:
+\begin{itemize}
+\item \textbf{Guardian Storage:} Used to store a wallet's guardians and lock status.
+\item \textbf{Limit Storage:} Used to store a wallet's current daily limit (and future daily limit, if it is about to change) as well as the wallet's current daily spend.
+\item \textbf{Transfer Storage:} Used to store addresses that have been whitelisted by a wallet.
+\item \textbf{Token Price Storage:} On-chain price oracle for ERC20 tokens. It is used by wallets to estimate the value in ETH of ERC20 transfers. This is necessary for the update of the daily limit and the refund of the relayer's gas costs. 
+\end{itemize}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Meta-Transactions}
 \label{sec:meta-transactions}
-Meta-Transactions are implemented in the abstract \emph{RelayerModule} from which all modules inherit. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding module methods to do so.
+Meta-Transactions are implemented via a dedicated \emph{RelayerModule} module. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding module methods to do so.
 
-The RelayerModule delegates the implementation of the code that verifies the intention and the signature(s) to the subclass modules that implement it.
+The RelayerModule calls the target module (e.g. \emph{TransferManager} for token transfers) to determine the number of required signature(s) and to run the desired business logic (e.g. transfer of tokens).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Modules}
+
+\subsubsection{RelayerModule module}
+
+This module is the entry point for meta-transactions. A relayer calls the \emph{execute()} method of the RelayerModule, which validates the signatures provided, calls the required target module to run the business logic and optionally refunds the relayer's gas cost.
 
 \subsubsection{GuardianManager module}
 
@@ -224,11 +236,11 @@ All transfers of value can be done either to whitelisted addresses without any l
 
 \subsubsection{ApprovedTransfer module}
 
-This module lets users perform instant transfers of ETH and ERC20 tokens, approval of ERC20 tokens, or contract calls to non-whitelisted addresses with the signed approval of a majority of guardians.
+This module lets users perform instant transfers of ETH and ERC20 tokens, approval of ERC20 tokens, or contract calls to non-whitelisted addresses with the signed approval of a majority of guardians. It is also used to make instant changes to the daily transfer limit.
 
 \subsubsection{TokenExchanger module}
 
-This module lets users exchange ETH or ERC20 tokens for ETH or other ERC20 tokens using Kyber Network.
+This module lets users trade ETH and ERC20 tokens using Paraswap.
 
 \subsubsection{CompoundManager module}
 
