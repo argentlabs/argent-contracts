@@ -14,9 +14,7 @@ const TestFeature = require("../build/TestFeature");
 
 const TestManager = require("../utils/test-manager");
 
-contract("BaseWallet", function (accounts) {
-  this.timeout(10000);
-
+contract("BaseWallet", (accounts) => {
   const manager = new TestManager();
 
   const owner = accounts[1].signer;

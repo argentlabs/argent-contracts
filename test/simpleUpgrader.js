@@ -18,9 +18,7 @@ const VersionManager = artifacts.require("VersionManager");
 const RelayerManager = artifacts.require("RelayerManager");
 const TestManager = artifacts.require("test-manager");
 
-contract("SimpleUpgrader", function (accounts) {
-  this.timeout(10000);
-
+contract("SimpleUpgrader", (accounts) => {
   const manager = new TestManager();
 
   const owner = accounts[1].signer;

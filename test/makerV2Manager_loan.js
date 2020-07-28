@@ -31,9 +31,7 @@ const BadFeature = artifacts.require("TestFeature");
 const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = artifacts.require("VersionManager");
 
-contract("MakerV2Loan", function (accounts) {
-  this.timeout(100000);
-
+contract("MakerV2Loan", (accounts) => {
   const manager = new TestManager();
   const { deployer } = manager;
 

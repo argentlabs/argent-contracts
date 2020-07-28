@@ -9,9 +9,7 @@ const NonCompliantERC20 = artifacts.require("NonCompliantERC20");
 
 const TestManager = require("../utils/test-manager");
 
-contract("BaseModule", function (accounts) {
-  this.timeout(10000);
-
+contract("BaseModule", (accounts) => {
   const manager = new TestManager();
   const { deployer } = manager;
 

@@ -30,9 +30,7 @@ const ERC20 = artifacts.require("TestERC20");
 const { ETH_TOKEN } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
-contract("Invest Manager with Compound", function (accounts) {
-  this.timeout(1000000);
-
+contract("Invest Manager with Compound", (accounts) => {
   const manager = new TestManager();
 
   const infrastructure = accounts[0].signer;

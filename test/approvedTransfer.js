@@ -24,9 +24,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 
-contract("ApprovedTransfer", function (accounts) {
-  this.timeout(10000);
-
+contract("ApprovedTransfer", (accounts) => {
   const manager = new TestManager();
 
   const infrastructure = accounts[0].signer;
