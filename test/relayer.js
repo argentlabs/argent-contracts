@@ -1,25 +1,25 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
 const BN = require("bn.js");
 const { formatBytes32String } = require("ethers").utils;
 const { parseRelayReceipt, hasEvent } = require("../utils/utilities.js");
 
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const BadFeature = require("../build/BadFeature");
-const RelayerManager = require("../build/RelayerManager");
-const TestFeature = require("../build/TestFeature");
-const TestLimitFeature = require("../build/TestLimitFeature");
-const Registry = require("../build/ModuleRegistry");
-const GuardianManager = require("../build/GuardianManager");
-const GuardianStorage = require("../build/GuardianStorage");
-const LockStorage = require("../build/LockStorage");
-const LimitStorage = require("../build/LimitStorage");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const ApprovedTransfer = require("../build/ApprovedTransfer");
-const RecoveryManager = require("../build/RecoveryManager"); // non-owner only feature
-const VersionManager = require("../build/VersionManager");
-const ERC20 = require("../build/TestERC20");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const BadFeature = artifacts.require("BadFeature");
+const RelayerManager = artifacts.require("RelayerManager");
+const TestFeature = artifacts.require("TestFeature");
+const TestLimitFeature = artifacts.require("TestLimitFeature");
+const Registry = artifacts.require("ModuleRegistry");
+const GuardianManager = artifacts.require("GuardianManager");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const LockStorage = artifacts.require("LockStorage");
+const LimitStorage = artifacts.require("LimitStorage");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const ApprovedTransfer = artifacts.require("ApprovedTransfer");
+const RecoveryManager = artifacts.require("RecoveryManager"); // non-owner only feature
+const VersionManager = artifacts.require("VersionManager");
+const ERC20 = artifacts.require("TestERC20");
 
 const TestManager = require("../utils/test-manager");
 const { ETH_TOKEN } = require("../utils/utilities.js");

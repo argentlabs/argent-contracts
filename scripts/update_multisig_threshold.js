@@ -1,3 +1,4 @@
+<<<<<<< HEAD:scripts/update_multisig_threshold.js
 // ///////////////////////////////////////////////////////////////////
 // Script to set the threshold of the Argent multisig.
 //
@@ -9,6 +10,9 @@
 // ////////////////////////////////////////////////////////////////////
 
 const MultiSig = require("../build/MultiSigWallet");
+=======
+const MultiSig = artifacts.require("MultiSigWallet");
+>>>>>>> cd79b8da... Switch to truffle artefact loading in tests:scripts/setThreshold.js
 
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");

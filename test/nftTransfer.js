@@ -1,20 +1,20 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
 
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const Registry = require("../build/ModuleRegistry");
-const VersionManager = require("../build/VersionManager");
-const RelayerManager = require("../build/RelayerManager");
-const LockStorage = require("../build/LockStorage");
-const GuardianStorage = require("../build/GuardianStorage");
-const NftTransfer = require("../build/NftTransfer");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const Registry = artifacts.require("ModuleRegistry");
+const VersionManager = artifacts.require("VersionManager");
+const RelayerManager = artifacts.require("RelayerManager");
+const LockStorage = artifacts.require("LockStorage");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const NftModule = artifacts.require("NftTransfer");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
-const ERC721 = require("../build/TestERC721");
-const CK = require("../build/CryptoKittyTest");
-const ERC20 = require("../build/TestERC20");
-const ERC20Approver = require("../build/ERC20Approver");
+const ERC721 = artifacts.require("TestERC721");
+const CK = artifacts.require("CryptoKittyTest");
+const ERC20 = artifacts.require("TestERC20");
+const ERC20Approver = artifacts.require("ERC20Approver");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 

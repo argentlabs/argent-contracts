@@ -1,11 +1,11 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
 
-const ENSRegistry = require("../build/ENSRegistry");
-const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
-const ENSManager = require("../build/ArgentENSManager");
-const ENSResolver = require("../build/ArgentENSResolver");
-const ENSReverseRegistrar = require("../build/ReverseRegistrar");
+const ENSRegistry = artifacts.require("ENSRegistry");
+const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
+const ENSManager = artifacts.require("ArgentENSManager");
+const ENSResolver = artifacts.require("ArgentENSResolver");
+const ENSReverseRegistrar = artifacts.require("ReverseRegistrar");
 
 const TestManager = require("../utils/test-manager");
 const utilities = require("../utils/utilities.js");

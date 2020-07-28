@@ -1,14 +1,14 @@
-/* global accounts, utils */
+/* global artifacts */
 const ethers = require("ethers");
 
-const BaseWallet = require("../build/BaseWallet");
-const VersionManager = require("../build/VersionManager");
-const ModuleRegistry = require("../build/ModuleRegistry");
-const Factory = require("../build/WalletFactory");
-const GuardianStorage = require("../build/GuardianStorage");
+const BaseWallet = artifacts.require("BaseWallet");
+const VersionManager = artifacts.require("VersionManager");
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const Factory = artifacts.require("WalletFactory");
+const GuardianStorage = artifacts.require("GuardianStorage");
 
-const TestManager = require("../utils/test-manager");
-const utilities = require("../utils/utilities.js");
+const TestManager = artifacts.require("test-manager");
+const utilities = artifacts.require("utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 

@@ -1,3 +1,4 @@
+<<<<<<< HEAD:scripts/update_compound_registry.js
 // ///////////////////////////////////////////////////////////////////
 // Script to add/remove CTokens on Compound
 //
@@ -13,6 +14,10 @@
 
 const CompoundRegistry = require("../build/CompoundRegistry");
 const MultiSig = require("../build/MultiSigWallet");
+=======
+const CompoundRegistry = artifacts.require("CompoundRegistry");
+const MultiSig = artifacts.require("MultiSigWallet");
+>>>>>>> cd79b8da... Switch to truffle artefact loading in tests:scripts/compound.js
 
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");

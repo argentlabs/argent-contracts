@@ -1,5 +1,7 @@
-const ModuleRegistry = require("../build/ModuleRegistry");
-const MultiSig = require("../build/MultiSigWallet");
+/* global artifacts */
+
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const MultiSig = artifacts.require("MultiSigWallet");
 
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const CompoundManager = require("../build/CompoundManager");

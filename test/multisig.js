@@ -1,6 +1,6 @@
-/* global accounts */
-const MultiSigWallet = require("../build/MultiSigWallet");
-const TestRegistry = require("../build/TestRegistry");
+/* global artifacts */
+const MultiSigWallet = artifacts.require("MultiSigWallet");
+const TestRegistry = artifacts.require("TestRegistry");
 
 const TestManager = require("../utils/test-manager");
 const MultisigExecutor = require("../utils/multisigexecutor.js");

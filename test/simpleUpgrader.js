@@ -1,19 +1,21 @@
+/* global artifacts */
+
 const ethers = require("ethers");
 /* global accounts, utils */
 const { formatBytes32String, parseBytes32String } = require("ethers").utils;
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const SimpleUpgrader = require("../build/SimpleUpgrader");
-const GuardianManager = require("../build/GuardianManager");
-const LockManager = require("../build/LockManager");
-const GuardianStorage = require("../build/GuardianStorage");
-const LockStorage = require("../build/LockStorage");
-const Registry = require("../build/ModuleRegistry");
-const RecoveryManager = require("../build/RecoveryManager");
-const VersionManager = require("../build/VersionManager");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const SimpleUpgrader = artifacts.require("SimpleUpgrader");
+const GuardianManager = artifacts.require("GuardianManager");
+const LockManager = artifacts.require("LockManager");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const LockStorage = artifacts.require("LockStorage");
+const Registry = artifacts.require("ModuleRegistry");
+const RecoveryManager = artifacts.require("RecoveryManager");
+const VersionManager = artifacts.require("VersionManager");
 
-const RelayerManager = require("../build/RelayerManager");
-const TestManager = require("../utils/test-manager");
+const RelayerManager = artifacts.require("RelayerManager");
+const TestManager = artifacts.require("test-manager");
 
 describe("SimpleUpgrader", function () {
   this.timeout(100000);
