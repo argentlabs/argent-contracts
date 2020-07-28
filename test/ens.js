@@ -15,10 +15,10 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 contract("ENS contracts", (accounts) => {
   const manager = new TestManager();
 
-  const infrastructure = accounts[0].signer;
-  const owner = accounts[1].signer;
-  const amanager = accounts[2].signer;
-  const anonmanager = accounts[3].signer;
+  const infrastructure = accounts[0];
+  const owner = accounts[1];
+  const amanager = accounts[2];
+  const anonmanager = accounts[3];
 
   const root = "xyz";
   const subnameWallet = "argent";
@@ -39,14 +39,14 @@ contract("ENS contracts", (accounts) => {
     ensManager = await deployer.deploy(ENSManager, {},
       `${subnameWallet}.${root}`, walletNode, ensRegistry.contractAddress, ensResolver.contractAddress);
     await ensResolver.addManager(ensManager.contractAddress);
-    await ensResolver.addManager(infrastructure.address);
-    await ensManager.addManager(infrastructure.address);
+    await ensResolver.addManager(infrastructure);
+    await ensManager.addManager(infrastructure);
 
-    await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes(root)), infrastructure.address);
+    await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes(root)), infrastructure);
     await ensRegistry.setSubnodeOwner(
       ethers.utils.namehash(root), ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subnameWallet)), ensManager.contractAddress,
     );
-    await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("reverse")), infrastructure.address);
+    await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("reverse")), infrastructure);
     await ensRegistry.setSubnodeOwner(
       ethers.utils.namehash("reverse"), ethers.utils.keccak256(ethers.utils.toUtf8Bytes("addr")), ensReverse.contractAddress,
     );
@@ -66,12 +66,12 @@ contract("ENS contracts", (accounts) => {
     it("should register an ENS name", async () => {
       const label = "wallet";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
-      await ensManager.from(infrastructure).register(label, owner.address);
+      await ensManager.from(infrastructure).register(label, owner);
 
       const recordExists = await ensRegistry.recordExists(labelNode);
       assert.isTrue(recordExists);
       const nodeOwner = await ensRegistry.owner(labelNode);
-      assert.equal(nodeOwner, owner.address);
+      assert.equal(nodeOwner, owner);
       const res = await ensRegistry.resolver(labelNode);
       assert.equal(res, ensResolver.contractAddress);
     });
@@ -85,10 +85,10 @@ contract("ENS contracts", (accounts) => {
       assert.isTrue(available);
 
       // then we register it
-      await ensManager.from(infrastructure).register(label, owner.address);
+      await ensManager.from(infrastructure).register(label, owner);
 
       const nodeOwner = await ensRegistry.owner(labelNode);
-      assert.equal(nodeOwner, owner.address);
+      assert.equal(nodeOwner, owner);
 
       // then the node is unavailable
       available = await ensManager.isAvailable(labelNode1);
@@ -98,15 +98,15 @@ contract("ENS contracts", (accounts) => {
     it("should add a new manager and register an ENS name", async () => {
       const label = "wallet";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
-      await ensManager.addManager(amanager.address);
-      await ensManager.from(amanager).register(label, owner.address);
+      await ensManager.addManager(amanager);
+      await ensManager.from(amanager).register(label, owner);
       const nodeOwner = await ensRegistry.owner(labelNode);
-      assert.equal(nodeOwner, owner.address, "new manager should have registered the ens name");
+      assert.equal(nodeOwner, owner, "new manager should have registered the ens name");
     });
 
     it("should fail to register an ENS name when the caller is not a manager", async () => {
       const label = "wallet";
-      await assert.revert(ensManager.from(anonmanager).register(label, owner.address), "registering should throw");
+      await assert.revert(ensManager.from(anonmanager).register(label, owner), "registering should throw");
     });
 
     it("should be able to change the root node owner", async () => {
@@ -160,9 +160,9 @@ contract("ENS contracts", (accounts) => {
 
     it("should resolve a name", async () => {
       const label = "wallet";
-      await ensManager.from(infrastructure).register(label, owner.address);
+      await ensManager.from(infrastructure).register(label, owner);
 
-      const node = await ensReverse.node(owner.address);
+      const node = await ensReverse.node(owner);
       const name = await ensResolver.name(node);
       assert.equal(name, "wallet.argent.xyz");
     });

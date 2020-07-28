@@ -38,10 +38,10 @@ contract("RelayerManager", (accounts) => {
   let { getNonceForRelay } = manager;
   getNonceForRelay = getNonceForRelay.bind(manager);
 
-  const infrastructure = accounts[0].signer;
-  const owner = accounts[1].signer;
-  const recipient = accounts[3].signer;
-  const guardian = accounts[4].signer;
+  const infrastructure = accounts[0];
+  const owner = accounts[1];
+  const recipient = accounts[3];
+  const guardian = accounts[4];
 
   let registry;
   let guardianStorage;
@@ -79,7 +79,7 @@ contract("RelayerManager", (accounts) => {
       limitStorage.contractAddress);
 
     tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
-    await tokenPriceRegistry.addManager(infrastructure.address);
+    await tokenPriceRegistry.addManager(infrastructure);
     relayerManager = await deployer.deploy(RelayerManager, {},
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
@@ -131,7 +131,7 @@ contract("RelayerManager", (accounts) => {
       ], []);
     }
 
-    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await wallet.init(owner, [versionManager.contractAddress]);
     await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
@@ -153,7 +153,7 @@ contract("RelayerManager", (accounts) => {
     it("should fail when the RelayerManager is not authorised", async () => {
       await versionManager.addVersion([testFeature.contractAddress], []);
       const wrongWallet = await deployer.deploy(BaseWallet);
-      await wrongWallet.init(owner.address, [versionManager.contractAddress]);
+      await wrongWallet.init(owner, [versionManager.contractAddress]);
       await versionManager.from(owner).upgradeWallet(wrongWallet.contractAddress, await versionManager.lastVersion());
       const params = [wrongWallet.contractAddress, 2];
       const txReceipt = await manager.relay(testFeature, "setIntOwnerOnly", params, wrongWallet, [owner]);
@@ -173,7 +173,7 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should fail when the first param is not the wallet ", async () => {
-      const params = [owner.address, 4];
+      const params = [owner, 4];
       await assert.revertWith(
         manager.relay(testFeature, "setIntOwnerOnly", params, wallet, [owner]), INVALID_WALLET_REVERT_MSG,
       );
@@ -189,7 +189,7 @@ contract("RelayerManager", (accounts) => {
         params,
         wallet,
         [owner],
-        accounts[9].signer,
+        accounts[9],
         false,
         gasLimit,
         nonce,
@@ -210,7 +210,7 @@ contract("RelayerManager", (accounts) => {
       const params = [wallet.contractAddress, 2];
       const nonce = await getNonceForRelay();
       const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner],
-        accounts[9].signer, false, 2000000, nonce];
+        accounts[9], false, 2000000, nonce];
       await manager.relay(...relayParams);
       await assert.revertWith(
         manager.relay(...relayParams), DUPLICATE_REQUEST_REVERT_MSG,
@@ -240,7 +240,7 @@ contract("RelayerManager", (accounts) => {
     it("should update the nonce after the transaction", async () => {
       const nonce = await getNonceForRelay();
       await manager.relay(testFeature, "setIntOwnerOnly", [wallet.contractAddress, 2], wallet, [owner],
-        accounts[9].signer, false, 2000000, nonce);
+        accounts[9], false, 2000000, nonce);
 
       const updatedNonce = await relayerManager.getNonce(wallet.contractAddress);
       const updatedNonceHex = await ethers.utils.hexZeroPad(updatedNonce.toHexString(), 32);
@@ -253,7 +253,7 @@ contract("RelayerManager", (accounts) => {
     beforeEach(async () => {
       const decimals = 12; // number of decimal for TOKN contract
       const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
-      erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, decimals); // TOKN contract with 10M tokens (10M TOKN for account[0])
+      erc20 = await deployer.deploy(ERC20, {}, [infrastructure], 10000000, decimals); // TOKN contract with 10M tokens (10M TOKN for account[0])
       await tokenPriceRegistry.setPriceForTokenList([erc20.contractAddress], [tokenRate.toString()]);
       await limitFeature.setLimitAndDailySpent(wallet.contractAddress, 10000000000, 0);
     });
@@ -275,13 +275,13 @@ contract("RelayerManager", (accounts) => {
         [wallet.contractAddress, 2],
         wallet,
         [owner],
-        accounts[9].signer,
+        accounts[9],
         false,
         2000000,
         nonce,
         10,
         refundToken,
-        recipient.address];
+        recipient];
       const txReceipt = await manager.relay(...relayParams);
       return txReceipt;
     }
@@ -293,10 +293,10 @@ contract("RelayerManager", (accounts) => {
     it("should refund in ETH", async () => {
       await provisionFunds(ethers.BigNumber.from("100000000000000"), 0);
       const wBalanceStart = await deployer.provider.getBalance(wallet.contractAddress);
-      const rBalanceStart = await deployer.provider.getBalance(recipient.address);
+      const rBalanceStart = await deployer.provider.getBalance(recipient);
       await callAndRefund({ refundToken: ETH_TOKEN });
       const wBalanceEnd = await deployer.provider.getBalance(wallet.contractAddress);
-      const rBalanceEnd = await deployer.provider.getBalance(recipient.address);
+      const rBalanceEnd = await deployer.provider.getBalance(recipient);
       const refund = wBalanceStart.sub(wBalanceEnd);
       assert.isTrue(refund.gt(0), "should have refunded ETH");
       assert.isTrue(refund.eq(rBalanceEnd.sub(rBalanceStart)), "should have refunded the recipient");
@@ -305,10 +305,10 @@ contract("RelayerManager", (accounts) => {
     it("should refund in ERC20", async () => {
       await provisionFunds(0, ethers.BigNumber.from("100000000000000"));
       const wBalanceStart = await erc20.balanceOf(wallet.contractAddress);
-      const rBalanceStart = await erc20.balanceOf(recipient.address);
+      const rBalanceStart = await erc20.balanceOf(recipient);
       await callAndRefund({ refundToken: erc20.contractAddress });
       const wBalanceEnd = await erc20.balanceOf(wallet.contractAddress);
-      const rBalanceEnd = await erc20.balanceOf(recipient.address);
+      const rBalanceEnd = await erc20.balanceOf(recipient);
       const refund = wBalanceStart.sub(wBalanceEnd);
       assert.isTrue(refund.gt(0), "should have refunded ERC20");
       assert.isTrue(refund.eq(rBalanceEnd.sub(rBalanceStart)), "should have refunded the recipient");
@@ -346,11 +346,11 @@ contract("RelayerManager", (accounts) => {
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitFeature.getDailySpent(wallet.contractAddress);
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
-      const rBalanceStart = await deployer.provider.getBalance(recipient.address);
+      const rBalanceStart = await deployer.provider.getBalance(recipient);
       // add a guardian
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian);
       // call approvedTransfer
-      const params = [wallet.contractAddress, ETH_TOKEN, recipient.address, 1000, ethers.constants.HashZero];
+      const params = [wallet.contractAddress, ETH_TOKEN, recipient, 1000, ethers.constants.HashZero];
       const nonce = await getNonceForRelay();
       const gasLimit = 2000000;
       const relayParams = [
@@ -359,7 +359,7 @@ contract("RelayerManager", (accounts) => {
         params,
         wallet,
         [owner, guardian],
-        accounts[9].signer,
+        accounts[9],
         false,
         gasLimit,
         nonce,
@@ -370,7 +370,7 @@ contract("RelayerManager", (accounts) => {
       await manager.relay(...relayParams);
       dailySpent = await limitFeature.getDailySpent(wallet.contractAddress);
       assert.isTrue(dailySpent.toNumber() === 0, "daily spent should be reset");
-      const rBalanceEnd = await deployer.provider.getBalance(recipient.address);
+      const rBalanceEnd = await deployer.provider.getBalance(recipient);
       assert.isTrue(rBalanceEnd.gt(rBalanceStart), "should have refunded the recipient");
     });
 

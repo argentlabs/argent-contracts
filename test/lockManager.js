@@ -16,9 +16,9 @@ const TestManager = require("../utils/test-manager");
 contract("LockManager", (accounts) => {
   const manager = new TestManager();
 
-  const owner = accounts[1].signer;
-  const guardian1 = accounts[2].signer;
-  const nonguardian = accounts[3].signer;
+  const owner = accounts[1];
+  const guardian1 = accounts[2];
+  const nonguardian = accounts[3];
 
   let deployer;
   let guardianManager;
@@ -80,16 +80,16 @@ contract("LockManager", (accounts) => {
       relayerManager.contractAddress,
     ], []);
 
-    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await wallet.init(owner, [versionManager.contractAddress]);
     await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
   describe("(Un)Lock by EOA guardians", () => {
     beforeEach(async () => {
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
       assert.equal(count, 1, "1 guardian should be added");
-      const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, guardian1.address);
+      const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, guardian1);
       assert.isTrue(isGuardian, "guardian1 should be a guardian of the wallet");
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isFalse(isLocked, "should be unlocked by default");
@@ -140,7 +140,7 @@ contract("LockManager", (accounts) => {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const guardianWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-      await guardianWallet.init(guardian1.address, [versionManager.contractAddress]);
+      await guardianWallet.init(guardian1, [versionManager.contractAddress]);
       await versionManager.from(guardian1).upgradeWallet(guardianWallet.contractAddress, await versionManager.lastVersion());
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
@@ -168,7 +168,7 @@ contract("LockManager", (accounts) => {
 
   describe("Auto-unlock", () => {
     it("should auto-unlock after lock period", async () => {
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1);
       await lockManager.from(guardian1).lock(wallet.contractAddress);
       let state = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(state, "should be locked by guardian");
@@ -185,7 +185,7 @@ contract("LockManager", (accounts) => {
 
   describe("Unlocking wallets", () => {
     beforeEach(async () => {
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1.address);
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1);
     });
 
     it("should not be able to unlock, an already unlocked wallet", async () => {
@@ -200,7 +200,7 @@ contract("LockManager", (accounts) => {
 
     it("should not be able to unlock a wallet, locked by another feature", async () => {
       // lock by putting the wallet in recovery mode
-      await manager.relay(recoveryManager, "executeRecovery", [wallet.contractAddress, accounts[5].signer.address], wallet, [guardian1]);
+      await manager.relay(recoveryManager, "executeRecovery", [wallet.contractAddress, accounts[5]], wallet, [guardian1]);
 
       // try to unlock
       await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress),

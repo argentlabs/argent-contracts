@@ -8,11 +8,11 @@ const utils = require("../utils/utilities.js");
 
 contract("MultiSigWallet", (accounts) => {
   const manager = new TestManager();
-  const owner = accounts[0].signer;
-  const owner1 = accounts[1].signer;
-  const owner2 = accounts[2].signer;
-  const owner3 = accounts[3].signer;
-  const newowner = accounts[4].signer;
+  const owner = accounts[0];
+  const owner1 = accounts[1];
+  const owner2 = accounts[2];
+  const owner3 = accounts[3];
+  const newowner = accounts[4];
 
   let deployer;
   let multisig;
@@ -25,7 +25,7 @@ contract("MultiSigWallet", (accounts) => {
     deployer = manager.newDeployer();
     number = 12345;
     value = 10000000000;
-    owners = utils.sortWalletByAddress([owner1, owner2, owner3]).map((o) => o.address);
+    owners = utils.sortWalletByAddress([owner1, owner2, owner3]);
   });
 
   beforeEach(async () => {
@@ -127,11 +127,11 @@ contract("MultiSigWallet", (accounts) => {
     });
 
     it("should not be able to execute addOwner externally", async () => {
-      await assert.revertWith(multisig.addOwner(newowner.address), "MSW: Calling account is not wallet");
+      await assert.revertWith(multisig.addOwner(newowner), "MSW: Calling account is not wallet");
     });
 
     it("should not be able to execute removeOwner externally", async () => {
-      await assert.revertWith(multisig.removeOwner(newowner.address), "MSW: Calling account is not wallet");
+      await assert.revertWith(multisig.removeOwner(newowner), "MSW: Calling account is not wallet");
     });
 
     it("should not be able to execute changeThreshold externally", async () => {
@@ -139,10 +139,10 @@ contract("MultiSigWallet", (accounts) => {
     });
 
     it("should be able to add new owner", async () => {
-      const { data, signatures } = await getMultiSigParams("addOwner", [newowner.address]);
+      const { data, signatures } = await getMultiSigParams("addOwner", [newowner]);
       await multisig.execute(multisig.contractAddress, 0, data, signatures);
 
-      const isOwner = await multisig.isOwner(newowner.address);
+      const isOwner = await multisig.isOwner(newowner);
       assert.isTrue(isOwner);
     });
 
@@ -164,23 +164,23 @@ contract("MultiSigWallet", (accounts) => {
     });
 
     it("should not be able to add owner twice", async () => {
-      const { data, signatures } = await getMultiSigParams("addOwner", [owner1.address]);
+      const { data, signatures } = await getMultiSigParams("addOwner", [owner1]);
       await assert.revertWith(multisig.execute(multisig.contractAddress, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should be able to remove existing owner", async () => {
-      const { data, signatures } = await getMultiSigParams("removeOwner", [owner1.address]);
+      const { data, signatures } = await getMultiSigParams("removeOwner", [owner1]);
       await multisig.execute(multisig.contractAddress, 0, data, signatures);
 
-      const isOwner = await multisig.isOwner(owner1.address);
+      const isOwner = await multisig.isOwner(owner1);
       assert.isFalse(isOwner);
     });
 
     it("should not be able to remove owner if remaining owners are at the threshold count", async () => {
-      const values1 = await getMultiSigParams("removeOwner", [owner3.address]);
+      const values1 = await getMultiSigParams("removeOwner", [owner3]);
       await multisig.execute(multisig.contractAddress, 0, values1.data, values1.signatures);
 
-      const values2 = await getMultiSigParams("removeOwner", [owner2.address]);
+      const values2 = await getMultiSigParams("removeOwner", [owner2]);
       await assert.revertWith(multisig.execute(multisig.contractAddress, 0, values2.data, values2.signatures), "MSW: External call failed");
     });
 

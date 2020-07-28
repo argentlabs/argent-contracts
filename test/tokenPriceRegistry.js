@@ -20,7 +20,7 @@ describe("TokenPriceRegistry", function () {
 
   beforeEach(async () => {
     tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
-    await tokenPriceRegistry.addManager(manager.address);
+    await tokenPriceRegistry.addManager(manager);
     await tokenPriceRegistry.setMinPriceUpdatePeriod(3600);
   });
 

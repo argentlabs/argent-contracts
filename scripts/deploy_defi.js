@@ -60,7 +60,7 @@ async function deploy() {
     pip.contractAddress,
     pep.contractAddress,
     vox.contractAddress,
-    manager.address);
+    manager);
 
   // let the Tub mint PETH and DAI
   await skr.setOwner(tub.contractAddress);
@@ -88,7 +88,7 @@ async function deploy() {
 
   const ethLiquidity = parseEther("1");
   const mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
-  await gov["mint(address,uint256)"](manager.address, mkrLiquidity);
+  await gov["mint(address,uint256)"](manager, mkrLiquidity);
 
   await uniswapFactory.createExchange(gov.contractAddress, { gasLimit: 450000 });
   let exchange = "0x0000000000000000000000000000000000000000";

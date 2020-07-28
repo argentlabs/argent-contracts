@@ -46,7 +46,7 @@ module.exports = {
       await uniswapFactory.from(infrastructure).createExchange(token.contractAddress);
       const tokenExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(token.contractAddress));
       const tokenLiquidity = ethLiquidity.mul(WAD).div(ethPerToken[i]);
-      await token["mint(address,uint256)"](infrastructure.address, tokenLiquidity);
+      await token["mint(address,uint256)"](infrastructure, tokenLiquidity);
       await token.from(infrastructure).approve(tokenExchange.contractAddress, tokenLiquidity);
       const timestamp = await manager.getTimestamp(await manager.getCurrentBlock());
       await tokenExchange.from(infrastructure).addLiquidity(1, tokenLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
@@ -76,7 +76,7 @@ module.exports = {
       pip.contractAddress,
       pep.contractAddress,
       vox.contractAddress,
-      infrastructure.address);
+      infrastructure);
     // Let the Tub mint PETH and DAI
     await skr.setOwner(tub.contractAddress);
     await sai.setOwner(tub.contractAddress);
@@ -160,7 +160,7 @@ module.exports = {
     );
     // Setting up the common migration vault used by ScdMcdMigration
     const initialSaiAmountInMigrationVault = parseEther("1000");
-    await sai["mint(address,uint256)"](infrastructure.address, initialSaiAmountInMigrationVault);
+    await sai["mint(address,uint256)"](infrastructure, initialSaiAmountInMigrationVault);
     await sai.from(infrastructure).approve(migration.contractAddress, initialSaiAmountInMigrationVault);
     await migration.from(infrastructure).swapSaiToDai(initialSaiAmountInMigrationVault);
 

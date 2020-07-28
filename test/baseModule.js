@@ -13,7 +13,7 @@ contract("BaseModule", (accounts) => {
   const manager = new TestManager();
   const { deployer } = manager;
 
-  const owner = accounts[1].signer;
+  const owner = accounts[1];
 
   let registry;
   let guardianStorage;
@@ -26,7 +26,7 @@ contract("BaseModule", (accounts) => {
   beforeEach(async () => {
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    token = await deployer.deploy(ERC20, {}, [owner.address], 10, 18);
+    token = await deployer.deploy(ERC20, {}, [owner], 10, 18);
 
     baseModule = await deployer.deploy(BaseModule, {}, registry.contractAddress, guardianStorage.contractAddress);
   });
