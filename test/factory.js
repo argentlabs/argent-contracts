@@ -7,13 +7,13 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const Factory = artifacts.require("WalletFactory");
 const GuardianStorage = artifacts.require("GuardianStorage");
 
-const TestManager = artifacts.require("test-manager");
-const utilities = artifacts.require("utilities.js");
+const TestManager = require("../utils/test-manager");
+const utils = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 
-describe("Wallet Factory", function () {
-  this.timeout(100000);
+contract("WalletFactory", function (accounts) {
+  this.timeout(10000);
 
   const manager = new TestManager();
 
@@ -85,7 +85,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should allow owner to change the module registry", async () => {
-      const randomAddress = utilities.getRandomAddress();
+      const randomAddress = utils.getRandomAddress();
       await factory.changeModuleRegistry(randomAddress);
       const updatedModuleRegistry = await factory.moduleRegistry();
       assert.equal(updatedModuleRegistry, randomAddress);
@@ -96,8 +96,29 @@ describe("Wallet Factory", function () {
     });
 
     it("should not allow non-owner to change the module registry", async () => {
-      const randomAddress = utilities.getRandomAddress();
+      const randomAddress = utils.getRandomAddress();
       await assert.revertWith(factory.from(other).changeModuleRegistry(randomAddress), "Must be owner");
+    });
+
+    it("should allow owner to change the ens manager", async () => {
+      const randomAddress = utils.getRandomAddress();
+      await factory.changeENSManager(randomAddress);
+      const updatedEnsManager = await factory.ensManager();
+      assert.equal(updatedEnsManager, randomAddress);
+    });
+
+    it("should not allow owner to change the ens manager to a zero address", async () => {
+      await assert.revertWith(factory.changeENSManager(ethers.constants.AddressZero), "WF: address cannot be null");
+    });
+
+    it("should not allow non-owner to change the ens manager", async () => {
+      const randomAddress = utils.getRandomAddress();
+      await assert.revertWith(factory.from(other).changeENSManager(randomAddress), "Must be owner");
+    });
+
+    it("should return the correct ENSManager", async () => {
+      const ensManagerOnFactory = await factory.ensManager();
+      assert.equal(ensManagerOnFactory, ensManager.contractAddress, "should have the correct ENSManager addrress");
     });
   });
 
@@ -164,7 +185,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should fail to create with unregistered module", async () => {
-      const randomAddress = utilities.getRandomAddress();
+      const randomAddress = utils.getRandomAddress();
       await assert.revertWith(factory.from(infrastructure).createWallet(owner.address, randomAddress, guardian.address, 1),
         "WF: invalid _versionManager");
     });
@@ -177,7 +198,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should create a wallet at the correct address", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, versionManager.contractAddress, guardian.address, salt, 1);
       // we create the wallet
@@ -191,7 +212,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should create with the correct owner", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, versionManager.contractAddress, guardian.address, salt, 1);
       // we create the wallet
@@ -209,7 +230,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should create with the correct modules", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, versionManager.contractAddress, guardian.address, salt, 1);
       // we create the wallet
@@ -231,7 +252,7 @@ describe("Wallet Factory", function () {
       await versionManager.addVersion([], []);
       await versionManager.setMinVersion(await versionManager.lastVersion());
 
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(
         owner.address, versionManager.contractAddress, guardian.address, salt, badVersion,
@@ -247,7 +268,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should create with the correct guardian", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, versionManager.contractAddress, guardian.address, salt, 1);
       // we create the wallet
@@ -264,7 +285,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should fail to create a wallet at an existing address", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, versionManager.contractAddress, guardian.address, salt, 1);
       // we create the first wallet
@@ -283,7 +304,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should fail to create counterfactually when there are no modules (with guardian)", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       await assert.revertWith(
         factory.from(deployer).createCounterfactualWallet(
           owner.address, ethers.constants.AddressZero, guardian.address, salt, 1,
@@ -293,7 +314,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should fail to create when the guardian is empty", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       await assert.revertWith(
         factory.from(infrastructure).createCounterfactualWallet(owner.address, versionManager.contractAddress, ZERO_ADDRESS, salt, 1),
         "WF: guardian cannot be null",
@@ -301,7 +322,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should emit and event when the balance is non zero at creation", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       const amount = ethers.BigNumber.from("10000000000000");
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner.address, versionManager.contractAddress, guardian.address, salt, 1);
@@ -320,7 +341,7 @@ describe("Wallet Factory", function () {
     });
 
     it("should fail to get an address when the guardian is empty", async () => {
-      const salt = utilities.generateSaltValue();
+      const salt = utils.generateSaltValue();
       await assert.revertWith(
         factory.from(infrastructure).getAddressForCounterfactualWallet(owner.address, versionManager.contractAddress, ZERO_ADDRESS, salt, 1),
         "WF: guardian cannot be null",

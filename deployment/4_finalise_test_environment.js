@@ -1,5 +1,7 @@
-const ENS = require("../build/ENSRegistryWithFallback");
-const ENSReverseRegistrar = require("../build/ReverseRegistrar");
+/* global artifacts */
+
+const ENS = artifacts.require("ENSRegistryWithFallback");
+const ENSReverseRegistrar = artifacts.require("ReverseRegistrar");
 
 const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");

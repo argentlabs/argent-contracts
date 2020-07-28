@@ -1,5 +1,6 @@
 // AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true etherlime deploy --file ./scripts/deploy_custom_upgrader.js --compile false
 
+/* global artifacts */
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 const Upgrader = artifacts.require("SimpleUpgrader");

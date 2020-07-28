@@ -11,8 +11,8 @@ const ERC20_SUPPLY = 10000000;
 const ERC20_DECIMALS = 18;
 const ERC20_RATE = 51 * 10 ** 13; // 1 ERC20 = 0.00051 ETH
 
-describe("Kyber", function () {
-  this.timeout(100000);
+contract("KyberNetwork", function (accounts) {
+  this.timeout(10000);
 
   const manager = new TestManager();
 

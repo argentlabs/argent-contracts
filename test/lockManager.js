@@ -13,8 +13,8 @@ const VersionManager = artifacts.require("VersionManager");
 
 const TestManager = require("../utils/test-manager");
 
-describe("LockManager", function () {
-  this.timeout(100000);
+contract("LockManager", function (accounts) {
+  this.timeout(10000);
 
   const manager = new TestManager();
 

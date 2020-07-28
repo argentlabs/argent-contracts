@@ -48,8 +48,8 @@ const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts
 const TOKEN_A_RATE = parseEther("0.06");
 const TOKEN_B_RATE = parseEther("0.03");
 
-describe("Token Exchanger", function () {
-  this.timeout(100000);
+contract("TokenExchanger", function (accounts) {
+  this.timeout(10000);
 
   const manager = new TestManager();
   const infrastructure = accounts[0].signer;

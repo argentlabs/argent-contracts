@@ -1,10 +1,11 @@
 /* global artefacts */
 const { parseEther, formatBytes32String } = require("ethers").utils;
 const ethers = require("ethers");
+const utils = require("../utils/utilities.js");
+
 const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");
 const Registry = artifacts.require("ModuleRegistry");
-
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const RelayerManager = artifacts.require("RelayerManager");
@@ -29,7 +30,7 @@ const ERC20 = artifacts.require("TestERC20");
 const { ETH_TOKEN } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
-describe("Invest Manager with Compound", function () {
+contract("Invest Manager with Compound", function (accounts) {
   this.timeout(1000000);
 
   const manager = new TestManager();

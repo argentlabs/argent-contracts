@@ -1,10 +1,11 @@
 /* global artifacts */
 const ethers = require("ethers");
+
 const Managed = artifacts.require("Managed");
 
 const TestManager = require("../utils/test-manager");
 
-describe("Token Price Provider", () => {
+contract("Managed and Owned", (accounts) => {
   const manager = new TestManager();
 
   const infrastructure = accounts[0].signer;

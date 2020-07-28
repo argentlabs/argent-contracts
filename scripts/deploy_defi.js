@@ -1,4 +1,6 @@
 // AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true etherlime deploy --file ./scripts/deploy_defi.js --compile false
+/* global artifacts */
+
 const ethers = require("ethers");
 const { parseEther, formatBytes32String } = require("ethers").utils;
 

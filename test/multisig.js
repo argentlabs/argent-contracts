@@ -6,7 +6,7 @@ const TestManager = require("../utils/test-manager");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const utils = require("../utils/utilities.js");
 
-describe("MultiSigWallet", function () {
+contract("MultiSigWallet", function (accounts) {
   this.timeout(100000);
   const manager = new TestManager();
   const owner = accounts[0].signer;

@@ -1,3 +1,5 @@
+/* global artifacts */
+
 const childProcess = require("child_process");
 
 const ApprovedTransfer = artifacts.require("ApprovedTransfer");

@@ -8,6 +8,7 @@
 //     - network = [ganache, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
+/* global artifacts */
 const BaseWallet = artifacts.require("BaseWallet");
 const WalletFactory = artifacts.require("WalletFactory");
 const MultiSigWallet = artifacts.require("MultiSigWallet");

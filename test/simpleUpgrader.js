@@ -1,7 +1,8 @@
 /* global artifacts */
 
 const ethers = require("ethers");
-/* global accounts, utils */
+const utils = require("../utils/utilities.js");
+
 const { formatBytes32String, parseBytes32String } = require("ethers").utils;
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -17,8 +18,8 @@ const VersionManager = artifacts.require("VersionManager");
 const RelayerManager = artifacts.require("RelayerManager");
 const TestManager = artifacts.require("test-manager");
 
-describe("SimpleUpgrader", function () {
-  this.timeout(100000);
+contract("SimpleUpgrader", function (accounts) {
+  this.timeout(10000);
 
   const manager = new TestManager();
 
