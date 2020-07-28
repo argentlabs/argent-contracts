@@ -73,7 +73,7 @@ where the first signature is the owner and $n$ is the total number of guardians.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Daily Transfer Limit}
 \label{sec:dailylimit}
-The wallet is protected by a daily limit (rolling for 24 hours). The owner can spend up to the daily limit in a given 24 hours period. The daily limit default value is 1 ETH and can be modified by the owner. It takes 24 hours for the new limit to be effective, unless the change is approved by guardians (the number of guardians required is given in Section~\ref{sec:approved-transfer}), in which case the change is immediate.
+The wallet is protected by a daily limit (rolling for 24 hours). The owner can spend up to the daily limit in a given 24 hours period. The daily limit default value is 1 ETH and can be modified by the owner. A reduction of the limit applies immediately. It takes 24 hours for an increase of the limit to be effective, unless the increase is approved by guardians (the number of guardians required is given in Section~\ref{sec:approved-transfer}), in which case the change is immediate.
 
 Any transfer exceeding the daily limit will be set as pending, and can be executed only after 24 hours.
 
@@ -95,7 +95,7 @@ Adding an address to the whitelist is an action triggered by the wallet owner an
 \subsection{Approved Transfer}
 \label{sec:approved-transfer}
 
-Transfers and ERC20 token approvals exceeding the daily limit can be executed immediately by the owner, provided that he obtains approval from their guardians. The number of required signatures for an approved transfer is given by
+Transfers and ERC20 token approvals exceeding the daily limit can be executed immediately by the owner, provided that they obtains approval from their guardians. The number of required signatures for an approved transfer is given by
 \begin{equation*}
     1+\left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
@@ -186,8 +186,7 @@ A second group of contracts implements the functionalities of the wallet:
 \subsection{Upgradability}
 \label{sec:upgradability}
 
-Argent maintains an evolving set of registered \emph{Module} contracts. A subset of these \emph{Module} contracts are \emph{SimpleUpgrader} modules that define a migration path from a particular set of old modules to a new set of registered modules, i.e. it contains the list of modules to disable and the list of modules to enable to go from the old set to the new set. A user can perform an upgrade of their modules using one of the registered \emph{SimpleUpgrader} contracts.
-
+Argent maintains an evolving set of registered \emph{Module} contracts. A subset of these \emph{Module} contracts are \emph{SimpleUpgrader} modules that define a migration path from a particular set of old modules to a new set of registered modules, i.e. it contains the list of modules to disable and the list of modules to enable to go from the old set to the new set. A user can perform an upgrade of their modules using one of the registered \emph{SimpleUpgrader} contracts. A wallet cannot be upgraded while it is locked.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -215,7 +214,7 @@ The RelayerModule calls the target module (e.g. \emph{TransferManager} for token
 
 \subsubsection{RelayerModule module}
 
-This module is the entry point for meta-transactions. A relayer calls the \emph{execute()} method of the RelayerModule, which validates the signatures provided, calls the required target module to run the business logic and optionally refund the relayer's gas cost.
+This module is the entry point for meta-transactions. A relayer calls the \emph{execute()} method of the RelayerModule, which validates the signatures provided, calls the required target module to run the business logic and optionally refunds the relayer's gas cost.
 
 \subsubsection{GuardianManager module}
 
