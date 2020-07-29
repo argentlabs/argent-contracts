@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.0;
 import "./TokenConsumer.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 

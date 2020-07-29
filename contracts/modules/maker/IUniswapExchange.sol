@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.0;
 
 interface IUniswapExchange {
     function getEthToTokenOutputPrice(uint256 _tokensBought) external view returns (uint256);
