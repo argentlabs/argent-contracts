@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.0;
 import "../lib_0.5/other/ERC20.sol";
 import "../lib_0.5/other/KyberNetwork.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";

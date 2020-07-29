@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.0;
 import "../../../lib_0.5/ens/ENS.sol";
 import "../../modules/common/Utils.sol";
 import "./IENSManager.sol";
