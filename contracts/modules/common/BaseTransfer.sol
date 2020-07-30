@@ -48,7 +48,7 @@ abstract contract BaseTransfer is BaseFeature {
 
     // *************** Constructor ********************** //
 
-    constructor(address _wethToken) public {
+    constructor(address _wethToken) {
         wethToken = _wethToken;
     }
 
