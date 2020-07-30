@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
  */
 
 contract BasicToken {
-    using SafeMath for uint;
+    using SafeMath for uint256;
 
     mapping(address => uint) balances;
 
@@ -52,7 +52,7 @@ contract BasicToken {
 }
 
 contract StandardToken is BasicToken {
-
+    using SafeMath for uint256;
     mapping (address => mapping (address => uint)) allowed;
 
     /**
@@ -104,6 +104,7 @@ contract StandardToken is BasicToken {
 }
 
 contract MintableToken is StandardToken {
+    using SafeMath for uint256;
     event Mint(address indexed to, uint value);
     event MintFinished();
 

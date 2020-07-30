@@ -49,7 +49,6 @@ abstract contract MakerV2Base is DSMath, BaseFeature {
         IVersionManager _versionManager
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
-        public
     {
         scdMcdMigration = address(_scdMcdMigration);
         daiJoin = _scdMcdMigration.daiJoin();

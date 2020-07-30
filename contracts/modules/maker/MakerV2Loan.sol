@@ -29,6 +29,7 @@ import "./IUniswapFactory.sol";
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 abstract contract MakerV2Loan is MakerV2Base {
+    using SafeMath for uint256;
 
     bytes4 private constant IS_NEW_VERSION = bytes4(keccak256("isNewVersion(address)"));
 
@@ -101,7 +102,6 @@ abstract contract MakerV2Loan is MakerV2Base {
         IMakerRegistry _makerRegistry,
         IUniswapFactory _uniswapFactory
     )
-        public
     {
         cdpManager = ScdMcdMigrationLike(scdMcdMigration).cdpManager();
         tub = ScdMcdMigrationLike(scdMcdMigration).tub();

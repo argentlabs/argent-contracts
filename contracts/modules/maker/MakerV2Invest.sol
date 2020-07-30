@@ -24,6 +24,7 @@ import "./MakerV2Base.sol";
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 abstract contract MakerV2Invest is MakerV2Base {
+    using SafeMath for uint256;
 
     // The address of the Pot
     PotLike internal pot;
@@ -37,7 +38,7 @@ abstract contract MakerV2Invest is MakerV2Base {
 
     // *************** Constructor ********************** //
 
-    constructor(PotLike _pot) public {
+    constructor(PotLike _pot) {
         pot = _pot;
     }
 
