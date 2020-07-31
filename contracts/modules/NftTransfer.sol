@@ -49,7 +49,6 @@ contract NftTransfer is BaseFeature{
         address _ckAddress
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
-        public
     {
         ckAddress = _ckAddress;
         tokenPriceRegistry = _tokenPriceRegistry;

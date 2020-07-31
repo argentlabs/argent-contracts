@@ -72,7 +72,7 @@ contract LockManager is BaseFeature {
         IVersionManager _versionManager,
         uint256 _lockPeriod
     )
-        BaseFeature(_lockStorage, _versionManager, NAME) public {
+        BaseFeature(_lockStorage, _versionManager, NAME) {
         guardianStorage = _guardianStorage;
         lockPeriod = _lockPeriod;
     }

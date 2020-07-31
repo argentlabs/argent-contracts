@@ -73,7 +73,6 @@ contract RelayerManager is BaseFeature {
         IVersionManager _versionManager
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
-        public
     {
         limitStorage = _limitStorage;
         tokenPriceRegistry = _tokenPriceRegistry;

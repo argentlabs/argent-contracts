@@ -90,7 +90,6 @@ contract TransferManager is BaseTransfer {
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
-        public
     {
         transferStorage = _transferStorage;
         limitStorage = _limitStorage;

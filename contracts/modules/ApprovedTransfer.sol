@@ -46,7 +46,6 @@ contract ApprovedTransfer is BaseTransfer {
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
-        public
     {
         guardianStorage = _guardianStorage;
         limitStorage = _limitStorage;

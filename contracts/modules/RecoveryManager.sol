@@ -88,7 +88,6 @@ contract RecoveryManager is BaseFeature {
         uint256 _lockPeriod
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
-        public
     {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
         // where securityPeriod and securityWindow are the security parameters of adding/removing guardians

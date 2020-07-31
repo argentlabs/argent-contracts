@@ -21,8 +21,7 @@ contract TestFeature is BaseFeature {
         IVersionManager _versionManager,
         uint _uintVal
     ) 
-        BaseFeature(_lockStorage, _versionManager, NAME) 
-        public 
+        BaseFeature(_lockStorage, _versionManager, NAME)
     {
         uintVal = _uintVal;
         dapp = new TestDapp();

@@ -42,7 +42,6 @@ contract MakerV2Manager is MakerV2Base, MakerV2Invest, MakerV2Loan {
         MakerV2Base(_lockStorage, _scdMcdMigration, _versionManager)
         MakerV2Invest(_pot)
         MakerV2Loan(_jug, _makerRegistry, _uniswapFactory)
-        public
     {
     }
 

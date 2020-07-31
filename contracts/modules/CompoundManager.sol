@@ -76,7 +76,6 @@ contract CompoundManager is BaseFeature{
         IVersionManager _versionManager
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
-        public
     {
         comptroller = _comptroller;
         compoundRegistry = _compoundRegistry;

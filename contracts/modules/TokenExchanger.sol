@@ -67,7 +67,6 @@ contract TokenExchanger is BaseFeature {
         string memory _referrer
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
-        public
     {
         tokenPriceRegistry = _tokenPriceRegistry;
         dexRegistry = _dexRegistry;

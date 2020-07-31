@@ -28,7 +28,7 @@ contract FakeWallet is IWallet {
     address target;
     uint value;
     bytes data;
-    constructor(bool _targetIsModule, address _target, uint _value, bytes memory _data) public {
+    constructor(bool _targetIsModule, address _target, uint _value, bytes memory _data) {
         targetIsModule = _targetIsModule;
         target = _target;
         value = _value;

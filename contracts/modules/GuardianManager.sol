@@ -71,7 +71,6 @@ contract GuardianManager is BaseFeature {
         uint256 _securityWindow
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
-        public
     {
         guardianStorage = _guardianStorage;
         securityPeriod = _securityPeriod;

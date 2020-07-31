@@ -28,7 +28,7 @@ contract Proxy {
 
     event Received(uint indexed value, address indexed sender, bytes data);
 
-    constructor(address _implementation) public {
+    constructor(address _implementation) {
         implementation = _implementation;
     }
 
