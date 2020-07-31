@@ -38,7 +38,6 @@ contract SimpleUpgrader is IModule {
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        public
     {
         registry = _registry;
         toDisable = _toDisable;

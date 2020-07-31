@@ -17,7 +17,7 @@ contract TestContract {
     event StateSet(uint256 indexed _state, uint256 indexed _value);
     event GasUsed(uint _gas);
 
-    constructor() public {
+    constructor() {
         tokenConsumer = new TokenConsumer();
     }
 

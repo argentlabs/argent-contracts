@@ -8,7 +8,7 @@ interface MakerFaucet {
 }
 
 contract FaucetUser {
-    constructor(MakerFaucet _faucet, IERC20 _gem) public {
+    constructor(MakerFaucet _faucet, IERC20 _gem) {
         // `gulp` can only be called once by a given account. Hence,
         // this wrapper contract is a hack that lets us call `gulp` multiple times
         // for the same token recipient.

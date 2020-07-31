@@ -53,7 +53,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
 
     // *************** Constructor ************************ //
 
-    constructor(address _uniswapRouter) public SimpleOracle(_uniswapRouter) {
+    constructor(address _uniswapRouter) SimpleOracle(_uniswapRouter) {
 
     }
 

@@ -48,8 +48,7 @@ contract WalletFactory is Managed {
     /**
      * @notice Default constructor.
      */
-    constructor(address _walletImplementation, address _guardianStorage, address _refundAddress) public {
-        
+    constructor(address _walletImplementation, address _guardianStorage, address _refundAddress) {
         require(_walletImplementation != address(0), "WF: empty wallet implementation");
         require(_guardianStorage != address(0), "WF: empty guardian storage");
         require(_refundAddress != address(0), "WF: empty refund address");
