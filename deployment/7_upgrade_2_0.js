@@ -252,8 +252,7 @@ const deploy = async (network) => {
   await configurator.save();
 
   await Promise.all([
-    abiUploader.upload(LimitStorageWrapper, "contracts"),
-    abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
+    abiUploader.upload(LimitStorageWrapper, "modules"),
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
     abiUploader.upload(GuardianManagerWrapper, "modules"),
@@ -264,6 +263,7 @@ const deploy = async (network) => {
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(RelayerModuleWrapper, "modules"),
+    abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
   ]);
