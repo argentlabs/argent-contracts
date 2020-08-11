@@ -59,8 +59,6 @@ abstract contract MakerV2Loan is MakerV2Base {
 
     // ****************** Events *************************** //
 
-    // Emitted when an SCD CDP is converted into an MCD vault
-    event CdpMigrated(address indexed _wallet, bytes32 _oldCdpId, bytes32 _newVaultId);
     // Vault management events
     event LoanOpened(
         address indexed _wallet,
@@ -287,42 +285,6 @@ abstract contract MakerV2Loan is MakerV2Base {
     }
 
     /**
-     * @notice Lets a SCD CDP owner migrate their CDP to use the new MCD engine.
-     * Requires MKR or ETH to pay the SCD governance fee
-     * @param _wallet The target wallet.
-     * @param _cup id of the old SCD CDP to migrate
-     */
-    function migrateCdp(
-        address _wallet,
-        bytes32 _cup
-    )
-        external
-        onlyWalletOwnerOrModule(_wallet)
-        onlyWhenUnlocked(_wallet)
-        returns (bytes32 _loanId)
-    {
-        (uint daiPerMkr, bool ok) = tub.pep().peek();
-        if (ok && daiPerMkr != 0) {
-            // get governance fee in MKR
-            uint mkrFee = wdiv(tub.rap(_cup), daiPerMkr);
-            // Convert some ETH into MKR with Uniswap if necessary
-            buyTokens(_wallet, mkrToken, mkrFee, mkrUniswap);
-            // Transfer the MKR to the Migration contract
-            invokeWallet(_wallet, address(mkrToken), 0, abi.encodeWithSignature("transfer(address,uint256)", address(scdMcdMigration), mkrFee));
-        }
-        // Transfer ownership of the SCD CDP to the migration contract
-        invokeWallet(_wallet, address(tub), 0, abi.encodeWithSignature("give(bytes32,address)", _cup, address(scdMcdMigration)));
-        // Update stability fee rate
-        jug.drip(wethJoin.ilk());
-        // Execute the CDP migration
-        _loanId = bytes32(ScdMcdMigrationLike(scdMcdMigration).migrate(_cup));
-        // Mark the new vault as belonging to the wallet (or merge it into the existing vault if there is one)
-        _loanId = assignLoanToWallet(_wallet, _loanId);
-
-        emit CdpMigrated(_wallet, _cup, _loanId);
-    }
-
-    /**
      * @notice Lets a future upgrade of this module transfer a vault to itself
      * @param _wallet The target wallet.
      * @param _loanId The ID of the target vault.
@@ -374,28 +336,6 @@ abstract contract MakerV2Loan is MakerV2Base {
         if (_collateral != ETH_TOKEN) {
             (bool collateralSupported,,,) = makerRegistry.collaterals(_collateral);
             require(collateralSupported, "MV2: unsupported collateral");
-        }
-    }
-
-    function buyTokens(
-        address _wallet,
-        GemLike _token,
-        uint256 _tokenAmountRequired,
-        IUniswapExchange _uniswapExchange
-    )
-        internal
-    {
-        // get token balance
-        uint256 tokenBalance = _token.balanceOf(_wallet);
-        if (tokenBalance < _tokenAmountRequired) {
-            // Not enough tokens => Convert some ETH into tokens with Uniswap
-            uint256 etherValueOfTokens = _uniswapExchange.getEthToTokenOutputPrice(_tokenAmountRequired - tokenBalance);
-            invokeWallet(
-                _wallet,
-                address(_uniswapExchange),
-                etherValueOfTokens,
-                abi.encodeWithSignature("ethToTokenSwapOutput(uint256,uint256)", _tokenAmountRequired - tokenBalance, block.timestamp)
-            );
         }
     }
 
