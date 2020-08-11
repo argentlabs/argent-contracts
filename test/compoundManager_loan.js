@@ -183,7 +183,7 @@ contract("Loan Module", (accounts) => {
   });
 
   async function fundWallet({ ethAmount, token1Amount, token2Amount = 0 }) {
-    if (ethAmount > 0) await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethAmount });
+    if (ethAmount > 0) await wallet.send(ethAmount);
     if (token1Amount > 0) await token1.from(infrastructure).transfer(wallet.contractAddress, token1Amount);
     if (token2Amount > 0) await token2.from(infrastructure).transfer(wallet.contractAddress, token2Amount);
   }

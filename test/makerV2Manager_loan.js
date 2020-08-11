@@ -139,7 +139,7 @@ contract("MakerV2Loan", (accounts) => {
     await wallet.init(owner, [versionManager.contractAddress]);
     await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
     walletAddress = wallet.contractAddress;
-    await infrastructure.sendTransaction({ to: walletAddress, value: parseEther("2.0") });
+    await wallet.send(parseEther("2.0"));
     await dai["mint(address,uint256)"](walletAddress, parseEther("10"));
   });
 
@@ -463,7 +463,7 @@ contract("MakerV2Loan", (accounts) => {
     const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
     // give some ETH to the wallet to be used for repayment
-    await owner.sendTransaction({ to: walletAddress, value: collateralAmount.mul(2) });
+    await owner.send({ to: walletAddress, value: collateralAmount.mul(2) });
     await manager.increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.contractAddress);
     const method = "closeLoan";

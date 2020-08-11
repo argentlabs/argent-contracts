@@ -202,7 +202,7 @@ contract("Invest Manager with Compound", (accounts) => {
       const investInEth = (tokenAddress === ETH_TOKEN);
 
       if (investInEth) {
-        tx = await infrastructure.sendTransaction({ to: wallet.contractAddress, value: amount });
+        tx = await wallet.send(amount);
       } else {
         await token.from(infrastructure).transfer(wallet.contractAddress, amount);
       }

@@ -98,7 +98,7 @@ contract("ApprovedTransfer", (accounts) => {
 
     const decimals = 12; // number of decimal for TOKN contract
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-    await infrastructure.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
+    await wallet.send(50000000);
   });
 
   async function addGuardians(guardians) {
