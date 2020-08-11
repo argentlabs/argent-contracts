@@ -3,8 +3,8 @@ const ethers = require("ethers");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
-const OldWalletV16 = artifacts.require("../build-legacy/v1.6.0/BaseWallet");
-const OldWalletV13 = artifacts.require("../build-legacy/v1.3.0/BaseWallet");
+const OldWalletV16 = require("../build-legacy/v1.6.0/BaseWallet");
+const OldWalletV13 = require("../build-legacy/v1.3.0/BaseWallet");
 const VersionManager = artifacts.require("VersionManager");
 const Registry = artifacts.require("ModuleRegistry");
 const SimpleUpgrader = artifacts.require("SimpleUpgrader");
@@ -151,7 +151,7 @@ contract("BaseWallet", (accounts) => {
 
       it("should accept ETH with data", async () => {
         const before = await deployer.provider.getBalance(wallet.contractAddress);
-        await wallet.send(50000000, {data: 0x1234});
+        await wallet.send(50000000, { data: 0x1234 });
         const after = await deployer.provider.getBalance(wallet.contractAddress);
         assert.equal(after.sub(before).toNumber(), 50000000, "should have received ETH");
       });

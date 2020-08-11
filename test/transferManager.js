@@ -19,8 +19,8 @@ const LimitStorage = artifacts.require("LimitStorage");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const RelayerManager = artifacts.require("RelayerManager");
 const TransferManager = artifacts.require("TransferManager");
-const LegacyTransferManager = artifacts.require("../build-legacy/v1.6.0/TransferManager");
-const LegacyTokenPriceProvider = artifacts.require("../build-legacy/v1.6.0/TokenPriceProvider");
+const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
+const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
 const ERC20 = artifacts.require("TestERC20");
 const WETH = artifacts.require("WETH9");
 const TestContract = artifacts.require("TestContract");
@@ -129,13 +129,8 @@ contract("TransferManager", (accounts) => {
     const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
 
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
-<<<<<<< HEAD
     await tokenPriceRegistry.setPriceForTokenList([erc20.contractAddress], [tokenRate.toString()]);
-    await infrastructure.sendTransaction({ to: wallet.contractAddress, value: ethers.BigNumber.from("1000000000000000000") });
-=======
-    await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
     await wallet.send(ethers.BigNumber.from("1000000000000000000"));
->>>>>>> 5b5b4e5f... Refactor etherlime  to  using truffle
   });
 
   async function getEtherValue(amount, token) {

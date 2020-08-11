@@ -10,7 +10,6 @@ const Registry = artifacts.require("ModuleRegistry");
 
 contract("Proxy", (accounts) => {
   const owner = accounts[1];
-  const nonowner = accounts[2];
 
   let deployer;
   let walletImplementation;

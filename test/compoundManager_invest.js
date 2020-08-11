@@ -1,4 +1,4 @@
-/* global artefacts */
+/* global artifacts */
 const { parseEther, formatBytes32String } = require("ethers").utils;
 const ethers = require("ethers");
 const utils = require("../utils/utilities.js");

@@ -10,7 +10,7 @@ class TestManager {
     this.provider = this.deployer.provider;
   }
 
-  newDeployer() {
+  static newDeployer() {
     const defaultConfigs = {
       gasLimit: ethers.BigNumber.from(20700000),
     };
