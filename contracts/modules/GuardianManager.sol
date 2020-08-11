@@ -201,6 +201,15 @@ contract GuardianManager is BaseModule {
     }
 
     /**
+     * @notice Get the active guardians for a wallet.
+     * @param _wallet The target wallet.
+     * @return _guardians the active guardians for a wallet.
+     */
+    function getGuardians(address _wallet) external view returns (address[] memory _guardians) {
+        return guardianStorage.getGuardians(_wallet);
+    }
+
+    /**
      * @inheritdoc IModule
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {

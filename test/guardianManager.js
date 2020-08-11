@@ -70,8 +70,11 @@ describe("GuardianManager", function () {
         await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardian2.address);
         count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
         active = await guardianManager.isGuardian(wallet.contractAddress, guardian2.address);
+        const guardians = await guardianManager.getGuardians(wallet.contractAddress);
         assert.isTrue(active, "second guardian should be active");
         assert.equal(count, 2, "2 guardians should be active after security period");
+        assert.equal(guardian1.address, guardians[0], "should return first guardian address");
+        assert.equal(guardian2.address, guardians[1], "should return second guardian address");
       });
 
       it("should not let the owner add EOA Guardians after two security periods (blockchain transaction)", async () => {

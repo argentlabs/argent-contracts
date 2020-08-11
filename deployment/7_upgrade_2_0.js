@@ -26,7 +26,7 @@ const ENSManager = require("../build/ArgentENSManager");
 
 const utils = require("../utils/utilities.js");
 
-const TARGET_VERSION = "2.0.0";
+const TARGET_VERSION = "2.0.1";
 const MODULES_TO_ENABLE = [
   "ApprovedTransfer",
   "CompoundManager",
@@ -253,17 +253,17 @@ const deploy = async (network) => {
 
   await Promise.all([
     abiUploader.upload(LimitStorageWrapper, "modules"),
-    abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
-    abiUploader.upload(GuardianManagerWrapper, "contracts"),
-    abiUploader.upload(LockManagerWrapper, "contracts"),
-    abiUploader.upload(NftTransferWrapper, "contracts"),
+    abiUploader.upload(GuardianManagerWrapper, "modules"),
+    abiUploader.upload(LockManagerWrapper, "modules"),
+    abiUploader.upload(NftTransferWrapper, "modules"),
     abiUploader.upload(RecoveryManagerWrapper, "modules"),
-    abiUploader.upload(TokenExchangerWrapper, "contracts"),
+    abiUploader.upload(TokenExchangerWrapper, "modules"),
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(RelayerModuleWrapper, "modules"),
+    abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
   ]);
