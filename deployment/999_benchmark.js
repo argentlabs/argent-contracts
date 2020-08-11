@@ -136,30 +136,30 @@ class Benchmark {
       this.VersionManagerWrapper,
       "addVersion", [
         [
-          this.GuardianManagerWrapper.contractAddress,
-          this.LockManagerWrapper.contractAddress,
-          this.RecoveryManagerWrapper.contractAddress,
-          this.ApprovedTransferWrapper.contractAddress,
-          this.TransferManagerWrapper.contractAddress,
-          this.TokenExchangerWrapper.contractAddress,
-          this.NftTransferWrapper.contractAddress,
-          this.CompoundManagerWrapper.contractAddress,
-          this.MakerV2ManagerWrapper.contractAddress,
-          this.RelayerManagerWrapper.contractAddress,
+          this.GuardianManagerWrapper.address,
+          this.LockManagerWrapper.address,
+          this.RecoveryManagerWrapper.address,
+          this.ApprovedTransferWrapper.address,
+          this.TransferManagerWrapper.address,
+          this.TokenExchangerWrapper.address,
+          this.NftTransferWrapper.address,
+          this.CompoundManagerWrapper.address,
+          this.MakerV2ManagerWrapper.address,
+          this.RelayerManagerWrapper.address,
         ], [
-          this.TransferManagerWrapper.contractAddress,
+          this.TransferManagerWrapper.address,
         ],
       ],
     );
   }
 
   async setupWallet() {
-    const proxy = await this.deployer.deploy(Proxy, {}, this.BaseWalletWrapper.contractAddress);
-    this.wallet = this.deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    this.walletAddress = this.wallet.contractAddress;
+    const proxy = await this.deployer.deploy(Proxy, {}, this.BaseWalletWrapper.address);
+    this.wallet = this.deployer.wrapDeployedContract(BaseWallet, proxy.address);
+    this.walletAddress = this.wallet.address;
     // init the wallet
-    await this.wallet.init(this.accounts[0], [this.VersionManagerWrapper.contractAddress]);
-    await this.VersionManagerWrapper.upgradeWallet(this.wallet.contractAddress, await this.VersionManagerWrapper.lastVersion());
+    await this.wallet.init(this.accounts[0], [this.VersionManagerWrapper.address]);
+    await this.VersionManagerWrapper.upgradeWallet(this.wallet.address, await this.VersionManagerWrapper.lastVersion());
     // add first guardian
     [, this.firstGuardian] = this.signers;
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
@@ -282,28 +282,28 @@ class Benchmark {
       this.VersionManagerWrapper,
       "addVersion", [
         [
-          this.GuardianManagerWrapper.contractAddress,
-          this.LockManagerWrapper.contractAddress,
-          this.RecoveryManagerWrapper.contractAddress,
-          this.ApprovedTransferWrapper.contractAddress,
-          this.TransferManagerWrapper.contractAddress,
-          this.TokenExchangerWrapper.contractAddress,
-          this.NftTransferWrapper.contractAddress,
-          this.CompoundManagerWrapper.contractAddress,
-          this.MakerV2ManagerWrapper.contractAddress,
-          this.RelayerManagerWrapper.contractAddress,
+          this.GuardianManagerWrapper.address,
+          this.LockManagerWrapper.address,
+          this.RecoveryManagerWrapper.address,
+          this.ApprovedTransferWrapper.address,
+          this.TransferManagerWrapper.address,
+          this.TokenExchangerWrapper.address,
+          this.NftTransferWrapper.address,
+          this.CompoundManagerWrapper.address,
+          this.MakerV2ManagerWrapper.address,
+          this.RelayerManagerWrapper.address,
         ], [
-          this.TransferManagerWrapper.contractAddress,
+          this.TransferManagerWrapper.address,
         ],
       ],
     );
 
     // Upgrade a wallet from 2.0 to 2.1
-    const fromVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.contractAddress);
+    const fromVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.address);
     const lastVersion = await this.VersionManagerWrapper.lastVersion();
-    const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, lastVersion);
+    const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.address, lastVersion);
     const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
-    const toVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.contractAddress);
+    const toVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.address);
     assert.equal(fromVersion.toNumber() + 1, toVersion.toNumber(), "Bad Update");
     console.log(`Wallet updated from version ${fromVersion.toString()} to version ${toVersion.toString()}`);
 
@@ -316,7 +316,7 @@ class Benchmark {
 
   async estimateCreateWalletAllModules() {
     const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(
-      this.accounts[4], this.VersionManagerWrapper.contractAddress, this.accounts[4], 1,
+      this.accounts[4], this.VersionManagerWrapper.address, this.accounts[4], 1,
     );
     this._logger.addItem("Create a wallet (all modules)", gasUsed);
   }

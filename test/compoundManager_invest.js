@@ -57,22 +57,20 @@ contract("Invest Manager with Compound", (accounts) => {
     /* Deploy Compound V2 Architecture */
 
     // deploy price oracle
-    const oracle = await deployer.deploy(PriceOracle);
+    const oracle = await PriceOracle);
 
     // deploy comptroller
-    const comptrollerProxy = await deployer.deploy(Unitroller);
-    const comptrollerImpl = await deployer.deploy(Comptroller);
-    await comptrollerProxy._setPendingImplementation(comptrollerImpl.contractAddress);
-    await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false);
-    comptroller = deployer.wrapDeployedContract(Comptroller, comptrollerProxy.contractAddress);
+    const comptrollerProxy = await Unitroller.new();
+    const comptrollerImpl = await Comptroller.new();
+    await comptrollerProxy._setPendingImplementation(comptrollerImpl.address);
+    await comptrollerImpl._become(comptrollerProxy.address, oracle.address, WAD.div(10), 5, false);
+    comptroller = Comptroller.at(comptrollerProxy.address);
     // deploy Interest rate model
-    const interestModel = await deployer.deploy(InterestModel, {}, WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
+    const interestModel = await InterestModel.new(WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
     // deploy CEther
-    cEther = await deployer.deploy(
-      CEther,
-      {},
-      comptroller.contractAddress,
-      interestModel.contractAddress,
+    cEther = await CEther.new(
+      comptroller.address,
+      interestModel.address,
       ETH_EXCHANGE_RATE,
       formatBytes32String("Compound Ether"),
       formatBytes32String("cETH"),
@@ -80,94 +78,90 @@ contract("Invest Manager with Compound", (accounts) => {
     );
 
     // deploy token
-    token = await deployer.deploy(ERC20, {}, [infrastructure, liquidityProvider, borrower], 10000000, 18);
+    token = await ERC20.new([infrastructure, liquidityProvider, borrower], 10000000, 18);
     // deploy CToken
-    cToken = await deployer.deploy(
-      CErc20,
-      {},
-      token.contractAddress,
-      comptroller.contractAddress,
-      interestModel.contractAddress,
+    cToken = await CErc20.new(
+      token.address,
+      comptroller.address,
+      interestModel.address,
       ETH_EXCHANGE_RATE,
       "Compound Token",
       "cTOKEN",
       18,
     );
     // add price to Oracle
-    await oracle.setUnderlyingPrice(cToken.contractAddress, WAD.div(10));
+    await oracle.setUnderlyingPrice(cToken.address, WAD.div(10));
     // list cToken in Comptroller
-    await comptroller._supportMarket(cEther.contractAddress);
-    await comptroller._supportMarket(cToken.contractAddress);
+    await comptroller._supportMarket(cEther.address);
+    await comptroller._supportMarket(cToken.address);
     // deploy Price Oracle proxy
-    oracleProxy = await deployer.deploy(PriceOracleProxy, {}, comptroller.contractAddress, oracle.contractAddress, cEther.contractAddress);
-    await comptroller._setPriceOracle(oracleProxy.contractAddress);
+    oracleProxy = await PriceOracleProxy.new(comptroller.address, oracle.address, cEther.address);
+    await comptroller._setPriceOracle(oracleProxy.address);
     // set collateral factor
-    await comptroller._setCollateralFactor(cToken.contractAddress, WAD.div(10));
-    await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10));
+    await comptroller._setCollateralFactor(cToken.address, WAD.div(10));
+    await comptroller._setCollateralFactor(cEther.address, WAD.div(10));
 
     // add liquidity to tokens
     await cEther.from(liquidityProvider).mint({ value: parseEther("100") });
-    await token.from(liquidityProvider).approve(cToken.contractAddress, parseEther("100"));
+    await token.from(liquidityProvider).approve(cToken.address, parseEther("100"));
     await cToken.from(liquidityProvider).mint(parseEther("10"));
 
     /* Deploy Argent Architecture */
 
-    compoundRegistry = await deployer.deploy(CompoundRegistry);
-    await compoundRegistry.addCToken(ETH_TOKEN, cEther.contractAddress);
-    await compoundRegistry.addCToken(token.contractAddress, cToken.contractAddress);
-    const registry = await deployer.deploy(Registry);
-    const guardianStorage = await deployer.deploy(GuardianStorage);
-    const lockStorage = await deployer.deploy(LockStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    compoundRegistry = await CompoundRegistry.new();
+    await compoundRegistry.addCToken(ETH_TOKEN, cEther.address);
+    await compoundRegistry.addCToken(token.address, cToken.address);
+    const registry = await Registry.new();
+    const guardianStorage = await GuardianStorage.new();
+    const lockStorage = await LockStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
-    investManager = await deployer.deploy(
-      CompoundManager,
-      {},
-      lockStorage.contractAddress,
-      comptroller.contractAddress,
-      compoundRegistry.contractAddress,
-      versionManager.contractAddress,
+    investManager = await CompoundManager.new(
+      lockStorage.address,
+      comptroller.address,
+      compoundRegistry.address,
+      versionManager.address,
     );
 
-    walletImplementation = await deployer.deploy(BaseWallet);
+    walletImplementation = await BaseWallet.new();
 
-    relayerManager = await deployer.deploy(RelayerManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
+      versionManager.address);
     manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([
-      investManager.contractAddress,
-      relayerManager.contractAddress,
+      investManager.address,
+      relayerManager.address,
     ], []);
   });
 
   beforeEach(async () => {
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner, [versionManager.contractAddress]);
-    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = await BaseWallet.at(proxy.address);
+    await wallet.init(owner, [versionManager.address]);
+    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
   });
 
   describe("Environment", () => {
     it("should deploy the environment correctly", async () => {
-      const getCToken = await compoundRegistry.getCToken(token.contractAddress);
-      assert.isTrue(getCToken === cToken.contractAddress, "cToken should be registered");
+      const getCToken = await compoundRegistry.getCToken(token.address);
+      assert.isTrue(getCToken === cToken.address, "cToken should be registered");
       const getCEther = await compoundRegistry.getCToken(ETH_TOKEN);
-      assert.isTrue(getCEther === cEther.contractAddress, "cEther should be registered");
+      assert.isTrue(getCEther === cEther.address, "cEther should be registered");
       const cOracle = await comptroller.oracle();
-      assert.isTrue(cOracle === oracleProxy.contractAddress, "oracle should be registered");
-      const cTokenPrice = await oracleProxy.getUnderlyingPrice(cToken.contractAddress);
+      assert.isTrue(cOracle === oracleProxy.address, "oracle should be registered");
+      const cTokenPrice = await oracleProxy.getUnderlyingPrice(cToken.address);
       assert.isTrue(cTokenPrice.eq(WAD.div(10)), "cToken price should be 1e17");
-      const cEtherPrice = await oracleProxy.getUnderlyingPrice(cEther.contractAddress);
+      const cEtherPrice = await oracleProxy.getUnderlyingPrice(cEther.address);
       assert.isTrue(cEtherPrice.eq(WAD), "cEther price should be 1e18");
     });
   });
@@ -177,9 +171,9 @@ contract("Invest Manager with Compound", (accounts) => {
       let tx; let
         txReceipt;
       // genrate borrows to create interests
-      await comptroller.from(borrower).enterMarkets([cEther.contractAddress, cToken.contractAddress]);
+      await comptroller.from(borrower).enterMarkets([cEther.address, cToken.address]);
       if (investInEth) {
-        await token.from(borrower).approve(cToken.contractAddress, parseEther("20"));
+        await token.from(borrower).approve(cToken.address, parseEther("20"));
         await cToken.from(borrower).mint(parseEther("20"));
         tx = await cEther.from(borrower).borrow(parseEther("0.1"));
         txReceipt = await cEther.verboseWaitForTransaction(tx);
@@ -204,9 +198,9 @@ contract("Invest Manager with Compound", (accounts) => {
       if (investInEth) {
         tx = await wallet.send(amount);
       } else {
-        await token.from(infrastructure).transfer(wallet.contractAddress, amount);
+        await token.from(infrastructure).transfer(wallet.address, amount);
       }
-      const params = [wallet.contractAddress, tokenAddress, amount, 0];
+      const params = [wallet.address, tokenAddress, amount, 0];
       if (relay) {
         txReceipt = await manager.relay(investManager, "addInvestment", params, wallet, [owner]);
       } else {
@@ -218,7 +212,7 @@ contract("Invest Manager with Compound", (accounts) => {
 
       await accrueInterests(days, investInEth);
 
-      const output = await investManager.getInvestment(wallet.contractAddress, tokenAddress);
+      const output = await investManager.getInvestment(wallet.address, tokenAddress);
       assert.isTrue(output._tokenValue > amount, "investment should have gained value");
 
       return output._tokenValue;
@@ -230,9 +224,9 @@ contract("Invest Manager with Compound", (accounts) => {
       const investInEth = (tokenAddress === ETH_TOKEN);
 
       await addInvestment(tokenAddress, parseEther("0.1"), 365, false);
-      const before = investInEth ? await cEther.balanceOf(wallet.contractAddress) : await cToken.balanceOf(wallet.contractAddress);
+      const before = investInEth ? await cEther.balanceOf(wallet.address) : await cToken.balanceOf(wallet.address);
 
-      const params = [wallet.contractAddress, tokenAddress, fraction];
+      const params = [wallet.address, tokenAddress, fraction];
       if (relay) {
         txReceipt = await manager.relay(investManager, "removeInvestment", params, wallet, [owner]);
       } else {
@@ -241,7 +235,7 @@ contract("Invest Manager with Compound", (accounts) => {
       }
       assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved"), "should have generated InvestmentRemoved event");
 
-      const after = investInEth ? await cEther.balanceOf(wallet.contractAddress) : await cToken.balanceOf(wallet.contractAddress);
+      const after = investInEth ? await cEther.balanceOf(wallet.address) : await cToken.balanceOf(wallet.address);
       assert.isTrue(after.eq(Math.ceil((before * (10000 - fraction)) / 10000)), "should have removed the correct fraction");
     }
 
@@ -249,11 +243,11 @@ contract("Invest Manager with Compound", (accounts) => {
       // Successes
 
       it("should invest in ERC20 for 1 year and gain interests (blockchain tx)", async () => {
-        await addInvestment(token.contractAddress, parseEther("1"), 365, false);
+        await addInvestment(token.address, parseEther("1"), 365, false);
       });
 
       it("should invest in ERC20 for 1 year and gain interests (relay tx)", async () => {
-        await addInvestment(token.contractAddress, parseEther("1"), 365, true);
+        await addInvestment(token.address, parseEther("1"), 365, true);
       });
 
       it("should invest in ETH for 1 year and gain interests (blockchain tx)", async () => {
@@ -267,17 +261,17 @@ contract("Invest Manager with Compound", (accounts) => {
       // Reverts
 
       it("should fail to invest in ERC20 with an unknown token", async () => {
-        const params = [wallet.contractAddress, ethers.constants.AddressZero, parseEther("1"), 0];
+        const params = [wallet.address, ethers.constants.AddressZero, parseEther("1"), 0];
         await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: No market for target token");
       });
 
       it("should fail to invest in ERC20 with an amount of zero", async () => {
-        const params = [wallet.contractAddress, token.contractAddress, 0, 0];
+        const params = [wallet.address, token.address, 0, 0];
         await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: amount cannot be 0");
       });
 
       it("should fail to invest in ERC20 when not holding any ERC20", async () => {
-        const params = [wallet.contractAddress, token.contractAddress, parseEther("1"), 0];
+        const params = [wallet.address, token.address, parseEther("1"), 0];
         await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: mint failed");
       });
     });
@@ -287,12 +281,12 @@ contract("Invest Manager with Compound", (accounts) => {
 
       function testRemoveERC20Investment(fraction, relay) {
         it(`should remove ${fraction / 100}% of an ERC20 investment (${relay ? "relay" : "blockchain"} tx)`, async () => {
-          await removeInvestment(token.contractAddress, fraction, relay);
+          await removeInvestment(token.address, fraction, relay);
         });
       }
       function testRemoveETHInvestment(fraction, relay) {
         it(`should remove ${fraction / 100}% of an ETH investment (${relay ? "relay" : "blockchain"} tx)`, async () => {
-          await removeInvestment(token.contractAddress, fraction, relay);
+          await removeInvestment(token.address, fraction, relay);
         });
       }
 
@@ -306,27 +300,27 @@ contract("Invest Manager with Compound", (accounts) => {
       // Reverts
 
       it("should fail to remove an ERC20 investment when passing an invalid fraction value", async () => {
-        const params = [wallet.contractAddress, token.contractAddress, 50000];
+        const params = [wallet.address, token.address, 50000];
         await assert.revertWith(investManager.from(owner).removeInvestment(...params), "CM: invalid fraction value");
       });
 
       it("should fail to remove an ERC20 investment when not holding any of the corresponding cToken", async () => {
-        const params = [wallet.contractAddress, token.contractAddress, 5000];
+        const params = [wallet.address, token.address, 5000];
         await assert.revertWith(investManager.from(owner).removeInvestment(...params), "CM: amount cannot be 0");
       });
 
       it("should fail to remove all of an ERC20 investment when it collateralizes a loan", async () => {
         const collateralAmount = parseEther("1");
         const debtAmount = parseEther("0.001");
-        await token.from(infrastructure).transfer(wallet.contractAddress, collateralAmount);
+        await token.from(infrastructure).transfer(wallet.address, collateralAmount);
         const openLoanParams = [
-          wallet.contractAddress,
-          token.contractAddress,
+          wallet.address,
+          token.address,
           collateralAmount,
           ETH_TOKEN,
           debtAmount];
         await investManager.from(owner).openLoan(...openLoanParams);
-        const removeInvestmentParams = [wallet.contractAddress, token.contractAddress, 10000];
+        const removeInvestmentParams = [wallet.address, token.address, 10000];
         await assert.revertWith(investManager.from(owner).removeInvestment(...removeInvestmentParams), "CM: redeem failed");
       });
     });

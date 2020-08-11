@@ -53,8 +53,8 @@ async function main() {
   const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
-  const CompoundRegistryWrapper = await deployer.wrapDeployedContract(CompoundRegistry, config.contracts.CompoundRegistry);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
+  const CompoundRegistryWrapper = await CompoundRegistry.at(config.contracts.CompoundRegistry);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
   if (add) {

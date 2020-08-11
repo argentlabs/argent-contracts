@@ -22,13 +22,13 @@ contract("KyberNetwork", (accounts) => {
 
   beforeEach(async () => {
     deployer = manager.newDeployer();
-    kyber = await deployer.deploy(KyberNetwork);
-    erc20 = await deployer.deploy(ERC20, {}, [kyber.contractAddress], ERC20_SUPPLY, ERC20_DECIMALS);
-    await kyber.addToken(erc20.contractAddress, ERC20_RATE, ERC20_DECIMALS);
+    kyber = await KyberNetwork.new();
+    erc20 = await ERC20.new([kyber.address], ERC20_SUPPLY, ERC20_DECIMALS);
+    await kyber.addToken(erc20.address, ERC20_RATE, ERC20_DECIMALS);
   });
 
   it("should return the expected rate for a token pair", async () => {
-    const rate = await kyber.getExpectedRate(erc20.contractAddress, ETH_TOKEN, 1);
+    const rate = await kyber.getExpectedRate(erc20.address, ETH_TOKEN, 1);
     assert.equal(rate[0], ERC20_RATE, "rate should be correct");
   });
 
@@ -36,7 +36,7 @@ contract("KyberNetwork", (accounts) => {
     const beforeERC20 = await erc20.balanceOf(trader);
     const beforeETH = await deployer.provider.getBalance(trader);
     assert.equal(beforeERC20.toNumber(), 0, "trader should have no ERC20");
-    await kyber.from(trader).trade(ETH_TOKEN, 10000, erc20.contractAddress, trader,
+    await kyber.from(trader).trade(ETH_TOKEN, 10000, erc20.address, trader,
       ethers.BigNumber.from("10000000000000000000000"), 1, "0x0000000000000000000000000000000000000000", { value: 10000 });
     const afterERC20 = await erc20.balanceOf(trader);
     const afterETH = await deployer.provider.getBalance(trader);
@@ -49,7 +49,7 @@ contract("KyberNetwork", (accounts) => {
     await kyber.trade(
       ETH_TOKEN,
       ethers.BigNumber.from("1000000000000000000"),
-      erc20.contractAddress,
+      erc20.address,
       trader,
       ethers.BigNumber.from("10000000000000000000000"),
       1,
@@ -61,8 +61,8 @@ contract("KyberNetwork", (accounts) => {
     assert.equal(beforeERC20 > 0, true, "trader should have some ERC20");
     // exchange ERC20
     const srcAmount = beforeERC20.div(ethers.BigNumber.from(2));
-    await erc20.from(trader).approve(kyber.contractAddress, srcAmount);
-    await kyber.from(trader).trade(erc20.contractAddress, srcAmount, ETH_TOKEN, trader,
+    await erc20.from(trader).approve(kyber.address, srcAmount);
+    await kyber.from(trader).trade(erc20.address, srcAmount, ETH_TOKEN, trader,
       ethers.BigNumber.from("10000000000000000000000"), 1, "0x0000000000000000000000000000000000000000");
     const afterERC20 = await erc20.balanceOf(trader);
     const afterETH = await deployer.provider.getBalance(trader);

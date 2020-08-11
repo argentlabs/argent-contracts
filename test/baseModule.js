@@ -24,43 +24,43 @@ contract("BaseModule", (accounts) => {
   });
 
   beforeEach(async () => {
-    registry = await deployer.deploy(Registry);
-    guardianStorage = await deployer.deploy(GuardianStorage);
-    token = await deployer.deploy(ERC20, {}, [owner], 10, 18);
+    registry = await Registry.new();
+    guardianStorage = await GuardianStorage.new();
+    token = await ERC20.new([owner], 10, 18);
 
-    baseModule = await deployer.deploy(BaseModule, {}, registry.contractAddress, guardianStorage.contractAddress);
+    baseModule = await BaseModule.new(registry.address, guardianStorage.address);
   });
 
   describe("Recover tokens", async () => {
     it("should be able to recover ERC20 tokens sent to the module", async () => {
-      let balance = await token.balanceOf(baseModule.contractAddress);
+      let balance = await token.balanceOf(baseModule.address);
       assert.equal(balance, 0);
 
-      await token.from(owner).transfer(baseModule.contractAddress, 10000000);
-      balance = await token.balanceOf(baseModule.contractAddress);
+      await token.from(owner).transfer(baseModule.address, 10000000);
+      balance = await token.balanceOf(baseModule.address);
       assert.equal(balance, 10000000);
 
-      await baseModule.recoverToken(token.contractAddress);
+      await baseModule.recoverToken(token.address);
 
-      balance = await token.balanceOf(baseModule.contractAddress);
+      balance = await token.balanceOf(baseModule.address);
       assert.equal(balance, 0);
 
-      const moduleregistryBalance = await token.balanceOf(registry.contractAddress);
+      const moduleregistryBalance = await token.balanceOf(registry.address);
       assert.equal(moduleregistryBalance, 10000000);
     });
 
     it("should be able to recover non-ERC20 compliant tokens sent to the module", async () => {
-      const nonCompliantToken = await deployer.deploy(NonCompliantERC20, {});
-      await nonCompliantToken.mint(baseModule.contractAddress, 10000000);
-      let balance = await nonCompliantToken.balanceOf(baseModule.contractAddress);
+      const nonCompliantToken = await NonCompliantERC20.new();
+      await nonCompliantToken.mint(baseModule.address, 10000000);
+      let balance = await nonCompliantToken.balanceOf(baseModule.address);
       assert.equal(balance, 10000000);
 
-      await baseModule.recoverToken(nonCompliantToken.contractAddress);
+      await baseModule.recoverToken(nonCompliantToken.address);
 
-      balance = await nonCompliantToken.balanceOf(baseModule.contractAddress);
+      balance = await nonCompliantToken.balanceOf(baseModule.address);
       assert.equal(balance, 0);
 
-      const moduleregistryBalance = await nonCompliantToken.balanceOf(registry.contractAddress);
+      const moduleregistryBalance = await nonCompliantToken.balanceOf(registry.address);
       assert.equal(moduleregistryBalance, 10000000);
     });
   });

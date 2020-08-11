@@ -31,20 +31,20 @@ contract("WalletFactory", (accounts) => {
   before(async () => {
     deployer = manager.newDeployer();
 
-    implementation = await deployer.deploy(BaseWallet);
-    moduleRegistry = await deployer.deploy(ModuleRegistry);
-    guardianStorage = await deployer.deploy(GuardianStorage);
-    factory = await deployer.deploy(Factory, {},
-      moduleRegistry.contractAddress,
-      implementation.contractAddress,
-      guardianStorage.contractAddress);
+    implementation = await BaseWallet.new();
+    moduleRegistry = await ModuleRegistry.new();
+    guardianStorage = await GuardianStorage.new();
+    factory = await Factory.new(
+      moduleRegistry.address,
+      implementation.address,
+      guardianStorage.address);
     await factory.addManager(infrastructure);
   });
 
   async function deployVersionManager() {
-    const vm = await deployer.deploy(VersionManager, {},
-      moduleRegistry.contractAddress,
-      guardianStorage.contractAddress,
+    const vm = await VersionManager.new(
+      moduleRegistry.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
@@ -54,31 +54,31 @@ contract("WalletFactory", (accounts) => {
 
   beforeEach(async () => {
     // Restore the good state of factory (we set these to bad addresses in some tests)
-    await factory.changeModuleRegistry(moduleRegistry.contractAddress);
+    await factory.changeModuleRegistry(moduleRegistry.address);
 
     versionManager = await deployVersionManager();
-    await moduleRegistry.registerModule(versionManager.contractAddress, ethers.utils.formatBytes32String("versionManager"));
+    await moduleRegistry.registerModule(versionManager.address, ethers.utils.formatBytes32String("versionManager"));
   });
 
   describe("Create and configure the factory", () => {
     it("should not allow to be created with empty ModuleRegistry", async () => {
-      await assert.revertWith(deployer.deploy(Factory, {},
+      await assert.revertWith(Factory.new(
         ZERO_ADDRESS,
-        implementation.contractAddress,
-        guardianStorage.contractAddress), "WF: ModuleRegistry address not defined");
+        implementation.address,
+        guardianStorage.address), "WF: ModuleRegistry address not defined");
     });
 
     it("should not allow to be created with empty WalletImplementation", async () => {
-      await assert.revertWith(deployer.deploy(Factory, {},
-        moduleRegistry.contractAddress,
+      await assert.revertWith(Factory.new(
+        moduleRegistry.address,
         ZERO_ADDRESS,
-        guardianStorage.contractAddress), "WF: WalletImplementation address not defined");
+        guardianStorage.address), "WF: WalletImplementation address not defined");
     });
 
     it("should not allow to be created with empty GuardianStorage", async () => {
       await assert.revertWith(deployer.deploy(Factory, {},
-        moduleRegistry.contractAddress,
-        implementation.contractAddress,
+        moduleRegistry.address,
+        implementation.address,
         ZERO_ADDRESS), "WF: GuardianStorage address not defined");
     });
 
@@ -116,36 +116,36 @@ contract("WalletFactory", (accounts) => {
 
     it("should return the correct ENSManager", async () => {
       const ensManagerOnFactory = await factory.ensManager();
-      assert.equal(ensManagerOnFactory, ensManager.contractAddress, "should have the correct ENSManager addrress");
+      assert.equal(ensManagerOnFactory, ensManager.address, "should have the correct ENSManager addrress");
     });
   });
 
   describe("Create wallets with CREATE", () => {
     it("should create with the correct owner", async () => {
       // we create the wallet
-      const tx = await factory.from(infrastructure).createWallet(owner, versionManager.contractAddress, guardian, 1);
+      const tx = await factory.from(infrastructure).createWallet(owner, versionManager.address, guardian, 1);
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       // we test that the wallet has the correct owner
-      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
+      const wallet = await BaseWallet.at(walletAddr);
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner, "should have the correct owner");
     });
 
     it("should create with the correct module", async () => {
       // we create the wallet
-      const tx = await factory.from(infrastructure).createWallet(owner, versionManager.contractAddress, guardian, 1);
+      const tx = await factory.from(infrastructure).createWallet(owner, versionManager.address, guardian, 1);
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       // we test that the wallet has the correct module
       const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
-      const isAuthorised = await wallet.authorised(versionManager.contractAddress);
+      const isAuthorised = await wallet.authorised(versionManager.address);
       assert.equal(isAuthorised, true, "versionManager should be authorised");
     });
 
     it("should create with the correct guardian", async () => {
       // we create the wallet
-      const tx = await factory.from(infrastructure).createWallet(owner, versionManager.contractAddress, guardian, 1);
+      const tx = await factory.from(infrastructure).createWallet(owner, versionManager.address, guardian, 1);
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       // we test that the wallet has the correct guardian
@@ -158,7 +158,7 @@ contract("WalletFactory", (accounts) => {
       await versionManager.addVersion([], []);
       await versionManager.setMinVersion(await versionManager.lastVersion());
       // we create the wallet
-      const tx = await factory.from(infrastructure).createWallet(owner, versionManager.contractAddress, guardian, badVersion);
+      const tx = await factory.from(infrastructure).createWallet(owner, versionManager.address, guardian, badVersion);
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       assert.notEqual(walletAddr, ZERO_ADDRESS, "wallet should be created");
@@ -166,7 +166,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should fail to create when the guardian is empty", async () => {
       // we create the wallet
-      await assert.revertWith(factory.from(infrastructure).createWallet(owner, versionManager.contractAddress, ZERO_ADDRESS, 1),
+      await assert.revertWith(factory.from(infrastructure).createWallet(owner, versionManager.address, ZERO_ADDRESS, 1),
         "WF: guardian cannot be null");
     });
 
@@ -177,7 +177,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should fail to create with zero address as owner", async () => {
       await assert.revertWith(
-        factory.from(infrastructure).createWallet(ethers.constants.AddressZero, versionManager.contractAddress, guardian, 1),
+        factory.from(infrastructure).createWallet(ethers.constants.AddressZero, versionManager.address, guardian, 1),
         "WF: owner cannot be null",
       );
     });
@@ -192,16 +192,16 @@ contract("WalletFactory", (accounts) => {
   describe("Create wallets with CREATE2", () => {
     beforeEach(async () => {
       versionManager = await deployVersionManager();
-      await moduleRegistry.registerModule(versionManager.contractAddress, ethers.utils.formatBytes32String("versionManager"));
+      await moduleRegistry.registerModule(versionManager.address, ethers.utils.formatBytes32String("versionManager"));
     });
 
     it("should create a wallet at the correct address", async () => {
       const salt = utils.generateSaltValue();
       // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.contractAddress, guardian, salt, 1);
+      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.address, guardian, salt, 1);
       // we create the wallet
       const tx = await factory.from(infrastructure).createCounterfactualWallet(
-        owner, versionManager.contractAddress, guardian, salt, 1,
+        owner, versionManager.address, guardian, salt, 1,
       );
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
@@ -212,17 +212,17 @@ contract("WalletFactory", (accounts) => {
     it("should create with the correct owner", async () => {
       const salt = utils.generateSaltValue();
       // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.contractAddress, guardian, salt, 1);
+      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.address, guardian, salt, 1);
       // we create the wallet
       const tx = await factory.from(infrastructure).createCounterfactualWallet(
-        owner, versionManager.contractAddress, guardian, salt, 1,
+        owner, versionManager.address, guardian, salt, 1,
       );
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct owner
-      const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
+      const wallet = await BaseWallet.at(walletAddr);
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner, "should have the correct owner");
     });
@@ -230,10 +230,10 @@ contract("WalletFactory", (accounts) => {
     it("should create with the correct modules", async () => {
       const salt = utils.generateSaltValue();
       // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.contractAddress, guardian, salt, 1);
+      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.address, guardian, salt, 1);
       // we create the wallet
       const tx = await factory.from(infrastructure).createCounterfactualWallet(
-        owner, versionManager.contractAddress, guardian, salt, 1,
+        owner, versionManager.address, guardian, salt, 1,
       );
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
@@ -241,7 +241,7 @@ contract("WalletFactory", (accounts) => {
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct modules
       const wallet = await deployer.wrapDeployedContract(BaseWallet, walletAddr);
-      const isAuthorised = await wallet.authorised(versionManager.contractAddress);
+      const isAuthorised = await wallet.authorised(versionManager.address);
       assert.equal(isAuthorised, true, "versionManager should be authorised");
     });
 
@@ -253,11 +253,11 @@ contract("WalletFactory", (accounts) => {
       const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(
-        owner, versionManager.contractAddress, guardian, salt, badVersion,
+        owner, versionManager.address, guardian, salt, badVersion,
       );
       // we create the wallet
       const tx = await factory.from(deployer).createCounterfactualWallet(
-        owner, versionManager.contractAddress, guardian, salt, badVersion,
+        owner, versionManager.address, guardian, salt, badVersion,
       );
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
@@ -268,10 +268,10 @@ contract("WalletFactory", (accounts) => {
     it("should create with the correct guardian", async () => {
       const salt = utils.generateSaltValue();
       // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.contractAddress, guardian, salt, 1);
+      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.address, guardian, salt, 1);
       // we create the wallet
       const tx = await factory.from(infrastructure).createCounterfactualWallet(
-        owner, versionManager.contractAddress, guardian, salt, 1,
+        owner, versionManager.address, guardian, salt, 1,
       );
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
@@ -285,10 +285,10 @@ contract("WalletFactory", (accounts) => {
     it("should fail to create a wallet at an existing address", async () => {
       const salt = utils.generateSaltValue();
       // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.contractAddress, guardian, salt, 1);
+      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.address, guardian, salt, 1);
       // we create the first wallet
       const tx = await factory.from(infrastructure).createCounterfactualWallet(
-        owner, versionManager.contractAddress, guardian, salt, 1,
+        owner, versionManager.address, guardian, salt, 1,
       );
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
@@ -296,7 +296,7 @@ contract("WalletFactory", (accounts) => {
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we create the second wallet
       await assert.revert(
-        factory.from(infrastructure).createCounterfactualWallet(owner, versionManager.contractAddress, guardian, salt, 1),
+        factory.from(infrastructure).createCounterfactualWallet(owner, versionManager.address, guardian, salt, 1),
         "should fail when address is in use",
       );
     });
@@ -314,7 +314,7 @@ contract("WalletFactory", (accounts) => {
     it("should fail to create when the guardian is empty", async () => {
       const salt = utils.generateSaltValue();
       await assert.revertWith(
-        factory.from(infrastructure).createCounterfactualWallet(owner, versionManager.contractAddress, ZERO_ADDRESS, salt, 1),
+        factory.from(infrastructure).createCounterfactualWallet(owner, versionManager.address, ZERO_ADDRESS, salt, 1),
         "WF: guardian cannot be null",
       );
     });
@@ -323,15 +323,15 @@ contract("WalletFactory", (accounts) => {
       const salt = utils.generateSaltValue();
       const amount = ethers.BigNumber.from("10000000000000");
       // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.contractAddress, guardian, salt, 1);
+      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.address, guardian, salt, 1);
       // We send ETH to the address
       await futureAddr.send(amount);
       // we create the wallet
       const tx = await factory.from(infrastructure).createCounterfactualWallet(
-        owner, versionManager.contractAddress, guardian, salt, 1,
+        owner, versionManager.address, guardian, salt, 1,
       );
       const txReceipt = await factory.verboseWaitForTransaction(tx);
-      const wallet = deployer.wrapDeployedContract(BaseWallet, futureAddr);
+      const wallet = await BaseWallet.at(futureAddr);
       assert.isTrue(await utils.hasEvent(txReceipt, wallet, "Received"), "should have generated Received event");
       const log = await utils.parseLogs(txReceipt, wallet, "Received");
       assert.equal(log[0].value.toNumber(), amount, "should log the correct amount");
@@ -341,7 +341,7 @@ contract("WalletFactory", (accounts) => {
     it("should fail to get an address when the guardian is empty", async () => {
       const salt = utils.generateSaltValue();
       await assert.revertWith(
-        factory.from(infrastructure).getAddressForCounterfactualWallet(owner, versionManager.contractAddress, ZERO_ADDRESS, salt, 1),
+        factory.from(infrastructure).getAddressForCounterfactualWallet(owner, versionManager.address, ZERO_ADDRESS, salt, 1),
         "WF: guardian cannot be null",
       );
     });

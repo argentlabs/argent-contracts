@@ -13,7 +13,7 @@ class ABIUploaderS3 {
 
   async upload(contractWrapper, folder) {
     const { contractName } = contractWrapper._contract;
-    const filename = contractWrapper.contractAddress;
+    const filename = contractWrapper.address;
 
     console.log(`Uploading ${contractName} ABI to AWS...`);
 

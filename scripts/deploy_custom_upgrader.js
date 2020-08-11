@@ -28,8 +28,8 @@ async function deploy() {
   const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
-  const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
+  const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
   const UpgraderWrapper = await deployer.deploy(
@@ -40,7 +40,7 @@ async function deploy() {
   );
 
   await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader",
-    [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+    [UpgraderWrapper.address, utils.asciiToBytes32(upgraderName)]);
 }
 
 module.exports = {

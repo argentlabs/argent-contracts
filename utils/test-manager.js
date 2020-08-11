@@ -60,8 +60,8 @@ class TestManager {
     const methodData = _module.contract.interface.functions[_method].encode(_params);
     const signatures = await signOffchain(
       _signers,
-      this.relayerManager.contractAddress,
-      _module.contractAddress,
+      this.relayerManager.address,
+      _module.address,
       0,
       methodData,
       this.getChainId(),
@@ -73,8 +73,8 @@ class TestManager {
     );
     if (_estimate === true) {
       const gasUsed = await this.relayerManager.estimate.execute(
-        _wallet.contractAddress,
-        _module.contractAddress,
+        _wallet.address,
+        _module.address,
         methodData,
         nonce,
         signatures,
@@ -87,8 +87,8 @@ class TestManager {
       return gasUsed;
     }
     const tx = await this.relayerManager.from(_relayer).execute(
-      _wallet.contractAddress,
-      _module.contractAddress,
+      _wallet.address,
+      _module.address,
       methodData,
       nonce,
       signatures,

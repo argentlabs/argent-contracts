@@ -52,19 +52,19 @@ async function deploy() {
   const pip = await deployer.deploy(DSValue);
   const pep = await deployer.deploy(DSValue);
   const tub = await deployer.deploy(Tub, {},
-    sai.contractAddress,
-    sin.contractAddress,
-    skr.contractAddress,
-    gem.contractAddress,
-    gov.contractAddress,
-    pip.contractAddress,
-    pep.contractAddress,
-    vox.contractAddress,
+    sai.address,
+    sin.address,
+    skr.address,
+    gem.address,
+    gov.address,
+    pip.address,
+    pep.address,
+    vox.address,
     manager);
 
   // let the Tub mint PETH and DAI
-  await skr.setOwner(tub.contractAddress);
-  await sai.setOwner(tub.contractAddress);
+  await skr.setOwner(tub.address);
+  await sai.setOwner(tub.address);
   // setup USD/ETH oracle with a convertion rate of 100 USD/ETH
   await pip.poke(`0x${USD_PER_ETH.toHexString().slice(2).padStart(64, "0")}`);
   // setup USD/MKR oracle with a convertion rate of 400 USD/MKR
@@ -82,7 +82,7 @@ async function deploy() {
 
   const uniswapFactory = await deployer.deploy(UniswapFactory);
   const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
-  await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress);
+  await uniswapFactory.initializeFactory(uniswapTemplateExchange.address);
 
   /* *************** create MKR exchange ***************** */
 
@@ -90,23 +90,23 @@ async function deploy() {
   const mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
   await gov["mint(address,uint256)"](manager, mkrLiquidity);
 
-  await uniswapFactory.createExchange(gov.contractAddress, { gasLimit: 450000 });
+  await uniswapFactory.createExchange(gov.address, { gasLimit: 450000 });
   let exchange = "0x0000000000000000000000000000000000000000";
   while (exchange === "0x0000000000000000000000000000000000000000") {
-    exchange = await uniswapFactory.getExchange(gov.contractAddress);
+    exchange = await uniswapFactory.getExchange(gov.address);
     console.log("exchange: ", exchange);
     await sleep(5000);
   }
-  const mkrExchange = await deployer.wrapDeployedContract(UniswapExchange, exchange);
-  await gov.approve(mkrExchange.contractAddress, mkrLiquidity);
+  const mkrExchange = await UniswapExchange.at(exchange);
+  await gov.approve(mkrExchange.address, mkrLiquidity);
   const timestamp = await getTimestamp(deployer);
   await mkrExchange.addLiquidity(1, mkrLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 250000 });
 
   console.log("******* contracts *******");
-  console.log(`DAI: ${sai.contractAddress}`);
-  console.log(`MKR: ${gov.contractAddress}`);
-  console.log(`MAKER TUB: ${tub.contractAddress}`);
-  console.log(`UNISWAP FACTORY: ${uniswapFactory.contractAddress}`);
+  console.log(`DAI: ${sai.address}`);
+  console.log(`MKR: ${gov.address}`);
+  console.log(`MAKER TUB: ${tub.address}`);
+  console.log(`UNISWAP FACTORY: ${uniswapFactory.address}`);
   console.log("********************************");
 }
 

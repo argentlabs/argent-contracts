@@ -21,7 +21,7 @@ contract("Managed and Owned", (accounts) => {
   });
 
   beforeEach(async () => {
-    managed = await deployer.deploy(Managed);
+    managed = await Managed.new();
   });
 
   describe("Owned contract logic", () => {
