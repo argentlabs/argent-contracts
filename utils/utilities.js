@@ -41,6 +41,7 @@ module.exports = {
       to,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(value), 32),
       data,
+      ethers.utils.hexZeroPad("0x01", 32), // chainId
       nonce,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(gasPrice), 32),
       ethers.utils.hexZeroPad(ethers.utils.hexlify(gasLimit), 32),
