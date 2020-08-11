@@ -630,8 +630,6 @@ abstract contract MakerV2Loan is MakerV2Base {
         internal
     {
         verifyValidRepayment(_cdpId, _amount);
-        // Convert some ETH into DAI with Uniswap if necessary
-        buyTokens(_wallet, daiToken, _amount, daiUniswap);
         // Move the DAI from the wallet to the vat.
         joinDebt(_wallet, _cdpId, _amount);
         // Get the accumulated rate for the collateral type
