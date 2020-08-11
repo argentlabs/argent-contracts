@@ -148,6 +148,10 @@ describe("Approved Transfer", function () {
       );
     }
 
+    it("should fail to transfer ETH on a wallet with no guardian", async () => {
+      await expectFailingTransferToken(ETH_TOKEN, [owner], "AT: no guardians set on wallet");
+    });
+
     describe("Approved by EOA guardians", () => {
       describe("1 guardian", () => {
         beforeEach(async () => {
@@ -246,6 +250,22 @@ describe("Approved Transfer", function () {
   });
 
   describe("Contract call", () => {
+    it("should fail to call contract on a wallet with no guardian", async () => {
+      contract = await deployer.deploy(TestContract);
+      const dataToTransfer = contract.contract.interface.functions.setState.encode([1]);
+
+      await assert.revertWith(
+        manager.relay(
+          approvedTransfer,
+          "callContract",
+          [wallet.contractAddress, contract.contractAddress, amountToTransfer, dataToTransfer],
+          wallet,
+          [owner],
+        ),
+        "AT: no guardians set on wallet",
+      );
+    });
+
     describe("Approved by 1 EOA and 2 smart-contract guardians", () => {
       beforeEach(async () => {
         contract = await deployer.deploy(TestContract);

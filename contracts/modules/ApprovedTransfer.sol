@@ -171,7 +171,9 @@ contract ApprovedTransfer is BaseTransfer {
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         // owner  + [n/2] guardians
-        uint numberOfSignatures = 1 + Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
+        uint numberOfGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
+        require(numberOfGuardians > 0, "AT: no guardians set on wallet");
+        uint numberOfSignatures = 1 + numberOfGuardians;
         return (numberOfSignatures, OwnerSignature.Required);
     }
 }
