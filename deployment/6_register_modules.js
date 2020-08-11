@@ -92,7 +92,7 @@ const deploy = async (network) => {
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
-      [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
+      [wrapper.address, utils.asciiToBytes32(wrapper._contract.contractName)]);
   }
 
   const changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
@@ -102,7 +102,7 @@ const deploy = async (network) => {
   // Upload Version
   // //////////////////////////////////
 
-  const modules = wrappers.map((wrapper) => ({ address: wrapper.contractAddress, name: wrapper._contract.contractName }));
+  const modules = wrappers.map((wrapper) => ({ address: wrapper.address, name: wrapper._contract.contractName }));
   const version = {
     modules,
     fingerprint: utils.versionFingerprint(modules),

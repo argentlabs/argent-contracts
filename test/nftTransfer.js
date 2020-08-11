@@ -8,7 +8,7 @@ const VersionManager = artifacts.require("VersionManager");
 const RelayerManager = artifacts.require("RelayerManager");
 const LockStorage = artifacts.require("LockStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
-const NftModule = artifacts.require("NftTransfer");
+const NftTransfer = artifacts.require("NftTransfer");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 const ERC721 = artifacts.require("TestERC721");
@@ -30,7 +30,6 @@ contract("NftTransfer", (accounts) => {
   const eoaRecipient = accounts[3];
   const tokenId = 1;
 
-  let deployer;
   let nftFeature;
   let walletImplementation;
   let relayerManager;
@@ -46,63 +45,62 @@ contract("NftTransfer", (accounts) => {
   let versionManager;
 
   before(async () => {
-    deployer = manager.newDeployer();
-    const registry = await deployer.deploy(Registry);
-    walletImplementation = await deployer.deploy(BaseWallet);
+    const registry = await Registry.new();
+    walletImplementation = await BaseWallet.new();
 
-    const guardianStorage = await deployer.deploy(GuardianStorage);
-    lockStorage = await deployer.deploy(LockStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
+    const guardianStorage = await GuardianStorage.new();
+    lockStorage = await LockStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
-    relayerManager = await deployer.deploy(RelayerManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
+      versionManager.address);
     manager.setRelayerManager(relayerManager);
-    ck = await deployer.deploy(CK);
-    tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
+    ck = await CK.new();
+    tokenPriceRegistry = await TokenPriceRegistry.new();
     await tokenPriceRegistry.addManager(infrastructure);
-    nftFeature = await deployer.deploy(NftTransfer, {},
-      lockStorage.contractAddress,
-      tokenPriceRegistry.contractAddress,
-      versionManager.contractAddress,
-      ck.contractAddress);
-    erc20Approver = await deployer.deploy(ERC20Approver, {}, versionManager.contractAddress);
+    nftFeature = await NftTransfer.new(
+      lockStorage.address,
+      tokenPriceRegistry.address,
+      versionManager.address,
+      ck.address);
+    erc20Approver = await ERC20Approver.new(versionManager.address);
 
-    await versionManager.addVersion([erc20Approver.contractAddress, nftFeature.contractAddress, relayerManager.contractAddress], []);
+    await versionManager.addVersion([erc20Approver.address, nftFeature.address, relayerManager.address], []);
   });
 
   beforeEach(async () => {
-    const proxy1 = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet1 = deployer.wrapDeployedContract(BaseWallet, proxy1.contractAddress);
-    const proxy2 = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy2.contractAddress);
+    const proxy1 = await Proxy.new(walletImplementation.address);
+    wallet1 = await BaseWallet.at(proxy1.address);
+    const proxy2 = await Proxy.new(walletImplementation.address);
+    wallet2 = await BaseWallet.at(proxy2.address);
 
-    await wallet1.init(owner1, [versionManager.contractAddress]);
-    await wallet2.init(owner2, [versionManager.contractAddress]);
-    await versionManager.from(owner1).upgradeWallet(wallet1.contractAddress, await versionManager.lastVersion());
-    await versionManager.from(owner2).upgradeWallet(wallet2.contractAddress, await versionManager.lastVersion());
+    await wallet1.init(owner1, [versionManager.address]);
+    await wallet2.init(owner2, [versionManager.address]);
+    await versionManager.from(owner1).upgradeWallet(wallet1.address, await versionManager.lastVersion());
+    await versionManager.from(owner2).upgradeWallet(wallet2.address, await versionManager.lastVersion());
 
-    erc721 = await deployer.deploy(ERC721);
-    await erc721.mint(wallet1.contractAddress, tokenId);
+    erc721 = await ERC721.new();
+    await erc721.mint(wallet1.address, tokenId);
   });
 
   describe("NFT transfers", () => {
     async function testNftTransfer({
       safe = true, relayed, recipientAddress, nftContract = erc721, nftId = tokenId, shouldSucceed = true, expectedError,
     }) {
-      const beforeWallet1 = await nftContract.balanceOf(wallet1.contractAddress);
+      const beforeWallet1 = await nftContract.balanceOf(wallet1.address);
       const beforeRecipient = await nftContract.balanceOf(recipientAddress);
       if (relayed) {
         const txReceipt = await manager.relay(nftFeature, "transferNFT",
-          [wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32], wallet1, [owner1]);
+          [wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32], wallet1, [owner1]);
         const { success, error } = parseRelayReceipt(txReceipt);
         assert.equal(success, shouldSucceed);
         if (!shouldSucceed) {
@@ -110,7 +108,7 @@ contract("NftTransfer", (accounts) => {
         }
       } else {
         const txPromise = nftFeature.from(owner1)
-          .transferNFT(wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32, { gasLimit: 300000 });
+          .transferNFT(wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32, { gasLimit: 300000 });
         if (shouldSucceed) {
           await txPromise;
         } else {
@@ -118,7 +116,7 @@ contract("NftTransfer", (accounts) => {
         }
       }
       if (shouldSucceed) {
-        const afterWallet1 = await nftContract.balanceOf(wallet1.contractAddress);
+        const afterWallet1 = await nftContract.balanceOf(wallet1.address);
         const afterRecipient = await nftContract.balanceOf(recipientAddress);
         assert.equal(beforeWallet1.sub(afterWallet1).toNumber(), 1, `wallet1 should have one less NFT (safe: ${safe}, relayed: ${relayed})`);
         assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more NFT (safe: ${safe}, relayed: ${relayed})`);
@@ -145,37 +143,37 @@ contract("NftTransfer", (accounts) => {
 
     describe("transfer to other wallet", () => {
       it("should allow unsafe NFT transfer from wallet1 to wallet2", async () => {
-        await testNftTransfer({ safe: false, relayed: false, recipientAddress: wallet2.contractAddress });
+        await testNftTransfer({ safe: false, relayed: false, recipientAddress: wallet2.address });
       });
 
       it("should allow safe NFT transfer from wallet1 to wallet2", async () => {
-        await testNftTransfer({ safe: true, relayed: false, recipientAddress: wallet2.contractAddress });
+        await testNftTransfer({ safe: true, relayed: false, recipientAddress: wallet2.address });
       });
 
       it("should allow unsafe NFT transfer from wallet1 to wallet2 (relayed)", async () => {
-        await testNftTransfer({ safe: false, relayed: true, recipientAddress: wallet2.contractAddress });
+        await testNftTransfer({ safe: false, relayed: true, recipientAddress: wallet2.address });
       });
 
       it("should allow safe NFT transfer from wallet1 to wallet2 (relayed)", async () => {
-        await testNftTransfer({ safe: true, relayed: true, recipientAddress: wallet2.contractAddress });
+        await testNftTransfer({ safe: true, relayed: true, recipientAddress: wallet2.address });
       });
     });
 
     describe("CK transfer", () => {
       beforeEach(async () => {
-        await ck.createDumbKitty(wallet1.contractAddress);
+        await ck.createDumbKitty(wallet1.address);
         ckId = (ckId === undefined) ? 0 : ckId + 1; // update the id of the CryptoKitty that was just created
       });
 
       it("should allow CK transfer from wallet1 to wallet2", async () => {
         await testNftTransfer({
-          relayed: false, nftId: ckId, nftContract: ck, recipientAddress: wallet2.contractAddress,
+          relayed: false, nftId: ckId, nftContract: ck, recipientAddress: wallet2.address,
         });
       });
 
       it("should allow CK transfer from wallet1 to wallet2 (relayed)", async () => {
         await testNftTransfer({
-          relayed: true, nftId: ckId, nftContract: ck, recipientAddress: wallet2.contractAddress,
+          relayed: true, nftId: ckId, nftContract: ck, recipientAddress: wallet2.address,
         });
       });
 
@@ -194,12 +192,12 @@ contract("NftTransfer", (accounts) => {
 
     describe("Protecting from transferFrom hijacking", () => {
       beforeEach(async () => {
-        erc20 = await deployer.deploy(ERC20, {}, [wallet1.contractAddress], 1000, 18);
-        tokenPriceRegistry.setPriceForTokenList([erc20.contractAddress], [1]);
+        erc20 = await ERC20.new([wallet1.address], 1000, 18);
+        tokenPriceRegistry.setPriceForTokenList([erc20.address], [1]);
         await erc20Approver.from(owner1).approveERC20(
-          wallet1.contractAddress,
-          erc20.contractAddress,
-          wallet1.contractAddress, // spender
+          wallet1.address,
+          erc20.address,
+          wallet1.address, // spender
           100,
         ); // amount
       });
@@ -212,7 +210,7 @@ contract("NftTransfer", (accounts) => {
           relayed: false,
           nftId: 100,
           nftContract: erc20,
-          recipientAddress: wallet2.contractAddress,
+          recipientAddress: wallet2.address,
         });
       });
 
@@ -224,7 +222,7 @@ contract("NftTransfer", (accounts) => {
           relayed: true,
           nftId: 100,
           nftContract: erc20,
-          recipientAddress: wallet2.contractAddress,
+          recipientAddress: wallet2.address,
         });
       });
     });

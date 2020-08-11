@@ -64,21 +64,19 @@ contract("Loan Module", (accounts) => {
     /* Deploy Compound V2 Architecture */
 
     // deploy price oracle
-    oracle = await deployer.deploy(PriceOracle);
+    oracle = await PriceOracle.new();
     // deploy comptroller
-    const comptrollerProxy = await deployer.deploy(Unitroller);
-    const comptrollerImpl = await deployer.deploy(Comptroller);
-    await comptrollerProxy._setPendingImplementation(comptrollerImpl.contractAddress);
-    await comptrollerImpl._become(comptrollerProxy.contractAddress, oracle.contractAddress, WAD.div(10), 5, false);
-    comptroller = deployer.wrapDeployedContract(Comptroller, comptrollerProxy.contractAddress);
+    const comptrollerProxy = await Unitroller.new();
+    const comptrollerImpl = await Comptroller.new();
+    await comptrollerProxy._setPendingImplementation(comptrollerImpl.address);
+    await comptrollerImpl._become(comptrollerProxy.address, oracle.address, WAD.div(10), 5, false);
+    comptroller = await Comptroller.at(comptrollerProxy.address);
     // deploy Interest rate model
-    const interestModel = await deployer.deploy(InterestModel, {}, WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
+    const interestModel = await InterestModel.new(WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
     // deploy CEther
-    cEther = await deployer.deploy(
-      CEther,
-      {},
-      comptroller.contractAddress,
-      interestModel.contractAddress,
+    cEther = await CEther.new(
+      comptroller.address,
+      interestModel.address,
       ETH_EXCHANGE_RATE,
       "Compound Ether",
       "cETH",
@@ -86,26 +84,22 @@ contract("Loan Module", (accounts) => {
     );
 
     // deploy token
-    token1 = await deployer.deploy(ERC20, {}, [infrastructure, liquidityProvider, borrower], 10000000, 18);
-    token2 = await deployer.deploy(ERC20, {}, [infrastructure, liquidityProvider, borrower], 10000000, 18);
+    token1 = await ERC20.new([infrastructure, liquidityProvider, borrower], 10000000, 18);
+    token2 = await ERC20.new([infrastructure, liquidityProvider, borrower], 10000000, 18);
     // deploy CToken
-    cToken1 = await deployer.deploy(
-      CErc20,
-      {},
-      token1.contractAddress,
-      comptroller.contractAddress,
-      interestModel.contractAddress,
+    cToken1 = await CErc20.new(
+      token1.address,
+      comptroller.address,
+      interestModel.address,
       ETH_EXCHANGE_RATE,
       "Compound Token 1",
       "cTOKEN1",
       18,
     );
-    cToken2 = await deployer.deploy(
-      CErc20,
-      {},
-      token2.contractAddress,
-      comptroller.contractAddress,
-      interestModel.contractAddress,
+    cToken2 = await CErc20.new(
+      token2.address,
+      comptroller.address,
+      interestModel.address,
       ETH_EXCHANGE_RATE,
       "Compound Token 2",
       "cTOKEN2",
@@ -113,95 +107,93 @@ contract("Loan Module", (accounts) => {
     );
 
     // add price to Oracle
-    await oracle.setUnderlyingPrice(cToken1.contractAddress, WAD.div(10));
-    await oracle.setUnderlyingPrice(cToken2.contractAddress, WAD.div(10));
+    await oracle.setUnderlyingPrice(cToken1.address, WAD.div(10));
+    await oracle.setUnderlyingPrice(cToken2.address, WAD.div(10));
     // list cToken in Comptroller
-    await comptroller._supportMarket(cEther.contractAddress);
-    await comptroller._supportMarket(cToken1.contractAddress);
-    await comptroller._supportMarket(cToken2.contractAddress);
+    await comptroller._supportMarket(cEther.address);
+    await comptroller._supportMarket(cToken1.address);
+    await comptroller._supportMarket(cToken2.address);
     // deploy Price Oracle proxy
-    oracleProxy = await deployer.deploy(PriceOracleProxy, {}, comptroller.contractAddress, oracle.contractAddress, cEther.contractAddress);
-    await comptroller._setPriceOracle(oracleProxy.contractAddress);
+    oracleProxy = await PriceOracleProxy.new(comptroller.address, oracle.address, cEther.address);
+    await comptroller._setPriceOracle(oracleProxy.address);
     // set collateral factor
-    await comptroller._setCollateralFactor(cToken1.contractAddress, WAD.div(10));
-    await comptroller._setCollateralFactor(cToken2.contractAddress, WAD.div(10));
-    await comptroller._setCollateralFactor(cEther.contractAddress, WAD.div(10));
+    await comptroller._setCollateralFactor(cToken1.address, WAD.div(10));
+    await comptroller._setCollateralFactor(cToken2.address, WAD.div(10));
+    await comptroller._setCollateralFactor(cEther.address, WAD.div(10));
 
     // add liquidity to tokens
     await cEther.from(liquidityProvider).mint({ value: parseEther("100") });
-    await token1.from(liquidityProvider).approve(cToken1.contractAddress, parseEther("10"));
+    await token1.from(liquidityProvider).approve(cToken1.address, parseEther("10"));
     await cToken1.from(liquidityProvider).mint(parseEther("10"));
-    await token2.from(liquidityProvider).approve(cToken2.contractAddress, parseEther("10"));
+    await token2.from(liquidityProvider).approve(cToken2.address, parseEther("10"));
     await cToken2.from(liquidityProvider).mint(parseEther("10"));
 
     /* Deploy Argent Architecture */
 
-    compoundRegistry = await deployer.deploy(CompoundRegistry);
-    await compoundRegistry.addCToken(ETH_TOKEN, cEther.contractAddress);
-    await compoundRegistry.addCToken(token1.contractAddress, cToken1.contractAddress);
-    await compoundRegistry.addCToken(token2.contractAddress, cToken2.contractAddress);
-    const registry = await deployer.deploy(Registry);
-    const guardianStorage = await deployer.deploy(GuardianStorage);
-    const lockStorage = await deployer.deploy(LockStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    compoundRegistry = await CompoundRegistry.new();
+    await compoundRegistry.addCToken(ETH_TOKEN, cEther.address);
+    await compoundRegistry.addCToken(token1.address, cToken1.address);
+    await compoundRegistry.addCToken(token2.address, cToken2.address);
+    const registry = await Registry.new();
+    const guardianStorage = await GuardianStorage.new();
+    const lockStorage = await LockStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
-    loanManager = await deployer.deploy(
-      CompoundManager,
-      {},
-      lockStorage.contractAddress,
-      comptroller.contractAddress,
-      compoundRegistry.contractAddress,
-      versionManager.contractAddress,
+    loanManager = await CompoundManager.new(
+      lockStorage.address,
+      comptroller.address,
+      compoundRegistry.address,
+      versionManager.address,
     );
 
-    walletImplementation = await deployer.deploy(BaseWallet);
+    walletImplementation = await BaseWallet.new();
 
-    relayerManager = await deployer.deploy(RelayerManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
+      versionManager.address);
     manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([
-      loanManager.contractAddress,
-      relayerManager.contractAddress,
+      loanManager.address,
+      relayerManager.address,
     ], []);
   });
 
   beforeEach(async () => {
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner, [versionManager.contractAddress]);
-    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = await BaseWallet.at(proxy.address);
+    await wallet.init(owner, [versionManager.address]);
+    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
   });
 
   async function fundWallet({ ethAmount, token1Amount, token2Amount = 0 }) {
     if (ethAmount > 0) await wallet.send(ethAmount);
-    if (token1Amount > 0) await token1.from(infrastructure).transfer(wallet.contractAddress, token1Amount);
-    if (token2Amount > 0) await token2.from(infrastructure).transfer(wallet.contractAddress, token2Amount);
+    if (token1Amount > 0) await token1.from(infrastructure).transfer(wallet.address, token1Amount);
+    if (token2Amount > 0) await token2.from(infrastructure).transfer(wallet.address, token2Amount);
   }
 
   describe("Loan", () => {
     async function testOpenLoan({
       collateral, collateralAmount, debt, debtAmount, relayed,
     }) {
-      const collateralBefore = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
-        : await collateral.balanceOf(wallet.contractAddress);
-      const debtBefore = (debt === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
-        : await debt.balanceOf(wallet.contractAddress);
+      const collateralBefore = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+        : await collateral.balanceOf(wallet.address);
+      const debtBefore = (debt === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+        : await debt.balanceOf(wallet.address);
 
       const params = [
-        wallet.contractAddress,
-        (collateral === ETH_TOKEN) ? ETH_TOKEN : collateral.contractAddress,
+        wallet.address,
+        (collateral === ETH_TOKEN) ? ETH_TOKEN : collateral.address,
         collateralAmount,
-        (debt === ETH_TOKEN) ? ETH_TOKEN : debt.contractAddress,
+        (debt === ETH_TOKEN) ? ETH_TOKEN : debt.address,
         debtAmount];
       let txReceipt;
       if (relayed) {
@@ -214,10 +206,10 @@ contract("Loan Module", (accounts) => {
       const loanId = (await utils.parseLogs(txReceipt, loanManager, "LoanOpened"))[0]._loanId;
       assert.isDefined(loanId, "Loan ID should be defined");
 
-      const collateralAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
-        : await collateral.balanceOf(wallet.contractAddress);
-      const debtAfter = (debt === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
-        : await debt.balanceOf(wallet.contractAddress);
+      const collateralAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+        : await collateral.balanceOf(wallet.address);
+      const debtAfter = (debt === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+        : await debt.balanceOf(wallet.address);
 
       assert.isTrue(collateralBefore.sub(collateralAfter).eq(collateralAmount),
         `wallet should have ${collateralAmount} less ETH (relayed: ${relayed})`);
@@ -229,14 +221,14 @@ contract("Loan Module", (accounts) => {
     async function testChangeCollateral({
       loanId, collateral, amount, add, relayed,
     }) {
-      const collateralBalanceBefore = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
-        : await collateral.balanceOf(wallet.contractAddress);
+      const collateralBalanceBefore = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+        : await collateral.balanceOf(wallet.address);
 
       const method = add ? "addCollateral" : "removeCollateral";
       const params = [
-        wallet.contractAddress,
+        wallet.address,
         loanId,
-        (collateral === ETH_TOKEN) ? ETH_TOKEN : collateral.contractAddress,
+        (collateral === ETH_TOKEN) ? ETH_TOKEN : collateral.address,
         amount];
       let txReceipt;
       if (relayed) {
@@ -245,8 +237,8 @@ contract("Loan Module", (accounts) => {
         const tx = await loanManager.from(owner)[method](...params);
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
-      const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
-        : await collateral.balanceOf(wallet.contractAddress);
+      const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+        : await collateral.balanceOf(wallet.address);
       if (add) {
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralAdded"), "should have generated CollateralAdded event");
         assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.sub(amount)),
@@ -261,14 +253,14 @@ contract("Loan Module", (accounts) => {
     async function testChangeDebt({
       loanId, debtToken, amount, add, relayed,
     }) {
-      const debtBalanceBefore = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
-        : await debtToken.balanceOf(wallet.contractAddress);
+      const debtBalanceBefore = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+        : await debtToken.balanceOf(wallet.address);
 
       const method = add ? "addDebt" : "removeDebt";
       const params = [
-        wallet.contractAddress,
+        wallet.address,
         loanId,
-        (debtToken === ETH_TOKEN) ? ETH_TOKEN : debtToken.contractAddress,
+        (debtToken === ETH_TOKEN) ? ETH_TOKEN : debtToken.address,
         amount];
       let txReceipt;
       if (relayed) {
@@ -277,8 +269,8 @@ contract("Loan Module", (accounts) => {
         const tx = await loanManager.from(owner)[method](...params);
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
-      const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.contractAddress)
-        : await debtToken.balanceOf(wallet.contractAddress);
+      const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+        : await debtToken.balanceOf(wallet.address);
       if (add) {
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtAdded"), "should have generated DebtAdded event");
         assert.isTrue(debtBalanceAfter.eq(debtBalanceBefore.add(amount)), `wallet debt should have increase by ${amount} (relayed: ${relayed})`);
@@ -335,17 +327,17 @@ contract("Loan Module", (accounts) => {
         await testOpenLoan({
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
-        let loan = await loanManager.getLoan(wallet.contractAddress, ZERO_BYTES32);
+        let loan = await loanManager.getLoan(wallet.address, ZERO_BYTES32);
         assert.isTrue(loan._status === 1 && loan._ethValue.gt(0), "should have obtained the liquidity info of the loan");
 
-        await oracle.setUnderlyingPrice(cToken1.contractAddress, WAD.mul(10));
-        loan = await loanManager.getLoan(wallet.contractAddress, ZERO_BYTES32);
+        await oracle.setUnderlyingPrice(cToken1.address, WAD.mul(10));
+        loan = await loanManager.getLoan(wallet.address, ZERO_BYTES32);
         assert.isTrue(loan._status === 2 && loan._ethValue.gt(0), "should have obtained the shortfall info of the loan");
 
-        await oracle.setUnderlyingPrice(cToken1.contractAddress, 0);
-        await assert.revertWith(loanManager.getLoan(wallet.contractAddress, ZERO_BYTES32), "CM: failed to get account liquidity");
+        await oracle.setUnderlyingPrice(cToken1.address, 0);
+        await assert.revertWith(loanManager.getLoan(wallet.address, ZERO_BYTES32), "CM: failed to get account liquidity");
 
-        await oracle.setUnderlyingPrice(cToken1.contractAddress, WAD.div(10));
+        await oracle.setUnderlyingPrice(cToken1.address, WAD.div(10));
         loan = await loanManager.getLoan(ethers.constants.AddressZero, ZERO_BYTES32);
         assert.isTrue(loan._status === 0 && loan._ethValue.eq(0), "should have obtained (0,0) for the non-existing loan info");
       });
@@ -437,27 +429,27 @@ contract("Loan Module", (accounts) => {
       // Reverts
 
       it("should fail to borrow an unknown token", async () => {
-        const params = [wallet.contractAddress, ZERO_BYTES32, ethers.constants.AddressZero, parseEther("1")];
+        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, parseEther("1")];
         await assert.revertWith(loanManager.from(owner).addDebt(...params), "CM: No market for target token");
       });
 
       it("should fail to borrow 0 token", async () => {
-        const params = [wallet.contractAddress, ZERO_BYTES32, ETH_TOKEN, parseEther("0")];
+        const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, parseEther("0")];
         await assert.revertWith(loanManager.from(owner).addDebt(...params), "CM: amount cannot be 0");
       });
 
       it("should fail to borrow token with no collateral", async () => {
-        const params = [wallet.contractAddress, ZERO_BYTES32, ETH_TOKEN, parseEther("1")];
+        const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, parseEther("1")];
         await assert.revertWith(loanManager.from(owner).addDebt(...params), "CM: borrow failed");
       });
 
       it("should fail to repay an unknown token", async () => {
-        const params = [wallet.contractAddress, ZERO_BYTES32, ethers.constants.AddressZero, parseEther("1")];
+        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, parseEther("1")];
         await assert.revertWith(loanManager.from(owner).removeDebt(...params), "CM: No market for target token");
       });
 
       it("should fail to repay 0 token", async () => {
-        const params = [wallet.contractAddress, ZERO_BYTES32, ETH_TOKEN, parseEther("0")];
+        const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, parseEther("0")];
         await assert.revertWith(loanManager.from(owner).removeDebt(...params), "CM: amount cannot be 0");
       });
 
@@ -468,17 +460,17 @@ contract("Loan Module", (accounts) => {
         const loanId = await testOpenLoan({
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
-        const removeDebtParams = [wallet.contractAddress, loanId, token1.contractAddress, parseEther("0.002")];
+        const removeDebtParams = [wallet.address, loanId, token1.address, parseEther("0.002")];
         await assert.revertWith(loanManager.from(owner).removeDebt(...removeDebtParams), "CM: repayBorrow failed");
       });
 
       it("should fail to remove an unknown collateral token", async () => {
-        const params = [wallet.contractAddress, ZERO_BYTES32, ethers.constants.AddressZero, parseEther("1")];
+        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, parseEther("1")];
         await assert.revertWith(loanManager.from(owner).removeCollateral(...params), "CM: No market for target token");
       });
 
       it("should fail to remove 0 collateral token", async () => {
-        const params = [wallet.contractAddress, ZERO_BYTES32, ETH_TOKEN, parseEther("0")];
+        const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, parseEther("0")];
         await assert.revertWith(loanManager.from(owner).removeCollateral(...params), "CM: amount cannot be 0");
       });
 
@@ -489,7 +481,7 @@ contract("Loan Module", (accounts) => {
         const loanId = await testOpenLoan({
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
-        const removeDebtParams = [wallet.contractAddress, loanId, token1.contractAddress, parseEther("0.002")];
+        const removeDebtParams = [wallet.address, loanId, token1.address, parseEther("0.002")];
         await assert.revertWith(loanManager.from(owner).removeCollateral(...removeDebtParams), "CM: redeemUnderlying failed");
       });
     });
@@ -608,9 +600,9 @@ contract("Loan Module", (accounts) => {
 
     describe("Close Loan", () => {
       async function testCloseLoan({ loanId, relayed, debtMarkets = 1 }) {
-        const marketsBefore = await comptroller.getAssetsIn(wallet.contractAddress);
+        const marketsBefore = await comptroller.getAssetsIn(wallet.address);
         const method = "closeLoan";
-        const params = [wallet.contractAddress, loanId];
+        const params = [wallet.address, loanId];
         let txReceipt;
         if (relayed) {
           txReceipt = await manager.relay(loanManager, method, params, wallet, [owner], accounts[9], false, 2000000);
@@ -620,7 +612,7 @@ contract("Loan Module", (accounts) => {
         }
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanClosed"), "should have generated LoanClosed event");
 
-        const marketsAfter = await comptroller.getAssetsIn(wallet.contractAddress);
+        const marketsAfter = await comptroller.getAssetsIn(wallet.address);
         assert.isTrue(marketsAfter.length === marketsBefore.length - debtMarkets, `should have exited ${debtMarkets} market (relayed: ${relayed})`);
       }
 

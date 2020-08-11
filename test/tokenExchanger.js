@@ -75,50 +75,48 @@ contract("TokenExchanger", (accounts) => {
 
   before(async () => {
     deployer = manager.newDeployer();
-    const registry = await deployer.deploy(ModuleRegistry);
-    dexRegistry = await deployer.deploy(DexRegistry);
-    guardianStorage = await deployer.deploy(GuardianStorage);
-    lockStorage = await deployer.deploy(LockStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    const registry = await ModuleRegistry.new();
+    dexRegistry = await DexRegistry.new();
+    guardianStorage = await GuardianStorage.new();
+    lockStorage = await LockStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
-    relayerManager = await deployer.deploy(
-      RelayerManager,
-      {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress,
+      versionManager.address,
     );
     manager.setRelayerManager(relayerManager);
 
     // Deploy test tokens
-    tokenA = await deployer.deploy(ERC20, {}, [infrastructure], parseEther("1000"), DECIMALS);
-    tokenB = await deployer.deploy(ERC20, {}, [infrastructure], parseEther("1000"), DECIMALS);
+    tokenA = await ERC20.new([infrastructure], parseEther("1000"), DECIMALS);
+    tokenB = await ERC20.new([infrastructure], parseEther("1000"), DECIMALS);
 
     // Deploy and fund Kyber
-    kyberNetwork = await deployer.deploy(KyberNetwork);
-    await tokenA.mint(kyberNetwork.contractAddress, parseEther("1000"));
-    await tokenB.mint(kyberNetwork.contractAddress, parseEther("1000"));
-    await kyberNetwork.addToken(tokenA.contractAddress, TOKEN_A_RATE, DECIMALS);
-    await kyberNetwork.addToken(tokenB.contractAddress, TOKEN_B_RATE, DECIMALS);
+    kyberNetwork = await KyberNetwork.new();
+    await tokenA.mint(kyberNetwork.address, parseEther("1000"));
+    await tokenB.mint(kyberNetwork.address, parseEther("1000"));
+    await kyberNetwork.addToken(tokenA.address, TOKEN_A_RATE, DECIMALS);
+    await kyberNetwork.addToken(tokenB.address, TOKEN_B_RATE, DECIMALS);
     await kyberNetwork.send(parseEther("10"));
 
     // Deploy and fund UniswapV2
-    const uniswapFactory = await deployer.deploy(UniswapV2Factory, {}, AddressZero);
-    const weth = await deployer.deploy(WETH);
-    uniswapRouter = await deployer.deploy(UniswapV2Router01, {}, uniswapFactory.contractAddress, weth.contractAddress);
-    await tokenA.approve(uniswapRouter.contractAddress, parseEther("300"));
-    await tokenB.approve(uniswapRouter.contractAddress, parseEther("600"));
+    const uniswapFactory = await UniswapV2Factory.new(AddressZero);
+    const weth = await WETH.new();
+    uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
+    await tokenA.approve(uniswapRouter.address, parseEther("300"));
+    await tokenB.approve(uniswapRouter.address, parseEther("600"));
     const timestamp = await manager.getTimestamp(await manager.getCurrentBlock());
     await uniswapRouter.addLiquidity(
-      tokenA.contractAddress,
-      tokenB.contractAddress,
+      tokenA.address,
+      tokenB.address,
       parseEther("300"),
       parseEther("600"),
       1,
@@ -128,47 +126,43 @@ contract("TokenExchanger", (accounts) => {
     );
 
     // Deploy Paraswap
-    const whitelist = await deployer.deploy(Whitelisted);
-    const partnerDeployer = await deployer.deploy(PartnerDeployer);
-    const partnerRegistry = await deployer.deploy(PartnerRegistry, {}, partnerDeployer.contractAddress);
-    paraswap = await deployer.deploy(
-      AugustusSwapper,
-      {},
-      whitelist.contractAddress,
+    const whitelist = await Whitelisted.new();
+    const partnerDeployer = await PartnerDeployer.new();
+    const partnerRegistry = await PartnerRegistry.new(partnerDeployer.address);
+    paraswap = await AugustusSwapper.new(
+      whitelist.address,
       infrastructure,
-      partnerRegistry.contractAddress,
+      partnerRegistry.address,
       infrastructure,
       infrastructure,
     );
-    kyberAdapter = await deployer.deploy(Kyber, {}, infrastructure);
-    uniswapV2Adapter = await deployer.deploy(UniswapV2, {}, weth.contractAddress);
-    await whitelist.addWhitelisted(kyberAdapter.contractAddress);
-    await whitelist.addWhitelisted(uniswapV2Adapter.contractAddress);
+    kyberAdapter = await Kyber.new(infrastructure);
+    uniswapV2Adapter = await UniswapV2.new(weth.address);
+    await whitelist.addWhitelisted(kyberAdapter.address);
+    await whitelist.addWhitelisted(uniswapV2Adapter.address);
 
     // Deploy exchanger module
-    tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
-    await tokenPriceRegistry.setTradableForTokenList([tokenA.contractAddress, tokenB.contractAddress], [true, true]);
-    await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [true, true]);
-    exchanger = await deployer.deploy(
-      TokenExchanger,
-      {},
-      lockStorage.contractAddress,
-      tokenPriceRegistry.contractAddress,
-      versionManager.contractAddress,
-      dexRegistry.contractAddress,
-      paraswap.contractAddress,
+    tokenPriceRegistry = await TokenPriceRegistry.new();
+    await tokenPriceRegistry.setTradableForTokenList([tokenA.address, tokenB.address], [true, true]);
+    await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
+    exchanger = await TokenExchanger.new(
+      lockStorage.address,
+      tokenPriceRegistry.address,
+      versionManager.address,
+      dexRegistry.address,
+      paraswap.address,
       "argent",
     );
 
     // Deploy TransferManager module
-    const transferStorage = await deployer.deploy(TransferStorage);
-    const limitStorage = await deployer.deploy(LimitStorage);
-    transferManager = await deployer.deploy(TransferManager, {},
-      lockStorage.contractAddress,
-      transferStorage.contractAddress,
-      limitStorage.contractAddress,
-      tokenPriceRegistry.contractAddress,
-      versionManager.contractAddress,
+    const transferStorage = await TransferStorage.new();
+    const limitStorage = await LimitStorage.new();
+    transferManager = await TransferManager.new(
+      lockStorage.address,
+      transferStorage.address,
+      limitStorage.address,
+      tokenPriceRegistry.address,
+      versionManager.address,
       3600,
       3600,
       10000,
@@ -176,36 +170,36 @@ contract("TokenExchanger", (accounts) => {
       AddressZero);
 
     // Deploy wallet implementation
-    walletImplementation = await deployer.deploy(BaseWallet);
+    walletImplementation = await BaseWallet.new();
 
     await versionManager.addVersion([
-      exchanger.contractAddress,
-      transferManager.contractAddress,
-      relayerManager.contractAddress,
+      exchanger.address,
+      transferManager.address,
+      relayerManager.address,
     ], []);
   });
 
   beforeEach(async () => {
     // create wallet
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner, [versionManager.contractAddress]);
-    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = await BaseWallet.at(proxy.address);
+    await wallet.init(owner, [versionManager.address]);
+    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
 
     // fund wallet
     await wallet.send(parseEther("0.1"));
-    await tokenA.mint(wallet.contractAddress, parseEther("1000"));
-    await tokenB.mint(wallet.contractAddress, parseEther("1000"));
+    await tokenA.mint(wallet.address, parseEther("1000"));
+    await tokenB.mint(wallet.address, parseEther("1000"));
   });
 
   async function getBalance(tokenAddress, _wallet) {
     let balance;
     if (tokenAddress === ETH_TOKEN) {
-      balance = await deployer.provider.getBalance(_wallet.contractAddress);
-    } else if (tokenAddress === tokenA.contractAddress) {
-      balance = await tokenA.balanceOf(_wallet.contractAddress);
+      balance = await deployer.provider.getBalance(_wallet.address);
+    } else if (tokenAddress === tokenA.address) {
+      balance = await tokenA.balanceOf(_wallet.address);
     } else {
-      balance = await tokenB.balanceOf(_wallet.contractAddress);
+      balance = await tokenB.balanceOf(_wallet.address);
     }
     return balance;
   }
@@ -242,8 +236,8 @@ contract("TokenExchanger", (accounts) => {
     const routes = getRoutes({
       fromToken, toToken, srcAmount, destAmount,
     });
-    const exchanges = { kyber: kyberAdapter.contractAddress, uniswapv2: uniswapV2Adapter.contractAddress };
-    const targetExchanges = { kyber: kyberNetwork.contractAddress, uniswapv2: uniswapRouter.contractAddress };
+    const exchanges = { kyber: kyberAdapter.address, uniswapv2: uniswapV2Adapter.address };
+    const targetExchanges = { kyber: kyberNetwork.address, uniswapv2: uniswapRouter.address };
     return makePathes(fromToken, toToken, routes, exchanges, targetExchanges, false);
   }
 
@@ -253,8 +247,8 @@ contract("TokenExchanger", (accounts) => {
     const routes = getRoutes({
       fromToken, toToken, srcAmount, destAmount,
     });
-    const exchanges = { kyber: kyberAdapter.contractAddress, uniswapv2: uniswapV2Adapter.contractAddress };
-    const targetExchanges = { kyber: kyberNetwork.contractAddress, uniswapv2: uniswapRouter.contractAddress };
+    const exchanges = { kyber: kyberAdapter.address, uniswapv2: uniswapV2Adapter.address };
+    const targetExchanges = { kyber: kyberNetwork.address, uniswapv2: uniswapRouter.address };
     return makeRoutes(fromToken, toToken, routes, exchanges, targetExchanges);
   }
 
@@ -279,7 +273,7 @@ contract("TokenExchanger", (accounts) => {
     } else {
       throw new Error("Unsupported method:", method);
     }
-    const params = [_wallet.contractAddress, fromToken, toToken, srcAmount.toString(), destAmount.toString(), expectedDestAmount, routes, 0];
+    const params = [_wallet.address, fromToken, toToken, srcAmount.toString(), destAmount.toString(), expectedDestAmount, routes, 0];
     return params;
   }
 
@@ -329,38 +323,38 @@ contract("TokenExchanger", (accounts) => {
   function testsForMethod(method) {
     it("trades ETH to ERC20 (blockchain tx)", async () => {
       await testTrade({
-        method, fromToken: ETH_TOKEN, toToken: tokenA.contractAddress, relayed: false,
+        method, fromToken: ETH_TOKEN, toToken: tokenA.address, relayed: false,
       });
     });
     it("trades ETH to ERC20 (relayed tx)", async () => {
       await testTrade({
-        method, fromToken: ETH_TOKEN, toToken: tokenA.contractAddress, relayed: true,
+        method, fromToken: ETH_TOKEN, toToken: tokenA.address, relayed: true,
       });
     });
     it("trades ERC20 to ETH (blockchain tx)", async () => {
       await testTrade({
-        method, fromToken: tokenA.contractAddress, toToken: ETH_TOKEN, relayed: false,
+        method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: false,
       });
     });
     it("trades ERC20 to ETH (relayed tx)", async () => {
       await testTrade({
-        method, fromToken: tokenA.contractAddress, toToken: ETH_TOKEN, relayed: true,
+        method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: true,
       });
     });
     it("trades ERC20 to ERC20 (blockchain tx)", async () => {
       await testTrade({
-        method, fromToken: tokenA.contractAddress, toToken: tokenB.contractAddress, relayed: false,
+        method, fromToken: tokenA.address, toToken: tokenB.address, relayed: false,
       });
     });
     it("trades ERC20 to ERC20 (relayed tx)", async () => {
       await testTrade({
-        method, fromToken: tokenA.contractAddress, toToken: tokenB.contractAddress, relayed: true,
+        method, fromToken: tokenA.address, toToken: tokenB.address, relayed: true,
       });
     });
 
     it("can exclude non tradable tokens", async () => {
-      const fromToken = tokenA.contractAddress;
-      const toToken = tokenB.contractAddress;
+      const fromToken = tokenA.address;
+      const toToken = tokenB.address;
       const fixedAmount = parseEther("0.01");
       const variableAmount = method === "sell" ? "1" : await getBalance(fromToken, wallet);
       const params = getParams({
@@ -376,10 +370,10 @@ contract("TokenExchanger", (accounts) => {
     });
 
     it("can exclude exchanges", async () => {
-      const fromToken = tokenA.contractAddress;
-      const toToken = tokenB.contractAddress;
+      const fromToken = tokenA.address;
+      const toToken = tokenB.address;
       // whitelist no exchange
-      await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [false, false]);
+      await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [false, false]);
       const fixedAmount = parseEther("0.01");
       const variableAmount = method === "sell" ? "1" : await getBalance(fromToken, wallet);
       const params = getParams({
@@ -391,23 +385,23 @@ contract("TokenExchanger", (accounts) => {
       });
       await assert.revertWith(exchanger.from(owner)[method](...params, { gasLimit: 2000000 }), "DR: Unauthorised DEX");
       // reset whitelist
-      await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [true, true]);
+      await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });
 
     it(`lets old wallets call ${method} successfully`, async () => {
       // create wallet
-      const oldWalletImplementation = await deployer.deploy(OldWallet);
-      const proxy = await deployer.deploy(Proxy, {}, oldWalletImplementation.contractAddress);
-      const oldWallet = deployer.wrapDeployedContract(OldWallet, proxy.contractAddress);
-      await oldWallet.init(owner, [versionManager.contractAddress]);
-      await versionManager.from(owner).upgradeWallet(oldWallet.contractAddress, await versionManager.lastVersion());
+      const oldWalletImplementation = await OldWallet.new();
+      const proxy = await Proxy.new(oldWalletImplementation.address);
+      const oldWallet = await OldWallet.at(proxy.address);
+      await oldWallet.init(owner, [versionManager.address]);
+      await versionManager.from(owner).upgradeWallet(oldWallet.address, await versionManager.lastVersion());
       // fund wallet
       await oldWallet.send(parseEther("0.1"));
       // call sell/buy
       await testTrade({
         method,
         fromToken: ETH_TOKEN,
-        toToken: tokenA.contractAddress,
+        toToken: tokenA.address,
         _wallet: oldWallet,
         relayed: false,
       });
@@ -415,13 +409,13 @@ contract("TokenExchanger", (accounts) => {
 
     const testTradeWithPreExistingAllowance = async (allowance) => {
       const spender = await paraswap.getTokenTransferProxy();
-      await transferManager.from(owner).approveToken(wallet.contractAddress, tokenA.contractAddress, spender, allowance);
+      await transferManager.from(owner).approveToken(wallet.address, tokenA.address, spender, allowance);
       // call sell
       await testTrade({
-        method, fromToken: tokenA.contractAddress, toToken: ETH_TOKEN, relayed: false,
+        method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: false,
       });
       // check that the pre-existing allowance is restored
-      const newAllowance = await tokenA.allowance(wallet.contractAddress, spender);
+      const newAllowance = await tokenA.allowance(wallet.address, spender);
       assert.equal(newAllowance.toString(), allowance.toString(), "Pre-existing allowance not restored");
     };
 

@@ -31,21 +31,21 @@ async function main() {
 
   // Deploy new BaseWallet
   console.log("Deploying new BaseWallet...");
-  const BaseWalletWrapper = await deployer.deploy(BaseWallet);
+  const BaseWalletWrapper = await BaseWallet.new();
 
   // Setup WalletFactory with new BaseWallet
   console.log("Setting up WalletFactory with new BaseWallet...");
-  const walletFactoryWrapper = await deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
-  const multisigWrapper = await deployer.wrapDeployedContract(MultiSigWallet, config.contracts.MultiSigWallet);
+  const walletFactoryWrapper = await WalletFactory.at(config.contracts.WalletFactory);
+  const multisigWrapper = await MultiSigWallet.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(multisigWrapper, manager, config.multisig.autosign);
   await multisigExecutor.executeCall(
     walletFactoryWrapper,
     "changeWalletImplementation",
-    [BaseWalletWrapper.contractAddress],
+    [BaseWalletWrapper.address],
   );
 
   console.log("Saving new config...");
-  configurator.updateInfrastructureAddresses({ BaseWallet: BaseWalletWrapper.contractAddress });
+  configurator.updateInfrastructureAddresses({ BaseWallet: BaseWalletWrapper.address });
   await configurator.save();
   await deployManager.abiUploader.upload(BaseWalletWrapper, "contracts");
 

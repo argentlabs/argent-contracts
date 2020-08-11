@@ -29,14 +29,14 @@ contract("MultiSigWallet", (accounts) => {
   });
 
   beforeEach(async () => {
-    multisig = await deployer.deploy(MultiSigWallet, {}, 2, owners);
+    multisig = await MultiSigWallet.new(2, owners);
 
-    reg = await deployer.deploy(TestRegistry, {});
+    reg = await TestRegistry.new();
 
     // Fund the multisig
     await multisig.send(value);
 
-    const bal = await deployer.provider.getBalance(multisig.contractAddress);
+    const bal = await deployer.provider.getBalance(multisig.address);
     assert.equal(bal.toNumber(), value);
   });
 
@@ -62,17 +62,17 @@ contract("MultiSigWallet", (accounts) => {
   async function executeSendSuccess(signers) {
     let nonce = await multisig.nonce();
     const data = reg.contract.interface.functions.register.encode([number]);
-    const signedData = MultisigExecutor.signHash(multisig.contractAddress, reg.contractAddress, value, data, nonce.toNumber());
+    const signedData = MultisigExecutor.signHash(multisig.address, reg.address, value, data, nonce.toNumber());
     const signatures = await getSignatures(signedData, signers);
 
-    await multisig.execute(reg.contractAddress, value, data, signatures);
+    await multisig.execute(reg.address, value, data, signatures);
 
     // Check that number has been set in registry
-    const numFromRegistry = await reg.registry(multisig.contractAddress);
+    const numFromRegistry = await reg.registry(multisig.address);
     assert.equal(numFromRegistry.toNumber(), number);
 
     // Check funds in registry
-    const bal = await deployer.provider.getBalance(reg.contractAddress);
+    const bal = await deployer.provider.getBalance(reg.address);
     assert.equal(bal.toString(), value.toString());
 
     // Check nonce updated
@@ -85,27 +85,27 @@ contract("MultiSigWallet", (accounts) => {
     nonce = nonce.toNumber() + nonceOffset;
     const data = reg.contract.interface.functions.register.encode([number]);
 
-    const signedData = MultisigExecutor.signHash(multisig.contractAddress, reg.contractAddress, value, data, nonce);
+    const signedData = MultisigExecutor.signHash(multisig.address, reg.address, value, data, nonce);
     const signatures = await getSignatures(signedData, signers, sortSigners, returnBadSignatures);
 
-    await assert.revertWith(multisig.execute(reg.contractAddress, value, data, signatures), errorMessage);
+    await assert.revertWith(multisig.execute(reg.address, value, data, signatures), errorMessage);
   }
 
   async function getMultiSigParams(functioName, params) {
     const nonce = await multisig.nonce();
     const data = multisig.contract.interface.functions[functioName].encode([...params]);
-    const signedData = MultisigExecutor.signHash(multisig.contractAddress, multisig.contractAddress, 0, data, nonce.toNumber());
+    const signedData = MultisigExecutor.signHash(multisig.address, multisig.address, 0, data, nonce.toNumber());
     const signatures = await getSignatures(signedData, [owner1, owner2]);
     return { data, signatures };
   }
 
   describe("Creating and changing the multisig", () => {
     it("should not be able to instantiate without owners", async () => {
-      await assert.revertWith(deployer.deploy(MultiSigWallet, {}, 2, []), "MSW: Not enough or too many owners");
+      await assert.revertWith(MultiSigWallet.new(2, []), "MSW: Not enough or too many owners");
     });
 
     it("should not be able to instantiate with 0 threshold", async () => {
-      await assert.revertWith(deployer.deploy(MultiSigWallet, {}, 0, owners), "MSW: Invalid threshold");
+      await assert.revertWith(MultiSigWallet.new(0, owners), "MSW: Invalid threshold");
     });
 
     it("should store owners correctly", async () => {
@@ -137,7 +137,7 @@ contract("MultiSigWallet", (accounts) => {
 
     it("should be able to add new owner", async () => {
       const { data, signatures } = await getMultiSigParams("addOwner", [newowner]);
-      await multisig.execute(multisig.contractAddress, 0, data, signatures);
+      await multisig.execute(multisig.address, 0, data, signatures);
 
       const isOwner = await multisig.isOwner(newowner);
       assert.isTrue(isOwner);
@@ -149,7 +149,7 @@ contract("MultiSigWallet", (accounts) => {
       for (let i = 4; i <= 10; i += 1) {
         const randomAddress = await utils.getRandomAddress();
         const { data, signatures } = await getMultiSigParams("addOwner", [randomAddress]);
-        await multisig.execute(multisig.contractAddress, 0, data, signatures);
+        await multisig.execute(multisig.address, 0, data, signatures);
       }
 
       const ownersCount = await multisig.ownersCount();
@@ -157,17 +157,17 @@ contract("MultiSigWallet", (accounts) => {
 
       const randomAddress = await utils.getRandomAddress();
       const { data, signatures } = await getMultiSigParams("addOwner", [randomAddress]);
-      await assert.revertWith(multisig.execute(multisig.contractAddress, 0, data, signatures), "MSW: External call failed");
+      await assert.revertWith(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should not be able to add owner twice", async () => {
       const { data, signatures } = await getMultiSigParams("addOwner", [owner1]);
-      await assert.revertWith(multisig.execute(multisig.contractAddress, 0, data, signatures), "MSW: External call failed");
+      await assert.revertWith(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should be able to remove existing owner", async () => {
       const { data, signatures } = await getMultiSigParams("removeOwner", [owner1]);
-      await multisig.execute(multisig.contractAddress, 0, data, signatures);
+      await multisig.execute(multisig.address, 0, data, signatures);
 
       const isOwner = await multisig.isOwner(owner1);
       assert.isFalse(isOwner);
@@ -175,16 +175,16 @@ contract("MultiSigWallet", (accounts) => {
 
     it("should not be able to remove owner if remaining owners are at the threshold count", async () => {
       const values1 = await getMultiSigParams("removeOwner", [owner3]);
-      await multisig.execute(multisig.contractAddress, 0, values1.data, values1.signatures);
+      await multisig.execute(multisig.address, 0, values1.data, values1.signatures);
 
       const values2 = await getMultiSigParams("removeOwner", [owner2]);
-      await assert.revertWith(multisig.execute(multisig.contractAddress, 0, values2.data, values2.signatures), "MSW: External call failed");
+      await assert.revertWith(multisig.execute(multisig.address, 0, values2.data, values2.signatures), "MSW: External call failed");
     });
 
     it("should not be able to remove a nonexisting owner", async () => {
       const randomAddress = await utils.getRandomAddress();
       const { data, signatures } = await getMultiSigParams("removeOwner", [randomAddress]);
-      await assert.revertWith(multisig.execute(multisig.contractAddress, 0, data, signatures), "MSW: External call failed");
+      await assert.revertWith(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should be able to change the threshold", async () => {
@@ -192,7 +192,7 @@ contract("MultiSigWallet", (accounts) => {
       assert.equal(threshold.toNumber(), 2);
 
       const { data, signatures } = await getMultiSigParams("changeThreshold", [3]);
-      await multisig.execute(multisig.contractAddress, 0, data, signatures);
+      await multisig.execute(multisig.address, 0, data, signatures);
 
       threshold = await multisig.threshold();
       assert.equal(threshold.toNumber(), 3);
@@ -200,7 +200,7 @@ contract("MultiSigWallet", (accounts) => {
 
     it("should not be able to change the threshold to be more than the current number of owners", async () => {
       const { data, signatures } = await getMultiSigParams("changeThreshold", [4]);
-      await assert.revertWith(multisig.execute(multisig.contractAddress, 0, data, signatures), "MSW: External call failed");
+      await assert.revertWith(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
   });
 

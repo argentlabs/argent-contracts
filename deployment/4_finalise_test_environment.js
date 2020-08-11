@@ -18,7 +18,7 @@ async function deployENSReverseRegistrar(deployer, config, owner, overrides) {
   const setSubnodeOwnerTx2 = await ENSRegistryWrapper.contract.setSubnodeOwner(
     utils.namehash("reverse"),
     utils.sha3("addr"),
-    ENSReverseRegistrarWrapper.contractAddress,
+    ENSReverseRegistrarWrapper.address,
     overrides,
   );
   await ENSRegistryWrapper.verboseWaitForTransaction(setSubnodeOwnerTx2,

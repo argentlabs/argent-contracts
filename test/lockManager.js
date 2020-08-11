@@ -33,177 +33,177 @@ contract("LockManager", (accounts) => {
 
   before(async () => {
     deployer = manager.newDeployer();
-    walletImplementation = await deployer.deploy(BaseWallet);
+    walletImplementation = await BaseWallet.new();
   });
 
   beforeEach(async () => {
-    const registry = await deployer.deploy(Registry);
-    guardianStorage = await deployer.deploy(GuardianStorage);
-    lockStorage = await deployer.deploy(LockStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    const registry = await Registry.new();
+    guardianStorage = await GuardianStorage.new();
+    lockStorage = await LockStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
-    guardianManager = await deployer.deploy(GuardianManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
-      versionManager.contractAddress,
+    guardianManager = await GuardianManager.new(
+      lockStorage.address,
+      guardianStorage.address,
+      versionManager.address,
       24, 12);
-    lockManager = await deployer.deploy(LockManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
-      versionManager.contractAddress,
+    lockManager = await LockManager.new(
+      lockStorage.address,
+      guardianStorage.address,
+      versionManager.address,
       24 * 5);
-    recoveryManager = await deployer.deploy(RecoveryManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
-      versionManager.contractAddress,
+    recoveryManager = await RecoveryManager.new(
+      lockStorage.address,
+      guardianStorage.address,
+      versionManager.address,
       36, 24 * 5);
-    relayerManager = await deployer.deploy(RelayerManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
+      versionManager.address);
     manager.setRelayerManager(relayerManager);
 
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.address);
 
     await versionManager.addVersion([
-      guardianManager.contractAddress,
-      lockManager.contractAddress,
-      recoveryManager.contractAddress,
-      relayerManager.contractAddress,
+      guardianManager.address,
+      lockManager.address,
+      recoveryManager.address,
+      relayerManager.address,
     ], []);
 
-    await wallet.init(owner, [versionManager.contractAddress]);
-    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
+    await wallet.init(owner, [versionManager.address]);
+    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
   });
 
   describe("(Un)Lock by EOA guardians", () => {
     beforeEach(async () => {
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1);
-      const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+      await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
+      const count = (await guardianManager.guardianCount(wallet.address)).toNumber();
       assert.equal(count, 1, "1 guardian should be added");
-      const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, guardian1);
+      const isGuardian = await guardianManager.isGuardian(wallet.address, guardian1);
       assert.isTrue(isGuardian, "guardian1 should be a guardian of the wallet");
-      const isLocked = await lockManager.isLocked(wallet.contractAddress);
+      const isLocked = await lockManager.isLocked(wallet.address);
       assert.isFalse(isLocked, "should be unlocked by default");
     });
 
     it("should be locked/unlocked by EOA guardians (blockchain transaction)", async () => {
       // lock
-      await lockManager.from(guardian1).lock(wallet.contractAddress);
-      let state = await lockManager.isLocked(wallet.contractAddress);
+      await lockManager.from(guardian1).lock(wallet.address);
+      let state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian");
-      let releaseTime = await lockManager.getLock(wallet.contractAddress);
+      let releaseTime = await lockManager.getLock(wallet.address);
       assert.isTrue(releaseTime > 0, "releaseTime should be positive");
-      const guardianStorageLock = await guardianStorage.getLock(wallet.contractAddress);
-      const guardianStorageLocker = await guardianStorage.getLocker(wallet.contractAddress);
+      const guardianStorageLock = await guardianStorage.getLock(wallet.address);
+      const guardianStorageLocker = await guardianStorage.getLocker(wallet.address);
       assert.isTrue(guardianStorageLock.eq(0), "legacy guardianStorage's lock should be unused");
       assert.isTrue(guardianStorageLocker === ethers.constants.AddressZero, "legacy guardianStorage's locker should be unused");
       // unlock
-      await lockManager.from(guardian1).unlock(wallet.contractAddress);
-      state = await lockManager.isLocked(wallet.contractAddress);
+      await lockManager.from(guardian1).unlock(wallet.address);
+      state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by guardian");
-      releaseTime = await lockManager.getLock(wallet.contractAddress);
+      releaseTime = await lockManager.getLock(wallet.address);
       assert.equal(releaseTime, 0, "releaseTime should be zero");
     });
 
     it("should be locked/unlocked by EOA guardians (relayed transaction)", async () => {
-      await manager.relay(lockManager, "lock", [wallet.contractAddress], wallet, [guardian1]);
-      let state = await lockManager.isLocked(wallet.contractAddress);
+      await manager.relay(lockManager, "lock", [wallet.address], wallet, [guardian1]);
+      let state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian");
 
-      await manager.relay(lockManager, "unlock", [wallet.contractAddress], wallet, [guardian1]);
-      state = await lockManager.isLocked(wallet.contractAddress);
+      await manager.relay(lockManager, "unlock", [wallet.address], wallet, [guardian1]);
+      state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by guardian");
     });
 
     it("should fail to lock/unlock by non-guardian EOAs (blockchain transaction)", async () => {
-      await assert.revert(lockManager.from(nonguardian).lock(wallet.contractAddress), "locking from non-guardian should fail");
+      await assert.revert(lockManager.from(nonguardian).lock(wallet.address), "locking from non-guardian should fail");
 
-      await lockManager.from(guardian1).lock(wallet.contractAddress);
-      const state = await lockManager.isLocked(wallet.contractAddress);
+      await lockManager.from(guardian1).lock(wallet.address);
+      const state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian1");
 
-      await assert.revert(lockManager.from(nonguardian).unlock(wallet.contractAddress));
+      await assert.revert(lockManager.from(nonguardian).unlock(wallet.address));
     });
   });
 
   describe("(Un)Lock by Smart Contract guardians", () => {
     beforeEach(async () => {
-      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-      const guardianWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+      const proxy = await Proxy.at(walletImplementation.address);
+      const guardianWallet = await BaseWallet.at(proxy.address);
 
-      await guardianWallet.init(guardian1, [versionManager.contractAddress]);
-      await versionManager.from(guardian1).upgradeWallet(guardianWallet.contractAddress, await versionManager.lastVersion());
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress);
-      const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
+      await guardianWallet.init(guardian1, [versionManager.address]);
+      await versionManager.from(guardian1).upgradeWallet(guardianWallet.address, await versionManager.lastVersion());
+      await guardianManager.from(owner).addGuardian(wallet.address, guardianWallet.address);
+      const count = (await guardianManager.guardianCount(wallet.address)).toNumber();
       assert.equal(count, 1, "1 guardian should be added");
-      const isGuardian = await guardianManager.isGuardian(wallet.contractAddress, guardianWallet.contractAddress);
+      const isGuardian = await guardianManager.isGuardian(wallet.address, guardianWallet.address);
       assert.isTrue(isGuardian, "guardian1 should be a guardian of the wallet");
-      const isLocked = await lockManager.isLocked(wallet.contractAddress);
+      const isLocked = await lockManager.isLocked(wallet.address);
       assert.isFalse(isLocked, "should be unlocked by default");
     });
 
     it("should be locked/unlocked by Smart Contract guardians (relayed transaction)", async () => {
-      await manager.relay(lockManager, "lock", [wallet.contractAddress], wallet, [guardian1]);
-      let state = await lockManager.isLocked(wallet.contractAddress);
+      await manager.relay(lockManager, "lock", [wallet.address], wallet, [guardian1]);
+      let state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian");
 
-      await manager.relay(lockManager, "unlock", [wallet.contractAddress], wallet, [guardian1]);
-      state = await lockManager.isLocked(wallet.contractAddress);
+      await manager.relay(lockManager, "unlock", [wallet.address], wallet, [guardian1]);
+      state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by locker");
     });
 
     it("should fail to lock/unlock by Smart Contract guardians when signer is not authorized (relayed transaction)", async () => {
-      await assert.revertWith(manager.relay(lockManager, "lock", [wallet.contractAddress], wallet, [nonguardian]), "RM: Invalid signatures");
+      await assert.revertWith(manager.relay(lockManager, "lock", [wallet.address], wallet, [nonguardian]), "RM: Invalid signatures");
     });
   });
 
   describe("Auto-unlock", () => {
     it("should auto-unlock after lock period", async () => {
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1);
-      await lockManager.from(guardian1).lock(wallet.contractAddress);
-      let state = await lockManager.isLocked(wallet.contractAddress);
+      await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
+      await lockManager.from(guardian1).lock(wallet.address);
+      let state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian");
-      let releaseTime = await lockManager.getLock(wallet.contractAddress);
+      let releaseTime = await lockManager.getLock(wallet.address);
       assert.isTrue(releaseTime > 0, "releaseTime should be positive");
 
       await manager.increaseTime(24 * 5 + 5);
-      state = await lockManager.isLocked(wallet.contractAddress);
+      state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by guardian");
-      releaseTime = await lockManager.getLock(wallet.contractAddress);
+      releaseTime = await lockManager.getLock(wallet.address);
       assert.equal(releaseTime, 0, "releaseTime should be zero");
     });
   });
 
   describe("Unlocking wallets", () => {
     beforeEach(async () => {
-      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian1);
+      await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
     });
 
     it("should not be able to unlock, an already unlocked wallet", async () => {
       // lock
-      await lockManager.from(guardian1).lock(wallet.contractAddress);
+      await lockManager.from(guardian1).lock(wallet.address);
       // unlock
-      await lockManager.from(guardian1).unlock(wallet.contractAddress);
+      await lockManager.from(guardian1).unlock(wallet.address);
       // try to unlock again
-      await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress),
+      await assert.revertWith(lockManager.from(guardian1).unlock(wallet.address),
         "VM Exception while processing transaction: revert LM: wallet must be locked");
     });
 
     it("should not be able to unlock a wallet, locked by another feature", async () => {
       // lock by putting the wallet in recovery mode
-      await manager.relay(recoveryManager, "executeRecovery", [wallet.contractAddress, accounts[5]], wallet, [guardian1]);
+      await manager.relay(recoveryManager, "executeRecovery", [wallet.address, accounts[5]], wallet, [guardian1]);
 
       // try to unlock
-      await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress),
+      await assert.revertWith(lockManager.from(guardian1).unlock(wallet.address),
         "LM: cannot unlock a wallet that was locked by another feature");
     });
   });

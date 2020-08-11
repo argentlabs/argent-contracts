@@ -33,7 +33,7 @@ contract("MakerV2Invest", (accounts) => {
   let dai;
 
   before(async () => {
-    const m = await deployMaker(deployer, infrastructure);
+    const m = await deployMaker(infrastructure);
     [sai, dai] = [m.sai, m.dai];
     const {
       migration,
@@ -43,59 +43,57 @@ contract("MakerV2Invest", (accounts) => {
       gov,
     } = m;
 
-    const registry = await deployer.deploy(Registry);
-    const guardianStorage = await deployer.deploy(GuardianStorage);
-    const lockStorage = await deployer.deploy(LockStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    const registry = await Registry.new();
+    const guardianStorage = await GuardianStorage.new();
+    const lockStorage = await LockStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
-    const makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);
+    const makerRegistry = await MakerRegistry.new(vat.address);
 
     // Deploy Uniswap
-    const uni = await deployUniswap(deployer, manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
+    const uni = await deployUniswap(manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
 
-    makerV2 = await deployer.deploy(
-      MakerV2Manager,
-      {},
-      lockStorage.contractAddress,
-      migration.contractAddress,
-      pot.contractAddress,
-      jug.contractAddress,
-      makerRegistry.contractAddress,
-      uni.uniswapFactory.contractAddress,
-      versionManager.contractAddress,
+    makerV2 = await MakerV2Manager.new(
+      lockStorage.address,
+      migration.address,
+      pot.address,
+      jug.address,
+      makerRegistry.address,
+      uni.uniswapFactory.address,
+      versionManager.address,
     );
 
-    walletImplementation = await deployer.deploy(BaseWallet);
+    walletImplementation = await BaseWallet.new();
 
-    relayerManager = await deployer.deploy(RelayerManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
+      versionManager.address);
     manager.setRelayerManager(relayerManager);
 
-    await versionManager.addVersion([makerV2.contractAddress, relayerManager.contractAddress], []);
+    await versionManager.addVersion([makerV2.address, relayerManager.address], []);
   });
 
   beforeEach(async () => {
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = await BaseWallet.at(proxy.address);
 
-    await wallet.init(owner, [versionManager.contractAddress]);
-    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
-    await sai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
-    await dai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
+    await wallet.init(owner, [versionManager.address]);
+    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await sai["mint(address,uint256)"](wallet.address, DAI_SENT.mul(20));
+    await dai["mint(address,uint256)"](wallet.address, DAI_SENT.mul(20));
   });
 
   async function exchangeWithPot({ toPot, relayed, all = false }) {
-    const walletBefore = (await dai.balanceOf(wallet.contractAddress)).add(await sai.balanceOf(wallet.contractAddress));
-    const investedBefore = await makerV2.dsrBalance(wallet.contractAddress);
+    const walletBefore = (await dai.balanceOf(wallet.address)).add(await sai.balanceOf(wallet.address));
+    const investedBefore = await makerV2.dsrBalance(wallet.address);
     let method;
     if (toPot) {
       method = "joinDsr";
@@ -104,14 +102,14 @@ contract("MakerV2Invest", (accounts) => {
     } else {
       method = "exitDsr";
     }
-    const params = [wallet.contractAddress].concat(all ? [] : [DAI_SENT]);
+    const params = [wallet.address].concat(all ? [] : [DAI_SENT]);
     if (relayed) {
       await manager.relay(makerV2, method, params, wallet, [owner]);
     } else {
       await (await makerV2.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
     }
-    const walletAfter = (await dai.balanceOf(wallet.contractAddress)).add(await sai.balanceOf(wallet.contractAddress));
-    const investedAfter = await makerV2.dsrBalance(wallet.contractAddress);
+    const walletAfter = (await dai.balanceOf(wallet.address)).add(await sai.balanceOf(wallet.address));
+    const investedAfter = await makerV2.dsrBalance(wallet.address);
     const deltaInvested = toPot ? investedAfter.sub(investedBefore) : investedBefore.sub(investedAfter);
     const deltaWallet = toPot ? walletBefore.sub(walletAfter) : walletAfter.sub(walletBefore);
     assert.isTrue(deltaInvested.gt(0), "DAI in DSR should have changed.");

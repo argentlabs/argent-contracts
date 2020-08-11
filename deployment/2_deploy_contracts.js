@@ -79,10 +79,10 @@ const deploy = async (network) => {
   const ENSResolverWrapper = await deployer.deploy(ENSResolver);
   // Deploy the ENS Manager
   const ENSManagerWrapper = await deployer.deploy(ENSManager, {},
-    walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
+    walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.address);
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
-    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, GuardianStorageWrapper.contractAddress);
+    ModuleRegistryWrapper.address, BaseWalletWrapper.address, GuardianStorageWrapper.address);
 
   // Deploy and configure Maker Registry
   const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, newConfig.defi.maker.migration);
@@ -105,7 +105,7 @@ const deploy = async (network) => {
 
   if (previousWalletEnsOwner.toLowerCase() === deploymentAccount.toLowerCase()) {
     // newly registered name -> change its owner from deploymentAccount to ENSManager address
-    const setOwnerTransaction = await ENSRegistryWrapper.contract.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.contractAddress,
+    const setOwnerTransaction = await ENSRegistryWrapper.contract.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.address,
       { gasPrice });
     await ENSRegistryWrapper.verboseWaitForTransaction(setOwnerTransaction, "Replace deployment account by ENSManager as new owner of walletENS");
   } else if (previousWalletEnsOwner.toLowerCase() === prevConfig.contracts.ENSManager.toLowerCase()) {
@@ -116,7 +116,7 @@ const deploy = async (network) => {
 
     const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentWallet, prevConfig.multisig.autosign, { gasPrice });
     console.log(`Owner of ${walletRootEns} changed from old ENSManager to new ENSManager...`);
-    await multisigExecutor.executeCall(previousENSManagerWrapper, "changeRootnodeOwner", [ENSManagerWrapper.contractAddress]);
+    await multisigExecutor.executeCall(previousENSManagerWrapper, "changeRootnodeOwner", [ENSManagerWrapper.address]);
   } else {
     throw new Error(`Ownership of ${walletRootEns} not changed`);
   }
@@ -136,22 +136,22 @@ const deploy = async (network) => {
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
   configurator.updateModuleAddresses({
-    GuardianStorage: GuardianStorageWrapper.contractAddress,
-    TransferStorage: TransferStorageWrapper.contractAddress,
-    LockStorage: LockStorageWrapper.contractAddress,
-    LimitStorage: LimitStorageWrapper.contractAddress,
-    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
+    GuardianStorage: GuardianStorageWrapper.address,
+    TransferStorage: TransferStorageWrapper.address,
+    LockStorage: LockStorageWrapper.address,
+    LimitStorage: LimitStorageWrapper.address,
+    TokenPriceRegistry: TokenPriceRegistryWrapper.address,
   });
 
   configurator.updateInfrastructureAddresses({
-    MultiSigWallet: MultiSigWrapper.contractAddress,
-    WalletFactory: WalletFactoryWrapper.contractAddress,
-    ENSResolver: ENSResolverWrapper.contractAddress,
-    ENSManager: ENSManagerWrapper.contractAddress,
-    ModuleRegistry: ModuleRegistryWrapper.contractAddress,
-    CompoundRegistry: CompoundRegistryWrapper.contractAddress,
-    DexRegistry: DexRegistryWrapper.contractAddress,
-    BaseWallet: BaseWalletWrapper.contractAddress,
+    MultiSigWallet: MultiSigWrapper.address,
+    WalletFactory: WalletFactoryWrapper.address,
+    ENSResolver: ENSResolverWrapper.address,
+    ENSManager: ENSManagerWrapper.address,
+    ModuleRegistry: ModuleRegistryWrapper.address,
+    CompoundRegistry: CompoundRegistryWrapper.address,
+    DexRegistry: DexRegistryWrapper.address,
+    BaseWallet: BaseWalletWrapper.address,
   });
   await configurator.save();
 
