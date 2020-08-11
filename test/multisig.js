@@ -34,10 +34,7 @@ contract("MultiSigWallet", (accounts) => {
     reg = await deployer.deploy(TestRegistry, {});
 
     // Fund the multisig
-    await deployer.signer.sendTransaction({
-      to: multisig.contractAddress,
-      value,
-    });
+    await multisig.send(value);
 
     const bal = await deployer.provider.getBalance(multisig.contractAddress);
     assert.equal(bal.toNumber(), value);

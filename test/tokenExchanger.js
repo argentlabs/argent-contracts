@@ -106,7 +106,7 @@ contract("TokenExchanger", (accounts) => {
     await tokenB.mint(kyberNetwork.contractAddress, parseEther("1000"));
     await kyberNetwork.addToken(tokenA.contractAddress, TOKEN_A_RATE, DECIMALS);
     await kyberNetwork.addToken(tokenB.contractAddress, TOKEN_B_RATE, DECIMALS);
-    await infrastructure.sendTransaction({ to: kyberNetwork.contractAddress, value: parseEther("10") });
+    await kyberNetwork.send(parseEther("10"));
 
     // Deploy and fund UniswapV2
     const uniswapFactory = await deployer.deploy(UniswapV2Factory, {}, AddressZero);
@@ -192,7 +192,7 @@ contract("TokenExchanger", (accounts) => {
     await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
 
     // fund wallet
-    await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther("0.1") });
+    await wallet.send(parseEther("0.1"));
     await tokenA.mint(wallet.contractAddress, parseEther("1000"));
     await tokenB.mint(wallet.contractAddress, parseEther("1000"));
   });
@@ -401,7 +401,7 @@ contract("TokenExchanger", (accounts) => {
       await oldWallet.init(owner, [versionManager.contractAddress]);
       await versionManager.from(owner).upgradeWallet(oldWallet.contractAddress, await versionManager.lastVersion());
       // fund wallet
-      await infrastructure.sendTransaction({ to: oldWallet.contractAddress, value: parseEther("0.1") });
+      await oldWallet.send(parseEther("0.1"));
       // call sell/buy
       await testTrade({
         method,

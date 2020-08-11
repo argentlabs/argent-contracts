@@ -1,8 +1,6 @@
 const etherlime = require("etherlime-lib");
 const ethers = require("ethers");
 const ps = require("ps-node");
-const hdkey = require("ethereumjs-wallet/hdkey");
-const bip39 = require("bip39");
 const { signOffchain, ETH_TOKEN } = require("./utilities.js");
 
 class TestManager {

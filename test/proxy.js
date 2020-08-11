@@ -67,7 +67,7 @@ contract("Proxy", (accounts) => {
 
   it("should accept ETH", async () => {
     const before = await deployer.provider.getBalance(wallet.contractAddress);
-    await nonowner.sendTransaction({ to: wallet.contractAddress, value: 50000000 });
+    await wallet.send(50000000);
     const after = await deployer.provider.getBalance(wallet.contractAddress);
     assert.equal(after.sub(before).toNumber(), 50000000, "should have received ETH");
   });
