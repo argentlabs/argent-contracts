@@ -276,7 +276,7 @@ contract RelayerModule is BaseModule {
         }
         bool isGuardian;
 
-        for (uint8 i = 0; i < _signatures.length / 65; i++) {
+        for (uint256 i = 0; i < _signatures.length / 65; i++) {
             address signer = Utils.recoverSigner(_signHash, _signatures, i);
 
             if (i == 0) {
