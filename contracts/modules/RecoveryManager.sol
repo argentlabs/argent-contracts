@@ -146,8 +146,7 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-     * @notice Lets the owner start the execution of the ownership transfer procedure.
-     * Once triggered the ownership transfer is pending for the security period before it can be finalised.
+     * @notice Lets the owner transfer the wallet ownership. This is executed immediately.
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */

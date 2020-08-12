@@ -23,7 +23,7 @@ import "../base/Managed.sol";
 /**
  * @title TokenPriceStorage
  * @notice Contract storing the token prices.
- * @notice Note that prices stored here = price per token * 10^(36-token decimals)
+ * @notice Note that prices stored here = price per token * 10^(18-token decimals)
  * The contract only defines basic setters and getters with no logic.
  * Only managers of this contract can modify its state.
  */
