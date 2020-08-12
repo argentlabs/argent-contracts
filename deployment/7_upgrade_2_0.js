@@ -153,6 +153,7 @@ const deploy = async (network) => {
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
+    TokenPriceStorageWrapper.contractAddress,
     config.defi.paraswap.contract,
     "argent",
     Object.values(config.defi.paraswap.authorisedExchanges),

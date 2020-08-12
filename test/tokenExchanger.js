@@ -66,6 +66,7 @@ describe("Token Exchanger", function () {
   let tokenA;
   let tokenB;
   let paraswap;
+  let tokenPriceStorage;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -130,18 +131,20 @@ describe("Token Exchanger", function () {
     await whitelist.addWhitelisted(uniswapV2Adapter.contractAddress);
 
     // Deploy exchanger module
+    tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
+    await tokenPriceStorage.setTradableForTokenList([tokenA.contractAddress, tokenB.contractAddress], [true, true]);
     exchanger = await deployer.deploy(
       TokenExchanger,
       {},
       registry.contractAddress,
       guardianStorage.contractAddress,
+      tokenPriceStorage.contractAddress,
       paraswap.contractAddress,
       "argent",
       [kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress],
     );
 
     // Deploy TransferManager module
-    const tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
     const transferStorage = await deployer.deploy(TransferStorage);
     const limitStorage = await deployer.deploy(LimitStorage);
     transferManager = await deployer.deploy(TransferManager, {},
@@ -332,6 +335,23 @@ describe("Token Exchanger", function () {
       });
     });
 
+    it("can exclude non tradable tokens", async () => {
+      const fromToken = tokenA.contractAddress;
+      const toToken = tokenB.contractAddress;
+      const fixedAmount = parseEther("0.01");
+      const variableAmount = method === "sell" ? "1" : await getBalance(fromToken, wallet);
+      const params = getParams({
+        method,
+        fromToken,
+        toToken,
+        fixedAmount,
+        variableAmount,
+      });
+      await tokenPriceStorage.setTradableForTokenList([toToken], [false]);
+      await assert.revertWith(exchanger.from(owner)[method](...params, { gasLimit: 2000000 }), "TE: Token not tradable");
+      await tokenPriceStorage.setTradableForTokenList([toToken], [true]);
+    });
+
     it("can exclude exchanges", async () => {
       const fromToken = tokenA.contractAddress;
       const toToken = tokenB.contractAddress;
@@ -340,6 +360,7 @@ describe("Token Exchanger", function () {
         {},
         registry.contractAddress,
         guardianStorage.contractAddress,
+        tokenPriceStorage.contractAddress,
         paraswap.contractAddress,
         "argent",
         [], // no exchange whitelisted

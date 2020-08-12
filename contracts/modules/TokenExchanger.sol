@@ -20,6 +20,7 @@ pragma experimental ABIEncoderV2;
 import "./common/OnlyOwnerModule.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/paraswap/IAugustusSwapper.sol";
+import "../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
  * @title TokenExchanger
@@ -48,6 +49,8 @@ contract TokenExchanger is OnlyOwnerModule {
     string public referrer;
     // Authorised exchanges
     mapping(address => bool) public authorisedExchanges;
+    // The token price storage
+    ITokenPriceStorage public tokenPriceStorage;
 
     event TokenExchanged(address indexed wallet, address srcToken, uint srcAmount, address destToken, uint destAmount);
 
@@ -57,6 +60,7 @@ contract TokenExchanger is OnlyOwnerModule {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
+        ITokenPriceStorage _tokenPriceStorage,
         address _paraswap,
         string memory _referrer,
         address[] memory _authorisedExchanges
@@ -64,6 +68,7 @@ contract TokenExchanger is OnlyOwnerModule {
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
+        tokenPriceStorage = _tokenPriceStorage;
         paraswapSwapper = _paraswap;
         paraswapProxy = IAugustusSwapper(_paraswap).getTokenTransferProxy();
         referrer = _referrer;
@@ -100,6 +105,8 @@ contract TokenExchanger is OnlyOwnerModule {
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        // Verify that the destination token is tradable
+        verifyTradable(_destToken);
         // Verify that the exchange adapters used have been authorised
         verifyExchangeAdapters(_path);
         // Approve source amount if required
@@ -146,6 +153,8 @@ contract TokenExchanger is OnlyOwnerModule {
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
+        // Verify that the destination token is tradable
+        verifyTradable(_destToken);
         // Verify that the exchange adapters used have been authorised
         verifyExchangeAdapters(_routes);
         // Approve source amount if required
@@ -165,6 +174,10 @@ contract TokenExchanger is OnlyOwnerModule {
     }
 
     // Internal & Private Methods
+
+    function verifyTradable(address _token) internal view {
+        require((_token == ETH_TOKEN_ADDRESS) || tokenPriceStorage.isTokenTradable(_token), "TE: Token not tradable");
+    }
 
     function verifyExchangeAdapters(IAugustusSwapper.Path[] calldata _path) internal view {
         for (uint i = 0; i < _path.length; i++) {
