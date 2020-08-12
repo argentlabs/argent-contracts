@@ -171,9 +171,13 @@ describe("TransferManager", function () {
       await assert.revertWith(transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address), "TT: target already whitelisted");
     });
 
-    it("should not be able to remove a non-whitelisted token from the whitelist", async () => {
-      await assert.revertWith(transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address),
-        "TT: target not whitelisted");
+    it("should be able to remove a whitelisted token from the whitelist during the security period", async () => {
+      await transferModule.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
+      await transferModule.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address);
+
+      await manager.increaseTime(3);
+      const isTrusted = await transferModule.isWhitelisted(wallet.contractAddress, recipient.address);
+      assert.equal(isTrusted, false);
     });
   });
 

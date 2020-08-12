@@ -342,7 +342,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         onlyWalletOwnerOrModule(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        require(isWhitelisted(_wallet, _target), "TT: target not whitelisted");
         transferStorage.setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
