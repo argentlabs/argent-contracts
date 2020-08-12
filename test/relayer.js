@@ -207,7 +207,7 @@ describe("RelayerModule", function () {
       const decimals = 12; // number of decimal for TOKN contract
       const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
       erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, decimals); // TOKN contract with 10M tokens (10M TOKN for account[0])
-      await tokenPriceStorage.setPrice(erc20.contractAddress, tokenRate.toString());
+      await tokenPriceStorage.setPriceForTokenList([erc20.contractAddress], [tokenRate.toString()]);
       await limitModule.setLimitAndDailySpent(wallet.contractAddress, 10000000000, 0);
     });
 
