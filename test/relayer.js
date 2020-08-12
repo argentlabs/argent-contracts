@@ -361,9 +361,10 @@ describe("RelayerModule", function () {
     });
 
     it("should fail when relayed on non-OnlyOwnerModule modules", async () => {
+      await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
       await registry.registerModule(testModuleNew.contractAddress, formatBytes32String("testModuleNew"));
       const params = [wallet.contractAddress, testModuleNew.contractAddress];
-      const txReceipt = await manager.relay(approvedTransfer, "addModule", params, wallet, [owner]);
+      const txReceipt = await manager.relay(approvedTransfer, "addModule", params, wallet, [owner, guardian]);
       const { success, error } = parseRelayReceipt(txReceipt);
       assert.isFalse(success);
       assert.equal(error, "BM: must be wallet owner");
