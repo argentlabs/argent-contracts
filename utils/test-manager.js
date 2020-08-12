@@ -68,6 +68,13 @@ class TestManager {
     this.relayerModule = relayerModule;
   }
 
+  getChainId() {
+    if (this.network === "ganache" || this.network.endsWith("-fork")) {
+      return 1; // ganache currently always uses 1 as chainId, see https://github.com/trufflesuite/ganache-core/issues/515
+    }
+    return this.provider._network.chainId;
+  }
+
   async relay(_module, _method, _params, _wallet, _signers,
     _relayer = this.accounts[9].signer,
     _estimate = false,
@@ -85,6 +92,7 @@ class TestManager {
       _module.contractAddress,
       0,
       methodData,
+      this.getChainId(),
       nonce,
       _gasPrice,
       _gasLimit,

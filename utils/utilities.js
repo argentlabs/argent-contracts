@@ -33,7 +33,7 @@ module.exports = {
     });
   }),
 
-  signOffchain: async (signers, from, to, value, data, nonce, gasPrice, gasLimit, refundToken, refundAddress) => {
+  signOffchain: async (signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) => {
     const input = `0x${[
       "0x19",
       "0x00",
@@ -41,7 +41,7 @@ module.exports = {
       to,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(value), 32),
       data,
-      ethers.utils.hexZeroPad("0x01", 32), // chainId
+      ethers.utils.hexZeroPad(ethers.utils.hexlify(chainId), 32),
       nonce,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(gasPrice), 32),
       ethers.utils.hexZeroPad(ethers.utils.hexlify(gasLimit), 32),
