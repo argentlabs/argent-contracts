@@ -209,15 +209,15 @@ describe("TransferManager", function () {
     it("should set token price correctly", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
       await tokenPriceStorage.from(infrastructure).setPriceForTokenList([erc20First.contractAddress], [tokenPrice.toString()]);
-      const tokenPriceSet = await tokenPriceStorage.cachedPrices(erc20First.contractAddress);
+      const tokenPriceSet = await tokenPriceStorage.getTokenPrice(erc20First.contractAddress);
       expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
     });
 
     it("should set multiple token prices correctly", async () => {
       await tokenPriceStorage.from(infrastructure).setPriceForTokenList([erc20First.contractAddress, erc20Second.contractAddress], [1800, 1900]);
-      const tokenPrice1Set = await tokenPriceStorage.cachedPrices(erc20First.contractAddress);
+      const tokenPrice1Set = await tokenPriceStorage.getTokenPrice(erc20First.contractAddress);
       expect(1800).to.eq.BN(tokenPrice1Set.toString());
-      const tokenPrice2Set = await tokenPriceStorage.cachedPrices(erc20Second.contractAddress);
+      const tokenPrice2Set = await tokenPriceStorage.getTokenPrice(erc20Second.contractAddress);
       expect(1900).to.eq.BN(tokenPrice2Set.toString());
     });
 
