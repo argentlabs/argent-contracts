@@ -7,14 +7,11 @@ const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const ENSReverseRegistrar = artifacts.require("ReverseRegistrar");
 
-const TestManager = require("../utils/test-manager");
 const utilities = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 contract("ENS contracts", (accounts) => {
-  const manager = new TestManager();
-
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const amanager = accounts[2];
@@ -24,14 +21,12 @@ contract("ENS contracts", (accounts) => {
   const subnameWallet = "argent";
   const walletNode = ethers.utils.namehash(`${subnameWallet}.${root}`);
 
-  let deployer;
   let ensRegistry;
   let ensResolver;
   let ensReverse;
   let ensManager;
 
   beforeEach(async () => {
-    deployer = manager.newDeployer();
     const ensRegistryWithoutFallback = await ENSRegistry.new();
     ensRegistry = await ENSRegistryWithFallback.new(ensRegistryWithoutFallback.address);
     ensResolver = await ENSResolver.new();

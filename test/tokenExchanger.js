@@ -167,7 +167,8 @@ contract("TokenExchanger", (accounts) => {
       3600,
       10000,
       AddressZero,
-      AddressZero);
+      AddressZero,
+    );
 
     // Deploy wallet implementation
     walletImplementation = await BaseWallet.new();

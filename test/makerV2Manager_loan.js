@@ -111,7 +111,8 @@ contract("MakerV2Loan", (accounts) => {
       3600,
       10000,
       AddressZero,
-      AddressZero);
+      AddressZero,
+    );
 
     walletImplementation = await BaseWallet.new();
 

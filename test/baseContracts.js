@@ -3,22 +3,13 @@ const ethers = require("ethers");
 
 const Managed = artifacts.require("Managed");
 
-const TestManager = require("../utils/test-manager");
-
 contract("Managed and Owned", (accounts) => {
-  const manager = new TestManager();
-
   const infrastructure = accounts[0];
   const manager1 = accounts[1];
   const manager2 = accounts[2];
   const nonOwner = accounts[3];
 
-  let deployer;
   let managed;
-
-  before(async () => {
-    deployer = manager.newDeployer();
-  });
 
   beforeEach(async () => {
     managed = await Managed.new();

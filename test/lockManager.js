@@ -20,7 +20,6 @@ contract("LockManager", (accounts) => {
   const guardian1 = accounts[2];
   const nonguardian = accounts[3];
 
-  let deployer;
   let guardianManager;
   let guardianStorage;
   let lockStorage;
@@ -32,7 +31,6 @@ contract("LockManager", (accounts) => {
   let versionManager;
 
   before(async () => {
-    deployer = manager.newDeployer();
     walletImplementation = await BaseWallet.new();
   });
 

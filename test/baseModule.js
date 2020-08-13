@@ -7,12 +7,7 @@ const BaseModule = artifacts.require("TestOnlyOwnerModule");
 const ERC20 = artifacts.require("TestERC20");
 const NonCompliantERC20 = artifacts.require("NonCompliantERC20");
 
-const TestManager = require("../utils/test-manager");
-
 contract("BaseModule", (accounts) => {
-  const manager = new TestManager();
-  const { deployer } = manager;
-
   const owner = accounts[1];
 
   let registry;

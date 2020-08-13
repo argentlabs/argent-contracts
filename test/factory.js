@@ -7,14 +7,11 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const Factory = artifacts.require("WalletFactory");
 const GuardianStorage = artifacts.require("GuardianStorage");
 
-const TestManager = require("../utils/test-manager");
 const utils = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 
 contract("WalletFactory", (accounts) => {
-  const manager = new TestManager();
-
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const guardian = accounts[4];
