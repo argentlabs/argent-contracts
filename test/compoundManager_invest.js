@@ -38,7 +38,6 @@ contract("Invest Manager with Compound", (accounts) => {
   const liquidityProvider = accounts[2];
   const borrower = accounts[3];
 
-  let deployer;
   let wallet;
   let walletImplementation;
   let investManager;
@@ -52,12 +51,10 @@ contract("Invest Manager with Compound", (accounts) => {
   let versionManager;
 
   before(async () => {
-    deployer = manager.newDeployer();
-
     /* Deploy Compound V2 Architecture */
 
     // deploy price oracle
-    const oracle = await PriceOracle);
+    const oracle = await PriceOracle.new();
 
     // deploy comptroller
     const comptrollerProxy = await Unitroller.new();
@@ -135,6 +132,7 @@ contract("Invest Manager with Compound", (accounts) => {
       guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
+<<<<<<< HEAD
       versionManager.address);
     manager.setRelayerManager(relayerManager);
 
@@ -142,6 +140,10 @@ contract("Invest Manager with Compound", (accounts) => {
       investManager.address,
       relayerManager.address,
     ], []);
+=======
+    );
+    manager.setRelayerModule(relayerModule);
+>>>>>>> 58b95d01... Fix linting issues including the removal of obsoleted testmanager and deployer instances
   });
 
   beforeEach(async () => {

@@ -5,6 +5,7 @@ const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
+const { assert } = chai;
 const { expect } = chai;
 chai.use(bnChai(BN));
 
@@ -90,7 +91,8 @@ contract("TransferManager", (accounts) => {
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       ETH_LIMIT,
-      ethers.constants.AddressZero);
+      ethers.constants.AddressZero,
+    );
 
     transferManager = await TransferManager.new(
       lockStorage.address,
@@ -458,7 +460,7 @@ contract("TransferManager", (accounts) => {
           });
           assert.fail("transfer should have failed");
         } catch (error) {
-          assert.ok(await manager.isRevertReason(error, "BF: must be owner or feature"));
+          assert.equal(error, "BM: must be owner or feature");
         }
       });
 
@@ -511,7 +513,7 @@ contract("TransferManager", (accounts) => {
             token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 1, relayed: false,
           });
         } catch (error) {
-          assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
+          assert.equal(error, "outside of the execution window");
         }
       });
 
@@ -521,7 +523,7 @@ contract("TransferManager", (accounts) => {
             token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 1, relayed: true,
           });
         } catch (error) {
-          assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
+          assert.equal(error, "outside of the execution window");
         }
       });
 
@@ -531,7 +533,7 @@ contract("TransferManager", (accounts) => {
             token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 10, relayed: false,
           });
         } catch (error) {
-          assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
+          assert.equal(error, "outside of the execution window");
         }
       });
 
@@ -541,7 +543,7 @@ contract("TransferManager", (accounts) => {
             token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 10, relayed: true,
           });
         } catch (error) {
-          assert.isTrue(await manager.isRevertReason(error, "outside of the execution window"), "should throw ");
+          assert.equal(error, "outside of the execution window");
         }
       });
 
@@ -629,7 +631,7 @@ contract("TransferManager", (accounts) => {
         await doDirectApprove({ signer: nonowner, amount: 10 });
         assert.fail("approve should have failed");
       } catch (error) {
-        assert.ok(await manager.isRevertReason(error, "BF: must be owner or feature"));
+        assert.equal(error, "BM: must be owner or module");
       }
     });
 
@@ -643,7 +645,7 @@ contract("TransferManager", (accounts) => {
       try {
         await doDirectApprove({ amount: ETH_LIMIT + 10000 });
       } catch (error) {
-        assert.ok(await manager.isRevertReason(error, "above daily limit"));
+        assert.equal(error, "above daily limit");
       }
     });
   });
@@ -858,7 +860,7 @@ contract("TransferManager", (accounts) => {
       try {
         await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6 });
       } catch (error) {
-        assert.ok(await manager.isRevertReason(error, "above daily limit"));
+        assert.equal(error, "above daily limit");
       }
     });
 

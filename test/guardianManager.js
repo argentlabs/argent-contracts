@@ -25,7 +25,6 @@ contract("GuardianManager", (accounts) => {
   const guardian5 = accounts[6];
   const nonowner = accounts[7];
 
-  let deployer;
   let wallet;
   let walletImplementation;
   let lockStorage;
@@ -35,7 +34,6 @@ contract("GuardianManager", (accounts) => {
   let versionManager;
 
   before(async () => {
-    deployer = manager.newDeployer();
     walletImplementation = await BaseWallet.new();
   });
 

@@ -1,6 +1,5 @@
 const etherlime = require("etherlime-lib");
 const ethers = require("ethers");
-const ps = require("ps-node");
 const { signOffchain, ETH_TOKEN } = require("./utilities.js");
 
 class TestManager {
@@ -110,25 +109,6 @@ class TestManager {
       return new Promise((res) => { setTimeout(res, seconds * 1000); });
     }
     return null;
-  }
-
-  async runningEtherlimeGanache() { // eslint-disable-line class-methods-use-this
-    return new Promise((res) => {
-      ps.lookup({ arguments: ["etherlime", "ganache"] }, (err, processes) => {
-        const runningEthGanache = !err && processes.reduce((etherlimeGanacheFound, p) => etherlimeGanacheFound
-          || (p.command + p.arguments.join("-")).includes("etherlime-ganache"), false);
-        return res(runningEthGanache);
-      });
-    });
-  }
-
-  async isRevertReason(error, reason) {
-    const runningEthGanache = await this.runningEtherlimeGanache();
-    // by default, we match the error with a generic "revert" keyword
-    // but if we are running etherlime ganache (and not e.g. ganache-cli),
-    // we can match the error with the exact reason message
-    const expectedReason = runningEthGanache ? reason : "revert";
-    return (error.message || error.toString()).includes(expectedReason);
   }
 }
 
