@@ -33,9 +33,7 @@ utils/config/*.json
 !utils/config/kovan-fork.json
 ganache-accounts.json
 
-## Etherlime
-**/.etherlime-store
-flat
+## solidity-coverage
 .coverage_artifacts
 .coverage_contracts
 .coverage_tests
