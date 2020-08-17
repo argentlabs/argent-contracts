@@ -13,6 +13,8 @@ const VersionManager = artifacts.require("VersionManager");
 
 const TestManager = require("../utils/test-manager");
 
+const { increaseTime } = require("../utils/utilities.js");
+
 contract("LockManager", (accounts) => {
   const manager = new TestManager();
 
@@ -173,7 +175,7 @@ contract("LockManager", (accounts) => {
       let releaseTime = await lockManager.getLock(wallet.address);
       assert.isTrue(releaseTime > 0, "releaseTime should be positive");
 
-      await manager.increaseTime(24 * 5 + 5);
+      await increaseTime(24 * 5 + 5);
       state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by guardian");
       releaseTime = await lockManager.getLock(wallet.address);
