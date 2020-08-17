@@ -29,7 +29,7 @@ const TestManager = require("../utils/test-manager");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const { sortWalletByAddress, increaseTime } = require("../utils/utilities.js");
+const { sortWalletByAddress, increaseTime, getNonceForRelay } = require("../utils/utilities.js");
 
 class Logger {
   constructor() {
@@ -467,7 +467,7 @@ class Benchmark {
   }
 
   async estimateSmallTransferRelayedWithRefund() {
-    const nonce = await this.testManager.getNonceForRelay();
+    const nonce = await getNonceForRelay();
     const relayParams = [
       this.TransferManagerWrapper,
       "transferToken",
