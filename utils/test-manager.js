@@ -1,5 +1,5 @@
 const ethers = require("ethers");
-const { signOffchain, ETH_TOKEN, getNonceForRelay } = require("./utilities.js");
+const { signOffchain, ETH_TOKEN, getNonceForRelay, getNetworkId } = require("./utilities.js");
 
 class TestManager {
   constructor(network = "ganache") {
@@ -9,13 +9,6 @@ class TestManager {
 
   setRelayerManager(relayerManager) {
     this.relayerManager = relayerManager;
-  }
-
-  getChainId() {
-    if (this.network === "ganache" || this.network.endsWith("-fork")) {
-      return 1; // ganache currently always uses 1 as chainId, see https://github.com/trufflesuite/ganache-core/issues/515
-    }
-    return this.provider._network.chainId;
   }
 
   async relay(_module, _method, _params, _wallet, _signers,
@@ -29,13 +22,14 @@ class TestManager {
     _gasLimitRelay = (_gasLimit * 1.1)) {
     const nonce = _nonce || await getNonceForRelay();
     const methodData = _module.contract.interface.functions[_method].encode(_params);
+    const networkId = await getNetworkId();
     const signatures = await signOffchain(
       _signers,
       this.relayerManager.address,
       _module.address,
       0,
       methodData,
-      this.getChainId(),
+      networkId,
       nonce,
       _gasPrice,
       _gasLimit,

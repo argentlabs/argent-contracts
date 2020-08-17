@@ -20,7 +20,8 @@ const {
   signOffchain,
   getTimestamp,
   increaseTime,
-  getNonceForRelay
+  getNonceForRelay,
+  getNetworkId
 } = require("../utils/utilities.js");
 
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
@@ -467,7 +468,7 @@ contract("RecoveryManager", (accounts) => {
 
       it("should revert if an unknown method is executed", async () => {
         const nonce = await getNonceForRelay();
-        const chainId = await manager.getChainId();
+        const chainId = await getNetworkId();
         let methodData = recoveryManager.contract.interface.functions.executeRecovery.encode([wallet.address, ethers.constants.AddressZero]);
         // Replace the `executeRecovery` method signature: b0ba4da0 with a non-existent one: e0b6fcfc
         methodData = methodData.replace("b0ba4da0", "e0b6fcfc");
