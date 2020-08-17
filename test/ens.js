@@ -60,7 +60,7 @@ contract("ENS contracts", (accounts) => {
     it("should register an ENS name", async () => {
       const label = "wallet";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
-      await ensManager.from(infrastructure).register(label, owner);
+      await ensManager.register(label, owner);
 
       const recordExists = await ensRegistry.recordExists(labelNode);
       assert.isTrue(recordExists);
@@ -79,7 +79,7 @@ contract("ENS contracts", (accounts) => {
       assert.isTrue(available);
 
       // then we register it
-      await ensManager.from(infrastructure).register(label, owner);
+      await ensManager.register(label, owner);
 
       const nodeOwner = await ensRegistry.owner(labelNode);
       assert.equal(nodeOwner, owner);
@@ -93,14 +93,14 @@ contract("ENS contracts", (accounts) => {
       const label = "wallet";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
       await ensManager.addManager(amanager);
-      await ensManager.from(amanager).register(label, owner);
+      await ensManager.register(label, owner, { from: amanager });
       const nodeOwner = await ensRegistry.owner(labelNode);
       assert.equal(nodeOwner, owner, "new manager should have registered the ens name");
     });
 
     it("should fail to register an ENS name when the caller is not a manager", async () => {
       const label = "wallet";
-      await assert.revert(ensManager.from(anonmanager).register(label, owner), "registering should throw");
+      await assert.revert(ensManager.register(label, owner, { from: anonmanager }), "registering should throw");
     });
 
     it("should be able to change the root node owner", async () => {
@@ -112,7 +112,7 @@ contract("ENS contracts", (accounts) => {
 
     it("should not be able to change the root node owner if not the owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
-      await assert.revertWith(ensManager.from(amanager).changeRootnodeOwner(randomAddress), "Must be owner");
+      await assert.revertWith(ensManager.changeRootnodeOwner(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should be able to change the ens resolver", async () => {
@@ -124,7 +124,7 @@ contract("ENS contracts", (accounts) => {
 
     it("should not be able to change the ens resolver if not owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
-      await assert.revertWith(ensManager.from(amanager).changeENSResolver(randomAddress), "Must be owner");
+      await assert.revertWith(ensManager.changeENSResolver(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should not be able to change the ens resolver to an empty address", async () => {
@@ -154,7 +154,7 @@ contract("ENS contracts", (accounts) => {
 
     it("should resolve a name", async () => {
       const label = "wallet";
-      await ensManager.from(infrastructure).register(label, owner);
+      await ensManager.register(label, owner);
 
       const node = await ensReverse.node(owner);
       const name = await ensResolver.name(node);

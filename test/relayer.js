@@ -345,7 +345,7 @@ contract("RelayerManager", (accounts) => {
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
       const rBalanceStart = await getBalance(recipient);
       // add a guardian
-      await guardianManager.from(owner).addGuardian(wallet.address, guardian);
+      await guardianManager.addGuardian(wallet.address, guardian, { from: owner });
       // call approvedTransfer
       const params = [wallet.address, ETH_TOKEN, recipient, 1000, ethers.constants.HashZero];
       const nonce = await getNonceForRelay();
@@ -399,7 +399,7 @@ contract("RelayerManager", (accounts) => {
 
     it("should succeed when called directly on VersionManager", async () => {
       await registry.registerModule(versionManagerV2.address, formatBytes32String("versionManagerV2"));
-      await versionManager.from(owner).addModule(wallet.address, versionManagerV2.address);
+      await versionManager.addModule(wallet.address, versionManagerV2.address, { from: owner });
 
       const isModuleAuthorised = await wallet.authorised(versionManagerV2.address);
       assert.isTrue(isModuleAuthorised);
@@ -407,7 +407,7 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should fail to add module which is not registered", async () => {
-      await assert.revertWith(versionManager.from(owner).addModule(wallet.address, versionManagerV2.address),
+      await assert.revertWith(versionManager.addModule(wallet.address, versionManagerV2.address, { from: owner }),
         "VM: module is not registered");
     });
   });

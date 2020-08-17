@@ -43,14 +43,14 @@ module.exports = {
     await uniswapFactory.initializeFactory(uniswapTemplateExchange.address);
     for (let i = 0; i < tokens.length; i += 1) {
       const token = tokens[i];
-      await uniswapFactory.from(infrastructure).createExchange(token.address);
+      await uniswapFactory.createExchange(token.address, { from: infrastructure });
       const uniswapExchangeAddress = await uniswapFactory.getExchange(token.address);
       const tokenExchange = await UniswapExchange.at(uniswapExchangeAddress);
       const tokenLiquidity = ethLiquidity.mul(WAD).div(ethPerToken[i]);
       await token["mint(address,uint256)"](infrastructure, tokenLiquidity);
-      await token.from(infrastructure).approve(tokenExchange.address, tokenLiquidity);
+      await token.approve(tokenExchange.address, tokenLiquidity, { from: infrastructure });
       const { timestamp } = await web3.eth.getBlock("latest");
-      await tokenExchange.from(infrastructure).addLiquidity(1, tokenLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
+      await tokenExchange.addLiquidity(1, tokenLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000, from: infrastructure });
     }
     return { uniswapFactory };
   },
@@ -160,8 +160,8 @@ module.exports = {
     // Setting up the common migration vault used by ScdMcdMigration
     const initialSaiAmountInMigrationVault = parseEther("1000");
     await sai["mint(address,uint256)"](infrastructure, initialSaiAmountInMigrationVault);
-    await sai.from(infrastructure).approve(migration.address, initialSaiAmountInMigrationVault);
-    await migration.from(infrastructure).swapSaiToDai(initialSaiAmountInMigrationVault);
+    await sai.approve(migration.address, initialSaiAmountInMigrationVault, { from: infrastructure });
+    await migration.swapSaiToDai(initialSaiAmountInMigrationVault, { from: infrastructure });
 
     return {
       sai,

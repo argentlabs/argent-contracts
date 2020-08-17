@@ -300,7 +300,7 @@ contract("TokenExchanger", (accounts) => {
       const { success } = (await parseLogs(txR, relayerManager, "TransactionExecuted"))[0];
       assert.isTrue(success, "Relayed tx should succeed");
     } else {
-      txR = await (await exchanger.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
+      txR = await (await exchanger[method](...params, { gasLimit: 2000000, from: owner })).wait();
     }
     const { destAmount } = (await parseLogs(txR, exchanger, "TokenExchanged"))[0];
 
@@ -382,7 +382,7 @@ contract("TokenExchanger", (accounts) => {
         fixedAmount,
         variableAmount,
       });
-      await assert.revertWith(exchanger.from(owner)[method](...params, { gasLimit: 2000000 }), "DR: Unauthorised DEX");
+      await assert.revertWith(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
       // reset whitelist
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });
@@ -408,7 +408,7 @@ contract("TokenExchanger", (accounts) => {
 
     const testTradeWithPreExistingAllowance = async (allowance) => {
       const spender = await paraswap.getTokenTransferProxy();
-      await transferManager.from(owner).approveToken(wallet.address, tokenA.address, spender, allowance);
+      await transferManager.approveToken(wallet.address, tokenA.address, spender, allowance, { from: owner });
       // call sell
       await testTrade({
         method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: false,

@@ -52,7 +52,7 @@ contract("Managed and Owned", (accounts) => {
     });
 
     it("should not be able to add manager if not called by owner", async () => {
-      await assert.revertWith(managed.from(nonOwner).addManager(manager1), "Must be owner");
+      await assert.revertWith(managed.addManager(manager1, { from: nonOwner }), "Must be owner");
     });
 
     it("should not be able to set manager to zero address", async () => {
@@ -87,7 +87,7 @@ contract("Managed and Owned", (accounts) => {
 
     it("should not be able to revoke manager if not called by owner", async () => {
       await managed.addManager(manager1);
-      await assert.revertWith(managed.from(nonOwner).revokeManager(manager1), "Must be owner");
+      await assert.revertWith(managed.revokeManager(manager1, { from: nonOwner }), "Must be owner");
     });
 
     it("should not be able to revoke a nonexisting managerr", async () => {

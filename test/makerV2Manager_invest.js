@@ -105,7 +105,7 @@ contract("MakerV2Invest", (accounts) => {
     if (relayed) {
       await manager.relay(makerV2, method, params, wallet, [owner]);
     } else {
-      await (await makerV2.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
+      await (await makerV2[method](...params, { gasLimit: 2000000, from: owner })).wait();
     }
     const walletAfter = (await dai.balanceOf(wallet.address)).add(await sai.balanceOf(wallet.address));
     const investedAfter = await makerV2.dsrBalance(wallet.address);

@@ -366,16 +366,16 @@ class Benchmark {
   }
 
   async estimateLockWalletDirect() {
-    const gasUsed = await this.LockManagerWrapper.from(this.firstGuardian).estimate.lock(this.walletAddress);
+    const gasUsed = await this.LockManagerWrapper.estimate.lock(this.walletAddress, { from: this.firstGuardian });
     this._logger.addItem("Lock wallet (direct)", gasUsed);
   }
 
   async estimateUnlockWalletDirect() {
     // lock wallet
-    await this.LockManagerWrapper.from(this.firstGuardian).lock(this.walletAddress);
+    await this.LockManagerWrapper.lock(this.walletAddress, { from: this.firstGuardian });
 
     // estimate unlock wallet
-    const gasUsed = await this.LockManagerWrapper.from(this.firstGuardian).estimate.unlock(this.walletAddress);
+    const gasUsed = await this.LockManagerWrapper.estimate.unlock(this.walletAddress, { from: this.firstGuardian });
     this._logger.addItem("Unlock wallet (direct)", gasUsed);
   }
 
@@ -517,20 +517,6 @@ class Benchmark {
     this._logger.addItem("ETH large transfer to untrusted account", gasUsed);
   }
 
-<<<<<<< HEAD
-=======
-  // async estimateExecuteETHLargeTransferToUntrustedAccount() {
-  //     const tx = await this.TokenTransferWrapper.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[2], 2000000, "0x");
-  //     const result = await this.TokenTransferWrapper.verboseWaitForTransaction(tx, '');
-  //     const block = result.blockNumber;
-  //     console.log(block);
-
-  //     await increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow/2);
-  //     const gasUsed = await this.TokenTransferWrapper.estimate.executePendingTransfer(this.walletAddress, ETH_TOKEN, this.accounts[2], 2000000, "0x", block);
-  //     this._logger.addItem("Execute ETH large transfer to untrusted account", gasUsed);
-  // }
-
->>>>>>> 7379fcce... Move increasing time  function to utils
   async estimateLargeTransferApprovalByOneGuardian() {
     // estimate approve large transfer
     const gasUsed = await this.relay(

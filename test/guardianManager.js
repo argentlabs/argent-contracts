@@ -72,13 +72,13 @@ contract("GuardianManager", (accounts) => {
   describe("Adding Guardians", () => {
     describe("EOA Guardians", () => {
       it("should let the owner add EOA Guardians (blockchain transaction)", async () => {
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
+        await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
         let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
         let active = await guardianManager.isGuardian(wallet.address, guardian1);
         assert.isTrue(active, "first guardian should be active");
         assert.equal(count, 1, "1 guardian should be active");
 
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian2);
+        await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
         count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
         active = await guardianManager.isGuardian(wallet.address, guardian2);
         assert.isFalse(active, "second guardian should not yet be active");
@@ -96,8 +96,8 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should not let the owner add EOA Guardians after two security periods (blockchain transaction)", async () => {
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian2);
+        await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
+        await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
 
         await increaseTime(48); // 42 == 2 * security_period
         await assert.revertWith(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
@@ -110,24 +110,24 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should not allow confirming too early", async () => {
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian2);
+        await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
+        await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
         await assert.revertWith(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
           "GM: Too early to confirm guardian addition");
       });
 
       it("should let the owner re-add EOA Guardians after missing the confirmation window (blockchain transaction)", async () => {
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
+        await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
 
         // first time
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian2);
+        await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
 
         await increaseTime(48); // 42 == 2 * security_period
         await assert.revertWith(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
           "GM: Too late to confirm guardian addition");
 
         // second time
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian2);
+        await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
         let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
         let active = await guardianManager.isGuardian(wallet.address, guardian2);
         assert.isFalse(active, "second guardian should not yet be active");
@@ -142,25 +142,25 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should only let the owner add an EOA guardian", async () => {
-        await assert.revertWith(guardianManager.from(nonowner).addGuardian(wallet.address, guardian1),
-          "BF: must be owner or feature");
+        await assert.revertWith(guardianManager.addGuardian(wallet.address, guardian1, { from: nonowner }),
+          "BM: must be owner or module");
       });
 
       it("should not allow adding wallet owner as guardian", async () => {
-        await assert.revertWith(guardianManager.from(owner).addGuardian(wallet.address, owner),
+        await assert.revertWith(guardianManager.addGuardian(wallet.address, owner, { from: owner }),
           "GM: target guardian cannot be owner");
       });
 
       it("should not allow adding an existing guardian twice", async () => {
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
-        await assert.revertWith(guardianManager.from(owner).addGuardian(wallet.address, guardian1),
+        await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
+        await assert.revertWith(guardianManager.addGuardian(wallet.address, guardian1, { from: owner }),
           "GM: target is already a guardian");
       });
 
       it("should not allow adding a duplicate request to add a guardian to the request queue", async () => {
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
-        await guardianManager.from(owner).addGuardian(wallet.address, guardian2);
-        await assert.revertWith(guardianManager.from(owner).addGuardian(wallet.address, guardian2),
+        await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
+        await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
+        await assert.revertWith(guardianManager.addGuardian(wallet.address, guardian2, { from: owner }),
           "GM: addition of target as guardian is already pending");
       });
 
@@ -177,7 +177,7 @@ contract("GuardianManager", (accounts) => {
         let count;
         let active;
         for (let i = 1; i <= 5; i += 1) {
-          await guardianManager.from(owner).addGuardian(wallet.address, guardians[i - 1]);
+          await guardianManager.addGuardian(wallet.address, guardians[i - 1], { from: owner });
           if (i > 1) {
             await increaseTime(31);
             await guardianManager.confirmGuardianAddition(wallet.address, guardians[i - 1]);
@@ -224,7 +224,7 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should let the owner add Smart Contract Guardians (blockchain transaction)", async () => {
-        await guardianManager.from(owner).addGuardian(wallet.address, guardianWallet1.address);
+        await guardianManager.addGuardian(wallet.address, guardianWallet1.address, { from: owner });
         let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
         let active = await guardianManager.isGuardianOrGuardianSigner(wallet.address, guardian1);
         assert.isTrue(active, "first guardian owner should be recognized as guardian");
@@ -232,7 +232,7 @@ contract("GuardianManager", (accounts) => {
         assert.isTrue(active, "first guardian should be recognized as guardian");
         assert.equal(count, 1, "1 guardian should be active");
 
-        await guardianManager.from(owner).addGuardian(wallet.address, guardianWallet2.address);
+        await guardianManager.addGuardian(wallet.address, guardianWallet2.address, { from: owner });
         count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
         active = await guardianManager.isGuardian(wallet.address, guardian2);
         assert.isFalse(active, "second guardian owner should not yet be active");
@@ -261,18 +261,18 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should not let owner add a Smart Contract guardian that does not have an owner manager", async () => {
-        await assert.revertWith(guardianManager.from(owner).addGuardian(wallet.address, dumbContract.address),
+        await assert.revertWith(guardianManager.addGuardian(wallet.address, dumbContract.address, { from: owner }),
           "GM: guardian must be EOA or implement owner()");
       });
 
       describe("Non-Compliant Guardians", () => {
         let nonCompliantGuardian;
         beforeEach(async () => {
-          await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
+          await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
           nonCompliantGuardian = await NonCompliantGuardian.new();
         });
         it("it should fail to add a non-compliant guardian", async () => {
-          await assert.revert(guardianManager.from(owner).addGuardian(wallet.address, nonCompliantGuardian.address));
+          await assert.revert(guardianManager.addGuardian(wallet.address, nonCompliantGuardian.address), { from: owner });
         });
       });
     });
@@ -280,8 +280,8 @@ contract("GuardianManager", (accounts) => {
 
   describe("Revoking Guardians", () => {
     beforeEach(async () => {
-      await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
-      await guardianManager.from(owner).addGuardian(wallet.address, guardian2);
+      await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
+      await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
       await increaseTime(30);
       await guardianManager.confirmGuardianAddition(wallet.address, guardian2);
       const count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
@@ -289,7 +289,7 @@ contract("GuardianManager", (accounts) => {
     });
 
     it("should revoke a guardian (blockchain transaction)", async () => {
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardian1);
+      await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
       let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
       let active = await guardianManager.isGuardian(wallet.address, guardian1);
       assert.isTrue(active, "the revoked guardian should still be active during the security period");
@@ -304,18 +304,18 @@ contract("GuardianManager", (accounts) => {
     });
 
     it("should not be able to revoke a nonexistent guardian", async () => {
-      await assert.revertWith(guardianManager.from(owner).revokeGuardian(wallet.address, nonowner),
+      await assert.revertWith(guardianManager.revokeGuardian(wallet.address, nonowner, { from: owner }),
         "GM: must be an existing guardian");
     });
 
     it("should not confirm a guardian revokation too early", async () => {
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardian1);
+      await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
       await assert.revertWith(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
         "GM: Too early to confirm guardian revokation");
     });
 
     it("should not confirm a guardian revokation after two security periods (blockchain transaction)", async () => {
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardian1);
+      await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
 
       await increaseTime(48); // 48 == 2 * security_period
       await assert.revertWith(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
@@ -323,21 +323,21 @@ contract("GuardianManager", (accounts) => {
     });
 
     it("should not be able to revoke a guardian twice", async () => {
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardian1);
-      await assert.revertWith(guardianManager.from(owner).revokeGuardian(wallet.address, guardian1),
+      await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
+      await assert.revertWith(guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner }),
         "GM: revokation of target as guardian is already pending");
     });
 
     it("should revoke a guardian again after missing the confirmation window the first time (blockchain transaction)", async () => {
       // first time
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardian1);
+      await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
 
       await increaseTime(48); // 48 == 2 * security_period
       await assert.revertWith(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
         "GM: Too late to confirm guardian revokation");
 
       // second time
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardian1);
+      await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
       let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
       let active = await guardianManager.isGuardian(wallet.address, guardian1);
       assert.isTrue(active, "the revoked guardian should still be active during the security period");
@@ -352,13 +352,13 @@ contract("GuardianManager", (accounts) => {
     });
 
     it("should add a guardian after a revoke (blockchain transaction)", async () => {
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardian1);
+      await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
       await increaseTime(30);
       await guardianManager.confirmGuardianRevokation(wallet.address, guardian1);
       let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
       assert.equal(count, 1, "there should be 1 guardian left");
 
-      await guardianManager.from(owner).addGuardian(wallet.address, guardian3);
+      await guardianManager.addGuardian(wallet.address, guardian3, { from: owner });
       await increaseTime(30);
       await guardianManager.confirmGuardianAddition(wallet.address, guardian3);
       count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
@@ -366,14 +366,14 @@ contract("GuardianManager", (accounts) => {
     });
 
     it("should be able to remove a guardian that is the last in the list", async () => {
-      await guardianManager.from(owner).addGuardian(wallet.address, guardian3);
+      await guardianManager.addGuardian(wallet.address, guardian3, { from: owner });
       await increaseTime(30);
       await guardianManager.confirmGuardianAddition(wallet.address, guardian3);
       let count = await guardianStorage.guardianCount(wallet.address);
       assert.equal(count.toNumber(), 3, "there should be 3 guardians");
 
       const guardians = await guardianStorage.getGuardians(wallet.address);
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardians[2]);
+      await guardianManager.revokeGuardian(wallet.address, guardians[2], { from: owner });
       await increaseTime(30);
       await guardianManager.confirmGuardianRevokation(wallet.address, guardians[2]);
       count = await guardianStorage.guardianCount(wallet.address);
@@ -383,36 +383,36 @@ contract("GuardianManager", (accounts) => {
 
   describe("Cancelling Pending Guardians", () => {
     beforeEach(async () => {
-      await guardianManager.from(owner).addGuardian(wallet.address, guardian1);
+      await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
       const count = (await guardianManager.guardianCount(wallet.address)).toNumber();
       assert.equal(count, 1, "1 guardian should be added");
     });
 
     it("owner should be able to cancel pending addition of guardian (blockchain transaction)", async () => {
       // Add guardian 2 and cancel its addition
-      await guardianManager.from(owner).addGuardian(wallet.address, guardian2);
-      await guardianManager.from(owner).cancelGuardianAddition(wallet.address, guardian2);
+      await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
+      await guardianManager.cancelGuardianAddition(wallet.address, guardian2, { from: owner });
       await increaseTime(30);
       await assert.revertWith(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
         "GM: no pending addition as guardian for target");
     });
 
     it("owner should not be able to cancel a nonexistent addition of a guardian request", async () => {
-      await assert.revertWith(guardianManager.from(owner).cancelGuardianAddition(wallet.address, guardian2),
+      await assert.revertWith(guardianManager.cancelGuardianAddition(wallet.address, guardian2, { from: owner }),
         "GM: no pending addition as guardian for target");
     });
 
     it("owner should be able to cancel pending revokation of guardian (blockchain transaction)", async () => {
       // Revoke guardian 1 and cancel its revokation
-      await guardianManager.from(owner).revokeGuardian(wallet.address, guardian1);
-      await guardianManager.from(owner).cancelGuardianRevokation(wallet.address, guardian1);
+      await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
+      await guardianManager.cancelGuardianRevokation(wallet.address, guardian1, { from: owner });
       await increaseTime(30);
       await assert.revertWith(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
         "GM: no pending guardian revokation for target");
     });
 
     it("owner should not be able to cancel a nonexistent pending revokation of guardian", async () => {
-      await assert.revertWith(guardianManager.from(owner).cancelGuardianRevokation(wallet.address, nonowner),
+      await assert.revertWith(guardianManager.cancelGuardianRevokation(wallet.address, nonowner, { from: owner }),
         "GM: no pending guardian revokation for target");
     });
 
