@@ -162,5 +162,12 @@ module.exports = {
       return new Promise((res) => { setTimeout(res, seconds * 1000); });
     }
     return null;
+  },
+
+  async getNonceForRelay() {
+    const block = await web3.eth.getBlockNumber()();
+    const timestamp = new Date().getTime();
+    return `0x${ethers.utils.hexZeroPad(ethers.utils.hexlify(block), 16)
+      .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   }
 };

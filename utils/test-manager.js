@@ -1,17 +1,10 @@
 const ethers = require("ethers");
-const { signOffchain, ETH_TOKEN } = require("./utilities.js");
+const { signOffchain, ETH_TOKEN, getNonceForRelay } = require("./utilities.js");
 
 class TestManager {
   constructor(network = "ganache") {
     this.network = network;
     this.provider = this.deployer.provider;
-  }
-
-  async getNonceForRelay() {
-    const block = await this.provider.getBlockNumber();
-    const timestamp = new Date().getTime();
-    return `0x${ethers.utils.hexZeroPad(ethers.utils.hexlify(block), 16)
-      .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   }
 
   setRelayerManager(relayerManager) {
@@ -34,7 +27,7 @@ class TestManager {
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero,
     _gasLimitRelay = (_gasLimit * 1.1)) {
-    const nonce = _nonce || await this.getNonceForRelay();
+    const nonce = _nonce || await getNonceForRelay();
     const methodData = _module.contract.interface.functions[_method].encode(_params);
     const signatures = await signOffchain(
       _signers,
