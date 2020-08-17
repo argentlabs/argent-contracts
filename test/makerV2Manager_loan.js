@@ -2,7 +2,7 @@
 
 const ethers = require("ethers");
 const {
-  bigNumToBytes32, ETH_TOKEN, parseLogs, hasEvent,
+  bigNumToBytes32, ETH_TOKEN, parseLogs, hasEvent, increaseTime
 } = require("../utils/utilities.js");
 const {
   deployMaker, deployUniswap, RAY, ETH_PER_DAI, ETH_PER_MKR,
@@ -413,7 +413,7 @@ contract("MakerV2Loan", (accounts) => {
     const daiAmount = daiAmount_.add(parseEther("0.3"));
 
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
-    await manager.increaseTime(3); // wait 3 seconds
+    await increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.address);
     const beforeETH = await deployer.provider.getBalance(wallet.address);
     await testChangeDebt({
@@ -463,7 +463,7 @@ contract("MakerV2Loan", (accounts) => {
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
     // give some ETH to the wallet to be used for repayment
     await owner.send({ to: walletAddress, value: collateralAmount.mul(2) });
-    await manager.increaseTime(3); // wait 3 seconds
+    await increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.contractAddress);
     const method = "closeLoan";
     const params = [wallet.address, loanId];

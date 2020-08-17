@@ -152,5 +152,15 @@ module.exports = {
     const blockN = !blockNumber ? "latest" : blockNumber;
     const { timestamp } = await web3.eth.getBlock(blockN);
     return timestamp;
+  },
+
+  async increaseTime(seconds) {
+    if (this.network === "ganache") {
+      await web3.currentProvider.send("evm_increaseTime", seconds);
+      await web3.currentProvider.send("evm_mine");
+    } else {
+      return new Promise((res) => { setTimeout(res, seconds * 1000); });
+    }
+    return null;
   }
 };

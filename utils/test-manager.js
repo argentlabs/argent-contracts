@@ -79,16 +79,6 @@ class TestManager {
     const txReceipt = await _module.verboseWaitForTransaction(tx);
     return txReceipt;
   }
-
-  async increaseTime(seconds) {
-    if (this.network === "ganache") {
-      await this.provider.send("evm_increaseTime", seconds);
-      await this.provider.send("evm_mine");
-    } else {
-      return new Promise((res) => { setTimeout(res, seconds * 1000); });
-    }
-    return null;
-  }
 }
 
 module.exports = TestManager;

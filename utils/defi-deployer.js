@@ -49,7 +49,7 @@ module.exports = {
       const tokenLiquidity = ethLiquidity.mul(WAD).div(ethPerToken[i]);
       await token["mint(address,uint256)"](infrastructure, tokenLiquidity);
       await token.from(infrastructure).approve(tokenExchange.address, tokenLiquidity);
-      const { timestamp } = await web3.eth.getBlock(blockN);
+      const { timestamp } = await web3.eth.getBlock("latest");
       await tokenExchange.from(infrastructure).addLiquidity(1, tokenLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
     }
     return { uniswapFactory };

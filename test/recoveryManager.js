@@ -18,7 +18,8 @@ const {
   sortWalletByAddress,
   parseRelayReceipt,
   signOffchain,
-  getTimestamp
+  getTimestamp,
+  increaseTime
 } = require("../utils/utilities.js");
 
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
@@ -110,7 +111,7 @@ contract("RecoveryManager", (accounts) => {
       await guardianManager.from(owner).addGuardian(wallet.address, address);
     }
 
-    await manager.increaseTime(30);
+    await increaseTime(30);
     for (let i = 1; i < guardianAddresses.length; i += 1) {
       await guardianManager.confirmGuardianAddition(wallet.address, guardianAddresses[i]);
     }
@@ -135,7 +136,7 @@ contract("RecoveryManager", (accounts) => {
     it("should let a majority of guardians execute the recovery procedure", async () => {
       const majority = guardians.slice(0, Math.ceil((guardians.length) / 2));
       await manager.relay(recoveryManager, "executeRecovery", [wallet.address, newowner], wallet, sortWalletByAddress(majority));
-      const timestamp = await getTimestamp(currentBlock);
+      const timestamp = await getTimestamp();
       const isLocked = await lockManager.isLocked(wallet.address);
       assert.isTrue(isLocked, "should be locked by recovery");
 
@@ -193,7 +194,7 @@ contract("RecoveryManager", (accounts) => {
 
   function testFinalizeRecovery() {
     it("should let anyone finalize the recovery procedure after the recovery period", async () => {
-      await manager.increaseTime(40); // moving time to after the end of the recovery period
+      await increaseTime(40); // moving time to after the end of the recovery period
       await manager.relay(recoveryManager, "finalizeRecovery", [wallet.address], wallet, []);
       const isLocked = await lockManager.isLocked(wallet.address);
       assert.isFalse(isLocked, "should no longer be locked after finalization of recovery");
@@ -222,7 +223,7 @@ contract("RecoveryManager", (accounts) => {
       await manager.relay(recoveryManager, "cancelRecovery", [wallet.address], wallet, sortWalletByAddress([guardian1, guardian2]));
       const isLocked = await lockManager.isLocked(wallet.address);
       assert.isFalse(isLocked, "should no longer be locked by recovery");
-      await manager.increaseTime(40); // moving time to after the end of the recovery period
+      await increaseTime(40); // moving time to after the end of the recovery period
       const txReceipt = await manager.relay(recoveryManager, "finalizeRecovery", [wallet.address], wallet, []);
       const { success, error } = parseRelayReceipt(txReceipt);
       assert.isFalse(success);
@@ -240,7 +241,7 @@ contract("RecoveryManager", (accounts) => {
       await manager.relay(recoveryManager, "cancelRecovery", [wallet.address], wallet, [owner, guardian1]);
       const isLocked = await lockManager.isLocked(wallet.address);
       assert.isFalse(isLocked, "should no longer be locked by recovery");
-      await manager.increaseTime(40); // moving time to after the end of the recovery period
+      await increaseTime(40); // moving time to after the end of the recovery period
       const txReceipt = await manager.relay(recoveryManager, "finalizeRecovery", [wallet.address], wallet, []);
       const { success, error } = parseRelayReceipt(txReceipt);
       assert.isFalse(success, "finalization should have failed");
