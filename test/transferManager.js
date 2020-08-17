@@ -124,7 +124,7 @@ contract("TransferManager", (accounts) => {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
     await wallet.init(owner, [versionManager.address]);
-    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
 
     const decimals = 12; // number of decimal for TOKN contract
     const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
@@ -160,7 +160,7 @@ contract("TransferManager", (accounts) => {
       const proxy = await Proxy.new(walletImplementation.address);
       const existingWallet = await BaseWallet.at(proxy.address);
       await existingWallet.init(owner, [versionManager.address]);
-      await versionManager.from(owner).upgradeWallet(existingWallet.address, await versionManager.lastVersion());
+      await versionManager.upgradeWallet(existingWallet.address, await versionManager.lastVersion(), { from: owner });
 
       const defautlimit = await transferManager1.defaultLimit();
       const limit = await transferManager1.getCurrentLimit(existingWallet.address);
@@ -173,28 +173,28 @@ contract("TransferManager", (accounts) => {
 
   describe("Managing the whitelist", () => {
     it("should add/remove an account to/from the whitelist", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.address, recipient);
-      let isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
+      await transferModule.addToWhitelist(wallet.address, recipient, { from: owner });
+      let isTrusted = await transferModule.isWhitelisted(wallet.address, recipient);
       assert.equal(isTrusted, false, "should not be trusted during the security period");
       await increaseTime(3);
       isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
       assert.equal(isTrusted, true, "should be trusted after the security period");
-      await transferManager.from(owner).removeFromWhitelist(wallet.address, recipient);
-      isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
+      await transferModule.removeFromWhitelist(wallet.address, recipient, { from: owner });
+      isTrusted = await transferModule.isWhitelisted(wallet.address, recipient);
       assert.equal(isTrusted, false, "should no removed from whitelist immediately");
     });
 
     it("should not be able to whitelist a token twice", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.address, recipient);
+      await transferManager.addToWhitelist(wallet.address, recipient, { from: owner });
       await increaseTime(3);
       await assert.revertWith(
-        transferManager.from(owner).addToWhitelist(wallet.address, recipient), "TT: target already whitelisted",
+        transferManager.addToWhitelist(wallet.address, recipient, { from: owner }), "TT: target already whitelisted",
       );
     });
 
     it("should be able to remove a whitelisted token from the whitelist during the security period", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.address, recipient);
-      await transferManager.from(owner).removeFromWhitelist(wallet.address, recipient);
+      await transferManager.addToWhitelist(wallet.address, recipient, { from: owner });
+      await transferManager.removeFromWhitelist(wallet.address, recipient, { from: owner });
 
       await increaseTime(3);
       const isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
@@ -215,13 +215,13 @@ contract("TransferManager", (accounts) => {
 
     it("should get a token price correctly", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
-      await tokenPriceRegistry.from(infrastructure).setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
       const tokenPriceSet = await tokenPriceRegistry.getTokenPrice(erc20First.address);
       expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
     });
 
     it("should get multiple token prices correctly", async () => {
-      await tokenPriceRegistry.from(infrastructure).setPriceForTokenList([erc20First.address, erc20Second.address], [1800, 1900]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address, erc20Second.address], [1800, 1900]);
       const tokenPricesSet = await tokenPriceRegistry.getPriceForTokenList([erc20First.address, erc20Second.address]);
       expect(1800).to.eq.BN(tokenPricesSet[0].toString());
       expect(1900).to.eq.BN(tokenPricesSet[1].toString());
@@ -229,13 +229,13 @@ contract("TransferManager", (accounts) => {
 
     it("should set token price correctly", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
-      await tokenPriceRegistry.from(infrastructure).setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
       const tokenPriceSet = await tokenPriceRegistry.getTokenPrice(erc20First.address);
       expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
     });
 
     it("should set multiple token prices correctly", async () => {
-      await tokenPriceRegistry.from(infrastructure).setPriceForTokenList([erc20First.address, erc20Second.address], [1800, 1900]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address, erc20Second.address], [1800, 1900]);
       const tokenPrice1Set = await tokenPriceRegistry.getTokenPrice(erc20First.address);
       expect(1800).to.eq.BN(tokenPrice1Set.toString());
       const tokenPrice2Set = await tokenPriceRegistry.getTokenPrice(erc20Second.address);
@@ -244,7 +244,7 @@ contract("TransferManager", (accounts) => {
 
     it("should be able to get the ether value of a given amount of tokens", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
-      await tokenPriceRegistry.from(infrastructure).setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
       const etherValue = await getEtherValue("15000000000000000000", erc20First.address);
       // expectedValue = 1800*10^18/10^18 (price for 1 token wei) * 15*10^18 (amount) = 1800 * 15*10^18 = 27,000 * 10^18
       const expectedValue = new BN(10).pow(new BN(18)).muln(27000);
@@ -253,7 +253,7 @@ contract("TransferManager", (accounts) => {
 
     it("should be able to get the ether value for a token with 0 decimals", async () => {
       const tokenPrice = new BN(10).pow(new BN(36)).muln(23000);
-      await tokenPriceRegistry.from(infrastructure).setPriceForTokenList([erc20ZeroDecimals.address], [tokenPrice.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20ZeroDecimals.address], [tokenPrice.toString()]);
       const etherValue = await getEtherValue(100, erc20ZeroDecimals.address);
       // expectedValue = 23000*10^36 * 100 / 10^18 = 2,300,000 * 10^18
       const expectedValue = new BN(10).pow(new BN(18)).muln(2300000);
@@ -261,7 +261,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should return 0 as the ether value for a low priced token", async () => {
-      await tokenPriceRegistry.from(infrastructure).setPriceForTokenList([erc20First.address], [23000]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [23000]);
       const etherValue = await getEtherValue(100, erc20First.address);
       assert.equal(etherValue.toString(), 0); // 2,300,000
     });
@@ -277,15 +277,15 @@ contract("TransferManager", (accounts) => {
       await existingWallet.send(ethers.BigNumber.from("100000000"));
 
       // change the limit
-      await previousTransferManager.from(owner).changeLimit(existingWallet.address, 4000000);
+      await previousTransferManager.changeLimit(existingWallet.address, 4000000, { from: owner });
       await increaseTime(SECURITY_PERIOD + 1);
       let limit = await previousTransferManager.getCurrentLimit(existingWallet.address);
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
       // transfer some funds
-      await previousTransferManager.from(owner).transferToken(existingWallet.address, ETH_TOKEN, recipient, 1000000, ZERO_BYTES32);
+      await previousTransferManager.transferToken(existingWallet.address, ETH_TOKEN, recipient, 1000000, ZERO_BYTES32, { from: owner });
       // add new module
-      await previousTransferManager.from(owner).addModule(existingWallet.address, versionManager.address);
-      const tx = await versionManager.from(owner).upgradeWallet(existingWallet.address, await versionManager.lastVersion());
+      await previousTransferManager.addModule(existingWallet.address, versionManager.address, { from: owner });
+      const tx = await versionManager.upgradeWallet(existingWallet.address, await versionManager.lastVersion(), { from: owner });
       const txReceipt = await previousTransferManager.verboseWaitForTransaction(tx);
       assert.isTrue(utils.hasEvent(txReceipt, transferManager, "DailyLimitMigrated"));
       // check result
@@ -301,7 +301,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should only increase the limit after the security period", async () => {
-      await transferManager.from(owner).changeLimit(wallet.address, 4000000);
+      await transferManager.changeLimit(wallet.address, 4000000, { from: owner });
       let limit = await transferManager.getCurrentLimit(wallet.address);
       assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
       await increaseTime(SECURITY_PERIOD + 1);
@@ -312,7 +312,7 @@ contract("TransferManager", (accounts) => {
     it("should decrease the limit immediately", async () => {
       let limit = await transferManager.getCurrentLimit(wallet.address);
       assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
-      await transferManager.from(owner).changeLimit(wallet.address, ETH_LIMIT / 2);
+      await transferManager.changeLimit(wallet.address, ETH_LIMIT / 2, { from: owner });
       limit = await transferManager.getCurrentLimit(wallet.address);
       assert.equal(limit.toNumber(), ETH_LIMIT / 2, "limit should be decreased immediately");
     });
@@ -325,7 +325,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should correctly set the pending limit", async () => {
-      const tx = await transferManager.from(owner).changeLimit(wallet.address, 4000000);
+      const tx = await transferManager.changeLimit(wallet.address, 4000000, { from: owner });
       const txReceipt = await transferManager.verboseWaitForTransaction(tx);
       const timestamp = await manager.getTimestamp(txReceipt.block);
       const { _pendingLimit, _changeAfter } = await transferManager.getPendingLimit(wallet.address);
@@ -334,7 +334,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should be able to disable the limit", async () => {
-      const tx = await transferManager.from(owner).disableLimit(wallet.address);
+      const tx = await transferManager.disableLimit(wallet.address, { from: owner });
       const txReceipt = await transferManager.verboseWaitForTransaction(tx);
       assert.isTrue(utils.hasEvent(txReceipt, transferManager, "DailyLimitDisabled"));
       let limitDisabled = await transferManager.isLimitDisabled(wallet.address);
@@ -347,7 +347,7 @@ contract("TransferManager", (accounts) => {
     it("should return the correct unspent daily limit amount", async () => {
       await wallet.send(ethers.BigNumber.from(ETH_LIMIT));
       const transferAmount = ETH_LIMIT - 100;
-      await transferManager.from(owner).transferToken(wallet.address, ETH_TOKEN, recipient, transferAmount, ZERO_BYTES32);
+      await transferManager.transferToken(wallet.address, ETH_TOKEN, recipient, transferAmount, ZERO_BYTES32, { from: owner });
       const { _unspent } = await transferManager.getDailyUnspent(wallet.address);
       assert.equal(_unspent.toNumber(), 100);
     });
@@ -355,11 +355,11 @@ contract("TransferManager", (accounts) => {
     it("should return the correct spent daily limit amount", async () => {
       await wallet.send(ethers.BigNumber.from(ETH_LIMIT));
       // Transfer 100 wei
-      const tx = await transferManager.from(owner).transferToken(wallet.address, ETH_TOKEN, recipient, 100, ZERO_BYTES32);
+      const tx = await transferManager.transferToken(wallet.address, ETH_TOKEN, recipient, 100, ZERO_BYTES32, { from: owner });
       const txReceipt = await transferManager.verboseWaitForTransaction(tx);
       const timestamp = await manager.getTimestamp(txReceipt.block);
       // Then transfer 200 wei more
-      await transferManager.from(owner).transferToken(wallet.address, ETH_TOKEN, recipient, 200, ZERO_BYTES32);
+      await transferManager.transferToken(wallet.address, ETH_TOKEN, recipient, 200, ZERO_BYTES32, { from: owner });
 
       const dailySpent = await limitStorage.getDailySpent(wallet.address);
       assert.equal(dailySpent[0].toNumber(), 300);
@@ -367,8 +367,8 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should return 0 if the entire daily limit amount has been spent", async () => {
-      await infrastructure.sendTransaction({ to: wallet.address, value: ethers.BigNumber.from(ETH_LIMIT) });
-      await transferManager.from(owner).transferToken(wallet.address, ETH_TOKEN, recipient, ETH_LIMIT, ZERO_BYTES32);
+      await wallet.send(ethers.BigNumber.from(ETH_LIMIT));
+      await transferManager.transferToken(wallet.address, ETH_TOKEN, recipient, ETH_LIMIT, ZERO_BYTES32, { from: owner });
       const { _unspent } = await transferManager.getDailyUnspent(wallet.address);
       assert.equal(_unspent.toNumber(), 0);
     });
@@ -385,7 +385,7 @@ contract("TransferManager", (accounts) => {
       if (relayed) {
         txReceipt = await manager.relay(transferManager, "transferToken", params, wallet, [signer]);
       } else {
-        const tx = await transferManager.from(signer).transferToken(...params);
+        const tx = await transferManager.transferToken(...params, { from: signer });
         txReceipt = await transferManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "Transfer"), "should have generated Transfer event");
@@ -410,7 +410,7 @@ contract("TransferManager", (accounts) => {
       if (relayed) {
         txReceipt = await manager.relay(transferManager, "transferToken", params, wallet, [owner]);
       } else {
-        tx = await transferManager.from(owner).transferToken(...params);
+        tx = await transferManager.transferToken(...params, { from: owner });
         txReceipt = await transferManager.verboseWaitForTransaction(tx);
       }
 
@@ -552,7 +552,7 @@ contract("TransferManager", (accounts) => {
           token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2, delay: 0,
         });
         await increaseTime(1);
-        const tx = await transferManager.from(owner).cancelPendingTransfer(wallet.address, id);
+        const tx = await transferManager.cancelPendingTransfer(wallet.address, id, { from: owner });
         const txReceipt = await transferManager.verboseWaitForTransaction(tx);
         assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "PendingTransferCanceled"),
           "should have generated PendingTransferCanceled event");
@@ -565,7 +565,7 @@ contract("TransferManager", (accounts) => {
           token: erc20, to: recipient, amount: ETH_LIMIT * 2, delay: 0,
         });
         await increaseTime(1);
-        const tx = await transferManager.from(owner).cancelPendingTransfer(wallet.address, id);
+        const tx = await transferManager.cancelPendingTransfer(wallet.address, id, { from: owner });
         const txReceipt = await transferManager.verboseWaitForTransaction(tx);
         assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "PendingTransferCanceled"),
           "should have generated PendingTransferCanceled event");
@@ -574,13 +574,13 @@ contract("TransferManager", (accounts) => {
       });
 
       it("should send immediately ETH to a whitelisted address", async () => {
-        await transferManager.from(owner).addToWhitelist(wallet.address, recipient);
+        await transferManager.addToWhitelist(wallet.address, recipient, { from: owner });
         await increaseTime(3);
         await doDirectTransfer({ token: ETH_TOKEN, to: recipient, amount: ETH_LIMIT * 2 });
       });
 
       it("should send immediately ERC20 to a whitelisted address", async () => {
-        await transferManager.from(owner).addToWhitelist(wallet.address, recipient);
+        await transferManager.addToWhitelist(wallet.address, recipient, { from: owner });
         await increaseTime(3);
         await doDirectTransfer({ token: erc20, to: recipient, amount: ETH_LIMIT * 2 });
       });
@@ -595,7 +595,7 @@ contract("TransferManager", (accounts) => {
       if (relayed) {
         txReceipt = await manager.relay(transferManager, "approveToken", params, wallet, [signer]);
       } else {
-        const tx = await transferManager.from(signer).approveToken(...params);
+        const tx = await transferManager.approveToken(...params, { from: signer });
         txReceipt = await transferManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "Approved"), "should have generated Approved event");
@@ -621,7 +621,7 @@ contract("TransferManager", (accounts) => {
 
     it("should approve an ERC20 immediately when the amount is under the existing approved amount", async () => {
       await doDirectApprove({ amount: 100 });
-      await transferManager.from(owner).approveToken(wallet.address, erc20.address, spender, 10);
+      await transferManager.approveToken(wallet.address, erc20.address, spender, 10, { from: owner });
       const approval = await erc20.allowance(wallet.address, spender);
       assert.equal(approval.toNumber(), 10);
     });
@@ -636,7 +636,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should approve an ERC20 immediately when the spender is whitelisted ", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.address, spender);
+      await transferManager.addToWhitelist(wallet.address, spender, { from: owner });
       await increaseTime(3);
       await doDirectApprove({ amount: ETH_LIMIT + 10000 });
     });
@@ -666,7 +666,7 @@ contract("TransferManager", (accounts) => {
       if (relayed) {
         txReceipt = await manager.relay(transferManager, "callContract", params, wallet, [owner]);
       } else {
-        const tx = await transferManager.from(owner).callContract(...params);
+        const tx = await transferManager.callContract(...params, { from: owner });
         txReceipt = await transferManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "CalledContract"), "should have generated CalledContract event");
@@ -681,27 +681,27 @@ contract("TransferManager", (accounts) => {
     it("should not be able to call the wallet itselt", async () => {
       const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
       const params = [wallet.address, wallet.address, 10, dataToTransfer];
-      await assert.revertWith(transferManager.from(owner).callContract(...params), "BT: Forbidden contract");
+      await assert.revertWith(transferManager.callContract(...params, { from: owner }), "BT: Forbidden contract");
     });
 
     it("should not be able to call a feature of the wallet", async () => {
       const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
       const params = [wallet.address, transferManager.address, 10, dataToTransfer];
-      await assert.revertWith(transferManager.from(owner).callContract(...params), "BT: Forbidden contract");
+      await assert.revertWith(transferManager.callContract(...params, { from: owner }), "BT: Forbidden contract");
     });
 
     it("should not be able to call a supported ERC20 token contract", async () => {
       const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
       const params = [wallet.address, erc20.address, 10, dataToTransfer];
-      await assert.revertWith(transferManager.from(owner).callContract(...params), "TM: Forbidden contract");
+      await assert.revertWith(transferManager.callContract(...params, { from: owner }), "TM: Forbidden contract");
     });
 
     it("should be able to call a supported token contract which is whitelisted", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.address, erc20.address);
+      await transferManager.addToWhitelist(wallet.address, erc20.address, { from: owner });
       await increaseTime(3);
       const dataToTransfer = erc20.contract.interface.functions.transfer.encode([infrastructure, 4]);
       const params = [wallet.address, erc20.address, 0, dataToTransfer];
-      await transferManager.from(owner).callContract(...params);
+      await transferManager.callContract(...params, { from: owner });
     });
 
     it("should call a contract and transfer ETH value when under the daily limit", async () => {
@@ -713,7 +713,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should call a contract and transfer ETH value above the daily limit when the contract is whitelisted", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.address, contract.address);
+      await transferManager.addToWhitelist(wallet.address, contract.address, { from: owner });
       await increaseTime(3);
       await doCallContract({ value: ETH_LIMIT + 10000, state: 6 });
     });
@@ -746,7 +746,7 @@ contract("TransferManager", (accounts) => {
       if (relayed) {
         txReceipt = await manager.relay(transferManager, method, params, wallet, [signer]);
       } else {
-        const tx = await transferManager.from(signer)[method](...params);
+        const tx = await transferManager[method](...params, { from: signer });
         txReceipt = await transferManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "ApprovedAndCalledContract"), "should have generated CalledContract event");
@@ -773,15 +773,16 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should restore existing approved amount after call", async () => {
-      await transferManager.from(owner).approveToken(wallet.address, erc20.address, contract.address, 10);
+      await transferManager.approveToken(wallet.address, erc20.address, contract.address, 10, { from: owner });
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.address, 5]);
-      await transferManager.from(owner).approveTokenAndCallContract(
+      await transferManager.approveTokenAndCallContract(
         wallet.address,
         erc20.address,
         contract.address,
         5,
         contract.address,
         dataToTransfer,
+        { from: owner }
       );
       const approval = await erc20.allowance(wallet.address, contract.address);
 
@@ -793,15 +794,16 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should be able to spend less than approved in call", async () => {
-      await transferManager.from(owner).approveToken(wallet.address, erc20.address, contract.address, 10);
+      await transferManager.approveToken(wallet.address, erc20.address, contract.address, 10, { from: owner });
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.address, 4]);
-      await transferManager.from(owner).approveTokenAndCallContract(
+      await transferManager.approveTokenAndCallContract(
         wallet.address,
         erc20.address,
         contract.address,
         5,
         contract.address,
         dataToTransfer,
+        { from: owner }
       );
       const approval = await erc20.allowance(wallet.address, contract.address);
       // Initial approval of 10 is restored, after approving and spending 4
@@ -812,20 +814,21 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should not be able to spend more than approved in call", async () => {
-      await transferManager.from(owner).approveToken(wallet.address, erc20.address, contract.address, 10);
+      await transferManager.approveToken(wallet.address, erc20.address, contract.address, 10, { from: owner });
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.address, 6]);
-      await assert.revertWith(transferManager.from(owner).approveTokenAndCallContract(
+      await assert.revertWith(transferManager.approveTokenAndCallContract(
         wallet.address,
         erc20.address,
         contract.address,
         5,
         contract.address,
         dataToTransfer,
+        { from: owner }
       ), "BT: insufficient amount for call");
     });
 
     it("should approve the token and call the contract when the token is above the limit and the contract is whitelisted ", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.address, contract.address);
+      await transferManager.addToWhitelist(wallet.address, contract.address, { from: owner });
       await increaseTime(3);
       await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6 });
     });
@@ -837,7 +840,7 @@ contract("TransferManager", (accounts) => {
 
     it("should approve token and call contract when contract != spender, amount > limit and contract is whitelisted", async () => {
       const consumer = await contract.tokenConsumer();
-      await transferManager.from(owner).addToWhitelist(wallet.address, contract.address);
+      await transferManager.addToWhitelist(wallet.address, contract.address, { from: owner });
       await increaseTime(3);
       await doApproveTokenAndCallContract({ amount: ETH_LIMIT + 10000, state: 6, consumer });
     });
@@ -845,12 +848,12 @@ contract("TransferManager", (accounts) => {
     it("should fail to approve token and call contract when contract != spender, amount > limit and spender is whitelisted", async () => {
       const amount = ETH_LIMIT + 10000;
       const consumer = await contract.tokenConsumer();
-      await transferManager.from(owner).addToWhitelist(wallet.address, consumer);
+      await transferManager.addToWhitelist(wallet.address, consumer, { from: owner });
       await increaseTime(3);
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayTokenWithConsumer.encode([6, erc20.address, amount]);
       await assert.revertWith(
-        transferManager.from(owner).approveTokenAndCallContract(
-          wallet.address, erc20.address, consumer, amount, contract.address, dataToTransfer,
+        transferManager.approveTokenAndCallContract(
+          wallet.address, erc20.address, consumer, amount, contract.address, dataToTransfer, { from: owner }
         ),
         "TM: Approve above daily limit",
       );
@@ -868,14 +871,14 @@ contract("TransferManager", (accounts) => {
       const startingBalance = await erc20.balanceOf(wallet.address);
       await erc20.burn(wallet.address, startingBalance);
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.address, 1]);
-      await assert.revertWith(transferManager.from(owner).approveTokenAndCallContract(
+      await assert.revertWith(transferManager.approveTokenAndCallContract(
         wallet.address,
         erc20.address,
         contract.address,
         1,
         contract.address,
         dataToTransfer,
-      ), "BT: insufficient balance");
+        { from: owner }), "BT: insufficient balance");
     });
 
     // approveWethAndCallContract
@@ -886,8 +889,8 @@ contract("TransferManager", (accounts) => {
 
     it("should approve WETH and call the contract under the limit when already holding the WETH", async () => {
       const amount = 10;
-      await weth.from(infrastructure).deposit({ value: amount });
-      await weth.from(infrastructure).transfer(wallet.address, amount);
+      await weth.deposit({ value: amount });
+      await weth.transfer(wallet.address, amount);
       await doApproveTokenAndCallContract({ amount, state: 3, wrapEth: true });
     });
   });

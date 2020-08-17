@@ -99,9 +99,9 @@ contract("Invest Manager with Compound", (accounts) => {
     await comptroller._setCollateralFactor(cEther.address, WAD.div(10));
 
     // add liquidity to tokens
-    await cEther.from(liquidityProvider).mint({ value: parseEther("100") });
-    await token.from(liquidityProvider).approve(cToken.address, parseEther("100"));
-    await cToken.from(liquidityProvider).mint(parseEther("10"));
+    await cEther.mint({ value: parseEther("100"), from: liquidityProvider });
+    await token.approve(cToken.address, parseEther("100"), { from: liquidityProvider });
+    await cToken.mint(parseEther("10"), { from: liquidityProvider });
 
     /* Deploy Argent Architecture */
 
@@ -168,16 +168,16 @@ contract("Invest Manager with Compound", (accounts) => {
       let tx; let
         txReceipt;
       // genrate borrows to create interests
-      await comptroller.from(borrower).enterMarkets([cEther.address, cToken.address]);
+      await comptroller.enterMarkets([cEther.address, cToken.address], { from: borrower });
       if (investInEth) {
-        await token.from(borrower).approve(cToken.address, parseEther("20"));
-        await cToken.from(borrower).mint(parseEther("20"));
-        tx = await cEther.from(borrower).borrow(parseEther("0.1"));
+        await token.approve(cToken.address, parseEther("20"), { from: borrower });
+        await cToken.mint(parseEther("20"), { from: borrower });
+        tx = await cEther.borrow(parseEther("0.1"), { from: borrower });
         txReceipt = await cEther.verboseWaitForTransaction(tx);
         assert.isTrue(await utils.hasEvent(txReceipt, cEther, "Borrow"), "should have generated Borrow event");
       } else {
-        await cEther.from(borrower).mint({ value: parseEther("2") });
-        tx = await cToken.from(borrower).borrow(parseEther("0.1"));
+        await cEther.mint({ value: parseEther("2"), from: borrower });
+        tx = await cToken.borrow(parseEther("0.1"), { from: borrower });
         txReceipt = await cToken.verboseWaitForTransaction(tx);
         assert.isTrue(await utils.hasEvent(txReceipt, cToken, "Borrow"), "should have generated Borrow event");
       }
@@ -195,13 +195,13 @@ contract("Invest Manager with Compound", (accounts) => {
       if (investInEth) {
         tx = await wallet.send(amount);
       } else {
-        await token.from(infrastructure).transfer(wallet.address, amount);
+        await token.transfer(wallet.address, amount);
       }
       const params = [wallet.address, tokenAddress, amount, 0];
       if (relay) {
         txReceipt = await manager.relay(investManager, "addInvestment", params, wallet, [owner]);
       } else {
-        tx = await investManager.from(owner).addInvestment(...params);
+        tx = await investManager.addInvestment(...params, { from: owner });
         txReceipt = await investManager.verboseWaitForTransaction(tx);
       }
 
@@ -227,7 +227,7 @@ contract("Invest Manager with Compound", (accounts) => {
       if (relay) {
         txReceipt = await manager.relay(investManager, "removeInvestment", params, wallet, [owner]);
       } else {
-        tx = await investManager.from(owner).removeInvestment(...params);
+        tx = await investManager.removeInvestment(...params, { from: owner });
         txReceipt = await investManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved"), "should have generated InvestmentRemoved event");
@@ -259,17 +259,17 @@ contract("Invest Manager with Compound", (accounts) => {
 
       it("should fail to invest in ERC20 with an unknown token", async () => {
         const params = [wallet.address, ethers.constants.AddressZero, parseEther("1"), 0];
-        await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: No market for target token");
+        await assert.revertWith(investManager.addInvestment(...params, { from: owner }), "CM: No market for target token");
       });
 
       it("should fail to invest in ERC20 with an amount of zero", async () => {
         const params = [wallet.address, token.address, 0, 0];
-        await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: amount cannot be 0");
+        await assert.revertWith(investManager.addInvestment(...params, { from: owner }), "CM: amount cannot be 0");
       });
 
       it("should fail to invest in ERC20 when not holding any ERC20", async () => {
         const params = [wallet.address, token.address, parseEther("1"), 0];
-        await assert.revertWith(investManager.from(owner).addInvestment(...params), "CM: mint failed");
+        await assert.revertWith(investManager.addInvestment(...params, { from: owner }), "CM: mint failed");
       });
     });
 
@@ -298,27 +298,27 @@ contract("Invest Manager with Compound", (accounts) => {
 
       it("should fail to remove an ERC20 investment when passing an invalid fraction value", async () => {
         const params = [wallet.address, token.address, 50000];
-        await assert.revertWith(investManager.from(owner).removeInvestment(...params), "CM: invalid fraction value");
+        await assert.revertWith(investManager.removeInvestment(...params, { from: owner }), "CM: invalid fraction value");
       });
 
       it("should fail to remove an ERC20 investment when not holding any of the corresponding cToken", async () => {
         const params = [wallet.address, token.address, 5000];
-        await assert.revertWith(investManager.from(owner).removeInvestment(...params), "CM: amount cannot be 0");
+        await assert.revertWith(investManager.removeInvestment(...params, { from: owner }), "CM: amount cannot be 0");
       });
 
       it("should fail to remove all of an ERC20 investment when it collateralizes a loan", async () => {
         const collateralAmount = parseEther("1");
         const debtAmount = parseEther("0.001");
-        await token.from(infrastructure).transfer(wallet.address, collateralAmount);
+        await token.transfer(wallet.address, collateralAmount);
         const openLoanParams = [
           wallet.address,
           token.address,
           collateralAmount,
           ETH_TOKEN,
           debtAmount];
-        await investManager.from(owner).openLoan(...openLoanParams);
+        await investManager.openLoan(...openLoanParams, { from: owner });
         const removeInvestmentParams = [wallet.address, token.address, 10000];
-        await assert.revertWith(investManager.from(owner).removeInvestment(...removeInvestmentParams), "CM: redeem failed");
+        await assert.revertWith(investManager.removeInvestment(...removeInvestmentParams, { from: owner }), "CM: redeem failed");
       });
     });
   });

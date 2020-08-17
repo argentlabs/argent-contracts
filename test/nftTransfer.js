@@ -107,8 +107,8 @@ contract("NftTransfer", (accounts) => {
           assert.equal(error, expectedError);
         }
       } else {
-        const txPromise = nftFeature.from(owner1)
-          .transferNFT(wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32, { gasLimit: 300000 });
+        const txPromise = nftModule
+          .transferNFT(wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32, { from: owner1, gasLimit: 300000 });
         if (shouldSucceed) {
           await txPromise;
         } else {
@@ -194,11 +194,12 @@ contract("NftTransfer", (accounts) => {
       beforeEach(async () => {
         erc20 = await ERC20.new([wallet1.address], 1000, 18);
         tokenPriceRegistry.setPriceForTokenList([erc20.address], [1]);
-        await erc20Approver.from(owner1).approveERC20(
+        await erc20Approver.approveERC20(
           wallet1.address,
           erc20.address,
           wallet1.address, // spender
           100,
+          { from: owner1 }
         ); // amount
       });
 

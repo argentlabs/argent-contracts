@@ -31,7 +31,7 @@ contract("BaseModule", (accounts) => {
       let balance = await token.balanceOf(baseModule.address);
       assert.equal(balance, 0);
 
-      await token.from(owner).transfer(baseModule.address, 10000000);
+      await token.transfer(baseModule.address, 10000000, { from: owner });
       balance = await token.balanceOf(baseModule.address);
       assert.equal(balance, 10000000);
 

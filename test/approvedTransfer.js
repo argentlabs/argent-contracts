@@ -107,7 +107,7 @@ contract("ApprovedTransfer", (accounts) => {
     });
 
     for (const address of guardianAddresses) {
-      await guardianManager.from(owner).addGuardian(wallet.address, address);
+      await guardianManager.addGuardian(wallet.address, address, { from: owner });
     }
 
     await increaseTime(30);
