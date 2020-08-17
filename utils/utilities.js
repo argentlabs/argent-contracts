@@ -154,8 +154,19 @@ module.exports = {
     return timestamp;
   },
 
+  async getNetworkId() {
+    // if (this.network === "ganache" || this.network.endsWith("-fork")) {
+    //   return 1; // ganache currently always uses 1 as chainId, see https://github.com/trufflesuite/ganache-core/issues/515
+    // }
+    const networkId = await web3.eth.net.getId();
+    return networkId;
+  },
+
   async increaseTime(seconds) {
-    if (this.network === "ganache") {
+    const networkId = await getNetworkId();
+    console.log("networkId", networkId)
+    // TODO
+    if (networkId === "ganache") {
       await web3.currentProvider.send("evm_increaseTime", seconds);
       await web3.currentProvider.send("evm_mine");
     } else {
