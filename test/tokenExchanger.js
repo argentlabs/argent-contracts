@@ -41,7 +41,7 @@ const VersionManager = artifacts.require("VersionManager");
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
-const { ETH_TOKEN, parseLogs } = require("../utils/utilities.js");
+const { ETH_TOKEN, parseLogs, getTimestamp } = require("../utils/utilities.js");
 const TestManager = require("../utils/test-manager");
 
 // Constants
@@ -113,7 +113,7 @@ contract("TokenExchanger", (accounts) => {
     uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
     await tokenA.approve(uniswapRouter.address, parseEther("300"));
     await tokenB.approve(uniswapRouter.address, parseEther("600"));
-    const timestamp = await manager.getTimestamp(await manager.getCurrentBlock());
+    const timestamp = await getTimestamp();
     await uniswapRouter.addLiquidity(
       tokenA.address,
       tokenB.address,
