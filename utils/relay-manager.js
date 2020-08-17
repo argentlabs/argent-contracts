@@ -1,12 +1,7 @@
 const ethers = require("ethers");
 const { signOffchain, ETH_TOKEN, getNonceForRelay, getNetworkId } = require("./utilities.js");
 
-class TestManager {
-  constructor(network = "ganache") {
-    this.network = network;
-    this.provider = this.deployer.provider;
-  }
-
+class RelayManager {
   setRelayerManager(relayerManager) {
     this.relayerManager = relayerManager;
   }
@@ -68,4 +63,4 @@ class TestManager {
   }
 }
 
-module.exports = TestManager;
+module.exports = RelayManager;

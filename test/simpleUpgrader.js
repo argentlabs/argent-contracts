@@ -16,10 +16,10 @@ const RecoveryManager = artifacts.require("RecoveryManager");
 const VersionManager = artifacts.require("VersionManager");
 
 const RelayerManager = artifacts.require("RelayerManager");
-const TestManager = artifacts.require("test-manager");
+const RelayManager = require("../utils/relay-manager");
 
 contract("SimpleUpgrader", (accounts) => {
-  const manager = new TestManager();
+  const manager = new RelayManager();
 
   const owner = accounts[1];
   let registry;

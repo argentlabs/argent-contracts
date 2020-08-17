@@ -19,7 +19,8 @@
     "no-restricted-syntax": "off",
     "guard-for-in": "off",
     "function-paren-newline": "off",
-    "comma-dangle": "off"
+    "comma-dangle": "off",
+    "object-curly-newline": "off"
   },
   "parserOptions": {
     "ecmaVersion": 2018

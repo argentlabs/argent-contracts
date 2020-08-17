@@ -28,10 +28,10 @@ const ETH_EXCHANGE_RATE = ethers.BigNumber.from("200000000000000000000000000");
 const ERC20 = artifacts.require("TestERC20");
 
 const { ETH_TOKEN, increaseTime } = require("../utils/utilities.js");
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 
 contract("Invest Manager with Compound", (accounts) => {
-  const manager = new TestManager();
+  const manager = new RelayManager();
 
   const infrastructure = accounts[0];
   const owner = accounts[1];

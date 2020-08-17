@@ -29,20 +29,19 @@ const ETH_EXCHANGE_RATE = ethers.BigNumber.from("200000000000000000000000000");
 
 const ERC20 = artifacts.require("TestERC20");
 
-const { ETH_TOKEN } = require("../utils/utilities.js");
-const TestManager = require("../utils/test-manager");
+const { ETH_TOKEN, getBalance } = require("../utils/utilities.js");
+const RelayManager = require("../utils/relay-manager");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 contract("Loan Module", (accounts) => {
-  const manager = new TestManager();
+  const manager = new RelayManager();
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const liquidityProvider = accounts[2];
   const borrower = accounts[3];
 
-  let deployer;
   let wallet;
   let walletImplementation;
   let loanManager;
@@ -59,8 +58,6 @@ contract("Loan Module", (accounts) => {
   let versionManager;
 
   before(async () => {
-    deployer = manager.newDeployer();
-
     /* Deploy Compound V2 Architecture */
 
     // deploy price oracle
@@ -184,9 +181,9 @@ contract("Loan Module", (accounts) => {
     async function testOpenLoan({
       collateral, collateralAmount, debt, debtAmount, relayed,
     }) {
-      const collateralBefore = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+      const collateralBefore = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
-      const debtBefore = (debt === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+      const debtBefore = (debt === ETH_TOKEN) ? await getBalance(wallet.address)
         : await debt.balanceOf(wallet.address);
 
       const params = [
@@ -206,9 +203,9 @@ contract("Loan Module", (accounts) => {
       const loanId = (await utils.parseLogs(txReceipt, loanManager, "LoanOpened"))[0]._loanId;
       assert.isDefined(loanId, "Loan ID should be defined");
 
-      const collateralAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+      const collateralAfter = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
-      const debtAfter = (debt === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+      const debtAfter = (debt === ETH_TOKEN) ? await getBalance(wallet.address)
         : await debt.balanceOf(wallet.address);
 
       assert.isTrue(collateralBefore.sub(collateralAfter).eq(collateralAmount),
@@ -221,7 +218,7 @@ contract("Loan Module", (accounts) => {
     async function testChangeCollateral({
       loanId, collateral, amount, add, relayed,
     }) {
-      const collateralBalanceBefore = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+      const collateralBalanceBefore = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
 
       const method = add ? "addCollateral" : "removeCollateral";
@@ -237,7 +234,7 @@ contract("Loan Module", (accounts) => {
         const tx = await loanManager.from(owner)[method](...params);
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
-      const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+      const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
       if (add) {
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralAdded"), "should have generated CollateralAdded event");
@@ -253,7 +250,7 @@ contract("Loan Module", (accounts) => {
     async function testChangeDebt({
       loanId, debtToken, amount, add, relayed,
     }) {
-      const debtBalanceBefore = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+      const debtBalanceBefore = (debtToken === ETH_TOKEN) ? await getBalance(wallet.address)
         : await debtToken.balanceOf(wallet.address);
 
       const method = add ? "addDebt" : "removeDebt";
@@ -269,7 +266,7 @@ contract("Loan Module", (accounts) => {
         const tx = await loanManager.from(owner)[method](...params);
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
-      const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await deployer.provider.getBalance(wallet.address)
+      const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await getBalance(wallet.address)
         : await debtToken.balanceOf(wallet.address);
       if (add) {
         assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtAdded"), "should have generated DebtAdded event");

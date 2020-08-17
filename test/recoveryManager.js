@@ -12,7 +12,7 @@ const Registry = artifacts.require("ModuleRegistry");
 const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = artifacts.require("VersionManager");
 
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 const {
   ETH_TOKEN,
   sortWalletByAddress,
@@ -28,7 +28,7 @@ const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 
 contract("RecoveryManager", (accounts) => {
-  const manager = new TestManager();
+  const manager = new RelayManager();
 
   const owner = accounts[1];
   const guardian1 = accounts[2];

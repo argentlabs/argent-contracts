@@ -25,7 +25,7 @@ const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = require("../build/VersionManager");
 
 const DeployManager = require("../utils/deploy-manager");
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
@@ -106,7 +106,7 @@ class Benchmark {
     this.accounts = this.signers.map((s) => s._address);
     this.config = config;
 
-    this.testManager = new TestManager();
+    this.testManager = new RelayManager();
 
     // Features
     this.GuardianManagerWrapper = await this.deployer.wrapDeployedContract(GuardianManager, config.modules.GuardianManager);

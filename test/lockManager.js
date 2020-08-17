@@ -11,12 +11,12 @@ const Registry = artifacts.require("ModuleRegistry");
 const RecoveryManager = artifacts.require("RecoveryManager");
 const VersionManager = artifacts.require("VersionManager");
 
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 
 const { increaseTime } = require("../utils/utilities.js");
 
 contract("LockManager", (accounts) => {
-  const manager = new TestManager();
+  const manager = new RelayManager();
 
   const owner = accounts[1];
   const guardian1 = accounts[2];

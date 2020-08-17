@@ -36,10 +36,10 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const ACTION_TRANSFER = 0;
 
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 
 contract("TransferManager", (accounts) => {
-  const manager = new TestManager();
+  const manager = new RelayManager();
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
@@ -47,7 +47,7 @@ contract("TransferManager", (accounts) => {
   const recipient = accounts[3];
   const spender = accounts[4];
 
-  let deployer;
+  let registry;
   let priceProvider;
   let transferStorage;
   let lockStorage;
@@ -64,7 +64,6 @@ contract("TransferManager", (accounts) => {
   let versionManager;
 
   before(async () => {
-    deployer = manager.newDeployer();
     weth = await WETH.new();
     const registry = await Registry.new();
     priceProvider = await LegacyTokenPriceProvider.new(ethers.constants.AddressZero);
@@ -123,7 +122,7 @@ contract("TransferManager", (accounts) => {
 
   beforeEach(async () => {
     const proxy = await Proxy.new(walletImplementation.address);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.address);
+    wallet = await BaseWallet.at(proxy.address);
     await wallet.init(owner, [versionManager.address]);
     await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
 
@@ -159,7 +158,7 @@ contract("TransferManager", (accounts) => {
         ethers.constants.AddressZero);
       await versionManager.addVersion([transferManager1.address], [transferManager1.address]);
       const proxy = await Proxy.new(walletImplementation.address);
-      const existingWallet = deployer.wrapDeployedContract(BaseWallet, proxy.address);
+      const existingWallet = await BaseWallet.at(proxy.address);
       await existingWallet.init(owner, [versionManager.address]);
       await versionManager.from(owner).upgradeWallet(existingWallet.address, await versionManager.lastVersion());
 
@@ -379,7 +378,7 @@ contract("TransferManager", (accounts) => {
     async function doDirectTransfer({
       token, signer = owner, to, amount, relayed = false,
     }) {
-      const fundsBefore = (token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await token.balanceOf(to));
+      const fundsBefore = (token === ETH_TOKEN ? await utils.getBalance(to) : await token.balanceOf(to));
       const unspentBefore = await transferManager.getDailyUnspent(wallet.address);
       const params = [wallet.address, token === ETH_TOKEN ? ETH_TOKEN : token.address, to, amount, ZERO_BYTES32];
       let txReceipt;
@@ -390,7 +389,7 @@ contract("TransferManager", (accounts) => {
         txReceipt = await transferManager.verboseWaitForTransaction(tx);
       }
       assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "Transfer"), "should have generated Transfer event");
-      const fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await token.balanceOf(to));
+      const fundsAfter = (token === ETH_TOKEN ? await utils.getBalance(to) : await token.balanceOf(to));
       const unspentAfter = await transferManager.getDailyUnspent(wallet.address);
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
       const ethValue = (token === ETH_TOKEN ? amount : (await getEtherValue(amount, token.address)).toNumber());
@@ -404,8 +403,8 @@ contract("TransferManager", (accounts) => {
       token, to, amount, delay, relayed = false,
     }) {
       const tokenAddress = token === ETH_TOKEN ? ETH_TOKEN : token.address;
-      const fundsBefore = (token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await token.balanceOf(to));
-      const params = [wallet.address, tokenAddress, to, amount, ZERO_BYTES32];
+      const fundsBefore = (token === ETH_TOKEN ? await utils.getBalance(to.address) : await token.balanceOf(to.address));
+      const params = [wallet.address, tokenAddress, to.address, amount, ZERO_BYTES32];
       let txReceipt; let
         tx;
       if (relayed) {
@@ -414,8 +413,9 @@ contract("TransferManager", (accounts) => {
         tx = await transferManager.from(owner).transferToken(...params);
         txReceipt = await transferManager.verboseWaitForTransaction(tx);
       }
+
       assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "PendingTransferCreated"), "should have generated PendingTransferCreated event");
-      let fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await token.balanceOf(to));
+      let fundsAfter = (token === ETH_TOKEN ? await utils.getBalance(to.address) : await token.balanceOf(to.address));
       assert.equal(fundsAfter.sub(fundsBefore).toNumber(), 0, "should not have transfered amount");
       if (delay === 0) {
         const id = ethers.utils.solidityKeccak256(["uint8", "address", "address", "uint256", "bytes", "uint256"],
@@ -428,7 +428,7 @@ contract("TransferManager", (accounts) => {
       txReceipt = await transferManager.verboseWaitForTransaction(tx);
       assert.isTrue(await utils.hasEvent(txReceipt, transferManager, "PendingTransferExecuted"),
         "should have generated PendingTransferExecuted event");
-      fundsAfter = (token === ETH_TOKEN ? await deployer.provider.getBalance(to) : await token.balanceOf(to));
+      fundsAfter = (token === ETH_TOKEN ? await utils.getBalance(to.address) : await token.balanceOf(to.address));
       return assert.equal(fundsAfter.sub(fundsBefore).toNumber(), amount, "should have transfered amount");
     }
 
