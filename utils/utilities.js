@@ -147,4 +147,10 @@ module.exports = {
     );
     return contract.callStatic[method](...args);
   },
+
+  async getTimestamp(blockNumber) {
+    const blockN = !blockNumber ? "latest" : blockNumber;
+    const { timestamp } = await web3.eth.getBlock(blockN);
+    return timestamp;
+  }
 };

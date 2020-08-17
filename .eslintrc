@@ -17,7 +17,9 @@
     "no-underscore-dangle": "off",
     "no-await-in-loop": "off",
     "no-restricted-syntax": "off",
-    "guard-for-in": "off"
+    "guard-for-in": "off",
+    "function-paren-newline": "off",
+    "comma-dangle": "off"
   },
   "parserOptions": {
     "ecmaVersion": 2018

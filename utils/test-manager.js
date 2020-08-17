@@ -1,22 +1,10 @@
-const etherlime = require("etherlime-lib");
 const ethers = require("ethers");
 const { signOffchain, ETH_TOKEN } = require("./utilities.js");
 
 class TestManager {
-  constructor(network = "ganache", deployer) {
+  constructor(network = "ganache") {
     this.network = network;
-    console.log("network", network)
     this.provider = this.deployer.provider;
-  }
-
-  async getCurrentBlock() {
-    const block = await this.provider.getBlockNumber();
-    return block;
-  }
-
-  async getTimestamp(blockNumber) {
-    const block = await this.provider.getBlock(blockNumber);
-    return block.timestamp;
   }
 
   async getNonceForRelay() {

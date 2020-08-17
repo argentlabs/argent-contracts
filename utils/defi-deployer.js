@@ -1,8 +1,8 @@
 /* global artifacts */
 
 const { parseEther, formatBytes32String } = require("ethers").utils;
-const etherlime = require("etherlime-lib");
 const ethers = require("ethers");
+const web3 = require("web3");
 
 const UniswapFactory = require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = require("../lib/uniswap/UniswapExchange");
@@ -49,7 +49,7 @@ module.exports = {
       const tokenLiquidity = ethLiquidity.mul(WAD).div(ethPerToken[i]);
       await token["mint(address,uint256)"](infrastructure, tokenLiquidity);
       await token.from(infrastructure).approve(tokenExchange.address, tokenLiquidity);
-      const timestamp = await manager.getTimestamp(await manager.getCurrentBlock());
+      const { timestamp } = await web3.eth.getBlock(blockN);
       await tokenExchange.from(infrastructure).addLiquidity(1, tokenLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000 });
     }
     return { uniswapFactory };

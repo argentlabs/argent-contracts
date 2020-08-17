@@ -18,6 +18,7 @@ const {
   sortWalletByAddress,
   parseRelayReceipt,
   signOffchain,
+  getTimestamp
 } = require("../utils/utilities.js");
 
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
@@ -134,8 +135,7 @@ contract("RecoveryManager", (accounts) => {
     it("should let a majority of guardians execute the recovery procedure", async () => {
       const majority = guardians.slice(0, Math.ceil((guardians.length) / 2));
       await manager.relay(recoveryManager, "executeRecovery", [wallet.address, newowner], wallet, sortWalletByAddress(majority));
-      const currentBlock = await manager.getCurrentBlock();
-      const timestamp = await manager.getTimestamp(currentBlock);
+      const timestamp = await getTimestamp(currentBlock);
       const isLocked = await lockManager.isLocked(wallet.address);
       assert.isTrue(isLocked, "should be locked by recovery");
 
