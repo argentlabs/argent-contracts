@@ -32,9 +32,7 @@ async function deploy() {
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
-  const UpgraderWrapper = await deployer.deploy(
-    Upgrader,
-    {},
+  const UpgraderWrapper = await Upgrader.new(
     modulesToRemove,
     modulesToAdd,
   );

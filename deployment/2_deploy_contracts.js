@@ -62,32 +62,32 @@ const deploy = async (network) => {
   // //////////////////////////////////
 
   // Deploy the Base Wallet Library
-  const BaseWalletWrapper = await deployer.deploy(BaseWallet);
+  const BaseWalletWrapper = await BaseWallet.new();
   // Deploy the MultiSig
-  const MultiSigWrapper = await deployer.deploy(MultiSig, {}, newConfig.multisig.threshold, newConfig.multisig.owners);
+  const MultiSigWrapper = await MultiSig.new(newConfig.multisig.threshold, newConfig.multisig.owners);
 
   // Deploy the new TokenPriceRegistry
-  const TokenPriceRegistryWrapper = await deployer.deploy(TokenPriceRegistry);
+  const TokenPriceRegistryWrapper = await TokenPriceRegistry.new();
   // Deploy the DexRegistry
-  const DexRegistryWrapper = await deployer.deploy(DexRegistry);
+  const DexRegistryWrapper = await DexRegistry.new();
 
   // Deploy Module Registry
-  const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
+  const ModuleRegistryWrapper = await ModuleRegistry.new();
   // Deploy Compound Registry
-  const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
+  const CompoundRegistryWrapper = await CompoundRegistry.new();
   // Deploy the ENS Resolver
-  const ENSResolverWrapper = await deployer.deploy(ENSResolver);
+  const ENSResolverWrapper = await ENSResolver.new();
   // Deploy the ENS Manager
-  const ENSManagerWrapper = await deployer.deploy(ENSManager, {},
+  const ENSManagerWrapper = await ENSManager.new(
     walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.address);
   // Deploy the Wallet Factory
-  const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
+  const WalletFactoryWrapper = await WalletFactory.new(
     ModuleRegistryWrapper.address, BaseWalletWrapper.address, GuardianStorageWrapper.address);
 
   // Deploy and configure Maker Registry
-  const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, newConfig.defi.maker.migration);
+  const ScdMcdMigrationWrapper = await ScdMcdMigration.at(newConfig.defi.maker.migration);
   const vatAddress = await ScdMcdMigrationWrapper.vat();
-  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry, {}, vatAddress);
+  const MakerRegistryWrapper = await MakerRegistry.new(vatAddress);
   const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
   const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
   await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
@@ -98,7 +98,7 @@ const deploy = async (network) => {
   // Making ENSManager owner of the root wallet ENS
   // /////////////////////////////////////////////////
 
-  const ENSRegistryWrapper = deployer.wrapDeployedContract(ENS, newConfig.ENS.ensRegistry);
+  const ENSRegistryWrapper = await ENS.at(newConfig.ENS.ensRegistry);
 
   // Get the address of the previous owner of the root wallet ENS (e.g. argent.xyz)
   const previousWalletEnsOwner = await ENSRegistryWrapper.contract.owner(utils.namehash(walletRootEns));
@@ -111,8 +111,8 @@ const deploy = async (network) => {
   } else if (previousWalletEnsOwner.toLowerCase() === prevConfig.contracts.ENSManager.toLowerCase()) {
     // change the owner from the previous ENSManager.address to the new one
     console.log("change the owner from the previous ENSManager to the new one");
-    const previousMultiSigWrapper = deployer.wrapDeployedContract(MultiSig, prevConfig.contracts.MultiSigWallet);
-    const previousENSManagerWrapper = deployer.wrapDeployedContract(ENSManager, prevConfig.contracts.ENSManager);
+    const previousMultiSigWrapper = await MultiSig.at(prevConfig.contracts.MultiSigWallet);
+    const previousENSManagerWrapper = await ENSManager.at(prevConfig.contracts.ENSManager);
 
     const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentWallet, prevConfig.multisig.autosign, { gasPrice });
     console.log(`Owner of ${walletRootEns} changed from old ENSManager to new ENSManager...`);

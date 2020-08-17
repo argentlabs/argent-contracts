@@ -75,15 +75,10 @@ contract("MakerV2Invest", (accounts) => {
       guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-<<<<<<< HEAD
       versionManager.address);
     manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([makerV2.address, relayerManager.address], []);
-=======
-    );
-    manager.setRelayerModule(relayerModule);
->>>>>>> 58b95d01... Fix linting issues including the removal of obsoleted testmanager and deployer instances
   });
 
   beforeEach(async () => {

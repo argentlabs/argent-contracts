@@ -5,17 +5,8 @@ const { signOffchain, ETH_TOKEN } = require("./utilities.js");
 class TestManager {
   constructor(network = "ganache", deployer) {
     this.network = network;
-    this.deployer = deployer || this.newDeployer();
+    console.log("network", network)
     this.provider = this.deployer.provider;
-  }
-
-  static newDeployer() {
-    const defaultConfigs = {
-      gasLimit: ethers.BigNumber.from(20700000),
-    };
-    const deployerInstance = new etherlime.EtherlimeGanacheDeployer("0x7ab741b57e8d94dd7e1a29055646bafde7010f38a900f55bbd7647880faa6ee8");
-    deployerInstance.setDefaultOverrides(defaultConfigs);
-    return deployerInstance;
   }
 
   async getCurrentBlock() {

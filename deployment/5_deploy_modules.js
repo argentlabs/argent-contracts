@@ -53,51 +53,78 @@ const deploy = async (network) => {
   // Deploy the GuardianManager module
   const GuardianManagerWrapper = await deployer.deploy(
     GuardianManager,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     VersionManagerWrapper.address,
+=======
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.address,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
   );
   // Deploy the LockManager module
   const LockManagerWrapper = await deployer.deploy(
     LockManager,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     VersionManagerWrapper.address,
+=======
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.address,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
     config.settings.lockPeriod || 0,
   );
   // Deploy the RecoveryManager module
   const RecoveryManagerWrapper = await deployer.deploy(
     RecoveryManager,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     VersionManagerWrapper.address,
+=======
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.address,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0,
   );
   // Deploy the ApprovedTransfer module
   const ApprovedTransferWrapper = await deployer.deploy(
     ApprovedTransfer,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     config.modules.LimitStorage,
     VersionManagerWrapper.address,
     config.defi.weth,
+=======
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.address,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
   );
   // Deploy the TransferManager module
   const TransferManagerWrapper = await deployer.deploy(
     TransferManager,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
     config.modules.TransferStorage,
     config.modules.LimitStorage,
     config.modules.TokenPriceRegistry,
     VersionManagerWrapper.address,
+=======
+    config.contracts.ModuleRegistry,
+    TransferStorageWrapper.address,
+    GuardianStorageWrapper.address,
+    config.contracts.TokenPriceProvider,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
@@ -107,6 +134,7 @@ const deploy = async (network) => {
   // Deploy the TokenExchanger module
   const TokenExchangerWrapper = await deployer.deploy(
     TokenExchanger,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
     config.modules.TokenPriceRegistry,
@@ -114,21 +142,38 @@ const deploy = async (network) => {
     config.contracts.DexRegistry,
     config.defi.paraswap.contract,
     "argent",
+=======
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.address,
+    config.Kyber ? config.Kyber.contract : "0x0000000000000000000000000000000000000000",
+    config.contracts.MultiSigWallet,
+    config.settings.feeRatio || 0,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
   );
   // Deploy the NFTTransfer module
   const NftTransferWrapper = await deployer.deploy(
     NftTransfer,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
     config.modules.TokenPriceRegistry,
     VersionManagerWrapper.address,
+=======
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.address,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
     config.CryptoKitties.contract,
   );
   // Deploy the CompoundManager module
   const CompoundManagerWrapper = await deployer.deploy(
     CompoundManager,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
+=======
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.address,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
     VersionManagerWrapper.address,
@@ -136,8 +181,13 @@ const deploy = async (network) => {
   // Deploy MakerManagerV2
   const MakerV2ManagerWrapper = await deployer.deploy(
     MakerV2Manager,
+<<<<<<< HEAD
     {},
     config.modules.LockStorage,
+=======
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.address,
+>>>>>>> b79932ef... Migrate away from deployer.deploy syntax and to .new()
     config.defi.maker.migration,
     config.defi.maker.pot,
     config.defi.maker.jug,
