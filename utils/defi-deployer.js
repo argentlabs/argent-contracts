@@ -44,7 +44,8 @@ module.exports = {
     for (let i = 0; i < tokens.length; i += 1) {
       const token = tokens[i];
       await uniswapFactory.from(infrastructure).createExchange(token.address);
-      const tokenExchange = await etherlime.ContractAt(UniswapExchange, await uniswapFactory.getExchange(token.address));
+      const uniswapExchangeAddress = await uniswapFactory.getExchange(token.address);
+      const tokenExchange = await UniswapExchange.at(uniswapExchangeAddress);
       const tokenLiquidity = ethLiquidity.mul(WAD).div(ethPerToken[i]);
       await token["mint(address,uint256)"](infrastructure, tokenLiquidity);
       await token.from(infrastructure).approve(tokenExchange.address, tokenLiquidity);

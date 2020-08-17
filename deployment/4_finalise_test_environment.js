@@ -10,7 +10,7 @@ const BYTES32_NULL = "0x00000000000000000000000000000000000000000000000000000000
 
 async function deployENSReverseRegistrar(deployer, config, owner, overrides) {
   const ENSRegistryWrapper = deployer.wrapDeployedContract(ENS, config.ENS.ensRegistry);
-  const ENSReverseRegistrarWrapper = await deployer.deploy(ENSReverseRegistrar, {}, config.ENS.ensRegistry, config.contracts.ENSResolver);
+  const ENSReverseRegistrarWrapper = await ENSReverseRegistrar.new(config.ENS.ensRegistry, config.contracts.ENSResolver);
 
   const setSubnodeOwnerTx1 = await ENSRegistryWrapper.contract.setSubnodeOwner(BYTES32_NULL, utils.sha3("reverse"), owner, overrides);
   await ENSRegistryWrapper.verboseWaitForTransaction(setSubnodeOwnerTx1, "Create the reverse namespace");

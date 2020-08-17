@@ -22,8 +22,8 @@ const BYTES32_NULL = "0x00000000000000000000000000000000000000000000000000000000
 async function deployENSRegistry(deployer, owner, domain) {
   const { gasPrice } = deployer.defaultOverrides;
   // Deploy the public ENS registry
-  const ensRegistryWithoutFallback = await deployer.deploy(ENSRegistry);
-  const ENSWrapper = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.address);
+  const ensRegistryWithoutFallback = await ENSRegistry.new();
+  const ENSWrapper = await ENSRegistryWithFallback.new(ensRegistryWithoutFallback.address);
 
   // ENS domain
   const parts = domain.split(".");
@@ -43,19 +43,17 @@ async function deployENSRegistry(deployer, owner, domain) {
 
 async function deployParaswap(deployer) {
   const deploymentAccount = await deployer.signer.getAddress();
-  const whitelist = await deployer.deploy(Whitelisted);
-  const partnerDeployer = await deployer.deploy(PartnerDeployer);
-  const partnerRegistry = await deployer.deploy(PartnerRegistry, {}, partnerDeployer.address);
-  const paraswap = await deployer.deploy(
-    AugustusSwapper,
-    {},
+  const whitelist = await Whitelisted.new();
+  const partnerDeployer = await PartnerDeployer.new();
+  const partnerRegistry = await PartnerRegistry.new(partnerDeployer.address);
+  const paraswap = await AugustusSwapper.new(
     whitelist.address,
     deploymentAccount,
     partnerRegistry.address,
     deploymentAccount,
     deploymentAccount,
   );
-  const kyberAdapter = await deployer.deploy(KyberAdapter, {}, deploymentAccount);
+  const kyberAdapter = await KyberAdapter.new(deploymentAccount);
   await whitelist.addWhitelisted(kyberAdapter.address);
   return { paraswap: paraswap.address, kyberAdapter: kyberAdapter.address };
 }
@@ -84,18 +82,16 @@ const deploy = async (network) => {
   }
 
   if (config.defi.uniswap.deployOwn) {
-    const UniswapFactoryWrapper = await deployer.deploy(UniswapFactory);
+    const UniswapFactoryWrapper = await UniswapFactory.new();
     configurator.updateUniswapFactory(UniswapFactoryWrapper.address);
-    const UniswapExchangeTemplateWrapper = await deployer.deploy(UniswapExchange);
+    const UniswapExchangeTemplateWrapper = await UniswapExchange.new();
     const initializeFactoryTx = await UniswapFactoryWrapper.contract.initializeFactory(UniswapExchangeTemplateWrapper.address, { gasPrice });
     await UniswapFactoryWrapper.verboseWaitForTransaction(initializeFactoryTx, "Initializing UniswapFactory");
   }
 
   if (config.defi.maker.deployOwn) {
     // Deploy Maker's mock Migration contract if needed
-    const MakerMigrationWrapper = await deployer.deploy(
-      MakerMigration,
-      {},
+    const MakerMigrationWrapper = await MakerMigration.new(
       config.defi.maker.vat || "0x0000000000000000000000000000000000000000",
       config.defi.maker.daiJoin || "0x0000000000000000000000000000000000000000",
       config.defi.maker.wethJoin || "0x0000000000000000000000000000000000000000",

@@ -1,5 +1,6 @@
 const readline = require("readline");
 const ethers = require("ethers");
+const web3 = require("web3");
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 

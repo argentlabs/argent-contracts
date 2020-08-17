@@ -43,15 +43,15 @@ async function deploy() {
   const manager = deployer.signer; // the pit
 
   /* ************* Deploy Maker *************** */
-  const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
-  const sai = await deployer.deploy(DSToken, {}, formatBytes32String("DAI"));
-  const gov = await deployer.deploy(DSToken, {}, formatBytes32String("MKR"));
-  const sin = await deployer.deploy(DSToken, {}, formatBytes32String("SIN"));
-  const skr = await deployer.deploy(DSToken, {}, formatBytes32String("PETH"));
-  const gem = await deployer.deploy(WETH);
-  const pip = await deployer.deploy(DSValue);
-  const pep = await deployer.deploy(DSValue);
-  const tub = await deployer.deploy(Tub, {},
+  const vox = await Vox.new(USD_PER_DAI);
+  const sai = await DSToken.new(formatBytes32String("DAI"));
+  const gov = await DSToken.new(formatBytes32String("MKR"));
+  const sin = await DSToken.new(formatBytes32String("SIN"));
+  const skr = await DSToken.new(formatBytes32String("PETH"));
+  const gem = await WETH.new();
+  const pip = await DSValue.new();
+  const pep = await DSValue.new();
+  const tub = await Tub.new(
     sai.address,
     sin.address,
     skr.address,
@@ -80,8 +80,8 @@ async function deploy() {
 
   /* ************* Deploy Uniswap ****************** */
 
-  const uniswapFactory = await deployer.deploy(UniswapFactory);
-  const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
+  const uniswapFactory = await UniswapFactory.new();
+  const uniswapTemplateExchange = await UniswapExchange.new();
   await uniswapFactory.initializeFactory(uniswapTemplateExchange.address);
 
   /* *************** create MKR exchange ***************** */
