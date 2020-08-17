@@ -82,6 +82,7 @@
     "solhint": "^3.1.0",
     "tinyreq": "^3.4.1",
     "truffle": "^5.1.36",
+    "web3": "^1.2.11",
     "web3-eth-abi": "^1.2.9"
   },
   "devDependencies": {
