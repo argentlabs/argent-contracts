@@ -18,12 +18,12 @@ const SECURITY_PERIOD = 3600;
 const SECURITY_WINDOW = 3600;
 const ETH_LIMIT = 1000000;
 
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 
 describe("UpgraderToVersionManager", function () {
   this.timeout(100000);
 
-  const manager = new TestManager();
+  const manager = new RelayManager();
 
   const owner = accounts[1].signer;
   const recipient = accounts[2].signer;

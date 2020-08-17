@@ -2,7 +2,7 @@
 const ethers = require("ethers");
 const BN = require("bn.js");
 const { formatBytes32String } = require("ethers").utils;
-const { parseRelayReceipt, hasEvent } = require("../utils/utilities.js");
+const { parseRelayReceipt, hasEvent, getBalance } = require("../utils/utilities.js");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -21,7 +21,7 @@ const RecoveryManager = artifacts.require("RecoveryManager"); // non-owner only 
 const VersionManager = artifacts.require("VersionManager");
 const ERC20 = artifacts.require("TestERC20");
 
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 const { ETH_TOKEN, getNonceForRelay } = require("../utils/utilities.js");
 
 const FEATURE_NOT_AUTHORISED_FOR_WALLET = "RM: feature not authorised";
@@ -33,8 +33,7 @@ const GAS_LESS_THAN_GASLIMIT = "RM: not enough gas provided";
 const WRONG_NUMBER_SIGNATURES = "RM: Wrong number of signatures";
 
 contract("RelayerManager", (accounts) => {
-  const manager = new TestManager();
-  const { deployer } = manager;
+  const manager = new RelayManager();
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
@@ -290,11 +289,11 @@ contract("RelayerManager", (accounts) => {
 
     it("should refund in ETH", async () => {
       await provisionFunds(ethers.BigNumber.from("100000000000000"), 0);
-      const wBalanceStart = await deployer.provider.getBalance(wallet.address);
-      const rBalanceStart = await deployer.provider.getBalance(recipient);
+      const wBalanceStart = await getBalance(wallet.address);
+      const rBalanceStart = await getBalance(recipient);
       await callAndRefund({ refundToken: ETH_TOKEN });
-      const wBalanceEnd = await deployer.provider.getBalance(wallet.address);
-      const rBalanceEnd = await deployer.provider.getBalance(recipient);
+      const wBalanceEnd = await getBalance(wallet.address);
+      const rBalanceEnd = await getBalance(recipient);
       const refund = wBalanceStart.sub(wBalanceEnd);
       assert.isTrue(refund.gt(0), "should have refunded ETH");
       assert.isTrue(refund.eq(rBalanceEnd.sub(rBalanceStart)), "should have refunded the recipient");
@@ -344,7 +343,7 @@ contract("RelayerManager", (accounts) => {
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
-      const rBalanceStart = await deployer.provider.getBalance(recipient);
+      const rBalanceStart = await getBalance(recipient);
       // add a guardian
       await guardianManager.from(owner).addGuardian(wallet.address, guardian);
       // call approvedTransfer
@@ -368,7 +367,7 @@ contract("RelayerManager", (accounts) => {
       await manager.relay(...relayParams);
       dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 0, "daily spent should be reset");
-      const rBalanceEnd = await deployer.provider.getBalance(recipient);
+      const rBalanceEnd = await getBalance(recipient);
       assert.isTrue(rBalanceEnd.gt(rBalanceStart), "should have refunded the recipient");
     });
 

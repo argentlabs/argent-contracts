@@ -2,19 +2,16 @@
 const MultiSigWallet = artifacts.require("MultiSigWallet");
 const TestRegistry = artifacts.require("TestRegistry");
 
-const TestManager = require("../utils/test-manager");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const utils = require("../utils/utilities.js");
 
 contract("MultiSigWallet", (accounts) => {
-  const manager = new TestManager();
   const owner = accounts[0];
   const owner1 = accounts[1];
   const owner2 = accounts[2];
   const owner3 = accounts[3];
   const newowner = accounts[4];
 
-  let deployer;
   let multisig;
   let reg;
   let value;
@@ -22,7 +19,6 @@ contract("MultiSigWallet", (accounts) => {
   let owners;
 
   before(async () => {
-    deployer = manager.newDeployer();
     number = 12345;
     value = 10000000000;
     owners = utils.sortWalletByAddress([owner1, owner2, owner3]);
@@ -36,7 +32,7 @@ contract("MultiSigWallet", (accounts) => {
     // Fund the multisig
     await multisig.send(value);
 
-    const bal = await deployer.provider.getBalance(multisig.address);
+    const bal = await utils.getBalance(multisig.address);
     assert.equal(bal.toNumber(), value);
   });
 
@@ -72,7 +68,7 @@ contract("MultiSigWallet", (accounts) => {
     assert.equal(numFromRegistry.toNumber(), number);
 
     // Check funds in registry
-    const bal = await deployer.provider.getBalance(reg.address);
+    const bal = await utils.getBalance(reg.address);
     assert.equal(bal.toString(), value.toString());
 
     // Check nonce updated

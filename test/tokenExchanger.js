@@ -42,7 +42,7 @@ const VersionManager = artifacts.require("VersionManager");
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
 const { ETH_TOKEN, parseLogs, getTimestamp } = require("../utils/utilities.js");
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 
 // Constants
 const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts
@@ -50,10 +50,9 @@ const TOKEN_A_RATE = parseEther("0.06");
 const TOKEN_B_RATE = parseEther("0.03");
 
 contract("TokenExchanger", (accounts) => {
-  const manager = new TestManager();
+  const manager = new RelayManager();
   const infrastructure = accounts[0];
   const owner = accounts[1];
-  let deployer;
 
   let lockStorage;
   let guardianStorage;
@@ -74,7 +73,6 @@ contract("TokenExchanger", (accounts) => {
   let versionManager;
 
   before(async () => {
-    deployer = manager.newDeployer();
     const registry = await ModuleRegistry.new();
     dexRegistry = await DexRegistry.new();
     guardianStorage = await GuardianStorage.new();
@@ -196,7 +194,7 @@ contract("TokenExchanger", (accounts) => {
   async function getBalance(tokenAddress, _wallet) {
     let balance;
     if (tokenAddress === ETH_TOKEN) {
-      balance = await deployer.provider.getBalance(_wallet.address);
+      balance = await getBalance(_wallet.address);
     } else if (tokenAddress === tokenA.address) {
       balance = await tokenA.balanceOf(_wallet.address);
     } else {
