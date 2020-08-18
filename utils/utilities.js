@@ -1,6 +1,7 @@
 const readline = require("readline");
 const ethers = require("ethers");
 const web3 = require("web3");
+const { assert } = require("chai");
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -62,10 +63,10 @@ module.exports = {
     return sigs;
   },
 
-  sortWalletByAddress(wallets, addressKey = "address") {
+  sortWalletByAddress(wallets) {
     return wallets.sort((s1, s2) => {
-      const bn1 = ethers.BigNumber.from(s1[addressKey]);
-      const bn2 = ethers.BigNumber.from(s2[addressKey]);
+      const bn1 = ethers.BigNumber.from(s1);
+      const bn2 = ethers.BigNumber.from(s2);
       if (bn1.lt(bn2)) return -1;
       if (bn1.gt(bn2)) return 1;
       return 0;
@@ -168,7 +169,7 @@ module.exports = {
   },
 
   async increaseTime(seconds) {
-    const networkId = await this.getNetworkId();
+    const networkId = await web3.eth.net.getId();
     console.log("networkId", networkId);
     // TODO
     if (networkId === "ganache") {
@@ -185,5 +186,17 @@ module.exports = {
     const timestamp = new Date().getTime();
     return `0x${ethers.utils.hexZeroPad(ethers.utils.hexlify(block), 16)
       .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
+  },
+
+  async assertRevert(promise, revertMessage) {
+    let receipt;
+    let reason;
+    try {
+      await promise;
+      assert.fail("Transaction succeeded, but expected error ${revertMessage}`");
+    } catch (err) {
+      ({ reason } = err);
+      assert.equal(reason, revertMessage);
+    }
   }
 };

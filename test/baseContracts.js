@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const utils = require("../utils/utilities.js");
 
 const Managed = artifacts.require("Managed");
 
@@ -29,7 +30,7 @@ contract("Managed and Owned", (accounts) => {
     });
 
     it("should not be able to change owner to zero address", async () => {
-      await assert.revertWith(managed.changeOwner(ethers.constants.AddressZero), "Address must not be null");
+      await utils.assertRevert(managed.changeOwner(ethers.constants.AddressZero), "Address must not be null");
     });
   });
 
@@ -52,11 +53,11 @@ contract("Managed and Owned", (accounts) => {
     });
 
     it("should not be able to add manager if not called by owner", async () => {
-      await assert.revertWith(managed.addManager(manager1, { from: nonOwner }), "Must be owner");
+      await utils.assertRevert(managed.addManager(manager1, { from: nonOwner }), "Must be owner");
     });
 
     it("should not be able to set manager to zero address", async () => {
-      await assert.revertWith(managed.addManager(ethers.constants.AddressZero), "M: Address must not be null");
+      await utils.assertRevert(managed.addManager(ethers.constants.AddressZero), "M: Address must not be null");
     });
 
     it("should be able to set manager twice without error", async () => {
@@ -87,11 +88,11 @@ contract("Managed and Owned", (accounts) => {
 
     it("should not be able to revoke manager if not called by owner", async () => {
       await managed.addManager(manager1);
-      await assert.revertWith(managed.revokeManager(manager1, { from: nonOwner }), "Must be owner");
+      await utils.assertRevert(managed.revokeManager(manager1, { from: nonOwner }), "Must be owner");
     });
 
     it("should not be able to revoke a nonexisting managerr", async () => {
-      await assert.revertWith(managed.revokeManager(manager2), "M: Target must be an existing manager");
+      await utils.assertRevert(managed.revokeManager(manager2), "M: Target must be an existing manager");
     });
   });
 });

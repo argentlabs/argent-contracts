@@ -17,7 +17,7 @@ const TestContract = artifacts.require("TestContract");
 const TestLimitFeature = artifacts.require("TestLimitFeature");
 
 const RelayManager = require("../utils/relay-manager");
-const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN, increaseTime, getBalance } = require("../utils/utilities.js");
+const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN, increaseTime, getBalance, assertRevert } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -151,7 +151,7 @@ contract("ApprovedTransfer", (accounts) => {
 
   describe("Transfer", () => {
     async function expectFailingTransferToken(_token, _signers, _reason) {
-      await assert.revertWith(
+      await assertRevert(
         manager.relay(
           approvedTransfer,
           "transferToken",

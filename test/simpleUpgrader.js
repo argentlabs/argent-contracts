@@ -125,7 +125,7 @@ contract("SimpleUpgrader", (accounts) => {
       await registry.registerModule(upgrader.address, formatBytes32String("V1toV2"));
 
       // check we can't upgrade from V1 to V2
-      await assert.revertWith(moduleV1.addModule(wallet.address, upgrader.address, { from: owner }), "SU: Not all modules are registered");
+      await utils.assertRevert(moduleV1.addModule(wallet.address, upgrader.address, { from: owner }), "SU: Not all modules are registered");
       // register module V2
       await registry.registerModule(moduleV2.address, formatBytes32String("V2"));
       // now we can upgrade
@@ -293,7 +293,7 @@ contract("SimpleUpgrader", (accounts) => {
       await lockManager.lock(wallet.address, { from: guardian });
 
       // Try to upgrade while wallet is locked
-      await assert.revertWith(versionManager.addModule(wallet.address, upgrader.address, { from: owner }), "BF: wallet locked");
+      await utils.assertRevert(versionManager.addModule(wallet.address, upgrader.address, { from: owner }), "BF: wallet locked");
 
       // Check wallet is still locked
       const locked = await lockManager.isLocked(wallet.address);
@@ -321,7 +321,7 @@ contract("SimpleUpgrader", (accounts) => {
       assert.isTrue(locked, "wallet should be locked");
 
       // Try to upgrade while wallet is under recovery
-      await assert.revertWith(versionManager.addModule(wallet.address, upgrader.address, { from: owner }), "BF: wallet locked");
+      await utils.assertRevert(versionManager.addModule(wallet.address, upgrader.address, { from: owner }), "BF: wallet locked");
 
       // Check wallet is still locked
       locked = await lockManager.isLocked(wallet.address);

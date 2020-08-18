@@ -259,17 +259,17 @@ contract("Invest Manager with Compound", (accounts) => {
 
       it("should fail to invest in ERC20 with an unknown token", async () => {
         const params = [wallet.address, ethers.constants.AddressZero, parseEther("1"), 0];
-        await assert.revertWith(investManager.addInvestment(...params, { from: owner }), "CM: No market for target token");
+        await utils.assertRevert(investManager.addInvestment(...params, { from: owner }), "CM: No market for target token");
       });
 
       it("should fail to invest in ERC20 with an amount of zero", async () => {
         const params = [wallet.address, token.address, 0, 0];
-        await assert.revertWith(investManager.addInvestment(...params, { from: owner }), "CM: amount cannot be 0");
+        await utils.assertRevert(investManager.addInvestment(...params, { from: owner }), "CM: amount cannot be 0");
       });
 
       it("should fail to invest in ERC20 when not holding any ERC20", async () => {
         const params = [wallet.address, token.address, parseEther("1"), 0];
-        await assert.revertWith(investManager.addInvestment(...params, { from: owner }), "CM: mint failed");
+        await utils.assertRevert(investManager.addInvestment(...params, { from: owner }), "CM: mint failed");
       });
     });
 
@@ -298,12 +298,12 @@ contract("Invest Manager with Compound", (accounts) => {
 
       it("should fail to remove an ERC20 investment when passing an invalid fraction value", async () => {
         const params = [wallet.address, token.address, 50000];
-        await assert.revertWith(investManager.removeInvestment(...params, { from: owner }), "CM: invalid fraction value");
+        await utils.assertRevert(investManager.removeInvestment(...params, { from: owner }), "CM: invalid fraction value");
       });
 
       it("should fail to remove an ERC20 investment when not holding any of the corresponding cToken", async () => {
         const params = [wallet.address, token.address, 5000];
-        await assert.revertWith(investManager.removeInvestment(...params, { from: owner }), "CM: amount cannot be 0");
+        await utils.assertRevert(investManager.removeInvestment(...params, { from: owner }), "CM: amount cannot be 0");
       });
 
       it("should fail to remove all of an ERC20 investment when it collateralizes a loan", async () => {
@@ -318,7 +318,7 @@ contract("Invest Manager with Compound", (accounts) => {
           debtAmount];
         await investManager.openLoan(...openLoanParams, { from: owner });
         const removeInvestmentParams = [wallet.address, token.address, 10000];
-        await assert.revertWith(investManager.removeInvestment(...removeInvestmentParams, { from: owner }), "CM: redeem failed");
+        await utils.assertRevert(investManager.removeInvestment(...removeInvestmentParams, { from: owner }), "CM: redeem failed");
       });
     });
   });

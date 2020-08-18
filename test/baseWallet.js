@@ -12,7 +12,7 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");
 const TestFeature = artifacts.require("TestFeature");
 
-const { getBalance } = require("../utils/utilities.js");
+const { getBalance, assertRevert } = require("../utils/utilities.js");
 
 contract("BaseWallet", (accounts) => {
   const owner = accounts[1];
@@ -125,15 +125,16 @@ contract("BaseWallet", (accounts) => {
       it("should not reinitialize a wallet", async () => {
         await wallet.init(owner, [module1.address]);
         await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-        await assert.revertWith(wallet.init(owner, [module1.address]), "BW: wallet already initialised");
+        
+        await utils.assertRevert(wallet.init(owner, [module1.address]), "BW: wallet already initialised");
       });
 
       it("should not initialize a wallet with no module", async () => {
-        await assert.revertWith(wallet.init(owner, []), "BW: construction requires at least 1 module");
+        await utils.assertRevert(wallet.init(owner, []), "BW: construction requires at least 1 module");
       });
 
       it("should not initialize a wallet with duplicate modules", async () => {
-        await assert.revertWith(wallet.init(owner, [module1.address, module1.address]), "BW: module is already added");
+        await utils.assertRevert(wallet.init(owner, [module1.address, module1.address]), "BW: module is already added");
       });
     });
 
@@ -156,7 +157,7 @@ contract("BaseWallet", (accounts) => {
     describe("Authorisations", () => {
       it("should not let a non-module deauthorise a module", async () => {
         await wallet.init(owner, [module1.address]);
-        await assert.revertWith(wallet.authoriseModule(module1.address, false), "BW: msg.sender not an authorized module");
+        await utils.assertRevert(wallet.authoriseModule(module1.address, false), "BW: msg.sender not an authorized module");
       });
 
       it("should not let a feature set the owner to address(0)", async () => {
@@ -197,8 +198,8 @@ contract("BaseWallet", (accounts) => {
         assert.equal(module1IsAuthorised, false, "module1 should not be authorised");
 
         // trying to execute static call delegated to module1 (it should fail)
-        const walletAsModule = deployer.wrapDeployedContract(TestFeature, wallet.address);
-        await assert.revertWith(walletAsModule.contract.getBoolean(), "BW: must be an authorised module for static call");
+        const walletAsModule = await TestFeature.at(wallet.address);
+        await utils.assertRevert(walletAsModule.contract.getBoolean(), "BW: must be an authorised module for static call");
       });
     });
   });
