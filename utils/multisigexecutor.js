@@ -15,7 +15,7 @@ class MultisigExecutor {
     const { contractAddress } = contractWrapper;
 
     // Encode the method call with its parameters
-    const data = contractWrapper.contract.interface.functions[method].encode(params);
+    const data = contractWrapper.contract.methods[method](params).encodeABI();
 
     // Get the nonce
     const nonce = (await this._multisigWrapper.contract.nonce()).toNumber();

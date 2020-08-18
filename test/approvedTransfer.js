@@ -141,7 +141,7 @@ contract("ApprovedTransfer", (accounts) => {
   async function callContract(_signers) {
     const before = await getBalance(contract.address);
     const newState = parseInt((await contract.state()).toString(), 10) + 1;
-    const dataToTransfer = contract.contract.interface.functions.setState.encode([newState]);
+    const dataToTransfer = contract.contract.methods.setState([newState]).encodeABI();
     await manager.relay(approvedTransfer, "callContract",
       [wallet.address, contract.address, amountToTransfer, dataToTransfer], wallet, _signers);
     const after = await getBalance(contract.address);
@@ -317,7 +317,7 @@ contract("ApprovedTransfer", (accounts) => {
 
       describe("Invalid Target", () => {
         async function expectFailingApproveTokenAndCallContract(target) {
-          const invalidData = contract.contract.interface.functions.setStateAndPayToken.encode([2, erc20.address, amountToApprove]);
+          const invalidData = contract.contract.methods.setStateAndPayToken([2, erc20.address, amountToApprove]).encodeABI();
           const txReceipt = await manager.relay(approvedTransfer, "approveTokenAndCallContract",
             [wallet.address, erc20.address, wallet.address, amountToApprove, target.address, invalidData],
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
@@ -339,9 +339,7 @@ contract("ApprovedTransfer", (accounts) => {
           const newState = parseInt((await contract.state()).toString(), 10) + 1;
           const token = _wrapEth ? weth : erc20;
           const fun = _consumerAddress === contract.address ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
-          const data = contract.contract.interface.functions[fun].encode(
-            [newState, token.address, amountToApprove],
-          );
+          const data = contract.contract.methods.fun([newState, token.address, amountToApprove]).encodeABI();
           const before = await token.balanceOf(contract.address);
           const params = [wallet.address]
             .concat(_wrapEth ? [] : [erc20.address])
@@ -383,8 +381,7 @@ contract("ApprovedTransfer", (accounts) => {
           const allowanceBefore = await erc20.allowance(wallet.address, consumer);
           const balanceBefore = await erc20.balanceOf(contract.address);
 
-          const dataToTransfer = contract.contract.interface.functions
-            .setStateAndPayTokenWithConsumer.encode([2, erc20.address, amountToApprove]);
+          const dataToTransfer = contract.contract.methods.setStateAndPayTokenWithConsumer([2, erc20.address, amountToApprove]).encodeABI();
           await manager.relay(approvedTransfer, "approveTokenAndCallContract",
             [wallet.address, erc20.address, consumer, amountToApprove, contract.address, dataToTransfer],
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);

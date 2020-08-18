@@ -57,7 +57,7 @@ contract("MultiSigWallet", (accounts) => {
 
   async function executeSendSuccess(signers) {
     let nonce = await multisig.nonce();
-    const data = reg.contract.interface.functions.register.encode([number]);
+    const data = reg.contract.methods.register([number]).encodeABI();
     const signedData = MultisigExecutor.signHash(multisig.address, reg.address, value, data, nonce.toNumber());
     const signatures = await getSignatures(signedData, signers);
 
@@ -79,7 +79,7 @@ contract("MultiSigWallet", (accounts) => {
   async function executeSendFailure(signers, nonceOffset, sortSigners, returnBadSignatures, errorMessage) {
     let nonce = await multisig.nonce();
     nonce = nonce.toNumber() + nonceOffset;
-    const data = reg.contract.interface.functions.register.encode([number]);
+    const data = reg.contract.methods.register([number]).encodeABI();
 
     const signedData = MultisigExecutor.signHash(multisig.address, reg.address, value, data, nonce);
     const signatures = await getSignatures(signedData, signers, sortSigners, returnBadSignatures);
@@ -89,7 +89,7 @@ contract("MultiSigWallet", (accounts) => {
 
   async function getMultiSigParams(functioName, params) {
     const nonce = await multisig.nonce();
-    const data = multisig.contract.interface.functions[functioName].encode([...params]);
+    const data = multisig.contract.methods[functioName]([...params]).encodeABI;
     const signedData = MultisigExecutor.signHash(multisig.address, multisig.address, 0, data, nonce.toNumber());
     const signatures = await getSignatures(signedData, [owner1, owner2]);
     return { data, signatures };
