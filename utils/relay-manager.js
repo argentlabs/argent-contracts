@@ -1,5 +1,5 @@
 const ethers = require("ethers");
-const { signOffchain, ETH_TOKEN, getNonceForRelay, getNetworkId } = require("./utilities.js");
+const { signOffchain, ETH_TOKEN, getNonceForRelay, getNetworkId, getAccount } = require("./utilities.js");
 
 class RelayManager {
   setRelayerManager(relayerManager) {
@@ -7,7 +7,7 @@ class RelayManager {
   }
 
   async relay(_module, _method, _params, _wallet, _signers,
-    _relayer = this.accounts[9].signer,
+    _relayerAccount,
     _estimate = false,
     _gasLimit = 2000000,
     _nonce,
@@ -15,6 +15,7 @@ class RelayManager {
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero,
     _gasLimitRelay = (_gasLimit * 1.1)) {
+    const relayerAccount = _relayerAccount || await getAccount(9);
     const nonce = _nonce || await getNonceForRelay();
     const methodData = _module.contract.interface.functions[_method].encode(_params);
     const networkId = await getNetworkId();
@@ -56,7 +57,7 @@ class RelayManager {
       _gasLimit,
       _refundToken,
       _refundAddress,
-      { gasLimit: _gasLimitRelay, gasPrice: _gasPrice, from: _relayer },
+      { gasLimit: _gasLimitRelay, gasPrice: _gasPrice, from: relayerAccount },
     );
     const txReceipt = await _module.verboseWaitForTransaction(tx);
     return txReceipt;
