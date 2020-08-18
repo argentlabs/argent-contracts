@@ -41,7 +41,7 @@ const VersionManager = artifacts.require("VersionManager");
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
-const { ETH_TOKEN, parseLogs, getTimestamp } = require("../utils/utilities.js");
+const { ETH_TOKEN, parseLogs, getTimestamp, assertRevert } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 // Constants
@@ -382,7 +382,7 @@ contract("TokenExchanger", (accounts) => {
         fixedAmount,
         variableAmount,
       });
-      await assert.revertWith(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
+      await assertRevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
       // reset whitelist
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });

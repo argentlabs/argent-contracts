@@ -112,7 +112,7 @@ contract("ENS contracts", (accounts) => {
 
     it("should not be able to change the root node owner if not the owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
-      await assert.revertWith(ensManager.changeRootnodeOwner(randomAddress, { from: amanager }), "Must be owner");
+      await utilities.assertRevert(ensManager.changeRootnodeOwner(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should be able to change the ens resolver", async () => {
@@ -124,11 +124,11 @@ contract("ENS contracts", (accounts) => {
 
     it("should not be able to change the ens resolver if not owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
-      await assert.revertWith(ensManager.changeENSResolver(randomAddress, { from: amanager }), "Must be owner");
+      await utilities.assertRevert(ensManager.changeENSResolver(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should not be able to change the ens resolver to an empty address", async () => {
-      await assert.revertWith(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");
+      await utilities.assertRevert(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");
     });
   });
 

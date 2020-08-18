@@ -187,7 +187,7 @@ contract("TransferManager", (accounts) => {
     it("should not be able to whitelist a token twice", async () => {
       await transferManager.addToWhitelist(wallet.address, recipient, { from: owner });
       await increaseTime(3);
-      await assert.revertWith(
+      await utils.assertRevert(
         transferManager.addToWhitelist(wallet.address, recipient, { from: owner }), "TT: target already whitelisted",
       );
     });
@@ -681,19 +681,19 @@ contract("TransferManager", (accounts) => {
     it("should not be able to call the wallet itselt", async () => {
       const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
       const params = [wallet.address, wallet.address, 10, dataToTransfer];
-      await assert.revertWith(transferManager.callContract(...params, { from: owner }), "BT: Forbidden contract");
+      await utils.assertRevert(transferManager.callContract(...params, { from: owner }), "BT: Forbidden contract");
     });
 
     it("should not be able to call a feature of the wallet", async () => {
       const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
       const params = [wallet.address, transferManager.address, 10, dataToTransfer];
-      await assert.revertWith(transferManager.callContract(...params, { from: owner }), "BT: Forbidden contract");
+      await utils.assertRevert(transferManager.callContract(...params, { from: owner }), "BT: Forbidden contract");
     });
 
     it("should not be able to call a supported ERC20 token contract", async () => {
       const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
       const params = [wallet.address, erc20.address, 10, dataToTransfer];
-      await assert.revertWith(transferManager.callContract(...params, { from: owner }), "TM: Forbidden contract");
+      await utils.assertRevert(transferManager.callContract(...params, { from: owner }), "TM: Forbidden contract");
     });
 
     it("should be able to call a supported token contract which is whitelisted", async () => {
@@ -719,7 +719,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should fail to call a contract and transfer ETH when the amount is above the daily limit ", async () => {
-      await assert.revertWith(doCallContract({ value: ETH_LIMIT + 10000, state: 6 }, "above daily limit"));
+      await utils.assertRevert(doCallContract({ value: ETH_LIMIT + 10000, state: 6 }, "above daily limit"));
     });
   });
 
@@ -816,7 +816,7 @@ contract("TransferManager", (accounts) => {
     it("should not be able to spend more than approved in call", async () => {
       await transferManager.approveToken(wallet.address, erc20.address, contract.address, 10, { from: owner });
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.address, 6]);
-      await assert.revertWith(transferManager.approveTokenAndCallContract(
+      await utils.assertRevert(transferManager.approveTokenAndCallContract(
         wallet.address,
         erc20.address,
         contract.address,
@@ -851,7 +851,7 @@ contract("TransferManager", (accounts) => {
       await transferManager.addToWhitelist(wallet.address, consumer, { from: owner });
       await increaseTime(3);
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayTokenWithConsumer.encode([6, erc20.address, amount]);
-      await assert.revertWith(
+      await utils.assertRevert(
         transferManager.approveTokenAndCallContract(
           wallet.address, erc20.address, consumer, amount, contract.address, dataToTransfer, { from: owner }
         ),
@@ -871,7 +871,7 @@ contract("TransferManager", (accounts) => {
       const startingBalance = await erc20.balanceOf(wallet.address);
       await erc20.burn(wallet.address, startingBalance);
       const dataToTransfer = contract.contract.interface.functions.setStateAndPayToken.encode([3, erc20.address, 1]);
-      await assert.revertWith(transferManager.approveTokenAndCallContract(
+      await utils.assertRevert(transferManager.approveTokenAndCallContract(
         wallet.address,
         erc20.address,
         contract.address,

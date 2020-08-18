@@ -3,7 +3,7 @@ const MultiSigWallet = artifacts.require("MultiSigWallet");
 const TestRegistry = artifacts.require("TestRegistry");
 
 const MultisigExecutor = require("../utils/multisigexecutor.js");
-const utils = require("../utils/utilities.js");
+const utilities = require("../utils/utilities.js");
 
 contract("MultiSigWallet", (accounts) => {
   const owner = accounts[0];
@@ -21,7 +21,7 @@ contract("MultiSigWallet", (accounts) => {
   before(async () => {
     number = 12345;
     value = 10000000000;
-    owners = utils.sortWalletByAddress([owner1, owner2, owner3]);
+    owners = utilities.sortWalletByAddress([owner1, owner2, owner3]);
   });
 
   beforeEach(async () => {
@@ -32,7 +32,7 @@ contract("MultiSigWallet", (accounts) => {
     // Fund the multisig
     await multisig.send(value);
 
-    const bal = await utils.getBalance(multisig.address);
+    const bal = await utilities.getBalance(multisig.address);
     assert.equal(bal.toNumber(), value);
   });
 
@@ -40,7 +40,7 @@ contract("MultiSigWallet", (accounts) => {
     // Sort the signers
     let sortedSigners = signers;
     if (sortSigners) {
-      sortedSigners = utils.sortWalletByAddress(signers);
+      sortedSigners = utilities.sortWalletByAddress(signers);
     }
     const signHashBuffer = Buffer.from(signedData.slice(2), "hex");
     let signatures = "0x";
@@ -68,7 +68,7 @@ contract("MultiSigWallet", (accounts) => {
     assert.equal(numFromRegistry.toNumber(), number);
 
     // Check funds in registry
-    const bal = await utils.getBalance(reg.address);
+    const bal = await utilities.getBalance(reg.address);
     assert.equal(bal.toString(), value.toString());
 
     // Check nonce updated
@@ -84,7 +84,7 @@ contract("MultiSigWallet", (accounts) => {
     const signedData = MultisigExecutor.signHash(multisig.address, reg.address, value, data, nonce);
     const signatures = await getSignatures(signedData, signers, sortSigners, returnBadSignatures);
 
-    await assert.revertWith(multisig.execute(reg.address, value, data, signatures), errorMessage);
+    await utilities.assertRevert(multisig.execute(reg.address, value, data, signatures), errorMessage);
   }
 
   async function getMultiSigParams(functioName, params) {
@@ -97,11 +97,11 @@ contract("MultiSigWallet", (accounts) => {
 
   describe("Creating and changing the multisig", () => {
     it("should not be able to instantiate without owners", async () => {
-      await assert.revertWith(MultiSigWallet.new(2, []), "MSW: Not enough or too many owners");
+      await utilities.assertRevert(MultiSigWallet.new(2, []), "MSW: Not enough or too many owners");
     });
 
     it("should not be able to instantiate with 0 threshold", async () => {
-      await assert.revertWith(MultiSigWallet.new(0, owners), "MSW: Invalid threshold");
+      await utilities.assertRevert(MultiSigWallet.new(0, owners), "MSW: Invalid threshold");
     });
 
     it("should store owners correctly", async () => {
@@ -120,15 +120,15 @@ contract("MultiSigWallet", (accounts) => {
     });
 
     it("should not be able to execute addOwner externally", async () => {
-      await assert.revertWith(multisig.addOwner(newowner), "MSW: Calling account is not wallet");
+      await utilities.assertRevert(multisig.addOwner(newowner), "MSW: Calling account is not wallet");
     });
 
     it("should not be able to execute removeOwner externally", async () => {
-      await assert.revertWith(multisig.removeOwner(newowner), "MSW: Calling account is not wallet");
+      await utilities.assertRevert(multisig.removeOwner(newowner), "MSW: Calling account is not wallet");
     });
 
     it("should not be able to execute changeThreshold externally", async () => {
-      await assert.revertWith(multisig.changeThreshold(15), "MSW: Calling account is not wallet");
+      await utilities.assertRevert(multisig.changeThreshold(15), "MSW: Calling account is not wallet");
     });
 
     it("should be able to add new owner", async () => {
@@ -143,7 +143,7 @@ contract("MultiSigWallet", (accounts) => {
       // We already have 3 owners, which are accounts 1..3
       // Here we add accounts 4..10 to get 10 owners on the multisig
       for (let i = 4; i <= 10; i += 1) {
-        const randomAddress = await utils.getRandomAddress();
+        const randomAddress = await utilities.getRandomAddress();
         const { data, signatures } = await getMultiSigParams("addOwner", [randomAddress]);
         await multisig.execute(multisig.address, 0, data, signatures);
       }
@@ -151,14 +151,14 @@ contract("MultiSigWallet", (accounts) => {
       const ownersCount = await multisig.ownersCount();
       assert.equal(ownersCount.toNumber(), 10);
 
-      const randomAddress = await utils.getRandomAddress();
+      const randomAddress = await utilities.getRandomAddress();
       const { data, signatures } = await getMultiSigParams("addOwner", [randomAddress]);
-      await assert.revertWith(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
+      await utilities.assertRevert(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should not be able to add owner twice", async () => {
       const { data, signatures } = await getMultiSigParams("addOwner", [owner1]);
-      await assert.revertWith(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
+      await utilities.assertRevert(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should be able to remove existing owner", async () => {
@@ -174,13 +174,13 @@ contract("MultiSigWallet", (accounts) => {
       await multisig.execute(multisig.address, 0, values1.data, values1.signatures);
 
       const values2 = await getMultiSigParams("removeOwner", [owner2]);
-      await assert.revertWith(multisig.execute(multisig.address, 0, values2.data, values2.signatures), "MSW: External call failed");
+      await utilities.assertRevert(multisig.execute(multisig.address, 0, values2.data, values2.signatures), "MSW: External call failed");
     });
 
     it("should not be able to remove a nonexisting owner", async () => {
-      const randomAddress = await utils.getRandomAddress();
+      const randomAddress = await utilities.getRandomAddress();
       const { data, signatures } = await getMultiSigParams("removeOwner", [randomAddress]);
-      await assert.revertWith(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
+      await utilities.assertRevert(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should be able to change the threshold", async () => {
@@ -196,7 +196,7 @@ contract("MultiSigWallet", (accounts) => {
 
     it("should not be able to change the threshold to be more than the current number of owners", async () => {
       const { data, signatures } = await getMultiSigParams("changeThreshold", [4]);
-      await assert.revertWith(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
+      await utilities.assertRevert(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
   });
 
@@ -230,7 +230,7 @@ contract("MultiSigWallet", (accounts) => {
     });
 
     it("should fail with signers in wrong order", async () => {
-      let signers = utils.sortWalletByAddress([owner1, owner2]);
+      let signers = utilities.sortWalletByAddress([owner1, owner2]);
       signers = signers.reverse(); // opposite order it should be
       await executeSendFailure(signers, 0, false, "MSW: Badly ordered signatures");
     });

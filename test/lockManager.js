@@ -13,7 +13,7 @@ const VersionManager = artifacts.require("VersionManager");
 
 const RelayManager = require("../utils/relay-manager");
 
-const { increaseTime } = require("../utils/utilities.js");
+const utilities = require("../utils/utilities.js");
 
 contract("LockManager", (accounts) => {
   const manager = new RelayManager();
@@ -162,7 +162,7 @@ contract("LockManager", (accounts) => {
     });
 
     it("should fail to lock/unlock by Smart Contract guardians when signer is not authorized (relayed transaction)", async () => {
-      await assert.revertWith(manager.relay(lockManager, "lock", [wallet.address], wallet, [nonguardian]), "RM: Invalid signatures");
+      await utilities.assertRevert(manager.relay(lockManager, "lock", [wallet.address], wallet, [nonguardian]), "RM: Invalid signatures");
     });
   });
 
@@ -175,7 +175,7 @@ contract("LockManager", (accounts) => {
       let releaseTime = await lockManager.getLock(wallet.address);
       assert.isTrue(releaseTime > 0, "releaseTime should be positive");
 
-      await increaseTime(24 * 5 + 5);
+      await utilities.increaseTime(24 * 5 + 5);
       state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by guardian");
       releaseTime = await lockManager.getLock(wallet.address);
@@ -194,7 +194,7 @@ contract("LockManager", (accounts) => {
       // unlock
       await lockManager.unlock(wallet.address, { from: guardian1 });
       // try to unlock again
-      await assert.revertWith(lockManager.unlock(wallet.address, { from: guardian1 }),
+      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: guardian1 }),
         "VM Exception while processing transaction: revert LM: wallet must be locked");
     });
 
@@ -203,7 +203,7 @@ contract("LockManager", (accounts) => {
       await manager.relay(recoveryManager, "executeRecovery", [wallet.address, accounts[5]], wallet, [guardian1]);
 
       // try to unlock
-      await assert.revertWith(lockManager.unlock(wallet.address, { from: guardian1 }),
+      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: guardian1 }),
         "LM: cannot unlock a wallet that was locked by another feature");
     });
   });
