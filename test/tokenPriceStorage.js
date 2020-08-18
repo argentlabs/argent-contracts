@@ -34,6 +34,9 @@ describe("TokenPriceStorage", function () {
       const afterPrice = await tokenPriceStorage.getTokenPrice(tokenAddress);
       assert.equal(afterPrice.toString(), "222222");
     });
+    it("does not let managers change price with invalid array lengths", async () => {
+      await assert.revertWith(tokenPriceStorage.from(manager).setPriceForTokenList([tokenAddress], [222222, 333333]), "TPS: Array length mismatch");
+    });
     it("does not let managers change price before security period", async () => {
       await tokenPriceStorage.from(manager).setPriceForTokenList([tokenAddress], [111111]);
       await testManager.increaseTime(3500);
@@ -68,6 +71,9 @@ describe("TokenPriceStorage", function () {
       const tradable = await tokenPriceStorage.isTokenTradable(tokenAddress);
       assert.isFalse(tradable);
       await assert.revertWith(tokenPriceStorage.from(manager).setTradableForTokenList([tokenAddress], [true]), "TPS: Unauthorised");
+    });
+    it("does not let managers change tradable with invalid array lengths", async () => {
+      await assert.revertWith(tokenPriceStorage.from(manager).setTradableForTokenList([tokenAddress], [false, false]), "TPS: Array length mismatch");
     });
   });
 });

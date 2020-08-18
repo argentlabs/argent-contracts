@@ -50,13 +50,13 @@ contract TokenPriceStorage is ITokenPriceStorage, Storage, Managed {
     }
     function getPriceForTokenList(address[] calldata _tokens) external view returns (uint184[] memory _prices) {
         _prices = new uint184[](_tokens.length);
-        for (uint i = 0; i < _tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; i++) {
             _prices[i] = tokenInfo[_tokens[i]].cachedPrice;
         }
     }
     function getTradableForTokenList(address[] calldata _tokens) external view returns (bool[] memory _tradable) {
         _tradable = new bool[](_tokens.length);
-        for (uint i = 0; i < _tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; i++) {
             _tradable[i] = tokenInfo[_tokens[i]].isTradable;
         }
     }
@@ -67,7 +67,8 @@ contract TokenPriceStorage is ITokenPriceStorage, Storage, Managed {
         minPriceUpdatePeriod = _newPeriod;
     }
     function setPriceForTokenList(address[] calldata _tokens, uint184[] calldata _prices) external onlyManager {
-        for (uint16 i = 0; i < _tokens.length; i++) {
+        require(_tokens.length == _prices.length, "TPS: Array length mismatch");
+        for (uint i = 0; i < _tokens.length; i++) {
             uint64 updatedAt = tokenInfo[_tokens[i]].updatedAt;
             require(updatedAt == 0 || block.timestamp >= updatedAt + minPriceUpdatePeriod, "TPS: Price updated too early");
             tokenInfo[_tokens[i]].cachedPrice = _prices[i];
@@ -75,7 +76,8 @@ contract TokenPriceStorage is ITokenPriceStorage, Storage, Managed {
         }
     }
     function setTradableForTokenList(address[] calldata _tokens, bool[] calldata _tradable) external {
-        for (uint16 i = 0; i < _tokens.length; i++) {
+        require(_tokens.length == _tradable.length, "TPS: Array length mismatch");
+        for (uint256 i = 0; i < _tokens.length; i++) {
             require(msg.sender == owner || (!_tradable[i] && managers[msg.sender]), "TPS: Unauthorised");
             tokenInfo[_tokens[i]].isTradable = _tradable[i];
         }
