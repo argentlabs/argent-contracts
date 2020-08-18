@@ -7,6 +7,7 @@ const Registry = require("../build/ModuleRegistry");
 const RelayerModule = require("../build/RelayerModule");
 const GuardianStorage = require("../build/GuardianStorage");
 const NftModule = require("../build/NftTransfer");
+const TokenPriceStorage = require("../build/TokenPriceStorage");
 
 const ERC721 = require("../build/TestERC721");
 const CK = require("../build/CryptoKittyTest");
@@ -23,6 +24,7 @@ describe("Token Transfer", function () {
 
   const manager = new TestManager();
 
+  const infrastructure = accounts[0].signer;
   const owner1 = accounts[1].signer;
   const owner2 = accounts[2].signer;
   const eoaRecipient = accounts[3].signer;
@@ -39,6 +41,7 @@ describe("Token Transfer", function () {
   let ckId;
   let erc20;
   let erc20Approver;
+  let tokenPriceStorage;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -53,9 +56,12 @@ describe("Token Transfer", function () {
       ethers.constants.AddressZero);
     manager.setRelayerModule(relayerModule);
     ck = await deployer.deploy(CK);
+    tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
+    await tokenPriceStorage.addManager(infrastructure.address);
     nftModule = await deployer.deploy(NftModule, {},
       registry.contractAddress,
       guardianStorage.contractAddress,
+      tokenPriceStorage.contractAddress,
       ck.contractAddress);
     erc20Approver = await deployer.deploy(ERC20Approver, {}, registry.contractAddress);
   });
@@ -92,7 +98,7 @@ describe("Token Transfer", function () {
         if (shouldSucceed) {
           await txPromise;
         } else {
-          assert.revert(txPromise);
+          assert.revertWith(txPromise, expectedError);
         }
       }
       if (shouldSucceed) {
@@ -173,6 +179,7 @@ describe("Token Transfer", function () {
     describe("Protecting from transferFrom hijacking", () => {
       beforeEach(async () => {
         erc20 = await deployer.deploy(ERC20, {}, [wallet1.contractAddress], 1000, 18);
+        tokenPriceStorage.setPriceForTokenList([erc20.contractAddress], [1]);
         await erc20Approver.from(owner1).approveERC20(
           wallet1.contractAddress,
           erc20.contractAddress,
@@ -183,14 +190,20 @@ describe("Token Transfer", function () {
 
       it("should NOT allow ERC20 transfer from wallet1 to wallet2", async () => {
         await testNftTransfer({
-          shouldSucceed: false, safe: false, relayed: false, nftId: 100, nftContract: erc20, recipientAddress: wallet2.contractAddress,
+          shouldSucceed: false,
+          expectedError: "NT: Forbidden ERC20 contract",
+          safe: false,
+          relayed: false,
+          nftId: 100,
+          nftContract: erc20,
+          recipientAddress: wallet2.contractAddress,
         });
       });
 
       it("should NOT allow ERC20 transfer from wallet1 to wallet2 (relayed)", async () => {
         await testNftTransfer({
           shouldSucceed: false,
-          expectedError: "NT: Non-compliant NFT contract",
+          expectedError: "NT: Forbidden ERC20 contract",
           safe: false,
           relayed: true,
           nftId: 100,

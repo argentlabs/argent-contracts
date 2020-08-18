@@ -134,6 +134,7 @@ const deploy = async (network) => {
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
+    TokenPriceStorageWrapper.contractAddress,
     config.CryptoKitties.contract,
   );
   newModuleWrappers.push(NftTransferWrapper);

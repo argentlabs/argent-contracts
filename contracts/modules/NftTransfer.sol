@@ -17,6 +17,7 @@
 pragma solidity ^0.6.12;
 
 import "./common/OnlyOwnerModule.sol";
+import "../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
  * @title NftTransfer
@@ -32,6 +33,8 @@ contract NftTransfer is OnlyOwnerModule {
 
     // The address of the CryptoKitties contract
     address public ckAddress;
+    // The token price storage
+    ITokenPriceStorage public tokenPriceStorage;
 
     // *************** Events *************************** //
 
@@ -42,12 +45,14 @@ contract NftTransfer is OnlyOwnerModule {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
+        ITokenPriceStorage _tokenPriceStorage,
         address _ckAddress
     )
         BaseModule(_registry, _guardianStorage, NAME)
         public
     {
         ckAddress = _ckAddress;
+        tokenPriceStorage = _tokenPriceStorage;
     }
 
     // *************** External/Public Functions ********************* //
@@ -109,7 +114,7 @@ contract NftTransfer is OnlyOwnerModule {
                methodData = abi.encodeWithSignature(
                    "safeTransferFrom(address,address,uint256,bytes)", _wallet, _to, _tokenId, _data);
            } else {
-               require(isERC721(_nftContract, _tokenId), "NT: Non-compliant NFT contract");
+               require(!coveredByDailyLimit(_nftContract), "NT: Forbidden ERC20 contract");
                methodData = abi.encodeWithSignature(
                    "transferFrom(address,address,uint256)", _wallet, _to, _tokenId);
            }
@@ -121,22 +126,11 @@ contract NftTransfer is OnlyOwnerModule {
     // *************** Internal Functions ********************* //
 
     /**
-    * @notice Check whether a given contract complies with ERC721.
-    * @param _nftContract The contract to check.
-    * @param _tokenId The tokenId to use for the check.
-    * @return `true` if the contract is an ERC721, `false` otherwise.
-    */
-    function isERC721(address _nftContract, uint256 _tokenId) internal returns (bool) {
-        (bool success, bytes memory result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x80ac58cd));
-        if (success && result[0] != 0x0)
-            return true;
-
-        (success, result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x6466353c));
-        if (success && result[0] != 0x0)
-            return true;
-
-        (success,) = _nftContract.call(abi.encodeWithSignature("ownerOf(uint256)", _tokenId));
-        return success;
+    * @notice Returns true if the contract is a supported ERC20.
+    * @param _contract The address of the contract.
+     */
+    function coveredByDailyLimit(address _contract) internal view returns (bool) {
+        return tokenPriceStorage.getTokenPrice(_contract) > 0;
     }
 
 }

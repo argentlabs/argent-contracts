@@ -543,7 +543,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-    * @notice Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
+    * @notice Make sure a contract call is not trying to call a supported ERC20.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
      */
