@@ -199,7 +199,7 @@ contract("Loan Module", (accounts) => {
         const tx = await loanManager.openLoan(...params, { from: owner });
         txReceipt = await loanManager.verboseWaitForTransaction(tx);
       }
-      assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanOpened"), "should have generated LoanOpened event");
+      await utils.hasEvent(txReceipt, "LoanOpened");
       const loanId = (await utils.parseLogs(txReceipt, loanManager, "LoanOpened"))[0]._loanId;
       assert.isDefined(loanId, "Loan ID should be defined");
 
@@ -237,11 +237,11 @@ contract("Loan Module", (accounts) => {
       const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
       if (add) {
-        assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralAdded"), "should have generated CollateralAdded event");
+        await utils.hasEvent(txReceipt, "CollateralAdded");
         assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.sub(amount)),
           `wallet collateral should have decreased by ${amount} (relayed: ${relayed})`);
       } else {
-        assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "CollateralRemoved"), "should have generated CollateralRemoved event");
+        await utils.hasEvent(txReceipt, "CollateralRemoved");
         assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.add(amount)),
           `wallet collateral should have invcreased by ${amount} (relayed: ${relayed})`);
       }
@@ -269,10 +269,10 @@ contract("Loan Module", (accounts) => {
       const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await getBalance(wallet.address)
         : await debtToken.balanceOf(wallet.address);
       if (add) {
-        assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtAdded"), "should have generated DebtAdded event");
+        await utils.hasEvent(txReceipt, "DebtAdded");
         assert.isTrue(debtBalanceAfter.eq(debtBalanceBefore.add(amount)), `wallet debt should have increase by ${amount} (relayed: ${relayed})`);
       } else {
-        assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "DebtRemoved"), "should have generated DebtRemoved event");
+        await utils.hasEvent(txReceipt, "DebtRemoved");
         assert.isTrue(
           debtBalanceAfter.eq(debtBalanceBefore.sub(amount)) || amount.eq(ethers.constants.MaxUint256),
           `wallet debt should have decreased by ${amount} (relayed: ${relayed})`,
@@ -607,7 +607,7 @@ contract("Loan Module", (accounts) => {
           const tx = await loanManager[method](...params, { from: owner });
           txReceipt = await loanManager.verboseWaitForTransaction(tx);
         }
-        assert.isTrue(await utils.hasEvent(txReceipt, loanManager, "LoanClosed"), "should have generated LoanClosed event");
+        await utils.hasEvent(txReceipt, "LoanClosed");
 
         const marketsAfter = await comptroller.getAssetsIn(wallet.address);
         assert.isTrue(marketsAfter.length === marketsBefore.length - debtMarkets, `should have exited ${debtMarkets} market (relayed: ${relayed})`);
