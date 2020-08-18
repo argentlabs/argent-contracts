@@ -559,20 +559,9 @@ class Benchmark {
   // //// utils ////////
   // ///////////////////
 
-<<<<<<< HEAD
   async relay(target, method, params, wallet, signers) {
     const txReceipt = await this.testManager.relay(target, method, params, wallet, signers, this.accounts[9], false);
     return txReceipt.gasUsed.toString();
-=======
-  async relay(target, method, params, wallet, signers, estimate = false) {
-    const result = await this.testManager.relay(target, method, params, wallet, signers, accounts[9], estimate);
-    return result;
-  }
-
-  async relayEstimate(target, method, params, wallet, signers) {
-    const result = await this.relay(target, method, params, wallet, signers, true);
-    return result;
->>>>>>> 867e268f... Set relayer account to accounts[9] by default
   }
 
   getAllEstimateMethods() {

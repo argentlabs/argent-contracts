@@ -168,7 +168,6 @@ module.exports = {
 
   async increaseTime(seconds) {
     const networkId = await web3.eth.net.getId();
-    console.log("networkId", networkId);
 
     if (networkId === "1597649375983") {
       await web3.currentProvider.send("evm_increaseTime", seconds);
