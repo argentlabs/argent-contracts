@@ -174,12 +174,12 @@ contract("Invest Manager with Compound", (accounts) => {
         await cToken.mint(parseEther("20"), { from: borrower });
         tx = await cEther.borrow(parseEther("0.1"), { from: borrower });
         txReceipt = await cEther.verboseWaitForTransaction(tx);
-        assert.isTrue(await utils.hasEvent(txReceipt, cEther, "Borrow"), "should have generated Borrow event");
+        await utils.hasEvent(txReceipt, "Borrow");
       } else {
         await cEther.mint({ value: parseEther("2"), from: borrower });
         tx = await cToken.borrow(parseEther("0.1"), { from: borrower });
         txReceipt = await cToken.verboseWaitForTransaction(tx);
-        assert.isTrue(await utils.hasEvent(txReceipt, cToken, "Borrow"), "should have generated Borrow event");
+        await utils.hasEvent(txReceipt, "Borrow");
       }
       // increase time to accumulate interests
       await increaseTime(3600 * 24 * days);
@@ -205,7 +205,7 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt = await investManager.verboseWaitForTransaction(tx);
       }
 
-      assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentAdded"), "should have generated InvestmentAdded event");
+      await utils.hasEvent(txReceipt, "InvestmentAdded");
 
       await accrueInterests(days, investInEth);
 
@@ -230,7 +230,7 @@ contract("Invest Manager with Compound", (accounts) => {
         tx = await investManager.removeInvestment(...params, { from: owner });
         txReceipt = await investManager.verboseWaitForTransaction(tx);
       }
-      assert.isTrue(await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved"), "should have generated InvestmentRemoved event");
+      await utils.hasEvent(txReceipt, "InvestmentRemoved");
 
       const after = investInEth ? await cEther.balanceOf(wallet.address) : await cToken.balanceOf(wallet.address);
       assert.isTrue(after.eq(Math.ceil((before * (10000 - fraction)) / 10000)), "should have removed the correct fraction");

@@ -102,12 +102,9 @@ module.exports = {
     return res;
   },
 
-  hasEvent(txReceipt, contract, eventName) {
-    return txReceipt.logs.find((e) => (
-      e.topics.find((t) => (
-        contract.interface.events[eventName].topic === t
-      )) !== undefined
-    )) !== undefined;
+  async hasEvent(txReceipt, eventName) {
+    const event = txReceipt.logs.find((e) => e.event === eventName);
+    return expect(event, "Event does not exist in recept").to.exist;
   },
 
   versionFingerprint(modules) {
@@ -189,7 +186,7 @@ module.exports = {
     let reason;
     try {
       await promise;
-      assert.fail("Transaction succeeded, but expected error ${revertMessage}`");
+      assert.fail(`Transaction succeeded, but expected error ${revertMessage}`);
     } catch (err) {
       ({ reason } = err);
       assert.equal(reason, revertMessage);
