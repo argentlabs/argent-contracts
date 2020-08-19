@@ -75,6 +75,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
     event DailyLimitMigrated(address indexed wallet, uint256 currentDailyLimit, uint256 pendingDailyLimit, uint256 changeDailyLimitAfter);
+    event DailyLimitDisabled(address indexed wallet, uint256 securityPeriod);
 
     // *************** Constructor ********************** //
 
@@ -412,6 +413,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      */
     function disableLimit(address _wallet) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
         LimitUtils.disableLimit(limitStorage, _wallet, securityPeriod);
+        emit DailyLimitDisabled(_wallet, securityPeriod);
     }
 
     /**

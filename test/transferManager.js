@@ -312,7 +312,9 @@ describe("TransferManager", function () {
     });
 
     it("should be able to disable the limit", async () => {
-      await transferModule.from(owner).disableLimit(wallet.contractAddress);
+      const tx = await transferModule.from(owner).disableLimit(wallet.contractAddress);
+      const txReceipt = await transferModule.verboseWaitForTransaction(tx);
+      assert.isTrue(hasEvent(txReceipt, transferModule, "DailyLimitDisabled"));
       let limitDisabled = await transferModule.isLimitDisabled(wallet.contractAddress);
       assert.isFalse(limitDisabled);
       await manager.increaseTime(SECURITY_PERIOD + 1);
