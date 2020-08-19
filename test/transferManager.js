@@ -264,7 +264,7 @@ describe("TransferManager", function () {
       // add new module
       const tx = await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress);
       const txReceipt = await previousTransferModule.verboseWaitForTransaction(tx);
-      assert.isTrue(hasEvent(txReceipt, transferModule, "MigratedDailyLimit"));
+      assert.isTrue(hasEvent(txReceipt, transferModule, "DailyLimitMigrated"));
       // check result
       limit = await transferModule.getCurrentLimit(existingWallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should have been migrated");
