@@ -1,5 +1,7 @@
 const ethers = require("ethers");
-const { bigNumToBytes32, ETH_TOKEN, parseLogs } = require("../utils/utilities.js");
+const {
+  bigNumToBytes32, ETH_TOKEN, parseLogs, hasEvent,
+} = require("../utils/utilities.js");
 const {
   deployMaker, deployUniswap, RAY, ETH_PER_DAI, ETH_PER_MKR,
 } = require("../utils/defi-deployer");
@@ -547,7 +549,7 @@ describe("MakerV2 Vaults", function () {
     async function testAcquireVault({ relayed }) {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
-      let txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
+      const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
       const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
       // Transfer the vault to the wallet
       await cdpManager.from(owner).give(vaultId, walletAddress);
@@ -555,12 +557,16 @@ describe("MakerV2 Vaults", function () {
       const loanId = bigNumToBytes32(vaultId);
       const method = "acquireLoan";
       const params = [walletAddress, loanId];
+      let txReceipt;
       if (relayed) {
-        txR = await manager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
-        assert.isTrue(txR.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
+        txReceipt = await manager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
+        assert.isTrue(txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
       } else {
-        await makerV2.from(owner)[method](...params, { gasLimit: 1000000 });
+        const tx = await makerV2.from(owner)[method](...params, { gasLimit: 1000000 });
+        txReceipt = await makerV2.verboseWaitForTransaction(tx);
       }
+      assert.isTrue(await hasEvent(txReceipt, makerV2, "LoanAcquired"), "should have generated LoanAcquired event");
+
       // The loanId held by the MakerV2Manager will be different from the transferred vault id, in case the latter was merged into an existing vault
       const moduleLoanId = await makerV2.loanIds(walletAddress, ilk);
       // Add some collateral and debt

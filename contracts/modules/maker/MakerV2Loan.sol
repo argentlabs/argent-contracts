@@ -68,6 +68,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         address _debtToken,
         uint256 _debtAmount
     );
+    event LoanAcquired(address indexed _wallet, bytes32 indexed _loanId);
     event LoanClosed(address indexed _wallet, bytes32 indexed _loanId);
     event CollateralAdded(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
     event CollateralRemoved(address indexed _wallet, bytes32 indexed _loanId, address _collateral, uint256 _collateralAmount);
@@ -282,6 +283,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         require(cdpManager.owns(uint256(_loanId)) == address(this), "MV2: failed give");
         // Mark the incoming vault as belonging to the wallet (or merge it into the existing vault if there is one)
         assignLoanToWallet(_wallet, _loanId);
+        emit LoanAcquired(_wallet, _loanId);
     }
 
     /**
