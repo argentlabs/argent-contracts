@@ -257,7 +257,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
-        checkAndUpdateDailySpentIfNeeded(_wallet, ETH_TOKEN, _contract, _value, _contract);
+        checkAndUpdateDailySpentIfNeeded(_wallet, ETH_TOKEN, _value, _contract);
         doCallContract(_wallet, _contract, _value, _data);
     }
 
@@ -266,7 +266,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
     * @param _token The token to approve.
-    * @param _spender The address to approve.
+    * @param _proxy The address to approve, which may be different from the contract being called.
     * @param _amount The amount of ERC20 tokens to approve.
     * @param _contract The address of the contract.
     * @param _data The encoded method data
@@ -274,7 +274,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     function approveTokenAndCallContract(
         address _wallet,
         address _token,
-        address _spender,
+        address _proxy,
         uint256 _amount,
         address _contract,
         bytes calldata _data
@@ -284,22 +284,22 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
-        checkAndUpdateDailySpentIfNeeded(_wallet, _token, _spender, _amount, _contract);
-        doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
+        checkAndUpdateDailySpentIfNeeded(_wallet, _token, _amount, _contract);
+        doApproveTokenAndCallContract(_wallet, _token, _proxy, _amount, _contract, _data);
     }
 
     /**
     * @notice Lets the owner wrap ETH into WETH, approve the WETH and call a contract.
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
-    * @param _spender The address to approve.
+    * @param _proxy The address to approve, which may be different from the contract being called.
     * @param _amount The amount of ETH to wrap and approve.
     * @param _contract The address of the contract.
     * @param _data The encoded method data
     */
     function approveWethAndCallContract(
         address _wallet,
-        address _spender,
+        address _proxy,
         uint256 _amount,
         address _contract,
         bytes calldata _data
@@ -309,8 +309,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
-        checkAndUpdateDailySpentIfNeeded(_wallet, wethToken, _spender, _amount, _contract);
-        doApproveWethAndCallContract(_wallet, _spender, _amount, _contract, _data);
+        checkAndUpdateDailySpentIfNeeded(_wallet, wethToken, _amount, _contract);
+        doApproveWethAndCallContract(_wallet, _proxy, _amount, _contract, _data);
     }
 
     /**
@@ -562,7 +562,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     * protected by the daily limit (i.e. is a token contract).
     * @param _wallet The target wallet.
     * @param _token The token that the spender will spend.
-    * @param _spender The address that will spend the token amount.
     * @param _amount The amount of ERC20 or ETH that the spender will spend.
     * @param _contract The address of the contract called by the wallet for the spend to occur.
     */
@@ -570,13 +569,12 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     function checkAndUpdateDailySpentIfNeeded(
         address _wallet,
         address _token,
-        address _spender,
         uint256 _amount,
         address _contract
     )
         internal
     {
-        if (!isWhitelisted(_wallet, _spender)) {
+        if (!isWhitelisted(_wallet, _contract)) {
             // Make sure we don't call a supported ERC20 that's not whitelisted
             require(!coveredByDailyLimit(_wallet, _contract), "TM: Forbidden contract");
 
