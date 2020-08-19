@@ -6,7 +6,6 @@ const bnChai = require("bn-chai");
 
 const { expect } = chai;
 chai.use(bnChai(BN));
-const { assert } = require("chai");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
