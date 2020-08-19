@@ -77,7 +77,11 @@ abstract contract BaseTransfer is BaseModule {
             invokeWallet(_wallet, _to, _value, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
-            invokeWallet(_wallet, _token, 0, methodData);
+            bytes memory transferSuccessBytes = invokeWallet(_wallet, _token, 0, methodData);
+            // Check transfer is successful, when `transfer` returns a success bool result
+            if (transferSuccessBytes.length > 0) {
+                require(abi.decode(transferSuccessBytes, (bool)), "RM: Transfer failed");
+            }
         }
         emit Transfer(_wallet, _token, _value, _to, _data);
     }
