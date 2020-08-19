@@ -74,6 +74,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     address token, address to, uint256 amount, bytes data);
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
+    event DailyLimitMigrated(address indexed wallet, uint256 currentDailyLimit, uint256 pendingDailyLimit, uint256 changeDailyLimitAfter);
 
     // *************** Constructor ********************** //
 
@@ -135,6 +136,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
                         ILimitStorage.DailySpent(LimitUtils.safe128(current.sub(unspent)), periodEnd)
                     );
                 }
+
+                emit DailyLimitMigrated(_wallet, current, pending, changeAfter);
             }
         }
     }

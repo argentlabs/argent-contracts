@@ -6,6 +6,7 @@ const bnChai = require("bn-chai");
 
 const { expect } = chai;
 chai.use(bnChai(BN));
+const { assert } = require("chai");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
@@ -22,7 +23,7 @@ const ERC20 = require("../build/TestERC20");
 const WETH = require("../build/WETH9");
 const TestContract = require("../build/TestContract");
 
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, hasEvent } = require("../utils/utilities.js");
 
 const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
@@ -247,7 +248,7 @@ describe("TransferManager", function () {
   });
 
   describe("Daily limit", () => {
-    it("should migrate the limit for existing wallets", async () => {
+    it("should migrate daily limit for existing wallets", async () => {
       // create wallet with previous module and funds
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const existingWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
@@ -262,7 +263,9 @@ describe("TransferManager", function () {
       // transfer some funds
       await previousTransferModule.from(owner).transferToken(existingWallet.contractAddress, ETH_TOKEN, recipient.address, 1000000, ZERO_BYTES32);
       // add new module
-      await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress);
+      const tx = await previousTransferModule.from(owner).addModule(existingWallet.contractAddress, transferModule.contractAddress);
+      const txReceipt = await previousTransferModule.verboseWaitForTransaction(tx);
+      assert.isTrue(hasEvent(txReceipt, transferModule, "MigratedDailyLimit"));
       // check result
       limit = await transferModule.getCurrentLimit(existingWallet.contractAddress);
       assert.equal(limit.toNumber(), 4000000, "limit should have been migrated");
