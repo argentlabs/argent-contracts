@@ -1,6 +1,7 @@
 /* eslint max-classes-per-file: ["error", 2] */
 
 const ethers = require("ethers");
+const chai = require("chai");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
 const BaseWallet = require("../build/BaseWallet");
@@ -20,6 +21,8 @@ const CompoundManager = require("../build/CompoundManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const RelayerModule = require("../build/RelayerModule");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
+const LimitStorage = require("../build/LimitStorage");
+const TokenPriceStorage = require("../build/TokenPriceStorage");
 
 const DeployManager = require("../utils/deploy-manager");
 const TestManager = require("../utils/test-manager");
@@ -27,6 +30,8 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const { sortWalletByAddress } = require("../utils/utilities.js");
+
+const { expect } = chai;
 
 class Logger {
   constructor() {
@@ -158,136 +163,167 @@ class Benchmark {
 
   async testUpgradeAllModules() {
     // Deploy Storage contracts
-    const LimitStorageWrapper = await deployer.deploy(LimitStorage);
-    const TokenPriceStorageWrapper = await deployer.deploy(TokenPriceStorage);
+    const LimitStorageWrapper = await this.deployer.deploy(LimitStorage);
+    const TokenPriceStorageWrapper = await this.deployer.deploy(TokenPriceStorage);
     // Create new modules
-    const newApprovedTransferWrapper = await this.deployer.deploy(ApprovedTransfer, {}, config.modules.ApprovedTransfer);
-    const newCompoundManagerWrapper = await this.deployer.deploy(CompoundManager, {}, config.modules.CompoundManager);
-    const newGuardianManager = await this.deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-    const newLockManagerWrapper = await this.deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
-    const newNftTransferWrapper = await this.deployer.deploy(NftTransfer, {}, config.modules.NftTransfer);
-    const newRecoveryManagerWrapper = await this.deployer.deploy(RecoveryManager, {}, config.modules.RecoveryManager);
-    const newTokenExchangerWrapper = await this.deployer.deploy(TokenExchanger, {}, config.modules.TokenExchanger);
-    const newMakerV2ManagerWrapper = await this.deployer.deploy(MakerV2Manager, {}, config.modules.MakerV2Manager);
-    const newTransferManagerWrapper = await this.deployer.deploy(TransferManager, {}, config.modules.TransferManager);
-    const newRelayerModuleWrapper = await this.deployer.deploy(RelayerModule, {}, config.modules.RelayerModule);
-
-    const newApprovedTransferWrapper = await deployer.deploy(
+    const newApprovedTransferWrapper = await this.deployer.deploy(
       ApprovedTransfer,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
       LimitStorageWrapper.contractAddress,
-      config.defi.weth,
+      this.config.defi.weth,
     );
-  
-    const newCompoundManagerWrapper = await deployer.deploy(
+
+    const newCompoundManagerWrapper = await this.deployer.deploy(
       CompoundManager,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
-      config.defi.compound.comptroller,
-      config.contracts.CompoundRegistry,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
+      this.config.defi.compound.comptroller,
+      this.config.contracts.CompoundRegistry,
     );
-  
-    const newGuardianManager = await deployer.deploy(
+
+    const newGuardianManager = await this.deployer.deploy(
       GuardianManager,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
-      config.settings.securityPeriod || 0,
-      config.settings.securityWindow || 0,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
+      this.config.settings.securityPeriod || 0,
+      this.config.settings.securityWindow || 0,
     );
-  
-    const newLockManagerWrapper = await deployer.deploy(
+
+    const newLockManagerWrapper = await this.deployer.deploy(
       LockManager,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
-      config.settings.lockPeriod || 0,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
+      this.config.settings.lockPeriod || 0,
     );
-  
-    const newNftTransferWrapper = await deployer.deploy(
+
+    const newNftTransferWrapper = await this.deployer.deploy(
       NftTransfer,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
-      config.CryptoKitties.contract,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
+      TokenPriceStorageWrapper.contractAddress,
+      this.config.CryptoKitties.contract,
     );
 
-    const newRecoveryManagerWrapper = await deployer.deploy(
+    const newRecoveryManagerWrapper = await this.deployer.deploy(
       RecoveryManager,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
-      config.settings.recoveryPeriod || 0,
-      config.settings.lockPeriod || 0,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
+      this.config.settings.recoveryPeriod || 0,
+      this.config.settings.lockPeriod || 0,
     );
 
-    const newTokenExchangerWrapper = await deployer.deploy(
+    const newTokenExchangerWrapper = await this.deployer.deploy(
       TokenExchanger,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
-      config.defi.paraswap.contract,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
+      TokenPriceStorageWrapper.contractAddress,
+      this.config.defi.paraswap.contract,
       "argent",
-      Object.values(config.defi.paraswap.authorisedExchanges),
+      Object.values(this.config.defi.paraswap.authorisedExchanges),
     );
-  
-    const newMakerV2ManagerWrapper = await deployer.deploy(
+
+    const newMakerV2ManagerWrapper = await this.deployer.deploy(
       MakerV2Manager,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
-      config.defi.maker.migration,
-      config.defi.maker.pot,
-      config.defi.maker.jug,
-      config.contracts.MakerRegistry,
-      config.defi.uniswap.factory,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
+      this.config.defi.maker.migration,
+      this.config.defi.maker.pot,
+      this.config.defi.maker.jug,
+      this.config.contracts.MakerRegistry,
+      this.config.defi.uniswap.factory,
     );
-  
-    const newTransferManagerWrapper = await deployer.deploy(
+
+    const newTransferManagerWrapper = await this.deployer.deploy(
       TransferManager,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.TransferStorage,
-      config.modules.GuardianStorage,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.TransferStorage,
+      this.config.modules.GuardianStorage,
       LimitStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
-      config.settings.securityPeriod || 0,
-      config.settings.securityWindow || 0,
-      config.settings.defaultLimit || "1000000000000000000",
-      config.defi.weth,
+      this.config.settings.securityPeriod || 0,
+      this.config.settings.securityWindow || 0,
+      this.config.settings.defaultLimit || "1000000000000000000",
+      this.config.defi.weth,
       "0x0000000000000000000000000000000000000000",
     );
-  
-    const newRelayerModuleWrapper = await deployer.deploy(
+
+    const newRelayerModuleWrapper = await this.deployer.deploy(
       RelayerModule,
       {},
-      config.contracts.ModuleRegistry,
-      config.modules.GuardianStorage,
+      this.config.contracts.ModuleRegistry,
+      this.config.modules.GuardianStorage,
       LimitStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
     );
 
     // Register new modules
-    await registry.registerModule(newGuardianManager.contractAddress, formatBytes32String("newGuardianManager"));
-    await registry.registerModule(newLockManagerWrapper.contractAddress, formatBytes32String("newLockManagerWrapper"));
-    await registry.registerModule(newRecoveryManagerWrapper.contractAddress, formatBytes32String("newRecoveryManagerWrapper"));
-    await registry.registerModule(newApprovedTransferWrapper.contractAddress, formatBytes32String("newApprovedTransferWrapper"));
-    await registry.registerModule(newTransferManagerWrapper.contractAddress, formatBytes32String("newTransferManagerWrapper"));
-    await registry.registerModule(newTokenExchangerWrapper.contractAddress, formatBytes32String("newTokenExchangerWrapper"));
-    await registry.registerModule(newNftTransferWrapper.contractAddress, formatBytes32String("newNftTransferWrapper"));
-    await registry.registerModule(newCompoundManagerWrapper.contractAddress, formatBytes32String("newCompoundManagerWrapper"));
-    await registry.registerModule(newMakerV2ManagerWrapper.contractAddress, formatBytes32String("newMakerV2ManagerWrapper"));
-    await registry.registerModule(newRelayerModuleWrapper.contractAddress, formatBytes32String("newRelayerModuleWrapper"));
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newGuardianManager.contractAddress, ethers.utils.formatBytes32String("newGuardianManager")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newLockManagerWrapper.contractAddress, ethers.utils.formatBytes32String("newLockManagerWrapper")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newRecoveryManagerWrapper.contractAddress, ethers.utils.formatBytes32String("newRecoveryManagerWrapper")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newApprovedTransferWrapper.contractAddress, ethers.utils.formatBytes32String("newApprovedTransferWrapper")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newTransferManagerWrapper.contractAddress, ethers.utils.formatBytes32String("newTransferManagerWrapper")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newTokenExchangerWrapper.contractAddress, ethers.utils.formatBytes32String("newTokenExchangerWrapper")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newNftTransferWrapper.contractAddress, ethers.utils.formatBytes32String("newNftTransferWrapper")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newCompoundManagerWrapper.contractAddress, ethers.utils.formatBytes32String("newCompoundManagerWrapper")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newMakerV2ManagerWrapper.contractAddress, ethers.utils.formatBytes32String("newMakerV2ManagerWrapper")],
+    );
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [newRelayerModuleWrapper.contractAddress, ethers.utils.formatBytes32String("newRelayerModuleWrapper")],
+    );
 
     // Create upgrader
-    const upgrader = await deployer.deploy(
+    const upgrader = await this.deployer.deploy(
       SimpleUpgrader,
       {},
-      registry.contractAddress,
-      [],
+      this.ModuleRegistryWrapper.contractAddress,
+      this.allModules,
       [
         newGuardianManager.contractAddress,
         newLockManagerWrapper.contractAddress,
@@ -301,19 +337,25 @@ class Benchmark {
         newRelayerModuleWrapper.contractAddress,
       ],
     );
-    await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
+    await this.multisigExecutor.executeCall(
+      this.ModuleRegistryWrapper,
+      "registerModule",
+      [upgrader.contractAddress, ethers.utils.formatBytes32String("V1toV2")],
+    );
 
     // Upgrade from V1 to V2
-    const tx = await this.ApprovedTransferWrapper.from(owner).addModule([wallet.contractAddress, upgrader.contractAddress]);
-    const txReceipt = await moduleV1.verboseWaitForTransaction(tx);
+    const tx = await this.ApprovedTransferWrapper.from(this.accounts[0]).addModule(this.wallet.contractAddress, upgrader.contractAddress);
+    const txReceipt = await this.ApprovedTransferWrapper.verboseWaitForTransaction(tx);
 
     // Test if the upgrade worked
-    const isGMAuthorised = await wallet.authorised(newGuardianManager.contractAddress);
-    const isUpgraderAuthorised = await wallet.authorised(upgrader.contractAddress);
-    const numModules = await wallet.modules();
-    assert.isTrue(isGMAuthorised);
-    assert.isFalse(isUpgraderAuthorised);
-    assert.equal(numModules, 10, "All 10 modules should be authorised");
+    const isGMAuthorised = await this.wallet.authorised(newGuardianManager.contractAddress);
+    const isUpgraderAuthorised = await this.wallet.authorised(upgrader.contractAddress);
+    const numModules = await this.wallet.modules();
+    expect(isGMAuthorised).to.be.true; // eslint-disable-line no-unused-expressions
+    expect(isUpgraderAuthorised).to.be.false; // eslint-disable-line no-unused-expressions
+    expect(numModules.toNumber()).to.eq(10);
+
+    this._logger.addItem("Upgrade all modules on a wallet", txReceipt.gasUsed.toString());
   }
 
   // ///////////////////
