@@ -18,7 +18,7 @@ pragma solidity ^0.6.12;
 
 import "./common/Utils.sol";
 import "./common/GuardianUtils.sol";
-import "./common/BaseModule.sol";
+import "./common/BaseFeature.sol";
 
 /**
  * @title GuardianManager
@@ -30,7 +30,7 @@ import "./common/BaseModule.sol";
  * @author Julien Niset - <julien@argent.xyz>
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
-contract GuardianManager is BaseModule {
+contract GuardianManager is BaseFeature {
 
     bytes32 constant NAME = "GuardianManager";
 
@@ -63,10 +63,11 @@ contract GuardianManager is BaseModule {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
+        IVersionManager _versionManager,
         uint256 _securityPeriod,
         uint256 _securityWindow
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         public
     {
         securityPeriod = _securityPeriod;
@@ -82,7 +83,7 @@ contract GuardianManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to add.
      */
-    function addGuardian(address _wallet, address _guardian) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function addGuardian(address _wallet, address _guardian) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
         require(!isOwner(_wallet, _guardian), "GM: target guardian cannot be owner");
         require(!isGuardian(_wallet, _guardian), "GM: target is already a guardian");
         // Guardians must either be an EOA or a contract with an owner()
@@ -126,7 +127,7 @@ contract GuardianManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function cancelGuardianAddition(address _wallet, address _guardian) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function cancelGuardianAddition(address _wallet, address _guardian) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
         GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
@@ -140,7 +141,7 @@ contract GuardianManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
-    function revokeGuardian(address _wallet, address _guardian) external onlyWalletOwnerOrModule(_wallet) {
+    function revokeGuardian(address _wallet, address _guardian) external onlyWalletOwnerOrFeature(_wallet) {
         require(isGuardian(_wallet, _guardian), "GM: must be an existing guardian");
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[_wallet];
@@ -173,7 +174,7 @@ contract GuardianManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _guardian The guardian.
      */
-    function cancelGuardianRevokation(address _wallet, address _guardian) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function cancelGuardianRevokation(address _wallet, address _guardian) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
         bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "revokation"));
         GuardianManagerConfig storage config = configs[_wallet];
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");
@@ -210,7 +211,7 @@ contract GuardianManager is BaseModule {
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);

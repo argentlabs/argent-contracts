@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./BaseModule.sol";
+import "./BaseFeature.sol";
 import "./LimitUtils.sol";
 
 /**
@@ -24,7 +24,7 @@ import "./LimitUtils.sol";
  * @notice Contains common methods to transfer tokens or call third-party contracts.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-abstract contract BaseTransfer is BaseModule {
+abstract contract BaseTransfer is BaseFeature {
 
     // The address of the WETH token
     address public wethToken;
@@ -74,10 +74,10 @@ abstract contract BaseTransfer is BaseModule {
     */
     function doTransfer(address _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
         if (_token == ETH_TOKEN) {
-            invokeWallet(_wallet, _to, _value, EMPTY_BYTES);
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _to, _value, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
-            bytes memory transferSuccessBytes = invokeWallet(_wallet, _token, 0, methodData);
+            bytes memory transferSuccessBytes = checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, methodData);
             // Check transfer is successful, when `transfer` returns a success bool result
             if (transferSuccessBytes.length > 0) {
                 require(abi.decode(transferSuccessBytes, (bool)), "RM: Transfer failed");
@@ -95,7 +95,7 @@ abstract contract BaseTransfer is BaseModule {
     */
     function doApproveToken(address _wallet, address _token, address _spender, uint256 _value) internal {
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _value);
-        invokeWallet(_wallet, _token, 0, methodData);
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, methodData);
         emit Approved(_wallet, _token, _value, _spender);
     }
 
@@ -107,7 +107,7 @@ abstract contract BaseTransfer is BaseModule {
     * @param _data The method data.
     */
     function doCallContract(address _wallet, address _contract, uint256 _value, bytes memory _data) internal {
-        invokeWallet(_wallet, _contract, _value, _data);
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, _contract, _value, _data);
         emit CalledContract(_wallet, _contract, _value, _data);
     }
 
@@ -141,8 +141,8 @@ abstract contract BaseTransfer is BaseModule {
         // when restoring the original approved amount, in cases where the _proxy uses the exact approved _amount.
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _proxy, totalAllowance);
 
-        invokeWallet(_wallet, _token, 0, methodData);
-        invokeWallet(_wallet, _contract, 0, _data);
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, methodData);
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, _contract, 0, _data);
 
         // Calculate the approved amount that was spent after the call
         uint256 unusedAllowance = ERC20(_token).allowance(_wallet, _proxy);
@@ -153,7 +153,7 @@ abstract contract BaseTransfer is BaseModule {
         if (unusedAllowance != existingAllowance) {
             // Restore the original allowance amount if the amount spent was different (can be lower).
             methodData = abi.encodeWithSignature("approve(address,uint256)", _proxy, existingAllowance);
-            invokeWallet(_wallet, _token, 0, methodData);
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, methodData);
         }
 
         emit ApprovedAndCalledContract(
@@ -187,7 +187,7 @@ abstract contract BaseTransfer is BaseModule {
         uint256 wethBalance = ERC20(wethToken).balanceOf(_wallet);
         if (wethBalance < _amount) {
             // Wrap ETH into WETH
-            invokeWallet(_wallet, wethToken, _amount - wethBalance, abi.encodeWithSignature("deposit()"));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, wethToken, _amount - wethBalance, abi.encodeWithSignature("deposit()"));
         }
 
         doApproveTokenAndCallContract(_wallet, wethToken, _proxy, _amount, _contract, _data);

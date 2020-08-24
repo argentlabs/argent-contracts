@@ -137,7 +137,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
@@ -161,7 +161,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _collateralAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -183,7 +183,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _collateralAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -205,7 +205,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -227,7 +227,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -246,7 +246,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         bytes32 _loanId
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         verifyLoanOwner(_wallet, _loanId);
@@ -269,12 +269,12 @@ abstract contract MakerV2Loan is MakerV2Base {
     )
         external
         nonReentrant
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(cdpManager.owns(uint256(_loanId)) == _wallet, "MV2: wrong vault owner");
         // Transfer the vault from the wallet to the module
-        invokeWallet(
+        checkAuthorisedFeatureAndInvokeWallet(
             _wallet,
             address(cdpManager),
             0,
@@ -296,7 +296,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         bytes32 _loanId
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyNewVersion
         onlyWhenUnlocked(_wallet)
     {
@@ -353,10 +353,10 @@ abstract contract MakerV2Loan is MakerV2Base {
         (JoinLike gemJoin, GemLike collateral) = makerRegistry.getCollateral(_ilk);
         // Convert ETH to WETH if needed
         if (gemJoin == wethJoin) {
-            invokeWallet(_wallet, address(wethToken), _collateralAmount, abi.encodeWithSignature("deposit()"));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, address(wethToken), _collateralAmount, abi.encodeWithSignature("deposit()"));
         }
         // Send the collateral to the module
-        invokeWallet(
+        checkAuthorisedFeatureAndInvokeWallet(
             _wallet,
             address(collateral),
             0,
@@ -376,7 +376,12 @@ abstract contract MakerV2Loan is MakerV2Base {
         internal
     {
         // Send the DAI to the module
-        invokeWallet(_wallet, address(daiToken), 0, abi.encodeWithSignature("transfer(address,uint256)", address(this), _debtAmount));
+        checkAuthorisedFeatureAndInvokeWallet(
+            _wallet,
+            address(daiToken),
+            0,
+            abi.encodeWithSignature("transfer(address,uint256)", address(this), _debtAmount)
+        );
         // Approve the DAI adapter to burn DAI from the module
         daiToken.approve(address(daiJoin), _debtAmount);
         // Join DAI to the adapter. The first argument to `join` is the address that *technically* owns the vault
@@ -534,7 +539,12 @@ abstract contract MakerV2Loan is MakerV2Base {
         gemJoin.exit(_wallet, _collateralAmount);
         // Convert WETH to ETH if needed
         if (gemJoin == wethJoin) {
-            invokeWallet(_wallet, address(wethToken), 0, abi.encodeWithSignature("withdraw(uint256)", _collateralAmount));
+            checkAuthorisedFeatureAndInvokeWallet(
+                _wallet,
+                address(wethToken),
+                0,
+                abi.encodeWithSignature("withdraw(uint256)", _collateralAmount)
+            );
         }
     }
 

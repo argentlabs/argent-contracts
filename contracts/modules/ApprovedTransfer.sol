@@ -24,7 +24,7 @@ import "../infrastructure/storage/ILimitStorage.sol";
 
 /**
  * @title ApprovedTransfer
- * @notice Module to transfer tokens (ETH or ERC20) or call third-party contracts with the approval of guardians.
+ * @notice Feature to transfer tokens (ETH or ERC20) or call third-party contracts with the approval of guardians.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract ApprovedTransfer is BaseTransfer {
@@ -38,9 +38,10 @@ contract ApprovedTransfer is BaseTransfer {
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
+        IVersionManager _versionManager,
         address _wethToken
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
         public
     {
@@ -63,7 +64,7 @@ contract ApprovedTransfer is BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         doTransfer(_wallet, _token, _to, _amount, _data);
@@ -84,7 +85,7 @@ contract ApprovedTransfer is BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -112,7 +113,7 @@ contract ApprovedTransfer is BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -125,7 +126,7 @@ contract ApprovedTransfer is BaseTransfer {
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
         uint128 targetLimit = LimitUtils.safe128(_newLimit);
         ILimitStorage.Limit memory newLimit = ILimitStorage.Limit(targetLimit, targetLimit, LimitUtils.safe64(block.timestamp));
         ILimitStorage.DailySpent memory resetDailySpent = ILimitStorage.DailySpent(uint128(0), uint64(0));
@@ -137,7 +138,7 @@ contract ApprovedTransfer is BaseTransfer {
     * @notice Resets the daily spent amount.
     * @param _wallet The target wallet.
     */
-    function resetDailySpent(address _wallet) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function resetDailySpent(address _wallet) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
         LimitUtils.resetDailySpent(limitStorage, _wallet);
     }
 
@@ -159,7 +160,7 @@ contract ApprovedTransfer is BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -167,7 +168,7 @@ contract ApprovedTransfer is BaseTransfer {
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         // owner  + [n/2] guardians

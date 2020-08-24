@@ -17,16 +17,24 @@
 pragma solidity >=0.5.4 <0.7.0;
 
 /**
- * @title IModule
- * @notice Interface for a module.
- * A module MUST implement the addModule() method to ensure that a wallet with at least one module
- * can never end up in a "frozen" state.
- * @author Julien Niset - <julien@argent.xyz>
+ * @title IVersionManager
+ * @notice Interface for the VersionManager module.
+ * @author Olivier VDB - <olivier@argent.xyz>
  */
-interface IModule {
+interface IVersionManager {
     /**
-     * @notice Inits a module for a wallet by e.g. setting some wallet specific parameters in storage.
-     * @param _wallet The wallet.
+     * @notice Returns true if the feature is authorised for the wallet
+     * @param _wallet The target wallet.
+     * @param _feature The feature.
      */
-    function init(address _wallet) external;
+    function isFeatureAuthorised(address _wallet, address _feature) external view returns (bool);
+
+    /**
+     * @notice Lets a feature (caller) invoke a wallet.
+     * @param _wallet The target wallet.
+     * @param _to The target address for the transaction.
+     * @param _value The value of the transaction.
+     * @param _data The data of the transaction.
+     */
+    function invokeWallet(address _wallet, address _to, uint256 _value, bytes calldata _data) external returns (bytes memory _res);
 }

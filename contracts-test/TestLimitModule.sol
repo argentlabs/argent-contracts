@@ -3,14 +3,14 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../contracts/modules/common/BaseModule.sol";
+import "../contracts/modules/common/BaseFeature.sol";
 import "../contracts/modules/common/LimitUtils.sol";
 
 /**
- * @title TestLimitModule
- * @notice Basic module to set the daily limit
+ * @title TestLimitFeature
+ * @notice Basic feature to set the daily limit
  */
-contract TestLimitModule is BaseModule {
+contract TestLimitFeature is BaseFeature {
 
     bytes32 constant NAME = "TestLimitModule";
 
@@ -21,9 +21,10 @@ contract TestLimitModule is BaseModule {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
-        ILimitStorage _limitStorage
+        ILimitStorage _limitStorage,
+        IVersionManager _versionManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         public
     {
         limitStorage = _limitStorage;
@@ -50,11 +51,10 @@ contract TestLimitModule is BaseModule {
         return limit.current;
     }
 
-    /**
-     * @inheritdoc IModule
+        /**
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
-
 }

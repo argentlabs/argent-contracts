@@ -36,7 +36,7 @@ contract SimpleUpgrader is BaseModule {
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        BaseModule(_registry, IGuardianStorage(0), NAME)
+        BaseModule(_registry, NAME)
         public
     {
         toDisable = _toDisable;
@@ -49,7 +49,8 @@ contract SimpleUpgrader is BaseModule {
      * @notice Perform the upgrade for a wallet. This method gets called when SimpleUpgrader is temporarily added as a module.
      * @param _wallet The target wallet.
      */
-    function init(address _wallet) public override onlyWallet(_wallet) {
+    function init(address _wallet) public override {
+        require(msg.sender == _wallet, "SU: only wallet can call init");
         require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
 
         uint256 i = 0;

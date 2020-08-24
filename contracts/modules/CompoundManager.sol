@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./common/OnlyOwnerModule.sol";
+import "./common/OnlyOwnerFeature.sol";
 import "../infrastructure/ICompoundRegistry.sol";
 
 interface IComptroller {
@@ -43,7 +43,7 @@ interface ICToken {
  * @notice Module to invest and borrow tokens with CompoundV2
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract CompoundManager is OnlyOwnerModule {
+contract CompoundManager is OnlyOwnerFeature {
 
     bytes32 constant NAME = "CompoundManager";
 
@@ -73,9 +73,10 @@ contract CompoundManager is OnlyOwnerModule {
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
         IComptroller _comptroller,
-        ICompoundRegistry _compoundRegistry
+        ICompoundRegistry _compoundRegistry,
+        IVersionManager _versionManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         public
     {
         comptroller = _comptroller;
@@ -101,14 +102,14 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
         address[] memory markets = new address[](2);
         markets[0] = compoundRegistry.getCToken(_collateral);
         markets[1] = compoundRegistry.getCToken(_debtToken);
-        invokeWallet(_wallet, address(comptroller), 0, abi.encodeWithSignature("enterMarkets(address[])", markets));
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(comptroller), 0, abi.encodeWithSignature("enterMarkets(address[])", markets));
         mint(_wallet, markets[0], _collateral, _collateralAmount);
         borrow(_wallet, _debtToken, markets[1], _debtAmount);
         emit LoanOpened(_wallet, _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
@@ -124,7 +125,7 @@ contract CompoundManager is OnlyOwnerModule {
         bytes32 _loanId
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address[] memory markets = comptroller.getAssetsIn(_wallet);
@@ -135,7 +136,12 @@ contract CompoundManager is OnlyOwnerModule {
                 repayBorrow(_wallet, cToken, debt);
                 uint collateral = ICToken(cToken).balanceOf(_wallet);
                 if (collateral == 0) {
-                    invokeWallet(_wallet, address(comptroller), 0, abi.encodeWithSignature("exitMarket(address)", address(cToken)));
+                    checkAuthorisedFeatureAndInvokeWallet(
+                        _wallet,
+                        address(comptroller),
+                        0,
+                        abi.encodeWithSignature("exitMarket(address)", address(cToken))
+                    );
                 }
             }
         }
@@ -156,7 +162,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _collateralAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address cToken = compoundRegistry.getCToken(_collateral);
@@ -179,7 +185,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _collateralAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address cToken = compoundRegistry.getCToken(_collateral);
@@ -202,7 +208,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
@@ -225,7 +231,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
@@ -277,7 +283,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _period
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
@@ -299,7 +305,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _fraction
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(_fraction <= 10000, "CM: invalid fraction value");
@@ -345,10 +351,10 @@ contract CompoundManager is OnlyOwnerModule {
         require(_amount > 0, "CM: amount cannot be 0");
         uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
         if (_token == ETH_TOKEN) {
-            invokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("mint()"));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("mint()"));
         } else {
-            invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
-            invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("mint(uint256)", _amount));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("mint(uint256)", _amount));
         }
         require(ERC20(_cToken).balanceOf(_wallet) > initialCTokenAmount, "CM: mint failed");
     }
@@ -366,7 +372,7 @@ contract CompoundManager is OnlyOwnerModule {
         // require(_cToken != address(0), "CM: No market for target token");
         require(_amount > 0, "CM: amount cannot be 0");
         uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
-        invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeem(uint256)", _amount));
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeem(uint256)", _amount));
         require(ERC20(_cToken).balanceOf(_wallet) < initialCTokenAmount, "CM: redeem failed");
     }
 
@@ -380,7 +386,7 @@ contract CompoundManager is OnlyOwnerModule {
         require(_cToken != address(0), "CM: No market for target token");
         require(_amount > 0, "CM: amount cannot be 0");
         uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
-        invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeemUnderlying(uint256)", _amount));
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeemUnderlying(uint256)", _amount));
         require(ERC20(_cToken).balanceOf(_wallet) < initialCTokenAmount, "CM: redeemUnderlying failed");
     }
 
@@ -395,7 +401,7 @@ contract CompoundManager is OnlyOwnerModule {
         require(_cToken != address(0), "CM: No market for target token");
         require(_amount > 0, "CM: amount cannot be 0");
         uint256 initialTokenAmount = _token == ETH_TOKEN ? _wallet.balance : ERC20(_token).balanceOf(_wallet);
-        invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("borrow(uint256)", _amount));
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("borrow(uint256)", _amount));
         uint256 finalTokenAmount = _token == ETH_TOKEN ? _wallet.balance : ERC20(_token).balanceOf(_wallet);
         require(finalTokenAmount > initialTokenAmount, "CM: borrow failed");
     }
@@ -414,13 +420,13 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 finalTokenAmount;
         if (keccak256(abi.encodePacked(symbol)) == keccak256(abi.encodePacked("cETH"))) {
             initialTokenAmount = _wallet.balance;
-            invokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
             finalTokenAmount = _wallet.balance;
         } else {
             address token = ICToken(_cToken).underlying();
             initialTokenAmount = ERC20(token).balanceOf(_wallet);
-            invokeWallet(_wallet, token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
-            invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
             finalTokenAmount = ERC20(token).balanceOf(_wallet);
         }
         require(finalTokenAmount < initialTokenAmount, "CM: repayBorrow failed");
@@ -437,7 +443,7 @@ contract CompoundManager is OnlyOwnerModule {
         if (!isEntered) {
             address[] memory market = new address[](1);
             market[0] = _cToken;
-            invokeWallet(_wallet, _comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", market));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", market));
         }
     }
 
@@ -451,7 +457,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint collateral = ICToken(_cToken).balanceOf(_wallet);
         uint debt = ICToken(_cToken).borrowBalanceStored(_wallet);
         if (collateral == 0 && debt == 0) {
-            invokeWallet(_wallet, _comptroller, 0, abi.encodeWithSignature("exitMarket(address)", _cToken));
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, _comptroller, 0, abi.encodeWithSignature("exitMarket(address)", _cToken));
         }
     }
 }

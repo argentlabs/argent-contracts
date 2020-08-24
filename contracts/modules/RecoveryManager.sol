@@ -17,18 +17,18 @@
 pragma solidity ^0.6.12;
 
 import "./common/Utils.sol";
-import "./common/BaseModule.sol";
+import "./common/BaseFeature.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RecoveryManager
- * @notice Module to manage the recovery of a wallet owner.
+ * @notice Feature to manage the recovery of a wallet owner.
  * Recovery is executed by a consensus of the wallet's guardians and takes 24 hours before it can be finalized.
  * Once finalised the ownership of the wallet is transfered to a new address.
  * @author Julien Niset - <julien@argent.xyz>
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
-contract RecoveryManager is BaseModule {
+contract RecoveryManager is BaseFeature {
 
     bytes32 constant NAME = "RecoveryManager";
 
@@ -81,10 +81,11 @@ contract RecoveryManager is BaseModule {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
+        IVersionManager _versionManager,
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         public
     {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
@@ -104,7 +105,7 @@ contract RecoveryManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _recovery The address to which ownership should be transferred.
      */
-    function executeRecovery(address _wallet, address _recovery) external onlyWalletModule(_wallet) notWhenRecovery(_wallet) {
+    function executeRecovery(address _wallet, address _recovery) external onlyWalletFeature(_wallet) notWhenRecovery(_wallet) {
         require(_recovery != address(0), "RM: recovery address cannot be null");
         RecoveryConfig storage config = recoveryConfigs[_wallet];
         config.recovery = _recovery;
@@ -136,7 +137,7 @@ contract RecoveryManager is BaseModule {
      * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2) - 1.
      * @param _wallet The target wallet.
      */
-    function cancelRecovery(address _wallet) external onlyWalletModule(_wallet) onlyWhenRecovery(_wallet) {
+    function cancelRecovery(address _wallet) external onlyWalletFeature(_wallet) onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
@@ -150,7 +151,7 @@ contract RecoveryManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function transferOwnership(address _wallet, address _newOwner) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function transferOwnership(address _wallet, address _newOwner) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
         IWallet(_wallet).setOwner(_newOwner);
 
@@ -167,7 +168,7 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);

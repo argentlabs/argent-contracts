@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 
 import "../common/BaseModule.sol";
-import "../common/OnlyOwnerModule.sol";
+import "../common/OnlyOwnerFeature.sol";
 import "../../infrastructure/IMakerRegistry.sol";
 import "../../../lib/maker/MakerInterfaces.sol";
 import "../../../lib/maker/DS/DSMath.sol";
@@ -27,7 +27,7 @@ import "../../../lib/maker/DS/DSMath.sol";
  * @notice Common base to MakerV2Invest and MakerV2Loan.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-abstract contract MakerV2Base is DSMath, OnlyOwnerModule {
+abstract contract MakerV2Base is DSMath, OnlyOwnerFeature {
 
     bytes32 constant private NAME = "MakerV2Manager";
 
@@ -47,9 +47,10 @@ abstract contract MakerV2Base is DSMath, OnlyOwnerModule {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
-        ScdMcdMigrationLike _scdMcdMigration
+        ScdMcdMigrationLike _scdMcdMigration,
+        IVersionManager _versionManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         public
     {
         scdMcdMigration = address(_scdMcdMigration);

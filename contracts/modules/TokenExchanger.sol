@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./common/OnlyOwnerModule.sol";
+import "./common/OnlyOwnerFeature.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/paraswap/IAugustusSwapper.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
@@ -27,7 +27,7 @@ import "../infrastructure/storage/ITokenPriceStorage.sol";
  * @notice Module to trade tokens (ETH or ERC20) using ParaSwap.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TokenExchanger is OnlyOwnerModule {
+contract TokenExchanger is OnlyOwnerFeature {
 
     bytes32 constant NAME = "TokenExchanger";
 
@@ -61,11 +61,12 @@ contract TokenExchanger is OnlyOwnerModule {
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
         ITokenPriceStorage _tokenPriceStorage,
+        IVersionManager _versionManager,
         address _paraswap,
         string memory _referrer,
         address[] memory _authorisedExchanges
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         public
     {
         tokenPriceStorage = _tokenPriceStorage;
@@ -102,7 +103,7 @@ contract TokenExchanger is OnlyOwnerModule {
         uint256 _mintPrice
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Verify that the destination token is tradable
@@ -150,7 +151,7 @@ contract TokenExchanger is OnlyOwnerModule {
         uint256 _mintPrice
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Verify that the destination token is tradable
@@ -200,11 +201,16 @@ contract TokenExchanger is OnlyOwnerModule {
             if (_existingAllowance < uint256(-1)) {
                 if (_existingAllowance > 0) {
                     // Clear the existing allowance to avoid issues with tokens like USDT that do not allow changing a non-zero allowance
-                    invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, 0));
+                    checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, 0));
                 }
                 // Increase the allowance to include the required amount
                 uint256 newAllowance = SafeMath.add(_existingAllowance, _amount);
-                invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, newAllowance));
+                checkAuthorisedFeatureAndInvokeWallet(
+                    _wallet,
+                    _token,
+                    0,
+                    abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, newAllowance)
+                );
             }
         }
     }
@@ -213,7 +219,12 @@ contract TokenExchanger is OnlyOwnerModule {
         if (_token != ETH_TOKEN_ADDRESS) {
             uint allowance = ERC20(_token).allowance(_wallet, paraswapProxy);
             if (allowance != _previousAllowance) {
-                invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, _previousAllowance));
+                checkAuthorisedFeatureAndInvokeWallet(
+                    _wallet,
+                    _token,
+                    0,
+                    abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, _previousAllowance)
+                );
             }
         }
     }
@@ -229,7 +240,11 @@ contract TokenExchanger is OnlyOwnerModule {
         internal
     {
         // Perform the trade
-        bytes memory swapRes = invokeWallet(_wallet, paraswapSwapper, _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, tradeData);
+        bytes memory swapRes = checkAuthorisedFeatureAndInvokeWallet(
+            _wallet,
+            paraswapSwapper,
+            _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, tradeData
+        );
 
         // Emit event with best possible estimate of destination amount
         uint256 estimatedDestAmount;

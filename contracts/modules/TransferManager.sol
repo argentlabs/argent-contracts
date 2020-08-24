@@ -18,7 +18,7 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
-import "./common/OnlyOwnerModule.sol";
+import "./common/OnlyOwnerFeature.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
@@ -28,11 +28,10 @@ import "../../lib/other/ERC20.sol";
 
 /**
  * @title TransferManager
- * @notice Module to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
- * This module is the V2 of TokenTransfer.
+ * @notice Feature to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransferManager is OnlyOwnerModule, BaseTransfer {
+contract TransferManager is OnlyOwnerFeature, BaseTransfer {
 
     bytes32 constant NAME = "TransferManager";
 
@@ -85,13 +84,14 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
         ITokenPriceStorage _tokenPriceStorage,
+        IVersionManager _versionManager,
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit,
         address _wethToken,
         TransferManager _oldTransferManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
         public
     {
@@ -105,12 +105,12 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-     * @notice Inits the module for a wallet by setting up the isValidSignature (EIP 1271)
-     * static call redirection from the wallet to the module and copying all the parameters
+     * @notice Inits the feature for a wallet by setting up the isValidSignature (EIP 1271)
+     * static call redirection from the wallet to the feature and copying all the parameters
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
-    function init(address _wallet) public override(BaseModule) onlyWallet(_wallet) {
+    function init(address _wallet) public override(BaseFeature) onlyVersionManager {
 
         // setup static calls
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
@@ -143,22 +143,22 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         }
     }
 
-    /**
-     * @inheritdoc IModule
-     */
-    function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerModule) onlyWalletOwnerOrModule(_wallet) {
-        OnlyOwnerModule.addModule(_wallet, _module);
-    }
+    // /**
+    //  * @inheritdoc IModule
+    //  */
+    // function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerFeature) onlyWalletOwnerOrFeature(_wallet) {
+    //     OnlyOwnerFeature.addModule(_wallet, _module);
+    // }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(
         address _wallet,
         bytes calldata _data
     )
         external
-        override(BaseModule, OnlyOwnerModule)
+        override(BaseFeature, OnlyOwnerFeature)
         view
         returns (uint256, OwnerSignature)
     {
@@ -183,7 +183,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _to)) {
@@ -216,7 +216,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         uint256 _amount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _spender)) {
@@ -253,7 +253,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -280,7 +280,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -305,7 +305,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -323,7 +323,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         address _target
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
@@ -343,7 +343,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         address _target
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         transferStorage.setWhitelist(_wallet, _target, 0);
@@ -387,7 +387,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes32 _id
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(configs[_wallet].pendingActions[_id] > 0, "TT: unknown pending action");
@@ -401,7 +401,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
         ILimitStorage.Limit memory limit = LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
         emit LimitChanged(_wallet, _newLimit, limit.changeAfter);
     }
@@ -411,7 +411,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * The limit is disabled by setting it to an arbitrary large value.
      * @param _wallet The target wallet.
      */
-    function disableLimit(address _wallet) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function disableLimit(address _wallet) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
         LimitUtils.disableLimit(limitStorage, _wallet, securityPeriod);
         emit DailyLimitDisabled(_wallet, securityPeriod);
     }

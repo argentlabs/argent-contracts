@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./common/OnlyOwnerModule.sol";
+import "./common/OnlyOwnerFeature.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
@@ -24,7 +24,7 @@ import "../infrastructure/storage/ITokenPriceStorage.sol";
  * @notice Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NftTransfer is OnlyOwnerModule {
+contract NftTransfer is OnlyOwnerFeature {
 
     bytes32 constant NAME = "NftTransfer";
 
@@ -46,9 +46,10 @@ contract NftTransfer is OnlyOwnerModule {
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
         ITokenPriceStorage _tokenPriceStorage,
+        IVersionManager _versionManager,
         address _ckAddress
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
         public
     {
         ckAddress = _ckAddress;
@@ -62,7 +63,7 @@ contract NftTransfer is OnlyOwnerModule {
      * static call redirection from the wallet to the module.
      * @param _wallet The target wallet.
      */
-    function init(address _wallet) public override onlyWallet(_wallet) {
+    function init(address _wallet) public override onlyVersionManager {
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
@@ -103,7 +104,7 @@ contract NftTransfer is OnlyOwnerModule {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;
@@ -119,7 +120,7 @@ contract NftTransfer is OnlyOwnerModule {
                    "transferFrom(address,address,uint256)", _wallet, _to, _tokenId);
            }
         }
-        invokeWallet(_wallet, _nftContract, 0, methodData);
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, _nftContract, 0, methodData);
         emit NonFungibleTransfer(_wallet, _nftContract, _tokenId, _to, _data);
     }
 

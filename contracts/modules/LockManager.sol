@@ -16,20 +16,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./common/BaseModule.sol";
+import "./common/BaseFeature.sol";
 import "./common/GuardianUtils.sol";
 
 /**
  * @title LockManager
- * @notice Module to manage the state of a wallet's lock.
- * Other modules can use the state of the lock to determine if their operations
+ * @notice Feature to manage the state of a wallet's lock.
+ * Other features can use the state of the lock to determine if their operations
  * should be authorised or blocked. Only the guardians of a wallet can lock and unlock it.
  * The lock automatically unlocks after a given period. The lock state is stored on a separate
- * contract to facilitate its use by other modules.
+ * contract to facilitate its use by other features.
  * @author Julien Niset - <julien@argent.xyz>
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
-contract LockManager is BaseModule {
+contract LockManager is BaseFeature {
 
     bytes32 constant NAME = "LockManager";
 
@@ -54,9 +54,9 @@ contract LockManager is BaseModule {
     /**
      * @notice Throws if the caller is not a guardian for the wallet.
      */
-    modifier onlyGuardianOrModule(address _wallet) {
+    modifier onlyGuardianOrFeature(address _wallet) {
         (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), msg.sender);
-        require(isAuthorisedModule(_wallet, msg.sender) || isGuardian, "LM: must be guardian or module");
+        require(isFeatureAuthorisedInVersionManager(_wallet, msg.sender) || isGuardian, "LM: must be guardian or feature");
         _;
     }
 
@@ -65,9 +65,10 @@ contract LockManager is BaseModule {
     constructor(
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage,
+        IVersionManager _versionManager,
         uint256 _lockPeriod
     )
-        BaseModule(_registry, _guardianStorage, NAME) public {
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME) public {
         lockPeriod = _lockPeriod;
     }
 
@@ -77,7 +78,7 @@ contract LockManager is BaseModule {
      * @notice Lets a guardian lock a wallet.
      * @param _wallet The target wallet.
      */
-    function lock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function lock(address _wallet) external onlyGuardianOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
         guardianStorage.setLock(_wallet, block.timestamp + lockPeriod);
         emit Locked(_wallet, uint64(block.timestamp + lockPeriod));
     }
@@ -86,9 +87,9 @@ contract LockManager is BaseModule {
      * @notice Lets a guardian unlock a locked wallet.
      * @param _wallet The target wallet.
      */
-    function unlock(address _wallet) external onlyGuardianOrModule(_wallet) onlyWhenLocked(_wallet) {
+    function unlock(address _wallet) external onlyGuardianOrFeature(_wallet) onlyWhenLocked(_wallet) {
         address locker = guardianStorage.getLocker(_wallet);
-        require(locker == address(this), "LM: cannot unlock a wallet that was locked by another module");
+        require(locker == address(this), "LM: cannot unlock a wallet that was locked by another feature");
         guardianStorage.setLock(_wallet, 0);
         emit Unlocked(_wallet);
     }
@@ -115,7 +116,7 @@ contract LockManager is BaseModule {
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Disallowed);

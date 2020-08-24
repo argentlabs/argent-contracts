@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
-import "../contracts/modules/common/BaseModule.sol";
+import "../contracts/modules/common/BaseFeature.sol";
 import "./TestDapp.sol";
 
 /**
@@ -8,16 +8,25 @@ import "./TestDapp.sol";
  * @notice Basic test module
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TestModule is BaseModule {
+contract TestFeature is BaseFeature {
 
-    bytes32 constant NAME = "TestModule";
+    bytes32 constant NAME = "TestFeature";
 
     bool boolVal;
     uint uintVal;
 
     TestDapp public dapp;
 
-    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage, bool _boolVal, uint _uintVal) BaseModule(_registry, _guardianStorage, NAME) public {
+    constructor(
+        IModuleRegistry _registry,
+        IGuardianStorage _guardianStorage,
+        IVersionManager _versionManager,
+        bool _boolVal,
+        uint _uintVal
+    ) 
+        BaseFeature(_registry, _guardianStorage, _versionManager, NAME) 
+        public 
+    {
         boolVal = _boolVal;
         uintVal = _uintVal;
         dapp = new TestDapp();
@@ -27,7 +36,7 @@ contract TestModule is BaseModule {
         IWallet(_wallet).setOwner(address(0)); // this should fail
     }
 
-    function setIntOwnerOnly(address _wallet, uint _val) external onlyWalletOwnerOrModule(_wallet) {
+    function setIntOwnerOnly(address _wallet, uint _val) external onlyWalletOwnerOrFeature(_wallet) {
         uintVal = _val;
     }
     function clearInt() external {
@@ -75,13 +84,13 @@ contract TestModule is BaseModule {
     function callDapp(address _wallet)
         external
     {
-        invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("noReturn()"));
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("noReturn()"));
     }
 
     function callDapp2(address _wallet, uint256 _val, bool _isNewWallet)
         external returns (uint256 _ret)
     {
-        bytes memory result = invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", _val));
+        bytes memory result = checkAuthorisedFeatureAndInvokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", _val));
         if (_isNewWallet) {
             require(result.length > 0, "TestModule: callDapp2 returned no result");
             (_ret) = abi.decode(result, (uint256));
@@ -92,11 +101,11 @@ contract TestModule is BaseModule {
     }
 
     function fail(address _wallet, string calldata reason) external {
-        invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);

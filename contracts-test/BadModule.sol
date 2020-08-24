@@ -6,8 +6,8 @@ contract BadModule is BaseModule {
 
     bytes32 constant NAME = "BadModule";
 
-    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage)
-    BaseModule(_registry, _guardianStorage, NAME) public
+    constructor(IModuleRegistry _registry)
+    BaseModule(_registry, NAME) public
     {
     }
 
@@ -16,10 +16,4 @@ contract BadModule is BaseModule {
         uintVal = _val;
     }
 
-    /**
-     * @inheritdoc IModule
-     */
-    function getRequiredSignatures(address /* _wallet */, bytes memory /*_data */) public view override returns (uint256, OwnerSignature) {
-        return (0, OwnerSignature.Required);
-    }
 }
