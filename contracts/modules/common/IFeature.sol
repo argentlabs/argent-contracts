@@ -51,4 +51,9 @@ interface IFeature {
     * @return The number of required signatures and the wallet owner signature requirement.
     */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view returns (uint256, OwnerSignature);
+
+    /**
+    * @notice Gets the list of static call signatures that this feature responds to on behalf of wallets
+    */
+    function getStaticCallSignatures() external view returns (bytes4[] memory);
 }

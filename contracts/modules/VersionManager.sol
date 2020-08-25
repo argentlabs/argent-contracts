@@ -35,6 +35,9 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
     mapping(address => mapping(uint256 => bool)) public isFeatureInVersion; // [feature][version] => bool
     mapping(uint256 => address[]) public versionFeatures; // [version] => [features]
 
+    mapping(uint256 => bytes4[]) public staticCallSignatures; // [version] => [sigs]
+    mapping(uint256 => mapping(bytes4 => address)) public staticCallExecutors; // [version][sig] => [feature]
+
     event VersionAdded(uint256 _version);
     event WalletUpgraded(address _wallet, uint256 _version);
 
@@ -58,8 +61,16 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         uint256 newVersion = ++lastVersion;
         for(uint256 i = 0; i < _features.length; i++) {
             isFeatureInVersion[_features[i]][newVersion] = true;
+
+            // Store static call information to optimise its use by wallets
+            bytes4[] memory sigs = IFeature(_features[i]).getStaticCallSignatures();
+            for(uint256 j = 0; j < sigs.length; j++) {
+                staticCallSignatures[newVersion].push(sigs[j]);
+                staticCallExecutors[newVersion][sigs[j]] = _features[i];
+            }
         }
         versionFeatures[newVersion] = _features;
+        
         emit VersionAdded(newVersion);
     }
 
@@ -118,6 +129,25 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         }
     }
 
+    /**
+     * @notice This method delegates the static call to a target feature
+     */
+    fallback() external payable {
+        uint256 version = walletVersions[msg.sender];
+        address feature = staticCallExecutors[version][msg.sig];
+        require(feature != address(0), "VM: Static call not supported for wallet version");
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            calldatacopy(0, 0, calldatasize())
+            let result := staticcall(gas(), feature, 0, calldatasize(), 0, 0)
+            returndatacopy(0, 0, returndatasize())
+            switch result
+            case 0 {revert(0, returndatasize())}
+            default {return (0, returndatasize())}
+        }
+    }
+
 
     function doUpgradeWallet(
         address _wallet, 
@@ -128,12 +158,21 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         uint256 fromVersion = walletVersions[_wallet];
         uint256 toVersion = lastVersion;
         require(fromVersion < toVersion, "VM: Already on last version");
+
+        // Setup static call redirection
+        bytes4[] storage sigs = staticCallSignatures[toVersion];
+        for(uint256 i = 0; i < sigs.length; i++) {
+            IWallet(_wallet).enableStaticCall(address(this), sigs[i]);
+        }
+        
+        // Init features
         for(uint256 i = 0; i < _featuresToInit.length; i++) {
             // The following check is there for extra security. As it's somewhat expensive, we may want to get rid of it
             if(!isFeatureInVersion[_featuresToInit[i]][fromVersion] && isFeatureInVersion[_featuresToInit[i]][toVersion]) {
                 IFeature(_featuresToInit[i]).init(_wallet);
             }
         }
+        
         walletVersions[_wallet] = toVersion;
         emit WalletUpgraded(_wallet, toVersion);
     }

@@ -35,7 +35,6 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
 
     bytes32 constant NAME = "TransferManager";
 
-    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
     bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
     enum ActionType { Transfer }
@@ -105,16 +104,21 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
     }
 
     /**
+     * @inheritdoc IFeature
+     */
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
+        _sigs = new bytes4[](1);
+        _sigs[0] = ERC1271_ISVALIDSIGNATURE_BYTES32;
+    }
+
+
+    /**
      * @notice Inits the feature for a wallet by setting up the isValidSignature (EIP 1271)
      * static call redirection from the wallet to the feature and copying all the parameters
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
     function init(address _wallet) public override(BaseFeature) onlyVersionManager {
-
-        // setup static calls
-        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
-        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
 
         if (address(oldTransferManager) == address(0)) {
             limitStorage.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
@@ -489,18 +493,6 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
     */
     function getPendingTransfer(address _wallet, bytes32 _id) external view returns (uint64 _executeAfter) {
         _executeAfter = uint64(configs[address(_wallet)].pendingActions[_id]);
-    }
-
-    /**
-    * @notice Implementation of EIP 1271.
-    * Should return whether the signature provided is valid for the provided data.
-    * @param _data Arbitrary length data signed on the behalf of address(this)
-    * @param _signature Signature byte array associated with _data
-    */
-    function isValidSignature(bytes calldata _data, bytes calldata _signature) external view returns (bytes4) {
-        bytes32 msgHash = keccak256(abi.encodePacked(_data));
-        isValidSignature(msgHash, _signature);
-        return ERC1271_ISVALIDSIGNATURE_BYTES;
     }
 
     /**

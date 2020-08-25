@@ -132,6 +132,11 @@ contract BaseFeature is IFeature {
     }
 
     /**
+     * @inheritdoc IFeature
+     */
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {}
+
+    /**
      * @notice Helper method to check if an address is the owner of a target wallet.
      * @param _wallet The target wallet.
      * @param _addr The address.

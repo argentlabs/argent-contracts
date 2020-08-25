@@ -59,12 +59,11 @@ contract NftTransfer is OnlyOwnerFeature {
     // *************** External/Public Functions ********************* //
 
     /**
-     * @notice Inits the module for a wallet by setting up the onERC721Received
-     * static call redirection from the wallet to the module.
-     * @param _wallet The target wallet.
+     * @inheritdoc IFeature
      */
-    function init(address _wallet) public override onlyVersionManager {
-        IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
+        _sigs = new bytes4[](1);
+        _sigs[0] = ERC721_RECEIVED;
     }
 
     /**
