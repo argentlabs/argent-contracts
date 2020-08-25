@@ -17,6 +17,7 @@
 pragma solidity >=0.5.4 <0.7.0;
 
 import "../../wallet/IWallet.sol";
+import "../../modules/common/IFeature.sol";
 
 /**
  * @title Storage
@@ -29,7 +30,15 @@ contract Storage {
      * @notice Throws if the caller is not an authorised module.
      */
     modifier onlyModule(address _wallet) {
-        require(IWallet(_wallet).authorised(msg.sender), "TS: must be an authorized module to call this method");
+        require(IWallet(_wallet).authorised(msg.sender), "S: must be an authorized module to call this method");
+        _;
+    }
+
+    /**
+     * @notice Throws if the caller is not an authorised module.
+     */
+    modifier onlyFeature(address _wallet) {
+        require(IFeature(msg.sender).isFeatureAuthorisedInVersionManager(_wallet, msg.sender), "S: must be an authorized feature to call this method");
         _;
     }
 }

@@ -158,6 +158,7 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         uint256 fromVersion = walletVersions[_wallet];
         uint256 toVersion = lastVersion;
         require(fromVersion < toVersion, "VM: Already on last version");
+        walletVersions[_wallet] = toVersion;
 
         // Setup static call redirection
         bytes4[] storage sigs = staticCallSignatures[toVersion];
@@ -173,7 +174,6 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
             }
         }
         
-        walletVersions[_wallet] = toVersion;
         emit WalletUpgraded(_wallet, toVersion);
     }
 

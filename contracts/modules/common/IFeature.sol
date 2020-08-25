@@ -42,6 +42,12 @@ interface IFeature {
      */
     function init(address _wallet) external;
 
+    /**
+     * @notice Helper method to check if an address is an authorised feature of a target wallet.
+     * @param _wallet The target wallet.
+     * @param _feature The address.
+     */
+    function isFeatureAuthorisedInVersionManager(address _wallet, address _feature) external view returns (bool);
 
     /**
     * @notice Gets the number of valid signatures that must be provided to execute a

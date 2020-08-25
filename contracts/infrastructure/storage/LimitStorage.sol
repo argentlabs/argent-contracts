@@ -39,7 +39,7 @@ contract LimitStorage is ILimitStorage, Storage {
     // wallet specific storage
     mapping (address => LimitManagerConfig) internal limits;
 
-    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) external override onlyModule(_wallet) {
+    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) external override onlyFeature(_wallet) {
         limits[_wallet].limit = _limit;
     }
 
@@ -47,7 +47,7 @@ contract LimitStorage is ILimitStorage, Storage {
         return limits[_wallet].limit;
     }
 
-    function setDailySpent(address _wallet, ILimitStorage.DailySpent memory _dailySpent) external override onlyModule(_wallet) {
+    function setDailySpent(address _wallet, ILimitStorage.DailySpent memory _dailySpent) external override onlyFeature(_wallet) {
         limits[_wallet].dailySpent = _dailySpent;
     }
 
@@ -62,7 +62,7 @@ contract LimitStorage is ILimitStorage, Storage {
     )
         external
         override
-        onlyModule(_wallet)
+        onlyFeature(_wallet)
     {
         limits[_wallet].limit = _limit;
         limits[_wallet].dailySpent = _dailySpent;

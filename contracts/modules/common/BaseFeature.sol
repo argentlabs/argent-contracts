@@ -146,11 +146,9 @@ contract BaseFeature is IFeature {
     }
 
     /**
-     * @notice Helper method to check if an address is an authorised feature of a target wallet.
-     * @param _wallet The target wallet.
-     * @param _feature The address.
+     * @inheritdoc IFeature
      */
-    function isFeatureAuthorisedInVersionManager(address _wallet, address _feature) internal view returns (bool) {
+    function isFeatureAuthorisedInVersionManager(address _wallet, address _feature) public override view returns (bool) {
         return versionManager.isFeatureAuthorised(_wallet, _feature);
     }
 
