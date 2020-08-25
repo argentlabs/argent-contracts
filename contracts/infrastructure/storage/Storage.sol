@@ -38,7 +38,10 @@ contract Storage {
      * @notice Throws if the caller is not an authorised module.
      */
     modifier onlyFeature(address _wallet) {
-        require(IFeature(msg.sender).isFeatureAuthorisedInVersionManager(_wallet, msg.sender), "S: must be an authorized feature to call this method");
+        require(
+            IFeature(msg.sender).isFeatureAuthorisedInVersionManager(_wallet, msg.sender), 
+            "S: must be an authorized feature to call this method"
+        );
         _;
     }
 }
