@@ -41,7 +41,14 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
     event VersionAdded(uint256 _version);
     event WalletUpgraded(address _wallet, uint256 _version);
 
-    /* ***************** External methods ************************* */
+    /* ***************** Modifiers ************************* */
+
+    modifier onlyFeature(address _wallet) {
+        require(isFeatureAuthorised(msg.sender, _wallet), "VM: sender should be authorized feature");
+        _;
+    }
+
+    /* ***************** Constructor ************************* */
 
     constructor(
         IModuleRegistry _registry,
@@ -52,6 +59,8 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         public
     {
     }
+
+    /* ***************** External methods ************************* */
 
     function init(address _wallet) public override(BaseModule, BaseFeature) onlyWallet(_wallet) {
         doUpgradeWallet(_wallet, versionFeatures[lastVersion]);
@@ -110,10 +119,10 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         bytes memory _data
     ) 
         external 
+        onlyFeature(_wallet)
         override
         returns (bytes memory _res) 
     {
-        require(isFeatureAuthorised(msg.sender, _wallet), "VM: feature unauthorized");
         bool success;
         (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
         if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
@@ -127,6 +136,14 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         } else if (!success) {
             revert("VM: wallet invoke reverted");
         }
+    }
+
+    /**
+     * @notice Lets a feature call into a moduleOnly method (used for backward compatibility with old Storages)
+     */
+    function invokeVersionManager(address _wallet, address _to, bytes calldata _data) external onlyFeature(_wallet) {
+        (bool success,) = _to.call(_data);
+        require(success, "VM: invokeVersionManager failed");
     }
 
     /**
