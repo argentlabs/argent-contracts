@@ -44,7 +44,7 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
     /* ***************** Modifiers ************************* */
 
     modifier onlyFeature(address _wallet) {
-        require(isFeatureAuthorised(msg.sender, _wallet), "VM: sender should be authorized feature");
+        require(isFeatureAuthorised(_wallet, msg.sender), "VM: sender should be authorized feature");
         _;
     }
 
