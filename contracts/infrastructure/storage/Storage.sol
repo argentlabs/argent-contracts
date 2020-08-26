@@ -16,6 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity >=0.5.4 <0.7.0;
 
+import "../../wallet/IWallet.sol";
 import "../../modules/common/IFeature.sol";
 
 /**
@@ -24,6 +25,14 @@ import "../../modules/common/IFeature.sol";
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
 contract Storage {
+
+    /**
+     * @notice Throws if the caller is not an authorised module.
+     */
+    modifier onlyModule(address _wallet) {
+        require(IWallet(_wallet).authorised(msg.sender), "S: must be an authorized module to call this method");
+        _;
+    }
 
     /**
      * @notice Throws if the caller is not an authorised feature.

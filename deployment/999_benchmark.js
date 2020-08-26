@@ -23,10 +23,6 @@ const RelayerManager = require("../build/RelayerManager");
 
 const VersionManager = require("../build/VersionManager");
 
-const SimpleUpgrader = require("../build/SimpleUpgrader");
-const LimitStorage = require("../build/LimitStorage");
-const TokenPriceStorage = require("../build/TokenPriceStorage");
-
 const DeployManager = require("../utils/deploy-manager");
 const TestManager = require("../utils/test-manager");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -284,7 +280,7 @@ class Benchmark {
 
     // Upgrade a wallet from 2.0 to 2.1
     const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, [
-      newTransferManagerWrapper.contractAddress
+      newTransferManagerWrapper.contractAddress, newNftTransferWrapper.contractAddress
     ]);
     const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
 
