@@ -26,7 +26,7 @@ const ENSManager = require("../build/ArgentENSManager");
 
 const utils = require("../utils/utilities.js");
 
-const TARGET_VERSION = "2.0.1";
+const TARGET_VERSION = "2.0.0";
 const MODULES_TO_ENABLE = [
   "ApprovedTransfer",
   "CompoundManager",
@@ -41,7 +41,7 @@ const MODULES_TO_ENABLE = [
 ];
 const MODULES_TO_DISABLE = ["MakerManager"];
 
-const BACKWARD_COMPATIBILITY = 1;
+const BACKWARD_COMPATIBILITY = 3;
 
 const deploy = async (network) => {
   if (!["kovan", "kovan-fork", "staging", "prod"].includes(network)) {
