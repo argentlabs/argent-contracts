@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.12;
 
 import "../../infrastructure/storage/Storage.sol";
 import "../../infrastructure/storage/IGuardianStorage.sol";
@@ -54,10 +54,11 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to add.
      */
-    function addGuardian(address _wallet, address _guardian) external onlyModule(_wallet) {
+    function addGuardian(address _wallet, address _guardian) external override onlyFeature(_wallet) {
         GuardianStorageConfig storage config = configs[_wallet];
+        config.guardians.push(_guardian);
         config.info[_guardian].exists = true;
-        config.info[_guardian].index = uint128(config.guardians.push(_guardian) - 1);
+        config.info[_guardian].index = uint128(config.guardians.length - 1);
     }
 
     /**
@@ -65,7 +66,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @param _guardian The guardian to revoke.
      */
-    function revokeGuardian(address _wallet, address _guardian) external onlyModule(_wallet) {
+    function revokeGuardian(address _wallet, address _guardian) external override onlyFeature(_wallet) {
         GuardianStorageConfig storage config = configs[_wallet];
         address lastGuardian = config.guardians[config.guardians.length - 1];
         if (_guardian != lastGuardian) {
@@ -73,7 +74,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
             config.guardians[targetIndex] = lastGuardian;
             config.info[lastGuardian].index = targetIndex;
         }
-        config.guardians.length--;
+        config.guardians.pop();
         delete config.info[_guardian];
     }
 
@@ -82,7 +83,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @return the number of guardians.
      */
-    function guardianCount(address _wallet) external view returns (uint256) {
+    function guardianCount(address _wallet) external view override returns (uint256) {
         return configs[_wallet].guardians.length;
     }
 
@@ -91,7 +92,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @return the list of guardians.
      */
-    function getGuardians(address _wallet) external view returns (address[] memory) {
+    function getGuardians(address _wallet) external view override returns (address[] memory) {
         GuardianStorageConfig storage config = configs[_wallet];
         address[] memory guardians = new address[](config.guardians.length);
         for (uint256 i = 0; i < config.guardians.length; i++) {
@@ -106,7 +107,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _guardian The account.
      * @return true if the account is a guardian for a wallet.
      */
-    function isGuardian(address _wallet, address _guardian) external view returns (bool) {
+    function isGuardian(address _wallet, address _guardian) external view override returns (bool) {
         return configs[_wallet].info[_guardian].exists;
     }
 
@@ -115,7 +116,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @param _releaseAfter The epoch time at which the lock should automatically release.
      */
-    function setLock(address _wallet, uint256 _releaseAfter) external onlyModule(_wallet) {
+    function setLock(address _wallet, uint256 _releaseAfter) external override onlyFeature(_wallet) {
         configs[_wallet].lock = _releaseAfter;
         if (_releaseAfter != 0 && msg.sender != configs[_wallet].locker) {
             configs[_wallet].locker = msg.sender;
@@ -127,7 +128,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @return true if the lock is set for the wallet.
      */
-    function isLocked(address _wallet) external view returns (bool) {
+    function isLocked(address _wallet) external view override returns (bool) {
         return configs[_wallet].lock > block.timestamp;
     }
 
@@ -136,7 +137,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @return the time at which the lock of a wallet will release, or zero if there is no lock set.
      */
-    function getLock(address _wallet) external view returns (uint256) {
+    function getLock(address _wallet) external view override returns (uint256) {
         return configs[_wallet].lock;
     }
 
@@ -145,7 +146,7 @@ contract GuardianStorage is IGuardianStorage, Storage {
      * @param _wallet The target wallet.
      * @return the address of the last module that modified the lock for a wallet.
      */
-    function getLocker(address _wallet) external view returns (address) {
+    function getLocker(address _wallet) external view override returns (address) {
         return configs[_wallet].locker;
     }
 }

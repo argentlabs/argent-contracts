@@ -92,7 +92,8 @@ contract GuardianManager is BaseFeature {
         (bool success,) = _guardian.call{gas: 5000}(abi.encodeWithSignature("owner()"));
         require(success, "GM: guardian must be EOA or implement owner()");
         if (guardianStorage.guardianCount(_wallet) == 0) {
-            doAddGuardian(_wallet, _guardian);
+            guardianStorage.addGuardian(_wallet, _guardian);
+            emit GuardianAdded(_wallet, _guardian);
         } else {
             bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
             GuardianManagerConfig storage config = configs[_wallet];
@@ -116,7 +117,8 @@ contract GuardianManager is BaseFeature {
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
         require(config.pending[id] < block.timestamp, "GM: Too early to confirm guardian addition");
         require(block.timestamp < config.pending[id] + securityWindow, "GM: Too late to confirm guardian addition");
-        doAddGuardian(_wallet, _guardian);
+        guardianStorage.addGuardian(_wallet, _guardian);
+        emit GuardianAdded(_wallet, _guardian);
         delete config.pending[id];
     }
 
@@ -162,7 +164,8 @@ contract GuardianManager is BaseFeature {
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");
         require(config.pending[id] < block.timestamp, "GM: Too early to confirm guardian revokation");
         require(block.timestamp < config.pending[id] + securityWindow, "GM: Too late to confirm guardian revokation");
-        doRevokeGuardian(_wallet, _guardian);
+        guardianStorage.revokeGuardian(_wallet, _guardian);
+        emit GuardianRevoked(_wallet, _guardian);
         delete config.pending[id];
     }
 
@@ -217,27 +220,5 @@ contract GuardianManager is BaseFeature {
         } else {
             return (1, OwnerSignature.Required);
         }
-    }
-
-    // *************** Internal Functions ********************* //
-
-    function doAddGuardian(address _wallet, address _guardian) internal {
-        // Only modules can call guardianStorage's setters so the addGuardian call is routed through the VersionManager module
-        versionManager.invokeVersionManager(
-            _wallet,
-            address(guardianStorage), 
-            abi.encodeWithSelector(guardianStorage.addGuardian.selector, _wallet, _guardian)
-        );
-        emit GuardianAdded(_wallet, _guardian);
-    }
-
-    function doRevokeGuardian(address _wallet, address _guardian) internal {
-        // Only modules can call guardianStorage's setters so the revokeGuardian call is routed through the VersionManager module
-        versionManager.invokeVersionManager(
-            _wallet,
-            address(guardianStorage), 
-            abi.encodeWithSelector(guardianStorage.revokeGuardian.selector, _wallet, _guardian)
-        );
-        emit GuardianRevoked(_wallet, _guardian);
     }
 }

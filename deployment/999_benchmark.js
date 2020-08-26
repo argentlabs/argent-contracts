@@ -147,9 +147,8 @@ class Benchmark {
   }
 
   async testUpgradeAllFeatures() {
-
     // Create new features
-    const newApprovedTransferWrapper = await this.deployer.deploy(
+    this.ApprovedTransferWrapper = await this.deployer.deploy(
       ApprovedTransfer,
       {},
       this.config.contracts.ModuleRegistry,
@@ -159,7 +158,7 @@ class Benchmark {
       this.config.defi.weth,
     );
 
-    const newCompoundManagerWrapper = await this.deployer.deploy(
+    this.CompoundManagerWrapper = await this.deployer.deploy(
       CompoundManager,
       {},
       this.config.contracts.ModuleRegistry,
@@ -169,7 +168,7 @@ class Benchmark {
       this.config.modules.VersionManager,
     );
 
-    const newGuardianManager = await this.deployer.deploy(
+    this.GuardianManager = await this.deployer.deploy(
       GuardianManager,
       {},
       this.config.contracts.ModuleRegistry,
@@ -179,7 +178,7 @@ class Benchmark {
       this.config.settings.securityWindow || 0,
     );
 
-    const newLockManagerWrapper = await this.deployer.deploy(
+    this.LockManagerWrapper = await this.deployer.deploy(
       LockManager,
       {},
       this.config.contracts.ModuleRegistry,
@@ -188,7 +187,7 @@ class Benchmark {
       this.config.settings.lockPeriod || 0,
     );
 
-    const newNftTransferWrapper = await this.deployer.deploy(
+    this.NftTransferWrapper = await this.deployer.deploy(
       NftTransfer,
       {},
       this.config.contracts.ModuleRegistry,
@@ -198,7 +197,7 @@ class Benchmark {
       this.config.CryptoKitties.contract,
     );
 
-    const newRecoveryManagerWrapper = await this.deployer.deploy(
+    this.RecoveryManagerWrapper = await this.deployer.deploy(
       RecoveryManager,
       {},
       this.config.contracts.ModuleRegistry,
@@ -208,7 +207,7 @@ class Benchmark {
       this.config.settings.lockPeriod || 0,
     );
 
-    const newTokenExchangerWrapper = await this.deployer.deploy(
+    this.TokenExchangerWrapper = await this.deployer.deploy(
       TokenExchanger,
       {},
       this.config.contracts.ModuleRegistry,
@@ -220,7 +219,7 @@ class Benchmark {
       Object.values(this.config.defi.paraswap.authorisedExchanges),
     );
 
-    const newMakerV2ManagerWrapper = await this.deployer.deploy(
+    this.MakerV2ManagerWrapper = await this.deployer.deploy(
       MakerV2Manager,
       {},
       this.config.contracts.ModuleRegistry,
@@ -233,7 +232,7 @@ class Benchmark {
       this.config.modules.VersionManager,
     );
 
-    const newTransferManagerWrapper = await this.deployer.deploy(
+    this.TransferManagerWrapper = await this.deployer.deploy(
       TransferManager,
       {},
       this.config.contracts.ModuleRegistry,
@@ -249,7 +248,7 @@ class Benchmark {
       "0x0000000000000000000000000000000000000000",
     );
 
-    const newRelayerManagerWrapper = await this.deployer.deploy(
+    this.RelayerManagerWrapper = await this.deployer.deploy(
       RelayerManager,
       {},
       this.config.contracts.ModuleRegistry,
@@ -264,23 +263,23 @@ class Benchmark {
       this.VersionManagerWrapper,
       "addVersion", [
         [
-          newGuardianManager.contractAddress,
-          newLockManagerWrapper.contractAddress,
-          newRecoveryManagerWrapper.contractAddress,
-          newApprovedTransferWrapper.contractAddress,
-          newTransferManagerWrapper.contractAddress,
-          newTokenExchangerWrapper.contractAddress,
-          newNftTransferWrapper.contractAddress,
-          newCompoundManagerWrapper.contractAddress,
-          newMakerV2ManagerWrapper.contractAddress,
-          newRelayerManagerWrapper.contractAddress
+          this.GuardianManagerWrapper.contractAddress,
+          this.LockManagerWrapper.contractAddress,
+          this.RecoveryManagerWrapper.contractAddress,
+          this.ApprovedTransferWrapper.contractAddress,
+          this.TransferManagerWrapper.contractAddress,
+          this.TokenExchangerWrapper.contractAddress,
+          this.NftTransferWrapper.contractAddress,
+          this.CompoundManagerWrapper.contractAddress,
+          this.MakerV2ManagerWrapper.contractAddress,
+          this.RelayerManagerWrapper.contractAddress
         ]
       ],
     );
 
     // Upgrade a wallet from 2.0 to 2.1
     const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, [
-      newTransferManagerWrapper.contractAddress, newNftTransferWrapper.contractAddress
+      this.TransferManagerWrapper.contractAddress, this.NftTransferWrapper.contractAddress
     ]);
     const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
 
@@ -586,10 +585,7 @@ class Benchmark {
       obj = Object.getPrototypeOf(obj);
     } while (obj);
 
-    // return props.filter((prop) => prop.startsWith("estimate"));
-    return props.filter((prop) => prop.startsWith("estimateUpgradeWalletAllFeatures"));
-    // return props.filter((prop) => prop.startsWith("estimateAddFirstGuardianDirect"));
-    // return props.filter((prop) => prop.startsWith("estimateCreateWalletAllModules"));
+    return props.filter((prop) => prop.startsWith("estimate"));
   }
 
   async output() {

@@ -8,6 +8,7 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const LimitStorage = require("../build/LimitStorage");
 const TokenPriceStorage = require("../build/TokenPriceStorage");
+const GuardianStorage = require("../build/GuardianStorage");
 
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const CompoundManager = require("../build/CompoundManager");
@@ -85,6 +86,8 @@ const deploy = async (network) => {
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
     ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress, config.modules.GuardianStorage);
+  // Deploy the new GuardianStorag
+  const GuardianStorageWrapper = await deployer.deploy(GuardianStorage);
   // Deploy the new LimitStorage
   const LimitStorageWrapper = await deployer.deploy(LimitStorage);
   // Deploy the new TokenPriceStorage
@@ -97,7 +100,7 @@ const deploy = async (network) => {
     VersionManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage
+    GuardianStorageWrapper.contractAddress
   );
   newModuleWrappers.push(VersionManagerWrapper);
 
@@ -108,7 +111,7 @@ const deploy = async (network) => {
     ApprovedTransfer,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     LimitStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.defi.weth,
@@ -118,7 +121,7 @@ const deploy = async (network) => {
     CompoundManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
     VersionManagerWrapper.contractAddress,
@@ -128,7 +131,7 @@ const deploy = async (network) => {
     GuardianManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
@@ -138,7 +141,7 @@ const deploy = async (network) => {
     LockManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.settings.lockPeriod || 0,
   );
@@ -147,7 +150,7 @@ const deploy = async (network) => {
     NftTransfer,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.CryptoKitties.contract
@@ -157,7 +160,7 @@ const deploy = async (network) => {
     RecoveryManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0,
@@ -167,7 +170,7 @@ const deploy = async (network) => {
     TokenExchanger,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.defi.paraswap.contract,
@@ -179,7 +182,7 @@ const deploy = async (network) => {
     MakerV2Manager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     config.defi.maker.migration,
     config.defi.maker.pot,
     config.defi.maker.jug,
@@ -193,7 +196,7 @@ const deploy = async (network) => {
     {},
     config.contracts.ModuleRegistry,
     config.modules.TransferStorage,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     LimitStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
@@ -208,7 +211,7 @@ const deploy = async (network) => {
     RelayerManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     LimitStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress
@@ -264,6 +267,7 @@ const deploy = async (network) => {
   configurator.updateModuleAddresses({
     LimitStorage: LimitStorageWrapper.contractAddress,
     TokenPriceStorage: TokenPriceStorageWrapper.contractAddress,
+    GuardianStorage: GuardianStorageWrapper.contractAddress,
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
     GuardianManager: GuardianManagerWrapper.contractAddress,
@@ -287,7 +291,6 @@ const deploy = async (network) => {
   await configurator.save();
 
   await Promise.all([
-    abiUploader.upload(LimitStorageWrapper, "modules"),
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
     abiUploader.upload(GuardianManagerWrapper, "modules"),
@@ -298,7 +301,9 @@ const deploy = async (network) => {
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(RelayerManagerWrapper, "modules"),
+    abiUploader.upload(LimitStorageWrapper, "contracts"),
     abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
+    abiUploader.upload(GuardianStorageWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
   ]);
