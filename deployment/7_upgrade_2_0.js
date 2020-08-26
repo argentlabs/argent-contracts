@@ -18,7 +18,8 @@ const RecoveryManager = require("../build/RecoveryManager");
 const TokenExchanger = require("../build/TokenExchanger");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const TransferManager = require("../build/TransferManager");
-const RelayerModule = require("../build/RelayerModule");
+const RelayerManager = require("../build/RelayerManager");
+const VersionManager = require("../build/VersionManager");
 
 const BaseWallet = require("../build/BaseWallet");
 const WalletFactory = require("../build/WalletFactory");
@@ -28,6 +29,10 @@ const utils = require("../utils/utilities.js");
 
 const TARGET_VERSION = "2.0.0";
 const MODULES_TO_ENABLE = [
+  "VersionManager",
+];
+const MODULES_TO_DISABLE = [
+  "MakerManager",   
   "ApprovedTransfer",
   "CompoundManager",
   "GuardianManager",
@@ -36,10 +41,8 @@ const MODULES_TO_ENABLE = [
   "RecoveryManager",
   "TokenExchanger",
   "MakerV2Manager",
-  "TransferManager",
-  "RelayerModule",
+  "TransferManager"
 ];
-const MODULES_TO_DISABLE = ["MakerManager"];
 
 const BACKWARD_COMPATIBILITY = 3;
 
@@ -90,15 +93,26 @@ const deploy = async (network) => {
   // //////////////////////////////////
   // Deploy new modules
   // //////////////////////////////////
+  const VersionManagerWrapper = await deployer.deploy(
+    VersionManager,
+    {},
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage
+  );
+  newModuleWrappers.push(VersionManagerWrapper);
+
+  // //////////////////////////////////
+  // Deploy new features
+  // //////////////////////////////////
   const ApprovedTransferWrapper = await deployer.deploy(
     ApprovedTransfer,
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,
+    VersionManagerWrapper.contractAddress,
     config.defi.weth,
   );
-  newModuleWrappers.push(ApprovedTransferWrapper);
 
   const CompoundManagerWrapper = await deployer.deploy(
     CompoundManager,
@@ -107,27 +121,27 @@ const deploy = async (network) => {
     config.modules.GuardianStorage,
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
+    VersionManagerWrapper.contractAddress,
   );
-  newModuleWrappers.push(CompoundManagerWrapper);
 
   const GuardianManagerWrapper = await deployer.deploy(
     GuardianManager,
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
+    VersionManagerWrapper.contractAddress,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
   );
-  newModuleWrappers.push(GuardianManagerWrapper);
 
   const LockManagerWrapper = await deployer.deploy(
     LockManager,
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
+    VersionManagerWrapper.contractAddress,
     config.settings.lockPeriod || 0,
   );
-  newModuleWrappers.push(LockManagerWrapper);
 
   const NftTransferWrapper = await deployer.deploy(
     NftTransfer,
@@ -135,19 +149,19 @@ const deploy = async (network) => {
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
     TokenPriceStorageWrapper.contractAddress,
-    config.CryptoKitties.contract,
+    VersionManagerWrapper.contractAddress,
+    config.CryptoKitties.contract
   );
-  newModuleWrappers.push(NftTransferWrapper);
 
   const RecoveryManagerWrapper = await deployer.deploy(
     RecoveryManager,
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
+    VersionManagerWrapper.contractAddress,
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0,
   );
-  newModuleWrappers.push(RecoveryManagerWrapper);
 
   const TokenExchangerWrapper = await deployer.deploy(
     TokenExchanger,
@@ -155,11 +169,11 @@ const deploy = async (network) => {
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
     TokenPriceStorageWrapper.contractAddress,
+    VersionManagerWrapper.contractAddress,
     config.defi.paraswap.contract,
     "argent",
     Object.values(config.defi.paraswap.authorisedExchanges),
   );
-  newModuleWrappers.push(TokenExchangerWrapper);
 
   const MakerV2ManagerWrapper = await deployer.deploy(
     MakerV2Manager,
@@ -171,8 +185,8 @@ const deploy = async (network) => {
     config.defi.maker.jug,
     config.contracts.MakerRegistry,
     config.defi.uniswap.factory,
+    VersionManagerWrapper.contractAddress
   );
-  newModuleWrappers.push(MakerV2ManagerWrapper);
 
   const TransferManagerWrapper = await deployer.deploy(
     TransferManager,
@@ -182,23 +196,23 @@ const deploy = async (network) => {
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
+    VersionManagerWrapper.contractAddress,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
     config.defi.weth,
     ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
   );
-  newModuleWrappers.push(TransferManagerWrapper);
 
-  const RelayerModuleWrapper = await deployer.deploy(
-    RelayerModule,
+  const RelayerManagerWrapper = await deployer.deploy(
+    RelayerManager,
     {},
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
+    VersionManagerWrapper.contractAddress
   );
-  newModuleWrappers.push(RelayerModuleWrapper);
 
   // //////////////////////////////////
   // Set contracts' managers
@@ -229,6 +243,7 @@ const deploy = async (network) => {
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
 
+  // TODO: change name from "module" to "feature" where appropriate
   configurator.updateModuleAddresses({
     LimitStorage: LimitStorageWrapper.contractAddress,
     TokenPriceStorage: TokenPriceStorageWrapper.contractAddress,
@@ -241,7 +256,8 @@ const deploy = async (network) => {
     TokenExchanger: TokenExchangerWrapper.contractAddress,
     MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
     TransferManager: TransferManagerWrapper.contractAddress,
-    RelayerModule: RelayerModuleWrapper.contractAddress,
+    RelayerManager: RelayerManagerWrapper.contractAddress,
+    VersionManager: VersionManagerWrapper.contractAddress,
   });
 
   configurator.updateInfrastructureAddresses({
@@ -264,7 +280,7 @@ const deploy = async (network) => {
     abiUploader.upload(TokenExchangerWrapper, "modules"),
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
-    abiUploader.upload(RelayerModuleWrapper, "modules"),
+    abiUploader.upload(RelayerManagerWrapper, "modules"),
     abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
