@@ -264,25 +264,29 @@ class Benchmark {
     );
 
     // Add Features to Version Manager
-    await VersionManagerWrapper.addVersion([
-      newGuardianManager.contractAddress,
-      newLockManagerWrapper.contractAddress,
-      newRecoveryManagerWrapper.contractAddress,
-      newApprovedTransferWrapper.contractAddress,
-      newTransferManagerWrapper.contractAddress,
-      newTokenExchangerWrapper.contractAddress,
-      newNftTransferWrapper.contractAddress,
-      newCompoundManagerWrapper.contractAddress,
-      newMakerV2ManagerWrapper.contractAddress,
-      newRelayerManagerWrapper.contractAddress,
-    ])
+    await this.multisigExecutor.executeCall(
+      this.VersionManagerWrapper,
+      "addVersion", [
+        [
+          newGuardianManager.contractAddress,
+          newLockManagerWrapper.contractAddress,
+          newRecoveryManagerWrapper.contractAddress,
+          newApprovedTransferWrapper.contractAddress,
+          newTransferManagerWrapper.contractAddress,
+          newTokenExchangerWrapper.contractAddress,
+          newNftTransferWrapper.contractAddress,
+          newCompoundManagerWrapper.contractAddress,
+          newMakerV2ManagerWrapper.contractAddress,
+          newRelayerManagerWrapper.contractAddress
+        ]
+      ],
+    );
 
-
-    // Upgrade from 2.0 to 2.1
-    const tx = await this.VersionManager.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, [
+    // Upgrade a wallet from 2.0 to 2.1
+    const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, [
       newTransferManagerWrapper.contractAddress
     ]);
-    const txReceipt = await this.VersionManager.verboseWaitForTransaction(tx);
+    const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
 
     // TODO: Test if the upgrade worked
 
@@ -586,7 +590,8 @@ class Benchmark {
       obj = Object.getPrototypeOf(obj);
     } while (obj);
 
-    return props.filter((prop) => prop.startsWith("estimate"));
+    // return props.filter((prop) => prop.startsWith("estimate"));
+    return props.filter((prop) => prop.startsWith("estimateUpgradeWalletAllFeatures"));
     // return props.filter((prop) => prop.startsWith("estimateAddFirstGuardianDirect"));
     // return props.filter((prop) => prop.startsWith("estimateCreateWalletAllModules"));
   }
