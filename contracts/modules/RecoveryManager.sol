@@ -204,7 +204,7 @@ contract RecoveryManager is BaseFeature {
         );
     }
 
-    function setOwner(address _wallet, uint256 _owner) internal {
+    function setOwner(address _wallet, address _owner) internal {
         versionManager.invokeVersionManager(
             _wallet,
             _wallet, 
