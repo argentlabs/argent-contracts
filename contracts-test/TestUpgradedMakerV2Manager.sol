@@ -20,7 +20,8 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
         JugLike _jug,
         IMakerRegistry _makerRegistry,
         IUniswapFactory _uniswapFactory,
-        MakerV2Manager _previousMakerV2Manager
+        MakerV2Manager _previousMakerV2Manager,
+        IVersionManager _versionManager
     )
 
         MakerV2Manager(
@@ -30,7 +31,8 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
             _pot,
             _jug,
             _makerRegistry,
-            _uniswapFactory
+            _uniswapFactory,
+            _versionManager
         )
         public
 
