@@ -64,8 +64,8 @@ class TestManager {
       .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   }
 
-  setRelayerModule(relayerModule) {
-    this.relayerModule = relayerModule;
+  setRelayerManager(relayerManager) {
+    this.relayerManager = relayerManager;
   }
 
   getChainId() {
@@ -88,7 +88,7 @@ class TestManager {
     const methodData = _module.contract.interface.functions[_method].encode(_params);
     const signatures = await signOffchain(
       _signers,
-      this.relayerModule.contractAddress,
+      this.relayerManager.contractAddress,
       _module.contractAddress,
       0,
       methodData,
@@ -100,7 +100,7 @@ class TestManager {
       _refundAddress,
     );
     if (_estimate === true) {
-      const gasUsed = await this.relayerModule.estimate.execute(
+      const gasUsed = await this.relayerManager.estimate.execute(
         _wallet.contractAddress,
         _module.contractAddress,
         methodData,
@@ -114,7 +114,7 @@ class TestManager {
       );
       return gasUsed;
     }
-    const tx = await this.relayerModule.from(_relayer).execute(
+    const tx = await this.relayerManager.from(_relayer).execute(
       _wallet.contractAddress,
       _module.contractAddress,
       methodData,
