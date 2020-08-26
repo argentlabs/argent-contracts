@@ -79,7 +79,7 @@ contract LockManager is BaseFeature {
      * @param _wallet The target wallet.
      */
     function lock(address _wallet) external onlyGuardianOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        guardianStorage.setLock(_wallet, block.timestamp + lockPeriod);
+        setLock(_wallet, block.timestamp + lockPeriod);
         emit Locked(_wallet, uint64(block.timestamp + lockPeriod));
     }
 
@@ -90,7 +90,7 @@ contract LockManager is BaseFeature {
     function unlock(address _wallet) external onlyGuardianOrFeature(_wallet) onlyWhenLocked(_wallet) {
         address locker = guardianStorage.getLocker(_wallet);
         require(locker == address(this), "LM: cannot unlock a wallet that was locked by another feature");
-        guardianStorage.setLock(_wallet, 0);
+        setLock(_wallet, 0);
         emit Unlocked(_wallet);
     }
 
@@ -120,5 +120,15 @@ contract LockManager is BaseFeature {
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Disallowed);
+    }
+
+    // *************** Internal functions ************************ //
+
+    function setLock(address _wallet, uint256 _lock) internal {
+        versionManager.invokeVersionManager(
+            _wallet,
+            address(guardianStorage), 
+            abi.encodeWithSelector(guardianStorage.setLock.selector, _wallet, _lock)
+        );
     }
 }

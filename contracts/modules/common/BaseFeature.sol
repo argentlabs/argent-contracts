@@ -137,19 +137,19 @@ contract BaseFeature is IFeature {
     function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {}
 
     /**
+     * @inheritdoc IFeature
+     */
+    function isFeatureAuthorisedInVersionManager(address _wallet, address _feature) public override view returns (bool) {
+        return versionManager.isFeatureAuthorised(_wallet, _feature);
+    }
+    
+     /**
      * @notice Helper method to check if an address is the owner of a target wallet.
      * @param _wallet The target wallet.
      * @param _addr The address.
      */
     function isOwner(address _wallet, address _addr) internal view returns (bool) {
         return IWallet(_wallet).owner() == _addr;
-    }
-
-    /**
-     * @inheritdoc IFeature
-     */
-    function isFeatureAuthorisedInVersionManager(address _wallet, address _feature) public override view returns (bool) {
-        return versionManager.isFeatureAuthorised(_wallet, _feature);
     }
 
     /**

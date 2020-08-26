@@ -37,4 +37,14 @@ interface IVersionManager {
      * @param _data The data of the transaction.
      */
     function invokeWallet(address _wallet, address _to, uint256 _value, bytes calldata _data) external returns (bytes memory _res);
+
+    /**
+     * @notice Lets a feature call into a moduleOnly method (e.g. into a Storage contract) via the VersionManager.
+     * Used for backward compatibility with old Storages.
+     * @param _wallet The target wallet.
+     * @param _to The destination contract.
+     * @param _data The data of the call.
+     */
+    function invokeVersionManager(address _wallet, address _to, bytes calldata _data) external;
+    
 }

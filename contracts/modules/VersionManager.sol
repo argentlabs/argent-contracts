@@ -139,9 +139,9 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
     }
 
     /**
-     * @notice Lets a feature call into a moduleOnly method (used for backward compatibility with old Storages)
+     * @inheritdoc IVersionManager
      */
-    function invokeVersionManager(address _wallet, address _to, bytes calldata _data) external onlyFeature(_wallet) {
+    function invokeVersionManager(address _wallet, address _to, bytes calldata _data) external override onlyFeature(_wallet) {
         (bool success,) = _to.call(_data);
         require(success, "VM: invokeVersionManager failed");
     }

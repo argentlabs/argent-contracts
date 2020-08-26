@@ -333,7 +333,7 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
 
         uint256 whitelistAfter = block.timestamp.add(securityPeriod);
-        transferStorage.setWhitelist(_wallet, _target, whitelistAfter);
+        setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }
 
@@ -350,7 +350,7 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
         onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        transferStorage.setWhitelist(_wallet, _target, 0);
+        setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
@@ -580,5 +580,15 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
             }
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
         }
+    }
+
+    // *************** Internal functions ************************ //
+
+    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {
+        versionManager.invokeVersionManager(
+            _wallet,
+            address(transferStorage), 
+            abi.encodeWithSelector(transferStorage.setWhitelist.selector, _wallet, _target, _whitelistAfter)
+        );
     }
 }
