@@ -214,6 +214,20 @@ const deploy = async (network) => {
     VersionManagerWrapper.contractAddress
   );
 
+  // Add Features to Version Manager
+  await VersionManagerWrapper.addVersion([
+    GuardianManagerWrapper.contractAddress,
+    LockManagerWrapper.contractAddress,
+    RecoveryManagerWrapper.contractAddress,
+    ApprovedTransferWrapper.contractAddress,
+    TransferManagerWrapper.contractAddress,
+    TokenExchangerWrapper.contractAddress,
+    NftTransferWrapper.contractAddress,
+    CompoundManagerWrapper.contractAddress,
+    MakerV2ManagerWrapper.contractAddress,
+    RelayerManagerWrapper.contractAddress,
+  ])
+
   // //////////////////////////////////
   // Set contracts' managers
   // //////////////////////////////////
@@ -238,6 +252,9 @@ const deploy = async (network) => {
 
   changeOwnerTx = await TokenPriceStorageWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await TokenPriceStorageWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceStorageWrapper");
+  
+  changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  await VersionManagerWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of VersionManagerWrapper");
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
