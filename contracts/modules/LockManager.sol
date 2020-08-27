@@ -118,7 +118,7 @@ contract LockManager is BaseFeature {
     /**
      * @inheritdoc IFeature
      */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Disallowed);
     }
 }

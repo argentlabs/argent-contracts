@@ -1,9 +1,10 @@
 pragma solidity ^0.6.12;
+
 import "../contracts/wallet/BaseWallet.sol";
-import "../contracts/modules/common/OnlyOwnerFeature.sol";
+import "../contracts/modules/common/BaseFeature.sol";
 
 // SPDX-License-Identifier: GPL-3.0-only
-contract ERC20Approver is OnlyOwnerFeature {
+contract ERC20Approver is BaseFeature{
 
     bytes32 constant NAME = "ERC20Approver";
 
@@ -23,4 +24,10 @@ contract ERC20Approver is OnlyOwnerFeature {
         checkAuthorisedFeatureAndInvokeWallet(_wallet, _erc20Contract, 0, abi.encodeWithSignature("approve(address,uint256)", _spender, _amount));
     }
 
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
 }

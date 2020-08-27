@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./common/OnlyOwnerFeature.sol";
+import "./common/BaseFeature.sol";
 import "../infrastructure/ICompoundRegistry.sol";
 
 interface IComptroller {
@@ -43,7 +43,7 @@ interface ICToken {
  * @notice Module to invest and borrow tokens with CompoundV2
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract CompoundManager is OnlyOwnerFeature {
+contract CompoundManager is BaseFeature{
 
     bytes32 constant NAME = "CompoundManager";
 
@@ -81,6 +81,13 @@ contract CompoundManager is OnlyOwnerFeature {
     {
         comptroller = _comptroller;
         compoundRegistry = _compoundRegistry;
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 
     /* ********************************** Implementation of Loan ************************************* */

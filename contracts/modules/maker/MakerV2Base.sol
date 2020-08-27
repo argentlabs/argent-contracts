@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "../common/OnlyOwnerFeature.sol";
+import "../common/BaseFeature.sol";
 import "../../infrastructure/IMakerRegistry.sol";
 import "../../../lib/maker/MakerInterfaces.sol";
 import "../../../lib/maker/DS/DSMath.sol";
@@ -26,7 +26,7 @@ import "../../../lib/maker/DS/DSMath.sol";
  * @notice Common base to MakerV2Invest and MakerV2Loan.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-abstract contract MakerV2Base is DSMath, OnlyOwnerFeature {
+abstract contract MakerV2Base is DSMath, BaseFeature {
 
     bytes32 constant private NAME = "MakerV2Manager";
 
@@ -56,5 +56,12 @@ abstract contract MakerV2Base is DSMath, OnlyOwnerFeature {
         daiJoin = _scdMcdMigration.daiJoin();
         daiToken = daiJoin.dai();
         vat = daiJoin.vat();
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 }

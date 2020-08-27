@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./common/OnlyOwnerFeature.sol";
+import "./common/BaseFeature.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
 
 /**
@@ -24,7 +24,7 @@ import "../infrastructure/storage/ITokenPriceStorage.sol";
  * @notice Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NftTransfer is OnlyOwnerFeature {
+contract NftTransfer is BaseFeature{
 
     bytes32 constant NAME = "NftTransfer";
 
@@ -57,6 +57,12 @@ contract NftTransfer is OnlyOwnerFeature {
     }
 
     // *************** External/Public Functions ********************* //
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
 
     /**
      * @inheritdoc IFeature

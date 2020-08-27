@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./common/OnlyOwnerFeature.sol";
+import "./common/BaseFeature.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/paraswap/IAugustusSwapper.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
@@ -27,7 +27,7 @@ import "../infrastructure/storage/ITokenPriceStorage.sol";
  * @notice Module to trade tokens (ETH or ERC20) using ParaSwap.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TokenExchanger is OnlyOwnerFeature {
+contract TokenExchanger is BaseFeature {
 
     bytes32 constant NAME = "TokenExchanger";
 
@@ -77,6 +77,13 @@ contract TokenExchanger is OnlyOwnerFeature {
         for (uint i = 0; i < _authorisedExchanges.length; i++) {
             authorisedExchanges[_authorisedExchanges[i]] = true;
         }
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 
     /**

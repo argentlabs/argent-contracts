@@ -18,7 +18,6 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
-import "./common/OnlyOwnerFeature.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
@@ -31,7 +30,7 @@ import "../../lib/other/ERC20.sol";
  * @notice Feature to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransferManager is OnlyOwnerFeature, BaseTransfer {
+contract TransferManager is BaseTransfer {
 
     bytes32 constant NAME = "TransferManager";
 
@@ -106,6 +105,13 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
     /**
      * @inheritdoc IFeature
      */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
     function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
         _sigs = new bytes4[](1);
         _sigs[0] = ERC1271_ISVALIDSIGNATURE_BYTES32;
@@ -145,21 +151,6 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
                 emit DailyLimitMigrated(_wallet, current, pending, changeAfter);
             }
         }
-    }
-
-    /**
-     * @inheritdoc IFeature
-     */
-    function getRequiredSignatures(
-        address _wallet,
-        bytes calldata _data
-    )
-        external
-        override(BaseFeature, OnlyOwnerFeature)
-        view
-        returns (uint256, OwnerSignature)
-    {
-        return (1, OwnerSignature.Required);
     }
 
     // *************** External/Public Functions ********************* //

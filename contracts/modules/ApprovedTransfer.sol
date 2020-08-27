@@ -170,7 +170,7 @@ contract ApprovedTransfer is BaseTransfer {
     /**
      * @inheritdoc IFeature
      */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address _wallet, bytes calldata) external view override returns (uint256, OwnerSignature) {
         // owner  + [n/2] guardians
         uint numberOfGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
         require(numberOfGuardians > 0, "AT: no guardians set on wallet");

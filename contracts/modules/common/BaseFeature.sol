@@ -127,7 +127,7 @@ contract BaseFeature is IFeature {
     /**
      * @inheritdoc IFeature
      */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external virtual override view returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address, bytes calldata) external virtual view override returns (uint256, OwnerSignature) {
         revert("BF: disabled method");
     }
 

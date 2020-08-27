@@ -18,7 +18,7 @@ pragma solidity ^0.6.12;
 
 import "../infrastructure/base/Owned.sol";
 import "./common/IModule.sol";
-import "./common/OnlyOwnerFeature.sol";
+import "./common/BaseFeature.sol";
 
 /**
  * @title VersionManager
@@ -26,7 +26,7 @@ import "./common/OnlyOwnerFeature.sol";
  * authorised for the wallet and if so, forwards the call to it.
  * @author Olivier VDB <olivier@argent.xyz>
  */
-contract VersionManager is IVersionManager, IModule, OnlyOwnerFeature, Owned {
+contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     bytes32 constant NAME = "VersionManager";
 
@@ -63,6 +63,13 @@ contract VersionManager is IVersionManager, IModule, OnlyOwnerFeature, Owned {
 
     function init(address _wallet) public override(IModule, BaseFeature) onlyWallet(_wallet) {
         doUpgradeWallet(_wallet, featuresToInit[lastVersion]);
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 
     function addVersion(address[] calldata _features, address[] calldata _featuresToInit) external onlyOwner {
