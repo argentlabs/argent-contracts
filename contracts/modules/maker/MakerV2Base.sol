@@ -16,7 +16,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "../common/BaseModule.sol";
 import "../common/OnlyOwnerFeature.sol";
 import "../../infrastructure/IMakerRegistry.sol";
 import "../../../lib/maker/MakerInterfaces.sol";

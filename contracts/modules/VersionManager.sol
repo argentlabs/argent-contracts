@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 
 import "../infrastructure/base/Owned.sol";
-import "./common/BaseModule.sol";
+import "./common/IModule.sol";
 import "./common/OnlyOwnerFeature.sol";
 
 /**
@@ -26,7 +26,7 @@ import "./common/OnlyOwnerFeature.sol";
  * authorised for the wallet and if so, forwards the call to it.
  * @author Olivier VDB <olivier@argent.xyz>
  */
-contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned {
+contract VersionManager is IVersionManager, IModule, OnlyOwnerFeature, Owned {
 
     bytes32 constant NAME = "VersionManager";
 
@@ -54,7 +54,6 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         IModuleRegistry _registry,
         IGuardianStorage _guardianStorage
     )
-        BaseModule(_registry, NAME)
         BaseFeature(_registry, _guardianStorage, IVersionManager(address(this)), NAME)
         public
     {
@@ -62,7 +61,7 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
 
     /* ***************** External methods ************************* */
 
-    function init(address _wallet) public override(BaseModule, BaseFeature) onlyWallet(_wallet) {
+    function init(address _wallet) public override(IModule, BaseFeature) onlyWallet(_wallet) {
         doUpgradeWallet(_wallet, featuresToInit[lastVersion]);
     }
 
@@ -149,7 +148,7 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
     /**
      * @notice This method delegates the static call to a target feature
      */
-    fallback() external payable {
+    fallback() external {
         uint256 version = walletVersions[msg.sender];
         address feature = staticCallExecutors[version][msg.sig];
         require(feature != address(0), "VM: Static call not supported for wallet version");

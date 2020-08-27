@@ -147,13 +147,6 @@ contract TransferManager is OnlyOwnerFeature, BaseTransfer {
         }
     }
 
-    // /**
-    //  * @inheritdoc IModule
-    //  */
-    // function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerFeature) onlyWalletOwnerOrFeature(_wallet) {
-    //     OnlyOwnerFeature.addModule(_wallet, _module);
-    // }
-
     /**
      * @inheritdoc IFeature
      */

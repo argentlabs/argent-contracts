@@ -16,16 +16,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./common/BaseModule.sol";
+import "./common/IModule.sol";
+import "../infrastructure/IModuleRegistry.sol";
+import "../wallet/IWallet.sol";
 
 /**
  * @title SimpleUpgrader
  * @notice Temporary module used to add/remove other modules.
  * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
-contract SimpleUpgrader is BaseModule {
+contract SimpleUpgrader is IModule {
 
-    bytes32 constant NAME = "SimpleUpgrader";
+    IModuleRegistry private registry;
     address[] public toDisable;
     address[] public toEnable;
 
@@ -36,9 +38,9 @@ contract SimpleUpgrader is BaseModule {
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        BaseModule(_registry, NAME)
         public
     {
+        registry = _registry;
         toDisable = _toDisable;
         toEnable = _toEnable;
     }

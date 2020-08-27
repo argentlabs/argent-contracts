@@ -37,7 +37,7 @@ contract BaseFeature is IFeature {
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // The address of the module registry.
-    IModuleRegistry private registry;
+    IModuleRegistry internal registry;
     // The address of the Guardian storage
     IGuardianStorage internal guardianStorage;
     // The address of the Version Manager
