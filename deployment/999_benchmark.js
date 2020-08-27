@@ -273,6 +273,8 @@ class Benchmark {
           this.CompoundManagerWrapper.contractAddress,
           this.MakerV2ManagerWrapper.contractAddress,
           this.RelayerManagerWrapper.contractAddress
+        ], [
+          this.TransferManagerWrapper.contractAddress
         ]
       ],
     );

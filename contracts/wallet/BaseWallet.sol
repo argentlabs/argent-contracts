@@ -33,7 +33,7 @@ contract BaseWallet is IWallet {
     // The authorised modules
     mapping (address => bool) public override authorised;
     // The enabled static calls
-    mapping (bytes4 => address) public enabled;
+    mapping (bytes4 => address) public override enabled;
     // The number of modules
     uint public modules;
 

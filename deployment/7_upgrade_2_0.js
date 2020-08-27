@@ -229,7 +229,9 @@ const deploy = async (network) => {
     CompoundManagerWrapper.contractAddress,
     MakerV2ManagerWrapper.contractAddress,
     RelayerManagerWrapper.contractAddress,
-  ])
+  ], [
+    TransferManagerWrapper.contractAddress
+  ]);
 
   // //////////////////////////////////
   // Set contracts' managers

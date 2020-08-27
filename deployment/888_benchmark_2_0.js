@@ -303,7 +303,9 @@ class Benchmark {
       newCompoundManagerWrapper.contractAddress,
       newMakerV2ManagerWrapper.contractAddress,
       relayerManagerWrapper.contractAddress,
-    ])
+    ], [
+      newTransferManagerWrapper.contractAddress
+    ]);
 
     // Register new modules
     await this.multisigExecutor.executeCall(

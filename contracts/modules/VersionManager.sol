@@ -33,7 +33,7 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
     uint256 public lastVersion;
     mapping(address => uint256) public walletVersions; // [wallet] => [version]
     mapping(address => mapping(uint256 => bool)) public isFeatureInVersion; // [feature][version] => bool
-    mapping(uint256 => address[]) public versionFeatures; // [version] => [features]
+    mapping(uint256 => address[]) public featuresToInit; // [version] => [features]
 
     mapping(uint256 => bytes4[]) public staticCallSignatures; // [version] => [sigs]
     mapping(uint256 => mapping(bytes4 => address)) public staticCallExecutors; // [version][sig] => [feature]
@@ -63,10 +63,10 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
     /* ***************** External methods ************************* */
 
     function init(address _wallet) public override(BaseModule, BaseFeature) onlyWallet(_wallet) {
-        doUpgradeWallet(_wallet, versionFeatures[lastVersion]);
+        doUpgradeWallet(_wallet, featuresToInit[lastVersion]);
     }
 
-    function addVersion(address[] calldata _features) external onlyOwner {
+    function addVersion(address[] calldata _features, address[] calldata _featuresToInit) external onlyOwner {
         uint256 newVersion = ++lastVersion;
         for(uint256 i = 0; i < _features.length; i++) {
             isFeatureInVersion[_features[i]][newVersion] = true;
@@ -78,7 +78,7 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
                 staticCallExecutors[newVersion][sigs[j]] = _features[i];
             }
         }
-        versionFeatures[newVersion] = _features;
+        featuresToInit[newVersion] = _featuresToInit;
         
         emit VersionAdded(newVersion);
     }
@@ -180,12 +180,15 @@ contract VersionManager is IVersionManager, BaseModule, OnlyOwnerFeature, Owned 
         // Setup static call redirection
         bytes4[] storage sigs = staticCallSignatures[toVersion];
         for(uint256 i = 0; i < sigs.length; i++) {
-            IWallet(_wallet).enableStaticCall(address(this), sigs[i]);
+            bytes4 sig = sigs[i];
+            if(IWallet(_wallet).enabled(sig) != address(this)) {
+                IWallet(_wallet).enableStaticCall(address(this), sig);
+            }
         }
         
         // Init features
         for(uint256 i = 0; i < _featuresToInit.length; i++) {
-            // The following check is there for extra security. As it's somewhat expensive, we may want to get rid of it
+            // We only initialize a feature that was not already initialized in the previous version
             if(!isFeatureInVersion[_featuresToInit[i]][fromVersion] && isFeatureInVersion[_featuresToInit[i]][toVersion]) {
                 IFeature(_featuresToInit[i]).init(_wallet);
             }
