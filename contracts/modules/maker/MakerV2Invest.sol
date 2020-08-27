@@ -100,11 +100,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         // Calculates the pie value in the pot equivalent to the DAI wad amount
         uint256 pie = _amount.mul(RAY) / pot.chi();
         // Exit DAI from the pot
-        checkAuthorisedFeatureAndInvokeWallet(
-            _wallet,
-            address(pot),
-            0,
-            abi.encodeWithSignature("exit(uint256)", pie)
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie)
         );
         // Allow adapter to access the _wallet's DAI balance in the vat
         grantVatAccess(_wallet, address(daiJoin));
@@ -139,12 +135,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         // Gets the total pie belonging to the _wallet
         uint256 pie = pot.pie(_wallet);
         // Exit DAI from the pot
-        checkAuthorisedFeatureAndInvokeWallet(
-            _wallet,
-            address(pot),
-            0,
-            abi.encodeWithSignature("exit(uint256)", pie)
-        );
+        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie));
         // Allow adapter to access the _wallet's DAI balance in the vat
         grantVatAccess(_wallet, address(daiJoin));
         // Exits the DAI amount corresponding to the value of pie

@@ -539,12 +539,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         gemJoin.exit(_wallet, _collateralAmount);
         // Convert WETH to ETH if needed
         if (gemJoin == wethJoin) {
-            checkAuthorisedFeatureAndInvokeWallet(
-                _wallet,
-                address(wethToken),
-                0,
-                abi.encodeWithSignature("withdraw(uint256)", _collateralAmount)
-            );
+            checkAuthorisedFeatureAndInvokeWallet(_wallet, address(wethToken), 0, abi.encodeWithSignature("withdraw(uint256)", _collateralAmount));
         }
     }
 

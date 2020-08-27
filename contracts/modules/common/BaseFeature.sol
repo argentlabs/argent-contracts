@@ -168,12 +168,7 @@ contract BaseFeature is IFeature {
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
      */
-    function checkAuthorisedFeatureAndInvokeWallet(
-        address _wallet,
-        address _to,
-        uint256 _value,
-        bytes memory _data
-    )
+    function checkAuthorisedFeatureAndInvokeWallet(address _wallet, address _to, uint256 _value, bytes memory _data)
         internal
         returns (bytes memory _res) 
     {
