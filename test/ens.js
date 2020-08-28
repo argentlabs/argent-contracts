@@ -100,7 +100,7 @@ contract("ENS contracts", (accounts) => {
 
     it("should fail to register an ENS name when the caller is not a manager", async () => {
       const label = "wallet";
-      await assert.revert(ensManager.register(label, owner, { from: anonmanager }), "registering should throw");
+      await utilities.assertRevert(ensManager.register(label, owner, { from: anonmanager }), "registering should throw");
     });
 
     it("should be able to change the root node owner", async () => {

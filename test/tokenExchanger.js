@@ -103,7 +103,7 @@ contract("TokenExchanger", (accounts) => {
     await tokenB.mint(kyberNetwork.address, parseEther("1000"));
     await kyberNetwork.addToken(tokenA.address, TOKEN_A_RATE, DECIMALS);
     await kyberNetwork.addToken(tokenB.address, TOKEN_B_RATE, DECIMALS);
-    await kyberNetwork.send(parseEther("10"));
+    await kyberNetwork.send(parseEther("10").toString());
 
     // Deploy and fund UniswapV2
     const uniswapFactory = await UniswapV2Factory.new(AddressZero);

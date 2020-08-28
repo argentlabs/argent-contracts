@@ -165,21 +165,18 @@ contract("Invest Manager with Compound", (accounts) => {
 
   describe("Investment", () => {
     async function accrueInterests(days, investInEth) {
-      let tx; let
-        txReceipt;
-      // genrate borrows to create interests
+      let tx;
+      // generate borrows to create interests
       await comptroller.enterMarkets([cEther.address, cToken.address], { from: borrower });
       if (investInEth) {
         await token.approve(cToken.address, parseEther("20"), { from: borrower });
         await cToken.mint(parseEther("20"), { from: borrower });
         tx = await cEther.borrow(parseEther("0.1"), { from: borrower });
-        txReceipt = await cEther.verboseWaitForTransaction(tx);
-        await utils.hasEvent(txReceipt, "Borrow");
+        await utils.hasEvent(tx.receipt, "Borrow");
       } else {
         await cEther.mint({ value: parseEther("2"), from: borrower });
         tx = await cToken.borrow(parseEther("0.1"), { from: borrower });
-        txReceipt = await cToken.verboseWaitForTransaction(tx);
-        await utils.hasEvent(txReceipt, "Borrow");
+        await utils.hasEvent(tx.receipt, "Borrow");
       }
       // increase time to accumulate interests
       await increaseTime(3600 * 24 * days);
@@ -202,7 +199,7 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt = await manager.relay(investManager, "addInvestment", params, wallet, [owner]);
       } else {
         tx = await investManager.addInvestment(...params, { from: owner });
-        txReceipt = await investManager.verboseWaitForTransaction(tx);
+        txReceipt = tx.receipt;
       }
 
       await utils.hasEvent(txReceipt, "InvestmentAdded");
@@ -228,7 +225,7 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt = await manager.relay(investManager, "removeInvestment", params, wallet, [owner]);
       } else {
         tx = await investManager.removeInvestment(...params, { from: owner });
-        txReceipt = await investManager.verboseWaitForTransaction(tx);
+        txReceipt = tx.receipt;
       }
       await utils.hasEvent(txReceipt, "InvestmentRemoved");
 

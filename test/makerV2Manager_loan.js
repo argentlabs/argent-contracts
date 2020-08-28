@@ -560,7 +560,7 @@ contract("MakerV2Loan", (accounts) => {
         assert.isTrue(txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
       } else {
         const tx = await makerV2[method](...params, { gasLimit: 1000000, from: owner });
-        txReceipt = await makerV2.verboseWaitForTransaction(tx);
+        txReceipt = tx.receipt;
       }
       assert.isTrue(await hasEvent(txReceipt, makerV2, "LoanAcquired"), "should have generated LoanAcquired event");
 

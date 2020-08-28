@@ -334,7 +334,7 @@ contract("ApprovedTransfer", (accounts) => {
           const newState = parseInt((await contract.state()).toString(), 10) + 1;
           const token = _wrapEth ? weth : erc20;
           const fun = _consumerAddress === contract.address ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
-          const data = contract.contract.methods[fun]([newState, token.address, amountToApprove]).encodeABI();
+          const data = contract.contract.methods[fun](newState, token.address, amountToApprove).encodeABI();
           const before = await token.balanceOf(contract.address);
           const params = [wallet.address]
             .concat(_wrapEth ? [] : [erc20.address])
