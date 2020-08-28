@@ -17,7 +17,7 @@ class RelayManager {
     _gasLimitRelay = (_gasLimit * 1.1)) {
     const relayerAccount = _relayerAccount || await getAccount(9);
     const nonce = _nonce || await getNonceForRelay();
-    const methodData = _module.contract.methods[_method](_params).encodeABI();
+    const methodData = _module.contract.methods[_method](..._params).encodeABI();
     const networkId = await getNetworkId();
     const signatures = await signOffchain(
       _signers,
