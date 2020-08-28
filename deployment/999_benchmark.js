@@ -1,5 +1,5 @@
 /* eslint max-classes-per-file: ["error", 2] */
-/* global artifacts */
+/* global artifacts, accounts */
 const ethers = require("ethers");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
