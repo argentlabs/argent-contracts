@@ -99,7 +99,7 @@ module.exports = {
   parseLogs(txReceipt, contract, eventName) {
     const filter = txReceipt.logs.filter((e) => (
       e.topics.find((t) => (
-        contract.interface.events[eventName].topic === t
+        contract.events[eventName].topic === t
       )) !== undefined
     ));
     const res = [];

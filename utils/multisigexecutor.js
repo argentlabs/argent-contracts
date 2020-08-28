@@ -34,9 +34,8 @@ class MultisigExecutor {
 
       // Call "execute" on the Multisig wallet with data and signatures
       const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signature, this._overrides);
-      const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
 
-      return result;
+      return executeTransaction.receipt;
     }
     // Get the threshold
     const threshold = (await this._multisigWrapper.contract.threshold()).toNumber();
@@ -71,9 +70,8 @@ class MultisigExecutor {
 
     // Call "execute" on the Multisig wallet with data and signatures
     const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signatures, this._overrides);
-    const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
 
-    return result;
+    return executeTransaction.receipt;
   }
 
   static signHash(walletAddr, destinationAddr, value, data, nonce) {

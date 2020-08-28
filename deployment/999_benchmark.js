@@ -302,7 +302,7 @@ class Benchmark {
     const fromVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.address);
     const lastVersion = await this.VersionManagerWrapper.lastVersion();
     const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.address, lastVersion);
-    const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
+    const txReceipt = tx.receipt;
     const toVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.address);
     assert.equal(fromVersion.toNumber() + 1, toVersion.toNumber(), "Bad Update");
     console.log(`Wallet updated from version ${fromVersion.toString()} to version ${toVersion.toString()}`);

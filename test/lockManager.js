@@ -125,13 +125,13 @@ contract("LockManager", (accounts) => {
     });
 
     it("should fail to lock/unlock by non-guardian EOAs (blockchain transaction)", async () => {
-      await assert.revert(lockManager.lock(wallet.address, { from: nonguardian }), "locking from non-guardian should fail");
+      await utilities.assertRevert(lockManager.lock(wallet.address, { from: nonguardian }), "locking from non-guardian should fail");
 
       await lockManager.lock(wallet.address, { from: guardian1 });
       const state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian1");
 
-      await assert.revert(lockManager.unlock(wallet.address, { from: nonguardian }));
+      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: nonguardian }));
     });
   });
 
