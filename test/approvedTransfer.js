@@ -89,7 +89,7 @@ contract("ApprovedTransfer", (accounts) => {
 
   beforeEach(async () => {
     const proxy = await Proxy.new(walletImplementation.address);
-    wallet = BaseWallet.at(proxy.address);
+    wallet = await BaseWallet.at(proxy.address);
 
     await wallet.init(owner, [versionManager.address]);
     await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
@@ -101,18 +101,13 @@ contract("ApprovedTransfer", (accounts) => {
 
   async function addGuardians(guardians) {
     // guardians can be BaseWallet or ContractWrapper objects
-    const guardianAddresses = guardians.map((guardian) => {
-      if (guardian) return guardian;
-      return guardian.address;
-    });
-
-    for (const address of guardianAddresses) {
+    for (const address of guardians) {
       await guardianManager.addGuardian(wallet.address, address, { from: owner });
     }
 
     await increaseTime(30);
-    for (let i = 1; i < guardianAddresses.length; i += 1) {
-      await guardianManager.confirmGuardianAddition(wallet.address, guardianAddresses[i]);
+    for (let i = 1; i < guardians.length; i += 1) {
+      await guardianManager.confirmGuardianAddition(wallet.address, guardians[i]);
     }
     const count = (await guardianManager.guardianCount(wallet.address)).toNumber();
     assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
@@ -123,7 +118,7 @@ contract("ApprovedTransfer", (accounts) => {
     for (const g of guardians) {
       const guardianWallet = await BaseWallet.new();
       await guardianWallet.init(g, [versionManager.address]);
-      await versionManager.from(g).upgradeWallet(guardianWallet.address, await versionManager.lastVersion());
+      await versionManager.upgradeWallet(guardianWallet.address, await versionManager.lastVersion(), { from: g });
       wallets.push(guardianWallet);
     }
     return wallets;
@@ -339,7 +334,7 @@ contract("ApprovedTransfer", (accounts) => {
           const newState = parseInt((await contract.state()).toString(), 10) + 1;
           const token = _wrapEth ? weth : erc20;
           const fun = _consumerAddress === contract.address ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
-          const data = contract.contract.methods.fun([newState, token.address, amountToApprove]).encodeABI();
+          const data = contract.contract.methods[fun]([newState, token.address, amountToApprove]).encodeABI();
           const before = await token.balanceOf(contract.address);
           const params = [wallet.address]
             .concat(_wrapEth ? [] : [erc20.address])

@@ -1,7 +1,10 @@
 const readline = require("readline");
 const ethers = require("ethers");
-const ethUtil = require('ethereumjs-util');
-const fs = require('fs');
+const ethUtil = require("ethereumjs-util");
+const fs = require("fs");
+const chai = require("chai");
+
+const { expect } = chai;
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -50,9 +53,9 @@ module.exports = {
       refundToken,
       refundAddress,
     ].map((hex) => hex.slice(2)).join("")}`;
-    
-    var dataBuff = ethUtil.toBuffer(ethers.utils.keccak256(input));
-    var msgHashBuff = ethUtil.hashPersonalMessage(dataBuff);
+
+    const dataBuff = ethUtil.toBuffer(ethers.utils.keccak256(input));
+    const msgHashBuff = ethUtil.hashPersonalMessage(dataBuff);
 
     const accountsJson = JSON.parse(fs.readFileSync("./ganache-accounts.json", "utf8"));
     const sigs = `0x${signers.map((signer) => {
@@ -70,7 +73,7 @@ module.exports = {
       const bn1 = ethers.BigNumber.from(s1);
       const bn2 = ethers.BigNumber.from(s2);
       if (bn1.lt(bn2)) return -1;
-      if (bn1.gt(bn2)) return 1;    
+      if (bn1.gt(bn2)) return 1;
       return 0;
     });
   },
@@ -150,7 +153,7 @@ module.exports = {
   
   async getBalance(account) {
     const balance = await web3.eth.getBalance(account);
-    return new ethers.BigNumber.from(balance);
+    return ethers.BigNumber.from(balance);
   },
 
   async getTimestamp(blockNumber) {

@@ -56,7 +56,7 @@ contract("BaseWallet", (accounts) => {
 
   beforeEach(async () => {
     const proxy = await Proxy.new(walletImplementation.address);
-    wallet = BaseWallet.at(proxy.address);
+    wallet = await BaseWallet.at(proxy.address);
   });
 
   describe("Registering modules", () => {
@@ -125,16 +125,15 @@ contract("BaseWallet", (accounts) => {
       it("should not reinitialize a wallet", async () => {
         await wallet.init(owner, [module1.address]);
         await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-        
-        await utils.assertRevert(wallet.init(owner, [module1.address]), "BW: wallet already initialised");
+        await assertRevert(wallet.init(owner, [module1.address]), "BW: wallet already initialised");
       });
 
       it("should not initialize a wallet with no module", async () => {
-        await utils.assertRevert(wallet.init(owner, []), "BW: construction requires at least 1 module");
+        await assertRevert(wallet.init(owner, []), "BW: construction requires at least 1 module");
       });
 
       it("should not initialize a wallet with duplicate modules", async () => {
-        await utils.assertRevert(wallet.init(owner, [module1.address, module1.address]), "BW: module is already added");
+        await assertRevert(wallet.init(owner, [module1.address, module1.address]), "BW: module is already added");
       });
     });
 
@@ -157,14 +156,14 @@ contract("BaseWallet", (accounts) => {
     describe("Authorisations", () => {
       it("should not let a non-module deauthorise a module", async () => {
         await wallet.init(owner, [module1.address]);
-        await utils.assertRevert(wallet.authoriseModule(module1.address, false), "BW: msg.sender not an authorized module");
+        await assertRevert(wallet.authoriseModule(module1.address, false), "BW: msg.sender not an authorized module");
       });
 
       it("should not let a feature set the owner to address(0)", async () => {
         await wallet.init(owner, [module1.address]);
         await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
 
-        await assert.revertWith(feature1.invalidOwnerChange(wallet.address), "BW: address cannot be null");
+        await assertRevert(feature1.invalidOwnerChange(wallet.address), "BW: address cannot be null");
       });
     });
 
@@ -199,7 +198,7 @@ contract("BaseWallet", (accounts) => {
 
         // trying to execute static call delegated to module1 (it should fail)
         const walletAsModule = await TestFeature.at(wallet.address);
-        await utils.assertRevert(walletAsModule.contract.getBoolean(), "BW: must be an authorised module for static call");
+        await assertRevert(walletAsModule.contract.getBoolean(), "BW: must be an authorised module for static call");
       });
     });
   });

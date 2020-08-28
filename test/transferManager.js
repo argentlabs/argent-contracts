@@ -730,8 +730,8 @@ contract("TransferManager", (accounts) => {
     }) {
       const fun = consumer === contract.address ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
       const token = wrapEth ? weth : erc20;
-      const dataToTransfer = contract.contract.methods.fun([state, token.address, amount]).encodeABI();
-      const unspentBefore = await transferManager.getDailyUnspent(wallet.address);
+      const dataToTransfer = contract.contract.methods[fun]([state, token.address, amount]).encodeABI();
+      const unspentBefore = await transferModule.getDailyUnspent(wallet.address);
       const params = [wallet.address]
         .concat(wrapEth ? [] : [erc20.address])
         .concat([consumer, amount, contract.address, dataToTransfer]);
