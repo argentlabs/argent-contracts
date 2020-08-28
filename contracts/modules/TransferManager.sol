@@ -78,8 +78,8 @@ contract TransferManager is BaseTransfer {
 
     constructor(
         IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         ITransferStorage _transferStorage,
-        IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
         ITokenPriceStorage _tokenPriceStorage,
         IVersionManager _versionManager,
@@ -89,7 +89,7 @@ contract TransferManager is BaseTransfer {
         address _wethToken,
         TransferManager _oldTransferManager
     )
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
         public
     {
@@ -317,7 +317,7 @@ contract TransferManager is BaseTransfer {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
 
         uint256 whitelistAfter = block.timestamp.add(securityPeriod);
-        setWhitelist(_wallet, _target, whitelistAfter);
+        versionManager.setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }
 
@@ -334,7 +334,7 @@ contract TransferManager is BaseTransfer {
         onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        setWhitelist(_wallet, _target, 0);
+        versionManager.setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
@@ -564,15 +564,5 @@ contract TransferManager is BaseTransfer {
             }
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
         }
-    }
-
-    // *************** Internal functions ************************ //
-
-    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {
-        versionManager.invokeVersionManager(
-            _wallet,
-            address(transferStorage), 
-            abi.encodeWithSelector(transferStorage.setWhitelist.selector, _wallet, _target, _whitelistAfter)
-        );
     }
 }

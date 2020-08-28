@@ -24,6 +24,7 @@ const VersionManager = require("../build/VersionManager");
 
 const SimpleUpgrader = require("../build/SimpleUpgrader");
 const LimitStorage = require("../build/LimitStorage");
+const LockStorage = require("../build/LockStorage");
 const TokenPriceStorage = require("../build/TokenPriceStorage");
 
 const TransferManager = require("../build-legacy/v1.6.0/TransferManager");
@@ -169,6 +170,7 @@ class Benchmark {
   
   async testUpgradeAllModules() {
     // Deploy Storage contracts
+    const LockStorageWrapper = await this.deployer.deploy(LockStorage);
     const LimitStorageWrapper = await this.deployer.deploy(LimitStorage);
     const TokenPriceStorageWrapper = await this.deployer.deploy(TokenPriceStorage);
 
@@ -177,7 +179,8 @@ class Benchmark {
       VersionManager,
       {},
       this.config.contracts.ModuleRegistry,
-      this.config.modules.GuardianStorage,
+      LockStorageWrapper.contractAddress,
+      this.config.modules.TransferStorage,
     );
 
     // Create new features
@@ -185,6 +188,7 @@ class Benchmark {
       NewApprovedTransfer,
       {},
       this.config.contracts.ModuleRegistry,
+      LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       LimitStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
@@ -195,7 +199,7 @@ class Benchmark {
         NewCompoundManager,
       {},
       this.config.contracts.ModuleRegistry,
-      this.config.modules.GuardianStorage,
+      LockStorageWrapper.contractAddress,
       this.config.defi.compound.comptroller,
       this.config.contracts.CompoundRegistry,
       VersionManagerWrapper.contractAddress,
@@ -205,6 +209,7 @@ class Benchmark {
         NewGuardianManager,
       {},
       this.config.contracts.ModuleRegistry,
+      LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       VersionManagerWrapper.contractAddress,
       this.config.settings.securityPeriod || 0,
@@ -215,6 +220,7 @@ class Benchmark {
         NewLockManager,
       {},
       this.config.contracts.ModuleRegistry,
+      LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       VersionManagerWrapper.contractAddress,
       this.config.settings.lockPeriod || 0,
@@ -224,7 +230,7 @@ class Benchmark {
       NewNftTransfer,
       {},
       this.config.contracts.ModuleRegistry,
-      this.config.modules.GuardianStorage,
+      LockStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
       this.config.CryptoKitties.contract,
@@ -234,6 +240,7 @@ class Benchmark {
       NewRecoveryManager,
       {},
       this.config.contracts.ModuleRegistry,
+      LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       VersionManagerWrapper.contractAddress,
       this.config.settings.recoveryPeriod || 0,
@@ -244,7 +251,7 @@ class Benchmark {
       NewTokenExchanger,
       {},
       this.config.contracts.ModuleRegistry,
-      this.config.modules.GuardianStorage,
+      LockStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
       this.config.defi.paraswap.contract,
@@ -256,7 +263,7 @@ class Benchmark {
       NewMakerV2Manager,
       {},
       this.config.contracts.ModuleRegistry,
-      this.config.modules.GuardianStorage,
+      LockStorageWrapper.contractAddress,
       this.config.defi.maker.migration,
       this.config.defi.maker.pot,
       this.config.defi.maker.jug,
@@ -269,8 +276,8 @@ class Benchmark {
       NewTransferManager,
       {},
       this.config.contracts.ModuleRegistry,
+      LockStorageWrapper.contractAddress,
       this.config.modules.TransferStorage,
-      this.config.modules.GuardianStorage,
       LimitStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
@@ -285,6 +292,7 @@ class Benchmark {
       RelayerManager,
       {},
       this.config.contracts.ModuleRegistry,
+      LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       LimitStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
@@ -319,6 +327,7 @@ class Benchmark {
       SimpleUpgrader,
       {},
       this.ModuleRegistryWrapper.contractAddress,
+      this.config.modules.GuardianManager,
       this.allModules,
       [VersionManagerWrapper.contractAddress],
     );

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
+import "../contracts/infrastructure/storage/ILockStorage.sol";
 import "../contracts/modules/common/BaseFeature.sol";
 import "./TestDapp.sol";
 
@@ -19,12 +20,12 @@ contract TestFeature is BaseFeature {
 
     constructor(
         IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage,
+        ILockStorage _lockStorage,
         IVersionManager _versionManager,
         bool _boolVal,
         uint _uintVal
     ) 
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME) 
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME) 
         public 
     {
         boolVal = _boolVal;

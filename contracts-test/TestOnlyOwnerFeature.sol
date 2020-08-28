@@ -12,10 +12,10 @@ contract TestOnlyOwnerFeature is BaseFeature {
     bytes32 constant NAME = "TestOnlyOwnerFeature";
     constructor(
         IModuleRegistry _registry, 
-        IGuardianStorage _guardianStorage, 
+        ILockStorage _lockStorage, 
         IVersionManager _versionManager
     ) 
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME) 
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME) 
         public 
     {}
 

@@ -39,12 +39,18 @@ interface IVersionManager {
     function invokeWallet(address _wallet, address _to, uint256 _value, bytes calldata _data) external returns (bytes memory _res);
 
     /**
-     * @notice Lets a feature call into a moduleOnly method (e.g. into a Storage contract) via the VersionManager.
-     * Used for backward compatibility with old Storages.
+     * @notice Lets a feature add or remove an account from the whitelist of a wallet.
      * @param _wallet The target wallet.
-     * @param _to The destination contract.
-     * @param _data The data of the call.
+     * @param _target The account to add/remove.
+     * @param _whitelistAfter The epoch time at which an account starts to be whitelisted, or zero if the account is not whitelisted
      */
-    function invokeVersionManager(address _wallet, address _to, bytes calldata _data) external;
+    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) external;
+
+    /**
+     * @notice Sets a new owner for the wallet.
+     * @param _newOwner The new owner.
+     */
+    function setOwner(address _wallet, address _newOwner) external;
+
     
 }

@@ -71,12 +71,12 @@ contract CompoundManager is BaseFeature{
 
     constructor(
         IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage,
+        ILockStorage _lockStorage,
         IComptroller _comptroller,
         ICompoundRegistry _compoundRegistry,
         IVersionManager _versionManager
     )
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
         public
     {
         comptroller = _comptroller;

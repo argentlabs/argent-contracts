@@ -21,6 +21,7 @@ import "./common/Utils.sol";
 import "./common/LimitUtils.sol";
 import "./common/BaseTransfer.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title ApprovedTransfer
@@ -33,18 +34,22 @@ contract ApprovedTransfer is BaseTransfer {
 
     // The limit storage
     ILimitStorage public limitStorage;
+    // The guardian storage
+    IGuardianStorage public guardianStorage;
 
     constructor(
         IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
         IVersionManager _versionManager,
         address _wethToken
     )
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
         public
     {
+        guardianStorage = _guardianStorage;
         limitStorage = _limitStorage;
     }
 

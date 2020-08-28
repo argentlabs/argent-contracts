@@ -14,7 +14,7 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
 
     constructor(
         IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage,
+        ILockStorage _lockStorage,
         ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,
         JugLike _jug,
@@ -26,7 +26,7 @@ contract TestUpgradedMakerV2Manager is MakerV2Manager {
 
         MakerV2Manager(
             _registry,
-            _guardianStorage,
+            _lockStorage,
             _scdMcdMigration,
             _pot,
             _jug,

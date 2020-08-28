@@ -36,17 +36,17 @@ contract TransferStorage is ITransferStorage, Storage {
      * @notice Lets an authorised module add or remove an account from the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The account to add/remove.
-     * @param _value True for addition, false for revokation.
+     * @param _whitelistAfter The epoch time at which an account starts to be whitelisted, or zero if the account is not whitelisted
      */
-    function setWhitelist(address _wallet, address _target, uint256 _value) external onlyModule(_wallet) {
-        whitelist[_wallet][_target] = _value;
+    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) external onlyModule(_wallet) {
+        whitelist[_wallet][_target] = _whitelistAfter;
     }
 
     /**
      * @notice Gets the whitelist state of an account for a wallet.
      * @param _wallet The target wallet.
      * @param _target The account.
-     * @return the epoch time at which an account strats to be whitelisted, or zero if the account is not whitelisted.
+     * @return the epoch time at which an account starts to be whitelisted, or zero if the account is not whitelisted.
      */
     function getWhitelist(address _wallet, address _target) external view returns (uint256) {
         return whitelist[_wallet][_target];

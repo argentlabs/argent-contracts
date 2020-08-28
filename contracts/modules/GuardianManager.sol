@@ -19,6 +19,7 @@ pragma solidity ^0.6.12;
 import "./common/Utils.sol";
 import "./common/GuardianUtils.sol";
 import "./common/BaseFeature.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title GuardianManager
@@ -48,6 +49,8 @@ contract GuardianManager is BaseFeature {
     uint256 public securityPeriod;
     // The security window
     uint256 public securityWindow;
+    // The guardian storage
+    IGuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
 
@@ -62,14 +65,16 @@ contract GuardianManager is BaseFeature {
 
     constructor(
         IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         IVersionManager _versionManager,
         uint256 _securityPeriod,
         uint256 _securityWindow
     )
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
         public
     {
+        guardianStorage = _guardianStorage;
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
     }

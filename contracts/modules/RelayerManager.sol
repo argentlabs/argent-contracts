@@ -23,6 +23,7 @@ import "./common/GuardianUtils.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RelayerManager
@@ -42,6 +43,8 @@ contract RelayerManager is BaseFeature {
     ILimitStorage public limitStorage;
     // The Token price storage
     ITokenPriceStorage public tokenPriceStorage;
+    // The Guardian storage
+    IGuardianStorage public guardianStorage;
 
     struct RelayerConfig {
         uint256 nonce;
@@ -64,16 +67,18 @@ contract RelayerManager is BaseFeature {
 
     constructor(
         IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
         ITokenPriceStorage _tokenPriceStorage,
         IVersionManager _versionManager
     )
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
         public
     {
         limitStorage = _limitStorage;
         tokenPriceStorage = _tokenPriceStorage;
+        guardianStorage = _guardianStorage;
     }
 
     /**

@@ -19,7 +19,7 @@ pragma solidity ^0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../wallet/IWallet.sol";
 import "../../infrastructure/IModuleRegistry.sol";
-import "../../infrastructure/storage/IGuardianStorage.sol";
+import "../../infrastructure/storage/ILockStorage.sol";
 import "./IFeature.sol";
 import "../../../lib/other/ERC20.sol";
 import "./IVersionManager.sol";
@@ -38,8 +38,8 @@ contract BaseFeature is IFeature {
 
     // The address of the module registry.
     IModuleRegistry internal registry;
-    // The address of the Guardian storage
-    IGuardianStorage internal guardianStorage;
+    // The address of the Lock storage
+    ILockStorage internal lockStorage;
     // The address of the Version Manager
     IVersionManager internal versionManager;
 
@@ -50,7 +50,7 @@ contract BaseFeature is IFeature {
      * @notice Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(address _wallet) {
-        require(!guardianStorage.isLocked(_wallet), "BF: wallet locked");
+        require(!lockStorage.isLocked(_wallet), "BF: wallet locked");
         _;
     }
 
@@ -97,12 +97,12 @@ contract BaseFeature is IFeature {
 
     constructor(
         IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage,
+        ILockStorage _lockStorage,
         IVersionManager _versionManager,
         bytes32 _name
     ) public {
         registry = _registry;
-        guardianStorage = _guardianStorage;
+        lockStorage = _lockStorage;
         versionManager = _versionManager;
         emit FeatureCreated(_name);
     }

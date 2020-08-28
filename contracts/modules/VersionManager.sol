@@ -17,6 +17,7 @@
 pragma solidity ^0.6.12;
 
 import "../infrastructure/base/Owned.sol";
+import "../infrastructure/storage/ITransferStorage.sol";
 import "./common/IModule.sol";
 import "./common/BaseFeature.sol";
 
@@ -41,6 +42,9 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     event VersionAdded(uint256 _version);
     event WalletUpgraded(address _wallet, uint256 _version);
 
+    // The Transfer Storage
+    ITransferStorage private transferStorage;
+
     /* ***************** Modifiers ************************* */
 
     modifier onlyFeature(address _wallet) {
@@ -52,11 +56,13 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     constructor(
         IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage
+        ILockStorage _lockStorage,
+        ITransferStorage _transferStorage
     )
-        BaseFeature(_registry, _guardianStorage, IVersionManager(address(this)), NAME)
+        BaseFeature(_registry, _lockStorage, IVersionManager(address(this)), NAME)
         public
     {
+        transferStorage = _transferStorage;
     }
 
     /* ***************** External methods ************************* */
@@ -145,14 +151,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     }
 
     /**
-     * @inheritdoc IVersionManager
-     */
-    function invokeVersionManager(address _wallet, address _to, bytes calldata _data) external override onlyFeature(_wallet) {
-        (bool success,) = _to.call(_data);
-        require(success, "VM: invokeVersionManager failed");
-    }
-
-    /**
      * @notice This method delegates the static call to a target feature
      */
     fallback() external {
@@ -170,6 +168,25 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
             default {return (0, returndatasize())}
         }
     }
+
+    /* ******* Backward Compatibility with old Storages and BaseWallet *************** */
+
+    /**
+     * @inheritdoc IVersionManager
+     */
+    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) external override onlyFeature(_wallet) {
+        transferStorage.setWhitelist(_wallet, _target, _whitelistAfter);
+    }
+
+    /**
+     * @inheritdoc IVersionManager
+     */
+    function setOwner(address _wallet, address _newOwner) external override onlyFeature(_wallet) {
+        IWallet(_wallet).setOwner(_newOwner);
+    }
+
+
+    /* ***************** Internal methods ************************* */
 
 
     function doUpgradeWallet(

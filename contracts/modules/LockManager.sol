@@ -18,6 +18,8 @@ pragma solidity ^0.6.12;
 
 import "./common/BaseFeature.sol";
 import "./common/GuardianUtils.sol";
+import "../infrastructure/storage/ILockStorage.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title LockManager
@@ -35,6 +37,8 @@ contract LockManager is BaseFeature {
 
     // The lock period
     uint256 public lockPeriod;
+    // the guardian storage
+    IGuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
 
@@ -47,7 +51,7 @@ contract LockManager is BaseFeature {
      * @notice Throws if the wallet is not locked.
      */
     modifier onlyWhenLocked(address _wallet) {
-        require(guardianStorage.isLocked(_wallet), "LM: wallet must be locked");
+        require(lockStorage.isLocked(_wallet), "LM: wallet must be locked");
         _;
     }
 
@@ -64,11 +68,13 @@ contract LockManager is BaseFeature {
 
     constructor(
         IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         IVersionManager _versionManager,
         uint256 _lockPeriod
     )
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME) public {
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME) public {
+        guardianStorage = _guardianStorage;
         lockPeriod = _lockPeriod;
     }
 
@@ -79,7 +85,7 @@ contract LockManager is BaseFeature {
      * @param _wallet The target wallet.
      */
     function lock(address _wallet) external onlyGuardianOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        guardianStorage.setLock(_wallet, block.timestamp + lockPeriod);
+        lockStorage.setLock(_wallet, block.timestamp + lockPeriod);
         emit Locked(_wallet, uint64(block.timestamp + lockPeriod));
     }
 
@@ -88,9 +94,9 @@ contract LockManager is BaseFeature {
      * @param _wallet The target wallet.
      */
     function unlock(address _wallet) external onlyGuardianOrFeature(_wallet) onlyWhenLocked(_wallet) {
-        address locker = guardianStorage.getLocker(_wallet);
+        address locker = lockStorage.getLocker(_wallet);
         require(locker == address(this), "LM: cannot unlock a wallet that was locked by another feature");
-        guardianStorage.setLock(_wallet, 0);
+        lockStorage.setLock(_wallet, 0);
         emit Unlocked(_wallet);
     }
 
@@ -100,7 +106,7 @@ contract LockManager is BaseFeature {
      * @return _releaseAfter The epoch time at which the lock will release (in seconds).
      */
     function getLock(address _wallet) external view returns(uint64 _releaseAfter) {
-        uint256 lockEnd = guardianStorage.getLock(_wallet);
+        uint256 lockEnd = lockStorage.getLock(_wallet);
         if (lockEnd > block.timestamp) {
             _releaseAfter = uint64(lockEnd);
         }
@@ -112,7 +118,7 @@ contract LockManager is BaseFeature {
      * @return _isLocked `true` if the wallet is locked otherwise `false`.
      */
     function isLocked(address _wallet) external view returns (bool _isLocked) {
-        return guardianStorage.isLocked(_wallet);
+        return lockStorage.isLocked(_wallet);
     }
 
     /**

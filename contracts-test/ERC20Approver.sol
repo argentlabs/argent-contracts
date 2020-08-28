@@ -2,9 +2,10 @@ pragma solidity ^0.6.12;
 
 import "../contracts/wallet/BaseWallet.sol";
 import "../contracts/modules/common/BaseFeature.sol";
+import "../contracts/infrastructure/storage/ILockStorage.sol";
 
 // SPDX-License-Identifier: GPL-3.0-only
-contract ERC20Approver is BaseFeature{
+contract ERC20Approver is BaseFeature {
 
     bytes32 constant NAME = "ERC20Approver";
 
@@ -12,7 +13,7 @@ contract ERC20Approver is BaseFeature{
         IModuleRegistry _registry, 
         IVersionManager _versionManager
     )
-        BaseFeature(_registry, IGuardianStorage(0), _versionManager, NAME)
+        BaseFeature(_registry, ILockStorage(0), _versionManager, NAME)
         public 
     {}
 

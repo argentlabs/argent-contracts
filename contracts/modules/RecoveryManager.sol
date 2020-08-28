@@ -50,6 +50,8 @@ contract RecoveryManager is BaseFeature {
     uint256 public recoveryPeriod;
     // Lock period
     uint256 public lockPeriod;
+    // Guardian Storage
+    IGuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
 
@@ -80,12 +82,13 @@ contract RecoveryManager is BaseFeature {
 
     constructor(
         IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         IVersionManager _versionManager,
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
-        BaseFeature(_registry, _guardianStorage, _versionManager, NAME)
+        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
         public
     {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
@@ -94,6 +97,7 @@ contract RecoveryManager is BaseFeature {
         require(_lockPeriod >= _recoveryPeriod, "RM: insecure security periods");
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
+        guardianStorage = _guardianStorage;
     }
 
     // *************** External functions ************************ //
@@ -111,7 +115,7 @@ contract RecoveryManager is BaseFeature {
         config.recovery = _recovery;
         config.executeAfter = uint64(block.timestamp + recoveryPeriod);
         config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
-        setLock(_wallet, block.timestamp + lockPeriod);
+        lockStorage.setLock(_wallet, block.timestamp + lockPeriod);
         emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
     }
 
@@ -126,8 +130,8 @@ contract RecoveryManager is BaseFeature {
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
 
-        setOwner(_wallet, recoveryOwner);
-        setLock(_wallet, 0);
+        versionManager.setOwner(_wallet, recoveryOwner);
+        lockStorage.setLock(_wallet, 0);
 
         emit RecoveryFinalized(_wallet, recoveryOwner);
     }
@@ -141,7 +145,7 @@ contract RecoveryManager is BaseFeature {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
-        setLock(_wallet, 0);
+        lockStorage.setLock(_wallet, 0);
 
         emit RecoveryCanceled(_wallet, recoveryOwner);
     }
@@ -153,7 +157,7 @@ contract RecoveryManager is BaseFeature {
      */
     function transferOwnership(address _wallet, address _newOwner) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
         require(_newOwner != address(0), "RM: new owner address cannot be null");
-        setOwner(_wallet, _newOwner);
+        versionManager.setOwner(_wallet, _newOwner);
 
         emit OwnershipTransfered(_wallet, _newOwner);
     }
@@ -194,21 +198,4 @@ contract RecoveryManager is BaseFeature {
         revert("RM: unknown method");
     }
 
-    // *************** Internal functions ************************ //
-
-    function setLock(address _wallet, uint256 _lock) internal {
-        versionManager.invokeVersionManager(
-            _wallet,
-            address(guardianStorage), 
-            abi.encodeWithSelector(guardianStorage.setLock.selector, _wallet, _lock)
-        );
-    }
-
-    function setOwner(address _wallet, address _owner) internal {
-        versionManager.invokeVersionManager(
-            _wallet,
-            _wallet, 
-            abi.encodeWithSelector(IWallet(_wallet).setOwner.selector, _owner)
-        );
-    }
 }
