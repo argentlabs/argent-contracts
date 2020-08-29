@@ -164,12 +164,12 @@ contract("MakerV2Loan", (accounts) => {
     let txReceipt;
     if (relayed) {
       txReceipt = await manager.relay(makerV2, method, params, wallet, [owner]);
-      const { success } = (await parseLogs(txReceipt, relayerManager, "TransactionExecuted"))[0];
+      const { success } = await parseLogs(txReceipt, "TransactionExecuted");
       assert.isTrue(success, "Relayed tx should succeed");
     } else {
       txReceipt = await (await makerV2[method](...params, { gasLimit: 2000000, from: owner })).wait();
     }
-    const loanId = (await parseLogs(txReceipt, makerV2, "LoanOpened"))[0]._loanId;
+    const loanId = (await parseLogs(txReceipt, "LoanOpened"))._loanId;
     assert.isDefined(loanId, "Loan ID should be defined");
 
     const afterCollateral = (collateral.address === ETH_TOKEN)
