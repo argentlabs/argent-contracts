@@ -96,17 +96,8 @@ module.exports = {
     return { success: args.success, error };
   },
 
-  parseLogs(txReceipt, contract, eventName) {
-    const filter = txReceipt.logs.filter((e) => (
-      e.topics.find((t) => (
-        contract.events[eventName].topic === t
-      )) !== undefined
-    ));
-    const res = [];
-    for (const f of filter) {
-      res.push(contract.interface.events[eventName].decode(f.data, f.topics));
-    }
-    return res;
+  parseLogs(txReceipt, eventName) {
+    return txReceipt.logs.filter((e) => e.event === eventName)[0].args;
   },
 
   async hasEvent(txReceipt, eventName) {
@@ -195,8 +186,12 @@ module.exports = {
       await promise;
       assert.fail(`Transaction succeeded, but expected error ${revertMessage}`);
     } catch (err) {
-      ({ reason } = err);
-      assert.equal(reason, revertMessage);
+      if (!revertMessage) {
+        assert.notEqual(err.hijackedStack.indexOf("VM Exception while processing transaction: revert"), -1);
+      } else {
+        ({ reason } = err);
+        assert.equal(reason, revertMessage);
+      }
     }
   },
 

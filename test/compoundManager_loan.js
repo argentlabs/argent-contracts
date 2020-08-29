@@ -200,7 +200,8 @@ contract("Loan Module", (accounts) => {
         txReceipt = tx.receipt;
       }
       await utils.hasEvent(txReceipt, "LoanOpened");
-      const loanId = (await utils.parseLogs(txReceipt, loanManager, "LoanOpened"))[0]._loanId;
+      const eventArgs = utils.parseLogs(txReceipt, "LoanOpened");
+      const loanId = eventArgs._loanId;
       assert.isDefined(loanId, "Loan ID should be defined");
 
       const collateralAfter = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
