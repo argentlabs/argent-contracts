@@ -1,7 +1,6 @@
 /* eslint max-classes-per-file: ["error", 2] */
 
 const ethers = require("ethers");
-const chai = require("chai");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
 const BaseWallet = require("../build/BaseWallet");
@@ -29,8 +28,6 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const { sortWalletByAddress } = require("../utils/utilities.js");
-
-const { expect } = chai;
 
 class Logger {
   constructor() {
@@ -120,10 +117,10 @@ class Benchmark {
     this.CompoundManagerWrapper = await this.deployer.wrapDeployedContract(CompoundManager, config.modules.CompoundManager);
     this.MakerV2ManagerWrapper = await this.deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
     this.RelayerManagerWrapper = await this.deployer.wrapDeployedContract(RelayerManager, config.modules.RelayerManager);
-    
+
     // Module
     this.VersionManagerWrapper = await this.deployer.wrapDeployedContract(VersionManager, config.modules.VersionManager);
-    
+
     this.ModuleRegistryWrapper = await this.deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
     this.MultiSigWrapper = await this.deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
     this.WalletFactoryWrapper = await this.deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
@@ -135,7 +132,7 @@ class Benchmark {
   }
 
   async setupWallet() {
-    this.allModules = [this.VersionManagerWrapper.contractAddress]
+    this.allModules = [this.VersionManagerWrapper.contractAddress];
     const proxy = await this.deployer.deploy(Proxy, {}, this.BaseWalletWrapper.contractAddress);
     this.wallet = this.deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     this.walletAddress = this.wallet.contractAddress;
@@ -240,7 +237,7 @@ class Benchmark {
       TransferManager,
       {},
       this.config.contracts.ModuleRegistry,
-      this.config.modules.LockStorsage,
+      this.config.modules.LockStorage,
       this.config.modules.TransferStorage,
       this.config.modules.LimitStorage,
       this.config.modules.TokenPriceStorage,
@@ -277,16 +274,16 @@ class Benchmark {
           this.NftTransferWrapper.contractAddress,
           this.CompoundManagerWrapper.contractAddress,
           this.MakerV2ManagerWrapper.contractAddress,
-          this.RelayerManagerWrapper.contractAddress
+          this.RelayerManagerWrapper.contractAddress,
         ], [
-          this.TransferManagerWrapper.contractAddress
-        ]
+          this.TransferManagerWrapper.contractAddress,
+        ],
       ],
     );
 
     // Upgrade a wallet from 2.0 to 2.1
     const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, [
-      this.TransferManagerWrapper.contractAddress, this.NftTransferWrapper.contractAddress
+      this.TransferManagerWrapper.contractAddress, this.NftTransferWrapper.contractAddress,
     ]);
     const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
 

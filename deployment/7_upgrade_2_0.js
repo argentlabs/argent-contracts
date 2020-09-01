@@ -33,7 +33,7 @@ const MODULES_TO_ENABLE = [
   "VersionManager",
 ];
 const MODULES_TO_DISABLE = [
-  "MakerManager",   
+  "MakerManager",
   "ApprovedTransfer",
   "CompoundManager",
   "GuardianManager",
@@ -42,7 +42,7 @@ const MODULES_TO_DISABLE = [
   "RecoveryManager",
   "TokenExchanger",
   "MakerV2Manager",
-  "TransferManager"
+  "TransferManager",
 ];
 
 const BACKWARD_COMPATIBILITY = 3;
@@ -101,7 +101,8 @@ const deploy = async (network) => {
     {},
     config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
-    config.modules.TransferStorage
+    config.modules.GuardianStorage,
+    config.modules.TransferStorage,
   );
   newModuleWrappers.push(VersionManagerWrapper);
 
@@ -157,7 +158,7 @@ const deploy = async (network) => {
     LockStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
-    config.CryptoKitties.contract
+    config.CryptoKitties.contract,
   );
 
   const RecoveryManagerWrapper = await deployer.deploy(
@@ -193,7 +194,7 @@ const deploy = async (network) => {
     config.defi.maker.jug,
     config.contracts.MakerRegistry,
     config.defi.uniswap.factory,
-    VersionManagerWrapper.contractAddress
+    VersionManagerWrapper.contractAddress,
   );
 
   const TransferManagerWrapper = await deployer.deploy(
@@ -220,7 +221,7 @@ const deploy = async (network) => {
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
-    VersionManagerWrapper.contractAddress
+    VersionManagerWrapper.contractAddress,
   );
 
   // Add Features to Version Manager
@@ -236,7 +237,7 @@ const deploy = async (network) => {
     MakerV2ManagerWrapper.contractAddress,
     RelayerManagerWrapper.contractAddress,
   ], [
-    TransferManagerWrapper.contractAddress
+    TransferManagerWrapper.contractAddress,
   ]);
 
   // //////////////////////////////////
@@ -263,7 +264,7 @@ const deploy = async (network) => {
 
   changeOwnerTx = await TokenPriceStorageWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await TokenPriceStorageWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceStorageWrapper");
-  
+
   changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await VersionManagerWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of VersionManagerWrapper");
 
@@ -275,7 +276,7 @@ const deploy = async (network) => {
   configurator.updateModuleAddresses({
     LimitStorage: LimitStorageWrapper.contractAddress,
     TokenPriceStorage: TokenPriceStorageWrapper.contractAddress,
-    GuardianStorage: GuardianStorageWrapper.contractAddress,
+    LockStorage: LockStorageWrapper.contractAddress,
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
     GuardianManager: GuardianManagerWrapper.contractAddress,
@@ -311,7 +312,7 @@ const deploy = async (network) => {
     abiUploader.upload(RelayerManagerWrapper, "modules"),
     abiUploader.upload(LimitStorageWrapper, "contracts"),
     abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
-    abiUploader.upload(GuardianStorageWrapper, "contracts"),
+    abiUploader.upload(LockStorageWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
   ]);

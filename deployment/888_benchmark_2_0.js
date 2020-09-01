@@ -34,7 +34,6 @@ const LockManager = require("../build-legacy/v1.6.0/LockManager");
 const NftTransfer = require("../build-legacy/v1.6.0/NftTransfer");
 const RecoveryManager = require("../build-legacy/v1.6.0/RecoveryManager");
 const TokenExchanger = require("../build-legacy/v1.6.0/TokenExchanger");
-const MakerManager = require("../build-legacy/v1.6.0/MakerManager");
 const MakerV2Manager = require("../build-legacy/v1.6.0/MakerV2Manager");
 const CompoundManager = require("../build-legacy/v1.6.0/CompoundManager");
 
@@ -42,7 +41,6 @@ const DeployManager = require("../utils/deploy-manager");
 const TestManager = require("../utils/test-manager");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const { sortWalletByAddress } = require("../utils/utilities.js");
 
 const { expect } = chai;
@@ -138,10 +136,8 @@ class Benchmark {
     this.MultiSigWrapper = await this.deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
     this.WalletFactoryWrapper = await this.deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
     this.BaseWalletWrapper = await this.deployer.wrapDeployedContract(BaseWallet, config.contracts.BaseWallet);
-    
 
     this.multisigExecutor = new MultisigExecutor(this.MultiSigWrapper, this.signers[0], true);
-
   }
 
   async setupWallet() {
@@ -167,7 +163,6 @@ class Benchmark {
     });
   }
 
-  
   async testUpgradeAllModules() {
     // Deploy Storage contracts
     const LockStorageWrapper = await this.deployer.deploy(LockStorage);
@@ -180,6 +175,7 @@ class Benchmark {
       {},
       this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
+      this.config.modules.GuardianStorage,
       this.config.modules.TransferStorage,
     );
 
@@ -196,7 +192,7 @@ class Benchmark {
     );
 
     const newCompoundManagerWrapper = await this.deployer.deploy(
-        NewCompoundManager,
+      NewCompoundManager,
       {},
       this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
@@ -206,7 +202,7 @@ class Benchmark {
     );
 
     const newGuardianManager = await this.deployer.deploy(
-        NewGuardianManager,
+      NewGuardianManager,
       {},
       this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
@@ -217,7 +213,7 @@ class Benchmark {
     );
 
     const newLockManagerWrapper = await this.deployer.deploy(
-        NewLockManager,
+      NewLockManager,
       {},
       this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
@@ -312,14 +308,16 @@ class Benchmark {
       newMakerV2ManagerWrapper.contractAddress,
       relayerManagerWrapper.contractAddress,
     ], [
-      newTransferManagerWrapper.contractAddress
+      newTransferManagerWrapper.contractAddress,
     ]);
 
     // Register new modules
     await this.multisigExecutor.executeCall(
       this.ModuleRegistryWrapper,
-      "registerModule",
-      [VersionManagerWrapper.contractAddress, ethers.utils.formatBytes32String("VersionManagerWrapper")],
+      "registerModule", [
+        VersionManagerWrapper.contractAddress,
+        ethers.utils.formatBytes32String("VersionManagerWrapper"),
+      ],
     );
 
     // Create upgrader
@@ -327,7 +325,7 @@ class Benchmark {
       SimpleUpgrader,
       {},
       this.ModuleRegistryWrapper.contractAddress,
-      this.config.modules.GuardianManager,
+      this.config.modules.GuardianStorage,
       this.allModules,
       [VersionManagerWrapper.contractAddress],
     );
@@ -338,7 +336,6 @@ class Benchmark {
     );
     // Upgrade from V1 to V2
     const tx = await this.ApprovedTransferWrapper.from(this.accounts[0]).addModule(this.wallet.contractAddress, upgrader.contractAddress);
-    // if(1+1)return
     const txReceipt = await this.ApprovedTransferWrapper.verboseWaitForTransaction(tx);
 
     // Test if the upgrade worked

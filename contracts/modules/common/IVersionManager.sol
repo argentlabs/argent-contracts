@@ -38,6 +38,8 @@ interface IVersionManager {
      */
     function invokeWallet(address _wallet, address _to, uint256 _value, bytes calldata _data) external returns (bytes memory _res);
 
+    /* ******* Backward Compatibility with old Storages and BaseWallet *************** */
+
     /**
      * @notice Lets a feature add or remove an account from the whitelist of a wallet.
      * @param _wallet The target wallet.
@@ -45,6 +47,20 @@ interface IVersionManager {
      * @param _whitelistAfter The epoch time at which an account starts to be whitelisted, or zero if the account is not whitelisted
      */
     function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) external;
+
+    /**
+     * @notice Lets a feature add a guardian to a wallet.
+     * @param _wallet The target wallet.
+     * @param _guardian The guardian to add.
+     */
+    function addGuardian(address _wallet, address _guardian) external;
+
+    /**
+     * @notice Lets a feature revoke a guardian from a wallet.
+     * @param _wallet The target wallet.
+     * @param _guardian The guardian to revoke.
+     */
+    function revokeGuardian(address _wallet, address _guardian) external;
 
     /**
      * @notice Sets a new owner for the wallet.

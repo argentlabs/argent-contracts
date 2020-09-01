@@ -18,6 +18,7 @@ pragma solidity ^0.6.12;
 
 import "../infrastructure/base/Owned.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 import "./common/IModule.sol";
 import "./common/BaseFeature.sol";
 
@@ -44,6 +45,8 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     // The Transfer Storage
     ITransferStorage private transferStorage;
+    // The Guardian Storage
+    IGuardianStorage private guardianStorage;
 
     /* ***************** Modifiers ************************* */
 
@@ -57,11 +60,13 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     constructor(
         IModuleRegistry _registry,
         ILockStorage _lockStorage,
-        ITransferStorage _transferStorage
+        IGuardianStorage _guardianStorage,
+        ITransferStorage _transferStorage   
     )
         BaseFeature(_registry, _lockStorage, IVersionManager(address(this)), NAME)
         public
     {
+        guardianStorage = _guardianStorage;
         transferStorage = _transferStorage;
     }
 
@@ -183,6 +188,20 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      */
     function setOwner(address _wallet, address _newOwner) external override onlyFeature(_wallet) {
         IWallet(_wallet).setOwner(_newOwner);
+    }
+
+    /**
+     * @inheritdoc IVersionManager
+     */
+    function addGuardian(address _wallet, address _guardian) external override onlyFeature(_wallet) {
+        guardianStorage.addGuardian(_wallet, _guardian);
+    }
+
+    /**
+     * @inheritdoc IVersionManager
+     */
+    function revokeGuardian(address _wallet, address _guardian) external override onlyFeature(_wallet) {
+        guardianStorage.revokeGuardian(_wallet, _guardian);
     }
 
 

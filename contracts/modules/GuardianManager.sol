@@ -97,7 +97,7 @@ contract GuardianManager is BaseFeature {
         (bool success,) = _guardian.call{gas: 5000}(abi.encodeWithSignature("owner()"));
         require(success, "GM: guardian must be EOA or implement owner()");
         if (guardianStorage.guardianCount(_wallet) == 0) {
-            guardianStorage.addGuardian(_wallet, _guardian);
+            versionManager.addGuardian(_wallet, _guardian);
             emit GuardianAdded(_wallet, _guardian);
         } else {
             bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
@@ -122,7 +122,7 @@ contract GuardianManager is BaseFeature {
         require(config.pending[id] > 0, "GM: no pending addition as guardian for target");
         require(config.pending[id] < block.timestamp, "GM: Too early to confirm guardian addition");
         require(block.timestamp < config.pending[id] + securityWindow, "GM: Too late to confirm guardian addition");
-        guardianStorage.addGuardian(_wallet, _guardian);
+        versionManager.addGuardian(_wallet, _guardian);
         emit GuardianAdded(_wallet, _guardian);
         delete config.pending[id];
     }
@@ -169,7 +169,7 @@ contract GuardianManager is BaseFeature {
         require(config.pending[id] > 0, "GM: no pending guardian revokation for target");
         require(config.pending[id] < block.timestamp, "GM: Too early to confirm guardian revokation");
         require(block.timestamp < config.pending[id] + securityWindow, "GM: Too late to confirm guardian revokation");
-        guardianStorage.revokeGuardian(_wallet, _guardian);
+        versionManager.revokeGuardian(_wallet, _guardian);
         emit GuardianRevoked(_wallet, _guardian);
         delete config.pending[id];
     }
