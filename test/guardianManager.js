@@ -48,27 +48,24 @@ describe("GuardianManager", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
-      ethers.constants.AddressZero
-    );
+      ethers.constants.AddressZero);
     relayerManager = await deployer.deploy(RelayerManager, {},
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress
-    );
+      versionManager.contractAddress);
     guardianManager = await deployer.deploy(GuardianManager, {},
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
-      24, 
-      12
-    );
+      24,
+      12);
     await versionManager.addVersion([guardianManager.contractAddress, relayerManager.contractAddress], []);
     manager.setRelayerManager(relayerManager);
-    
+
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [versionManager.contractAddress]);
