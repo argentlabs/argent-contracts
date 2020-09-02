@@ -5,10 +5,12 @@ const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
 const RecoveryManager = require("../build/RecoveryManager");
 const GuardianStorage = require("../build/GuardianStorage");
+const LockStorage = require("../build/LockStorage");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
-const RelayerModule = require("../build/RelayerModule");
+const RelayerManager = require("../build/RelayerManager");
+const VersionManager = require("../build/VersionManager");
 
 const TestManager = require("../utils/test-manager");
 const {
@@ -37,13 +39,15 @@ describe("RecoveryManager", function () {
   let deployer;
   let registry;
   let guardianManager;
+  let lockStorage;
   let guardianStorage;
   let lockManager;
   let recoveryManager;
   let recoveryPeriod;
   let wallet;
   let walletImplementation;
-  let relayerModule;
+  let relayerManager;
+  let versionManager;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -53,27 +57,53 @@ describe("RecoveryManager", function () {
   beforeEach(async () => {
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-    lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
-    recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
-    recoveryPeriod = await recoveryManager.recoveryPeriod();
-
-    relayerModule = await deployer.deploy(RelayerModule, {},
+    lockStorage = await deployer.deploy(LockStorage);
+    versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero);
+
+    guardianManager = await deployer.deploy(GuardianManager, {}, 
+      registry.contractAddress,
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      versionManager.contractAddress,
+      24, 12);
+    lockManager = await deployer.deploy(LockManager, {},
+      registry.contractAddress, 
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress, 
+      versionManager.contractAddress,
+      24 * 5);
+    recoveryManager = await deployer.deploy(RecoveryManager, {}, 
+      registry.contractAddress, 
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress, 
+      versionManager.contractAddress,
+      36, 24 * 5);
+    recoveryPeriod = await recoveryManager.recoveryPeriod();
+    relayerManager = await deployer.deploy(RelayerManager, {},
+      registry.contractAddress,
+      lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
-      ethers.constants.AddressZero);
-    manager.setRelayerModule(relayerModule);
+      ethers.constants.AddressZero,
+      versionManager.contractAddress);
+    manager.setRelayerManager(relayerManager);
 
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address,
-      [
-        guardianManager.contractAddress,
-        lockManager.contractAddress,
-        recoveryManager.contractAddress,
-        relayerModule.contractAddress,
-      ]);
+
+    await versionManager.addVersion([
+      guardianManager.contractAddress,
+      lockManager.contractAddress,
+      recoveryManager.contractAddress,
+      relayerManager.contractAddress,
+    ], []);
+
+    await wallet.init(owner.address, [versionManager.contractAddress]);
+
   });
 
   async function addGuardians(guardians) {
@@ -101,7 +131,7 @@ describe("RecoveryManager", function () {
     for (g of guardians) {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const guardianWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-      await guardianWallet.init(g.address, [guardianManager.contractAddress]);
+      await guardianWallet.init(g.address, [versionManager.contractAddress]);
       wallets.push(guardianWallet);
     }
     return wallets;
@@ -332,7 +362,12 @@ describe("RecoveryManager", function () {
 
   describe("RecoveryManager high level logic", () => {
     it("should not be able to instantiate the RecoveryManager with lock period shorter than the recovery period", async () => {
-      await assert.revertWith(deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 35),
+      await assert.revertWith(deployer.deploy(RecoveryManager, {}, 
+        registry.contractAddress,
+        lockStorage.contractAddress,
+        guardianStorage.contractAddress,
+        versionManager.contractAddress,
+        36, 35),
         "RM: insecure security periods");
     });
   });
@@ -437,7 +472,7 @@ describe("RecoveryManager", function () {
 
         const signatures = await signOffchain(
           [guardian1],
-          relayerModule.contractAddress,
+          relayerManager.contractAddress,
           recoveryManager.contractAddress,
           0,
           methodData,
@@ -449,7 +484,7 @@ describe("RecoveryManager", function () {
           ethers.constants.AddressZero,
         );
         await assert.revertWith(
-          relayerModule.from(nonowner2).execute(
+          relayerManager.from(nonowner2).execute(
             wallet.contractAddress,
             recoveryManager.contractAddress,
             methodData,

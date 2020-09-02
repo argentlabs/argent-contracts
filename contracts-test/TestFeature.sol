@@ -60,14 +60,14 @@ contract TestFeature is BaseFeature {
     }
     /////////////////
 
-    function init(address _wallet) public override onlyWallet(_wallet) {
-        enableStaticCalls(_wallet, address(this));
-    }
-
-    function enableStaticCalls(address _wallet, address _module) public {
-        IWallet(_wallet).enableStaticCall(_module, bytes4(keccak256("getBoolean()")));
-        IWallet(_wallet).enableStaticCall(_module, bytes4(keccak256("getUint()")));
-        IWallet(_wallet).enableStaticCall(_module, bytes4(keccak256("getAddress(address)")));
+    /**
+     * @inheritdoc IFeature
+     */
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
+        _sigs = new bytes4[](3);
+        _sigs[0] = bytes4(keccak256("getBoolean()"));
+        _sigs[1] = bytes4(keccak256("getUint()"));
+        _sigs[2] = bytes4(keccak256("getAddress(address)"));
     }
 
     function getBoolean() public view returns (bool) {

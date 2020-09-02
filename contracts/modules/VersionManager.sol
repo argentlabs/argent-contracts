@@ -16,6 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
+import "./common/Utils.sol";
 import "../infrastructure/base/Owned.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
@@ -31,6 +32,9 @@ import "./common/BaseFeature.sol";
 contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     bytes32 constant NAME = "VersionManager";
+
+    bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
+    bytes4 constant internal UPGRADE_WALLET_PREFIX = bytes4(keccak256("upgradeWallet(address,address[])"));
 
     uint256 public lastVersion;
     mapping(address => uint256) public walletVersions; // [wallet] => [version]
@@ -79,8 +83,15 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IFeature
      */
-    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
-        return (1, OwnerSignature.Required);
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+        bytes4 methodId = Utils.functionPrefix(_data);
+        if (methodId == UPGRADE_WALLET_PREFIX || methodId == ADD_MODULE_PREFIX) {
+            return (1, OwnerSignature.Required);
+        }
+
+        // This revert ensures that the RelayerManager cannot be used to call a featureOnly VersionManager method
+        // that calls a Storage or the BaseWallet for backward-compatibility reason
+        revert("VM: unknown method");
     }
 
     function addVersion(address[] calldata _features, address[] calldata _featuresToInit) external onlyOwner {
@@ -100,14 +111,11 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         emit VersionAdded(newVersion);
     }
 
-    function upgradeWallet(
-        address _wallet, 
-        address[] calldata _featuresToInit // it's cheaper to pass features to init as calldata than reading them from storage
-    ) 
-        external 
-        onlyWalletOwnerOrFeature(_wallet) 
-        onlyWhenUnlocked(_wallet) 
-    {
+    /**
+     * @notice Upgrade a wallet to the latest version.
+     * @dev It's cheaper to pass features to init as calldata than reading them from storage
+     */
+    function upgradeWallet(address _wallet, address[] calldata _featuresToInit) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
         doUpgradeWallet(_wallet, _featuresToInit);
     }
 
@@ -123,7 +131,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      * @inheritdoc IVersionManager
      */
     function isFeatureAuthorised(address _wallet, address _feature) public view override returns (bool) {
-        return isFeatureInVersion[_feature][walletVersions[_wallet]];
+        return isFeatureInVersion[_feature][walletVersions[_wallet]] || _feature == address(this);
     }
     
     /**

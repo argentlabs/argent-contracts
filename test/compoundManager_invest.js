@@ -2,12 +2,14 @@
 const { parseEther, formatBytes32String } = require("ethers").utils;
 const ethers = require("ethers");
 const GuardianStorage = require("../build/GuardianStorage");
+const LockStorage = require("../build/LockStorage");
 const Registry = require("../build/ModuleRegistry");
 
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
-const RelayerModule = require("../build/RelayerModule");
+const RelayerManager = require("../build/RelayerManager");
 const CompoundManager = require("../build/CompoundManager");
+const VersionManager = require("../build/VersionManager");
 
 // Compound
 const Unitroller = require("../build/Unitroller");
@@ -42,13 +44,14 @@ describe("Invest Manager with Compound", function () {
   let walletImplementation;
   let registry;
   let investManager;
-  let relayerModule;
+  let relayerManager;
   let compoundRegistry;
   let token;
   let cToken;
   let cEther;
   let comptroller;
   let oracleProxy;
+  let versionManager;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -116,29 +119,44 @@ describe("Invest Manager with Compound", function () {
     await compoundRegistry.addCToken(token.contractAddress, cToken.contractAddress);
     registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
+    const lockStorage = await deployer.deploy(LockStorage);
+    versionManager = await deployer.deploy(VersionManager, {},
+      registry.contractAddress,
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero);
+
     investManager = await deployer.deploy(
       CompoundManager,
       {},
       registry.contractAddress,
-      guardianStorage.contractAddress,
+      lockStorage.contractAddress,
       comptroller.contractAddress,
       compoundRegistry.contractAddress,
+      versionManager.contractAddress
     );
 
     walletImplementation = await deployer.deploy(BaseWallet);
 
-    relayerModule = await deployer.deploy(RelayerModule, {},
+    relayerManager = await deployer.deploy(RelayerManager, {},
       registry.contractAddress,
+      lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
-      ethers.constants.AddressZero);
-    manager.setRelayerModule(relayerModule);
+      ethers.constants.AddressZero,
+      versionManager.contractAddress);
+    manager.setRelayerManager(relayerManager);
+
+    await versionManager.addVersion([
+      investManager.contractAddress, 
+      relayerManager.contractAddress
+    ], []);
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [investManager.contractAddress, relayerModule.contractAddress]);
+    await wallet.init(owner.address, [versionManager.contractAddress]);
   });
 
   describe("Environment", () => {

@@ -12,7 +12,6 @@ const { AddressZero } = ethers.constants;
 const TestManager = require("../utils/test-manager");
 const GemJoin = require("../build/GemJoin");
 const Registry = require("../build/ModuleRegistry");
-const MakerV1Manager = require("../build-legacy/v1.6.0/MakerManager");
 const MakerV2Manager = require("../build/MakerV2Manager");
 const UpgradedMakerV2Manager = require("../build/TestUpgradedMakerV2Manager");
 const MakerRegistry = require("../build/MakerRegistry");
@@ -20,12 +19,14 @@ const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const FakeWallet = require("../build/FakeWallet");
 const GuardianStorage = require("../build/GuardianStorage");
+const LockStorage = require("../build/LockStorage");
 const TransferStorage = require("../build/TransferStorage");
 const LimitStorage = require("../build/LimitStorage");
 const TokenPriceStorage = require("../build/TokenPriceStorage");
 const TransferManager = require("../build/TransferManager");
-const BadModule = require("../build/TestModule");
-const RelayerModule = require("../build/RelayerModule");
+const BadFeature = require("../build/TestFeature");
+const RelayerManager = require("../build/RelayerManager");
+const VersionManager = require("../build/VersionManager");
 
 /* global accounts */
 describe("MakerV2 Vaults", function () {
@@ -52,14 +53,15 @@ describe("MakerV2 Vaults", function () {
   let registry;
   let transferManager;
   let guardianStorage;
-  let makerV1;
+  let lockStorage;
   let makerV2;
   let wallet;
   let walletImplementation;
   let walletAddress;
   let makerRegistry;
   let uniswapFactory;
-  let relayerModule;
+  let relayerManager;
+  let versionManager;
 
   before(async () => {
     // Deploy Maker
@@ -76,28 +78,26 @@ describe("MakerV2 Vaults", function () {
     // Deploy MakerV2Manager
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
+    lockStorage = await deployer.deploy(LockStorage);
+    versionManager = await deployer.deploy(VersionManager, {},
+      registry.contractAddress,
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero);
+
     makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);
     await makerRegistry.addCollateral(wethJoin.contractAddress);
     makerV2 = await deployer.deploy(
       MakerV2Manager,
       {},
       registry.contractAddress,
-      guardianStorage.contractAddress,
+      lockStorage.contractAddress,
       migration.contractAddress,
       pot.contractAddress,
       jug.contractAddress,
       makerRegistry.contractAddress,
       uniswapFactory.contractAddress,
-    );
-
-    // Deploy MakerManager
-    makerV1 = await deployer.deploy(
-      MakerV1Manager,
-      {},
-      registry.contractAddress,
-      guardianStorage.contractAddress,
-      tub.contractAddress,
-      uniswapFactory.contractAddress,
+      versionManager.contractAddress,
     );
 
     // Deploy TransferManager
@@ -105,11 +105,12 @@ describe("MakerV2 Vaults", function () {
     const limitStorage = await deployer.deploy(LimitStorage);
     const tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
     transferManager = await deployer.deploy(TransferManager, {},
-      AddressZero,
+      registry.contractAddress,
+      lockStorage.contractAddress,
       transferStorage.contractAddress,
-      guardianStorage.contractAddress,
       limitStorage.contractAddress,
       tokenPriceStorage.contractAddress,
+      versionManager.contractAddress,
       3600,
       3600,
       10000,
@@ -118,25 +119,27 @@ describe("MakerV2 Vaults", function () {
 
     walletImplementation = await deployer.deploy(BaseWallet);
 
-    relayerModule = await deployer.deploy(RelayerModule, {},
+    relayerManager = await deployer.deploy(RelayerManager, {},
       registry.contractAddress,
+      lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
-      ethers.constants.AddressZero);
-    manager.setRelayerModule(relayerModule);
+      ethers.constants.AddressZero,
+      versionManager.contractAddress);
+    manager.setRelayerManager(relayerManager);
+
+    await versionManager.addVersion([
+      makerV2.contractAddress,
+      transferManager.contractAddress,
+      relayerManager.contractAddress
+    ], []);
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-    await wallet.init(owner.address,
-      [
-        makerV1.contractAddress,
-        makerV2.contractAddress,
-        transferManager.contractAddress,
-        relayerModule.contractAddress,
-      ]);
+    await wallet.init(owner.address, [versionManager.contractAddress]);
     walletAddress = wallet.contractAddress;
     await infrastructure.sendTransaction({ to: walletAddress, value: parseEther("2.0") });
     await dai["mint(address,uint256)"](walletAddress, parseEther("10"));
@@ -166,7 +169,7 @@ describe("MakerV2 Vaults", function () {
     let txReceipt;
     if (relayed) {
       txReceipt = await manager.relay(makerV2, method, params, wallet, [owner]);
-      const { success } = (await parseLogs(txReceipt, relayerModule, "TransactionExecuted"))[0];
+      const { success } = (await parseLogs(txReceipt, relayerManager, "TransactionExecuted"))[0];
       assert.isTrue(success, "Relayed tx should succeed");
     } else {
       txReceipt = await (await makerV2.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
@@ -300,7 +303,7 @@ describe("MakerV2 Vaults", function () {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await wallet2.init(owner2.address, [versionManager.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).addCollateral(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
         "MV2: unauthorized loanId",
@@ -334,7 +337,7 @@ describe("MakerV2 Vaults", function () {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await wallet2.init(owner2.address, [versionManager.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).removeCollateral(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
         "MV2: unauthorized loanId",
@@ -400,7 +403,7 @@ describe("MakerV2 Vaults", function () {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await wallet2.init(owner2.address, [versionManager.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).addDebt(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
         "MV2: unauthorized loanId",
@@ -450,7 +453,7 @@ describe("MakerV2 Vaults", function () {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await wallet2.init(owner2.address, [versionManager.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).removeDebt(wallet2.contractAddress, loanId, ETH_TOKEN, parseEther("0.010")),
         "MV2: unauthorized loanId",
@@ -494,7 +497,7 @@ describe("MakerV2 Vaults", function () {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const wallet2 = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-      await wallet2.init(owner2.address, [makerV2.contractAddress]);
+      await wallet2.init(owner2.address, [versionManager.contractAddress]);
       await assert.revertWith(
         makerV2.from(owner2).closeLoan(wallet2.contractAddress, loanId),
         "MV2: unauthorized loanId",
@@ -553,7 +556,7 @@ describe("MakerV2 Vaults", function () {
       const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
       // Transfer the vault to the wallet
       await cdpManager.from(owner).give(vaultId, walletAddress);
-      // Transfer the vault to the module
+      // Transfer the vault to the feature
       const loanId = bigNumToBytes32(vaultId);
       const method = "acquireLoan";
       const params = [walletAddress, loanId];
@@ -568,22 +571,22 @@ describe("MakerV2 Vaults", function () {
       assert.isTrue(await hasEvent(txReceipt, makerV2, "LoanAcquired"), "should have generated LoanAcquired event");
 
       // The loanId held by the MakerV2Manager will be different from the transferred vault id, in case the latter was merged into an existing vault
-      const moduleLoanId = await makerV2.loanIds(walletAddress, ilk);
+      const featureLoanId = await makerV2.loanIds(walletAddress, ilk);
       // Add some collateral and debt
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       await testChangeCollateral({
-        loanId: moduleLoanId, collateralAmount, add: true, relayed, makerV2,
+        loanId: featureLoanId, collateralAmount, add: true, relayed, makerV2,
       });
       await testChangeDebt({
-        loanId: moduleLoanId, daiAmount, add: true, relayed,
+        loanId: featureLoanId, daiAmount, add: true, relayed,
       });
     }
 
-    it("should transfer a vault from a wallet to the module (blockchain tx)", async () => {
+    it("should transfer a vault from a wallet to the feature (blockchain tx)", async () => {
       await testAcquireVault({ relayed: false });
     });
 
-    it("should transfer a vault from a wallet to the module (relayed tx)", async () => {
+    it("should transfer a vault from a wallet to the feature (relayed tx)", async () => {
       await testAcquireVault({ relayed: true });
     });
 
@@ -599,10 +602,10 @@ describe("MakerV2 Vaults", function () {
       );
     });
 
-    it("should not transfer a vault that is not given to the module", async () => {
+    it("should not transfer a vault that is not given to the feature", async () => {
       // Deploy a fake wallet
       const fakeWallet = await deployer.deploy(FakeWallet, {}, false, AddressZero, 0, "0x00");
-      await fakeWallet.init(owner.address, [makerV2.contractAddress]);
+      await fakeWallet.init(owner.address, [versionManager.contractAddress]);
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
       const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
@@ -615,13 +618,13 @@ describe("MakerV2 Vaults", function () {
       );
     });
 
-    it("should transfer (merge) a vault when already holding a vault in the module (blockchain tx)", async () => {
+    it("should transfer (merge) a vault when already holding a vault in the feature (blockchain tx)", async () => {
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testAcquireVault({ relayed: false });
     });
 
-    it("should transfer (merge) a vault when already holding a vault in the module (relayed tx)", async () => {
+    it("should transfer (merge) a vault when already holding a vault in the feature (relayed tx)", async () => {
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testAcquireVault({ relayed: true });
@@ -631,7 +634,7 @@ describe("MakerV2 Vaults", function () {
       // Deploy a fake wallet capable of reentrancy
       const acquireLoanCallData = makerV2.contract.interface.functions.acquireLoan.encode([AddressZero, bigNumToBytes32(ethers.BigNumber.from(0))]);
       const fakeWallet = await deployer.deploy(FakeWallet, {}, true, makerV2.contractAddress, 0, acquireLoanCallData);
-      await fakeWallet.init(owner.address, [makerV2.contractAddress]);
+      await fakeWallet.init(owner.address, [versionManager.contractAddress]);
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
       const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
@@ -656,18 +659,19 @@ describe("MakerV2 Vaults", function () {
       daiAmount = testAmounts.daiAmount;
       collateralAmount = testAmounts.collateralAmount;
 
-      // Deploy and register the upgraded MakerV2 module
+      // Deploy and register the upgraded MakerV2 feature
       upgradedMakerV2 = await deployer.deploy(
         UpgradedMakerV2Manager,
         {},
         registry.contractAddress,
-        guardianStorage.contractAddress,
+        lockStorage.contractAddress,
         migration.contractAddress,
         pot.contractAddress,
         jug.contractAddress,
         makerRegistry.contractAddress,
         uniswapFactory.contractAddress,
         makerV2.contractAddress,
+        versionManager.contractAddress,
         { gasLimit: 10700000 },
       );
       await registry.registerModule(upgradedMakerV2.contractAddress, formatBytes32String("UpgradedMakerV2Manager"));
@@ -679,11 +683,11 @@ describe("MakerV2 Vaults", function () {
     });
 
     async function testUpgradeModule({ relayed, withBatVault = false }) {
-      // Open a WETH vault with the old MakerV2 module
+      // Open a WETH vault with the old MakerV2 feature
       const loanId1 = await testOpenLoan({ collateralAmount, daiAmount, relayed });
       let loanId2;
       if (withBatVault) {
-        // Open a BAT vault with the old MakerV2 module
+        // Open a BAT vault with the old MakerV2 feature
         const batTestAmounts = await getTestAmounts(bat.contractAddress);
         await bat["mint(address,uint256)"](walletAddress, batTestAmounts.collateralAmount.add(parseEther("0.01")));
         loanId2 = await testOpenLoan({
@@ -694,17 +698,21 @@ describe("MakerV2 Vaults", function () {
         });
       }
 
-      // Add the upgraded module
-      const method = "addModule";
-      const params = [walletAddress, upgradedMakerV2.contractAddress];
+      // Add the upgraded feature
+      await versionManager.addVersion([
+        upgradedMakerV2.contractAddress,
+        transferManager.contractAddress,
+        relayerManager.contractAddress
+      ], []);
+      const method = "upgradeWallet";
+      const params = [walletAddress, [upgradedMakerV2.contractAddress]];
       if (relayed) {
-        const txR = await manager.relay(makerV2, method, params, wallet, [owner]);
+        const txR = await manager.relay(versionManager, method, params, wallet, [owner]);
         assert.isTrue(txR.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
       } else {
-        await makerV2.from(owner)[method](...params, { gasLimit: 2000000 });
+        await versionManager.from(owner)[method](...params, { gasLimit: 2000000 });
       }
-
-      // Make sure that the vaults can be manipulated from the upgraded module
+      // Make sure that the vaults can be manipulated from the upgraded feature
       await testChangeCollateral({
         loanId: loanId1,
         collateralAmount: parseEther("0.010"),
@@ -725,37 +733,49 @@ describe("MakerV2 Vaults", function () {
         });
         await upgradedMakerV2.from(owner).closeLoan(walletAddress, loanId2, { gasLimit: 4500000 });
       }
+
+      // reset the last version to the default bundle
+      await versionManager.addVersion([
+        makerV2.contractAddress,
+        transferManager.contractAddress,
+        relayerManager.contractAddress
+      ], []);
     }
 
-    it("should move a vault after a module upgrade (blockchain tx)", async () => {
+    it("should move a vault after a feature upgrade (blockchain tx)", async () => {
       await testUpgradeModule({ relayed: false });
     });
 
-    it("should move a vault after a module upgrade (relayed tx)", async () => {
+    it("should move a vault after a feature upgrade (relayed tx)", async () => {
       await testUpgradeModule({ relayed: true });
     });
 
-    it("should move 2 vaults after a module upgrade (blockchain tx)", async () => {
+    it("should move 2 vaults after a feature upgrade (blockchain tx)", async () => {
       await testUpgradeModule({ withBatVault: true, relayed: false });
     });
 
-    it("should move 2 vaults after a module upgrade (relayed tx)", async () => {
+    it("should move 2 vaults after a feature upgrade (relayed tx)", async () => {
       await testUpgradeModule({ withBatVault: true, relayed: true });
     });
 
-    it("should not allow non-module to give vault", async () => {
-      await assert.revertWith(makerV2.from(owner).giveVault(walletAddress, formatBytes32String("")), "BM: must be a wallet module");
+    it("should not allow non-feature to give vault", async () => {
+      await assert.revertWith(makerV2.from(owner).giveVault(walletAddress, formatBytes32String("")), "BF: must be a wallet feature");
     });
 
-    it("should not allow (fake) module to give unowned vault", async () => {
-      // Deploy and register a (fake) bad module
-      const badModule = await deployer.deploy(BadModule, {}, registry.contractAddress, guardianStorage.contractAddress, false, 0);
-      await registry.registerModule(badModule.contractAddress, formatBytes32String("BadModule"));
-      // Add the bad module to the wallet
-      await makerV2.from(owner).addModule(walletAddress, badModule.contractAddress, { gasLimit: 2000000 });
+    it("should not allow (fake) feature to give unowned vault", async () => {
+      // Deploy a (fake) bad feature
+      const badFeature = await deployer.deploy(BadFeature, {}, registry.contractAddress, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
+      
+      // Add the bad feature to the wallet
+      await versionManager.addVersion([
+        badFeature.contractAddress,
+        transferManager.contractAddress,
+        relayerManager.contractAddress
+      ], []);
+      await versionManager.from(owner).upgradeWallet(walletAddress, [badFeature.contractAddress], { gasLimit: 2000000 });
       // Use the bad module to attempt a bad giveVault call
       const callData = makerV2.contract.interface.functions.giveVault.encode([walletAddress, bigNumToBytes32(ethers.BigNumber.from(666))]);
-      await assert.revertWith(badModule.from(owner).callContract(makerV2.contractAddress, 0, callData), "MV2: unauthorized loanId");
+      await assert.revertWith(badFeature.from(owner).callContract(makerV2.contractAddress, 0, callData), "MV2: unauthorized loanId");
     });
   });
 });
