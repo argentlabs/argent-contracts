@@ -77,7 +77,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         transferStorage = _transferStorage;
     }
 
-    /* ***************** External methods ************************* */
+    /* ***************** onlyOwner ************************* */
 
     /**
      * @inheritdoc IFeature
@@ -85,24 +85,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     function recoverToken(address _token) external override onlyOwner {
         uint total = ERC20(_token).balanceOf(address(this));
         _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, msg.sender, total));
-    }
-
-    /**
-     * @inheritdoc IFeature
-     */
-    function init(address _wallet) public override(IModule, BaseFeature) onlyWallet(_wallet) {
-        doUpgradeWallet(_wallet, featuresToInit[lastVersion]);
-    }
-
-    /**
-     * @inheritdoc IFeature
-     */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
-        bytes4 methodId = Utils.functionPrefix(_data);
-        // This require ensures that the RelayerManager cannot be used to call a featureOnly VersionManager method
-        // that calls a Storage or the BaseWallet for backward-compatibility reason
-        require(methodId == UPGRADE_WALLET_PREFIX || methodId == ADD_MODULE_PREFIX, "VM: unknown method");     
-        return (1, OwnerSignature.Required);
     }
 
     /**
@@ -127,21 +109,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         emit VersionAdded(newVersion);
     }
 
-    /**
-     * @notice Upgrade a wallet to the latest version.
-     * @dev It's cheaper to pass features to init as calldata than reading them from storage
-     */
-    function upgradeWallet(address _wallet, address[] calldata _featuresToInit) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        doUpgradeWallet(_wallet, _featuresToInit);
-    }
-
-    /**
-     * @notice Add another module
-     */
-    function addModule(address _wallet, address _module) external override onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        require(registry.isRegisteredModule(_module), "VM: module is not registered");
-        IWallet(_wallet).authoriseModule(_module, true);
-    }
+    /* ***************** View Methods ************************* */
 
     /**
      * @inheritdoc IVersionManager
@@ -149,7 +117,66 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     function isFeatureAuthorised(address _wallet, address _feature) public view override returns (bool) {
         return isFeatureInVersion[_feature][walletVersions[_wallet]] || _feature == address(this);
     }
-    
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+        bytes4 methodId = Utils.functionPrefix(_data);
+        // This require ensures that the RelayerManager cannot be used to call a featureOnly VersionManager method
+        // that calls a Storage or the BaseWallet for backward-compatibility reason
+        require(methodId == UPGRADE_WALLET_PREFIX || methodId == ADD_MODULE_PREFIX, "VM: unknown method");     
+        return (1, OwnerSignature.Required);
+    }
+
+    /**
+     * @notice This method delegates the static call to a target feature
+     */
+    fallback() external {
+        uint256 version = walletVersions[msg.sender];
+        address feature = staticCallExecutors[version][msg.sig];
+        require(feature != address(0), "VM: Static call not supported for wallet version");
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            calldatacopy(0, 0, calldatasize())
+            let result := staticcall(gas(), feature, 0, calldatasize(), 0, 0)
+            returndatacopy(0, 0, returndatasize())
+            switch result
+            case 0 {revert(0, returndatasize())}
+            default {return (0, returndatasize())}
+        }
+    }
+
+    /* ***************** Wallet Upgrade ************************* */
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function init(address _wallet) public override(IModule, BaseFeature) onlyWallet(_wallet) {
+        doUpgradeWallet(_wallet, featuresToInit[lastVersion]);
+    }
+
+    /**
+     * @notice Upgrade a wallet to the latest version.
+     * @dev It's cheaper to pass features to init as calldata than reading them from storage
+     * @param _wallet the wallet to upgrrade
+     * @param _featuresToInit the subset of features that need to be initialized for the walleet
+     */
+    function upgradeWallet(address _wallet, address[] calldata _featuresToInit) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        doUpgradeWallet(_wallet, _featuresToInit);
+    }
+
+    /**
+     * @inheritdoc IModule
+     */
+    function addModule(address _wallet, address _module) external override onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        require(registry.isRegisteredModule(_module), "VM: module is not registered");
+        IWallet(_wallet).authoriseModule(_module, true);
+    }
+
+    /* ******* Backward Compatibility with old Storages and BaseWallet *************** */
+
     /**
      * @inheritdoc IVersionManager
      */
@@ -178,27 +205,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
             revert("VM: wallet invoke reverted");
         }
     }
-
-    /**
-     * @notice This method delegates the static call to a target feature
-     */
-    fallback() external {
-        uint256 version = walletVersions[msg.sender];
-        address feature = staticCallExecutors[version][msg.sig];
-        require(feature != address(0), "VM: Static call not supported for wallet version");
-
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            calldatacopy(0, 0, calldatasize())
-            let result := staticcall(gas(), feature, 0, calldatasize(), 0, 0)
-            returndatacopy(0, 0, returndatasize())
-            switch result
-            case 0 {revert(0, returndatasize())}
-            default {return (0, returndatasize())}
-        }
-    }
-
-    /* ******* Backward Compatibility with old Storages and BaseWallet *************** */
 
     /**
      * @inheritdoc IVersionManager
