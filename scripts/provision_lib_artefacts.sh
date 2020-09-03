@@ -28,8 +28,8 @@ cp build/CryptoKittyTest.json .coverage_artifacts/CryptoKittyTest.json
 cp build/TestRegistry.json .coverage_artifacts/TestRegistry.json
 cp build/GemJoin.json .coverage_artifacts/GemJoin.json
 cp build/NonCompliantERC20.json .coverage_artifacts/NonCompliantERC20.json
-cp build/TestModule.json .coverage_artifacts/TestModule.json
-cp build/TestLimitModule.json .coverage_artifacts/TestLimitModule.json
+cp build/TestFeature.json .coverage_artifacts/TestFeature.json
+cp build/TestLimitFeature.json .coverage_artifacts/TestLimitFeature.json
 cp build/NonCompliantGuardian.json .coverage_artifacts/NonCompliantGuardian.json
 cp build/FaucetUser.json .coverage_artifacts/FaucetUser.json
 cp build/TestCdpManager.json .coverage_artifacts/TestCdpManager.json
@@ -45,5 +45,5 @@ cp build/UniswapV2.json .coverage_artifacts/UniswapV2.json
 cp build/UniswapV2Factory.json .coverage_artifacts/UniswapV2Factory.json
 cp build/UniswapV2Router01.json .coverage_artifacts/UniswapV2Router01.json
 cp build/WETH9.json .coverage_artifacts/WETH9.json
-cp build/BadModule.json .coverage_artifacts/BadModule.json
+cp build/BadFeature.json .coverage_artifacts/BadFeature.json
 cp build/DS*.json .coverage_artifacts

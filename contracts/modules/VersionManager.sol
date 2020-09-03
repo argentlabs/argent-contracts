@@ -209,15 +209,15 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IVersionManager
      */
-    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) external override onlyFeature(_wallet) {
-        transferStorage.setWhitelist(_wallet, _target, _whitelistAfter);
+    function setOwner(address _wallet, address _newOwner) external override onlyFeature(_wallet) {
+        IWallet(_wallet).setOwner(_newOwner);
     }
 
     /**
      * @inheritdoc IVersionManager
      */
-    function setOwner(address _wallet, address _newOwner) external override onlyFeature(_wallet) {
-        IWallet(_wallet).setOwner(_newOwner);
+    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) external override onlyFeature(_wallet) {
+        transferStorage.setWhitelist(_wallet, _target, _whitelistAfter);
     }
 
     /**
