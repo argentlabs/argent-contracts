@@ -44,12 +44,11 @@ abstract contract MakerV2Base is DSMath, BaseFeature {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         ScdMcdMigrationLike _scdMcdMigration,
         IVersionManager _versionManager
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         scdMcdMigration = address(_scdMcdMigration);

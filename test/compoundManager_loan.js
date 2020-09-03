@@ -153,7 +153,6 @@ describe("Loan Module", function () {
     loanManager = await deployer.deploy(
       CompoundManager,
       {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       comptroller.contractAddress,
       compoundRegistry.contractAddress,
@@ -163,7 +162,6 @@ describe("Loan Module", function () {
     walletImplementation = await deployer.deploy(BaseWallet);
 
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,

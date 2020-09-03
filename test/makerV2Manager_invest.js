@@ -61,7 +61,6 @@ describe("MakerV2 DSR", function () {
     makerV2 = await deployer.deploy(
       MakerV2Manager,
       {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       migration.contractAddress,
       pot.contractAddress,
@@ -74,7 +73,6 @@ describe("MakerV2 DSR", function () {
     walletImplementation = await deployer.deploy(BaseWallet);
 
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,

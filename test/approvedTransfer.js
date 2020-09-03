@@ -62,21 +62,18 @@ describe("Approved Transfer", function () {
       guardianStorage.contractAddress,
       ethers.constants.AddressZero);
     guardianManager = await deployer.deploy(GuardianManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
       24,
       12);
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
       versionManager.contractAddress,
       weth.contractAddress);
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
@@ -86,7 +83,7 @@ describe("Approved Transfer", function () {
     walletImplementation = await deployer.deploy(BaseWallet);
 
     limitFeature = await deployer.deploy(TestLimitFeature, {},
-      registry.contractAddress, guardianStorage.contractAddress, limitStorage.contractAddress, versionManager.contractAddress);
+      guardianStorage.contractAddress, limitStorage.contractAddress, versionManager.contractAddress);
 
     await versionManager.addVersion([
       approvedTransfer.contractAddress, guardianManager.contractAddress, relayerManager.contractAddress, limitFeature.contractAddress,

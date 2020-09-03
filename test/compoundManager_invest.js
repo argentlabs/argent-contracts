@@ -42,7 +42,6 @@ describe("Invest Manager with Compound", function () {
   let deployer;
   let wallet;
   let walletImplementation;
-  let registry;
   let investManager;
   let relayerManager;
   let compoundRegistry;
@@ -117,7 +116,7 @@ describe("Invest Manager with Compound", function () {
     compoundRegistry = await deployer.deploy(CompoundRegistry);
     await compoundRegistry.addCToken(ETH_TOKEN, cEther.contractAddress);
     await compoundRegistry.addCToken(token.contractAddress, cToken.contractAddress);
-    registry = await deployer.deploy(Registry);
+    const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
     const lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
@@ -129,7 +128,6 @@ describe("Invest Manager with Compound", function () {
     investManager = await deployer.deploy(
       CompoundManager,
       {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       comptroller.contractAddress,
       compoundRegistry.contractAddress,
@@ -139,7 +137,6 @@ describe("Invest Manager with Compound", function () {
     walletImplementation = await deployer.deploy(BaseWallet);
 
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,

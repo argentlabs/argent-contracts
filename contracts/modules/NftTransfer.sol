@@ -43,13 +43,12 @@ contract NftTransfer is BaseFeature{
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         ITokenPriceStorage _tokenPriceStorage,
         IVersionManager _versionManager,
         address _ckAddress
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         ckAddress = _ckAddress;

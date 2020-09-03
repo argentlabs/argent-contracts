@@ -81,14 +81,13 @@ contract RecoveryManager is BaseFeature {
     // *************** Constructor ************************ //
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         IVersionManager _versionManager,
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow

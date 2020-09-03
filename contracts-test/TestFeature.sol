@@ -19,13 +19,12 @@ contract TestFeature is BaseFeature {
     TestDapp public dapp;
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IVersionManager _versionManager,
         bool _boolVal,
         uint _uintVal
     ) 
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME) 
+        BaseFeature(_lockStorage, _versionManager, NAME) 
         public 
     {
         boolVal = _boolVal;

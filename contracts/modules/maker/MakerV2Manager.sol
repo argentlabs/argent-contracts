@@ -31,7 +31,6 @@ contract MakerV2Manager is MakerV2Base, MakerV2Invest, MakerV2Loan {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,
@@ -40,7 +39,7 @@ contract MakerV2Manager is MakerV2Base, MakerV2Invest, MakerV2Loan {
         IUniswapFactory _uniswapFactory,
         IVersionManager _versionManager
     )
-        MakerV2Base(_registry, _lockStorage, _scdMcdMigration, _versionManager)
+        MakerV2Base(_lockStorage, _scdMcdMigration, _versionManager)
         MakerV2Invest(_pot)
         MakerV2Loan(_jug, _makerRegistry, _uniswapFactory)
         public

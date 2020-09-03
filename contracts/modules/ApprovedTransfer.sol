@@ -38,14 +38,13 @@ contract ApprovedTransfer is BaseTransfer {
     IGuardianStorage public guardianStorage;
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
         IVersionManager _versionManager,
         address _wethToken
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
         public
     {

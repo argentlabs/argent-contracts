@@ -37,7 +37,6 @@ describe("RecoveryManager", function () {
   const nonowner2 = accounts[9].signer;
 
   let deployer;
-  let registry;
   let guardianManager;
   let lockStorage;
   let guardianStorage;
@@ -55,7 +54,7 @@ describe("RecoveryManager", function () {
   });
 
   beforeEach(async () => {
-    registry = await deployer.deploy(Registry);
+    const registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
@@ -65,26 +64,22 @@ describe("RecoveryManager", function () {
       ethers.constants.AddressZero);
 
     guardianManager = await deployer.deploy(GuardianManager, {}, 
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
       24, 12);
     lockManager = await deployer.deploy(LockManager, {},
-      registry.contractAddress, 
       lockStorage.contractAddress,
       guardianStorage.contractAddress, 
       versionManager.contractAddress,
       24 * 5);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, 
-      registry.contractAddress, 
       lockStorage.contractAddress,
       guardianStorage.contractAddress, 
       versionManager.contractAddress,
       36, 24 * 5);
     recoveryPeriod = await recoveryManager.recoveryPeriod();
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -363,7 +358,6 @@ describe("RecoveryManager", function () {
   describe("RecoveryManager high level logic", () => {
     it("should not be able to instantiate the RecoveryManager with lock period shorter than the recovery period", async () => {
       await assert.revertWith(deployer.deploy(RecoveryManager, {}, 
-        registry.contractAddress,
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         versionManager.contractAddress,

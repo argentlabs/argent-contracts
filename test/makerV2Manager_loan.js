@@ -50,7 +50,6 @@ describe("MakerV2 Vaults", function () {
   let pot;
   let jug;
   let migration;
-  let registry;
   let transferManager;
   let guardianStorage;
   let lockStorage;
@@ -76,7 +75,7 @@ describe("MakerV2 Vaults", function () {
     uniswapFactory = uni.uniswapFactory;
 
     // Deploy MakerV2Manager
-    registry = await deployer.deploy(Registry);
+    const registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
@@ -90,7 +89,6 @@ describe("MakerV2 Vaults", function () {
     makerV2 = await deployer.deploy(
       MakerV2Manager,
       {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       migration.contractAddress,
       pot.contractAddress,
@@ -105,7 +103,6 @@ describe("MakerV2 Vaults", function () {
     const limitStorage = await deployer.deploy(LimitStorage);
     const tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
     transferManager = await deployer.deploy(TransferManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       transferStorage.contractAddress,
       limitStorage.contractAddress,
@@ -120,7 +117,6 @@ describe("MakerV2 Vaults", function () {
     walletImplementation = await deployer.deploy(BaseWallet);
 
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -663,7 +659,6 @@ describe("MakerV2 Vaults", function () {
       upgradedMakerV2 = await deployer.deploy(
         UpgradedMakerV2Manager,
         {},
-        registry.contractAddress,
         lockStorage.contractAddress,
         migration.contractAddress,
         pot.contractAddress,
@@ -674,7 +669,6 @@ describe("MakerV2 Vaults", function () {
         versionManager.contractAddress,
         { gasLimit: 10700000 },
       );
-      await registry.registerModule(upgradedMakerV2.contractAddress, formatBytes32String("UpgradedMakerV2Manager"));
 
       // Adding BAT to the registry of supported collateral tokens
       if (!(await makerRegistry.collaterals(bat.contractAddress)).exists) {
@@ -764,7 +758,7 @@ describe("MakerV2 Vaults", function () {
 
     it("should not allow (fake) feature to give unowned vault", async () => {
       // Deploy a (fake) bad feature
-      const badFeature = await deployer.deploy(BadFeature, {}, registry.contractAddress, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
+      const badFeature = await deployer.deploy(BadFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
       
       // Add the bad feature to the wallet
       await versionManager.addVersion([

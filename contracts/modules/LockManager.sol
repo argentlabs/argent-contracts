@@ -67,13 +67,12 @@ contract LockManager is BaseFeature {
     // *************** Constructor ************************ //
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         IVersionManager _versionManager,
         uint256 _lockPeriod
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME) public {
+        BaseFeature(_lockStorage, _versionManager, NAME) public {
         guardianStorage = _guardianStorage;
         lockPeriod = _lockPeriod;
     }

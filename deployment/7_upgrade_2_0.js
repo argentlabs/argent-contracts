@@ -112,7 +112,6 @@ const deploy = async (network) => {
   const ApprovedTransferWrapper = await deployer.deploy(
     ApprovedTransfer,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,
@@ -123,7 +122,6 @@ const deploy = async (network) => {
   const CompoundManagerWrapper = await deployer.deploy(
     CompoundManager,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
@@ -133,7 +131,6 @@ const deploy = async (network) => {
   const GuardianManagerWrapper = await deployer.deploy(
     GuardianManager,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
     VersionManagerWrapper.contractAddress,
@@ -144,7 +141,6 @@ const deploy = async (network) => {
   const LockManagerWrapper = await deployer.deploy(
     LockManager,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
     VersionManagerWrapper.contractAddress,
@@ -154,7 +150,6 @@ const deploy = async (network) => {
   const NftTransferWrapper = await deployer.deploy(
     NftTransfer,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
@@ -164,7 +159,6 @@ const deploy = async (network) => {
   const RecoveryManagerWrapper = await deployer.deploy(
     RecoveryManager,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
     VersionManagerWrapper.contractAddress,
@@ -175,7 +169,6 @@ const deploy = async (network) => {
   const TokenExchangerWrapper = await deployer.deploy(
     TokenExchanger,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
@@ -187,7 +180,6 @@ const deploy = async (network) => {
   const MakerV2ManagerWrapper = await deployer.deploy(
     MakerV2Manager,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     config.defi.maker.migration,
     config.defi.maker.pot,
@@ -199,8 +191,7 @@ const deploy = async (network) => {
 
   const TransferManagerWrapper = await deployer.deploy(
     TransferManager,
-    {},
-    config.contracts.ModuleRegistry,
+    {}
     LockStorageWrapper.contractAddress,
     config.modules.TransferStorage,
     LimitStorageWrapper.contractAddress,
@@ -216,7 +207,6 @@ const deploy = async (network) => {
   const RelayerManagerWrapper = await deployer.deploy(
     RelayerManager,
     {},
-    config.contracts.ModuleRegistry,
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,

@@ -81,7 +81,6 @@ describe("RelayerManager", function () {
     tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
     await tokenPriceStorage.addManager(infrastructure.address);
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
@@ -92,31 +91,28 @@ describe("RelayerManager", function () {
 
   beforeEach(async () => {
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
       versionManager.contractAddress,
       ethers.constants.AddressZero);
     guardianManager = await deployer.deploy(GuardianManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
       24,
       12);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, 
-      registry.contractAddress, 
       lockStorage.contractAddress,
       guardianStorage.contractAddress, 
       versionManager.contractAddress,
       36, 24 * 5);
 
-    testFeature = await deployer.deploy(TestFeature, {}, registry.contractAddress, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
-    testFeatureNew = await deployer.deploy(TestFeature, {}, registry.contractAddress, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
+    testFeature = await deployer.deploy(TestFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
+    testFeatureNew = await deployer.deploy(TestFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
     
-    limitFeature = await deployer.deploy(TestLimitFeature, {}, registry.contractAddress, lockStorage.contractAddress, limitStorage.contractAddress, versionManager.contractAddress);
-    badFeature = await deployer.deploy(BadFeature, {}, registry.contractAddress, lockStorage.contractAddress, versionManager.contractAddress);
+    limitFeature = await deployer.deploy(TestLimitFeature, {}, lockStorage.contractAddress, limitStorage.contractAddress, versionManager.contractAddress);
+    badFeature = await deployer.deploy(BadFeature, {}, lockStorage.contractAddress, versionManager.contractAddress);
 
     const walletImplementation = await deployer.deploy(BaseWallet);
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);

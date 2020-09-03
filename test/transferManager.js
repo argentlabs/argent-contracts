@@ -47,7 +47,6 @@ describe("TransferManager", function () {
   const spender = accounts[4].signer;
 
   let deployer;
-  let registry;
   let priceProvider;
   let transferStorage;
   let lockStorage;
@@ -66,7 +65,7 @@ describe("TransferManager", function () {
   before(async () => {
     deployer = manager.newDeployer();
     weth = await deployer.deploy(WETH);
-    registry = await deployer.deploy(Registry);
+    const registry = await deployer.deploy(Registry);
     priceProvider = await deployer.deploy(LegacyTokenPriceProvider, {}, ethers.constants.AddressZero);
     await priceProvider.addManager(infrastructure.address);
 
@@ -93,7 +92,6 @@ describe("TransferManager", function () {
       ethers.constants.AddressZero);
 
     transferManager = await deployer.deploy(TransferManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       transferStorage.contractAddress,
       limitStorage.contractAddress,
@@ -110,7 +108,6 @@ describe("TransferManager", function () {
     walletImplementation = await deployer.deploy(BaseWallet);
 
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
@@ -146,7 +143,6 @@ describe("TransferManager", function () {
   describe("Initialising the module", () => {
     it("when no previous transfer manager is passed, should initialise with default limit", async () => {
       const transferManager1 = await deployer.deploy(TransferManager, {},
-        registry.contractAddress,
         lockStorage.contractAddress,
         transferStorage.contractAddress,
         limitStorage.contractAddress,

@@ -70,13 +70,12 @@ contract CompoundManager is BaseFeature{
     using SafeMath for uint256;
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IComptroller _comptroller,
         ICompoundRegistry _compoundRegistry,
         IVersionManager _versionManager
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         comptroller = _comptroller;

@@ -183,7 +183,6 @@ class Benchmark {
     const newApprovedTransferWrapper = await this.deployer.deploy(
       NewApprovedTransfer,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       LimitStorageWrapper.contractAddress,
@@ -194,7 +193,6 @@ class Benchmark {
     const newCompoundManagerWrapper = await this.deployer.deploy(
       NewCompoundManager,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       this.config.defi.compound.comptroller,
       this.config.contracts.CompoundRegistry,
@@ -204,7 +202,6 @@ class Benchmark {
     const newGuardianManager = await this.deployer.deploy(
       NewGuardianManager,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       VersionManagerWrapper.contractAddress,
@@ -215,7 +212,6 @@ class Benchmark {
     const newLockManagerWrapper = await this.deployer.deploy(
       NewLockManager,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       VersionManagerWrapper.contractAddress,
@@ -225,7 +221,6 @@ class Benchmark {
     const newNftTransferWrapper = await this.deployer.deploy(
       NewNftTransfer,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
@@ -235,7 +230,6 @@ class Benchmark {
     const newRecoveryManagerWrapper = await this.deployer.deploy(
       NewRecoveryManager,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       VersionManagerWrapper.contractAddress,
@@ -246,7 +240,6 @@ class Benchmark {
     const newTokenExchangerWrapper = await this.deployer.deploy(
       NewTokenExchanger,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
@@ -258,7 +251,6 @@ class Benchmark {
     const newMakerV2ManagerWrapper = await this.deployer.deploy(
       NewMakerV2Manager,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       this.config.defi.maker.migration,
       this.config.defi.maker.pot,
@@ -271,7 +263,6 @@ class Benchmark {
     const newTransferManagerWrapper = await this.deployer.deploy(
       NewTransferManager,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       this.config.modules.TransferStorage,
       LimitStorageWrapper.contractAddress,
@@ -287,7 +278,6 @@ class Benchmark {
     const relayerManagerWrapper = await this.deployer.deploy(
       RelayerManager,
       {},
-      this.config.contracts.ModuleRegistry,
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       LimitStorageWrapper.contractAddress,

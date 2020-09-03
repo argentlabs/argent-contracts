@@ -26,7 +26,6 @@ describe("LockManager", function () {
   let guardianManager;
   let guardianStorage;
   let lockStorage;
-  let registry;
   let lockManager;
   let recoveryManager;
   let wallet;
@@ -40,7 +39,7 @@ describe("LockManager", function () {
   });
 
   beforeEach(async () => {
-    registry = await deployer.deploy(Registry);
+    const registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
@@ -50,25 +49,21 @@ describe("LockManager", function () {
       ethers.constants.AddressZero);
 
     guardianManager = await deployer.deploy(GuardianManager, {}, 
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
       24, 12);
     lockManager = await deployer.deploy(LockManager, {}, 
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
       24 * 5);
     recoveryManager = await deployer.deploy(RecoveryManager, {}, 
-      registry.contractAddress, 
       lockStorage.contractAddress,
       guardianStorage.contractAddress, 
       versionManager.contractAddress,
       36, 24 * 5);
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,

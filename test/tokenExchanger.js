@@ -54,7 +54,6 @@ describe("Token Exchanger", function () {
   const owner = accounts[1].signer;
   let deployer;
 
-  let registry;
   let lockStorage;
   let guardianStorage;
   let wallet;
@@ -74,7 +73,7 @@ describe("Token Exchanger", function () {
 
   before(async () => {
     deployer = manager.newDeployer();
-    registry = await deployer.deploy(ModuleRegistry);
+    const registry = await deployer.deploy(ModuleRegistry);
     guardianStorage = await deployer.deploy(GuardianStorage);
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
@@ -86,7 +85,6 @@ describe("Token Exchanger", function () {
     relayerManager = await deployer.deploy(
       RelayerManager,
       {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -148,7 +146,6 @@ describe("Token Exchanger", function () {
     exchanger = await deployer.deploy(
       TokenExchanger,
       {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       tokenPriceStorage.contractAddress,
       versionManager.contractAddress,
@@ -161,7 +158,6 @@ describe("Token Exchanger", function () {
     const transferStorage = await deployer.deploy(TransferStorage);
     const limitStorage = await deployer.deploy(LimitStorage);
     transferManager = await deployer.deploy(TransferManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       transferStorage.contractAddress,
       limitStorage.contractAddress,
@@ -378,7 +374,6 @@ describe("Token Exchanger", function () {
       const exchangerExcludingAllExchanges = await deployer.deploy(
         TokenExchanger,
         {},
-        registry.contractAddress,
         lockStorage.contractAddress,
         tokenPriceStorage.contractAddress,
         versionManager.contractAddress,

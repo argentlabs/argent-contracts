@@ -35,9 +35,6 @@ contract BaseFeature is IFeature {
     bytes constant internal EMPTY_BYTES = "";
     // Mock token address for ETH
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    // The address of the module registry.
-    IModuleRegistry internal registry;
     // The address of the Lock storage
     ILockStorage internal lockStorage;
     // The address of the Version Manager
@@ -96,12 +93,10 @@ contract BaseFeature is IFeature {
     }
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IVersionManager _versionManager,
         bytes32 _name
     ) public {
-        registry = _registry;
         lockStorage = _lockStorage;
         versionManager = _versionManager;
         emit FeatureCreated(_name);
@@ -110,9 +105,9 @@ contract BaseFeature is IFeature {
     /**
     * @inheritdoc IFeature
     */
-    function recoverToken(address _token) external override {
+    function recoverToken(address _token) external virtual override {
         uint total = ERC20(_token).balanceOf(address(this));
-        _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, address(registry), total));
+        _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, address(versionManager), total));
     }
 
     /**

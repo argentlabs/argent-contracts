@@ -51,6 +51,8 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     ITransferStorage private transferStorage;
     // The Guardian Storage
     IGuardianStorage private guardianStorage;
+    // The Module Registry
+    IModuleRegistry private registry;
 
     /* ***************** Modifiers ************************* */
 
@@ -67,15 +69,27 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         IGuardianStorage _guardianStorage,
         ITransferStorage _transferStorage   
     )
-        BaseFeature(_registry, _lockStorage, IVersionManager(address(this)), NAME)
+        BaseFeature(_lockStorage, IVersionManager(address(this)), NAME)
         public
     {
+        registry = _registry;
         guardianStorage = _guardianStorage;
         transferStorage = _transferStorage;
     }
 
     /* ***************** External methods ************************* */
 
+    /**
+     * @inheritdoc IFeature
+     */
+    function recoverToken(address _token) external override onlyOwner {
+        uint total = ERC20(_token).balanceOf(address(this));
+        _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, msg.sender, total));
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
     function init(address _wallet) public override(IModule, BaseFeature) onlyWallet(_wallet) {
         doUpgradeWallet(_wallet, featuresToInit[lastVersion]);
     }

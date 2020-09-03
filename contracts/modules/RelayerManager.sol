@@ -66,14 +66,13 @@ contract RelayerManager is BaseFeature {
     /* ***************** External methods ************************* */
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
         ITokenPriceStorage _tokenPriceStorage,
         IVersionManager _versionManager
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         limitStorage = _limitStorage;

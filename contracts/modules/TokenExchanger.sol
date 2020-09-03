@@ -58,7 +58,6 @@ contract TokenExchanger is BaseFeature {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         ITokenPriceStorage _tokenPriceStorage,
         IVersionManager _versionManager,
@@ -66,7 +65,7 @@ contract TokenExchanger is BaseFeature {
         string memory _referrer,
         address[] memory _authorisedExchanges
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         tokenPriceStorage = _tokenPriceStorage;

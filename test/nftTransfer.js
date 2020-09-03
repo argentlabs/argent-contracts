@@ -60,7 +60,6 @@ describe("Token Transfer", function () {
       ethers.constants.AddressZero);
 
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -71,12 +70,11 @@ describe("Token Transfer", function () {
       tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
       await tokenPriceStorage.addManager(infrastructure.address);
       nftFeature = await deployer.deploy(NftModule, {},
-        registry.contractAddress,
         lockStorage.contractAddress,
         tokenPriceStorage.contractAddress,
         versionManager.contractAddress,
         ck.contractAddress);
-        erc20Approver = await deployer.deploy(ERC20Approver, {}, registry.contractAddress, versionManager.contractAddress);
+        erc20Approver = await deployer.deploy(ERC20Approver, {}, versionManager.contractAddress);
 
     await versionManager.addVersion([erc20Approver.contractAddress, nftFeature.contractAddress, relayerManager.contractAddress], []);
   });

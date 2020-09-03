@@ -64,14 +64,13 @@ contract GuardianManager is BaseFeature {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         IVersionManager _versionManager,
         uint256 _securityPeriod,
         uint256 _securityWindow
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         guardianStorage = _guardianStorage;

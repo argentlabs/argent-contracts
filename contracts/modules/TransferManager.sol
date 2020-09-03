@@ -77,7 +77,6 @@ contract TransferManager is BaseTransfer {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         ITransferStorage _transferStorage,
         ILimitStorage _limitStorage,
@@ -89,7 +88,7 @@ contract TransferManager is BaseTransfer {
         address _wethToken,
         TransferManager _oldTransferManager
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
         public
     {

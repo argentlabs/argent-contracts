@@ -5,10 +5,9 @@ import "../contracts/modules/common/BaseFeature.sol";
 contract BadFeature is BaseFeature {
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IVersionManager _versionManager
-    ) public BaseFeature(_registry, _lockStorage, _versionManager, "") {}
+    ) public BaseFeature(_lockStorage, _versionManager, "") {}
 
     uint uintVal;
     function setIntOwnerOnly(address _wallet, uint _val) external {

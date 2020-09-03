@@ -19,12 +19,11 @@ contract TestLimitFeature is BaseFeature {
     ILimitStorage public limitStorage;
 
     constructor(
-        IModuleRegistry _registry,
         ILockStorage _lockStorage,
         ILimitStorage _limitStorage,
         IVersionManager _versionManager
     )
-        BaseFeature(_registry, _lockStorage, _versionManager, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         limitStorage = _limitStorage;

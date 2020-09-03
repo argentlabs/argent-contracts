@@ -20,6 +20,7 @@ describe("BaseFeature", function () {
   const owner = accounts[1].signer;
 
   let registry;
+  let versionManager;
   let guardianStorage;
   let token;
   let relayerManager;
@@ -31,13 +32,12 @@ describe("BaseFeature", function () {
     registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
     lockStorage = await deployer.deploy(LockStorage);
-    const versionManager = await deployer.deploy(VersionManager, {},
+    versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero);
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -62,8 +62,13 @@ describe("BaseFeature", function () {
       balance = await token.balanceOf(relayerManager.contractAddress);
       assert.equal(balance, 0);
 
-      const moduleregistryBalance = await token.balanceOf(registry.contractAddress);
-      assert.equal(moduleregistryBalance, 10000000);
+      const versionManagerBalance = await token.balanceOf(versionManager.contractAddress);
+      assert.equal(versionManagerBalance, 10000000);
+
+      await versionManager.recoverToken(token.contractAddress);
+
+      const adminBalance = await token.balanceOf(accounts[0].signer.address);
+      assert.equal(adminBalance, 10000000);
     });
 
     it("should be able to recover non-ERC20 compliant tokens sent to the feature", async () => {
@@ -77,8 +82,13 @@ describe("BaseFeature", function () {
       balance = await nonCompliantToken.balanceOf(relayerManager.contractAddress);
       assert.equal(balance, 0);
 
-      const moduleregistryBalance = await nonCompliantToken.balanceOf(registry.contractAddress);
-      assert.equal(moduleregistryBalance, 10000000);
+      const versionManagerBalance = await nonCompliantToken.balanceOf(versionManager.contractAddress);
+      assert.equal(versionManagerBalance, 10000000);
+
+      await versionManager.recoverToken(nonCompliantToken.contractAddress);
+
+      const adminBalance = await nonCompliantToken.balanceOf(accounts[0].signer.address);
+      assert.equal(adminBalance, 10000000);
     });
   });
 });

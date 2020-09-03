@@ -148,7 +148,6 @@ class Benchmark {
     this.ApprovedTransferWrapper = await this.deployer.deploy(
       ApprovedTransfer,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.modules.GuardianStorage,
       this.config.modules.LimitStorage,
@@ -159,7 +158,6 @@ class Benchmark {
     this.CompoundManagerWrapper = await this.deployer.deploy(
       CompoundManager,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.defi.compound.comptroller,
       this.config.contracts.CompoundRegistry,
@@ -169,7 +167,6 @@ class Benchmark {
     this.GuardianManager = await this.deployer.deploy(
       GuardianManager,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.modules.GuardianStorage,
       this.config.modules.VersionManager,
@@ -180,7 +177,6 @@ class Benchmark {
     this.LockManagerWrapper = await this.deployer.deploy(
       LockManager,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.modules.GuardianStorage,
       this.config.modules.VersionManager,
@@ -190,7 +186,6 @@ class Benchmark {
     this.NftTransferWrapper = await this.deployer.deploy(
       NftTransfer,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.modules.TokenPriceStorage,
       this.config.modules.VersionManager,
@@ -200,7 +195,6 @@ class Benchmark {
     this.RecoveryManagerWrapper = await this.deployer.deploy(
       RecoveryManager,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.modules.GuardianStorage,
       this.config.modules.VersionManager,
@@ -211,7 +205,6 @@ class Benchmark {
     this.TokenExchangerWrapper = await this.deployer.deploy(
       TokenExchanger,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.modules.TokenPriceStorage,
       this.config.modules.VersionManager,
@@ -223,7 +216,6 @@ class Benchmark {
     this.MakerV2ManagerWrapper = await this.deployer.deploy(
       MakerV2Manager,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.defi.maker.migration,
       this.config.defi.maker.pot,
@@ -236,7 +228,6 @@ class Benchmark {
     this.TransferManagerWrapper = await this.deployer.deploy(
       TransferManager,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.modules.TransferStorage,
       this.config.modules.LimitStorage,
@@ -252,7 +243,6 @@ class Benchmark {
     this.RelayerManagerWrapper = await this.deployer.deploy(
       RelayerManager,
       {},
-      this.config.contracts.ModuleRegistry,
       this.config.modules.LockStorage,
       this.config.modules.GuardianStorage,
       this.config.modules.LimitStorage,

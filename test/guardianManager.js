@@ -50,14 +50,12 @@ describe("GuardianManager", function () {
       guardianStorage.contractAddress,
       ethers.constants.AddressZero);
     relayerManager = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       versionManager.contractAddress);
     guardianManager = await deployer.deploy(GuardianManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,

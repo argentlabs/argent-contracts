@@ -50,7 +50,6 @@ describe("SimpleUpgrader", function () {
       guardianStorage.contractAddress,
       ethers.constants.AddressZero);
     const relayer = await deployer.deploy(RelayerManager, {},
-      registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -247,25 +246,21 @@ describe("SimpleUpgrader", function () {
         guardianStorage.contractAddress,
         ethers.constants.AddressZero);
       guardianManager = await deployer.deploy(GuardianManager, {}, 
-        registry.contractAddress,
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         versionManager.contractAddress,
         24, 12);
       lockManager = await deployer.deploy(LockManager, {},
-        registry.contractAddress, 
         lockStorage.contractAddress,
         guardianStorage.contractAddress, 
         versionManager.contractAddress,
         24 * 5);
       recoveryManager = await deployer.deploy(RecoveryManager, {}, 
-        registry.contractAddress, 
         lockStorage.contractAddress,
         guardianStorage.contractAddress, 
         versionManager.contractAddress,
         36, 24 * 5);
       relayerManager = await deployer.deploy(RelayerManager, {},
-        registry.contractAddress,
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         ethers.constants.AddressZero,
