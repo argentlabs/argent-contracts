@@ -99,13 +99,10 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
-        if (methodId == UPGRADE_WALLET_PREFIX || methodId == ADD_MODULE_PREFIX) {
-            return (1, OwnerSignature.Required);
-        }
-
-        // This revert ensures that the RelayerManager cannot be used to call a featureOnly VersionManager method
+        // This require ensures that the RelayerManager cannot be used to call a featureOnly VersionManager method
         // that calls a Storage or the BaseWallet for backward-compatibility reason
-        revert("VM: unknown method");
+        require(methodId == UPGRADE_WALLET_PREFIX || methodId == ADD_MODULE_PREFIX, "VM: unknown method");     
+        return (1, OwnerSignature.Required);
     }
 
     function addVersion(address[] calldata _features, address[] calldata _featuresToInit) external onlyOwner {
@@ -136,7 +133,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @notice Add another module
      */
-    function addModule(address _wallet, address _module) public onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+    function addModule(address _wallet, address _module) external override onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
         require(registry.isRegisteredModule(_module), "VM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
     }

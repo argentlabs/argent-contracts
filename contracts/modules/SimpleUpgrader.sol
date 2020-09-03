@@ -72,4 +72,9 @@ contract SimpleUpgrader is IModule {
         // SimpleUpgrader did its job, we no longer need it as a module
         IWallet(_wallet).authoriseModule(address(this), false);
     }
+
+    /**
+     * @inheritdoc IModule
+     */
+    function addModule(address _wallet, address _module) external override {}
 }
