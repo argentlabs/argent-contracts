@@ -1,8 +1,6 @@
 const ethers = require("ethers");
 /* global accounts, utils */
-const {
-  keccak256, toUtf8Bytes, formatBytes32String, parseBytes32String,
-} = require("ethers").utils;
+const { formatBytes32String, parseBytes32String } = require("ethers").utils;
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const SimpleUpgrader = require("../build/SimpleUpgrader");
@@ -26,6 +24,7 @@ describe("SimpleUpgrader", function () {
   let deployer;
   let registry;
   let guardianStorage;
+  let lockStorage;
   let walletImplementation;
   let wallet;
 
@@ -44,7 +43,7 @@ describe("SimpleUpgrader", function () {
   });
 
   async function deployTestModule() {
-    const module = await deployer.deploy(VersionManager, {}, 
+    const module = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
@@ -55,7 +54,7 @@ describe("SimpleUpgrader", function () {
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       module.contractAddress);
-    await module.addVersion([relayer.contractAddress],[]);
+    await module.addVersion([relayer.contractAddress], []);
     return { module, relayer };
   }
 
@@ -116,9 +115,10 @@ describe("SimpleUpgrader", function () {
 
       await wallet.init(owner.address, [moduleV1.contractAddress]);
       // create module V2
-      const { module: moduleV2 }  = await deployTestModule();
+      const { module: moduleV2 } = await deployTestModule();
       // create upgrader
-      const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, lockStorage.contractAddress, [moduleV1.contractAddress], [moduleV2.contractAddress]);
+      const upgrader = await deployer.deploy(SimpleUpgrader, {},
+        registry.contractAddress, lockStorage.contractAddress, [moduleV1.contractAddress], [moduleV2.contractAddress]);
       await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
 
       // check we can't upgrade from V1 to V2
@@ -157,10 +157,11 @@ describe("SimpleUpgrader", function () {
       await registry.registerModule(moduleV2.contractAddress, formatBytes32String("V2"));
       // create upgraders
       const toAdd = modulesToAdd(moduleV2.contractAddress);
-      const upgrader1 = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, lockStorage.contractAddress, [moduleV1.contractAddress], toAdd);
+      const upgrader1 = await deployer.deploy(SimpleUpgrader, {},
+        registry.contractAddress, lockStorage.contractAddress, [moduleV1.contractAddress], toAdd);
       const upgrader2 = await deployer.deploy(
         SimpleUpgrader,
-        {}, 
+        {},
         lockStorage.contractAddress,
         registry.contractAddress,
         [moduleV1.contractAddress],
@@ -201,7 +202,6 @@ describe("SimpleUpgrader", function () {
       assert.isBelow(upgraderAuthorisedLogIndex, upgraderUnauthorisedLogIndex,
         "AuthorisedModule(upgrader, false) should come after AuthorisedModule(upgrader, true)");
 
-
       // test if the upgrade worked
       const isV1Authorised = await wallet.authorised(moduleV1.contractAddress);
       const isV2Authorised = await wallet.authorised(moduleV2.contractAddress);
@@ -240,24 +240,24 @@ describe("SimpleUpgrader", function () {
 
     beforeEach(async () => {
       // Setup the module for wallet
-      versionManager = await deployer.deploy(VersionManager, {}, 
+      versionManager = await deployer.deploy(VersionManager, {},
         registry.contractAddress,
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         ethers.constants.AddressZero);
-      guardianManager = await deployer.deploy(GuardianManager, {}, 
+      guardianManager = await deployer.deploy(GuardianManager, {},
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         versionManager.contractAddress,
         24, 12);
       lockManager = await deployer.deploy(LockManager, {},
         lockStorage.contractAddress,
-        guardianStorage.contractAddress, 
+        guardianStorage.contractAddress,
         versionManager.contractAddress,
         24 * 5);
-      recoveryManager = await deployer.deploy(RecoveryManager, {}, 
+      recoveryManager = await deployer.deploy(RecoveryManager, {},
         lockStorage.contractAddress,
-        guardianStorage.contractAddress, 
+        guardianStorage.contractAddress,
         versionManager.contractAddress,
         36, 24 * 5);
       relayerManager = await deployer.deploy(RelayerManager, {},
@@ -285,7 +285,8 @@ describe("SimpleUpgrader", function () {
     });
 
     it("should not be able to upgrade if wallet is locked by guardian", async () => {
-      const upgrader = await deployer.deploy(SimpleUpgrader, {}, lockStorage.contractAddress, registry.contractAddress, [versionManager.contractAddress], [moduleV2.contractAddress]);
+      const upgrader = await deployer.deploy(SimpleUpgrader, {},
+        lockStorage.contractAddress, registry.contractAddress, [versionManager.contractAddress], [moduleV2.contractAddress]);
       await registry.registerModule(upgrader.contractAddress, formatBytes32String("V1toV2"));
 
       // Guardian locks the wallet

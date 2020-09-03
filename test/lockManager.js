@@ -48,19 +48,19 @@ describe("LockManager", function () {
       guardianStorage.contractAddress,
       ethers.constants.AddressZero);
 
-    guardianManager = await deployer.deploy(GuardianManager, {}, 
+    guardianManager = await deployer.deploy(GuardianManager, {},
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
       24, 12);
-    lockManager = await deployer.deploy(LockManager, {}, 
+    lockManager = await deployer.deploy(LockManager, {},
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
       24 * 5);
-    recoveryManager = await deployer.deploy(RecoveryManager, {}, 
+    recoveryManager = await deployer.deploy(RecoveryManager, {},
       lockStorage.contractAddress,
-      guardianStorage.contractAddress, 
+      guardianStorage.contractAddress,
       versionManager.contractAddress,
       36, 24 * 5);
     relayerManager = await deployer.deploy(RelayerManager, {},

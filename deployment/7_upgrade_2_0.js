@@ -191,7 +191,7 @@ const deploy = async (network) => {
 
   const TransferManagerWrapper = await deployer.deploy(
     TransferManager,
-    {}
+    {},
     LockStorageWrapper.contractAddress,
     config.modules.TransferStorage,
     LimitStorageWrapper.contractAddress,

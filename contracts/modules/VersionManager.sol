@@ -121,7 +121,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IFeature
      */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address /* _wallet */, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
         // This require ensures that the RelayerManager cannot be used to call a featureOnly VersionManager method
         // that calls a Storage or the BaseWallet for backward-compatibility reason

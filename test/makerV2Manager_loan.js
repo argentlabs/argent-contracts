@@ -68,7 +68,7 @@ describe("MakerV2 Vaults", function () {
     [sai, dai, gov, bat, weth, vat, batJoin, cdpManager, pot, jug, migration] = [
       mk.sai, mk.dai, mk.gov, mk.bat, mk.weth, mk.vat, mk.batJoin, mk.cdpManager, mk.pot, mk.jug, mk.migration,
     ];
-    const { wethJoin, tub } = mk;
+    const { wethJoin } = mk;
 
     // Deploy Uniswap
     const uni = await deployUniswap(deployer, manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
@@ -127,7 +127,7 @@ describe("MakerV2 Vaults", function () {
     await versionManager.addVersion([
       makerV2.contractAddress,
       transferManager.contractAddress,
-      relayerManager.contractAddress
+      relayerManager.contractAddress,
     ], []);
   });
 
@@ -696,7 +696,7 @@ describe("MakerV2 Vaults", function () {
       await versionManager.addVersion([
         upgradedMakerV2.contractAddress,
         transferManager.contractAddress,
-        relayerManager.contractAddress
+        relayerManager.contractAddress,
       ], []);
       const method = "upgradeWallet";
       const params = [walletAddress, [upgradedMakerV2.contractAddress]];
@@ -732,7 +732,7 @@ describe("MakerV2 Vaults", function () {
       await versionManager.addVersion([
         makerV2.contractAddress,
         transferManager.contractAddress,
-        relayerManager.contractAddress
+        relayerManager.contractAddress,
       ], []);
     }
 
@@ -759,12 +759,12 @@ describe("MakerV2 Vaults", function () {
     it("should not allow (fake) feature to give unowned vault", async () => {
       // Deploy a (fake) bad feature
       const badFeature = await deployer.deploy(BadFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
-      
+
       // Add the bad feature to the wallet
       await versionManager.addVersion([
         badFeature.contractAddress,
         transferManager.contractAddress,
-        relayerManager.contractAddress
+        relayerManager.contractAddress,
       ], []);
       await versionManager.from(owner).upgradeWallet(walletAddress, [badFeature.contractAddress], { gasLimit: 2000000 });
       // Use the bad module to attempt a bad giveVault call

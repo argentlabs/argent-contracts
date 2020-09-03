@@ -1,5 +1,5 @@
 /* global accounts */
-require("ethers");
+const ethers = require("ethers");
 
 const Registry = require("../build/ModuleRegistry");
 const GuardianStorage = require("../build/GuardianStorage");
@@ -22,6 +22,7 @@ describe("BaseFeature", function () {
   let registry;
   let versionManager;
   let guardianStorage;
+  let lockStorage;
   let token;
   let relayerManager;
 

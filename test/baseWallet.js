@@ -33,7 +33,7 @@ describe("BaseWallet", function () {
   let lockStorage;
 
   async function deployTestModule() {
-    const module = await deployer.deploy(VersionManager, {}, 
+    const module = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
@@ -43,7 +43,7 @@ describe("BaseWallet", function () {
       module.contractAddress,
       true,
       42);
-    await module.addVersion([feature.contractAddress],[]);
+    await module.addVersion([feature.contractAddress], []);
     return { module, feature };
   }
 
@@ -186,7 +186,8 @@ describe("BaseWallet", function () {
         assert.equal(module1IsAuthorised, true, "module1 should be authorised");
 
         // removing module 1
-        const upgrader = await deployer.deploy(SimpleUpgrader, {}, registry.contractAddress, lockStorage.contractAddress, [module1.contractAddress], []);
+        const upgrader = await deployer.deploy(SimpleUpgrader, {},
+          registry.contractAddress, lockStorage.contractAddress, [module1.contractAddress], []);
         await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("Removing module1"));
         await module1.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress);
         module1IsAuthorised = await wallet.authorised(module1.contractAddress);

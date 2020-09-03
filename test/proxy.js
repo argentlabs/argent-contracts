@@ -24,12 +24,12 @@ describe("Proxy", function () {
   let registry;
 
   async function deployTestModule() {
-    const module = await deployer.deploy(VersionManager, {}, 
+    const module = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
-    await module.addVersion([],[]);
+    await module.addVersion([], []);
     return module;
   }
 

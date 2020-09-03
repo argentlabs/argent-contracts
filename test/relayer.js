@@ -102,23 +102,24 @@ describe("RelayerManager", function () {
       versionManager.contractAddress,
       24,
       12);
-    recoveryManager = await deployer.deploy(RecoveryManager, {}, 
+    recoveryManager = await deployer.deploy(RecoveryManager, {},
       lockStorage.contractAddress,
-      guardianStorage.contractAddress, 
+      guardianStorage.contractAddress,
       versionManager.contractAddress,
       36, 24 * 5);
 
     testFeature = await deployer.deploy(TestFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
     testFeatureNew = await deployer.deploy(TestFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
-    
-    limitFeature = await deployer.deploy(TestLimitFeature, {}, lockStorage.contractAddress, limitStorage.contractAddress, versionManager.contractAddress);
+
+    limitFeature = await deployer.deploy(TestLimitFeature, {},
+      lockStorage.contractAddress, limitStorage.contractAddress, versionManager.contractAddress);
     badFeature = await deployer.deploy(BadFeature, {}, lockStorage.contractAddress, versionManager.contractAddress);
 
     const walletImplementation = await deployer.deploy(BaseWallet);
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-    for(const vm of [versionManager, versionManagerV2]) {
+    for (const vm of [versionManager, versionManagerV2]) {
       await vm.addVersion([
         relayerManager.contractAddress,
         approvedTransfer.contractAddress,
@@ -126,12 +127,11 @@ describe("RelayerManager", function () {
         recoveryManager.contractAddress,
         testFeature.contractAddress,
         limitFeature.contractAddress,
-        badFeature.contractAddress
+        badFeature.contractAddress,
       ], []);
     }
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
-
   });
 
   describe("relaying feature transactions", () => {
@@ -166,7 +166,7 @@ describe("RelayerManager", function () {
         recoveryManager.contractAddress,
         testFeature.contractAddress,
         limitFeature.contractAddress,
-        badFeature.contractAddress
+        badFeature.contractAddress,
       ], []);
     });
 
@@ -392,16 +392,16 @@ describe("RelayerManager", function () {
       await registry.registerModule(versionManagerV2.contractAddress, formatBytes32String("versionManagerV2"));
       const params = [wallet.contractAddress, versionManagerV2.contractAddress];
       await manager.relay(versionManager, "addModule", params, wallet, [owner]);
-      
+
       const isModuleAuthorised = await wallet.authorised(versionManagerV2.contractAddress);
       assert.isTrue(isModuleAuthorised);
       await registry.deregisterModule(versionManagerV2.contractAddress);
     });
-    
+
     it("should succeed when called directly on VersionManager", async () => {
       await registry.registerModule(versionManagerV2.contractAddress, formatBytes32String("versionManagerV2"));
       await versionManager.from(owner).addModule(wallet.contractAddress, versionManagerV2.contractAddress);
-      
+
       const isModuleAuthorised = await wallet.authorised(versionManagerV2.contractAddress);
       assert.isTrue(isModuleAuthorised);
       await registry.deregisterModule(versionManagerV2.contractAddress);

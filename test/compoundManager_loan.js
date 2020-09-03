@@ -12,7 +12,6 @@ const RelayerManager = require("../build/RelayerManager");
 const CompoundManager = require("../build/CompoundManager");
 const VersionManager = require("../build/VersionManager");
 
-
 // Compound
 const Unitroller = require("../build/Unitroller");
 const PriceOracle = require("../build/SimplePriceOracle");
@@ -156,7 +155,7 @@ describe("Loan Module", function () {
       lockStorage.contractAddress,
       comptroller.contractAddress,
       compoundRegistry.contractAddress,
-      versionManager.contractAddress
+      versionManager.contractAddress,
     );
 
     walletImplementation = await deployer.deploy(BaseWallet);
@@ -170,8 +169,8 @@ describe("Loan Module", function () {
     manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([
-      loanManager.contractAddress, 
-      relayerManager.contractAddress
+      loanManager.contractAddress,
+      relayerManager.contractAddress,
     ], []);
   });
 

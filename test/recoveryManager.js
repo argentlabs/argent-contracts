@@ -63,19 +63,19 @@ describe("RecoveryManager", function () {
       guardianStorage.contractAddress,
       ethers.constants.AddressZero);
 
-    guardianManager = await deployer.deploy(GuardianManager, {}, 
+    guardianManager = await deployer.deploy(GuardianManager, {},
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       versionManager.contractAddress,
       24, 12);
     lockManager = await deployer.deploy(LockManager, {},
       lockStorage.contractAddress,
-      guardianStorage.contractAddress, 
+      guardianStorage.contractAddress,
       versionManager.contractAddress,
       24 * 5);
-    recoveryManager = await deployer.deploy(RecoveryManager, {}, 
+    recoveryManager = await deployer.deploy(RecoveryManager, {},
       lockStorage.contractAddress,
-      guardianStorage.contractAddress, 
+      guardianStorage.contractAddress,
       versionManager.contractAddress,
       36, 24 * 5);
     recoveryPeriod = await recoveryManager.recoveryPeriod();
@@ -98,7 +98,6 @@ describe("RecoveryManager", function () {
     ], []);
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
-
   });
 
   async function addGuardians(guardians) {
@@ -357,12 +356,12 @@ describe("RecoveryManager", function () {
 
   describe("RecoveryManager high level logic", () => {
     it("should not be able to instantiate the RecoveryManager with lock period shorter than the recovery period", async () => {
-      await assert.revertWith(deployer.deploy(RecoveryManager, {}, 
+      await assert.revertWith(deployer.deploy(RecoveryManager, {},
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         versionManager.contractAddress,
         36, 35),
-        "RM: insecure security periods");
+      "RM: insecure security periods");
     });
   });
 

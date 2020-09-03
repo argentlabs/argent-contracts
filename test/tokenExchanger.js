@@ -89,7 +89,8 @@ describe("Token Exchanger", function () {
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
+      versionManager.contractAddress,
+    );
     manager.setRelayerManager(relayerManager);
 
     // Deploy test tokens
@@ -175,7 +176,7 @@ describe("Token Exchanger", function () {
     await versionManager.addVersion([
       exchanger.contractAddress,
       transferManager.contractAddress,
-      relayerManager.contractAddress
+      relayerManager.contractAddress,
     ], []);
   });
 

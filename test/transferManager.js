@@ -183,7 +183,9 @@ describe("TransferManager", function () {
     it("should not be able to whitelist a token twice", async () => {
       await transferManager.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
       await manager.increaseTime(3);
-      await assert.revertWith(transferManager.from(owner).addToWhitelist(wallet.contractAddress, recipient.address), "TT: target already whitelisted");
+      await assert.revertWith(
+        transferManager.from(owner).addToWhitelist(wallet.contractAddress, recipient.address), "TT: target already whitelisted",
+      );
     });
 
     it("should be able to remove a whitelisted token from the whitelist during the security period", async () => {

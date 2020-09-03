@@ -81,12 +81,12 @@ describe("Wallet Factory", function () {
   });
 
   async function deployTestModule() {
-    const module = await deployer.deploy(VersionManager, {}, 
+    const module = await deployer.deploy(VersionManager, {},
       moduleRegistry.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
-    await module.addVersion([],[]);
+    await module.addVersion([], []);
     return module;
   }
 
@@ -95,8 +95,8 @@ describe("Wallet Factory", function () {
     await factory.changeModuleRegistry(moduleRegistry.contractAddress);
     await factory.changeENSManager(ensManager.contractAddress);
 
-    module1 = await deployTestModule()
-    module2 = await deployTestModule()
+    module1 = await deployTestModule();
+    module2 = await deployTestModule();
     await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
     await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
 
@@ -287,8 +287,8 @@ describe("Wallet Factory", function () {
 
   describe("Create wallets with CREATE2", () => {
     beforeEach(async () => {
-      module1 = await deployTestModule()
-      module2 = await deployTestModule()
+      module1 = await deployTestModule();
+      module2 = await deployTestModule();
       await moduleRegistry.registerModule(module1.contractAddress, ethers.utils.formatBytes32String("module1"));
       await moduleRegistry.registerModule(module2.contractAddress, ethers.utils.formatBytes32String("module2"));
     });

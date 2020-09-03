@@ -131,7 +131,7 @@ describe("Invest Manager with Compound", function () {
       lockStorage.contractAddress,
       comptroller.contractAddress,
       compoundRegistry.contractAddress,
-      versionManager.contractAddress
+      versionManager.contractAddress,
     );
 
     walletImplementation = await deployer.deploy(BaseWallet);
@@ -145,8 +145,8 @@ describe("Invest Manager with Compound", function () {
     manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([
-      investManager.contractAddress, 
-      relayerManager.contractAddress
+      investManager.contractAddress,
+      relayerManager.contractAddress,
     ], []);
   });
 
