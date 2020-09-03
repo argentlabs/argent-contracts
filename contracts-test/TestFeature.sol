@@ -34,7 +34,7 @@ contract TestFeature is BaseFeature {
     }
 
     function invalidOwnerChange(address _wallet) external {
-        IWallet(_wallet).setOwner(address(0)); // this should fail
+        versionManager.setOwner(_wallet, address(0)); // this should fail
     }
 
     function setIntOwnerOnly(address _wallet, uint _val) external onlyWalletOwnerOrFeature(_wallet) {

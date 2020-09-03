@@ -35,7 +35,6 @@ cp build/FaucetUser.json .coverage_artifacts/FaucetUser.json
 cp build/TestCdpManager.json .coverage_artifacts/TestCdpManager.json
 cp build/TestUpgradedMakerV2Manager.json .coverage_artifacts/TestUpgradedMakerV2Manager.json
 cp build/ERC20Approver.json .coverage_artifacts/ERC20Approver.json
-cp build/TestOnlyOwnerModule.json .coverage_artifacts/TestOnlyOwnerModule.json
 cp build/FakeWallet.json .coverage_artifacts/FakeWallet.json
 cp build/AugustusSwapper.json .coverage_artifacts/AugustusSwapper.json
 cp build/Whitelisted.json .coverage_artifacts/Whitelisted.json
