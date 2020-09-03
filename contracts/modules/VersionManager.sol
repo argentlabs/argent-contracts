@@ -105,6 +105,11 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         return (1, OwnerSignature.Required);
     }
 
+    /**
+     * @notice Lets the owner add a new version, i.e. a new bundle of features
+     * @param _features the list of features included in the new version
+     * @param _featuresToInit the subset of features that need to be initialized for a wallet
+     */
     function addVersion(address[] calldata _features, address[] calldata _featuresToInit) external onlyOwner {
         uint256 newVersion = ++lastVersion;
         for(uint256 i = 0; i < _features.length; i++) {
@@ -226,7 +231,11 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     /* ***************** Internal methods ************************* */
 
-
+    /**
+     * @notice Upgrade a wallet to the latest version
+     * @param _wallet the target wallet
+     * @param _featuresToInit the subset of features that need to be initialized for the wallet
+     */
     function doUpgradeWallet(
         address _wallet, 
         address[] memory _featuresToInit
