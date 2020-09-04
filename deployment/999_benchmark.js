@@ -271,9 +271,7 @@ class Benchmark {
     );
 
     // Upgrade a wallet from 2.0 to 2.1
-    const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, [
-      this.TransferManagerWrapper.contractAddress, this.NftTransferWrapper.contractAddress,
-    ]);
+    const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress);
     const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
 
     // TODO: Test if the upgrade worked

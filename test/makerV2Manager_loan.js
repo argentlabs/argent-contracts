@@ -698,9 +698,9 @@ describe("MakerV2 Vaults", function () {
         upgradedMakerV2.contractAddress,
         transferManager.contractAddress,
         relayerManager.contractAddress,
-      ], []);
+      ], [upgradedMakerV2.contractAddress]);
       const method = "upgradeWallet";
-      const params = [walletAddress, [upgradedMakerV2.contractAddress]];
+      const params = [walletAddress];
       if (relayed) {
         const txR = await manager.relay(versionManager, method, params, wallet, [owner]);
         assert.isTrue(txR.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
@@ -767,7 +767,7 @@ describe("MakerV2 Vaults", function () {
         transferManager.contractAddress,
         relayerManager.contractAddress,
       ], []);
-      await versionManager.from(owner).upgradeWallet(walletAddress, [badFeature.contractAddress], { gasLimit: 2000000 });
+      await versionManager.from(owner).upgradeWallet(walletAddress, { gasLimit: 2000000 });
       // Use the bad module to attempt a bad giveVault call
       const callData = makerV2.contract.interface.functions.giveVault.encode([walletAddress, bigNumToBytes32(ethers.BigNumber.from(666))]);
       await assert.revertWith(badFeature.from(owner).callContract(makerV2.contractAddress, 0, callData), "MV2: unauthorized loanId");

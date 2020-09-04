@@ -35,7 +35,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     bytes32 constant NAME = "VersionManager";
 
     bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
-    bytes4 constant internal UPGRADE_WALLET_PREFIX = bytes4(keccak256("upgradeWallet(address,address[])"));
+    bytes4 constant internal UPGRADE_WALLET_PREFIX = bytes4(keccak256("upgradeWallet(address)"));
 
     uint256 public lastVersion;
     mapping(address => uint256) public walletVersions; // [wallet] => [version]
@@ -159,17 +159,16 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      * @inheritdoc IFeature
      */
     function init(address _wallet) public override(IModule, BaseFeature) onlyWallet(_wallet) {
-        doUpgradeWallet(_wallet, featuresToInit[lastVersion]);
+        doUpgradeWallet(_wallet);
     }
 
     /**
      * @notice Upgrade a wallet to the latest version.
      * @dev It's cheaper to pass features to init as calldata than reading them from storage
      * @param _wallet the wallet to upgrrade
-     * @param _featuresToInit the subset of features that need to be initialized for the walleet
      */
-    function upgradeWallet(address _wallet, address[] calldata _featuresToInit) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        doUpgradeWallet(_wallet, _featuresToInit);
+    function upgradeWallet(address _wallet) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        doUpgradeWallet(_wallet);
     }
 
     /**
@@ -280,11 +279,9 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @notice Upgrade a wallet to the latest version
      * @param _wallet the target wallet
-     * @param _featuresToInit the subset of features that need to be initialized for the wallet
      */
     function doUpgradeWallet(
-        address _wallet, 
-        address[] memory _featuresToInit
+        address _wallet
     ) 
         internal 
     {
@@ -303,10 +300,12 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         }
         
         // Init features
-        for(uint256 i = 0; i < _featuresToInit.length; i++) {
+        address[] storage featuresToInitInToVersion = featuresToInit[toVersion];
+        for(uint256 i = 0; i < featuresToInitInToVersion.length; i++) {
+            address feature = featuresToInitInToVersion[i];
             // We only initialize a feature that was not already initialized in the previous version
-            if(!isFeatureInVersion[_featuresToInit[i]][fromVersion] && isFeatureInVersion[_featuresToInit[i]][toVersion]) {
-                IFeature(_featuresToInit[i]).init(_wallet);
+            if(!isFeatureInVersion[feature][fromVersion] && isFeatureInVersion[feature][toVersion]) {
+                IFeature(feature).init(_wallet);
             }
         }
         
