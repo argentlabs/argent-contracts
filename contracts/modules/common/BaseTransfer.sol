@@ -55,12 +55,17 @@ abstract contract BaseTransfer is BaseFeature {
             
     // *************** Internal Functions ********************* //
     /**
-    * @notice Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
+    * @notice Make sure a contract call is not trying to call a module, a feature, or the wallet itself.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
      */
     modifier onlyAuthorisedContractCall(address _wallet, address _contract) {
-        require(_contract != _wallet && !IWallet(_wallet).authorised(_contract), "BT: Forbidden contract");
+        require(
+            _contract != _wallet && 
+            !IWallet(_wallet).authorised(_contract) && 
+            !versionManager.isFeatureAuthorised(_wallet, _contract),
+            "BT: Forbidden contract"
+        );
         _;
     }
 
