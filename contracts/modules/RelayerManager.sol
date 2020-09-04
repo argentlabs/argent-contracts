@@ -346,7 +346,7 @@ contract RelayerManager is BaseFeature {
             gasConsumed = gasConsumed.add(10000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
             uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
-            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limit");
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, ethAmount), "RM: refund is above daily limit");
         }
         // refund in ETH or ERC20
         if (_refundToken == ETH_TOKEN) {

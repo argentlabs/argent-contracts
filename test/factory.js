@@ -85,6 +85,7 @@ describe("Wallet Factory", function () {
       moduleRegistry.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
     await module.addVersion([], []);
     return module;

@@ -80,6 +80,7 @@ describe("Token Exchanger", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
     relayerManager = await deployer.deploy(

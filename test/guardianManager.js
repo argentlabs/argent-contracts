@@ -48,6 +48,7 @@ describe("GuardianManager", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
     relayerManager = await deployer.deploy(RelayerManager, {},
       lockStorage.contractAddress,

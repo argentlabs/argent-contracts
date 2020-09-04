@@ -82,6 +82,7 @@ describe("MakerV2 Vaults", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
     makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);

@@ -177,6 +177,7 @@ class Benchmark {
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       this.config.modules.TransferStorage,
+      LimitStorageWrapper.contractAddress,
     );
 
     // Create new features
@@ -185,7 +186,6 @@ class Benchmark {
       {},
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
-      LimitStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
       this.config.defi.weth,
     );

@@ -79,7 +79,8 @@ describe("TransferManager", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
-      transferStorage.contractAddress);
+      transferStorage.contractAddress,
+      limitStorage.contractAddress);
 
     previousTransferManager = await deployer.deploy(LegacyTransferManager, {},
       registry.contractAddress,

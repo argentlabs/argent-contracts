@@ -43,12 +43,13 @@ contract LockStorage is ILockStorage, Storage {
     /**
      * @dev Lets an authorised module set the lock for a wallet.
      * @param _wallet The target wallet.
+     * @param _locker The feature doing the lock.
      * @param _releaseAfter The epoch time at which the lock should automatically release.
      */
-    function setLock(address _wallet, uint256 _releaseAfter) external override onlyFeature(_wallet) {
+    function setLock(address _wallet, address _locker, uint256 _releaseAfter) external override onlyModule(_wallet) {
         configs[_wallet].lock = _releaseAfter;
-        if (_releaseAfter != 0 && msg.sender != configs[_wallet].locker) {
-            configs[_wallet].locker = msg.sender;
+        if (_releaseAfter != 0 && _locker != configs[_wallet].locker) {
+            configs[_wallet].locker = _locker;
         }
     }
 

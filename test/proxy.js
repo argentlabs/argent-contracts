@@ -28,6 +28,7 @@ describe("Proxy", function () {
       registry.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
     await module.addVersion([], []);
     return module;

@@ -40,7 +40,6 @@ contract ApprovedTransfer is BaseTransfer {
     constructor(
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
-        ILimitStorage _limitStorage,
         IVersionManager _versionManager,
         address _wethToken
     )
@@ -49,7 +48,6 @@ contract ApprovedTransfer is BaseTransfer {
         public
     {
         guardianStorage = _guardianStorage;
-        limitStorage = _limitStorage;
     }
 
     /**
@@ -72,7 +70,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyWhenUnlocked(_wallet)
     {
         doTransfer(_wallet, _token, _to, _amount, _data);
-        LimitUtils.resetDailySpent(limitStorage, _wallet);
+        LimitUtils.resetDailySpent(versionManager, _wallet);
     }
 
     /**
@@ -94,7 +92,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doCallContract(_wallet, _contract, _value, _data);
-        LimitUtils.resetDailySpent(limitStorage, _wallet);
+        LimitUtils.resetDailySpent(versionManager, _wallet);
     }
 
     /**
@@ -122,7 +120,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
-        LimitUtils.resetDailySpent(limitStorage, _wallet);
+        LimitUtils.resetDailySpent(versionManager, _wallet);
     }
 
     /**
@@ -134,7 +132,7 @@ contract ApprovedTransfer is BaseTransfer {
         uint128 targetLimit = LimitUtils.safe128(_newLimit);
         ILimitStorage.Limit memory newLimit = ILimitStorage.Limit(targetLimit, targetLimit, LimitUtils.safe64(block.timestamp));
         ILimitStorage.DailySpent memory resetDailySpent = ILimitStorage.DailySpent(uint128(0), uint64(0));
-        limitStorage.setLimitAndDailySpent(_wallet, newLimit, resetDailySpent);
+        versionManager.setLimitAndDailySpent(_wallet, newLimit, resetDailySpent);
         emit LimitChanged(_wallet, _newLimit, newLimit.changeAfter);
     }
 
@@ -143,7 +141,7 @@ contract ApprovedTransfer is BaseTransfer {
     * @param _wallet The target wallet.
     */
     function resetDailySpent(address _wallet) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        LimitUtils.resetDailySpent(limitStorage, _wallet);
+        LimitUtils.resetDailySpent(versionManager, _wallet);
     }
 
     /**

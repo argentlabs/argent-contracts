@@ -51,6 +51,7 @@ describe("MakerV2 DSR", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
     const makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);

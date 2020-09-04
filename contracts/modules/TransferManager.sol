@@ -126,21 +126,21 @@ contract TransferManager is BaseTransfer {
     function init(address _wallet) public override(BaseFeature) onlyVersionManager {
 
         if (address(oldTransferManager) == address(0)) {
-            limitStorage.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
+            versionManager.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
         } else {
             uint256 current = oldTransferManager.getCurrentLimit(_wallet);
             (uint256 pending, uint64 changeAfter) = oldTransferManager.getPendingLimit(_wallet);
             if (current == 0 && changeAfter == 0) {
                 // new wallet: we setup the default limit
-                limitStorage.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
+                versionManager.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
             } else {
                 // migrate limit and daily spent (if we are in a rolling period)
                 (uint256 unspent, uint64 periodEnd) = oldTransferManager.getDailyUnspent(_wallet);
 
                 if (periodEnd < block.timestamp) {
-                    limitStorage.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
+                    versionManager.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
                 } else {
-                    limitStorage.setLimitAndDailySpent(
+                    versionManager.setLimitAndDailySpent(
                         _wallet,
                         ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter),
                         ILimitStorage.DailySpent(LimitUtils.safe128(current.sub(unspent)), periodEnd)
@@ -178,7 +178,7 @@ contract TransferManager is BaseTransfer {
             doTransfer(_wallet, _token, _to, _amount, _data);
         } else {
             uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
-            if (LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, etherAmount)) {
+            if (LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
             } else {
@@ -219,7 +219,7 @@ contract TransferManager is BaseTransfer {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
                 uint256 deltaInEth = LimitUtils.getEtherValue(tokenPriceStorage, delta, _token);
-                require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, deltaInEth), "TM: Approve above daily limit");
+                require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, deltaInEth), "TM: Approve above daily limit");
                 // approve if under the limit
                 doApproveToken(_wallet, _token, _spender, _amount);
             }
@@ -389,7 +389,7 @@ contract TransferManager is BaseTransfer {
      * @param _newLimit The new limit.
      */
     function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        ILimitStorage.Limit memory limit = LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
+        ILimitStorage.Limit memory limit = LimitUtils.changeLimit(limitStorage, versionManager, _wallet, _newLimit, securityPeriod);
         emit LimitChanged(_wallet, _newLimit, limit.changeAfter);
     }
 
@@ -399,7 +399,7 @@ contract TransferManager is BaseTransfer {
      * @param _wallet The target wallet.
      */
     function disableLimit(address _wallet) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        LimitUtils.disableLimit(limitStorage, _wallet, securityPeriod);
+        LimitUtils.disableLimit(limitStorage, versionManager, _wallet, securityPeriod);
         emit DailyLimitDisabled(_wallet, securityPeriod);
     }
 
@@ -561,7 +561,7 @@ contract TransferManager is BaseTransfer {
             } else {
                 valueInEth = LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
             }
-            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, valueInEth), "TM: Approve above daily limit");
         }
     }
 }

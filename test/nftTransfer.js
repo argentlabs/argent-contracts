@@ -58,6 +58,7 @@ describe("Token Transfer", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
     relayerManager = await deployer.deploy(RelayerManager, {},

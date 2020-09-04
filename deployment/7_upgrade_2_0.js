@@ -103,6 +103,7 @@ const deploy = async (network) => {
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
     config.modules.TransferStorage,
+    LimitStorageWrapper.contractAddress,
   );
   newModuleWrappers.push(VersionManagerWrapper);
 
@@ -114,7 +115,6 @@ const deploy = async (network) => {
     {},
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
-    LimitStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.defi.weth,
   );

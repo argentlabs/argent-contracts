@@ -150,7 +150,6 @@ class Benchmark {
       {},
       this.config.modules.LockStorage,
       this.config.modules.GuardianStorage,
-      this.config.modules.LimitStorage,
       this.config.modules.VersionManager,
       this.config.defi.weth,
     );

@@ -15,6 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
 import "../infrastructure/base/Owned.sol";
@@ -47,10 +48,12 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     event VersionAdded(uint256 _version);
     event WalletUpgraded(address _wallet, uint256 _version);
 
-    // The Transfer Storage
-    ITransferStorage private transferStorage;
     // The Guardian Storage
     IGuardianStorage private guardianStorage;
+    // The Transfer Storage
+    ITransferStorage private transferStorage;
+    // The Limit Storage
+    ILimitStorage private limitStorage;
     // The Module Registry
     IModuleRegistry private registry;
 
@@ -67,7 +70,8 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
-        ITransferStorage _transferStorage   
+        ITransferStorage _transferStorage,
+        ILimitStorage _limitStorage
     )
         BaseFeature(_lockStorage, IVersionManager(address(this)), NAME)
         public
@@ -75,6 +79,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         registry = _registry;
         guardianStorage = _guardianStorage;
         transferStorage = _transferStorage;
+        limitStorage = _limitStorage;
     }
 
     /* ***************** onlyOwner ************************* */
@@ -234,6 +239,41 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         guardianStorage.revokeGuardian(_wallet, _guardian);
     }
 
+    /**
+     * @inheritdoc IVersionManager
+     */
+    function setLock(address _wallet, uint256 _releaseAfter) external override onlyFeature(_wallet) {
+        lockStorage.setLock(_wallet, msg.sender, _releaseAfter);
+    }
+
+    /**
+     * @inheritdoc IVersionManager
+     */
+    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) external override onlyFeature(_wallet) {
+        limitStorage.setLimit(_wallet, _limit);
+    }
+
+    /**
+     * @inheritdoc IVersionManager
+     */
+    function setDailySpent(address _wallet, ILimitStorage.DailySpent memory _dailySpent) external override onlyFeature(_wallet) {
+        limitStorage.setDailySpent(_wallet, _dailySpent);
+    }
+
+    /**
+     * @inheritdoc IVersionManager
+     */
+    function setLimitAndDailySpent(
+        address _wallet,
+        ILimitStorage.Limit memory _limit,
+        ILimitStorage.DailySpent memory _dailySpent
+    ) 
+        external
+        override
+        onlyFeature(_wallet) 
+    {
+        limitStorage.setLimitAndDailySpent(_wallet, _limit, _dailySpent);
+    }
 
     /* ***************** Internal methods ************************* */
 

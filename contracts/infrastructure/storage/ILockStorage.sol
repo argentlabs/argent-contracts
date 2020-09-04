@@ -23,5 +23,5 @@ interface ILockStorage {
 
     function getLocker(address _wallet) external view returns (address);
 
-    function setLock(address _wallet, uint256 _releaseAfter) external;
+    function setLock(address _wallet, address _locker, uint256 _releaseAfter) external;
 }

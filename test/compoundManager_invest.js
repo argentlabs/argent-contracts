@@ -123,6 +123,7 @@ describe("Invest Manager with Compound", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
     investManager = await deployer.deploy(

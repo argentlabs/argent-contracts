@@ -60,7 +60,8 @@ describe("Approved Transfer", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
-      ethers.constants.AddressZero);
+      ethers.constants.AddressZero,
+      limitStorage.contractAddress);
     guardianManager = await deployer.deploy(GuardianManager, {},
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
@@ -70,7 +71,6 @@ describe("Approved Transfer", function () {
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
-      limitStorage.contractAddress,
       versionManager.contractAddress,
       weth.contractAddress);
     relayerManager = await deployer.deploy(RelayerManager, {},

@@ -147,6 +147,7 @@ describe("Loan Module", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
     loanManager = await deployer.deploy(

@@ -71,11 +71,13 @@ describe("RelayerManager", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
     versionManagerV2 = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
 
     tokenPriceStorage = await deployer.deploy(TokenPriceStorage);

@@ -37,6 +37,7 @@ describe("BaseWallet", function () {
       registry.contractAddress,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
     const feature = await deployer.deploy(TestFeature, {},
       lockStorage.contractAddress,

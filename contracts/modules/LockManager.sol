@@ -84,7 +84,7 @@ contract LockManager is BaseFeature {
      * @param _wallet The target wallet.
      */
     function lock(address _wallet) external onlyGuardianOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        lockStorage.setLock(_wallet, block.timestamp + lockPeriod);
+        versionManager.setLock(_wallet, block.timestamp + lockPeriod);
         emit Locked(_wallet, uint64(block.timestamp + lockPeriod));
     }
 
@@ -95,7 +95,7 @@ contract LockManager is BaseFeature {
     function unlock(address _wallet) external onlyGuardianOrFeature(_wallet) onlyWhenLocked(_wallet) {
         address locker = lockStorage.getLocker(_wallet);
         require(locker == address(this), "LM: cannot unlock a wallet that was locked by another feature");
-        lockStorage.setLock(_wallet, 0);
+        versionManager.setLock(_wallet, 0);
         emit Unlocked(_wallet);
     }
 
