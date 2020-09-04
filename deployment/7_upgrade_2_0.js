@@ -115,6 +115,7 @@ const deploy = async (network) => {
     {},
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
+    LimitStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.defi.weth,
   );

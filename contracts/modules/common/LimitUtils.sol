@@ -64,7 +64,7 @@ library LimitUtils {
         } else {
             newLimit = ILimitStorage.Limit(safe128(currentLimit), safe128(_targetLimit), safe64(block.timestamp.add(_securityPeriod)));
         }
-        _versionManager.setLimit(_wallet, newLimit);
+        setLimit(_versionManager, _lStorage, _wallet, newLimit);
         return newLimit;
     }
 
@@ -116,20 +116,6 @@ library LimitUtils {
         returns (bool)
     {
         (ILimitStorage.Limit memory limit, ILimitStorage.DailySpent memory dailySpent) = _lStorage.getLimitAndDailySpent(_wallet);
-        return _checkAndUpdateDailySpent(_versionManager, limit, dailySpent, _wallet, _amount);
-    }
-
-    // This private method is used to avoid a "Stack too deep" error in checkAndUpdateDailySpent()
-    function _checkAndUpdateDailySpent(
-        IVersionManager _versionManager,
-        ILimitStorage.Limit memory limit,
-        ILimitStorage.DailySpent memory dailySpent,
-        address _wallet,
-        uint256 _amount
-    ) 
-        private 
-        returns (bool) 
-    {
         uint256 currentLimit = currentLimit(limit);
         if (_amount == 0 || currentLimit == LIMIT_DISABLED) {
             return true;
@@ -137,11 +123,11 @@ library LimitUtils {
         ILimitStorage.DailySpent memory newDailySpent;
         if (dailySpent.periodEnd <= block.timestamp && _amount <= currentLimit) {
             newDailySpent = ILimitStorage.DailySpent(safe128(_amount), safe64(block.timestamp + 24 hours));
-            _versionManager.setDailySpent(_wallet, newDailySpent);
+            setDailySpent(_versionManager, _lStorage, _wallet, newDailySpent);
             return true;
         } else if (dailySpent.periodEnd > block.timestamp && _amount.add(dailySpent.alreadySpent) <= currentLimit) {
             newDailySpent = ILimitStorage.DailySpent(safe128(_amount.add(dailySpent.alreadySpent)), safe64(dailySpent.periodEnd));
-            _versionManager.setDailySpent(_wallet, newDailySpent);
+            setDailySpent(_versionManager, _lStorage, _wallet, newDailySpent);
             return true;
         }
         return false;
@@ -152,8 +138,8 @@ library LimitUtils {
     * @param _versionManager The Version Manager.
     * @param _wallet The target wallet.
     */
-    function resetDailySpent(IVersionManager _versionManager, address _wallet) internal {
-        _versionManager.setDailySpent(_wallet, ILimitStorage.DailySpent(uint128(0), uint64(0)));
+    function resetDailySpent(IVersionManager _versionManager, ILimitStorage limitStorage, address _wallet) internal {
+        setDailySpent(_versionManager, limitStorage, _wallet, ILimitStorage.DailySpent(uint128(0), uint64(0)));
     }
 
     /**
@@ -189,6 +175,34 @@ library LimitUtils {
     function safe64(uint256 _num) internal pure returns (uint64) {
         require(_num < 2**64, "LU: more then 64 bits");
         return uint64(_num);
+    }
+
+    // *************** Storage invocations in VersionManager ********************* //
+
+    function setLimit(
+        IVersionManager _versionManager,
+        ILimitStorage _lStorage,
+        address _wallet, 
+        ILimitStorage.Limit memory _limit
+    ) internal {
+        _versionManager.invokeStorage(
+            _wallet,
+            address(_lStorage),
+            abi.encodeWithSelector(_lStorage.setLimit.selector, _wallet, _limit)
+        );
+    }
+
+    function setDailySpent(
+        IVersionManager _versionManager,
+        ILimitStorage _lStorage,
+        address _wallet, 
+        ILimitStorage.DailySpent memory _dailySpent
+    ) private {
+        _versionManager.invokeStorage(
+            _wallet,
+            address(_lStorage),
+            abi.encodeWithSelector(_lStorage.setDailySpent.selector, _wallet, _dailySpent)
+        );
     }
 
 }

@@ -186,6 +186,7 @@ class Benchmark {
       {},
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
+      LimitStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
       this.config.defi.weth,
     );

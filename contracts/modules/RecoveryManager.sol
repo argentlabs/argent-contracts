@@ -114,7 +114,7 @@ contract RecoveryManager is BaseFeature {
         config.recovery = _recovery;
         config.executeAfter = uint64(block.timestamp + recoveryPeriod);
         config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
-        versionManager.setLock(_wallet, block.timestamp + lockPeriod);
+        setLock(_wallet, block.timestamp + lockPeriod);
         emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
     }
 
@@ -130,7 +130,7 @@ contract RecoveryManager is BaseFeature {
         delete recoveryConfigs[_wallet];
 
         versionManager.setOwner(_wallet, recoveryOwner);
-        versionManager.setLock(_wallet, 0);
+        setLock(_wallet, 0);
 
         emit RecoveryFinalized(_wallet, recoveryOwner);
     }
@@ -144,7 +144,7 @@ contract RecoveryManager is BaseFeature {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
-        versionManager.setLock(_wallet, 0);
+        setLock(_wallet, 0);
 
         emit RecoveryCanceled(_wallet, recoveryOwner);
     }
@@ -195,6 +195,16 @@ contract RecoveryManager is BaseFeature {
         }
 
         revert("RM: unknown method");
+    }
+
+    // *************** Internal Functions ********************* //
+
+    function setLock(address _wallet, uint256 _releaseAfter) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(lockStorage),
+            abi.encodeWithSelector(lockStorage.setLock.selector, _wallet, address(this), _releaseAfter)
+        );
     }
 
 }

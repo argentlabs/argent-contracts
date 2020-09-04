@@ -71,6 +71,7 @@ describe("Approved Transfer", function () {
     approvedTransfer = await deployer.deploy(ApprovedTransfer, {},
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
+      limitStorage.contractAddress,
       versionManager.contractAddress,
       weth.contractAddress);
     relayerManager = await deployer.deploy(RelayerManager, {},

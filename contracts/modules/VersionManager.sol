@@ -37,13 +37,22 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
     bytes4 constant internal UPGRADE_WALLET_PREFIX = bytes4(keccak256("upgradeWallet(address)"));
 
+    // Last bundle version
     uint256 public lastVersion;
+    // Current bundle version for a wallet
     mapping(address => uint256) public walletVersions; // [wallet] => [version]
+    // Features per version
     mapping(address => mapping(uint256 => bool)) public isFeatureInVersion; // [feature][version] => bool
+    // Features requiring initialization for a wallet
     mapping(uint256 => address[]) public featuresToInit; // [version] => [features]
 
+    // Supported static call signatures
     mapping(uint256 => bytes4[]) public staticCallSignatures; // [version] => [sigs]
+    // Features executing static calls
     mapping(uint256 => mapping(bytes4 => address)) public staticCallExecutors; // [version][sig] => [feature]
+
+    // Authorised Storages
+    mapping(address => bool) public isStorage; // [storage] => bool
 
     event VersionAdded(uint256 _version);
     event WalletUpgraded(address _wallet, uint256 _version);
@@ -80,6 +89,20 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         guardianStorage = _guardianStorage;
         transferStorage = _transferStorage;
         limitStorage = _limitStorage;
+
+        // Add initial storages
+        if(address(_lockStorage) != address(0)) { 
+            addStorage(address(_lockStorage));
+        }
+        if(address(_guardianStorage) != address(0)) { 
+            addStorage(address(_guardianStorage));
+        }
+        if(address(_transferStorage) != address(0)) {
+            addStorage(address(_transferStorage));
+        }
+        if(address(_limitStorage) != address(0)) {
+            addStorage(address(_limitStorage));
+        }
     }
 
     /* ***************** onlyOwner ************************* */
@@ -112,6 +135,15 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         featuresToInit[newVersion] = _featuresToInit;
         
         emit VersionAdded(newVersion);
+    }
+
+    /**
+     * @notice Lets the owner add a storage contract
+     * @param _storage the storage contract to add
+     */
+    function addStorage(address _storage) public onlyOwner {
+        require(!isStorage[_storage], "VM: Storage already added");
+        isStorage[_storage] = true;
     }
 
     /* ***************** View Methods ************************* */
@@ -213,65 +245,17 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IVersionManager
      */
+    function invokeStorage(address _wallet, address _storage, bytes calldata _data) external override onlyFeature(_wallet) {
+        require(isStorage[_storage], "VM: invalid storage invoked");
+        (bool success,) = _storage.call(_data);
+        require(success, "VM: _storage failed");
+    }
+
+    /**
+     * @inheritdoc IVersionManager
+     */
     function setOwner(address _wallet, address _newOwner) external override onlyFeature(_wallet) {
         IWallet(_wallet).setOwner(_newOwner);
-    }
-
-    /**
-     * @inheritdoc IVersionManager
-     */
-    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) external override onlyFeature(_wallet) {
-        transferStorage.setWhitelist(_wallet, _target, _whitelistAfter);
-    }
-
-    /**
-     * @inheritdoc IVersionManager
-     */
-    function addGuardian(address _wallet, address _guardian) external override onlyFeature(_wallet) {
-        guardianStorage.addGuardian(_wallet, _guardian);
-    }
-
-    /**
-     * @inheritdoc IVersionManager
-     */
-    function revokeGuardian(address _wallet, address _guardian) external override onlyFeature(_wallet) {
-        guardianStorage.revokeGuardian(_wallet, _guardian);
-    }
-
-    /**
-     * @inheritdoc IVersionManager
-     */
-    function setLock(address _wallet, uint256 _releaseAfter) external override onlyFeature(_wallet) {
-        lockStorage.setLock(_wallet, msg.sender, _releaseAfter);
-    }
-
-    /**
-     * @inheritdoc IVersionManager
-     */
-    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) external override onlyFeature(_wallet) {
-        limitStorage.setLimit(_wallet, _limit);
-    }
-
-    /**
-     * @inheritdoc IVersionManager
-     */
-    function setDailySpent(address _wallet, ILimitStorage.DailySpent memory _dailySpent) external override onlyFeature(_wallet) {
-        limitStorage.setDailySpent(_wallet, _dailySpent);
-    }
-
-    /**
-     * @inheritdoc IVersionManager
-     */
-    function setLimitAndDailySpent(
-        address _wallet,
-        ILimitStorage.Limit memory _limit,
-        ILimitStorage.DailySpent memory _dailySpent
-    ) 
-        external
-        override
-        onlyFeature(_wallet) 
-    {
-        limitStorage.setLimitAndDailySpent(_wallet, _limit, _dailySpent);
     }
 
     /* ***************** Internal methods ************************* */

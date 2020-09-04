@@ -50,54 +50,11 @@ interface IVersionManager {
     function setOwner(address _wallet, address _newOwner) external;
 
     /**
-     * @notice Lets a feature add or remove an account from the whitelist of a wallet.
+     * @notice Lets a feature write data to a storage contract.
      * @param _wallet The target wallet.
-     * @param _target The account to add/remove.
-     * @param _whitelistAfter The epoch time at which an account starts to be whitelisted, or zero if the account is not whitelisted
+     * @param _storage The storage contract.
+     * @param _data The data of the call
      */
-    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) external;
-
-    /**
-     * @notice Lets a feature add a guardian to a wallet.
-     * @param _wallet The target wallet.
-     * @param _guardian The guardian to add.
-     */
-    function addGuardian(address _wallet, address _guardian) external;
-
-    /**
-     * @notice Lets a feature revoke a guardian from a wallet.
-     * @param _wallet The target wallet.
-     * @param _guardian The guardian to revoke.
-     */
-    function revokeGuardian(address _wallet, address _guardian) external;
-
-    /**
-     * @notice Lets a feature set the lock for a wallet.
-     * @param _wallet The target wallet.
-     * @param _releaseAfter The epoch time at which the lock should automatically release.
-     */
-    function setLock(address _wallet, uint256 _releaseAfter) external;
-
-    /**
-     * @notice Lets a feature set the daily limit for a wallet.
-     * @param _wallet The target wallet.
-     * @param _limit The new limit
-     */
-    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) external;
-
-    /**
-     * @notice Lets a feature set the daily spent for a wallet.
-     * @param _wallet The target wallet.
-     * @param _dailySpent The new daily spent
-     */
-    function setDailySpent(address _wallet, ILimitStorage.DailySpent memory _dailySpent) external;
-
-    /**
-     * @notice Lets a feature set the daily spent for a wallet.
-     * @param _wallet The target wallet.
-     * @param _limit The new limit
-     * @param _dailySpent The new daily spent
-     */
-    function setLimitAndDailySpent(address _wallet, ILimitStorage.Limit memory _limit, ILimitStorage.DailySpent memory _dailySpent) external;
-
+    function invokeStorage(address _wallet, address _storage, bytes calldata _data) external;
+ 
 }

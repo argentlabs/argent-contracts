@@ -126,21 +126,21 @@ contract TransferManager is BaseTransfer {
     function init(address _wallet) public override(BaseFeature) onlyVersionManager {
 
         if (address(oldTransferManager) == address(0)) {
-            versionManager.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
+            setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
         } else {
             uint256 current = oldTransferManager.getCurrentLimit(_wallet);
             (uint256 pending, uint64 changeAfter) = oldTransferManager.getPendingLimit(_wallet);
             if (current == 0 && changeAfter == 0) {
                 // new wallet: we setup the default limit
-                versionManager.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
+                setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
             } else {
                 // migrate limit and daily spent (if we are in a rolling period)
                 (uint256 unspent, uint64 periodEnd) = oldTransferManager.getDailyUnspent(_wallet);
 
                 if (periodEnd < block.timestamp) {
-                    versionManager.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
+                    setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
                 } else {
-                    versionManager.setLimitAndDailySpent(
+                    setLimitAndDailySpent(
                         _wallet,
                         ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter),
                         ILimitStorage.DailySpent(LimitUtils.safe128(current.sub(unspent)), periodEnd)
@@ -316,7 +316,7 @@ contract TransferManager is BaseTransfer {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
 
         uint256 whitelistAfter = block.timestamp.add(securityPeriod);
-        versionManager.setWhitelist(_wallet, _target, whitelistAfter);
+        setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }
 
@@ -333,7 +333,7 @@ contract TransferManager is BaseTransfer {
         onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        versionManager.setWhitelist(_wallet, _target, 0);
+        setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
@@ -563,5 +563,43 @@ contract TransferManager is BaseTransfer {
             }
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, valueInEth), "TM: Approve above daily limit");
         }
+    }
+
+    // *************** Internal Functions ********************* //
+
+    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(transferStorage),
+            abi.encodeWithSelector(transferStorage.setWhitelist.selector, _wallet, _target, _whitelistAfter)
+        );
+    }
+
+    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setLimit.selector, _wallet, _limit)
+        );
+    }
+
+    function setDailySpent(address _wallet, ILimitStorage.DailySpent memory _dailySpent) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setDailySpent.selector, _wallet, _dailySpent)
+        );
+    }
+
+    function setLimitAndDailySpent(
+        address _wallet,
+        ILimitStorage.Limit memory _limit,
+        ILimitStorage.DailySpent memory _dailySpent
+    ) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setLimitAndDailySpent.selector, _wallet, _limit, _dailySpent)
+        );
     }
 }
