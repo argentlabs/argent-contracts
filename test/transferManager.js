@@ -680,8 +680,14 @@ describe("TransferManager", function () {
 
     it("should not be able to call a module of the wallet", async () => {
       const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
+      const params = [wallet.contractAddress, versionManager.contractAddress, 10, dataToTransfer];
+      await assert.revertWith(transferManager.from(owner).callContract(...params), "BT: Forbidden contract");
+    });
+
+    it("should not be able to call a feature of the wallet", async () => {
+      const dataToTransfer = contract.contract.interface.functions.setState.encode([4]);
       const params = [wallet.contractAddress, transferManager.contractAddress, 10, dataToTransfer];
-      await assert.revertWith(transferManager.from(owner).callContract(...params), "VM: wallet invoke reverted");
+      await assert.revertWith(transferManager.from(owner).callContract(...params), "BT: Forbidden contract");
     });
 
     it("should not be able to call a supported ERC20 token contract", async () => {
