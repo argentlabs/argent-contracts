@@ -57,12 +57,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     event VersionAdded(uint256 _version);
     event WalletUpgraded(address _wallet, uint256 _version);
 
-    // The Guardian Storage
-    IGuardianStorage private guardianStorage;
-    // The Transfer Storage
-    ITransferStorage private transferStorage;
-    // The Limit Storage
-    ILimitStorage private limitStorage;
     // The Module Registry
     IModuleRegistry private registry;
 
@@ -86,9 +80,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         public
     {
         registry = _registry;
-        guardianStorage = _guardianStorage;
-        transferStorage = _transferStorage;
-        limitStorage = _limitStorage;
 
         // Add initial storages
         if(address(_lockStorage) != address(0)) { 

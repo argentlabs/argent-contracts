@@ -14,7 +14,7 @@ const TestFeature = require("../build/TestFeature");
 const TestManager = require("../utils/test-manager");
 
 describe("BaseWallet", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
 

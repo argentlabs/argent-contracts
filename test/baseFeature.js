@@ -12,7 +12,7 @@ const NonCompliantERC20 = require("../build/NonCompliantERC20");
 const TestManager = require("../utils/test-manager");
 
 describe("BaseFeature", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
   const { deployer } = manager;

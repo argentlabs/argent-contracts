@@ -22,7 +22,7 @@ const TestManager = require("../utils/test-manager");
 const { parseRelayReceipt } = require("../utils/utilities.js");
 
 describe("Token Transfer", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
 

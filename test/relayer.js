@@ -33,7 +33,7 @@ const GAS_LESS_THAN_GASLIMIT = "RM: not enough gas provided";
 const WRONG_NUMBER_SIGNATURES = "RM: Wrong number of signatures";
 
 describe("RelayerManager", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
   const { deployer } = manager;

@@ -14,7 +14,7 @@ const NonCompliantGuardian = require("../build/NonCompliantGuardian");
 const TestManager = require("../utils/test-manager");
 
 describe("GuardianManager", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager(accounts);
 

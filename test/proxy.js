@@ -9,7 +9,7 @@ const VersionManager = require("../build/VersionManager");
 const Registry = require("../build/ModuleRegistry");
 
 describe("Proxy", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const owner = accounts[1].signer;
   const nonowner = accounts[2].signer;

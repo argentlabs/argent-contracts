@@ -16,7 +16,7 @@ const RelayerManager = require("../build/RelayerManager");
 const TestManager = require("../utils/test-manager");
 
 describe("SimpleUpgrader", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
 

@@ -20,7 +20,7 @@ const ZERO_ADDRESS = ethers.constants.AddressZero;
 const NO_ENS = "";
 
 describe("Wallet Factory", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
 

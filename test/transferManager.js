@@ -36,7 +36,7 @@ const ACTION_TRANSFER = 0;
 const TestManager = require("../utils/test-manager");
 
 describe("TransferManager", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
 
