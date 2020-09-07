@@ -41,12 +41,13 @@ contract DexRegistry is IDexRegistry, Owned {
      */
     function setAuthorised(address[] calldata _dexes, bool[] calldata _authorised) external onlyOwner {
         for(uint256 i = 0; i < _dexes.length; i++) {
-            require(isAuthorised[_dexes[i]] == !_authorised[i], "DR: DEX already (un)authorised");
-            isAuthorised[_dexes[i]] = _authorised[i];
-            if(_authorised[i]) { 
-                emit DexAdded(_dexes[i]); 
-            } else { 
-                emit DexRemoved(_dexes[i]);
+            if(isAuthorised[_dexes[i]] != _authorised[i]) {
+                isAuthorised[_dexes[i]] = _authorised[i];
+                if(_authorised[i]) { 
+                    emit DexAdded(_dexes[i]); 
+                } else { 
+                    emit DexRemoved(_dexes[i]);
+                }
             }
         }
     }

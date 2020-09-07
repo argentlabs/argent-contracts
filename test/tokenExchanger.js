@@ -185,15 +185,6 @@ describe("Token Exchanger", function () {
     ], []);
   });
 
-  describe("DexRegistry", () => {
-    it("can't authorise the same DEX twice", async () => {
-      await assert.revertWith(
-        dexRegistry.setAuthorised([kyberAdapter.contractAddress], [true]),
-        "DR: DEX already",
-      );
-    });
-  });
-
   beforeEach(async () => {
     // create wallet
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
