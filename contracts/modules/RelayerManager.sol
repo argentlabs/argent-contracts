@@ -350,10 +350,10 @@ contract RelayerManager is BaseFeature {
         }
         // refund in ETH or ERC20
         if (_refundToken == ETH_TOKEN) {
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
+            invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
-		    bytes memory transferSuccessBytes = checkAuthorisedFeatureAndInvokeWallet(_wallet, _refundToken, 0, methodData);
+		    bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
             // Check token refund is successful, when `transfer` returns a success bool result
             if (transferSuccessBytes.length > 0) {
                 require(abi.decode(transferSuccessBytes, (bool)), "RM: Refund transfer failed");

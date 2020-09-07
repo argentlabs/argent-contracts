@@ -79,10 +79,10 @@ abstract contract BaseTransfer is BaseFeature {
     */
     function doTransfer(address _wallet, address _token, address _to, uint256 _value, bytes memory _data) internal {
         if (_token == ETH_TOKEN) {
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _to, _value, EMPTY_BYTES);
+            invokeWallet(_wallet, _to, _value, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
-            bytes memory transferSuccessBytes = checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, methodData);
+            bytes memory transferSuccessBytes = invokeWallet(_wallet, _token, 0, methodData);
             // Check transfer is successful, when `transfer` returns a success bool result
             if (transferSuccessBytes.length > 0) {
                 require(abi.decode(transferSuccessBytes, (bool)), "RM: Transfer failed");
@@ -100,7 +100,7 @@ abstract contract BaseTransfer is BaseFeature {
     */
     function doApproveToken(address _wallet, address _token, address _spender, uint256 _value) internal {
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, _value);
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, methodData);
+        invokeWallet(_wallet, _token, 0, methodData);
         emit Approved(_wallet, _token, _value, _spender);
     }
 
@@ -112,7 +112,7 @@ abstract contract BaseTransfer is BaseFeature {
     * @param _data The method data.
     */
     function doCallContract(address _wallet, address _contract, uint256 _value, bytes memory _data) internal {
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _contract, _value, _data);
+        invokeWallet(_wallet, _contract, _value, _data);
         emit CalledContract(_wallet, _contract, _value, _data);
     }
 
@@ -146,8 +146,8 @@ abstract contract BaseTransfer is BaseFeature {
         // when restoring the original approved amount, in cases where the _proxy uses the exact approved _amount.
         bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _proxy, totalAllowance);
 
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, methodData);
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _contract, 0, _data);
+        invokeWallet(_wallet, _token, 0, methodData);
+        invokeWallet(_wallet, _contract, 0, _data);
 
         // Calculate the approved amount that was spent after the call
         uint256 unusedAllowance = ERC20(_token).allowance(_wallet, _proxy);
@@ -158,7 +158,7 @@ abstract contract BaseTransfer is BaseFeature {
         if (unusedAllowance != existingAllowance) {
             // Restore the original allowance amount if the amount spent was different (can be lower).
             methodData = abi.encodeWithSignature("approve(address,uint256)", _proxy, existingAllowance);
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, methodData);
+            invokeWallet(_wallet, _token, 0, methodData);
         }
 
         emit ApprovedAndCalledContract(
@@ -192,7 +192,7 @@ abstract contract BaseTransfer is BaseFeature {
         uint256 wethBalance = ERC20(wethToken).balanceOf(_wallet);
         if (wethBalance < _amount) {
             // Wrap ETH into WETH
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, wethToken, _amount - wethBalance, abi.encodeWithSignature("deposit()"));
+            invokeWallet(_wallet, wethToken, _amount - wethBalance, abi.encodeWithSignature("deposit()"));
         }
 
         doApproveTokenAndCallContract(_wallet, wethToken, _proxy, _amount, _contract, _data);

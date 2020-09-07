@@ -222,7 +222,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IVersionManager
      */
-    function invokeWallet(
+    function checkAuthorisedFeatureAndInvokeWallet(
         address _wallet, 
         address _to, 
         uint256 _value, 

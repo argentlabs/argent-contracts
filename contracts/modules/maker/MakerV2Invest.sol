@@ -59,14 +59,14 @@ abstract contract MakerV2Invest is MakerV2Base {
         // Execute drip to get the chi rate updated to rho == block.timestamp, otherwise join will fail
         pot.drip();
         // Approve DAI adapter to take the DAI amount
-        checkAuthorisedFeatureAndInvokeWallet(
+        invokeWallet(
             _wallet,
             address(daiToken),
             0,
             abi.encodeWithSignature("approve(address,uint256)", address(daiJoin), _amount)
         );
         // Join DAI into the vat (_amount of external DAI is burned and the vat transfers _amount of internal DAI from the adapter to the _wallet)
-        checkAuthorisedFeatureAndInvokeWallet(
+        invokeWallet(
             _wallet,
             address(daiJoin),
             0,
@@ -77,7 +77,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         // Compute the pie value in the pot
         uint256 pie = _amount.mul(RAY) / pot.chi();
         // Join the pie value to the pot
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(pot), 0, abi.encodeWithSignature("join(uint256)", pie));
+        invokeWallet(_wallet, address(pot), 0, abi.encodeWithSignature("join(uint256)", pie));
         // Emitting event
         emit InvestmentAdded(_wallet, address(daiToken), _amount, 0);
     }
@@ -100,7 +100,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         // Calculates the pie value in the pot equivalent to the DAI wad amount
         uint256 pie = _amount.mul(RAY) / pot.chi();
         // Exit DAI from the pot
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie)
+        invokeWallet(_wallet, address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie)
         );
         // Allow adapter to access the _wallet's DAI balance in the vat
         grantVatAccess(_wallet, address(daiJoin));
@@ -109,7 +109,7 @@ abstract contract MakerV2Invest is MakerV2Base {
         // It is necessary to check if due to rounding the exact _amount can be exited by the adapter.
         // Otherwise it will do the maximum DAI balance in the vat
         uint256 withdrawn = bal >= _amount.mul(RAY) ? _amount : bal / RAY;
-        checkAuthorisedFeatureAndInvokeWallet(
+        invokeWallet(
             _wallet,
             address(daiJoin),
             0,
@@ -135,12 +135,12 @@ abstract contract MakerV2Invest is MakerV2Base {
         // Gets the total pie belonging to the _wallet
         uint256 pie = pot.pie(_wallet);
         // Exit DAI from the pot
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie));
+        invokeWallet(_wallet, address(pot), 0, abi.encodeWithSignature("exit(uint256)", pie));
         // Allow adapter to access the _wallet's DAI balance in the vat
         grantVatAccess(_wallet, address(daiJoin));
         // Exits the DAI amount corresponding to the value of pie
         uint256 withdrawn = pot.chi().mul(pie) / RAY;
-        checkAuthorisedFeatureAndInvokeWallet(
+        invokeWallet(
             _wallet,
             address(daiJoin),
             0,
@@ -168,7 +168,7 @@ abstract contract MakerV2Invest is MakerV2Base {
     */
     function grantVatAccess(address _wallet, address _operator) internal {
         if (vat.can(_wallet, _operator) == 0) {
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, address(vat), 0, abi.encodeWithSignature("hope(address)", _operator));
+            invokeWallet(_wallet, address(vat), 0, abi.encodeWithSignature("hope(address)", _operator));
         }
     }
 }

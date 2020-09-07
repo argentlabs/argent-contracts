@@ -207,11 +207,11 @@ contract TokenExchanger is BaseFeature {
             if (_existingAllowance < uint256(-1)) {
                 if (_existingAllowance > 0) {
                     // Clear the existing allowance to avoid issues with tokens like USDT that do not allow changing a non-zero allowance
-                    checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, 0));
+                    invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, 0));
                 }
                 // Increase the allowance to include the required amount
                 uint256 newAllowance = SafeMath.add(_existingAllowance, _amount);
-                checkAuthorisedFeatureAndInvokeWallet(
+                invokeWallet(
                     _wallet,
                     _token,
                     0,
@@ -225,7 +225,7 @@ contract TokenExchanger is BaseFeature {
         if (_token != ETH_TOKEN_ADDRESS) {
             uint allowance = ERC20(_token).allowance(_wallet, paraswapProxy);
             if (allowance != _previousAllowance) {
-                checkAuthorisedFeatureAndInvokeWallet(
+                invokeWallet(
                     _wallet,
                     _token,
                     0,
@@ -246,7 +246,7 @@ contract TokenExchanger is BaseFeature {
         internal
     {
         // Perform the trade
-        bytes memory swapRes = checkAuthorisedFeatureAndInvokeWallet(
+        bytes memory swapRes = invokeWallet(
             _wallet,
             paraswapSwapper,
             _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, tradeData

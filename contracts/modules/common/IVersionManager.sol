@@ -39,7 +39,12 @@ interface IVersionManager {
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
      */
-    function invokeWallet(address _wallet, address _to, uint256 _value, bytes calldata _data) external returns (bytes memory _res);
+    function checkAuthorisedFeatureAndInvokeWallet(
+        address _wallet,
+        address _to,
+        uint256 _value,
+        bytes calldata _data
+    ) external returns (bytes memory _res);
 
     /* ******* Backward Compatibility with old Storages and BaseWallet *************** */
 

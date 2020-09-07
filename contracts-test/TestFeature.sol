@@ -84,13 +84,13 @@ contract TestFeature is BaseFeature {
     function callDapp(address _wallet)
         external
     {
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("noReturn()"));
+        invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("noReturn()"));
     }
 
     function callDapp2(address _wallet, uint256 _val, bool _isNewWallet)
         external returns (uint256 _ret)
     {
-        bytes memory result = checkAuthorisedFeatureAndInvokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", _val));
+        bytes memory result = invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("uintReturn(uint256)", _val));
         if (_isNewWallet) {
             require(result.length > 0, "TestModule: callDapp2 returned no result");
             (_ret) = abi.decode(result, (uint256));
@@ -101,7 +101,7 @@ contract TestFeature is BaseFeature {
     }
 
     function fail(address _wallet, string calldata reason) external {
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
+        invokeWallet(_wallet, address(dapp), 0, abi.encodeWithSignature("doFail(string)", reason));
     }
 
     /**

@@ -16,7 +16,7 @@ contract ERC20Approver is BaseFeature {
         external
         onlyWalletOwnerOrFeature(_wallet)
     {
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _erc20Contract, 0, abi.encodeWithSignature("approve(address,uint256)", _spender, _amount));
+        invokeWallet(_wallet, _erc20Contract, 0, abi.encodeWithSignature("approve(address,uint256)", _spender, _amount));
     }
 
     /**

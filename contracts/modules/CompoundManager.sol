@@ -115,7 +115,7 @@ contract CompoundManager is BaseFeature{
         address[] memory markets = new address[](2);
         markets[0] = compoundRegistry.getCToken(_collateral);
         markets[1] = compoundRegistry.getCToken(_debtToken);
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, address(comptroller), 0, abi.encodeWithSignature("enterMarkets(address[])", markets));
+        invokeWallet(_wallet, address(comptroller), 0, abi.encodeWithSignature("enterMarkets(address[])", markets));
         mint(_wallet, markets[0], _collateral, _collateralAmount);
         borrow(_wallet, _debtToken, markets[1], _debtAmount);
         emit LoanOpened(_wallet, _loanId, _collateral, _collateralAmount, _debtToken, _debtAmount);
@@ -142,7 +142,7 @@ contract CompoundManager is BaseFeature{
                 repayBorrow(_wallet, cToken, debt);
                 uint collateral = ICToken(cToken).balanceOf(_wallet);
                 if (collateral == 0) {
-                    checkAuthorisedFeatureAndInvokeWallet(
+                    invokeWallet(
                         _wallet,
                         address(comptroller),
                         0,
@@ -357,10 +357,10 @@ contract CompoundManager is BaseFeature{
         require(_amount > 0, "CM: amount cannot be 0");
         uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
         if (_token == ETH_TOKEN) {
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("mint()"));
+            invokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("mint()"));
         } else {
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("mint(uint256)", _amount));
+            invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
+            invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("mint(uint256)", _amount));
         }
         require(ERC20(_cToken).balanceOf(_wallet) > initialCTokenAmount, "CM: mint failed");
     }
@@ -378,7 +378,7 @@ contract CompoundManager is BaseFeature{
         // require(_cToken != address(0), "CM: No market for target token");
         require(_amount > 0, "CM: amount cannot be 0");
         uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeem(uint256)", _amount));
+        invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeem(uint256)", _amount));
         require(ERC20(_cToken).balanceOf(_wallet) < initialCTokenAmount, "CM: redeem failed");
     }
 
@@ -392,7 +392,7 @@ contract CompoundManager is BaseFeature{
         require(_cToken != address(0), "CM: No market for target token");
         require(_amount > 0, "CM: amount cannot be 0");
         uint256 initialCTokenAmount = ERC20(_cToken).balanceOf(_wallet);
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeemUnderlying(uint256)", _amount));
+        invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("redeemUnderlying(uint256)", _amount));
         require(ERC20(_cToken).balanceOf(_wallet) < initialCTokenAmount, "CM: redeemUnderlying failed");
     }
 
@@ -407,7 +407,7 @@ contract CompoundManager is BaseFeature{
         require(_cToken != address(0), "CM: No market for target token");
         require(_amount > 0, "CM: amount cannot be 0");
         uint256 initialTokenAmount = _token == ETH_TOKEN ? _wallet.balance : ERC20(_token).balanceOf(_wallet);
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("borrow(uint256)", _amount));
+        invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("borrow(uint256)", _amount));
         uint256 finalTokenAmount = _token == ETH_TOKEN ? _wallet.balance : ERC20(_token).balanceOf(_wallet);
         require(finalTokenAmount > initialTokenAmount, "CM: borrow failed");
     }
@@ -426,13 +426,13 @@ contract CompoundManager is BaseFeature{
         uint256 finalTokenAmount;
         if (keccak256(abi.encodePacked(symbol)) == keccak256(abi.encodePacked("cETH"))) {
             initialTokenAmount = _wallet.balance;
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
+            invokeWallet(_wallet, _cToken, _amount, abi.encodeWithSignature("repayBorrow()"));
             finalTokenAmount = _wallet.balance;
         } else {
             address token = ICToken(_cToken).underlying();
             initialTokenAmount = ERC20(token).balanceOf(_wallet);
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
+            invokeWallet(_wallet, token, 0, abi.encodeWithSignature("approve(address,uint256)", _cToken, _amount));
+            invokeWallet(_wallet, _cToken, 0, abi.encodeWithSignature("repayBorrow(uint256)", _amount));
             finalTokenAmount = ERC20(token).balanceOf(_wallet);
         }
         require(finalTokenAmount < initialTokenAmount, "CM: repayBorrow failed");
@@ -449,7 +449,7 @@ contract CompoundManager is BaseFeature{
         if (!isEntered) {
             address[] memory market = new address[](1);
             market[0] = _cToken;
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", market));
+            invokeWallet(_wallet, _comptroller, 0, abi.encodeWithSignature("enterMarkets(address[])", market));
         }
     }
 
@@ -463,7 +463,7 @@ contract CompoundManager is BaseFeature{
         uint collateral = ICToken(_cToken).balanceOf(_wallet);
         uint debt = ICToken(_cToken).borrowBalanceStored(_wallet);
         if (collateral == 0 && debt == 0) {
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, _comptroller, 0, abi.encodeWithSignature("exitMarket(address)", _cToken));
+            invokeWallet(_wallet, _comptroller, 0, abi.encodeWithSignature("exitMarket(address)", _cToken));
         }
     }
 }

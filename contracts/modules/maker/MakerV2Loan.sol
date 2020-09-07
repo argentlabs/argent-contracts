@@ -274,7 +274,7 @@ abstract contract MakerV2Loan is MakerV2Base {
     {
         require(cdpManager.owns(uint256(_loanId)) == _wallet, "MV2: wrong vault owner");
         // Transfer the vault from the wallet to the module
-        checkAuthorisedFeatureAndInvokeWallet(
+        invokeWallet(
             _wallet,
             address(cdpManager),
             0,
@@ -353,10 +353,10 @@ abstract contract MakerV2Loan is MakerV2Base {
         (JoinLike gemJoin, GemLike collateral) = makerRegistry.getCollateral(_ilk);
         // Convert ETH to WETH if needed
         if (gemJoin == wethJoin) {
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, address(wethToken), _collateralAmount, abi.encodeWithSignature("deposit()"));
+            invokeWallet(_wallet, address(wethToken), _collateralAmount, abi.encodeWithSignature("deposit()"));
         }
         // Send the collateral to the module
-        checkAuthorisedFeatureAndInvokeWallet(
+        invokeWallet(
             _wallet,
             address(collateral),
             0,
@@ -376,7 +376,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         internal
     {
         // Send the DAI to the module
-        checkAuthorisedFeatureAndInvokeWallet(
+        invokeWallet(
             _wallet,
             address(daiToken),
             0,
@@ -539,7 +539,7 @@ abstract contract MakerV2Loan is MakerV2Base {
         gemJoin.exit(_wallet, _collateralAmount);
         // Convert WETH to ETH if needed
         if (gemJoin == wethJoin) {
-            checkAuthorisedFeatureAndInvokeWallet(_wallet, address(wethToken), 0, abi.encodeWithSignature("withdraw(uint256)", _collateralAmount));
+            invokeWallet(_wallet, address(wethToken), 0, abi.encodeWithSignature("withdraw(uint256)", _collateralAmount));
         }
     }
 

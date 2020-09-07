@@ -124,7 +124,7 @@ contract NftTransfer is BaseFeature{
                    "transferFrom(address,address,uint256)", _wallet, _to, _tokenId);
            }
         }
-        checkAuthorisedFeatureAndInvokeWallet(_wallet, _nftContract, 0, methodData);
+        invokeWallet(_wallet, _nftContract, 0, methodData);
         emit NonFungibleTransfer(_wallet, _nftContract, _tokenId, _to, _data);
     }
 
