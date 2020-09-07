@@ -16,18 +16,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./ITokenPriceStorage.sol";
-import "./Storage.sol";
-import "../base/Managed.sol";
+import "./ITokenPriceRegistry.sol";
+import "./base/Managed.sol";
 
 /**
- * @title TokenPriceStorage
+ * @title TokenPriceRegistry
  * @notice Contract storing the token prices.
  * @notice Note that prices stored here = price per token * 10^(18-token decimals)
  * The contract only defines basic setters and getters with no logic.
  * Only managers of this contract can modify its state.
  */
-contract TokenPriceStorage is ITokenPriceStorage, Storage, Managed {
+contract TokenPriceRegistry is ITokenPriceRegistry, Managed {
     struct TokenInfo {
         uint184 cachedPrice;
         uint64 updatedAt;

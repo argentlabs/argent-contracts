@@ -33,7 +33,7 @@ const ERC20 = require("../build/TestERC20");
 const TransferStorage = require("../build/TransferStorage");
 const LimitStorage = require("../build/LimitStorage");
 const TransferManager = require("../build/TransferManager");
-const TokenPriceStorage = require("../build/TokenPriceStorage");
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 const VersionManager = require("../build/VersionManager");
 
 // Utils
@@ -70,7 +70,7 @@ describe("Token Exchanger", function () {
   let tokenA;
   let tokenB;
   let paraswap;
-  let tokenPriceStorage;
+  let tokenPriceRegistry;
   let versionManager;
 
   before(async () => {
@@ -146,14 +146,14 @@ describe("Token Exchanger", function () {
     await whitelist.addWhitelisted(uniswapV2Adapter.contractAddress);
 
     // Deploy exchanger module
-    tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
-    await tokenPriceStorage.setTradableForTokenList([tokenA.contractAddress, tokenB.contractAddress], [true, true]);
+    tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
+    await tokenPriceRegistry.setTradableForTokenList([tokenA.contractAddress, tokenB.contractAddress], [true, true]);
     await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [true, true]);
     exchanger = await deployer.deploy(
       TokenExchanger,
       {},
       lockStorage.contractAddress,
-      tokenPriceStorage.contractAddress,
+      tokenPriceRegistry.contractAddress,
       versionManager.contractAddress,
       dexRegistry.contractAddress,
       paraswap.contractAddress,
@@ -167,7 +167,7 @@ describe("Token Exchanger", function () {
       lockStorage.contractAddress,
       transferStorage.contractAddress,
       limitStorage.contractAddress,
-      tokenPriceStorage.contractAddress,
+      tokenPriceRegistry.contractAddress,
       versionManager.contractAddress,
       3600,
       3600,
@@ -369,9 +369,9 @@ describe("Token Exchanger", function () {
         fixedAmount,
         variableAmount,
       });
-      await tokenPriceStorage.setTradableForTokenList([toToken], [false]);
+      await tokenPriceRegistry.setTradableForTokenList([toToken], [false]);
       await assert.revertWith(exchanger.from(owner)[method](...params, { gasLimit: 2000000 }), "TE: Token not tradable");
-      await tokenPriceStorage.setTradableForTokenList([toToken], [true]);
+      await tokenPriceRegistry.setTradableForTokenList([toToken], [true]);
     });
 
     it("can exclude exchanges", async () => {
