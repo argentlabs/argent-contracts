@@ -208,9 +208,9 @@ class Benchmark {
       this.config.modules.LockStorage,
       this.config.modules.TokenPriceStorage,
       this.config.modules.VersionManager,
+      this.config.contracts.DexRegistry,
       this.config.defi.paraswap.contract,
       "argent",
-      Object.values(this.config.defi.paraswap.authorisedExchanges),
     );
 
     this.MakerV2ManagerWrapper = await this.deployer.deploy(

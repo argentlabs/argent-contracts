@@ -9,6 +9,7 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 const LimitStorage = require("../build/LimitStorage");
 const TokenPriceStorage = require("../build/TokenPriceStorage");
 const LockStorage = require("../build/LockStorage");
+const DexRegistry = require("../build/DexRegistry");
 
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const CompoundManager = require("../build/CompoundManager");
@@ -92,6 +93,8 @@ const deploy = async (network) => {
   const LimitStorageWrapper = await deployer.deploy(LimitStorage);
   // Deploy the new TokenPriceStorage
   const TokenPriceStorageWrapper = await deployer.deploy(TokenPriceStorage);
+  // Deploy the DexRegistry
+  const DexRegistryWrapper = await deployer.deploy(DexRegistry);
 
   // //////////////////////////////////
   // Deploy new modules
@@ -173,9 +176,9 @@ const deploy = async (network) => {
     LockStorageWrapper.contractAddress,
     TokenPriceStorageWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
+    DexRegistryWrapper.contractAddress,
     config.defi.paraswap.contract,
     "argent",
-    Object.values(config.defi.paraswap.authorisedExchanges),
   );
 
   const MakerV2ManagerWrapper = await deployer.deploy(
@@ -232,6 +235,17 @@ const deploy = async (network) => {
   ]);
 
   // //////////////////////////////////
+  // Setup new infrastructure
+  // //////////////////////////////////
+
+  // Setup DexRegistry
+  const DexRegistrySetAuthorisedTx = await DexRegistryWrapper.setAuthorised(
+    Object.values(config.defi.paraswap.authorisedExchanges),
+    Array(config.defi.paraswap.authorisedExchanges.length).fill(true),
+  );
+  await DexRegistryWrapper.verboseWaitForTransaction(DexRegistrySetAuthorisedTx, "Setting up DexRegistry");
+
+  // //////////////////////////////////
   // Set contracts' managers
   // //////////////////////////////////
   await multisigExecutor.executeCall(ENSManagerWrapper, "addManager", [WalletFactoryWrapper.contractAddress]);
@@ -284,6 +298,7 @@ const deploy = async (network) => {
   configurator.updateInfrastructureAddresses({
     BaseWallet: BaseWalletWrapper.contractAddress,
     WalletFactory: WalletFactoryWrapper.contractAddress,
+    DexRegistry: DexRegistryWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -306,6 +321,7 @@ const deploy = async (network) => {
     abiUploader.upload(LockStorageWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
+    abiUploader.upload(DexRegistryWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////

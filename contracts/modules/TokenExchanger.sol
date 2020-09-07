@@ -21,6 +21,7 @@ import "./common/BaseFeature.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/paraswap/IAugustusSwapper.sol";
 import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/IDexRegistry.sol";
 
 /**
  * @title TokenExchanger
@@ -47,8 +48,8 @@ contract TokenExchanger is BaseFeature {
     address public paraswapSwapper;
     // The label of the referrer
     string public referrer;
-    // Authorised exchanges
-    mapping(address => bool) public authorisedExchanges;
+    // Registry of authorised exchanges
+    IDexRegistry public dexRegistry;
     // The token price storage
     ITokenPriceStorage public tokenPriceStorage;
 
@@ -61,21 +62,18 @@ contract TokenExchanger is BaseFeature {
         ILockStorage _lockStorage,
         ITokenPriceStorage _tokenPriceStorage,
         IVersionManager _versionManager,
+        IDexRegistry _dexRegistry,
         address _paraswap,
-        string memory _referrer,
-        address[] memory _authorisedExchanges
+        string memory _referrer
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         tokenPriceStorage = _tokenPriceStorage;
+        dexRegistry = _dexRegistry;
         paraswapSwapper = _paraswap;
         paraswapProxy = IAugustusSwapper(_paraswap).getTokenTransferProxy();
         referrer = _referrer;
-
-        for (uint i = 0; i < _authorisedExchanges.length; i++) {
-            authorisedExchanges[_authorisedExchanges[i]] = true;
-        }
     }
 
     /**
@@ -187,17 +185,11 @@ contract TokenExchanger is BaseFeature {
     }
 
     function verifyExchangeAdapters(IAugustusSwapper.Path[] calldata _path) internal view {
-        for (uint i = 0; i < _path.length; i++) {
-            for (uint j = 0; j < _path[i].routes.length; j++) {
-                require(authorisedExchanges[_path[i].routes[j].exchange], "TE: Unauthorised Exchange");
-            }
-        }
+        dexRegistry.verifyExchangeAdapters(_path);
     }
 
     function verifyExchangeAdapters(IAugustusSwapper.BuyRoute[] calldata _routes) internal view {
-        for (uint j = 0; j < _routes.length; j++) {
-            require(authorisedExchanges[_routes[j].exchange], "TE: Unauthorised Exchange");
-        }
+        dexRegistry.verifyExchangeAdapters(_routes);
     }
 
     function approveToken(address _wallet, address _token, uint _amount) internal returns (uint256 _existingAllowance) {

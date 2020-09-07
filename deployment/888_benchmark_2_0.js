@@ -26,6 +26,7 @@ const SimpleUpgrader = require("../build/SimpleUpgrader");
 const LimitStorage = require("../build/LimitStorage");
 const LockStorage = require("../build/LockStorage");
 const TokenPriceStorage = require("../build/TokenPriceStorage");
+const DexRegistry = require("../build/DexRegistry");
 
 const TransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const ApprovedTransfer = require("../build-legacy/v1.6.0/ApprovedTransfer");
@@ -164,10 +165,11 @@ class Benchmark {
   }
 
   async testUpgradeAllModules() {
-    // Deploy Storage contracts
+    // Deploy Infrastructure contracts
     const LockStorageWrapper = await this.deployer.deploy(LockStorage);
     const LimitStorageWrapper = await this.deployer.deploy(LimitStorage);
     const TokenPriceStorageWrapper = await this.deployer.deploy(TokenPriceStorage);
+    const DexRegistryWrapper = await this.deployer.deploy(DexRegistry);
 
     // Create new modules
     const VersionManagerWrapper = await this.deployer.deploy(
@@ -244,9 +246,9 @@ class Benchmark {
       LockStorageWrapper.contractAddress,
       TokenPriceStorageWrapper.contractAddress,
       VersionManagerWrapper.contractAddress,
+      DexRegistryWrapper.contractAddress,
       this.config.defi.paraswap.contract,
       "argent",
-      Object.values(this.config.defi.paraswap.authorisedExchanges),
     );
 
     const newMakerV2ManagerWrapper = await this.deployer.deploy(

@@ -21,6 +21,7 @@ const WETH = require("../build/WETH9");
 
 // Argent
 const ModuleRegistry = require("../build/ModuleRegistry");
+const DexRegistry = require("../build/DexRegistry");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
@@ -59,6 +60,7 @@ describe("Token Exchanger", function () {
   let wallet;
   let walletImplementation;
   let exchanger;
+  let dexRegistry;
   let transferManager;
   let relayerManager;
   let kyberNetwork;
@@ -74,6 +76,7 @@ describe("Token Exchanger", function () {
   before(async () => {
     deployer = manager.newDeployer();
     const registry = await deployer.deploy(ModuleRegistry);
+    dexRegistry = await deployer.deploy(DexRegistry);
     guardianStorage = await deployer.deploy(GuardianStorage);
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
@@ -145,15 +148,16 @@ describe("Token Exchanger", function () {
     // Deploy exchanger module
     tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
     await tokenPriceStorage.setTradableForTokenList([tokenA.contractAddress, tokenB.contractAddress], [true, true]);
+    await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [true, true]);
     exchanger = await deployer.deploy(
       TokenExchanger,
       {},
       lockStorage.contractAddress,
       tokenPriceStorage.contractAddress,
       versionManager.contractAddress,
+      dexRegistry.contractAddress,
       paraswap.contractAddress,
       "argent",
-      [kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress],
     );
 
     // Deploy TransferManager module
@@ -179,6 +183,15 @@ describe("Token Exchanger", function () {
       transferManager.contractAddress,
       relayerManager.contractAddress,
     ], []);
+  });
+
+  describe("DexRegistry", () => {
+    it("can't authorise the same DEX twice", async () => {
+      await assert.revertWith(
+        dexRegistry.setAuthorised([kyberAdapter.contractAddress], [true]),
+        "DR: DEX already",
+      );
+    });
   });
 
   beforeEach(async () => {
@@ -373,16 +386,8 @@ describe("Token Exchanger", function () {
     it("can exclude exchanges", async () => {
       const fromToken = tokenA.contractAddress;
       const toToken = tokenB.contractAddress;
-      const exchangerExcludingAllExchanges = await deployer.deploy(
-        TokenExchanger,
-        {},
-        lockStorage.contractAddress,
-        tokenPriceStorage.contractAddress,
-        versionManager.contractAddress,
-        paraswap.contractAddress,
-        "argent",
-        [], // no exchange whitelisted
-      );
+      // whitelist no exchange
+      await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [false, false]);
       const fixedAmount = parseEther("0.01");
       const variableAmount = method === "sell" ? "1" : await getBalance(fromToken, wallet);
       const params = getParams({
@@ -392,7 +397,9 @@ describe("Token Exchanger", function () {
         fixedAmount,
         variableAmount,
       });
-      await assert.revertWith(exchangerExcludingAllExchanges.from(owner)[method](...params, { gasLimit: 2000000 }), "TE: Unauthorised Exchange");
+      await assert.revertWith(exchanger.from(owner)[method](...params, { gasLimit: 2000000 }), "DR: Unauthorised DEX");
+      // reset whitelist
+      await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [true, true]);
     });
 
     it(`lets old wallets call ${method} successfully`, async () => {
