@@ -273,6 +273,9 @@ const deploy = async (network) => {
   changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await VersionManagerWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of VersionManagerWrapper");
 
+  changeOwnerTx = await DexRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  await DexRegistryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of DexRegistryWrapper");
+
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
