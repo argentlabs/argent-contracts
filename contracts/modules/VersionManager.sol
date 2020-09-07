@@ -132,6 +132,12 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
                 staticCallExecutors[newVersion][sigs[j]] = _features[i];
             }
         }
+
+        // Sanity check
+        for(uint256 i = 0; i < _featuresToInit.length; i++) {
+            require(isFeatureInVersion[_featuresToInit[i]][newVersion], "VM: Invalid _featuresToInit");
+        }
+
         featuresToInit[newVersion] = _featuresToInit;
         
         emit VersionAdded(newVersion);
@@ -288,7 +294,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         for(uint256 i = 0; i < featuresToInitInToVersion.length; i++) {
             address feature = featuresToInitInToVersion[i];
             // We only initialize a feature that was not already initialized in the previous version
-            if(!isFeatureInVersion[feature][fromVersion] && isFeatureInVersion[feature][toVersion]) {
+            if(!isFeatureInVersion[feature][fromVersion]) {
                 IFeature(feature).init(_wallet);
             }
         }
