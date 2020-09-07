@@ -227,7 +227,7 @@ describe("GuardianManager", function () {
       it("should let the owner add Smart Contract Guardians (blockchain transaction)", async () => {
         await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet1.contractAddress);
         let count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
-        let active = await guardianManager.isGuardian(wallet.contractAddress, guardian1.address);
+        let active = await guardianManager.isGuardianOrGuardianSigner(wallet.contractAddress, guardian1.address);
         assert.isTrue(active, "first guardian owner should be recognized as guardian");
         active = await guardianManager.isGuardian(wallet.contractAddress, guardianWallet1.contractAddress);
         assert.isTrue(active, "first guardian should be recognized as guardian");
@@ -235,7 +235,7 @@ describe("GuardianManager", function () {
 
         await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet2.contractAddress);
         count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
-        active = await guardianManager.isGuardian(wallet.contractAddress, guardian2.address);
+        active = await guardianManager.isGuardianOrGuardianSigner(wallet.contractAddress, guardian2.address);
         assert.isFalse(active, "second guardian owner should not yet be active");
         active = await guardianManager.isGuardian(wallet.contractAddress, guardianWallet2.contractAddress);
         assert.isFalse(active, "second guardian should not yet be active");
@@ -244,7 +244,7 @@ describe("GuardianManager", function () {
         await manager.increaseTime(30);
         await guardianManager.confirmGuardianAddition(wallet.contractAddress, guardianWallet2.contractAddress);
         count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
-        active = await guardianManager.isGuardian(wallet.contractAddress, guardian2.address);
+        active = await guardianManager.isGuardianOrGuardianSigner(wallet.contractAddress, guardian2.address);
         assert.isTrue(active, "second guardian owner should be active");
         active = await guardianManager.isGuardian(wallet.contractAddress, guardianWallet2.contractAddress);
         assert.isTrue(active, "second guardian should be active");
@@ -256,7 +256,7 @@ describe("GuardianManager", function () {
         const count = (await guardianStorage.guardianCount(wallet.contractAddress)).toNumber();
         let active = await guardianManager.isGuardian(wallet.contractAddress, guardianWallet1.contractAddress);
         assert.isTrue(active, "first guardian should be active");
-        active = await guardianManager.isGuardian(wallet.contractAddress, guardian1.address);
+        active = await guardianManager.isGuardianOrGuardianSigner(wallet.contractAddress, guardian1.address);
         assert.isTrue(active, "first guardian owner should be active");
         assert.equal(count, 1, "1 guardian should be active");
       });

@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 
 import "./common/BaseFeature.sol";
-import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 
 /**
  * @title NftTransfer
@@ -33,8 +33,8 @@ contract NftTransfer is BaseFeature{
 
     // The address of the CryptoKitties contract
     address public ckAddress;
-    // The token price storage
-    ITokenPriceStorage public tokenPriceStorage;
+    // The token price registry
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     // *************** Events *************************** //
 
@@ -44,7 +44,7 @@ contract NftTransfer is BaseFeature{
 
     constructor(
         ILockStorage _lockStorage,
-        ITokenPriceStorage _tokenPriceStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
         IVersionManager _versionManager,
         address _ckAddress
     )
@@ -52,7 +52,7 @@ contract NftTransfer is BaseFeature{
         public
     {
         ckAddress = _ckAddress;
-        tokenPriceStorage = _tokenPriceStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
     }
 
     // *************** External/Public Functions ********************* //
@@ -135,7 +135,7 @@ contract NftTransfer is BaseFeature{
     * @param _contract The address of the contract.
      */
     function coveredByDailyLimit(address _contract) internal view returns (bool) {
-        return tokenPriceStorage.getTokenPrice(_contract) > 0;
+        return tokenPriceRegistry.getTokenPrice(_contract) > 0;
     }
 
 }

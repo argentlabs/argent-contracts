@@ -22,7 +22,7 @@ import "./common/BaseTransfer.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
-import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 import "../../lib/other/ERC20.sol";
 
 /**
@@ -61,7 +61,7 @@ contract TransferManager is BaseTransfer {
     // The limit storage
     ILimitStorage public limitStorage;
     // The token price storage
-    ITokenPriceStorage public tokenPriceStorage;
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     // *************** Events *************************** //
 
@@ -80,7 +80,7 @@ contract TransferManager is BaseTransfer {
         ILockStorage _lockStorage,
         ITransferStorage _transferStorage,
         ILimitStorage _limitStorage,
-        ITokenPriceStorage _tokenPriceStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
         IVersionManager _versionManager,
         uint256 _securityPeriod,
         uint256 _securityWindow,
@@ -94,7 +94,7 @@ contract TransferManager is BaseTransfer {
     {
         transferStorage = _transferStorage;
         limitStorage = _limitStorage;
-        tokenPriceStorage = _tokenPriceStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
         defaultLimit = LimitUtils.safe128(_defaultLimit);
@@ -177,7 +177,7 @@ contract TransferManager is BaseTransfer {
             // transfer to whitelist
             doTransfer(_wallet, _token, _to, _amount, _data);
         } else {
-            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
+            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : LimitUtils.getEtherValue(tokenPriceRegistry, _amount, _token);
             if (LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
@@ -218,7 +218,7 @@ contract TransferManager is BaseTransfer {
             } else {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
-                uint256 deltaInEth = LimitUtils.getEtherValue(tokenPriceStorage, delta, _token);
+                uint256 deltaInEth = LimitUtils.getEtherValue(tokenPriceRegistry, delta, _token);
                 require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, deltaInEth), "TM: Approve above daily limit");
                 // approve if under the limit
                 doApproveToken(_wallet, _token, _spender, _amount);
@@ -528,7 +528,7 @@ contract TransferManager is BaseTransfer {
     * @param _contract The address of the contract.
      */
     function coveredByDailyLimit(address _wallet, address _contract) internal view returns (bool) {
-        return (tokenPriceStorage.getTokenPrice(_contract) > 0 && !isLimitDisabled(_wallet));
+        return (tokenPriceRegistry.getTokenPrice(_contract) > 0 && !isLimitDisabled(_wallet));
     }
 
     /**
@@ -559,7 +559,7 @@ contract TransferManager is BaseTransfer {
             if (_token == ETH_TOKEN || _token == wethToken) {
                 valueInEth = _amount;
             } else {
-                valueInEth = LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
+                valueInEth = LimitUtils.getEtherValue(tokenPriceRegistry, _amount, _token);
             }
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, valueInEth), "TM: Approve above daily limit");
         }

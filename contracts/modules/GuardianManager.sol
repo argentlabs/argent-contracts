@@ -197,6 +197,16 @@ contract GuardianManager is BaseFeature {
     }
 
     /**
+    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian.
+    * @param _wallet The target wallet.
+    * @param _guardian the address to test
+    * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
+    */
+    function isGuardianOrGuardianSigner(address _wallet, address _guardian) public view returns (bool _isGuardian) {
+        (_isGuardian, ) = GuardianUtils.isGuardianOrGuardianSigner(guardianStorage.getGuardians(_wallet), _guardian);
+    }
+
+    /**
      * @notice Counts the number of active guardians for a wallet.
      * @param _wallet The target wallet.
      * @return _count The number of active guardians for a wallet.

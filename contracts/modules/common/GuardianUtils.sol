@@ -23,7 +23,7 @@ pragma solidity ^0.6.12;
 library GuardianUtils {
 
     /**
-    * @notice Checks if an address is an account guardian or an account authorised to sign on behalf of a smart-contract guardian
+    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian
     * given a list of guardians.
     * @param _guardians the list of guardians
     * @param _guardian the address to test

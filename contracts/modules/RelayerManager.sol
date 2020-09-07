@@ -22,7 +22,7 @@ import "./common/BaseFeature.sol";
 import "./common/GuardianUtils.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
-import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
@@ -42,7 +42,7 @@ contract RelayerManager is BaseFeature {
     // The storage of the limit
     ILimitStorage public limitStorage;
     // The Token price storage
-    ITokenPriceStorage public tokenPriceStorage;
+    ITokenPriceRegistry public tokenPriceRegistry;
     // The Guardian storage
     IGuardianStorage public guardianStorage;
 
@@ -69,14 +69,14 @@ contract RelayerManager is BaseFeature {
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
-        ITokenPriceStorage _tokenPriceStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
         IVersionManager _versionManager
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         limitStorage = _limitStorage;
-        tokenPriceStorage = _tokenPriceStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
         guardianStorage = _guardianStorage;
     }
 
@@ -345,7 +345,7 @@ contract RelayerManager is BaseFeature {
         } else {
             gasConsumed = gasConsumed.add(10000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
-            uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
+            uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceRegistry, refundAmount, _refundToken);
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, ethAmount), "RM: refund is above daily limit");
         }
         // refund in ETH or ERC20
