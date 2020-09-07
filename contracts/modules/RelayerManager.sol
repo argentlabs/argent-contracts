@@ -303,7 +303,7 @@ contract RelayerManager is BaseFeature {
                 return false; // Signers must be different
             }
             lastSigner = signer;
-            (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+            (isGuardian, guardians) = GuardianUtils.isGuardianOrGuardianSigner(guardians, signer);
             if (!isGuardian) {
                 return false;
             }

@@ -193,7 +193,7 @@ contract GuardianManager is BaseFeature {
      * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
      */
     function isGuardian(address _wallet, address _guardian) public view returns (bool _isGuardian) {
-        (_isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), _guardian);
+        _isGuardian = guardianStorage.isGuardian(_wallet, _guardian);
     }
 
     /**

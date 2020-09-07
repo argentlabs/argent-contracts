@@ -59,7 +59,7 @@ contract LockManager is BaseFeature {
      * @notice Throws if the caller is not a guardian for the wallet.
      */
     modifier onlyGuardianOrFeature(address _wallet) {
-        (bool isGuardian, ) = GuardianUtils.isGuardian(guardianStorage.getGuardians(_wallet), msg.sender);
+        bool isGuardian = guardianStorage.isGuardian(_wallet, msg.sender);
         require(isFeatureAuthorisedInVersionManager(_wallet, msg.sender) || isGuardian, "LM: must be guardian or feature");
         _;
     }
