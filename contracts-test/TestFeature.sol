@@ -110,4 +110,8 @@ contract TestFeature is BaseFeature {
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
+
+    function invokeStorage(address _wallet, address _storage, bytes calldata _data) external {
+        versionManager.invokeStorage(_wallet, _storage, _data);
+    }
 }

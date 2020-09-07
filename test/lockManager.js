@@ -103,6 +103,10 @@ describe("LockManager", function () {
       assert.isTrue(state, "should be locked by guardian");
       let releaseTime = await lockManager.getLock(wallet.contractAddress);
       assert.isTrue(releaseTime > 0, "releaseTime should be positive");
+      const guardianStorageLock = await guardianStorage.getLock(wallet.contractAddress);
+      const guardianStorageLocker = await guardianStorage.getLocker(wallet.contractAddress);
+      assert.isTrue(guardianStorageLock.eq(0), "legacy guardianStorage's lock should be unused");
+      assert.isTrue(guardianStorageLocker === ethers.constants.AddressZero, "legacy guardianStorage's locker should be unused");
       // unlock
       await lockManager.from(guardian1).unlock(wallet.contractAddress);
       state = await lockManager.isLocked(wallet.contractAddress);

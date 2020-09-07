@@ -8,6 +8,7 @@ const BaseWallet = require("../build/BaseWallet");
 const RelayerManager = require("../build/RelayerManager");
 const VersionManager = require("../build/VersionManager");
 const Registry = require("../build/ModuleRegistry");
+const TestFeature = require("../build/TestFeature");
 
 const TestManager = require("../utils/test-manager");
 
@@ -26,6 +27,7 @@ describe("VersionManager", function () {
   let guardianManager;
   let relayerManager;
   let versionManager;
+  let testFeature;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -54,7 +56,12 @@ describe("VersionManager", function () {
       versionManager.contractAddress,
       24,
       12);
-    await versionManager.addVersion([guardianManager.contractAddress, relayerManager.contractAddress], []);
+    testFeature = await deployer.deploy(TestFeature, {},
+      lockStorage.contractAddress,
+      versionManager.contractAddress,
+      true,
+      42);
+    await versionManager.addVersion([guardianManager.contractAddress, relayerManager.contractAddress, testFeature.contractAddress], []);
     manager.setRelayerManager(relayerManager);
 
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
@@ -89,6 +96,21 @@ describe("VersionManager", function () {
         versionManager.from(owner).upgradeWallet(wallet.contractAddress),
         "VM: Already on last version",
       );
+    });
+
+    it("should not let a feature call an unauthorised storage", async () => {
+      // Note: we are calling the deprecated GuardianStorage.setLock so this particular method gets touched by coverage
+      const data = guardianStorage.contract.interface.functions.setLock.encode([wallet.contractAddress, 1]);
+      await testFeature.from(owner).invokeStorage(wallet.contractAddress, guardianStorage.contractAddress, data);
+      let lock = await guardianStorage.getLock(wallet.contractAddress);
+      assert.isTrue(lock.eq(1), "Lock should have been set");
+      const newGuardianStorage = await deployer.deploy(GuardianStorage); // not authorised in VersionManager
+      await assert.revertWith(
+        testFeature.from(owner).invokeStorage(wallet.contractAddress, newGuardianStorage.contractAddress, data),
+        "VM: invalid storage invoked",
+      );
+      lock = await newGuardianStorage.getLock(wallet.contractAddress);
+      assert.isTrue(lock.eq(0), "Lock should not be set");
     });
   });
 });
