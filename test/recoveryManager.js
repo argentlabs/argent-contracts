@@ -443,7 +443,15 @@ describe("RecoveryManager", function () {
           [wallet.contractAddress, ethers.constants.AddressZero], wallet, [guardian1]);
         const { success, error } = parseRelayReceipt(txReceipt);
         assert.isFalse(success, "executeRecovery should fail");
-        assert.equal(error, "RM: recovery address cannot be null");
+        assert.equal(error, "RM: new owner address cannot be null");
+      });
+
+      it("should not be able to call ExecuteRecovery with a guardian address", async () => {
+        const txReceipt = await manager.relay(recoveryManager, "executeRecovery",
+          [wallet.contractAddress, guardian1.address], wallet, [guardian1]);
+        const { success, error } = parseRelayReceipt(txReceipt);
+        assert.isFalse(success, "executeRecovery should fail");
+        assert.equal(error, "RM: new owner address cannot be a guardian");
       });
 
       it("should not be able to call ExecuteRecovery if already in the process of Recovery", async () => {
@@ -553,6 +561,18 @@ describe("RecoveryManager", function () {
       const { success, error } = parseRelayReceipt(txReceipt);
       assert.isFalse(success, "transferOwnership should fail");
       assert.equal(error, "RM: new owner address cannot be null");
+    });
+
+    it("should not allow transfer to a guardian address", async () => {
+      await addGuardians([guardian1]);
+      const txReceipt = await manager.relay(
+        recoveryManager,
+        "transferOwnership",
+        [wallet.contractAddress, guardian1.address], wallet, [owner, guardian1],
+      );
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "transferOwnership should fail");
+      assert.equal(error, "RM: new owner address cannot be a guardian");
     });
 
     it("when no guardians, owner should be able to transfer alone", async () => {

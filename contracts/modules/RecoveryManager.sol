@@ -109,7 +109,7 @@ contract RecoveryManager is BaseFeature {
      * @param _recovery The address to which ownership should be transferred.
      */
     function executeRecovery(address _wallet, address _recovery) external onlyWalletFeature(_wallet) notWhenRecovery(_wallet) {
-        require(_recovery != address(0), "RM: recovery address cannot be null");
+        validateNewOwner(_wallet, _recovery);
         RecoveryConfig storage config = recoveryConfigs[_wallet];
         config.recovery = _recovery;
         config.executeAfter = uint64(block.timestamp + recoveryPeriod);
@@ -155,7 +155,7 @@ contract RecoveryManager is BaseFeature {
      * @param _newOwner The address to which ownership should be transferred.
      */
     function transferOwnership(address _wallet, address _newOwner) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        require(_newOwner != address(0), "RM: new owner address cannot be null");
+        validateNewOwner(_wallet, _newOwner);
         versionManager.setOwner(_wallet, _newOwner);
 
         emit OwnershipTransfered(_wallet, _newOwner);
@@ -198,6 +198,11 @@ contract RecoveryManager is BaseFeature {
     }
 
     // *************** Internal Functions ********************* //
+
+    function validateNewOwner(address _wallet, address _newOwner) internal view {
+        require(_newOwner != address(0), "RM: new owner address cannot be null");
+        require(!guardianStorage.isGuardian(_wallet, _newOwner), "RM: new owner address cannot be a guardian");
+    }
 
     function setLock(address _wallet, uint256 _releaseAfter) internal {
         versionManager.invokeStorage(
