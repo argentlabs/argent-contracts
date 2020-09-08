@@ -202,7 +202,7 @@ contract GuardianManager is BaseFeature {
     * @param _guardian the address to test
     * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
     */
-    function isGuardianOrGuardianSigner(address _wallet, address _guardian) public view returns (bool _isGuardian) {
+    function isGuardianOrGuardianSigner(address _wallet, address _guardian) external view returns (bool _isGuardian) {
         (_isGuardian, ) = GuardianUtils.isGuardianOrGuardianSigner(guardianStorage.getGuardians(_wallet), _guardian);
     }
 
