@@ -272,7 +272,7 @@ contract("GuardianManager", (accounts) => {
           nonCompliantGuardian = await NonCompliantGuardian.new();
         });
         it("it should fail to add a non-compliant guardian", async () => {
-          await utilities.assertRevert(guardianManager.addGuardian(wallet.address, nonCompliantGuardian.address), { from: owner });
+          await utilities.assertRevert(guardianManager.addGuardian(wallet.address, nonCompliantGuardian.address, { from: owner }));
         });
       });
     });

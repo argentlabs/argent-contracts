@@ -1,7 +1,6 @@
 // AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true etherlime deploy --file ./scripts/deploy_defi.js --compile false
 /* global artifacts */
 
-const ethers = require("ethers");
 const { parseEther, formatBytes32String } = require("ethers").utils;
 
 const DeployManager = require("../utils/deploy-manager.js");
@@ -15,8 +14,8 @@ const DSToken = artifacts.require("DSToken");
 const WETH = artifacts.require("WETH9");
 const DSValue = artifacts.require("DSValue");
 
-const RAY = ethers.BigNumber.from("1000000000000000000000000000"); // 10**27
-const WAD = ethers.BigNumber.from("1000000000000000000"); // 10**18
+const RAY = new BigNumber("1000000000000000000000000000"); // 10**27
+const WAD = new BigNumber("1000000000000000000"); // 10**18
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
 const USD_PER_ETH = WAD.mul(250); // 1 ETH = 250 USD
 const USD_PER_MKR = WAD.mul(700); // 1 MKR = 700 USD

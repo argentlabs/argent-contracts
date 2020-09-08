@@ -81,7 +81,7 @@ module.exports = {
   // Parses the RelayerModule.execute receipt to decompose the success value of the transaction
   // and additionally if an error was raised in the sub-call to optionally return that
   parseRelayReceipt(txReceipt) {
-    const { args } = txReceipt.events.find((l) => l.event === "TransactionExecuted");
+    const { args } = txReceipt.logs.filter((e) => e.event === "TransactionExecuted").args;
 
     let errorBytes;
     if (args.returnData.startsWith("0x08c379a0")) {

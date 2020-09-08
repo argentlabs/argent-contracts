@@ -425,7 +425,7 @@ contract("TokenExchanger", (accounts) => {
     });
     it(`calls ${method} successfully with a pre-existing infinite allowance`, async () => {
       // Make the wallet grant an infinite allowance to the Paraswap proxy
-      const infiniteAllowance = ethers.BigNumber.from(2).pow(256).sub(1);
+      const infiniteAllowance = new BigNumber(2).pow(256).sub(1);
       await testTradeWithPreExistingAllowance(infiniteAllowance);
     });
   }

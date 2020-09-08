@@ -129,7 +129,7 @@ contract("RecoveryManager", (accounts) => {
       const proxy = await Proxy.at(walletImplementation.address);
       const guardianWallet = await BaseWallet.at(proxy.address);
       await guardianWallet.init(g, [versionManager.address]);
-      await versionManager.from(g).upgradeWallet(guardianWallet.address, await versionManager.lastVersion());
+      await versionManager.upgradeWallet(guardianWallet.address, await versionManager.lastVersion(), { from: g });
       wallets.push(guardianWallet);
     }
     return wallets;

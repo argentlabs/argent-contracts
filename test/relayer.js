@@ -288,7 +288,7 @@ contract("RelayerManager", (accounts) => {
     }
 
     it("should refund in ETH", async () => {
-      await provisionFunds(ethers.BigNumber.from("100000000000000"), 0);
+      await provisionFunds("100000000000000", 0);
       const wBalanceStart = await getBalance(wallet.address);
       const rBalanceStart = await getBalance(recipient);
       await callAndRefund({ refundToken: ETH_TOKEN });
@@ -300,7 +300,7 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should refund in ERC20", async () => {
-      await provisionFunds(0, ethers.BigNumber.from("100000000000000"));
+      await provisionFunds(0, "100000000000000");
       const wBalanceStart = await erc20.balanceOf(wallet.address);
       const rBalanceStart = await erc20.balanceOf(recipient);
       await callAndRefund({ refundToken: erc20.address });
@@ -312,23 +312,23 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should emit the Refund event", async () => {
-      await provisionFunds(ethers.BigNumber.from("100000000000"), 0);
+      await provisionFunds("100000000000", 0);
       const txReceipt = await callAndRefund({ refundToken: ETH_TOKEN });
       await hasEvent(txReceipt, "Refund");
     });
 
     it("should fail the transaction when when there is not enough ETH for the refund", async () => {
-      await provisionFunds(ethers.BigNumber.from("10"), 0);
+      await provisionFunds(10, 0);
       await assertRevert(callAndRefund({ refundToken: ETH_TOKEN }), "VM: wallet invoke reverted");
     });
 
     it("should fail the transaction when when there is not enough ERC20 for the refund", async () => {
-      await provisionFunds(0, ethers.BigNumber.from("10"));
+      await provisionFunds(0, 10);
       await assertRevert(callAndRefund({ refundToken: erc20.address }), "ERC20: transfer amount exceeds balance");
     });
 
     it("should include the refund in the daily limit", async () => {
-      await provisionFunds(ethers.BigNumber.from("100000000000"), 0);
+      await provisionFunds("100000000000", 0);
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
@@ -339,7 +339,7 @@ contract("RelayerManager", (accounts) => {
 
     it("should refund and reset the daily limit when approved by guardians", async () => {
       // set funds and limit/daily spent
-      await provisionFunds(ethers.BigNumber.from("100000000000"), 0);
+      await provisionFunds("100000000000", 0);
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
@@ -378,7 +378,7 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should fail the transaction when the refund is over the daily limit", async () => {
-      await provisionFunds(ethers.BigNumber.from("100000000000"), 0);
+      await provisionFunds("100000000000", 0);
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 999999990 });
       const dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 999999990, "initial daily spent should be 999999990");

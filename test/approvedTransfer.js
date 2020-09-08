@@ -312,7 +312,7 @@ contract("ApprovedTransfer", (accounts) => {
 
       describe("Invalid Target", () => {
         async function expectFailingApproveTokenAndCallContract(target) {
-          const invalidData = contract.contract.methods.setStateAndPayToken([2, erc20.address, amountToApprove]).encodeABI();
+          const invalidData = contract.contract.methods.setStateAndPayToken(2, erc20.address, amountToApprove).encodeABI();
           const txReceipt = await manager.relay(approvedTransfer, "approveTokenAndCallContract",
             [wallet.address, erc20.address, wallet.address, amountToApprove, target.address, invalidData],
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
@@ -376,7 +376,7 @@ contract("ApprovedTransfer", (accounts) => {
           const allowanceBefore = await erc20.allowance(wallet.address, consumer);
           const balanceBefore = await erc20.balanceOf(contract.address);
 
-          const dataToTransfer = contract.contract.methods.setStateAndPayTokenWithConsumer([2, erc20.address, amountToApprove]).encodeABI();
+          const dataToTransfer = contract.contract.methods.setStateAndPayTokenWithConsumer(2, erc20.address, amountToApprove).encodeABI();
           await manager.relay(approvedTransfer, "approveTokenAndCallContract",
             [wallet.address, erc20.address, consumer, amountToApprove, contract.address, dataToTransfer],
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);

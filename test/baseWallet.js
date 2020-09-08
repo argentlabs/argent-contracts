@@ -63,7 +63,7 @@ contract("BaseWallet", (accounts) => {
     it("should register a module with the correct info", async () => {
       const name = ethers.utils.formatBytes32String("module1");
       await registry.registerModule(module1.address, name);
-      const isRegistered = await registry["isRegisteredModule(address)"](module1.address);
+      const isRegistered = await registry.isRegisteredModule(module1.address);
       assert.isTrue(isRegistered, "module should be registered");
       const info = await registry.moduleInfo(module1.address);
       assert.equal(name, info, "name should be correct");
@@ -72,10 +72,10 @@ contract("BaseWallet", (accounts) => {
     it("should deregister a module", async () => {
       const name = ethers.utils.formatBytes32String("module2");
       await registry.registerModule(module2.address, name);
-      let isRegistered = await registry["isRegisteredModule(address)"](module2.address);
+      let isRegistered = await registry.isRegisteredModule(module2.address);
       assert.isTrue(isRegistered, "module should be registered");
       await registry.deregisterModule(module2.address);
-      isRegistered = await registry["isRegisteredModule(address)"](module2.address);
+      isRegistered = await registry.isRegisteredModule(module2.address);
       assert.isFalse(isRegistered, "module should be deregistered");
     });
 
@@ -198,7 +198,7 @@ contract("BaseWallet", (accounts) => {
 
         // trying to execute static call delegated to module1 (it should fail)
         const walletAsModule = await TestFeature.at(wallet.address);
-        await assertRevert(walletAsModule.contract.getBoolean(), "BW: must be an authorised module for static call");
+        await assertRevert(walletAsModule.getBoolean(), "BW: must be an authorised module for static call");
       });
     });
   });

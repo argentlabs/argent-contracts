@@ -69,7 +69,7 @@ contract("MakerV2Loan", (accounts) => {
     const { wethJoin } = mk;
 
     // Deploy Uniswap
-    const uni = await deployUniswap(manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
+    const uni = await deployUniswap(infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
     uniswapFactory = uni.uniswapFactory;
 
     // Deploy MakerV2Manager
@@ -322,7 +322,7 @@ contract("MakerV2Loan", (accounts) => {
     it("should not remove collateral with invalid collateral amount", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await assertRevert(
-        makerV2.removeCollateral(walletAddress, loanId, ETH_TOKEN, ethers.BigNumber.from(2).pow(255), { from: owner }),
+        makerV2.removeCollateral(walletAddress, loanId, ETH_TOKEN, new BigNumber(2).pow(255), { from: owner }),
         "MV2: int overflow",
       );
     });
