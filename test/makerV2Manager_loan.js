@@ -22,7 +22,7 @@ const GuardianStorage = require("../build/GuardianStorage");
 const LockStorage = require("../build/LockStorage");
 const TransferStorage = require("../build/TransferStorage");
 const LimitStorage = require("../build/LimitStorage");
-const TokenPriceStorage = require("../build/TokenPriceStorage");
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 const TransferManager = require("../build/TransferManager");
 const BadFeature = require("../build/TestFeature");
 const RelayerManager = require("../build/RelayerManager");
@@ -102,12 +102,12 @@ describe("MakerV2 Vaults", function () {
     // Deploy TransferManager
     const transferStorage = await deployer.deploy(TransferStorage);
     const limitStorage = await deployer.deploy(LimitStorage);
-    const tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
+    const tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
     transferManager = await deployer.deploy(TransferManager, {},
       lockStorage.contractAddress,
       transferStorage.contractAddress,
       limitStorage.contractAddress,
-      tokenPriceStorage.contractAddress,
+      tokenPriceRegistry.contractAddress,
       versionManager.contractAddress,
       3600,
       3600,

@@ -15,7 +15,7 @@ const GuardianManager = require("../build/GuardianManager");
 const GuardianStorage = require("../build/GuardianStorage");
 const LockStorage = require("../build/LockStorage");
 const LimitStorage = require("../build/LimitStorage");
-const TokenPriceStorage = require("../build/TokenPriceStorage");
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const RecoveryManager = require("../build/RecoveryManager"); // non-owner only feature
 const VersionManager = require("../build/VersionManager");
@@ -56,7 +56,7 @@ describe("RelayerManager", function () {
   let testFeature;
   let testFeatureNew;
   let relayerManager;
-  let tokenPriceStorage;
+  let tokenPriceRegistry;
   let limitFeature;
   let badFeature;
   let versionManager;
@@ -80,13 +80,13 @@ describe("RelayerManager", function () {
       ethers.constants.AddressZero,
       limitStorage.contractAddress);
 
-    tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
-    await tokenPriceStorage.addManager(infrastructure.address);
+    tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
+    await tokenPriceRegistry.addManager(infrastructure.address);
     relayerManager = await deployer.deploy(RelayerManager, {},
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       limitStorage.contractAddress,
-      tokenPriceStorage.contractAddress,
+      tokenPriceRegistry.contractAddress,
       versionManager.contractAddress);
     manager.setRelayerManager(relayerManager);
   });
@@ -254,7 +254,7 @@ describe("RelayerManager", function () {
       const decimals = 12; // number of decimal for TOKN contract
       const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
       erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address], 10000000, decimals); // TOKN contract with 10M tokens (10M TOKN for account[0])
-      await tokenPriceStorage.setPriceForTokenList([erc20.contractAddress], [tokenRate.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20.contractAddress], [tokenRate.toString()]);
       await limitFeature.setLimitAndDailySpent(wallet.contractAddress, 10000000000, 0);
     });
 

@@ -169,6 +169,7 @@ contract ApprovedTransfer is BaseTransfer {
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doApproveWethAndCallContract(_wallet, _spender, _amount, _contract, _data);
+        LimitUtils.resetDailySpent(versionManager, limitStorage, _wallet);
     }
 
     /**

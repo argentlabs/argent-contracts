@@ -23,13 +23,13 @@ pragma solidity ^0.6.12;
 library GuardianUtils {
 
     /**
-    * @notice Checks if an address is an account guardian or an account authorised to sign on behalf of a smart-contract guardian
+    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian
     * given a list of guardians.
     * @param _guardians the list of guardians
     * @param _guardian the address to test
     * @return true and the list of guardians minus the found guardian upon success, false and the original list of guardians if not found.
     */
-    function isGuardian(address[] memory _guardians, address _guardian) internal view returns (bool, address[] memory) {
+    function isGuardianOrGuardianSigner(address[] memory _guardians, address _guardian) internal view returns (bool, address[] memory) {
         if (_guardians.length == 0 || _guardian == address(0)) {
             return (false, _guardians);
         }

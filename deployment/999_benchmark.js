@@ -209,7 +209,7 @@ class Benchmark {
       NftTransfer,
       {},
       this.config.modules.LockStorage,
-      this.config.modules.TokenPriceStorage,
+      this.config.modules.TokenPriceRegistry,
       this.config.modules.VersionManager,
       this.config.CryptoKitties.contract,
     );
@@ -228,7 +228,7 @@ class Benchmark {
       TokenExchanger,
       {},
       this.config.modules.LockStorage,
-      this.config.modules.TokenPriceStorage,
+      this.config.modules.TokenPriceRegistry,
       this.config.modules.VersionManager,
       this.config.contracts.DexRegistry,
       this.config.defi.paraswap.contract,
@@ -253,7 +253,7 @@ class Benchmark {
       this.config.modules.LockStorage,
       this.config.modules.TransferStorage,
       this.config.modules.LimitStorage,
-      this.config.modules.TokenPriceStorage,
+      this.config.modules.TokenPriceRegistry,
       this.config.modules.VersionManager,
       this.config.settings.securityPeriod || 0,
       this.config.settings.securityWindow || 0,
@@ -268,7 +268,7 @@ class Benchmark {
       this.config.modules.LockStorage,
       this.config.modules.GuardianStorage,
       this.config.modules.LimitStorage,
-      this.config.modules.TokenPriceStorage,
+      this.config.modules.TokenPriceRegistry,
       this.config.modules.VersionManager,
     );
 

@@ -9,7 +9,7 @@ const RelayerManager = require("../build/RelayerManager");
 const LockStorage = require("../build/LockStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const NftModule = require("../build/NftTransfer");
-const TokenPriceStorage = require("../build/TokenPriceStorage");
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 
 const ERC721 = require("../build/TestERC721");
 const CK = require("../build/CryptoKittyTest");
@@ -43,7 +43,7 @@ describe("Token Transfer", function () {
   let ckId;
   let erc20;
   let erc20Approver;
-  let tokenPriceStorage;
+  let tokenPriceRegistry;
   let lockStorage;
   let versionManager;
 
@@ -69,11 +69,11 @@ describe("Token Transfer", function () {
       versionManager.contractAddress);
     manager.setRelayerManager(relayerManager);
     ck = await deployer.deploy(CK);
-    tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
-    await tokenPriceStorage.addManager(infrastructure.address);
+    tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
+    await tokenPriceRegistry.addManager(infrastructure.address);
     nftFeature = await deployer.deploy(NftModule, {},
       lockStorage.contractAddress,
-      tokenPriceStorage.contractAddress,
+      tokenPriceRegistry.contractAddress,
       versionManager.contractAddress,
       ck.contractAddress);
     erc20Approver = await deployer.deploy(ERC20Approver, {}, versionManager.contractAddress);
@@ -194,7 +194,7 @@ describe("Token Transfer", function () {
     describe("Protecting from transferFrom hijacking", () => {
       beforeEach(async () => {
         erc20 = await deployer.deploy(ERC20, {}, [wallet1.contractAddress], 1000, 18);
-        tokenPriceStorage.setPriceForTokenList([erc20.contractAddress], [1]);
+        tokenPriceRegistry.setPriceForTokenList([erc20.contractAddress], [1]);
         await erc20Approver.from(owner1).approveERC20(
           wallet1.contractAddress,
           erc20.contractAddress,

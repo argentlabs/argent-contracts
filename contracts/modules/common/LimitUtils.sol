@@ -19,7 +19,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../infrastructure/storage/ILimitStorage.sol";
-import "../../infrastructure/storage/ITokenPriceStorage.sol";
+import "../../infrastructure/ITokenPriceRegistry.sol";
 import "./IVersionManager.sol";
 
 /**
@@ -150,8 +150,8 @@ library LimitUtils {
     * @param _token The address of the token.
     * @return The ether value for _amount of _token.
     */
-    function getEtherValue(ITokenPriceStorage _priceStorage, uint256 _amount, address _token) internal view returns (uint256) {
-        uint256 price = _priceStorage.getTokenPrice(_token);
+    function getEtherValue(ITokenPriceRegistry _priceRegistry, uint256 _amount, address _token) internal view returns (uint256) {
+        uint256 price = _priceRegistry.getTokenPrice(_token);
         uint256 etherValue = price.mul(_amount).div(10**18);
         return etherValue;
     }

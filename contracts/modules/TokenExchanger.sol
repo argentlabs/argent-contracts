@@ -20,7 +20,7 @@ pragma experimental ABIEncoderV2;
 import "./common/BaseFeature.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/paraswap/IAugustusSwapper.sol";
-import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 import "../infrastructure/IDexRegistry.sol";
 
 /**
@@ -50,8 +50,8 @@ contract TokenExchanger is BaseFeature {
     string public referrer;
     // Registry of authorised exchanges
     IDexRegistry public dexRegistry;
-    // The token price storage
-    ITokenPriceStorage public tokenPriceStorage;
+    // The token price registry
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     event TokenExchanged(address indexed wallet, address srcToken, uint srcAmount, address destToken, uint destAmount);
 
@@ -60,7 +60,7 @@ contract TokenExchanger is BaseFeature {
 
     constructor(
         ILockStorage _lockStorage,
-        ITokenPriceStorage _tokenPriceStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
         IVersionManager _versionManager,
         IDexRegistry _dexRegistry,
         address _paraswap,
@@ -69,7 +69,7 @@ contract TokenExchanger is BaseFeature {
         BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
-        tokenPriceStorage = _tokenPriceStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
         dexRegistry = _dexRegistry;
         paraswapSwapper = _paraswap;
         paraswapProxy = IAugustusSwapper(_paraswap).getTokenTransferProxy();
@@ -181,7 +181,7 @@ contract TokenExchanger is BaseFeature {
     // Internal & Private Methods
 
     function verifyTradable(address _token) internal view {
-        require((_token == ETH_TOKEN_ADDRESS) || tokenPriceStorage.isTokenTradable(_token), "TE: Token not tradable");
+        require((_token == ETH_TOKEN_ADDRESS) || tokenPriceRegistry.isTokenTradable(_token), "TE: Token not tradable");
     }
 
     function verifyExchangeAdapters(IAugustusSwapper.Path[] calldata _path) internal view {

@@ -15,10 +15,10 @@
 pragma solidity ^0.6.12;
 
 /**
- * @title ITokenPriceStorage
- * @notice TokenPriceStorage interface
+ * @title ITokenPriceRegistry
+ * @notice TokenPriceRegistry interface
  */
-interface ITokenPriceStorage {
+interface ITokenPriceRegistry {
     function getTokenPrice(address _token) external view returns (uint184 _price);
     function isTokenTradable(address _token) external view returns (bool _isTradable);
 }

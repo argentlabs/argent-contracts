@@ -7,7 +7,7 @@ const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const LimitStorage = require("../build/LimitStorage");
-const TokenPriceStorage = require("../build/TokenPriceStorage");
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 const LockStorage = require("../build/LockStorage");
 const DexRegistry = require("../build/DexRegistry");
 
@@ -91,8 +91,8 @@ const deploy = async (network) => {
   const LockStorageWrapper = await deployer.deploy(LockStorage);
   // Deploy the new LimitStorage
   const LimitStorageWrapper = await deployer.deploy(LimitStorage);
-  // Deploy the new TokenPriceStorage
-  const TokenPriceStorageWrapper = await deployer.deploy(TokenPriceStorage);
+  // Deploy the new TokenPriceRegistry
+  const TokenPriceRegistryWrapper = await deployer.deploy(TokenPriceRegistry);
   // Deploy the DexRegistry
   const DexRegistryWrapper = await deployer.deploy(DexRegistry);
 
@@ -155,7 +155,7 @@ const deploy = async (network) => {
     NftTransfer,
     {},
     LockStorageWrapper.contractAddress,
-    TokenPriceStorageWrapper.contractAddress,
+    TokenPriceRegistryWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.CryptoKitties.contract,
   );
@@ -174,7 +174,7 @@ const deploy = async (network) => {
     TokenExchanger,
     {},
     LockStorageWrapper.contractAddress,
-    TokenPriceStorageWrapper.contractAddress,
+    TokenPriceRegistryWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     DexRegistryWrapper.contractAddress,
     config.defi.paraswap.contract,
@@ -199,7 +199,7 @@ const deploy = async (network) => {
     LockStorageWrapper.contractAddress,
     config.modules.TransferStorage,
     LimitStorageWrapper.contractAddress,
-    TokenPriceStorageWrapper.contractAddress,
+    TokenPriceRegistryWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
@@ -214,7 +214,7 @@ const deploy = async (network) => {
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
     LimitStorageWrapper.contractAddress,
-    TokenPriceStorageWrapper.contractAddress,
+    TokenPriceRegistryWrapper.contractAddress,
     VersionManagerWrapper.contractAddress,
   );
 
@@ -255,9 +255,9 @@ const deploy = async (network) => {
     const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
     await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
 
-    const TokenPriceStorageAddManagerTx = await TokenPriceStorageWrapper.contract.addManager(account, { gasPrice });
-    await TokenPriceStorageWrapper.verboseWaitForTransaction(TokenPriceStorageAddManagerTx,
-      `Set ${account} as the manager of the TokenPriceStorage`);
+    const TokenPriceRegistryAddManagerTx = await TokenPriceRegistryWrapper.contract.addManager(account, { gasPrice });
+    await TokenPriceRegistryWrapper.verboseWaitForTransaction(TokenPriceRegistryAddManagerTx,
+      `Set ${account} as the manager of the TokenPriceRegistry`);
   }
 
   // //////////////////////////////////
@@ -267,8 +267,8 @@ const deploy = async (network) => {
   let changeOwnerTx = await WalletFactoryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await WalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of WalletFactory");
 
-  changeOwnerTx = await TokenPriceStorageWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await TokenPriceStorageWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceStorageWrapper");
+  changeOwnerTx = await TokenPriceRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  await TokenPriceRegistryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceRegistryWrapper");
 
   changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await VersionManagerWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of VersionManagerWrapper");
@@ -283,7 +283,7 @@ const deploy = async (network) => {
   // TODO: change name from "module" to "feature" where appropriate
   configurator.updateModuleAddresses({
     LimitStorage: LimitStorageWrapper.contractAddress,
-    TokenPriceStorage: TokenPriceStorageWrapper.contractAddress,
+    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
     LockStorage: LockStorageWrapper.contractAddress,
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
@@ -320,7 +320,7 @@ const deploy = async (network) => {
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(RelayerManagerWrapper, "modules"),
     abiUploader.upload(LimitStorageWrapper, "contracts"),
-    abiUploader.upload(TokenPriceStorageWrapper, "contracts"),
+    abiUploader.upload(TokenPriceRegistryWrapper, "contracts"),
     abiUploader.upload(LockStorageWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
