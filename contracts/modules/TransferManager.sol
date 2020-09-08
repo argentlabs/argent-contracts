@@ -583,14 +583,6 @@ contract TransferManager is BaseTransfer {
         );
     }
 
-    function setDailySpent(address _wallet, ILimitStorage.DailySpent memory _dailySpent) internal {
-        versionManager.invokeStorage(
-            _wallet,
-            address(limitStorage),
-            abi.encodeWithSelector(limitStorage.setDailySpent.selector, _wallet, _dailySpent)
-        );
-    }
-
     function setLimitAndDailySpent(
         address _wallet,
         ILimitStorage.Limit memory _limit,
