@@ -21,8 +21,8 @@ const CdpManager = artifacts.require("DssCdpManager");
 const GemJoin = artifacts.require("GemJoin");
 const DaiJoin = artifacts.require("DaiJoin");
 
-const RAY = ethers.BigNumber.from("1000000000000000000000000000"); // 10**27
-const WAD = ethers.BigNumber.from("1000000000000000000"); // 10**18
+const RAY = new BigNumber("1000000000000000000000000000"); // 10**27
+const WAD = new BigNumber("1000000000000000000"); // 10**18
 const RAD = RAY.mul(WAD);
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
 const USD_PER_ETH = WAD.mul(100); // 1 ETH = 100 USD
@@ -37,7 +37,7 @@ module.exports = {
   ETH_PER_MKR,
   ETH_PER_DAI,
 
-  deployUniswap: async (manager, infrastructure, tokens = [], ethPerToken = [], ethLiquidity = parseEther("10")) => {
+  deployUniswap: async (infrastructure, tokens = [], ethPerToken = [], ethLiquidity = parseEther("10")) => {
     const uniswapFactory = await UniswapFactory.new();
     const uniswapTemplateExchange = await UniswapExchange.new();
     await uniswapFactory.initializeFactory(uniswapTemplateExchange.address);

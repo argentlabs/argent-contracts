@@ -22,8 +22,8 @@ const CEther = artifacts.require("CEther");
 const CErc20 = artifacts.require("CErc20");
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 
-const WAD = ethers.BigNumber.from("1000000000000000000"); // 10**18
-const ETH_EXCHANGE_RATE = ethers.BigNumber.from("200000000000000000000000000");
+const WAD = new BigNumber("1000000000000000000"); // 10**18
+const ETH_EXCHANGE_RATE = new BigNumber("200000000000000000000000000");
 
 const ERC20 = artifacts.require("TestERC20");
 
@@ -66,7 +66,7 @@ contract("Invest Manager with Compound", (accounts) => {
     const interestModel = await InterestModel.new(WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
     // deploy CEther
     cEther = await CEther.new(
-      comptroller.address,
+      comptrollerProxy.address,
       interestModel.address,
       ETH_EXCHANGE_RATE,
       formatBytes32String("Compound Ether"),

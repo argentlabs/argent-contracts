@@ -131,7 +131,7 @@ contract("LockManager", (accounts) => {
       const state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian1");
 
-      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: nonguardian }));
+      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: nonguardian }), "LM: must be guardian or module");
     });
   });
 
@@ -195,7 +195,7 @@ contract("LockManager", (accounts) => {
       await lockManager.unlock(wallet.address, { from: guardian1 });
       // try to unlock again
       await utilities.assertRevert(lockManager.unlock(wallet.address, { from: guardian1 }),
-        "VM Exception while processing transaction: revert LM: wallet must be locked");
+        "LM: wallet must be locked");
     });
 
     it("should not be able to unlock a wallet, locked by another feature", async () => {

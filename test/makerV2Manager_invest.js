@@ -18,7 +18,6 @@ const DAI_SENT = WAD.div(100000000);
 
 contract("MakerV2Invest", (accounts) => {
   const manager = new RelayManager();
-  const { deployer } = manager;
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
@@ -55,7 +54,7 @@ contract("MakerV2Invest", (accounts) => {
     const makerRegistry = await MakerRegistry.new(vat.address);
 
     // Deploy Uniswap
-    const uni = await deployUniswap(manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
+    const uni = await deployUniswap(infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
 
     makerV2 = await MakerV2Manager.new(
       lockStorage.address,
