@@ -3,6 +3,7 @@
 const ethers = require("ethers");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
+const { assert } = require("chai");
 const BaseWallet = require("../build/BaseWallet");
 const Proxy = require("../build/Proxy");
 const ModuleRegistry = require("../build/ModuleRegistry");
@@ -129,6 +130,27 @@ class Benchmark {
     this.multisigExecutor = new MultisigExecutor(this.MultiSigWrapper, this.signers[0], true);
 
     this.testManager.setRelayerManager(this.RelayerManagerWrapper);
+
+    // Add new version to Version Manager
+    await this.multisigExecutor.executeCall(
+      this.VersionManagerWrapper,
+      "addVersion", [
+        [
+          this.GuardianManagerWrapper.contractAddress,
+          this.LockManagerWrapper.contractAddress,
+          this.RecoveryManagerWrapper.contractAddress,
+          this.ApprovedTransferWrapper.contractAddress,
+          this.TransferManagerWrapper.contractAddress,
+          this.TokenExchangerWrapper.contractAddress,
+          this.NftTransferWrapper.contractAddress,
+          this.CompoundManagerWrapper.contractAddress,
+          this.MakerV2ManagerWrapper.contractAddress,
+          this.RelayerManagerWrapper.contractAddress,
+        ], [
+          this.TransferManagerWrapper.contractAddress,
+        ],
+      ],
+    );
   }
 
   async setupWallet() {
@@ -164,7 +186,7 @@ class Benchmark {
       this.config.modules.VersionManager,
     );
 
-    this.GuardianManager = await this.deployer.deploy(
+    this.GuardianManagerWrapper = await this.deployer.deploy(
       GuardianManager,
       {},
       this.config.modules.LockStorage,
@@ -272,10 +294,12 @@ class Benchmark {
     );
 
     // Upgrade a wallet from 2.0 to 2.1
+    const fromVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.contractAddress);
     const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress);
     const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
-
-    // TODO: Test if the upgrade worked
+    const toVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.contractAddress);
+    assert.equal(fromVersion.toNumber() + 1, toVersion.toNumber(), "Bad Update");
+    console.log(`Wallet updated from version ${fromVersion.toString()} to version ${toVersion.toString()}`);
 
     this._logger.addItem("Upgrade all modules on a wallet", txReceipt.gasUsed.toString());
   }
@@ -287,10 +311,6 @@ class Benchmark {
   async estimateCreateWalletAllModules() {
     const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.allModules, "", this.accounts[4]);
     this._logger.addItem("Create a wallet without ENS (all modules)", gasUsed);
-  }
-
-  async estimateUpgradeWalletAllFeatures() {
-    await this.testUpgradeAllFeatures();
   }
 
   async estimateCreateWalletWithENS() {
@@ -557,6 +577,10 @@ class Benchmark {
       signers,
     );
     this._logger.addItem("ETH large transfer approval by two guardians", gasUsed);
+  }
+
+  async estimateUpgradeWalletAllFeatures() {
+    await this.testUpgradeAllFeatures();
   }
 
   // ///////////////////
