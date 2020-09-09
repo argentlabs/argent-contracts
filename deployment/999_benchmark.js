@@ -151,6 +151,8 @@ class Benchmark {
         ],
       ],
     );
+    const lastVersion = await this.VersionManagerWrapper.lastVersion();
+    await this.multisigExecutor.executeCall(this.VersionManagerWrapper, "setNewWalletVersion", [lastVersion]);
   }
 
   async setupWallet() {
@@ -292,10 +294,12 @@ class Benchmark {
         ],
       ],
     );
+    const lastVersion = await this.VersionManagerWrapper.lastVersion();
+    await this.multisigExecutor.executeCall(this.VersionManagerWrapper, "setNewWalletVersion", [lastVersion]);
 
     // Upgrade a wallet from 2.0 to 2.1
     const fromVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.contractAddress);
-    const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress);
+    const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, lastVersion);
     const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
     const toVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.contractAddress);
     assert.equal(fromVersion.toNumber() + 1, toVersion.toNumber(), "Bad Update");

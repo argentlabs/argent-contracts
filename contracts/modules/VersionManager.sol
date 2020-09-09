@@ -207,7 +207,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     /**
      * @notice Upgrade a wallet to a new version.
-     * @dev It's cheaper to pass features to init as calldata than reading them from storage
      * @param _wallet the wallet to upgrade
      * @param _version the new version
      */

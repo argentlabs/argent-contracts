@@ -41,7 +41,6 @@ contract BaseFeature is IFeature {
     IVersionManager internal versionManager;
 
     event FeatureCreated(bytes32 name);
-    event FeatureInitialised(address wallet);
 
     /**
      * @notice Throws if the wallet is locked.
@@ -111,13 +110,11 @@ contract BaseFeature is IFeature {
     }
 
     /**
-     * @notice Inits the feature for a wallet by logging an event.
-     * The method can only be called by the VersionManager.
+     * @notice Inits the feature for a wallet by doing nothing.
+     * @dev !! Overriding methods need make sure `init()` can only be called by the VersionManager !!
      * @param _wallet The wallet.
      */
-    function init(address _wallet) public virtual override onlyVersionManager {
-        emit FeatureInitialised(_wallet);
-    }
+    function init(address _wallet) public virtual override  {}
 
     /**
      * @inheritdoc IFeature
