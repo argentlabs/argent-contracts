@@ -29,7 +29,7 @@ const ENSManager = require("../build/ArgentENSManager");
 
 const utils = require("../utils/utilities.js");
 
-const TARGET_VERSION = "2.0.0";
+const TARGET_VERSION = "2.1.0";
 const MODULES_TO_ENABLE = [
   "VersionManager",
 ];
@@ -219,7 +219,7 @@ const deploy = async (network) => {
   );
 
   // Add Features to Version Manager
-  await VersionManagerWrapper.addVersion([
+  const VersionManagerAddVersionTx = await VersionManagerWrapper.contract.addVersion([
     GuardianManagerWrapper.contractAddress,
     LockManagerWrapper.contractAddress,
     RecoveryManagerWrapper.contractAddress,
@@ -232,7 +232,8 @@ const deploy = async (network) => {
     RelayerManagerWrapper.contractAddress,
   ], [
     TransferManagerWrapper.contractAddress,
-  ]);
+  ], { gasPrice });
+  await VersionManagerWrapper.verboseWaitForTransaction(VersionManagerAddVersionTx, "Adding New Version");
 
   // //////////////////////////////////
   // Setup new infrastructure
