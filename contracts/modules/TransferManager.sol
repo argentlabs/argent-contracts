@@ -123,7 +123,7 @@ contract TransferManager is BaseTransfer {
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
-    function init(address _wallet) public override(BaseFeature) onlyVersionManager {
+    function init(address _wallet) external override(BaseFeature) onlyVersionManager {
 
         if (address(oldTransferManager) == address(0)) {
             setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
