@@ -44,6 +44,7 @@ const MODULES_TO_DISABLE = [
   "TokenExchanger",
   "MakerV2Manager",
   "TransferManager",
+  "RelayerModule",
 ];
 
 const BACKWARD_COMPATIBILITY = 3;
@@ -240,17 +241,17 @@ const deploy = async (network) => {
   // //////////////////////////////////
 
   // Setup DexRegistry
-  const DexRegistrySetAuthorisedTx = await DexRegistryWrapper.setAuthorised(
-    Object.values(config.defi.paraswap.authorisedExchanges),
-    Array(config.defi.paraswap.authorisedExchanges.length).fill(true),
+  const authorisedExchanges = Object.values(config.defi.paraswap.authorisedExchanges);
+  const DexRegistrySetAuthorisedTx = await DexRegistryWrapper.contract.setAuthorised(
+    authorisedExchanges, Array(authorisedExchanges.length).fill(true), { gasPrice },
   );
   await DexRegistryWrapper.verboseWaitForTransaction(DexRegistrySetAuthorisedTx, "Setting up DexRegistry");
 
   // //////////////////////////////////
   // Set contracts' managers
   // //////////////////////////////////
-  await multisigExecutor.executeCall(ENSManagerWrapper, "addManager", [WalletFactoryWrapper.contractAddress]);
 
+  await multisigExecutor.executeCall(ENSManagerWrapper, "addManager", [WalletFactoryWrapper.contractAddress]);
   for (const idx in config.backend.accounts) {
     const account = config.backend.accounts[idx];
     const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
