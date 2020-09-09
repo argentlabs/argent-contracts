@@ -117,6 +117,7 @@ describe("TransferManager", function () {
     manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([transferManager.contractAddress, relayerManager.contractAddress], [transferManager.contractAddress]);
+    await versionManager.setNewWalletVersion(await versionManager.lastVersion());
   });
 
   beforeEach(async () => {
@@ -166,6 +167,7 @@ describe("TransferManager", function () {
 
       // reset the last version to the default bundle
       await versionManager.addVersion([transferManager.contractAddress, relayerManager.contractAddress], [transferManager.contractAddress]);
+      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
     });
   });
 
