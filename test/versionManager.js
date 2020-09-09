@@ -62,6 +62,7 @@ describe("VersionManager", function () {
       true,
       42);
     await versionManager.addVersion([guardianManager.contractAddress, relayerManager.contractAddress, testFeature.contractAddress], []);
+    await versionManager.setNewWalletVersion(await versionManager.lastVersion());
     manager.setRelayerManager(relayerManager);
 
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);

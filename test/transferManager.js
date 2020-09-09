@@ -155,6 +155,7 @@ describe("TransferManager", function () {
         ethers.constants.AddressZero,
         ethers.constants.AddressZero);
       await versionManager.addVersion([transferManager1.contractAddress], [transferManager1.contractAddress]);
+      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const existingWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
       await existingWallet.init(owner.address, [versionManager.contractAddress]);

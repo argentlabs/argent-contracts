@@ -131,6 +131,7 @@ describe("RelayerManager", function () {
         limitFeature.contractAddress,
         badFeature.contractAddress,
       ], []);
+      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
     }
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
@@ -153,6 +154,7 @@ describe("RelayerManager", function () {
 
     it("should fail when the RelayerManager is not authorised", async () => {
       await versionManager.addVersion([testFeature.contractAddress], []);
+      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
       const wrongWallet = await deployer.deploy(BaseWallet);
       await wrongWallet.init(owner.address, [versionManager.contractAddress]);
       const params = [wrongWallet.contractAddress, 2];
@@ -170,6 +172,7 @@ describe("RelayerManager", function () {
         limitFeature.contractAddress,
         badFeature.contractAddress,
       ], []);
+      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
     });
 
     it("should fail when the first param is not the wallet ", async () => {
