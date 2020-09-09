@@ -54,7 +54,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     // Authorised Storages
     mapping(address => bool) public isStorage; // [storage] => bool
 
-    event VersionAdded(uint256 _version);
+    event VersionAdded(uint256 _version, address[] _features);
     event WalletUpgraded(address _wallet, uint256 _version);
 
     // The Module Registry
@@ -131,7 +131,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
         featuresToInit[newVersion] = _featuresToInit;
         
-        emit VersionAdded(newVersion);
+        emit VersionAdded(newVersion, _features);
     }
 
     /**
@@ -285,7 +285,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         for(uint256 i = 0; i < featuresToInitInToVersion.length; i++) {
             address feature = featuresToInitInToVersion[i];
             // We only initialize a feature that was not already initialized in the previous version
-            if(!isFeatureInVersion[feature][fromVersion]) {
+            if(fromVersion == 0 || !isFeatureInVersion[feature][fromVersion]) {
                 IFeature(feature).init(_wallet);
             }
         }

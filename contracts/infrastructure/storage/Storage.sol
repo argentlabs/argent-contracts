@@ -17,12 +17,11 @@
 pragma solidity >=0.5.4 <0.7.0;
 
 import "../../wallet/IWallet.sol";
-import "../../modules/common/IFeature.sol";
 
 /**
  * @title Storage
  * @notice Base contract for the storage of a wallet.
- * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
+ * @author Julien Niset - <julien@argent.xyz>
  */
 contract Storage {
 
@@ -30,7 +29,7 @@ contract Storage {
      * @notice Throws if the caller is not an authorised module.
      */
     modifier onlyModule(address _wallet) {
-        require(IWallet(_wallet).authorised(msg.sender), "S: must be an authorized module to call this method");
+        require(IWallet(_wallet).authorised(msg.sender), "TS: must be an authorized module to call this method");
         _;
     }
 }

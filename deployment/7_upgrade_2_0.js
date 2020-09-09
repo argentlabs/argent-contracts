@@ -220,7 +220,7 @@ const deploy = async (network) => {
   );
 
   // Add Features to Version Manager
-  const VersionManagerAddVersionTx = await VersionManagerWrapper.contract.addVersion([
+  const newFeatures = [
     GuardianManagerWrapper.contractAddress,
     LockManagerWrapper.contractAddress,
     RecoveryManagerWrapper.contractAddress,
@@ -231,9 +231,20 @@ const deploy = async (network) => {
     CompoundManagerWrapper.contractAddress,
     MakerV2ManagerWrapper.contractAddress,
     RelayerManagerWrapper.contractAddress,
-  ], [
-    TransferManagerWrapper.contractAddress,
-  ], { gasPrice });
+  ];
+  const newFeaturesWithNoInit = [ // all features except the TransferManager
+    GuardianManagerWrapper.contractAddress,
+    LockManagerWrapper.contractAddress,
+    RecoveryManagerWrapper.contractAddress,
+    ApprovedTransferWrapper.contractAddress,
+    TokenExchangerWrapper.contractAddress,
+    NftTransferWrapper.contractAddress,
+    CompoundManagerWrapper.contractAddress,
+    MakerV2ManagerWrapper.contractAddress,
+    RelayerManagerWrapper.contractAddress,
+  ];
+  const newFeatureToInit = newFeatures.filter((f) => !newFeaturesWithNoInit.includes(f));
+  const VersionManagerAddVersionTx = await VersionManagerWrapper.contract.addVersion(newFeatures, newFeatureToInit, { gasPrice });
   await VersionManagerWrapper.verboseWaitForTransaction(VersionManagerAddVersionTx, "Adding New Version");
 
   // //////////////////////////////////
