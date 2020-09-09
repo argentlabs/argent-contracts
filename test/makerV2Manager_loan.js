@@ -768,7 +768,8 @@ describe("MakerV2 Vaults", function () {
         transferManager.contractAddress,
         relayerManager.contractAddress,
       ], []);
-      await versionManager.from(owner).upgradeWallet(walletAddress, { gasLimit: 2000000 });
+      const lastVersion = await versionManager.lastVersion();
+      await versionManager.from(owner).upgradeWallet(walletAddress, lastVersion, { gasLimit: 2000000 });
       // Use the bad module to attempt a bad giveVault call
       const callData = makerV2.contract.interface.functions.giveVault.encode([walletAddress, bigNumToBytes32(ethers.BigNumber.from(666))]);
       await assert.revertWith(badFeature.from(owner).callContract(makerV2.contractAddress, 0, callData), "MV2: unauthorized loanId");
