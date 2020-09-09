@@ -120,7 +120,7 @@ describe("VersionManager", function () {
       const lastVersion = await versionManager.lastVersion();
       await assert.revertWith(
         versionManager.from(owner).upgradeWallet(wallet.contractAddress, lastVersion),
-        "VM: Already on last version",
+        "VM: Already on new version",
       );
     });
 
