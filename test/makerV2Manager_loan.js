@@ -700,7 +700,8 @@ describe("MakerV2 Vaults", function () {
         relayerManager.contractAddress,
       ], [upgradedMakerV2.contractAddress]);
       const method = "upgradeWallet";
-      const params = [walletAddress];
+      const lastVersion = await versionManager.lastVersion();
+      const params = [walletAddress, lastVersion];
       if (relayed) {
         const txR = await manager.relay(versionManager, method, params, wallet, [owner]);
         assert.isTrue(txR.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");

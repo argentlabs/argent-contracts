@@ -35,10 +35,12 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     bytes32 constant NAME = "VersionManager";
 
     bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
-    bytes4 constant internal UPGRADE_WALLET_PREFIX = bytes4(keccak256("upgradeWallet(address)"));
+    bytes4 constant internal UPGRADE_WALLET_PREFIX = bytes4(keccak256("upgradeWallet(address,uint256)"));
 
     // Last bundle version
     uint256 public lastVersion;
+    // Version to be used for new wallet creation
+    uint256 public newWalletVersion = 1;
     // Current bundle version for a wallet
     mapping(address => uint256) public walletVersions; // [wallet] => [version]
     // Features per version
@@ -55,6 +57,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     mapping(address => bool) public isStorage; // [storage] => bool
 
     event VersionAdded(uint256 _version, address[] _features);
+    event NewWalletVersionChanged(uint256 _version);
     event WalletUpgraded(address _wallet, uint256 _version);
 
     // The Module Registry
@@ -135,6 +138,17 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     }
 
     /**
+     * @notice Lets the owner change the version used by newly created wallet
+     * @param _version the version to use
+     */
+    function setNewWalletVersion(uint _version) external onlyOwner {
+        require(_version > 0 && _version <= lastVersion, "VM: New wallet version is invalid");
+        newWalletVersion = _version;
+        emit NewWalletVersionChanged(_version);
+    }
+   
+
+    /**
      * @notice Lets the owner add a storage contract
      * @param _storage the storage contract to add
      */
@@ -188,16 +202,17 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      * @inheritdoc IFeature
      */
     function init(address _wallet) public override(IModule, BaseFeature) onlyWallet(_wallet) {
-        doUpgradeWallet(_wallet);
+        doUpgradeWallet(_wallet, newWalletVersion);
     }
 
     /**
-     * @notice Upgrade a wallet to the latest version.
+     * @notice Upgrade a wallet to a new version.
      * @dev It's cheaper to pass features to init as calldata than reading them from storage
-     * @param _wallet the wallet to upgrrade
+     * @param _wallet the wallet to upgrade
+     * @param _version the new version
      */
-    function upgradeWallet(address _wallet) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        doUpgradeWallet(_wallet);
+    function upgradeWallet(address _wallet, uint256 _version) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        doUpgradeWallet(_wallet, _version);
     }
 
     /**
@@ -258,21 +273,23 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /* ***************** Internal methods ************************* */
 
     /**
-     * @notice Upgrade a wallet to the latest version
+     * @notice Upgrade a wallet to a new version
      * @param _wallet the target wallet
+     * @param _toVersion the new version to use
      */
     function doUpgradeWallet(
-        address _wallet
+        address _wallet,
+        uint256 _toVersion
     ) 
         internal 
     {
         uint256 fromVersion = walletVersions[_wallet];
-        uint256 toVersion = lastVersion;
-        require(fromVersion < toVersion, "VM: Already on last version");
-        walletVersions[_wallet] = toVersion;
+        require(_toVersion > 0 && _toVersion <= lastVersion, "VM: Invalid _toVersion");
+        require(fromVersion < _toVersion, "VM: Already on new version");
+        walletVersions[_wallet] = _toVersion;
 
         // Setup static call redirection
-        bytes4[] storage sigs = staticCallSignatures[toVersion];
+        bytes4[] storage sigs = staticCallSignatures[_toVersion];
         for(uint256 i = 0; i < sigs.length; i++) {
             bytes4 sig = sigs[i];
             if(IWallet(_wallet).enabled(sig) != address(this)) {
@@ -281,7 +298,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         }
         
         // Init features
-        address[] storage featuresToInitInToVersion = featuresToInit[toVersion];
+        address[] storage featuresToInitInToVersion = featuresToInit[_toVersion];
         for(uint256 i = 0; i < featuresToInitInToVersion.length; i++) {
             address feature = featuresToInitInToVersion[i];
             // We only initialize a feature that was not already initialized in the previous version
@@ -290,7 +307,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
             }
         }
         
-        emit WalletUpgraded(_wallet, toVersion);
+        emit WalletUpgraded(_wallet, _toVersion);
     }
 
 }

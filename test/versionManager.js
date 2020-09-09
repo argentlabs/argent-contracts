@@ -92,8 +92,9 @@ describe("VersionManager", function () {
     });
 
     it("should fail to upgrade a wallet when already on the last version", async () => {
+      const lastVersion = await versionManager.lastVersion();
       await assert.revertWith(
-        versionManager.from(owner).upgradeWallet(wallet.contractAddress),
+        versionManager.from(owner).upgradeWallet(wallet.contractAddress, lastVersion),
         "VM: Already on last version",
       );
     });
