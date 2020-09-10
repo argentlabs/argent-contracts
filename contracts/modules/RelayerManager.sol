@@ -133,15 +133,17 @@ contract RelayerManager is BaseFeature {
         require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
 
         (stack.success, stack.returnData) = _feature.call(_data);
-        refund(
-            _wallet,
-            startGas,
-            _gasPrice,
-            _gasLimit,
-            _refundToken,
-            _refundAddress,
-            stack.requiredSignatures,
-            stack.ownerSignatureRequirement);
+        // only refund when approved by owner and positive gas price
+        if (_gasPrice > 0 && stack.ownerSignatureRequirement == OwnerSignature.Required) {
+            refund(
+                _wallet,
+                startGas,
+                _gasPrice,
+                _gasLimit,
+                _refundToken,
+                _refundAddress,
+                stack.requiredSignatures);
+        }
         emit TransactionExecuted(_wallet, stack.success, stack.returnData, stack.signHash);
         return stack.success;
     }
@@ -319,6 +321,7 @@ contract RelayerManager is BaseFeature {
     * @param _gasLimit The gas limit for the refund.
     * @param _refundToken The token to use for the gas refund.
     * @param _refundAddress The address refunded to prevent front-running.
+    * @param _requiredSignatures The number of signatures required.
     */
     function refund(
         address _wallet,
@@ -327,23 +330,18 @@ contract RelayerManager is BaseFeature {
         uint _gasLimit,
         address _refundToken,
         address _refundAddress,
-        uint256 requiredSignatures,
-        OwnerSignature _ownerSignatureRequirement
+        uint256 _requiredSignatures
     )
         internal
     {
-        // only refund when approved by owner and positive gas price
-        if (_gasPrice == 0 || _ownerSignatureRequirement != OwnerSignature.Required) {
-            return;
-        }
         address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
-        uint256 gasConsumed = _startGas.sub(gasleft()).add(30000);
         uint256 refundAmount;
         // skip daily limit when approved by guardians (and signed by owner)
-        if (requiredSignatures > 1) {
+        if (_requiredSignatures > 1) {
+            uint256 gasConsumed = _startGas.sub(gasleft()).add(30000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
         } else {
-            gasConsumed = gasConsumed.add(10000);
+            uint256 gasConsumed = _startGas.sub(gasleft()).add(40000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
             uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceRegistry, refundAmount, _refundToken);
             require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, ethAmount), "RM: refund is above daily limit");
