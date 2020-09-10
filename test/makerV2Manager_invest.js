@@ -49,6 +49,7 @@ describe("MakerV2 DSR", function () {
     const lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -89,6 +90,7 @@ describe("MakerV2 DSR", function () {
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
     await sai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
     await dai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
   });

@@ -80,6 +80,7 @@ describe("MakerV2 Vaults", function () {
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -137,6 +138,7 @@ describe("MakerV2 Vaults", function () {
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
     walletAddress = wallet.contractAddress;
     await infrastructure.sendTransaction({ to: walletAddress, value: parseEther("2.0") });
     await dai["mint(address,uint256)"](walletAddress, parseEther("10"));
@@ -603,6 +605,7 @@ describe("MakerV2 Vaults", function () {
       // Deploy a fake wallet
       const fakeWallet = await deployer.deploy(FakeWallet, {}, false, AddressZero, 0, "0x00");
       await fakeWallet.init(owner.address, [versionManager.contractAddress]);
+      await versionManager.from(owner).upgradeWallet(fakeWallet.contractAddress, await versionManager.lastVersion());
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
       const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
@@ -632,6 +635,7 @@ describe("MakerV2 Vaults", function () {
       const acquireLoanCallData = makerV2.contract.interface.functions.acquireLoan.encode([AddressZero, bigNumToBytes32(ethers.BigNumber.from(0))]);
       const fakeWallet = await deployer.deploy(FakeWallet, {}, true, makerV2.contractAddress, 0, acquireLoanCallData);
       await fakeWallet.init(owner.address, [versionManager.contractAddress]);
+      await versionManager.from(owner).upgradeWallet(fakeWallet.contractAddress, await versionManager.lastVersion());
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
       const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();

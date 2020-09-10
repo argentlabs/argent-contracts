@@ -29,6 +29,7 @@ describe("Proxy", function () {
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
       ethers.constants.AddressZero);
     await module.addVersion([], []);
     return module;

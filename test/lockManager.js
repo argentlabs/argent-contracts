@@ -44,6 +44,7 @@ describe("LockManager", function () {
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -83,6 +84,7 @@ describe("LockManager", function () {
     ], []);
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
   describe("(Un)Lock by EOA guardians", () => {
@@ -142,6 +144,7 @@ describe("LockManager", function () {
       const guardianWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
       await guardianWallet.init(guardian1.address, [versionManager.contractAddress]);
+      await versionManager.from(guardian1).upgradeWallet(guardianWallet.contractAddress, await versionManager.lastVersion());
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
       assert.equal(count, 1, "1 guardian should be added");

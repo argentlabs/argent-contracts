@@ -39,8 +39,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     // Last bundle version
     uint256 public lastVersion;
-    // Version to be used for new wallet creation
-    uint256 public newWalletVersion = 1;
     // Current bundle version for a wallet
     mapping(address => uint256) public walletVersions; // [wallet] => [version]
     // Features per version
@@ -57,11 +55,12 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     mapping(address => bool) public isStorage; // [storage] => bool
 
     event VersionAdded(uint256 _version, address[] _features);
-    event NewWalletVersionChanged(uint256 _version);
     event WalletUpgraded(address _wallet, uint256 _version);
 
     // The Module Registry
     IModuleRegistry private registry;
+    // The Wallet Factory
+    address public walletFactory;
 
     /* ***************** Modifiers ************************* */
 
@@ -74,6 +73,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     constructor(
         IModuleRegistry _registry,
+        address _walletFactory,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ITransferStorage _transferStorage,
@@ -83,6 +83,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         public
     {
         registry = _registry;
+        walletFactory = _walletFactory;
 
         // Add initial storages
         if(address(_lockStorage) != address(0)) { 
@@ -107,6 +108,14 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     function recoverToken(address _token) external override onlyOwner {
         uint total = ERC20(_token).balanceOf(address(this));
         _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, msg.sender, total));
+    }
+
+    /**
+     * @notice Lets the owner change the Wallet Factory
+     * @param _factory the new wallet factory
+     */
+    function setWalletFactory(address _factory) external onlyOwner {
+        walletFactory = _factory;
     }
 
     /**
@@ -136,18 +145,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         
         emit VersionAdded(newVersion, _features);
     }
-
-    /**
-     * @notice Lets the owner change the version used by newly created wallet
-     * @param _version the version to use
-     */
-    function setNewWalletVersion(uint _version) external onlyOwner {
-        require(_version > 0 && _version <= lastVersion, "VM: New wallet version is invalid");
-        newWalletVersion = _version;
-        emit NewWalletVersionChanged(_version);
-    }
    
-
     /**
      * @notice Lets the owner add a storage contract
      * @param _storage the storage contract to add
@@ -163,7 +161,8 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      * @inheritdoc IVersionManager
      */
     function isFeatureAuthorised(address _wallet, address _feature) public view override returns (bool) {
-        return isFeatureInVersion[_feature][walletVersions[_wallet]] || _feature == address(this);
+        uint256 version = walletVersions[_wallet];
+        return isFeatureInVersion[_feature][version] || _feature == address(this) || (version == 0 && _feature == walletFactory);
     }
 
     /**
@@ -201,17 +200,38 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IFeature
      */
-    function init(address _wallet) public override(IModule, BaseFeature) onlyWallet(_wallet) {
-        doUpgradeWallet(_wallet, newWalletVersion);
-    }
+    function init(address _wallet) public override(IModule, BaseFeature) {}
 
     /**
-     * @notice Upgrade a wallet to a new version.
-     * @param _wallet the wallet to upgrade
-     * @param _version the new version
+     * @inheritdoc IVersionManager
      */
-    function upgradeWallet(address _wallet, uint256 _version) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        doUpgradeWallet(_wallet, _version);
+    function upgradeWallet(address _wallet, uint256 _toVersion) external override onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        uint256 fromVersion = walletVersions[_wallet];
+        require(_toVersion > 0 && _toVersion <= lastVersion, "VM: Invalid _toVersion");
+        require(fromVersion < _toVersion, "VM: Already on new version");
+        walletVersions[_wallet] = _toVersion;
+
+        // Setup static call redirection
+        bytes4[] storage sigs = staticCallSignatures[_toVersion];
+        for(uint256 i = 0; i < sigs.length; i++) {
+            bytes4 sig = sigs[i];
+            if(IWallet(_wallet).enabled(sig) != address(this)) {
+                IWallet(_wallet).enableStaticCall(address(this), sig);
+            }
+        }
+        
+        // Init features
+        address[] storage featuresToInitInToVersion = featuresToInit[_toVersion];
+        for(uint256 i = 0; i < featuresToInitInToVersion.length; i++) {
+            address feature = featuresToInitInToVersion[i];
+            // We only initialize a feature that was not already initialized in the previous version
+            if(fromVersion == 0 || !isFeatureInVersion[feature][fromVersion]) {
+                IFeature(feature).init(_wallet);
+            }
+        }
+        
+        emit WalletUpgraded(_wallet, _toVersion);
+
     }
 
     /**
@@ -268,45 +288,4 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     function setOwner(address _wallet, address _newOwner) external override onlyFeature(_wallet) {
         IWallet(_wallet).setOwner(_newOwner);
     }
-
-    /* ***************** Internal methods ************************* */
-
-    /**
-     * @notice Upgrade a wallet to a new version
-     * @param _wallet the target wallet
-     * @param _toVersion the new version to use
-     */
-    function doUpgradeWallet(
-        address _wallet,
-        uint256 _toVersion
-    ) 
-        internal 
-    {
-        uint256 fromVersion = walletVersions[_wallet];
-        require(_toVersion > 0 && _toVersion <= lastVersion, "VM: Invalid _toVersion");
-        require(fromVersion < _toVersion, "VM: Already on new version");
-        walletVersions[_wallet] = _toVersion;
-
-        // Setup static call redirection
-        bytes4[] storage sigs = staticCallSignatures[_toVersion];
-        for(uint256 i = 0; i < sigs.length; i++) {
-            bytes4 sig = sigs[i];
-            if(IWallet(_wallet).enabled(sig) != address(this)) {
-                IWallet(_wallet).enableStaticCall(address(this), sig);
-            }
-        }
-        
-        // Init features
-        address[] storage featuresToInitInToVersion = featuresToInit[_toVersion];
-        for(uint256 i = 0; i < featuresToInitInToVersion.length; i++) {
-            address feature = featuresToInitInToVersion[i];
-            // We only initialize a feature that was not already initialized in the previous version
-            if(fromVersion == 0 || !isFeatureInVersion[feature][fromVersion]) {
-                IFeature(feature).init(_wallet);
-            }
-        }
-        
-        emit WalletUpgraded(_wallet, _toVersion);
-    }
-
 }

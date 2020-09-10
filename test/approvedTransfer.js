@@ -58,6 +58,7 @@ describe("Approved Transfer", function () {
     const limitStorage = await deployer.deploy(LimitStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -96,6 +97,7 @@ describe("Approved Transfer", function () {
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
 
     const decimals = 12; // number of decimal for TOKN contract
     erc20 = await deployer.deploy(ERC20, {}, [infrastructure.address, wallet.contractAddress], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
@@ -126,6 +128,7 @@ describe("Approved Transfer", function () {
     for (const g of guardians) {
       const guardianWallet = await deployer.deploy(BaseWallet);
       await guardianWallet.init(g.address, [versionManager.contractAddress]);
+      await versionManager.from(g).upgradeWallet(guardianWallet.contractAddress, await versionManager.lastVersion());
       wallets.push(guardianWallet);
     }
     return wallets;

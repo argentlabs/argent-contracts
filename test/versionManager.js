@@ -40,6 +40,7 @@ describe("VersionManager", function () {
     guardianStorage = await deployer.deploy(GuardianStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -62,12 +63,12 @@ describe("VersionManager", function () {
       true,
       42);
     await versionManager.addVersion([guardianManager.contractAddress, relayerManager.contractAddress, testFeature.contractAddress], []);
-    await versionManager.setNewWalletVersion(await versionManager.lastVersion());
     manager.setRelayerManager(relayerManager);
 
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
   describe("VersionManager owner", () => {
@@ -81,30 +82,6 @@ describe("VersionManager", function () {
         versionManager.addVersion([relayerManager.contractAddress], [guardianManager.contractAddress]),
         "VM: Invalid _featuresToInit",
       );
-    });
-
-    it("should not let the VersionManager owner set an invalid version for new wallets", async () => {
-      await assert.revertWith(versionManager.setNewWalletVersion(0), "VM: New wallet version is invalid");
-    });
-
-    it("should let the VersionManager owner pick the new wallet version", async () => {
-      const newTestFeature = await deployer.deploy(TestFeature, {},
-        lockStorage.contractAddress,
-        versionManager.contractAddress,
-        true,
-        42);
-      await versionManager.addVersion([newTestFeature.contractAddress], []);
-      const targetVersion = await versionManager.lastVersion();
-      await versionManager.addVersion([guardianManager.contractAddress, relayerManager.contractAddress, testFeature.contractAddress], []);
-      await versionManager.setNewWalletVersion(targetVersion);
-
-      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-      const newWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-      await newWallet.init(owner.address, [versionManager.contractAddress]);
-      const hasNewTestFeature = await versionManager.isFeatureAuthorised(newWallet.contractAddress, newTestFeature.contractAddress);
-      const hasGuadianManager = await versionManager.isFeatureAuthorised(newWallet.contractAddress, guardianManager.contractAddress);
-      assert.isTrue(hasNewTestFeature, "Features from target version should be authorised");
-      assert.isFalse(hasGuadianManager, "Features from non-target version should not be authorised");
     });
   });
 

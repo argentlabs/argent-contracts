@@ -61,5 +61,12 @@ interface IVersionManager {
      * @param _data The data of the call
      */
     function invokeStorage(address _wallet, address _storage, bytes calldata _data) external;
+
+    /**
+     * @notice Upgrade a wallet to a new version.
+     * @param _wallet the wallet to upgrade
+     * @param _toVersion the new version
+     */
+    function upgradeWallet(address _wallet, uint256 _toVersion) external;
  
 }

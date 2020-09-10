@@ -45,6 +45,7 @@ describe("SimpleUpgrader", function () {
   async function deployTestModule() {
     const module = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -83,6 +84,7 @@ describe("SimpleUpgrader", function () {
       await registry.registerModule(moduleToAdd.contractAddress, formatBytes32String("added"));
 
       await wallet.init(owner.address, [initialModule.contractAddress]);
+      await initialModule.from(owner).upgradeWallet(wallet.contractAddress, await initialModule.lastVersion());
       let isAuthorised = await wallet.authorised(initialModule.contractAddress);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // add module to wallet
@@ -100,6 +102,7 @@ describe("SimpleUpgrader", function () {
       await registry.registerModule(initialModule.contractAddress, formatBytes32String("initial"));
 
       await wallet.init(owner.address, [initialModule.contractAddress]);
+      await initialModule.from(owner).upgradeWallet(wallet.contractAddress, await initialModule.lastVersion());
       let isAuthorised = await wallet.authorised(initialModule.contractAddress);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // try (and fail) to add moduleToAdd to wallet
@@ -115,6 +118,7 @@ describe("SimpleUpgrader", function () {
       await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
 
       await wallet.init(owner.address, [moduleV1.contractAddress]);
+      await moduleV1.from(owner).upgradeWallet(wallet.contractAddress, await moduleV1.lastVersion());
       // create module V2
       const { module: moduleV2 } = await deployTestModule();
       // create upgrader
@@ -148,10 +152,12 @@ describe("SimpleUpgrader", function () {
       manager.setRelayerManager(relayerV1);
       // register module V1
       await registry.registerModule(moduleV1.contractAddress, formatBytes32String("V1"));
-      // create wallet with module V1 and relayer module
+      // create wallet with module V1 and relayer feature
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
       await wallet.init(owner.address, [moduleV1.contractAddress]);
+      await moduleV1.from(owner).upgradeWallet(wallet.contractAddress, await moduleV1.lastVersion());
+
       // create module V2
       const { module: moduleV2 } = await deployTestModule();
       // register module V2
@@ -160,14 +166,8 @@ describe("SimpleUpgrader", function () {
       const toAdd = modulesToAdd(moduleV2.contractAddress);
       const upgrader1 = await deployer.deploy(SimpleUpgrader, {},
         registry.contractAddress, lockStorage.contractAddress, [moduleV1.contractAddress], toAdd);
-      const upgrader2 = await deployer.deploy(
-        SimpleUpgrader,
-        {},
-        lockStorage.contractAddress,
-        registry.contractAddress,
-        [moduleV1.contractAddress],
-        toAdd,
-      );
+      const upgrader2 = await deployer.deploy(SimpleUpgrader, {},
+        registry.contractAddress, lockStorage.contractAddress, [moduleV1.contractAddress], toAdd);
       await registry.registerModule(upgrader1.contractAddress, formatBytes32String("V1toV2_1"));
       await registry.registerModule(upgrader2.contractAddress, formatBytes32String("V1toV2_2"));
 
@@ -186,7 +186,6 @@ describe("SimpleUpgrader", function () {
         }
         return;
       }
-
       if (relayed) {
         txReceipt = await manager.relay(moduleV1, "addModule", params1, wallet, [owner]);
         const { success } = (await utils.parseLogs(txReceipt, relayerV1, "TransactionExecuted"))[0];
@@ -243,6 +242,7 @@ describe("SimpleUpgrader", function () {
       // Setup the module for wallet
       versionManager = await deployer.deploy(VersionManager, {},
         registry.contractAddress,
+        ethers.constants.AddressZero,
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         ethers.constants.AddressZero,
@@ -278,6 +278,7 @@ describe("SimpleUpgrader", function () {
         relayerManager.contractAddress,
       ], []);
       await wallet.init(owner.address, [versionManager.contractAddress]);
+      await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardian.address);
 
       // Setup module v2 for the upgrade

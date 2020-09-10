@@ -69,12 +69,14 @@ describe("RelayerManager", function () {
     limitStorage = await deployer.deploy(LimitStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       limitStorage.contractAddress);
     versionManagerV2 = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -131,10 +133,10 @@ describe("RelayerManager", function () {
         limitFeature.contractAddress,
         badFeature.contractAddress,
       ], []);
-      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
     }
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
   describe("relaying feature transactions", () => {
@@ -154,9 +156,9 @@ describe("RelayerManager", function () {
 
     it("should fail when the RelayerManager is not authorised", async () => {
       await versionManager.addVersion([testFeature.contractAddress], []);
-      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
       const wrongWallet = await deployer.deploy(BaseWallet);
       await wrongWallet.init(owner.address, [versionManager.contractAddress]);
+      await versionManager.from(owner).upgradeWallet(wrongWallet.contractAddress, await versionManager.lastVersion());
       const params = [wrongWallet.contractAddress, 2];
       const txReceipt = await manager.relay(testFeature, "setIntOwnerOnly", params, wrongWallet, [owner]);
       const { success, error } = parseRelayReceipt(txReceipt);
@@ -172,7 +174,6 @@ describe("RelayerManager", function () {
         limitFeature.contractAddress,
         badFeature.contractAddress,
       ], []);
-      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
     });
 
     it("should fail when the first param is not the wallet ", async () => {

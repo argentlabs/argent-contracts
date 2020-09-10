@@ -77,6 +77,7 @@ describe("TransferManager", function () {
     await tokenPriceRegistry.addManager(infrastructure.address);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       transferStorage.contractAddress,
@@ -117,13 +118,13 @@ describe("TransferManager", function () {
     manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([transferManager.contractAddress, relayerManager.contractAddress], [transferManager.contractAddress]);
-    await versionManager.setNewWalletVersion(await versionManager.lastVersion());
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
 
     const decimals = 12; // number of decimal for TOKN contract
     const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
@@ -156,10 +157,10 @@ describe("TransferManager", function () {
         ethers.constants.AddressZero,
         ethers.constants.AddressZero);
       await versionManager.addVersion([transferManager1.contractAddress], [transferManager1.contractAddress]);
-      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const existingWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
       await existingWallet.init(owner.address, [versionManager.contractAddress]);
+      await versionManager.from(owner).upgradeWallet(existingWallet.contractAddress, await versionManager.lastVersion());
 
       const defautlimit = await transferManager1.defaultLimit();
       const limit = await transferManager1.getCurrentLimit(existingWallet.contractAddress);
@@ -167,7 +168,6 @@ describe("TransferManager", function () {
 
       // reset the last version to the default bundle
       await versionManager.addVersion([transferManager.contractAddress, relayerManager.contractAddress], [transferManager.contractAddress]);
-      await versionManager.setNewWalletVersion(await versionManager.lastVersion());
     });
   });
 
@@ -283,7 +283,8 @@ describe("TransferManager", function () {
       // transfer some funds
       await previousTransferManager.from(owner).transferToken(existingWallet.contractAddress, ETH_TOKEN, recipient.address, 1000000, ZERO_BYTES32);
       // add new module
-      const tx = await previousTransferManager.from(owner).addModule(existingWallet.contractAddress, versionManager.contractAddress);
+      await previousTransferManager.from(owner).addModule(existingWallet.contractAddress, versionManager.contractAddress);
+      const tx = await versionManager.from(owner).upgradeWallet(existingWallet.contractAddress, await versionManager.lastVersion());
       const txReceipt = await previousTransferManager.verboseWaitForTransaction(tx);
       assert.isTrue(hasEvent(txReceipt, transferManager, "DailyLimitMigrated"));
       // check result

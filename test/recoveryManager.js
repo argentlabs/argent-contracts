@@ -59,6 +59,7 @@ describe("RecoveryManager", function () {
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -99,6 +100,7 @@ describe("RecoveryManager", function () {
     ], []);
 
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
   async function addGuardians(guardians) {
@@ -127,6 +129,7 @@ describe("RecoveryManager", function () {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const guardianWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
       await guardianWallet.init(g.address, [versionManager.contractAddress]);
+      await versionManager.from(g).upgradeWallet(guardianWallet.contractAddress, await versionManager.lastVersion());
       wallets.push(guardianWallet);
     }
     return wallets;

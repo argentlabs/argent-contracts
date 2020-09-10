@@ -130,7 +130,6 @@ class Benchmark {
     this.multisigExecutor = new MultisigExecutor(this.MultiSigWrapper, this.signers[0], true);
 
     this.testManager.setRelayerManager(this.RelayerManagerWrapper);
-
     // Add new version to Version Manager
     await this.multisigExecutor.executeCall(
       this.VersionManagerWrapper,
@@ -151,8 +150,6 @@ class Benchmark {
         ],
       ],
     );
-    const lastVersion = await this.VersionManagerWrapper.lastVersion();
-    await this.multisigExecutor.executeCall(this.VersionManagerWrapper, "setNewWalletVersion", [lastVersion]);
   }
 
   async setupWallet() {
@@ -160,10 +157,10 @@ class Benchmark {
     this.wallet = this.deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     this.walletAddress = this.wallet.contractAddress;
     // init the wallet
-    this.allModules = [this.VersionManagerWrapper.contractAddress];
-    await this.wallet.init(this.accounts[0], this.allModules);
-    this.firstGuardian = this.signers[1];
+    await this.wallet.init(this.accounts[0], [this.VersionManagerWrapper.contractAddress]);
+    await this.VersionManagerWrapper.upgradeWallet(this.wallet.contractAddress, await this.VersionManagerWrapper.lastVersion());
     // add first guardian
+    this.firstGuardian = this.signers[1];
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
     // send some funds
     await this.deploymentWallet.sendTransaction({
@@ -299,11 +296,10 @@ class Benchmark {
         ],
       ],
     );
-    const lastVersion = await this.VersionManagerWrapper.lastVersion();
-    await this.multisigExecutor.executeCall(this.VersionManagerWrapper, "setNewWalletVersion", [lastVersion]);
 
     // Upgrade a wallet from 2.0 to 2.1
     const fromVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.contractAddress);
+    const lastVersion = await this.VersionManagerWrapper.lastVersion();
     const tx = await this.VersionManagerWrapper.from(this.accounts[0]).upgradeWallet(this.wallet.contractAddress, lastVersion);
     const txReceipt = await this.VersionManagerWrapper.verboseWaitForTransaction(tx);
     const toVersion = await this.VersionManagerWrapper.walletVersions(this.wallet.contractAddress);
@@ -318,12 +314,16 @@ class Benchmark {
   // ///////////////////
 
   async estimateCreateWalletAllModules() {
-    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.allModules, "", this.accounts[4]);
+    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(
+      this.accounts[4], this.VersionManagerWrapper.contractAddress, "", this.accounts[4], 1,
+    );
     this._logger.addItem("Create a wallet without ENS (all modules)", gasUsed);
   }
 
   async estimateCreateWalletWithENS() {
-    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(this.accounts[4], this.allModules, "helloworld", this.accounts[4]);
+    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(
+      this.accounts[4], this.VersionManagerWrapper.contractAddress, "helloworld", this.accounts[4], 1,
+    );
     this._logger.addItem("Create a wallet with ENS (all modules)", gasUsed);
   }
 

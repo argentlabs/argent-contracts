@@ -56,6 +56,7 @@ describe("Token Transfer", function () {
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
@@ -89,6 +90,9 @@ describe("Token Transfer", function () {
 
     await wallet1.init(owner1.address, [versionManager.contractAddress]);
     await wallet2.init(owner2.address, [versionManager.contractAddress]);
+    await versionManager.from(owner1).upgradeWallet(wallet1.contractAddress, await versionManager.lastVersion());
+    await versionManager.from(owner2).upgradeWallet(wallet2.contractAddress, await versionManager.lastVersion());
+
     erc721 = await deployer.deploy(ERC721);
     await erc721.mint(wallet1.contractAddress, tokenId);
   });

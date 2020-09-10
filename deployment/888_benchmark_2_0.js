@@ -158,6 +158,7 @@ class Benchmark {
     this.wallet = this.deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     this.walletAddress = this.wallet.contractAddress;
     await this.wallet.init(this.accounts[0], this.allModules);
+
     await this.deploymentWallet.sendTransaction({
       to: this.walletAddress,
       value: ethers.utils.parseEther("1.0"),
@@ -170,12 +171,22 @@ class Benchmark {
     const LimitStorageWrapper = await this.deployer.deploy(LimitStorage);
     const TokenPriceRegistryWrapper = await this.deployer.deploy(TokenPriceRegistry);
     const DexRegistryWrapper = await this.deployer.deploy(DexRegistry);
+    const BaseWalletWrapper = await this.deployer.deploy(BaseWallet);
+    const WalletFactoryWrapper = await this.deployer.deploy(
+      WalletFactory,
+      {},
+      this.config.contracts.ModuleRegistry,
+      BaseWalletWrapper.contractAddress,
+      this.config.contracts.ENSManager,
+      this.config.modules.GuardianStorage,
+    );
 
     // Create new modules
     const VersionManagerWrapper = await this.deployer.deploy(
       VersionManager,
       {},
       this.config.contracts.ModuleRegistry,
+      WalletFactoryWrapper.contractAddress,
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       this.config.modules.TransferStorage,

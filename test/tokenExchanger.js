@@ -81,6 +81,7 @@ describe("Token Exchanger", function () {
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -190,6 +191,7 @@ describe("Token Exchanger", function () {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
 
     // fund wallet
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther("0.1") });
@@ -399,6 +401,7 @@ describe("Token Exchanger", function () {
       const proxy = await deployer.deploy(Proxy, {}, oldWalletImplementation.contractAddress);
       const oldWallet = deployer.wrapDeployedContract(OldWallet, proxy.contractAddress);
       await oldWallet.init(owner.address, [versionManager.contractAddress]);
+      await versionManager.from(owner).upgradeWallet(oldWallet.contractAddress, await versionManager.lastVersion());
       // fund wallet
       await infrastructure.sendTransaction({ to: oldWallet.contractAddress, value: parseEther("0.1") });
       // call sell/buy
