@@ -156,11 +156,16 @@ class Benchmark {
   }
 
   async setupWallet() {
-    this.allModules = [this.VersionManagerWrapper.contractAddress];
     const proxy = await this.deployer.deploy(Proxy, {}, this.BaseWalletWrapper.contractAddress);
     this.wallet = this.deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     this.walletAddress = this.wallet.contractAddress;
+    // init the wallet
+    this.allModules = [this.VersionManagerWrapper.contractAddress];
     await this.wallet.init(this.accounts[0], this.allModules);
+    this.firstGuardian = this.signers[1];
+    // add first guardian
+    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
+    // send some funds
     await this.deploymentWallet.sendTransaction({
       to: this.walletAddress,
       value: ethers.utils.parseEther("1.0"),
@@ -322,27 +327,18 @@ class Benchmark {
     this._logger.addItem("Create a wallet with ENS (all modules)", gasUsed);
   }
 
-  async estimateAddFirstGuardianDirect() {
-    const gasUsed = await this.GuardianManagerWrapper.estimate.addGuardian(this.walletAddress, this.accounts[1]);
-    this._logger.addItem("Add first guardian (direct)", gasUsed);
-  }
-
-  async estimateAddSecondGuardianDirect() {
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
-
+  async estimateAddGuardianDirect() {
     let gasUsed = await this.GuardianManagerWrapper.estimate.addGuardian(this.walletAddress, this.accounts[2]);
-    this._logger.addItem("Request add second guardian (direct)", gasUsed);
+    this._logger.addItem("Request add guardian (direct)", gasUsed);
 
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[2]);
     await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow / 2);
 
     gasUsed = await this.GuardianManagerWrapper.estimate.confirmGuardianAddition(this.walletAddress, this.accounts[2]);
-    this._logger.addItem("Confirm add second guardian (direct)", gasUsed);
+    this._logger.addItem("Confirm add guardian (direct)", gasUsed);
   }
 
   async estimateRevokeGuardianDirect() {
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
-
     let gasUsed = await this.GuardianManagerWrapper.estimate.revokeGuardian(this.walletAddress, this.accounts[1]);
     this._logger.addItem("Request revoke guardian (direct)", gasUsed);
 
@@ -357,19 +353,14 @@ class Benchmark {
     const gasUsed = await this.relay(
       this.GuardianManagerWrapper,
       "addGuardian",
-      [this.walletAddress, this.accounts[1]],
+      [this.walletAddress, this.accounts[2]],
       this.wallet,
       [this.signers[0]],
     );
-    this._logger.addItem("Add a guardian (relayed)", gasUsed);
+    this._logger.addItem("Request add guardian (relayed)", gasUsed);
   }
 
   async estimateRevokeGuardianRelayed() {
-    // add guardian
-    await this.relay(this.GuardianManagerWrapper, "addGuardian",
-      [this.walletAddress, this.accounts[1]], this.wallet, [this.signers[0]]);
-
-    // estimate revoke guardian
     const gasUsed = await this.relay(
       this.GuardianManagerWrapper,
       "revokeGuardian",
@@ -377,72 +368,50 @@ class Benchmark {
       this.wallet,
       [this.signers[0]],
     );
-    this._logger.addItem("Revoke a guardian (relayed)", gasUsed);
+    this._logger.addItem("Request revoke guardian (relayed)", gasUsed);
   }
 
   async estimateLockWalletDirect() {
-    // add guardian
-    const guardian = this.accounts[1];
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, guardian);
-
-    // estimate lock wallet
-    const gasUsed = await this.LockManagerWrapper.from(guardian).estimate.lock(this.walletAddress);
+    const gasUsed = await this.LockManagerWrapper.from(this.firstGuardian).estimate.lock(this.walletAddress);
     this._logger.addItem("Lock wallet (direct)", gasUsed);
   }
 
   async estimateUnlockWalletDirect() {
-    // add guardian
-    const guardian = this.accounts[1];
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, guardian);
-
     // lock wallet
-    await this.LockManagerWrapper.from(guardian).lock(this.walletAddress);
+    await this.LockManagerWrapper.from(this.firstGuardian).lock(this.walletAddress);
 
     // estimate unlock wallet
-    const gasUsed = await this.LockManagerWrapper.from(guardian).estimate.unlock(this.walletAddress);
+    const gasUsed = await this.LockManagerWrapper.from(this.firstGuardian).estimate.unlock(this.walletAddress);
     this._logger.addItem("Unlock wallet (direct)", gasUsed);
   }
 
   async estimateLockWalletRelayed() {
-    // add guardian
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
-
     // estimate lock wallet
     const gasUsed = await this.relay(
       this.LockManagerWrapper,
       "lock",
       [this.walletAddress],
       this.wallet,
-      [this.signers[1]],
+      [this.firstGuardian],
     );
     this._logger.addItem("Lock wallet (relayed)", gasUsed);
   }
 
   async estimateUnlockWalletRelayed() {
-    // add guardian
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
-
     // lock wallet
-    await this.relay(this.LockManagerWrapper, "lock", [this.walletAddress], this.wallet, [this.signers[1]]);
+    await this.relay(this.LockManagerWrapper, "lock", [this.walletAddress], this.wallet, [this.firstGuardian]);
 
     // estimate unlock wallet
     const gasUsed = await this.relay(this.LockManagerWrapper, "unlock",
-      [this.walletAddress], this.wallet, [this.signers[1]]);
+      [this.walletAddress], this.wallet, [this.firstGuardian]);
     this._logger.addItem("Unlock wallet (relayed)", gasUsed);
   }
 
-  async estimateExecuteRecovery() {
-    // add guardians
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[2]);
-    await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow / 2);
-    await this.GuardianManagerWrapper.confirmGuardianAddition(this.walletAddress, this.accounts[2]);
-
+  async estimateExecuteRecoveryWithOneGuardian() {
     // estimate execute recovery
     const recoveryAddress = this.accounts[3];
-    const signers = [this.signers[1], this.signers[2]];
     const gasUsed = await this.relay(this.RecoveryManagerWrapper, "executeRecovery",
-      [this.walletAddress, recoveryAddress], this.wallet, [signers[1]]);
+      [this.walletAddress, recoveryAddress], this.wallet, [this.firstGuardian]);
     this._logger.addItem("Execute recovery", gasUsed);
   }
 
@@ -492,7 +461,7 @@ class Benchmark {
     this._logger.addItem("ETH small transfer (direct)", gasUsed);
   }
 
-  async estimateSmallTransferRelayed() {
+  async estimateSmallTransferRelayedNoRefund() {
     const gasUsed = await this.relay(
       this.TransferManagerWrapper,
       "transferToken",
@@ -500,7 +469,27 @@ class Benchmark {
       this.wallet,
       [this.signers[0]],
     );
-    this._logger.addItem("ETH small transfer (relayed)", gasUsed);
+    this._logger.addItem("ETH small transfer No refund (relayed)", gasUsed);
+  }
+
+  async estimateSmallTransferRelayedWithRefund() {
+    const nonce = await this.testManager.getNonceForRelay();
+    const relayParams = [
+      this.TransferManagerWrapper,
+      "transferToken",
+      [this.walletAddress, ETH_TOKEN, this.accounts[1], 1000, "0x"],
+      this.wallet,
+      [this.signers[0]],
+      this.accounts[9],
+      false,
+      2000000,
+      nonce,
+      10,
+      ETH_TOKEN];
+    const txReceipt = await this.testManager.relay(...relayParams);
+    const gasUsed = await txReceipt.gasUsed.toString();
+
+    this._logger.addItem("ETH small transfer with ETH refund (relayed)", gasUsed);
   }
 
   async estimateETHTransferToWhitelistedAccountDirect() {
@@ -534,21 +523,7 @@ class Benchmark {
     this._logger.addItem("ETH large transfer to untrusted account", gasUsed);
   }
 
-  // async estimateExecuteETHLargeTransferToUntrustedAccount() {
-  //     const tx = await this.TokenTransferWrapper.transferToken(this.walletAddress, ETH_TOKEN, this.accounts[2], 2000000, "0x");
-  //     const result = await this.TokenTransferWrapper.verboseWaitForTransaction(tx, '');
-  //     const block = result.blockNumber;
-  //     console.log(block);
-
-  //     await this.testManager.increaseTime(this.config.settings.securityPeriod + this.config.settings.securityWindow/2);
-  //     const gasUsed = await this.TokenTransferWrapper.estimate.executePendingTransfer(this.walletAddress, ETH_TOKEN, this.accounts[2], 2000000, "0x", block);
-  //     this._logger.addItem("Execute ETH large transfer to untrusted account", gasUsed);
-  // }
-
   async estimateLargeTransferApprovalByOneGuardian() {
-    // add guardian
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
-
     // estimate approve large transfer
     const gasUsed = await this.relay(
       this.ApprovedTransferWrapper,
@@ -561,8 +536,7 @@ class Benchmark {
   }
 
   async estimateLargeTransferApprovalByTwoGuardians() {
-    // add 3 guardians
-    await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
+    // add 2 more guardians
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[2]);
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[3]);
 
