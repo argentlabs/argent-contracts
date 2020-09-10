@@ -323,6 +323,7 @@ const deploy = async (network) => {
   await configurator.save();
 
   await Promise.all([
+    abiUploader.upload(VersionManagerWrapper, "modules"),
     abiUploader.upload(ApprovedTransferWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
     abiUploader.upload(GuardianManagerWrapper, "modules"),

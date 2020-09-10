@@ -160,7 +160,7 @@ class Benchmark {
     await this.wallet.init(this.accounts[0], [this.VersionManagerWrapper.contractAddress]);
     await this.VersionManagerWrapper.upgradeWallet(this.wallet.contractAddress, await this.VersionManagerWrapper.lastVersion());
     // add first guardian
-    this.firstGuardian = this.signers[1];
+    [, this.firstGuardian] = this.signers;
     await this.GuardianManagerWrapper.addGuardian(this.walletAddress, this.accounts[1]);
     // send some funds
     await this.deploymentWallet.sendTransaction({
