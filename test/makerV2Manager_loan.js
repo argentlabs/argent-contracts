@@ -1,11 +1,13 @@
 const ethers = require("ethers");
-const { bigNumToBytes32, ETH_TOKEN, parseLogs } = require("../utils/utilities.js");
+const {
+  bigNumToBytes32, ETH_TOKEN, parseLogs, hasEvent,
+} = require("../utils/utilities.js");
 const {
   deployMaker, deployUniswap, RAY, ETH_PER_DAI, ETH_PER_MKR,
 } = require("../utils/defi-deployer");
 
 const { parseEther, formatBytes32String } = ethers.utils;
-const { HashZero, AddressZero } = ethers.constants;
+const { AddressZero } = ethers.constants;
 
 const TestManager = require("../utils/test-manager");
 const GemJoin = require("../build/GemJoin");
@@ -137,6 +139,7 @@ describe("MakerV2 Vaults", function () {
       ]);
     walletAddress = wallet.contractAddress;
     await infrastructure.sendTransaction({ to: walletAddress, value: parseEther("2.0") });
+    await dai["mint(address,uint256)"](walletAddress, parseEther("10"));
   });
 
   async function getTestAmounts(tokenAddress) {
@@ -405,17 +408,11 @@ describe("MakerV2 Vaults", function () {
     });
   });
 
-  async function testRepayDebt({ useDai, relayed }) {
+  async function testRepayDebt({ relayed }) {
     const { collateralAmount, daiAmount: daiAmount_ } = await getTestAmounts(ETH_TOKEN);
     const daiAmount = daiAmount_.add(parseEther("0.3"));
 
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
-    if (!useDai) {
-      // move the borrowed DAI from the wallet to the owner
-      await transferManager.from(owner).transferToken(walletAddress, dai.contractAddress, owner.address, daiAmount, HashZero, { gasLimit: 3000000 });
-      // give some ETH to the wallet to be used for repayment
-      await owner.sendTransaction({ to: walletAddress, value: collateralAmount });
-    }
     await manager.increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.contractAddress);
     const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
@@ -426,25 +423,16 @@ describe("MakerV2 Vaults", function () {
     const afterDAI = await dai.balanceOf(wallet.contractAddress);
     const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
 
-    if (useDai) assert.isTrue(afterDAI.lt(beforeDAI) && afterETH.eq(beforeETH), "should have less DAI");
-    else assert.isTrue(afterDAI.eq(beforeDAI) && afterETH.lt(beforeETH), "should have less ETH");
+    assert.isTrue(afterDAI.lt(beforeDAI) && afterETH.eq(beforeETH), "should have less DAI");
   }
 
   describe("Repay Debt", () => {
-    it("should repay debt when paying fee in DAI (blockchain tx)", async () => {
-      await testRepayDebt({ useDai: true, relayed: false });
+    it("should repay debt (blockchain tx)", async () => {
+      await testRepayDebt({ relayed: false });
     });
 
-    it("should repay debt when paying fee in DAI (relayed tx)", async () => {
-      await testRepayDebt({ useDai: true, relayed: true });
-    });
-
-    it("should repay debt when paying fee in ETH (blockchain tx)", async () => {
-      await testRepayDebt({ useDai: false, relayed: false });
-    });
-
-    it("should repay debt when paying fee in ETH (relayed tx)", async () => {
-      await testRepayDebt({ useDai: false, relayed: true });
+    it("should repay debt (relayed tx)", async () => {
+      await testRepayDebt({ relayed: true });
     });
 
     it("should not repay debt when only dust left", async () => {
@@ -470,18 +458,14 @@ describe("MakerV2 Vaults", function () {
     });
   });
 
-  async function testCloseLoan({ useDai, relayed }) {
+  async function testCloseLoan({ relayed }) {
     const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
     // give some ETH to the wallet to be used for repayment
     await owner.sendTransaction({ to: walletAddress, value: collateralAmount.mul(2) });
-    if (!useDai) {
-      // move the borrowed DAI from the wallet to the owner
-      await transferManager.from(owner).transferToken(walletAddress, dai.contractAddress, owner.address, daiAmount, HashZero, { gasLimit: 3000000 });
-    }
+
     await manager.increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.contractAddress);
-    const beforeETH = await deployer.provider.getBalance(wallet.contractAddress);
     const method = "closeLoan";
     const params = [wallet.contractAddress, loanId];
     if (relayed) {
@@ -491,27 +475,17 @@ describe("MakerV2 Vaults", function () {
       await makerV2.from(owner)[method](...params, { gasLimit: 3000000 });
     }
     const afterDAI = await dai.balanceOf(wallet.contractAddress);
-    const afterETH = await deployer.provider.getBalance(wallet.contractAddress);
 
-    if (useDai) assert.isTrue(afterDAI.lt(beforeDAI) && afterETH.sub(collateralAmount).lt(beforeETH), "should have spent some DAI and some ETH");
-    else assert.isTrue(afterDAI.eq(beforeDAI) && afterETH.sub(collateralAmount).lt(beforeETH), "should have spent some ETH");
+    assert.isTrue(afterDAI.lt(beforeDAI), "should have spent some DAI");
   }
 
   describe("Close Vaults", () => {
-    it("should close a vault when paying fee in DAI + ETH (blockchain tx)", async () => {
-      await testCloseLoan({ useDai: true, relayed: false });
+    it("should close a vault (blockchain tx)", async () => {
+      await testCloseLoan({ relayed: false });
     });
 
-    it("should close a vault when paying fee in DAI + ETH (relayed tx)", async () => {
-      await testCloseLoan({ useDai: true, relayed: true });
-    });
-
-    it("should close a vault when paying fee in ETH (blockchain tx)", async () => {
-      await testCloseLoan({ useDai: false, relayed: false });
-    });
-
-    it("should close a vault when paying fee in ETH (relayed tx)", async () => {
-      await testCloseLoan({ useDai: false, relayed: true });
+    it("should close a vault (relayed tx)", async () => {
+      await testCloseLoan({ relayed: true });
     });
 
     it("should not close a vault for the wrong loan owner", async () => {
@@ -575,7 +549,7 @@ describe("MakerV2 Vaults", function () {
     async function testAcquireVault({ relayed }) {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.contractAddress);
-      let txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
+      const txR = await (await cdpManager.from(owner).open(ilk, owner.address)).wait();
       const vaultId = txR.events.find((e) => e.event === "NewCdp").args.cdp;
       // Transfer the vault to the wallet
       await cdpManager.from(owner).give(vaultId, walletAddress);
@@ -583,12 +557,16 @@ describe("MakerV2 Vaults", function () {
       const loanId = bigNumToBytes32(vaultId);
       const method = "acquireLoan";
       const params = [walletAddress, loanId];
+      let txReceipt;
       if (relayed) {
-        txR = await manager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
-        assert.isTrue(txR.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
+        txReceipt = await manager.relay(makerV2, method, params, { contractAddress: walletAddress }, [owner]);
+        assert.isTrue(txReceipt.events.find((e) => e.event === "TransactionExecuted").args.success, "Relayed tx should succeed");
       } else {
-        await makerV2.from(owner)[method](...params, { gasLimit: 1000000 });
+        const tx = await makerV2.from(owner)[method](...params, { gasLimit: 1000000 });
+        txReceipt = await makerV2.verboseWaitForTransaction(tx);
       }
+      assert.isTrue(await hasEvent(txReceipt, makerV2, "LoanAcquired"), "should have generated LoanAcquired event");
+
       // The loanId held by the MakerV2Manager will be different from the transferred vault id, in case the latter was merged into an existing vault
       const moduleLoanId = await makerV2.loanIds(walletAddress, ilk);
       // Add some collateral and debt
@@ -664,63 +642,6 @@ describe("MakerV2 Vaults", function () {
       await assert.revertWith(
         makerV2.from(owner).acquireLoan(fakeWallet.contractAddress, loanId), "MV2: reentrant call",
       );
-    });
-  });
-
-  describe("Migrating an SCD CDP to an MCD vault", () => {
-    let oldCdpId;
-
-    beforeEach(async () => {
-      // Opening SCD CDP
-      const { daiAmount, collateralAmount } = await getTestAmounts(ETH_TOKEN);
-      const params = [walletAddress, ETH_TOKEN, collateralAmount, sai.contractAddress, daiAmount];
-      const txReceipt = await (await makerV1.from(owner).openLoan(...params, { gasLimit: 2000000 })).wait();
-      oldCdpId = (await parseLogs(txReceipt, makerV1, "LoanOpened"))[0]._loanId;
-      assert.isDefined(oldCdpId, "The old CDP ID should be defined");
-    });
-
-    async function testMigrateCdp({ relayed }) {
-      const method = "migrateCdp";
-      const params = [walletAddress, oldCdpId];
-      let txReceipt;
-      if (relayed) {
-        txReceipt = await manager.relay(makerV2, method, params, wallet, [owner]);
-        const { success } = (await parseLogs(txReceipt, relayerModule, "TransactionExecuted"))[0];
-        assert.isTrue(success, "Relayed tx should succeed");
-      } else {
-        txReceipt = await (await makerV2.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
-      }
-      const loanId = (await parseLogs(txReceipt, makerV2, "CdpMigrated"))[0]._newVaultId;
-      assert.isDefined(loanId, "The new vault ID should be defined");
-
-      // Add some collateral and debt
-      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
-      await testChangeCollateral({
-        loanId, collateralAmount, add: true, relayed, makerV2,
-      });
-      await testChangeDebt({
-        loanId, daiAmount, add: true, relayed,
-      });
-    }
-
-    it("should migrate a CDP (blockchain tx)", async () => {
-      await testMigrateCdp({ relayed: false });
-    });
-
-    it("should migrate a CDP (relayed tx)", async () => {
-      await testMigrateCdp({ relayed: true });
-    });
-
-    it("should migrate a CDP when already holding a vault in the module (blockchain tx)", async () => {
-      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
-      await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
-      await testMigrateCdp({ relayed: false });
-    });
-
-    it("should migrate a CDP when already holding a vault in the module (relayed tx)", async () => {
-      const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
-      await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
-      await testMigrateCdp({ relayed: true });
     });
   });
 

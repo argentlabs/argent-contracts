@@ -197,6 +197,7 @@ contract RelayerModule is BaseModule {
                     _to,
                     _value,
                     _data,
+                    getChainId(),
                     _nonce,
                     _gasPrice,
                     _gasLimit,
@@ -276,7 +277,7 @@ contract RelayerModule is BaseModule {
         }
         bool isGuardian;
 
-        for (uint8 i = 0; i < _signatures.length / 65; i++) {
+        for (uint256 i = 0; i < _signatures.length / 65; i++) {
             address signer = Utils.recoverSigner(_signHash, _signatures, i);
 
             if (i == 0) {
@@ -347,7 +348,11 @@ contract RelayerModule is BaseModule {
             invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
-		    invokeWallet(_wallet, _refundToken, 0, methodData);
+		    bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
+            // Check token refund is successful, when `transfer` returns a success bool result
+            if (transferSuccessBytes.length > 0) {
+                require(abi.decode(transferSuccessBytes, (bool)), "RM: Refund transfer failed");
+            }
         }
         emit Refund(_wallet, refundAddress, _refundToken, refundAmount);
     }
@@ -361,5 +366,14 @@ contract RelayerModule is BaseModule {
         require(_data.length >= 36, "RM: Invalid dataWallet");
         address dataWallet = abi.decode(_data[4:], (address));
         return dataWallet == _wallet;
+    }
+
+   /**
+    * @notice Returns the current chainId
+    * @return chainId the chainId
+    */
+    function getChainId() private pure returns (uint256 chainId) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly { chainId := chainid() }
     }
 }

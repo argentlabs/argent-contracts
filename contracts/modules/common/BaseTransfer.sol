@@ -77,7 +77,11 @@ abstract contract BaseTransfer is BaseModule {
             invokeWallet(_wallet, _to, _value, EMPTY_BYTES);
         } else {
             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _value);
-            invokeWallet(_wallet, _token, 0, methodData);
+            bytes memory transferSuccessBytes = invokeWallet(_wallet, _token, 0, methodData);
+            // Check transfer is successful, when `transfer` returns a success bool result
+            if (transferSuccessBytes.length > 0) {
+                require(abi.decode(transferSuccessBytes, (bool)), "RM: Transfer failed");
+            }
         }
         emit Transfer(_wallet, _token, _value, _to, _data);
     }
@@ -112,7 +116,7 @@ abstract contract BaseTransfer is BaseModule {
     * The address that spends the _token and the address that is called with _data can be different.
     * @param _wallet The target wallet.
     * @param _token The ERC20 address.
-    * @param _spender The spender address.
+    * @param _proxy The address to approve.
     * @param _amount The amount of tokens to transfer.
     * @param _contract The contract address.
     * @param _data The method data.
@@ -120,7 +124,7 @@ abstract contract BaseTransfer is BaseModule {
     function doApproveTokenAndCallContract(
         address _wallet,
         address _token,
-        address _spender,
+        address _proxy,
         uint256 _amount,
         address _contract,
         bytes memory _data
@@ -131,31 +135,31 @@ abstract contract BaseTransfer is BaseModule {
         uint256 balance = ERC20(_token).balanceOf(_wallet);
         require(balance >= _amount, "BT: insufficient balance");
 
-        uint256 existingAllowance = ERC20(_token).allowance(_wallet, _spender);
+        uint256 existingAllowance = ERC20(_token).allowance(_wallet, _proxy);
         uint256 totalAllowance = SafeMath.add(existingAllowance, _amount);
         // Approve the desired amount plus existing amount. This logic allows for potential gas saving later
-        // when restoring the original approved amount, in cases where the _spender uses the exact approved _amount.
-        bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, totalAllowance);
+        // when restoring the original approved amount, in cases where the _proxy uses the exact approved _amount.
+        bytes memory methodData = abi.encodeWithSignature("approve(address,uint256)", _proxy, totalAllowance);
 
         invokeWallet(_wallet, _token, 0, methodData);
         invokeWallet(_wallet, _contract, 0, _data);
 
         // Calculate the approved amount that was spent after the call
-        uint256 unusedAllowance = ERC20(_token).allowance(_wallet, _spender);
+        uint256 unusedAllowance = ERC20(_token).allowance(_wallet, _proxy);
         uint256 usedAllowance = SafeMath.sub(totalAllowance, unusedAllowance);
         // Ensure the amount spent does not exceed the amount approved for this call
         require(usedAllowance <= _amount, "BT: insufficient amount for call");
 
         if (unusedAllowance != existingAllowance) {
             // Restore the original allowance amount if the amount spent was different (can be lower).
-            methodData = abi.encodeWithSignature("approve(address,uint256)", _spender, existingAllowance);
+            methodData = abi.encodeWithSignature("approve(address,uint256)", _proxy, existingAllowance);
             invokeWallet(_wallet, _token, 0, methodData);
         }
 
         emit ApprovedAndCalledContract(
             _wallet,
             _contract,
-            _spender,
+            _proxy,
             _token,
             _amount,
             usedAllowance,
@@ -166,14 +170,14 @@ abstract contract BaseTransfer is BaseModule {
     * @notice Helper method to wrap ETH into WETH, approve a certain amount of WETH and call an external contract.
     * The address that spends the WETH and the address that is called with _data can be different.
     * @param _wallet The target wallet.
-    * @param _spender The spender address.
+    * @param _proxy The address to approves.
     * @param _amount The amount of tokens to transfer.
     * @param _contract The contract address.
     * @param _data The method data.
     */
     function doApproveWethAndCallContract(
         address _wallet,
-        address _spender,
+        address _proxy,
         uint256 _amount,
         address _contract,
         bytes memory _data
@@ -186,6 +190,6 @@ abstract contract BaseTransfer is BaseModule {
             invokeWallet(_wallet, wethToken, _amount - wethBalance, abi.encodeWithSignature("deposit()"));
         }
 
-        doApproveTokenAndCallContract(_wallet, wethToken, _spender, _amount, _contract, _data);
+        doApproveTokenAndCallContract(_wallet, wethToken, _proxy, _amount, _contract, _data);
     }
 }

@@ -23,32 +23,63 @@ import "../base/Managed.sol";
 /**
  * @title TokenPriceStorage
  * @notice Contract storing the token prices.
- * @notice Note that prices stored here = price per token * 10^(36-token decimals)
+ * @notice Note that prices stored here = price per token * 10^(18-token decimals)
  * The contract only defines basic setters and getters with no logic.
  * Only managers of this contract can modify its state.
  */
 contract TokenPriceStorage is ITokenPriceStorage, Storage, Managed {
-    mapping(address => uint256) public cachedPrices;
-
-    function getTokenPrice(address _token) external override view returns (uint256 _price) {
-        _price = cachedPrices[_token];
+    struct TokenInfo {
+        uint184 cachedPrice;
+        uint64 updatedAt;
+        bool isTradable;
     }
 
-    function getPriceForTokenList(address[] calldata _tokens) external override view returns (uint256[] memory) {
-        uint256[] memory prices = new uint256[](_tokens.length);
+    // Price info per token
+    mapping(address => TokenInfo) public tokenInfo;
+    // The minimum period between two price updates
+    uint256 public minPriceUpdatePeriod;
+
+
+    // Getters
+
+    function getTokenPrice(address _token) external override view returns (uint184 _price) {
+        _price = tokenInfo[_token].cachedPrice;
+    }
+    function isTokenTradable(address _token) external override view returns (bool _isTradable) {
+        _isTradable = tokenInfo[_token].isTradable;
+    }
+    function getPriceForTokenList(address[] calldata _tokens) external view returns (uint184[] memory _prices) {
+        _prices = new uint184[](_tokens.length);
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            _prices[i] = tokenInfo[_tokens[i]].cachedPrice;
+        }
+    }
+    function getTradableForTokenList(address[] calldata _tokens) external view returns (bool[] memory _tradable) {
+        _tradable = new bool[](_tokens.length);
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            _tradable[i] = tokenInfo[_tokens[i]].isTradable;
+        }
+    }
+
+    // Setters
+    
+    function setMinPriceUpdatePeriod(uint256 _newPeriod) external onlyOwner {
+        minPriceUpdatePeriod = _newPeriod;
+    }
+    function setPriceForTokenList(address[] calldata _tokens, uint184[] calldata _prices) external onlyManager {
+        require(_tokens.length == _prices.length, "TPS: Array length mismatch");
         for (uint i = 0; i < _tokens.length; i++) {
-            prices[i] = cachedPrices[_tokens[i]];
-        }
-        return prices;
-    }
-
-    function setPriceForTokenList(address[] calldata _tokens, uint256[] calldata _prices) external override onlyManager {
-        for (uint16 i = 0; i < _tokens.length; i++) {
-            cachedPrices[_tokens[i]] = _prices[i];
+            uint64 updatedAt = tokenInfo[_tokens[i]].updatedAt;
+            require(updatedAt == 0 || block.timestamp >= updatedAt + minPriceUpdatePeriod, "TPS: Price updated too early");
+            tokenInfo[_tokens[i]].cachedPrice = _prices[i];
+            tokenInfo[_tokens[i]].updatedAt = uint64(block.timestamp);
         }
     }
-
-    function setPrice(address _token, uint256 _price) external override onlyManager {
-        cachedPrices[_token] = _price;
+    function setTradableForTokenList(address[] calldata _tokens, bool[] calldata _tradable) external {
+        require(_tokens.length == _tradable.length, "TPS: Array length mismatch");
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            require(msg.sender == owner || (!_tradable[i] && managers[msg.sender]), "TPS: Unauthorised");
+            tokenInfo[_tokens[i]].isTradable = _tradable[i];
+        }
     }
 }
