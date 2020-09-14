@@ -17,17 +17,18 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./common/OnlyOwnerModule.sol";
+import "./common/BaseFeature.sol";
 import "../../lib/other/ERC20.sol";
 import "../../lib/paraswap/IAugustusSwapper.sol";
-import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
+import "../infrastructure/IDexRegistry.sol";
 
 /**
  * @title TokenExchanger
  * @notice Module to trade tokens (ETH or ERC20) using ParaSwap.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TokenExchanger is OnlyOwnerModule {
+contract TokenExchanger is BaseFeature {
 
     bytes32 constant NAME = "TokenExchanger";
 
@@ -47,10 +48,10 @@ contract TokenExchanger is OnlyOwnerModule {
     address public paraswapSwapper;
     // The label of the referrer
     string public referrer;
-    // Authorised exchanges
-    mapping(address => bool) public authorisedExchanges;
-    // The token price storage
-    ITokenPriceStorage public tokenPriceStorage;
+    // Registry of authorised exchanges
+    IDexRegistry public dexRegistry;
+    // The token price registry
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     event TokenExchanged(address indexed wallet, address srcToken, uint srcAmount, address destToken, uint destAmount);
 
@@ -58,24 +59,28 @@ contract TokenExchanger is OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage,
-        ITokenPriceStorage _tokenPriceStorage,
+        ILockStorage _lockStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
+        IVersionManager _versionManager,
+        IDexRegistry _dexRegistry,
         address _paraswap,
-        string memory _referrer,
-        address[] memory _authorisedExchanges
+        string memory _referrer
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
-        tokenPriceStorage = _tokenPriceStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
+        dexRegistry = _dexRegistry;
         paraswapSwapper = _paraswap;
         paraswapProxy = IAugustusSwapper(_paraswap).getTokenTransferProxy();
         referrer = _referrer;
+    }
 
-        for (uint i = 0; i < _authorisedExchanges.length; i++) {
-            authorisedExchanges[_authorisedExchanges[i]] = true;
-        }
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 
     /**
@@ -102,7 +107,7 @@ contract TokenExchanger is OnlyOwnerModule {
         uint256 _mintPrice
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Verify that the destination token is tradable
@@ -150,7 +155,7 @@ contract TokenExchanger is OnlyOwnerModule {
         uint256 _mintPrice
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         // Verify that the destination token is tradable
@@ -176,21 +181,15 @@ contract TokenExchanger is OnlyOwnerModule {
     // Internal & Private Methods
 
     function verifyTradable(address _token) internal view {
-        require((_token == ETH_TOKEN_ADDRESS) || tokenPriceStorage.isTokenTradable(_token), "TE: Token not tradable");
+        require((_token == ETH_TOKEN_ADDRESS) || tokenPriceRegistry.isTokenTradable(_token), "TE: Token not tradable");
     }
 
     function verifyExchangeAdapters(IAugustusSwapper.Path[] calldata _path) internal view {
-        for (uint i = 0; i < _path.length; i++) {
-            for (uint j = 0; j < _path[i].routes.length; j++) {
-                require(authorisedExchanges[_path[i].routes[j].exchange], "TE: Unauthorised Exchange");
-            }
-        }
+        dexRegistry.verifyExchangeAdapters(_path);
     }
 
     function verifyExchangeAdapters(IAugustusSwapper.BuyRoute[] calldata _routes) internal view {
-        for (uint j = 0; j < _routes.length; j++) {
-            require(authorisedExchanges[_routes[j].exchange], "TE: Unauthorised Exchange");
-        }
+        dexRegistry.verifyExchangeAdapters(_routes);
     }
 
     function approveToken(address _wallet, address _token, uint _amount) internal returns (uint256 _existingAllowance) {
@@ -204,7 +203,12 @@ contract TokenExchanger is OnlyOwnerModule {
                 }
                 // Increase the allowance to include the required amount
                 uint256 newAllowance = SafeMath.add(_existingAllowance, _amount);
-                invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, newAllowance));
+                invokeWallet(
+                    _wallet,
+                    _token,
+                    0,
+                    abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, newAllowance)
+                );
             }
         }
     }
@@ -213,7 +217,12 @@ contract TokenExchanger is OnlyOwnerModule {
         if (_token != ETH_TOKEN_ADDRESS) {
             uint allowance = ERC20(_token).allowance(_wallet, paraswapProxy);
             if (allowance != _previousAllowance) {
-                invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, _previousAllowance));
+                invokeWallet(
+                    _wallet,
+                    _token,
+                    0,
+                    abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, _previousAllowance)
+                );
             }
         }
     }
@@ -229,7 +238,11 @@ contract TokenExchanger is OnlyOwnerModule {
         internal
     {
         // Perform the trade
-        bytes memory swapRes = invokeWallet(_wallet, paraswapSwapper, _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, tradeData);
+        bytes memory swapRes = invokeWallet(
+            _wallet,
+            paraswapSwapper,
+            _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, tradeData
+        );
 
         // Emit event with best possible estimate of destination amount
         uint256 estimatedDestAmount;

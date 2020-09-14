@@ -18,25 +18,22 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
-import "./common/OnlyOwnerModule.sol";
 import "./common/BaseTransfer.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
-import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 import "../../lib/other/ERC20.sol";
 
 /**
  * @title TransferManager
- * @notice Module to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
- * This module is the V2 of TokenTransfer.
+ * @notice Feature to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransferManager is OnlyOwnerModule, BaseTransfer {
+contract TransferManager is BaseTransfer {
 
     bytes32 constant NAME = "TransferManager";
 
-    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
     bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
     enum ActionType { Transfer }
@@ -64,7 +61,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     // The limit storage
     ILimitStorage public limitStorage;
     // The token price storage
-    ITokenPriceStorage public tokenPriceStorage;
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     // *************** Events *************************** //
 
@@ -80,24 +77,24 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         ITransferStorage _transferStorage,
-        IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
-        ITokenPriceStorage _tokenPriceStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
+        IVersionManager _versionManager,
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit,
         address _wethToken,
         TransferManager _oldTransferManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
         public
     {
         transferStorage = _transferStorage;
         limitStorage = _limitStorage;
-        tokenPriceStorage = _tokenPriceStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
         defaultLimit = LimitUtils.safe128(_defaultLimit);
@@ -105,33 +102,45 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     }
 
     /**
-     * @notice Inits the module for a wallet by setting up the isValidSignature (EIP 1271)
-     * static call redirection from the wallet to the module and copying all the parameters
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
+        _sigs = new bytes4[](1);
+        _sigs[0] = ERC1271_ISVALIDSIGNATURE_BYTES32;
+    }
+
+
+    /**
+     * @notice Inits the feature for a wallet by setting up the isValidSignature (EIP 1271)
+     * static call redirection from the wallet to the feature and copying all the parameters
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
-    function init(address _wallet) public override(BaseModule) onlyWallet(_wallet) {
-
-        // setup static calls
-        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
-        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
+    function init(address _wallet) public override(BaseFeature) onlyVersionManager {
 
         if (address(oldTransferManager) == address(0)) {
-            limitStorage.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
+            setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
         } else {
             uint256 current = oldTransferManager.getCurrentLimit(_wallet);
             (uint256 pending, uint64 changeAfter) = oldTransferManager.getPendingLimit(_wallet);
             if (current == 0 && changeAfter == 0) {
                 // new wallet: we setup the default limit
-                limitStorage.setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
+                setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
             } else {
                 // migrate limit and daily spent (if we are in a rolling period)
                 (uint256 unspent, uint64 periodEnd) = oldTransferManager.getDailyUnspent(_wallet);
 
                 if (periodEnd < block.timestamp) {
-                    limitStorage.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
+                    setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
                 } else {
-                    limitStorage.setLimitAndDailySpent(
+                    setLimitAndDailySpent(
                         _wallet,
                         ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter),
                         ILimitStorage.DailySpent(LimitUtils.safe128(current.sub(unspent)), periodEnd)
@@ -141,28 +150,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
                 emit DailyLimitMigrated(_wallet, current, pending, changeAfter);
             }
         }
-    }
-
-    /**
-     * @inheritdoc IModule
-     */
-    function addModule(address _wallet, address _module) public override(BaseModule, OnlyOwnerModule) onlyWalletOwnerOrModule(_wallet) {
-        OnlyOwnerModule.addModule(_wallet, _module);
-    }
-
-    /**
-     * @inheritdoc IModule
-     */
-    function getRequiredSignatures(
-        address _wallet,
-        bytes calldata _data
-    )
-        external
-        override(BaseModule, OnlyOwnerModule)
-        view
-        returns (uint256, OwnerSignature)
-    {
-        return (1, OwnerSignature.Required);
     }
 
     // *************** External/Public Functions ********************* //
@@ -183,15 +170,15 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _to)) {
             // transfer to whitelist
             doTransfer(_wallet, _token, _to, _amount, _data);
         } else {
-            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
-            if (LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, etherAmount)) {
+            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : LimitUtils.getEtherValue(tokenPriceRegistry, _amount, _token);
+            if (LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
             } else {
@@ -216,7 +203,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         uint256 _amount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _spender)) {
@@ -231,8 +218,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             } else {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
-                uint256 deltaInEth = LimitUtils.getEtherValue(tokenPriceStorage, delta, _token);
-                require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, deltaInEth), "TM: Approve above daily limit");
+                uint256 deltaInEth = LimitUtils.getEtherValue(tokenPriceRegistry, delta, _token);
+                require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, deltaInEth), "TM: Approve above daily limit");
                 // approve if under the limit
                 doApproveToken(_wallet, _token, _spender, _amount);
             }
@@ -253,7 +240,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -280,7 +267,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -305,7 +292,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
@@ -323,13 +310,13 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         address _target
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
 
         uint256 whitelistAfter = block.timestamp.add(securityPeriod);
-        transferStorage.setWhitelist(_wallet, _target, whitelistAfter);
+        setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }
 
@@ -343,10 +330,10 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         address _target
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        transferStorage.setWhitelist(_wallet, _target, 0);
+        setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
@@ -387,7 +374,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
         bytes32 _id
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(configs[_wallet].pendingActions[_id] > 0, "TT: unknown pending action");
@@ -401,8 +388,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
-        ILimitStorage.Limit memory limit = LimitUtils.changeLimit(limitStorage, _wallet, _newLimit, securityPeriod);
+    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        ILimitStorage.Limit memory limit = LimitUtils.changeLimit(limitStorage, versionManager, _wallet, _newLimit, securityPeriod);
         emit LimitChanged(_wallet, _newLimit, limit.changeAfter);
     }
 
@@ -411,8 +398,8 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
      * The limit is disabled by setting it to an arbitrary large value.
      * @param _wallet The target wallet.
      */
-    function disableLimit(address _wallet) external onlyWalletOwnerOrModule(_wallet) onlyWhenUnlocked(_wallet) {
-        LimitUtils.disableLimit(limitStorage, _wallet, securityPeriod);
+    function disableLimit(address _wallet) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        LimitUtils.disableLimit(limitStorage, versionManager, _wallet, securityPeriod);
         emit DailyLimitDisabled(_wallet, securityPeriod);
     }
 
@@ -494,18 +481,6 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     /**
     * @notice Implementation of EIP 1271.
     * Should return whether the signature provided is valid for the provided data.
-    * @param _data Arbitrary length data signed on the behalf of address(this)
-    * @param _signature Signature byte array associated with _data
-    */
-    function isValidSignature(bytes calldata _data, bytes calldata _signature) external view returns (bytes4) {
-        bytes32 msgHash = keccak256(abi.encodePacked(_data));
-        isValidSignature(msgHash, _signature);
-        return ERC1271_ISVALIDSIGNATURE_BYTES;
-    }
-
-    /**
-    * @notice Implementation of EIP 1271.
-    * Should return whether the signature provided is valid for the provided data.
     * @param _msgHash Hash of a message signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _msgHash
     */
@@ -553,7 +528,7 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
     * @param _contract The address of the contract.
      */
     function coveredByDailyLimit(address _wallet, address _contract) internal view returns (bool) {
-        return (tokenPriceStorage.getTokenPrice(_contract) > 0 && !isLimitDisabled(_wallet));
+        return (tokenPriceRegistry.getTokenPrice(_contract) > 0 && !isLimitDisabled(_wallet));
     }
 
     /**
@@ -584,9 +559,39 @@ contract TransferManager is OnlyOwnerModule, BaseTransfer {
             if (_token == ETH_TOKEN || _token == wethToken) {
                 valueInEth = _amount;
             } else {
-                valueInEth = LimitUtils.getEtherValue(tokenPriceStorage, _amount, _token);
+                valueInEth = LimitUtils.getEtherValue(tokenPriceRegistry, _amount, _token);
             }
-            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, valueInEth), "TM: Approve above daily limit");
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, valueInEth), "TM: Approve above daily limit");
         }
+    }
+
+    // *************** Internal Functions ********************* //
+
+    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(transferStorage),
+            abi.encodeWithSelector(transferStorage.setWhitelist.selector, _wallet, _target, _whitelistAfter)
+        );
+    }
+
+    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setLimit.selector, _wallet, _limit)
+        );
+    }
+
+    function setLimitAndDailySpent(
+        address _wallet,
+        ILimitStorage.Limit memory _limit,
+        ILimitStorage.DailySpent memory _dailySpent
+    ) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setLimitAndDailySpent.selector, _wallet, _limit, _dailySpent)
+        );
     }
 }

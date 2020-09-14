@@ -17,18 +17,18 @@
 pragma solidity ^0.6.12;
 
 import "./common/Utils.sol";
-import "./common/BaseModule.sol";
+import "./common/BaseFeature.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RecoveryManager
- * @notice Module to manage the recovery of a wallet owner.
+ * @notice Feature to manage the recovery of a wallet owner.
  * Recovery is executed by a consensus of the wallet's guardians and takes 24 hours before it can be finalized.
  * Once finalised the ownership of the wallet is transfered to a new address.
  * @author Julien Niset - <julien@argent.xyz>
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
-contract RecoveryManager is BaseModule {
+contract RecoveryManager is BaseFeature {
 
     bytes32 constant NAME = "RecoveryManager";
 
@@ -50,6 +50,8 @@ contract RecoveryManager is BaseModule {
     uint256 public recoveryPeriod;
     // Lock period
     uint256 public lockPeriod;
+    // Guardian Storage
+    IGuardianStorage public guardianStorage;
 
     // *************** Events *************************** //
 
@@ -79,12 +81,13 @@ contract RecoveryManager is BaseModule {
     // *************** Constructor ************************ //
 
     constructor(
-        IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
+        IVersionManager _versionManager,
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
@@ -93,6 +96,7 @@ contract RecoveryManager is BaseModule {
         require(_lockPeriod >= _recoveryPeriod, "RM: insecure security periods");
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
+        guardianStorage = _guardianStorage;
     }
 
     // *************** External functions ************************ //
@@ -104,13 +108,13 @@ contract RecoveryManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _recovery The address to which ownership should be transferred.
      */
-    function executeRecovery(address _wallet, address _recovery) external onlyWalletModule(_wallet) notWhenRecovery(_wallet) {
-        require(_recovery != address(0), "RM: recovery address cannot be null");
+    function executeRecovery(address _wallet, address _recovery) external onlyWalletFeature(_wallet) notWhenRecovery(_wallet) {
+        validateNewOwner(_wallet, _recovery);
         RecoveryConfig storage config = recoveryConfigs[_wallet];
         config.recovery = _recovery;
         config.executeAfter = uint64(block.timestamp + recoveryPeriod);
         config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
-        guardianStorage.setLock(_wallet, block.timestamp + lockPeriod);
+        setLock(_wallet, block.timestamp + lockPeriod);
         emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
     }
 
@@ -125,8 +129,8 @@ contract RecoveryManager is BaseModule {
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
 
-        IWallet(_wallet).setOwner(recoveryOwner);
-        guardianStorage.setLock(_wallet, 0);
+        versionManager.setOwner(_wallet, recoveryOwner);
+        setLock(_wallet, 0);
 
         emit RecoveryFinalized(_wallet, recoveryOwner);
     }
@@ -136,11 +140,11 @@ contract RecoveryManager is BaseModule {
      * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2) - 1.
      * @param _wallet The target wallet.
      */
-    function cancelRecovery(address _wallet) external onlyWalletModule(_wallet) onlyWhenRecovery(_wallet) {
+    function cancelRecovery(address _wallet) external onlyWalletFeature(_wallet) onlyWhenRecovery(_wallet) {
         RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
-        guardianStorage.setLock(_wallet, 0);
+        setLock(_wallet, 0);
 
         emit RecoveryCanceled(_wallet, recoveryOwner);
     }
@@ -150,9 +154,9 @@ contract RecoveryManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _newOwner The address to which ownership should be transferred.
      */
-    function transferOwnership(address _wallet, address _newOwner) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
-        require(_newOwner != address(0), "RM: new owner address cannot be null");
-        IWallet(_wallet).setOwner(_newOwner);
+    function transferOwnership(address _wallet, address _newOwner) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        validateNewOwner(_wallet, _newOwner);
+        versionManager.setOwner(_wallet, _newOwner);
 
         emit OwnershipTransfered(_wallet, _newOwner);
     }
@@ -167,7 +171,7 @@ contract RecoveryManager is BaseModule {
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
@@ -192,4 +196,20 @@ contract RecoveryManager is BaseModule {
 
         revert("RM: unknown method");
     }
+
+    // *************** Internal Functions ********************* //
+
+    function validateNewOwner(address _wallet, address _newOwner) internal view {
+        require(_newOwner != address(0), "RM: new owner address cannot be null");
+        require(!guardianStorage.isGuardian(_wallet, _newOwner), "RM: new owner address cannot be a guardian");
+    }
+
+    function setLock(address _wallet, uint256 _releaseAfter) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(lockStorage),
+            abi.encodeWithSelector(lockStorage.setLock.selector, _wallet, address(this), _releaseAfter)
+        );
+    }
+
 }

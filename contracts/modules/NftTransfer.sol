@@ -16,15 +16,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./common/OnlyOwnerModule.sol";
-import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "./common/BaseFeature.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 
 /**
  * @title NftTransfer
  * @notice Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NftTransfer is OnlyOwnerModule {
+contract NftTransfer is BaseFeature{
 
     bytes32 constant NAME = "NftTransfer";
 
@@ -33,8 +33,8 @@ contract NftTransfer is OnlyOwnerModule {
 
     // The address of the CryptoKitties contract
     address public ckAddress;
-    // The token price storage
-    ITokenPriceStorage public tokenPriceStorage;
+    // The token price registry
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     // *************** Events *************************** //
 
@@ -43,27 +43,32 @@ contract NftTransfer is OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage,
-        ITokenPriceStorage _tokenPriceStorage,
+        ILockStorage _lockStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
+        IVersionManager _versionManager,
         address _ckAddress
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         ckAddress = _ckAddress;
-        tokenPriceStorage = _tokenPriceStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
     }
 
     // *************** External/Public Functions ********************* //
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
 
     /**
-     * @notice Inits the module for a wallet by setting up the onERC721Received
-     * static call redirection from the wallet to the module.
-     * @param _wallet The target wallet.
+     * @inheritdoc IFeature
      */
-    function init(address _wallet) public override onlyWallet(_wallet) {
-        IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
+        _sigs = new bytes4[](1);
+        _sigs[0] = ERC721_RECEIVED;
     }
 
     /**
@@ -103,7 +108,7 @@ contract NftTransfer is OnlyOwnerModule {
         bytes calldata _data
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;
@@ -130,7 +135,7 @@ contract NftTransfer is OnlyOwnerModule {
     * @param _contract The address of the contract.
      */
     function coveredByDailyLimit(address _contract) internal view returns (bool) {
-        return tokenPriceStorage.getTokenPrice(_contract) > 0;
+        return tokenPriceRegistry.getTokenPrice(_contract) > 0;
     }
 
 }

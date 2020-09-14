@@ -1,18 +1,20 @@
 /* global accounts */
 const ethers = require("ethers");
-const RelayerModule = require("../build/RelayerModule");
+const RelayerManager = require("../build/RelayerManager");
 const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
+const LockStorage = require("../build/LockStorage");
 const GuardianStorage = require("../build/GuardianStorage");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
 const RecoveryManager = require("../build/RecoveryManager");
+const VersionManager = require("../build/VersionManager");
 
 const TestManager = require("../utils/test-manager");
 
 describe("LockManager", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
 
@@ -23,12 +25,13 @@ describe("LockManager", function () {
   let deployer;
   let guardianManager;
   let guardianStorage;
-  let registry;
+  let lockStorage;
   let lockManager;
   let recoveryManager;
   let wallet;
   let walletImplementation;
-  let relayerModule;
+  let relayerManager;
+  let versionManager;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -36,24 +39,52 @@ describe("LockManager", function () {
   });
 
   beforeEach(async () => {
-    registry = await deployer.deploy(Registry);
+    const registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-    lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
-    recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5);
-    relayerModule = await deployer.deploy(RelayerModule, {},
+    lockStorage = await deployer.deploy(LockStorage);
+    versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
+      lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
-    manager.setRelayerModule(relayerModule);
+
+    guardianManager = await deployer.deploy(GuardianManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      versionManager.contractAddress,
+      24, 12);
+    lockManager = await deployer.deploy(LockManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      versionManager.contractAddress,
+      24 * 5);
+    recoveryManager = await deployer.deploy(RecoveryManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      versionManager.contractAddress,
+      36, 24 * 5);
+    relayerManager = await deployer.deploy(RelayerManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      versionManager.contractAddress);
+    manager.setRelayerManager(relayerManager);
+
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address,
-      [guardianManager.contractAddress,
-        lockManager.contractAddress,
-        recoveryManager.contractAddress,
-        relayerModule.contractAddress]);
+
+    await versionManager.addVersion([
+      guardianManager.contractAddress,
+      lockManager.contractAddress,
+      recoveryManager.contractAddress,
+      relayerManager.contractAddress,
+    ], []);
+
+    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
   describe("(Un)Lock by EOA guardians", () => {
@@ -74,6 +105,10 @@ describe("LockManager", function () {
       assert.isTrue(state, "should be locked by guardian");
       let releaseTime = await lockManager.getLock(wallet.contractAddress);
       assert.isTrue(releaseTime > 0, "releaseTime should be positive");
+      const guardianStorageLock = await guardianStorage.getLock(wallet.contractAddress);
+      const guardianStorageLocker = await guardianStorage.getLocker(wallet.contractAddress);
+      assert.isTrue(guardianStorageLock.eq(0), "legacy guardianStorage's lock should be unused");
+      assert.isTrue(guardianStorageLocker === ethers.constants.AddressZero, "legacy guardianStorage's locker should be unused");
       // unlock
       await lockManager.from(guardian1).unlock(wallet.contractAddress);
       state = await lockManager.isLocked(wallet.contractAddress);
@@ -108,7 +143,8 @@ describe("LockManager", function () {
       const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
       const guardianWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-      await guardianWallet.init(guardian1.address, [guardianManager.contractAddress, lockManager.contractAddress]);
+      await guardianWallet.init(guardian1.address, [versionManager.contractAddress]);
+      await versionManager.from(guardian1).upgradeWallet(guardianWallet.contractAddress, await versionManager.lastVersion());
       await guardianManager.from(owner).addGuardian(wallet.contractAddress, guardianWallet.contractAddress);
       const count = (await guardianManager.guardianCount(wallet.contractAddress)).toNumber();
       assert.equal(count, 1, "1 guardian should be added");
@@ -165,13 +201,13 @@ describe("LockManager", function () {
         "VM Exception while processing transaction: revert LM: wallet must be locked");
     });
 
-    it("should not be able to unlock a wallet, locked by another module", async () => {
+    it("should not be able to unlock a wallet, locked by another feature", async () => {
       // lock by putting the wallet in recovery mode
       await manager.relay(recoveryManager, "executeRecovery", [wallet.contractAddress, accounts[5].signer.address], wallet, [guardian1]);
 
       // try to unlock
       await assert.revertWith(lockManager.from(guardian1).unlock(wallet.contractAddress),
-        "LM: cannot unlock a wallet that was locked by another module");
+        "LM: cannot unlock a wallet that was locked by another feature");
     });
   });
 });

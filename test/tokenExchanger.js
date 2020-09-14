@@ -21,17 +21,20 @@ const WETH = require("../build/WETH9");
 
 // Argent
 const ModuleRegistry = require("../build/ModuleRegistry");
+const DexRegistry = require("../build/DexRegistry");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
 const GuardianStorage = require("../build/GuardianStorage");
+const LockStorage = require("../build/LockStorage");
 const TokenExchanger = require("../build/TokenExchanger");
-const RelayerModule = require("../build/RelayerModule");
+const RelayerManager = require("../build/RelayerManager");
 const ERC20 = require("../build/TestERC20");
 const TransferStorage = require("../build/TransferStorage");
 const LimitStorage = require("../build/LimitStorage");
 const TransferManager = require("../build/TransferManager");
-const TokenPriceStorage = require("../build/TokenPriceStorage");
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
+const VersionManager = require("../build/VersionManager");
 
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
@@ -45,20 +48,21 @@ const TOKEN_A_RATE = parseEther("0.06");
 const TOKEN_B_RATE = parseEther("0.03");
 
 describe("Token Exchanger", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager();
   const infrastructure = accounts[0].signer;
   const owner = accounts[1].signer;
   let deployer;
 
-  let registry;
+  let lockStorage;
   let guardianStorage;
   let wallet;
   let walletImplementation;
   let exchanger;
+  let dexRegistry;
   let transferManager;
-  let relayerModule;
+  let relayerManager;
   let kyberNetwork;
   let kyberAdapter;
   let uniswapRouter;
@@ -66,21 +70,33 @@ describe("Token Exchanger", function () {
   let tokenA;
   let tokenB;
   let paraswap;
-  let tokenPriceStorage;
+  let tokenPriceRegistry;
+  let versionManager;
 
   before(async () => {
     deployer = manager.newDeployer();
-    registry = await deployer.deploy(ModuleRegistry);
+    const registry = await deployer.deploy(ModuleRegistry);
+    dexRegistry = await deployer.deploy(DexRegistry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    relayerModule = await deployer.deploy(
-      RelayerModule,
-      {},
+    lockStorage = await deployer.deploy(LockStorage);
+    versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
+      ethers.constants.AddressZero,
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
+
+    relayerManager = await deployer.deploy(
+      RelayerManager,
+      {},
+      lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
+      versionManager.contractAddress,
     );
-    manager.setRelayerModule(relayerModule);
+    manager.setRelayerManager(relayerManager);
 
     // Deploy test tokens
     tokenA = await deployer.deploy(ERC20, {}, [infrastructure.address], parseEther("1000"), DECIMALS);
@@ -131,28 +147,29 @@ describe("Token Exchanger", function () {
     await whitelist.addWhitelisted(uniswapV2Adapter.contractAddress);
 
     // Deploy exchanger module
-    tokenPriceStorage = await deployer.deploy(TokenPriceStorage);
-    await tokenPriceStorage.setTradableForTokenList([tokenA.contractAddress, tokenB.contractAddress], [true, true]);
+    tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
+    await tokenPriceRegistry.setTradableForTokenList([tokenA.contractAddress, tokenB.contractAddress], [true, true]);
+    await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [true, true]);
     exchanger = await deployer.deploy(
       TokenExchanger,
       {},
-      registry.contractAddress,
-      guardianStorage.contractAddress,
-      tokenPriceStorage.contractAddress,
+      lockStorage.contractAddress,
+      tokenPriceRegistry.contractAddress,
+      versionManager.contractAddress,
+      dexRegistry.contractAddress,
       paraswap.contractAddress,
       "argent",
-      [kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress],
     );
 
     // Deploy TransferManager module
     const transferStorage = await deployer.deploy(TransferStorage);
     const limitStorage = await deployer.deploy(LimitStorage);
     transferManager = await deployer.deploy(TransferManager, {},
-      registry.contractAddress,
+      lockStorage.contractAddress,
       transferStorage.contractAddress,
-      guardianStorage.contractAddress,
       limitStorage.contractAddress,
-      tokenPriceStorage.contractAddress,
+      tokenPriceRegistry.contractAddress,
+      versionManager.contractAddress,
       3600,
       3600,
       10000,
@@ -161,13 +178,20 @@ describe("Token Exchanger", function () {
 
     // Deploy wallet implementation
     walletImplementation = await deployer.deploy(BaseWallet);
+
+    await versionManager.addVersion([
+      exchanger.contractAddress,
+      transferManager.contractAddress,
+      relayerManager.contractAddress,
+    ], []);
   });
 
   beforeEach(async () => {
     // create wallet
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [exchanger.contractAddress, transferManager.contractAddress, relayerModule.contractAddress]);
+    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
 
     // fund wallet
     await infrastructure.sendTransaction({ to: wallet.contractAddress, value: parseEther("0.1") });
@@ -281,7 +305,7 @@ describe("Token Exchanger", function () {
     let txR;
     if (relayed) {
       txR = await manager.relay(exchanger, method, params, _wallet, [owner]);
-      const { success } = (await parseLogs(txR, relayerModule, "TransactionExecuted"))[0];
+      const { success } = (await parseLogs(txR, relayerManager, "TransactionExecuted"))[0];
       assert.isTrue(success, "Relayed tx should succeed");
     } else {
       txR = await (await exchanger.from(owner)[method](...params, { gasLimit: 2000000 })).wait();
@@ -347,24 +371,16 @@ describe("Token Exchanger", function () {
         fixedAmount,
         variableAmount,
       });
-      await tokenPriceStorage.setTradableForTokenList([toToken], [false]);
+      await tokenPriceRegistry.setTradableForTokenList([toToken], [false]);
       await assert.revertWith(exchanger.from(owner)[method](...params, { gasLimit: 2000000 }), "TE: Token not tradable");
-      await tokenPriceStorage.setTradableForTokenList([toToken], [true]);
+      await tokenPriceRegistry.setTradableForTokenList([toToken], [true]);
     });
 
     it("can exclude exchanges", async () => {
       const fromToken = tokenA.contractAddress;
       const toToken = tokenB.contractAddress;
-      const exchangerExcludingAllExchanges = await deployer.deploy(
-        TokenExchanger,
-        {},
-        registry.contractAddress,
-        guardianStorage.contractAddress,
-        tokenPriceStorage.contractAddress,
-        paraswap.contractAddress,
-        "argent",
-        [], // no exchange whitelisted
-      );
+      // whitelist no exchange
+      await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [false, false]);
       const fixedAmount = parseEther("0.01");
       const variableAmount = method === "sell" ? "1" : await getBalance(fromToken, wallet);
       const params = getParams({
@@ -374,7 +390,9 @@ describe("Token Exchanger", function () {
         fixedAmount,
         variableAmount,
       });
-      await assert.revertWith(exchangerExcludingAllExchanges.from(owner)[method](...params, { gasLimit: 2000000 }), "TE: Unauthorised Exchange");
+      await assert.revertWith(exchanger.from(owner)[method](...params, { gasLimit: 2000000 }), "DR: Unauthorised DEX");
+      // reset whitelist
+      await dexRegistry.setAuthorised([kyberAdapter.contractAddress, uniswapV2Adapter.contractAddress], [true, true]);
     });
 
     it(`lets old wallets call ${method} successfully`, async () => {
@@ -382,7 +400,8 @@ describe("Token Exchanger", function () {
       const oldWalletImplementation = await deployer.deploy(OldWallet);
       const proxy = await deployer.deploy(Proxy, {}, oldWalletImplementation.contractAddress);
       const oldWallet = deployer.wrapDeployedContract(OldWallet, proxy.contractAddress);
-      await oldWallet.init(owner.address, [exchanger.contractAddress]);
+      await oldWallet.init(owner.address, [versionManager.contractAddress]);
+      await versionManager.from(owner).upgradeWallet(oldWallet.contractAddress, await versionManager.lastVersion());
       // fund wallet
       await infrastructure.sendTransaction({ to: oldWallet.contractAddress, value: parseEther("0.1") });
       // call sell/buy

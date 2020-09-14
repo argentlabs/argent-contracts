@@ -41,6 +41,13 @@ interface IWallet {
     function authorised(address _module) external view returns (bool);
 
     /**
+     * @notice Returns the module responsible for a static call redirection.
+     * @param _sig The signature of the static call.
+     * @return the module doing the redirection
+     */
+    function enabled(bytes4 _sig) external view returns (address);
+
+    /**
      * @notice Enables/Disables a module.
      * @param _module The target module.
      * @param _value Set to `true` to authorise the module.

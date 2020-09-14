@@ -8,8 +8,10 @@ const MakerV2Manager = require("../build/MakerV2Manager");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const GuardianStorage = require("../build/GuardianStorage");
+const LockStorage = require("../build/LockStorage");
 const MakerRegistry = require("../build/MakerRegistry");
-const RelayerModule = require("../build/RelayerModule");
+const RelayerManager = require("../build/RelayerManager");
+const VersionManager = require("../build/VersionManager");
 
 const DAI_SENT = WAD.div(100000000);
 
@@ -25,7 +27,8 @@ describe("MakerV2 DSR", function () {
 
   let wallet;
   let walletImplementation;
-  let relayerModule;
+  let relayerManager;
+  let versionManager;
   let makerV2;
   let sai;
   let dai;
@@ -43,6 +46,14 @@ describe("MakerV2 DSR", function () {
 
     const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
+    const lockStorage = await deployer.deploy(LockStorage);
+    versionManager = await deployer.deploy(VersionManager, {},
+      registry.contractAddress,
+      ethers.constants.AddressZero,
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
 
     const makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);
 
@@ -52,30 +63,34 @@ describe("MakerV2 DSR", function () {
     makerV2 = await deployer.deploy(
       MakerV2Manager,
       {},
-      registry.contractAddress,
-      guardianStorage.contractAddress,
+      lockStorage.contractAddress,
       migration.contractAddress,
       pot.contractAddress,
       jug.contractAddress,
       makerRegistry.contractAddress,
       uni.uniswapFactory.contractAddress,
+      versionManager.contractAddress,
     );
 
     walletImplementation = await deployer.deploy(BaseWallet);
 
-    relayerModule = await deployer.deploy(RelayerModule, {},
-      registry.contractAddress,
+    relayerManager = await deployer.deploy(RelayerManager, {},
+      lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
-      ethers.constants.AddressZero);
-    manager.setRelayerModule(relayerModule);
+      ethers.constants.AddressZero,
+      versionManager.contractAddress);
+    manager.setRelayerManager(relayerManager);
+
+    await versionManager.addVersion([makerV2.contractAddress, relayerManager.contractAddress], []);
   });
 
   beforeEach(async () => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
 
-    await wallet.init(owner.address, [makerV2.contractAddress, relayerModule.contractAddress]);
+    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
     await sai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
     await dai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
   });

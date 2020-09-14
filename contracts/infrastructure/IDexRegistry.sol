@@ -1,3 +1,5 @@
+// Copyright (C) 2020  Argent Labs Ltd. <https://argent.xyz>
+
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -13,12 +15,16 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
+
+import "../../lib/paraswap/IAugustusSwapper.sol";
 
 /**
- * @title ITokenPriceStorage
- * @notice TokenPriceStorage interface
+ * @title IDexRegistry
+ * @notice Interface for DexRegistry.
+ * @author Olivier VDB - <olivier@argent.xyz>
  */
-interface ITokenPriceStorage {
-    function getTokenPrice(address _token) external view returns (uint184 _price);
-    function isTokenTradable(address _token) external view returns (bool _isTradable);
+interface IDexRegistry {
+    function verifyExchangeAdapters(IAugustusSwapper.Path[] calldata _path) external view;
+    function verifyExchangeAdapters(IAugustusSwapper.BuyRoute[] calldata _routes) external view;
 }

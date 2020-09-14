@@ -19,7 +19,8 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../infrastructure/storage/ILimitStorage.sol";
-import "../../infrastructure/storage/ITokenPriceStorage.sol";
+import "../../infrastructure/ITokenPriceRegistry.sol";
+import "./IVersionManager.sol";
 
 /**
  * @title LimitUtils
@@ -39,12 +40,14 @@ library LimitUtils {
      * @notice Changes the daily limit (expressed in ETH).
      * Decreasing the limit is immediate while increasing the limit is pending for the security period.
      * @param _lStorage The storage contract.
+     * @param _versionManager The version manager.
      * @param _wallet The target wallet.
      * @param _targetLimit The target limit.
      * @param _securityPeriod The security period.
      */
     function changeLimit(
         ILimitStorage _lStorage,
+        IVersionManager _versionManager,
         address _wallet,
         uint256 _targetLimit,
         uint256 _securityPeriod
@@ -61,7 +64,7 @@ library LimitUtils {
         } else {
             newLimit = ILimitStorage.Limit(safe128(currentLimit), safe128(_targetLimit), safe64(block.timestamp.add(_securityPeriod)));
         }
-        _lStorage.setLimit(_wallet, newLimit);
+        setLimit(_versionManager, _lStorage, _wallet, newLimit);
         return newLimit;
     }
 
@@ -69,17 +72,19 @@ library LimitUtils {
      * @notice Disable the daily limit.
      * The change is pending for the security period.
      * @param _lStorage The storage contract.
+     * @param _versionManager The version manager.
      * @param _wallet The target wallet.
      * @param _securityPeriod The security period.
      */
     function disableLimit(
         ILimitStorage _lStorage,
+        IVersionManager _versionManager,
         address _wallet,
         uint256 _securityPeriod
     )
         internal
     {
-        changeLimit(_lStorage, _wallet, LIMIT_DISABLED, _securityPeriod);
+        changeLimit(_lStorage, _versionManager, _wallet, LIMIT_DISABLED, _securityPeriod);
     }
 
     /**
@@ -96,12 +101,14 @@ library LimitUtils {
     /**
     * @notice Checks if a transfer is within the limit. If yes the daily spent is updated.
     * @param _lStorage The storage contract.
+    * @param _versionManager The Version Manager.
     * @param _wallet The target wallet.
     * @param _amount The amount for the transfer
     * @return true if the transfer is withing the daily limit.
     */
     function checkAndUpdateDailySpent(
         ILimitStorage _lStorage,
+        IVersionManager _versionManager,
         address _wallet,
         uint256 _amount
     )
@@ -116,11 +123,11 @@ library LimitUtils {
         ILimitStorage.DailySpent memory newDailySpent;
         if (dailySpent.periodEnd <= block.timestamp && _amount <= currentLimit) {
             newDailySpent = ILimitStorage.DailySpent(safe128(_amount), safe64(block.timestamp + 24 hours));
-            _lStorage.setDailySpent(_wallet, newDailySpent);
+            setDailySpent(_versionManager, _lStorage, _wallet, newDailySpent);
             return true;
         } else if (dailySpent.periodEnd > block.timestamp && _amount.add(dailySpent.alreadySpent) <= currentLimit) {
             newDailySpent = ILimitStorage.DailySpent(safe128(_amount.add(dailySpent.alreadySpent)), safe64(dailySpent.periodEnd));
-            _lStorage.setDailySpent(_wallet, newDailySpent);
+            setDailySpent(_versionManager, _lStorage, _wallet, newDailySpent);
             return true;
         }
         return false;
@@ -128,10 +135,11 @@ library LimitUtils {
 
     /**
     * @notice Helper method to Reset the daily consumption.
+    * @param _versionManager The Version Manager.
     * @param _wallet The target wallet.
     */
-    function resetDailySpent(ILimitStorage _lStorage, address _wallet) internal {
-        _lStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(uint128(0), uint64(0)));
+    function resetDailySpent(IVersionManager _versionManager, ILimitStorage limitStorage, address _wallet) internal {
+        setDailySpent(_versionManager, limitStorage, _wallet, ILimitStorage.DailySpent(uint128(0), uint64(0)));
     }
 
     /**
@@ -142,8 +150,8 @@ library LimitUtils {
     * @param _token The address of the token.
     * @return The ether value for _amount of _token.
     */
-    function getEtherValue(ITokenPriceStorage _priceStorage, uint256 _amount, address _token) internal view returns (uint256) {
-        uint256 price = _priceStorage.getTokenPrice(_token);
+    function getEtherValue(ITokenPriceRegistry _priceRegistry, uint256 _amount, address _token) internal view returns (uint256) {
+        uint256 price = _priceRegistry.getTokenPrice(_token);
         uint256 etherValue = price.mul(_amount).div(10**18);
         return etherValue;
     }
@@ -167,6 +175,34 @@ library LimitUtils {
     function safe64(uint256 _num) internal pure returns (uint64) {
         require(_num < 2**64, "LU: more then 64 bits");
         return uint64(_num);
+    }
+
+    // *************** Storage invocations in VersionManager ********************* //
+
+    function setLimit(
+        IVersionManager _versionManager,
+        ILimitStorage _lStorage,
+        address _wallet, 
+        ILimitStorage.Limit memory _limit
+    ) internal {
+        _versionManager.invokeStorage(
+            _wallet,
+            address(_lStorage),
+            abi.encodeWithSelector(_lStorage.setLimit.selector, _wallet, _limit)
+        );
+    }
+
+    function setDailySpent(
+        IVersionManager _versionManager,
+        ILimitStorage _lStorage,
+        address _wallet, 
+        ILimitStorage.DailySpent memory _dailySpent
+    ) private {
+        _versionManager.invokeStorage(
+            _wallet,
+            address(_lStorage),
+            abi.encodeWithSelector(_lStorage.setDailySpent.selector, _wallet, _dailySpent)
+        );
     }
 
 }

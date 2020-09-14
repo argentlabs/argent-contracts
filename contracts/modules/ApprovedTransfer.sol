@@ -21,29 +21,34 @@ import "./common/Utils.sol";
 import "./common/LimitUtils.sol";
 import "./common/BaseTransfer.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title ApprovedTransfer
- * @notice Module to transfer tokens (ETH or ERC20) or call third-party contracts with the approval of guardians.
+ * @notice Feature to transfer tokens (ETH or ERC20) or call third-party contracts with the approval of guardians.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract ApprovedTransfer is BaseTransfer {
 
     bytes32 constant NAME = "ApprovedTransfer";
 
+    // The guardian storage
+    IGuardianStorage public guardianStorage;
     // The limit storage
     ILimitStorage public limitStorage;
 
     constructor(
-        IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
+        IVersionManager _versionManager,
         address _wethToken
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
         public
     {
+        guardianStorage = _guardianStorage;
         limitStorage = _limitStorage;
     }
 
@@ -63,11 +68,11 @@ contract ApprovedTransfer is BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         doTransfer(_wallet, _token, _to, _amount, _data);
-        LimitUtils.resetDailySpent(limitStorage, _wallet);
+        LimitUtils.resetDailySpent(versionManager, limitStorage, _wallet);
     }
 
     /**
@@ -84,12 +89,12 @@ contract ApprovedTransfer is BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doCallContract(_wallet, _contract, _value, _data);
-        LimitUtils.resetDailySpent(limitStorage, _wallet);
+        LimitUtils.resetDailySpent(versionManager, limitStorage, _wallet);
     }
 
     /**
@@ -112,12 +117,12 @@ contract ApprovedTransfer is BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
-        LimitUtils.resetDailySpent(limitStorage, _wallet);
+        LimitUtils.resetDailySpent(versionManager, limitStorage, _wallet);
     }
 
     /**
@@ -125,11 +130,11 @@ contract ApprovedTransfer is BaseTransfer {
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
+    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
         uint128 targetLimit = LimitUtils.safe128(_newLimit);
         ILimitStorage.Limit memory newLimit = ILimitStorage.Limit(targetLimit, targetLimit, LimitUtils.safe64(block.timestamp));
         ILimitStorage.DailySpent memory resetDailySpent = ILimitStorage.DailySpent(uint128(0), uint64(0));
-        limitStorage.setLimitAndDailySpent(_wallet, newLimit, resetDailySpent);
+        setLimitAndDailySpent(_wallet, newLimit, resetDailySpent);
         emit LimitChanged(_wallet, _newLimit, newLimit.changeAfter);
     }
 
@@ -137,8 +142,8 @@ contract ApprovedTransfer is BaseTransfer {
     * @notice Resets the daily spent amount.
     * @param _wallet The target wallet.
     */
-    function resetDailySpent(address _wallet) external onlyWalletModule(_wallet) onlyWhenUnlocked(_wallet) {
-        LimitUtils.resetDailySpent(limitStorage, _wallet);
+    function resetDailySpent(address _wallet) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        LimitUtils.resetDailySpent(versionManager, limitStorage, _wallet);
     }
 
     /**
@@ -159,21 +164,36 @@ contract ApprovedTransfer is BaseTransfer {
         bytes calldata _data
     )
         external
-        onlyWalletModule(_wallet)
+        onlyWalletFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         onlyAuthorisedContractCall(_wallet, _contract)
     {
         doApproveWethAndCallContract(_wallet, _spender, _amount, _contract, _data);
+        LimitUtils.resetDailySpent(versionManager, limitStorage, _wallet);
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(address _wallet, bytes calldata) external view override returns (uint256, OwnerSignature) {
         // owner  + [n/2] guardians
         uint numberOfGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
         require(numberOfGuardians > 0, "AT: no guardians set on wallet");
         uint numberOfSignatures = 1 + numberOfGuardians;
         return (numberOfSignatures, OwnerSignature.Required);
+    }
+
+    // *************** Internal Functions ********************* //
+
+    function setLimitAndDailySpent(
+        address _wallet,
+        ILimitStorage.Limit memory _limit,
+        ILimitStorage.DailySpent memory _dailySpent
+    ) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setLimitAndDailySpent.selector, _wallet, _limit, _dailySpent)
+        );
     }
 }

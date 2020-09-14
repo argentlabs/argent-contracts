@@ -128,6 +128,9 @@
         },
         "MakerRegistry": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "DexRegistry": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": [
@@ -139,7 +142,8 @@
         "ModuleRegistry",
         "BaseWallet",
         "CompoundRegistry",
-        "MakerRegistry"
+        "MakerRegistry",
+        "DexRegistry"
       ],
       "additionalProperties": false
     },
@@ -191,7 +195,10 @@
         "MakerV2Manager": {
           "$ref": "#/definitions/ethaddress"
         },
-        "RelayerModule": {
+        "RelayerManager": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "VersionManager": {
           "$ref": "#/definitions/ethaddress"
         }
       },
@@ -209,7 +216,7 @@
         "MakerManager",
         "MakerV2Manager"
       ],
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "backend": {
       "type": "object",

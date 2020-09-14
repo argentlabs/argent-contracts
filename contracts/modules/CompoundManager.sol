@@ -16,7 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./common/OnlyOwnerModule.sol";
+import "./common/BaseFeature.sol";
 import "../infrastructure/ICompoundRegistry.sol";
 
 interface IComptroller {
@@ -43,7 +43,7 @@ interface ICToken {
  * @notice Module to invest and borrow tokens with CompoundV2
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract CompoundManager is OnlyOwnerModule {
+contract CompoundManager is BaseFeature{
 
     bytes32 constant NAME = "CompoundManager";
 
@@ -70,16 +70,23 @@ contract CompoundManager is OnlyOwnerModule {
     using SafeMath for uint256;
 
     constructor(
-        IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage,
+        ILockStorage _lockStorage,
         IComptroller _comptroller,
-        ICompoundRegistry _compoundRegistry
+        ICompoundRegistry _compoundRegistry,
+        IVersionManager _versionManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         comptroller = _comptroller;
         compoundRegistry = _compoundRegistry;
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 
     /* ********************************** Implementation of Loan ************************************* */
@@ -101,7 +108,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (bytes32 _loanId)
     {
@@ -124,7 +131,7 @@ contract CompoundManager is OnlyOwnerModule {
         bytes32 _loanId
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address[] memory markets = comptroller.getAssetsIn(_wallet);
@@ -135,7 +142,12 @@ contract CompoundManager is OnlyOwnerModule {
                 repayBorrow(_wallet, cToken, debt);
                 uint collateral = ICToken(cToken).balanceOf(_wallet);
                 if (collateral == 0) {
-                    invokeWallet(_wallet, address(comptroller), 0, abi.encodeWithSignature("exitMarket(address)", address(cToken)));
+                    invokeWallet(
+                        _wallet,
+                        address(comptroller),
+                        0,
+                        abi.encodeWithSignature("exitMarket(address)", address(cToken))
+                    );
                 }
             }
         }
@@ -156,7 +168,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _collateralAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address cToken = compoundRegistry.getCToken(_collateral);
@@ -179,7 +191,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _collateralAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address cToken = compoundRegistry.getCToken(_collateral);
@@ -202,7 +214,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
@@ -225,7 +237,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _debtAmount
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         address dToken = compoundRegistry.getCToken(_debtToken);
@@ -277,7 +289,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _period
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
         returns (uint256 _invested)
     {
@@ -299,7 +311,7 @@ contract CompoundManager is OnlyOwnerModule {
         uint256 _fraction
     )
         external
-        onlyWalletOwnerOrModule(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(_fraction <= 10000, "CM: invalid fraction value");

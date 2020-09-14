@@ -18,20 +18,21 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
-import "./common/BaseModule.sol";
+import "./common/BaseFeature.sol";
 import "./common/GuardianUtils.sol";
 import "./common/LimitUtils.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
-import "../infrastructure/storage/ITokenPriceStorage.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
- * @title RelayerModule
- * @notice Module to execute transactions signed by ETH-less accounts and sent by a relayer.
+ * @title RelayerManager
+ * @notice Feature to execute transactions signed by ETH-less accounts and sent by a relayer.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
-contract RelayerModule is BaseModule {
+contract RelayerManager is BaseFeature {
 
-    bytes32 constant NAME = "RelayerModule";
+    bytes32 constant NAME = "RelayerManager";
     uint256 constant internal BLOCKBOUND = 10000;
 
     using SafeMath for uint256;
@@ -41,7 +42,9 @@ contract RelayerModule is BaseModule {
     // The storage of the limit
     ILimitStorage public limitStorage;
     // The Token price storage
-    ITokenPriceStorage public tokenPriceStorage;
+    ITokenPriceRegistry public tokenPriceRegistry;
+    // The Guardian storage
+    IGuardianStorage public guardianStorage;
 
     struct RelayerConfig {
         uint256 nonce;
@@ -63,22 +66,24 @@ contract RelayerModule is BaseModule {
     /* ***************** External methods ************************* */
 
     constructor(
-        IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ILimitStorage _limitStorage,
-        ITokenPriceStorage _tokenPriceStorage
+        ITokenPriceRegistry _tokenPriceRegistry,
+        IVersionManager _versionManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         limitStorage = _limitStorage;
-        tokenPriceStorage = _tokenPriceStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
+        guardianStorage = _guardianStorage;
     }
 
     /**
     * @notice Executes a relayed transaction.
     * @param _wallet The target wallet.
-    * @param _module The target module.
+    * @param _feature The target feature.
     * @param _data The data for the relayed transaction
     * @param _nonce The nonce used to prevent replay attacks.
     * @param _signatures The signatures as a concatenated byte array.
@@ -89,7 +94,7 @@ contract RelayerModule is BaseModule {
     */
     function execute(
         address _wallet,
-        address _module,
+        address _feature,
         bytes calldata _data,
         uint256 _nonce,
         bytes calldata _signatures,
@@ -104,14 +109,14 @@ contract RelayerModule is BaseModule {
         uint startGas = gasleft();
         require(startGas >= _gasLimit, "RM: not enough gas provided");
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
-        require(isAuthorisedModule(_wallet, _module), "RM: module not authorised");
+        require(isFeatureAuthorisedInVersionManager(_wallet, _feature), "RM: feature not authorised");
         StackExtension memory stack;
-        (stack.requiredSignatures, stack.ownerSignatureRequirement) = IModule(_module).getRequiredSignatures(_wallet, _data);
+        (stack.requiredSignatures, stack.ownerSignatureRequirement) = IFeature(_feature).getRequiredSignatures(_wallet, _data);
         require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
         require(stack.requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         stack.signHash = getSignHash(
             address(this),
-            _module,
+            _feature,
             0,
             _data,
             _nonce,
@@ -127,16 +132,18 @@ contract RelayerModule is BaseModule {
             stack.ownerSignatureRequirement), "RM: Duplicate request");
         require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
 
-        (stack.success, stack.returnData) = _module.call(_data);
-        refund(
-            _wallet,
-            startGas,
-            _gasPrice,
-            _gasLimit,
-            _refundToken,
-            _refundAddress,
-            stack.requiredSignatures,
-            stack.ownerSignatureRequirement);
+        (stack.success, stack.returnData) = _feature.call(_data);
+        // only refund when approved by owner and positive gas price
+        if (_gasPrice > 0 && stack.ownerSignatureRequirement == OwnerSignature.Required) {
+            refund(
+                _wallet,
+                startGas,
+                _gasPrice,
+                _gasLimit,
+                _refundToken,
+                _refundAddress,
+                stack.requiredSignatures);
+        }
         emit TransactionExecuted(_wallet, stack.success, stack.returnData, stack.signHash);
         return stack.success;
     }
@@ -298,7 +305,7 @@ contract RelayerModule is BaseModule {
                 return false; // Signers must be different
             }
             lastSigner = signer;
-            (isGuardian, guardians) = GuardianUtils.isGuardian(guardians, signer);
+            (isGuardian, guardians) = GuardianUtils.isGuardianOrGuardianSigner(guardians, signer);
             if (!isGuardian) {
                 return false;
             }
@@ -314,6 +321,7 @@ contract RelayerModule is BaseModule {
     * @param _gasLimit The gas limit for the refund.
     * @param _refundToken The token to use for the gas refund.
     * @param _refundAddress The address refunded to prevent front-running.
+    * @param _requiredSignatures The number of signatures required.
     */
     function refund(
         address _wallet,
@@ -322,26 +330,21 @@ contract RelayerModule is BaseModule {
         uint _gasLimit,
         address _refundToken,
         address _refundAddress,
-        uint256 requiredSignatures,
-        OwnerSignature _ownerSignatureRequirement
+        uint256 _requiredSignatures
     )
         internal
     {
-        // only refund when approved by owner and positive gas price
-        if (_gasPrice == 0 || _ownerSignatureRequirement != OwnerSignature.Required) {
-            return;
-        }
         address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
-        uint256 gasConsumed = _startGas.sub(gasleft()).add(30000);
         uint256 refundAmount;
         // skip daily limit when approved by guardians (and signed by owner)
-        if (requiredSignatures > 1) {
+        if (_requiredSignatures > 1) {
+            uint256 gasConsumed = _startGas.sub(gasleft()).add(30000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
         } else {
-            gasConsumed = gasConsumed.add(10000);
+            uint256 gasConsumed = _startGas.sub(gasleft()).add(40000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
-            uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceStorage, refundAmount, _refundToken);
-            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, _wallet, ethAmount), "RM: refund is above daily limit");
+            uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceRegistry, refundAmount, _refundToken);
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, ethAmount), "RM: refund is above daily limit");
         }
         // refund in ETH or ERC20
         if (_refundToken == ETH_TOKEN) {

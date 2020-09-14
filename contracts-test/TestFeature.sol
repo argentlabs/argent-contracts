@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
-import "../contracts/modules/common/BaseModule.sol";
+import "../contracts/infrastructure/storage/ILockStorage.sol";
+import "../contracts/modules/common/BaseFeature.sol";
 import "./TestDapp.sol";
 
 /**
@@ -8,26 +9,34 @@ import "./TestDapp.sol";
  * @notice Basic test module
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TestModule is BaseModule {
+contract TestFeature is BaseFeature {
 
-    bytes32 constant NAME = "TestModule";
+    bytes32 constant NAME = "TestFeature";
 
     bool boolVal;
     uint uintVal;
 
     TestDapp public dapp;
 
-    constructor(IModuleRegistry _registry, IGuardianStorage _guardianStorage, bool _boolVal, uint _uintVal) BaseModule(_registry, _guardianStorage, NAME) public {
+    constructor(
+        ILockStorage _lockStorage,
+        IVersionManager _versionManager,
+        bool _boolVal,
+        uint _uintVal
+    ) 
+        BaseFeature(_lockStorage, _versionManager, NAME) 
+        public 
+    {
         boolVal = _boolVal;
         uintVal = _uintVal;
         dapp = new TestDapp();
     }
 
     function invalidOwnerChange(address _wallet) external {
-        IWallet(_wallet).setOwner(address(0)); // this should fail
+        versionManager.setOwner(_wallet, address(0)); // this should fail
     }
 
-    function setIntOwnerOnly(address _wallet, uint _val) external onlyWalletOwnerOrModule(_wallet) {
+    function setIntOwnerOnly(address _wallet, uint _val) external onlyWalletOwnerOrFeature(_wallet) {
         uintVal = _val;
     }
     function clearInt() external {
@@ -50,14 +59,14 @@ contract TestModule is BaseModule {
     }
     /////////////////
 
-    function init(address _wallet) public override onlyWallet(_wallet) {
-        enableStaticCalls(_wallet, address(this));
-    }
-
-    function enableStaticCalls(address _wallet, address _module) public {
-        IWallet(_wallet).enableStaticCall(_module, bytes4(keccak256("getBoolean()")));
-        IWallet(_wallet).enableStaticCall(_module, bytes4(keccak256("getUint()")));
-        IWallet(_wallet).enableStaticCall(_module, bytes4(keccak256("getAddress(address)")));
+    /**
+     * @inheritdoc IFeature
+     */
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
+        _sigs = new bytes4[](3);
+        _sigs[0] = bytes4(keccak256("getBoolean()"));
+        _sigs[1] = bytes4(keccak256("getUint()"));
+        _sigs[2] = bytes4(keccak256("getAddress(address)"));
     }
 
     function getBoolean() public view returns (bool) {
@@ -96,9 +105,13 @@ contract TestModule is BaseModule {
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
+    }
+
+    function invokeStorage(address _wallet, address _storage, bytes calldata _data) external {
+        versionManager.invokeStorage(_wallet, _storage, _data);
     }
 }

@@ -3,14 +3,14 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../contracts/modules/common/BaseModule.sol";
+import "../contracts/modules/common/BaseFeature.sol";
 import "../contracts/modules/common/LimitUtils.sol";
 
 /**
- * @title TestLimitModule
- * @notice Basic module to set the daily limit
+ * @title TestLimitFeature
+ * @notice Basic feature to set the daily limit
  */
-contract TestLimitModule is BaseModule {
+contract TestLimitFeature is BaseFeature {
 
     bytes32 constant NAME = "TestLimitModule";
 
@@ -19,11 +19,11 @@ contract TestLimitModule is BaseModule {
     ILimitStorage public limitStorage;
 
     constructor(
-        IModuleRegistry _registry,
-        IGuardianStorage _guardianStorage,
-        ILimitStorage _limitStorage
+        ILockStorage _lockStorage,
+        ILimitStorage _limitStorage,
+        IVersionManager _versionManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         limitStorage = _limitStorage;
@@ -36,8 +36,8 @@ contract TestLimitModule is BaseModule {
     )
         external
     {
-        limitStorage.setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(_limit), 0, 0));
-        limitStorage.setDailySpent(_wallet, ILimitStorage.DailySpent(LimitUtils.safe128(_alredySpent), LimitUtils.safe64(block.timestamp.add(100))));
+        setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(_limit), 0, 0));
+        setDailySpent(_wallet, ILimitStorage.DailySpent(LimitUtils.safe128(_alredySpent), LimitUtils.safe64(block.timestamp.add(100))));
     }
 
     function getDailySpent(address _wallet) external view returns (uint256) {
@@ -51,10 +51,25 @@ contract TestLimitModule is BaseModule {
     }
 
     /**
-     * @inheritdoc IModule
+     * @inheritdoc IFeature
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
 
+    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setLimit.selector, _wallet, _limit)
+        );
+    }
+
+    function setDailySpent(address _wallet, ILimitStorage.DailySpent memory _dailySpent) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setDailySpent.selector, _wallet, _dailySpent)
+        );
+    }
 }
