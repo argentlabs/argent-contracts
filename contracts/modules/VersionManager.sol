@@ -27,7 +27,9 @@ import "./common/BaseFeature.sol";
 /**
  * @title VersionManager
  * @notice Intermediate contract between features and wallets. VersionManager checks that a calling feature is
- * authorised for the wallet and if so, forwards the call to it.
+ * authorised for the wallet and if so, forwards the call to it. Note that VersionManager is meant to be the only
+ * module authorised on a wallet and because some of its methods need to be called by the RelayerManager feature,
+ * the VersionManager is both a module AND a feature.
  * @author Olivier VDB <olivier@argent.xyz>
  */
 contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
@@ -119,7 +121,12 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     }
 
     /**
-     * @notice Lets the owner add a new version, i.e. a new bundle of features
+     * @notice Lets the owner add a new version, i.e. a new bundle of features.
+     * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     * WARNING: if a feature was added to a version and later on removed from a subsequent version,
+     * the feature may no longer be used in any future version without first being redeployed.
+     * Otherwise, the feature could be initialized more than once.
+     * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      * @param _features the list of features included in the new version
      * @param _featuresToInit the subset of features that need to be initialized for a wallet
      */
