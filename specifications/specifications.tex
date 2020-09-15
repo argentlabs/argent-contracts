@@ -162,6 +162,7 @@ Our architecture is made up of multiple contracts. A first group of contracts fo
     \item \textbf{Compound Registry:} Registry maintaining a mapping between underlying assets (ETH, DAI, BAT, etc) and their corresponding Compound Token (cETH, cDAI, cBAT, etc).
     \item \textbf{Maker Registry:} Registry maintaining a mapping between token collaterals (ETH, BAT, USDC, WBTC) and their corresponding Maker Join adapters.
     \item \textbf{Token Price Registry:} On-chain price oracle for ERC20 tokens. It is used by wallets to estimate the value in ETH of ERC20 transfers. This is necessary for the update of the daily limit and the refund of the relayer's gas costs. 
+    \item \textbf{Dex Registry:} Registry of supported DEXes. Only the exchanges listed in this registry can be used (through Paraswap) to trade tokens when using the \emph{TokenExchanger} feature.
 \end{itemize}
 
 \begin{figure}[h]
