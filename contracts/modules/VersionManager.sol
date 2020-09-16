@@ -57,7 +57,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     mapping(address => bool) public isStorage; // [storage] => bool
 
     event VersionAdded(uint256 _version, address[] _features);
-    event WalletUpgraded(address _wallet, uint256 _version);
+    event WalletUpgraded(address indexed _wallet, uint256 _version);
 
     // The Module Registry
     IModuleRegistry private registry;
