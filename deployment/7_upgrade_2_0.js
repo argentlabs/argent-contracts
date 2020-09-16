@@ -2,7 +2,7 @@ const semver = require("semver");
 const childProcess = require("child_process");
 const MultiSig = require("../build/MultiSigWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
-const Upgrader = require("../build/SimpleUpgrader");
+const Upgrader = require("../build/UpgraderToVersionManager");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
@@ -390,7 +390,7 @@ const deploy = async (network) => {
       config.contracts.ModuleRegistry,
       config.modules.GuardianStorage, // using the "old LockStorage" here which was part of the GuardianStorage in 1.6
       toRemove.map((module) => module.address),
-      toAdd.map((module) => module.address),
+      VersionManagerWrapper.contractAddress, // to add
     );
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
       [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);

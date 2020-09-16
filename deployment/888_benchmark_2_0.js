@@ -22,7 +22,7 @@ const NewMakerV2Manager = require("../build/MakerV2Manager");
 const RelayerManager = require("../build/RelayerManager");
 const VersionManager = require("../build/VersionManager");
 
-const SimpleUpgrader = require("../build/SimpleUpgrader");
+const UpgraderToVersionManager = require("../build/UpgraderToVersionManager");
 const LimitStorage = require("../build/LimitStorage");
 const LockStorage = require("../build/LockStorage");
 const TokenPriceRegistry = require("../build/TokenPriceRegistry");
@@ -326,12 +326,12 @@ class Benchmark {
 
     // Create upgrader
     const upgrader = await this.deployer.deploy(
-      SimpleUpgrader,
+      UpgraderToVersionManager,
       {},
       this.ModuleRegistryWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       this.allModules,
-      [VersionManagerWrapper.contractAddress],
+      VersionManagerWrapper.contractAddress,
     );
     await this.multisigExecutor.executeCall(
       this.ModuleRegistryWrapper,

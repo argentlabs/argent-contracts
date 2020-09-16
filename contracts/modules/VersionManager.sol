@@ -169,7 +169,12 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      */
     function isFeatureAuthorised(address _wallet, address _feature) public view override returns (bool) {
         uint256 version = walletVersions[_wallet];
-        return isFeatureInVersion[_feature][version] || _feature == address(this) || (version == 0 && _feature == walletFactory);
+        return isFeatureInVersion[_feature][version] ||
+            // The VersionManager is the only feature that isn't stored in isFeatureInVersion
+            _feature == address(this) ||
+            // Temporary give the factory or an upgrader module the same permissions as features
+            // when a wallet is not yet initialized (version == 0)
+            (version == 0 && (_feature == walletFactory || IWallet(_wallet).authorised(_feature)));
     }
 
     /**
