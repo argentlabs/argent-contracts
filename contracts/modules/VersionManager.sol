@@ -64,13 +64,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     // The Wallet Factory
     address public walletFactory;
 
-    /* ***************** Modifiers ************************* */
-
-    modifier onlyFeature(address _wallet) {
-        require(isFeatureAuthorised(_wallet, msg.sender), "VM: sender should be authorized feature");
-        _;
-    }
-
     /* ***************** Constructor ************************* */
 
     constructor(
@@ -270,10 +263,10 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         bytes memory _data
     ) 
         external 
-        onlyFeature(_wallet)
         override
         returns (bytes memory _res) 
     {
+        require(isSenderFeatureOrWalletFactory(_wallet), "VM: sender may not invoke wallet");
         bool success;
         (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
         if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
@@ -292,7 +285,8 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IVersionManager
      */
-    function invokeStorage(address _wallet, address _storage, bytes calldata _data) external override onlyFeature(_wallet) {
+    function invokeStorage(address _wallet, address _storage, bytes calldata _data) external override {
+        require(isSenderFeatureOrWalletFactory(_wallet), "VM: sender may not invoke storage");
         require(isStorage[_storage], "VM: invalid storage invoked");
         (bool success,) = _storage.call(_data);
         require(success, "VM: _storage failed");
@@ -301,7 +295,19 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IVersionManager
      */
-    function setOwner(address _wallet, address _newOwner) external override onlyFeature(_wallet) {
+    function setOwner(address _wallet, address _newOwner) external override {
+        require(isFeatureAuthorised(_wallet, msg.sender), "VM: sender should be authorized feature");
         IWallet(_wallet).setOwner(_newOwner);
+    }
+
+    /* ***************** Internal Methods ************************* */
+
+    function isSenderFeatureOrWalletFactory(address _wallet) public view returns (bool) {
+        uint256 version = walletVersions[_wallet];
+        return isFeatureInVersion[msg.sender][version] || 
+        // The VersionManager is the only feature that isn't stored in isFeatureInVersion
+        msg.sender == address(this) || 
+        // Temporary give the factory the same permissions as features when a wallet is not yet initialized (version == 0)
+        (version == 0 && msg.sender == walletFactory);
     }
 }
