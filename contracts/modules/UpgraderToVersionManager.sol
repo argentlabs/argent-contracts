@@ -23,7 +23,7 @@ import "../infrastructure/storage/ILockStorage.sol";
 import "../wallet/IWallet.sol";
 
 /**
- * @title SimpleUpgrader
+ * @title UpgraderToVersionManager
  * @notice Temporary module used to add the VersionManager and remove other modules.
  * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */

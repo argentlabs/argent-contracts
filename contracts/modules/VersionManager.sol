@@ -168,13 +168,8 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      * @inheritdoc IVersionManager
      */
     function isFeatureAuthorised(address _wallet, address _feature) public view override returns (bool) {
-        uint256 version = walletVersions[_wallet];
-        return isFeatureInVersion[_feature][version] ||
-            // The VersionManager is the only feature that isn't stored in isFeatureInVersion
-            _feature == address(this) ||
-            // Temporary give the factory or an upgrader module the same permissions as features
-            // when a wallet is not yet initialized (version == 0)
-            (version == 0 && (_feature == walletFactory || IWallet(_wallet).authorised(_feature)));
+        // Note that the VersionManager is the only feature that isn't stored in isFeatureInVersion
+        return isFeatureInVersion[_feature][walletVersions[_wallet]] || _feature == address(this);
     }
 
     /**
@@ -217,8 +212,17 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     /**
      * @inheritdoc IVersionManager
      */
-    function upgradeWallet(address _wallet, uint256 _toVersion) external override onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+    function upgradeWallet(address _wallet, uint256 _toVersion) external override onlyWhenUnlocked(_wallet) {
         uint256 fromVersion = walletVersions[_wallet];
+        require(
+            // Upgrade triggered by the RelayerManager (from version 1 to version 2,3,4,...)
+            isFeatureAuthorised(_wallet, msg.sender) ||
+            // Upgrade triggered by the WalletFactory or the UpgraderToVersionManager module (from version 0 to version 1)
+            fromVersion == 0 && (msg.sender == walletFactory || IWallet(_wallet).authorised(msg.sender)) ||
+            // Upgrade triggered directly by from the owner (from version 1 to version 2,3,4,...)
+            isOwner(_wallet, msg.sender), 
+            "VM: caller cannot call upgrade"
+        );
         require(_toVersion > 0 && _toVersion <= lastVersion, "VM: Invalid _toVersion");
         require(fromVersion < _toVersion, "VM: Already on new version");
         walletVersions[_wallet] = _toVersion;
