@@ -231,6 +231,17 @@ describe("Wallet Factory", function () {
       assert.notEqual(walletAddr, ZERO_ADDRESS, "wallet should be created");
     });
 
+    it("should create when the target version was blacklisted", async () => {
+      const badVersion = await versionManager.lastVersion();
+      await versionManager.addVersion([], []);
+      await versionManager.setMinVersion(await versionManager.lastVersion());
+      // we create the wallet
+      const tx = await factory.from(infrastructure).createWallet(owner.address, versionManager.contractAddress, NO_ENS, guardian.address, badVersion);
+      const txReceipt = await factory.verboseWaitForTransaction(tx);
+      const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
+      assert.notEqual(walletAddr, ZERO_ADDRESS, "wallet should be created");
+    });
+
     it("should fail to create when the guardian is empty", async () => {
       // we create the wallet
       const label = `wallet${index}`;
@@ -354,6 +365,26 @@ describe("Wallet Factory", function () {
       // we create the wallet
       const tx = await factory.from(deployer).createCounterfactualWallet(
         owner.address, versionManager.contractAddress, NO_ENS, guardian.address, salt, 1,
+      );
+      const txReceipt = await factory.verboseWaitForTransaction(tx);
+      const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
+      // we test that the wallet is at the correct address
+      assert.equal(futureAddr, walletAddr, "should have the correct address");
+    });
+
+    it("should create when the target version was blacklisted", async () => {
+      const badVersion = await versionManager.lastVersion();
+      await versionManager.addVersion([], []);
+      await versionManager.setMinVersion(await versionManager.lastVersion());
+
+      const salt = utilities.generateSaltValue();
+      // we get the future address
+      const futureAddr = await factory.getAddressForCounterfactualWallet(
+        owner.address, versionManager.contractAddress, guardian.address, salt, badVersion,
+      );
+      // we create the wallet
+      const tx = await factory.from(deployer).createCounterfactualWallet(
+        owner.address, versionManager.contractAddress, NO_ENS, guardian.address, salt, badVersion,
       );
       const txReceipt = await factory.verboseWaitForTransaction(tx);
       const walletAddr = txReceipt.events.filter((event) => event.event === "WalletCreated")[0].args.wallet;
