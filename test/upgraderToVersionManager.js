@@ -20,7 +20,7 @@ const ETH_LIMIT = 1000000;
 
 const TestManager = require("../utils/test-manager");
 
-describe("TransferManager", function () {
+describe("UpgraderToVersionManager", function () {
   this.timeout(100000);
 
   const manager = new TestManager();
@@ -103,8 +103,9 @@ describe("TransferManager", function () {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [previousTransferManager.contractAddress]);
-
-    await versionManager.setMinVersion(2);
+    await versionManager.addVersion([], []);
+    const lastVersion = await versionManager.lastVersion();
+    await versionManager.setMinVersion(lastVersion);
 
     await assert.revertWith(
       previousTransferManager.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress),
