@@ -114,7 +114,7 @@ contract BaseFeature is IFeature {
      * @dev !! Overriding methods need make sure `init()` can only be called by the VersionManager !!
      * @param _wallet The wallet.
      */
-    function init(address _wallet) public virtual override  {}
+    function init(address _wallet) external virtual override  {}
 
     /**
      * @inheritdoc IFeature

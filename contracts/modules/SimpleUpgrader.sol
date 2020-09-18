@@ -55,7 +55,7 @@ contract SimpleUpgrader is IModule {
      * @notice Perform the upgrade for a wallet. This method gets called when SimpleUpgrader is temporarily added as a module.
      * @param _wallet The target wallet.
      */
-    function init(address _wallet) public override {
+    function init(address _wallet) external override {
         require(msg.sender == _wallet, "SU: only wallet can call init");
         require(!lockStorage.isLocked(_wallet), "SU: wallet locked");
         require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
