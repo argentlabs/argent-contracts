@@ -103,14 +103,15 @@ describe("UpgraderToVersionManager", function () {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
     await wallet.init(owner.address, [previousTransferManager.contractAddress]);
+    const prevVersion = await versionManager.lastVersion();
     await versionManager.addVersion([], []);
     const lastVersion = await versionManager.lastVersion();
     await versionManager.setMinVersion(lastVersion);
-
     await assert.revertWith(
       previousTransferManager.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress),
       "VM: invalid _toVersion",
     );
+    await versionManager.setMinVersion(prevVersion);
   });
 
   describe("After migrating a pre-VersionManager wallet", () => {
