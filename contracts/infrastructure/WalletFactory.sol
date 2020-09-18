@@ -21,7 +21,6 @@ import "../wallet/BaseWallet.sol";
 import "./base/Owned.sol";
 import "./base/Managed.sol";
 import "./storage/IGuardianStorage.sol";
-import "./ens/IENSManager.sol";
 import "./IModuleRegistry.sol";
 import "../modules/common/IVersionManager.sol";
 
@@ -36,15 +35,12 @@ contract WalletFactory is Owned, Managed {
     address public moduleRegistry;
     // The address of the base wallet implementation
     address public walletImplementation;
-    // The address of the ENS manager
-    address public ensManager;
     // The address of the GuardianStorage
     address public guardianStorage;
 
     // *************** Events *************************** //
 
     event ModuleRegistryChanged(address addr);
-    event ENSManagerChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
 
     // *************** Constructor ********************** //
@@ -52,32 +48,28 @@ contract WalletFactory is Owned, Managed {
     /**
      * @notice Default constructor.
      */
-    constructor(address _moduleRegistry, address _walletImplementation, address _ensManager, address _guardianStorage) public {
+    constructor(address _moduleRegistry, address _walletImplementation, address _guardianStorage) public {
         require(_moduleRegistry != address(0), "WF: ModuleRegistry address not defined");
         require(_walletImplementation != address(0), "WF: WalletImplementation address not defined");
-        require(_ensManager != address(0), "WF: ENSManager address not defined");
         require(_guardianStorage != address(0), "WF: GuardianStorage address not defined");
         moduleRegistry = _moduleRegistry;
         walletImplementation = _walletImplementation;
-        ensManager = _ensManager;
         guardianStorage = _guardianStorage;
     }
 
     // *************** External Functions ********************* //
     /**
      * @notice Lets the manager create a wallet for an owner account.
-     * The wallet is initialised with the version manager module, a version number, a first guardian, and an ENS.
+     * The wallet is initialised with the version manager module, a version number and a first guardian.
      * The wallet is created using the CREATE opcode.
      * @param _owner The account address.
      * @param _versionManager The version manager module
-     * @param _label Optional ENS label of the new wallet, e.g. franck.
      * @param _guardian The guardian address.
      * @param _version The version of the feature bundle.
      */
     function createWallet(
         address _owner,
         address _versionManager,
-        string calldata _label,
         address _guardian,
         uint256 _version
     )
@@ -87,16 +79,15 @@ contract WalletFactory is Owned, Managed {
         validateInputs(_owner, _versionManager, _guardian, _version);
         Proxy proxy = new Proxy(walletImplementation);
         address payable wallet = address(proxy);
-        configureWallet(BaseWallet(wallet), _owner, _versionManager, _label, _guardian, _version);
+        configureWallet(BaseWallet(wallet), _owner, _versionManager, _guardian, _version);
     }
      
     /**
      * @notice Lets the manager create a wallet for an owner account at a specific address.
-     * The wallet is initialised with the version manager module, the version number, a first guardian, and an ENS.
+     * The wallet is initialised with the version manager module, the version number and a first guardian.
      * The wallet is created using the CREATE2 opcode.
      * @param _owner The account address.
      * @param _versionManager The version manager module
-     * @param _label Optional ENS label of the new wallet, e.g. franck.
      * @param _guardian The guardian address.
      * @param _salt The salt.
      * @param _version The version of the feature bundle.
@@ -104,7 +95,6 @@ contract WalletFactory is Owned, Managed {
     function createCounterfactualWallet(
         address _owner,
         address _versionManager,
-        string calldata _label,
         address _guardian,
         bytes32 _salt,
         uint256 _version
@@ -117,7 +107,7 @@ contract WalletFactory is Owned, Managed {
         bytes32 newsalt = newSalt(_salt, _owner, _versionManager, _guardian, _version);
         Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
         address payable wallet = address(proxy);
-        configureWallet(BaseWallet(wallet), _owner, _versionManager, _label, _guardian, _version);
+        configureWallet(BaseWallet(wallet), _owner, _versionManager, _guardian, _version);
         return wallet;
     }
 
@@ -158,25 +148,6 @@ contract WalletFactory is Owned, Managed {
         emit ModuleRegistryChanged(_moduleRegistry);
     }
 
-    /**
-     * @notice Lets the owner change the address of the ENS manager contract.
-     * @param _ensManager The address of the ENS manager contract.
-     */
-    function changeENSManager(address _ensManager) external onlyOwner {
-        require(_ensManager != address(0), "WF: address cannot be null");
-        ensManager = _ensManager;
-        emit ENSManagerChanged(_ensManager);
-    }
-
-    /**
-     * @notice Inits the module for a wallet by logging an event.
-     * The method can only be called by the wallet itself.
-     * @param _wallet The wallet.
-     */
-    function init(BaseWallet _wallet) external pure {
-        //do nothing
-    }
-
     // *************** Internal Functions ********************* //
 
     /**
@@ -184,7 +155,6 @@ contract WalletFactory is Owned, Managed {
      * @param _wallet The target wallet
      * @param _owner The account address.
      * @param _versionManager The version manager module
-     * @param _label Optional ENS label of the new wallet, e.g. franck.
      * @param _guardian The guardian address.
      * @param _version The version of the feature bundle.
      */
@@ -192,7 +162,6 @@ contract WalletFactory is Owned, Managed {
         BaseWallet _wallet,
         address _owner,
         address _versionManager,
-        string memory _label,
         address _guardian,
         uint256 _version
     )
@@ -209,9 +178,6 @@ contract WalletFactory is Owned, Managed {
             guardianStorage,
             abi.encodeWithSelector(IGuardianStorage(guardianStorage).addGuardian.selector, address(_wallet), _guardian)
         );
-
-        // register ENS if needed
-        registerWalletENS(address(_wallet), _versionManager, _label);
 
         // upgrade the wallet
         IVersionManager(_versionManager).upgradeWallet(address(_wallet), _version);
@@ -244,23 +210,5 @@ contract WalletFactory is Owned, Managed {
         require(IModuleRegistry(moduleRegistry).isRegisteredModule(_versionManager), "WF: invalid _versionManager");
         require(_guardian != (address(0)), "WF: guardian cannot be null");
         require(_version > 0, "WF: invalid _version");
-    }
-
-    /**
-     * @notice Register an ENS subname to a wallet.
-     * @param _wallet The wallet address.
-     * @param _versionManager The version manager.
-     * @param _label ENS label of the new wallet (e.g. franck).
-     */
-    function registerWalletENS(address payable _wallet, address _versionManager, string memory _label) internal {
-        if (bytes(_label).length > 0) {
-            // claim reverse
-            address ensResolver = IENSManager(ensManager).ensResolver();
-            bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
-            address ensReverseRegistrar = IENSManager(ensManager).getENSReverseRegistrar();
-            IVersionManager(_versionManager).checkAuthorisedFeatureAndInvokeWallet(_wallet, ensReverseRegistrar, 0, methodData);
-            // register with ENS manager
-            IENSManager(ensManager).register(_label, _wallet);
-        }
     }
 }

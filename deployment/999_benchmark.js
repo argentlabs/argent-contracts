@@ -315,16 +315,9 @@ class Benchmark {
 
   async estimateCreateWalletAllModules() {
     const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(
-      this.accounts[4], this.VersionManagerWrapper.contractAddress, "", this.accounts[4], 1,
+      this.accounts[4], this.VersionManagerWrapper.contractAddress, this.accounts[4], 1,
     );
-    this._logger.addItem("Create a wallet without ENS (all modules)", gasUsed);
-  }
-
-  async estimateCreateWalletWithENS() {
-    const gasUsed = await this.WalletFactoryWrapper.estimate.createWallet(
-      this.accounts[4], this.VersionManagerWrapper.contractAddress, "helloworld", this.accounts[4], 1,
-    );
-    this._logger.addItem("Create a wallet with ENS (all modules)", gasUsed);
+    this._logger.addItem("Create a wallet (all modules)", gasUsed);
   }
 
   async estimateAddGuardianDirect() {

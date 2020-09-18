@@ -177,7 +177,6 @@ class Benchmark {
       {},
       this.config.contracts.ModuleRegistry,
       BaseWalletWrapper.contractAddress,
-      this.config.contracts.ENSManager,
       this.config.modules.GuardianStorage,
     );
 

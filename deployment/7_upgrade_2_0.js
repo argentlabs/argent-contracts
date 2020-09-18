@@ -25,7 +25,6 @@ const VersionManager = require("../build/VersionManager");
 
 const BaseWallet = require("../build/BaseWallet");
 const WalletFactory = require("../build/WalletFactory");
-const ENSManager = require("../build/ArgentENSManager");
 
 const utils = require("../utils/utilities.js");
 
@@ -77,7 +76,6 @@ const deploy = async (network) => {
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
-  const ENSManagerWrapper = await deployer.wrapDeployedContract(ENSManager, config.contracts.ENSManager);
 
   // //////////////////////////////////
   // Deploy infrastructure contracts
@@ -87,7 +85,7 @@ const deploy = async (network) => {
   const BaseWalletWrapper = await deployer.deploy(BaseWallet);
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
-    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress, config.modules.GuardianStorage);
+    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, config.modules.GuardianStorage);
   // Deploy the new LockStorage
   const LockStorageWrapper = await deployer.deploy(LockStorage);
   // Deploy the new LimitStorage
@@ -263,7 +261,6 @@ const deploy = async (network) => {
   // Set contracts' managers
   // //////////////////////////////////
 
-  await multisigExecutor.executeCall(ENSManagerWrapper, "addManager", [WalletFactoryWrapper.contractAddress]);
   for (const idx in config.backend.accounts) {
     const account = config.backend.accounts[idx];
     const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
