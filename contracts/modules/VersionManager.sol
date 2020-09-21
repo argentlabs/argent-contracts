@@ -282,11 +282,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         override
         returns (bytes memory _res) 
     {
-        require(
-            _isFeatureAuthorisedForWallet(_wallet, msg.sender) || // Wallet invoked by a feature
-            _isWalletInitializing(_wallet), // Wallet invoked by the WalletFactory
-            "VM: sender may not invoke wallet"
-        );
+        require(_isFeatureAuthorisedForWallet(_wallet, msg.sender), "VM: sender may not invoke wallet");
         bool success;
         (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
         if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
