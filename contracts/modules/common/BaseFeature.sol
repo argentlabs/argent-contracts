@@ -51,14 +51,6 @@ contract BaseFeature is IFeature {
     }
 
     /**
-     * @notice Throws if the sender is not the target wallet of the call.
-     */
-    modifier onlyWallet(address _wallet) {
-        require(msg.sender == _wallet, "BF: caller must be wallet");
-        _;
-    }
-
-    /**
      * @notice Throws if the sender is not the VersionManager.
      */
     modifier onlyVersionManager() {

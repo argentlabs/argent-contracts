@@ -73,14 +73,26 @@ describe("VersionManager", function () {
 
   describe("VersionManager owner", () => {
     it("should not let the VersionManager owner add a storage twice", async () => {
-      await assert.revertWith(versionManager.addStorage(lockStorage.contractAddress), "VM: Storage already added");
+      await assert.revertWith(versionManager.addStorage(lockStorage.contractAddress), "VM: storage already added");
     });
 
     it("should not let the VersionManager owner add an inconsistent version", async () => {
       // Should fail: the _featuresToInit array includes a feature not listed in the _features array
       await assert.revertWith(
         versionManager.addVersion([relayerManager.contractAddress], [guardianManager.contractAddress]),
-        "VM: Invalid _featuresToInit",
+        "VM: invalid _featuresToInit",
+      );
+    });
+
+    it("should not let the VersionManager owner set an invalid minVersion", async () => {
+      const lastVersion = await versionManager.lastVersion();
+      await assert.revertWith(
+        versionManager.setMinVersion(0),
+        "VM: invalid _minVersion",
+      );
+      await assert.revertWith(
+        versionManager.setMinVersion(lastVersion.add(1)),
+        "VM: invalid _minVersion",
       );
     });
   });
@@ -97,7 +109,18 @@ describe("VersionManager", function () {
       const lastVersion = await versionManager.lastVersion();
       await assert.revertWith(
         versionManager.from(owner).upgradeWallet(wallet.contractAddress, lastVersion),
-        "VM: Already on new version",
+        "VM: already on new version",
+      );
+    });
+
+    it("should fail to upgrade a wallet to a version lower than minVersion", async () => {
+      const badVersion = await versionManager.lastVersion();
+      await versionManager.addVersion([], []);
+      await versionManager.setMinVersion(await versionManager.lastVersion());
+
+      await assert.revertWith(
+        versionManager.from(owner).upgradeWallet(wallet.contractAddress, badVersion),
+        "VM: invalid _toVersion",
       );
     });
 

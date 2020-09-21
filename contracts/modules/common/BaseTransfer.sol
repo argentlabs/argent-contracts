@@ -61,8 +61,9 @@ abstract contract BaseTransfer is BaseFeature {
      */
     modifier onlyAuthorisedContractCall(address _wallet, address _contract) {
         require(
-            _contract != _wallet &&
-            !versionManager.isFeatureAuthorised(_wallet, _contract),
+            _contract != _wallet && // not calling the wallet
+            !IWallet(_wallet).authorised(_contract) && // not calling an authorised module
+            !versionManager.isFeatureAuthorised(_wallet, _contract), // not calling an authorised feature
             "BT: Forbidden contract"
         );
         _;
