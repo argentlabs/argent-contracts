@@ -227,7 +227,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         uint256 fromVersion = walletVersions[_wallet];
         uint256 minVersion_ = minVersion;
         uint256 toVersion;
-        if(toVersion < minVersion_ && _isWalletInitializing(_wallet)) {
+        if(_toVersion < minVersion_ && _isWalletInitializing(_wallet)) {
             toVersion = minVersion_;
         } else {
             toVersion = _toVersion;
