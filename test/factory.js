@@ -46,7 +46,6 @@ describe("Wallet Factory", function () {
   async function deployVersionManager() {
     const vm = await deployer.deploy(VersionManager, {},
       moduleRegistry.contractAddress,
-      factory.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,

@@ -77,7 +77,6 @@ describe("TransferManager", function () {
     await tokenPriceRegistry.addManager(infrastructure.address);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       transferStorage.contractAddress,

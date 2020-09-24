@@ -28,6 +28,12 @@ interface IWallet {
     function owner() external view returns (address);
 
     /**
+     * @notice Returns the number of authorised modules.
+     * @return The number of authorised modules.
+     */
+    function modules() external view returns (uint);
+
+    /**
      * @notice Sets a new owner for the wallet.
      * @param _newOwner The new owner.
      */

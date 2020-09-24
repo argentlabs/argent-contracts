@@ -361,17 +361,6 @@ contract RelayerManager is BaseFeature {
     }
 
    /**
-    * @notice Checks that the wallet address provided as the first parameter of the relayed data is the same
-    * as the wallet passed as the input of the execute() method.
-    * @return false if the addresses are different.
-    */
-    function verifyData(address _wallet, bytes calldata _data) private pure returns (bool) {
-        require(_data.length >= 36, "RM: Invalid dataWallet");
-        address dataWallet = abi.decode(_data[4:], (address));
-        return dataWallet == _wallet;
-    }
-
-   /**
     * @notice Returns the current chainId
     * @return chainId the chainId
     */

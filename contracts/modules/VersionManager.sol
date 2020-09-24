@@ -63,14 +63,11 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     // The Module Registry
     IModuleRegistry private registry;
-    // The Wallet Factory
-    address public walletFactory;
 
     /* ***************** Constructor ************************* */
 
     constructor(
         IModuleRegistry _registry,
-        address _walletFactory,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ITransferStorage _transferStorage,
@@ -80,7 +77,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         public
     {
         registry = _registry;
-        walletFactory = _walletFactory;
 
         // Add initial storages
         if(address(_lockStorage) != address(0)) { 
@@ -105,14 +101,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     function recoverToken(address _token) external override onlyOwner {
         uint total = ERC20(_token).balanceOf(address(this));
         _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, msg.sender, total));
-    }
-
-    /**
-     * @notice Lets the owner change the Wallet Factory
-     * @param _factory the new wallet factory
-     */
-    function setWalletFactory(address _factory) external onlyOwner {
-        walletFactory = _factory;
     }
 
     /**
@@ -218,16 +206,23 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      */
     function upgradeWallet(address _wallet, uint256 _toVersion) external override onlyWhenUnlocked(_wallet) {
         require(
-            _isFeatureAuthorisedForWallet(_wallet, msg.sender) || // Upgrade triggered by the RelayerManager (from version 1 to version 2,3,4,...)
-            _isWalletInitializing(_wallet) || // Upgrade triggered by WalletFactory (from version 0 to version 1)
-            IWallet(_wallet).authorised(msg.sender) || // Upgrade triggered by UpgraderToVersionManager (from version 0 to version 1)
-            isOwner(_wallet, msg.sender), // Upgrade triggered directly by the owner (from version 1 to version 2,3,4,...)
+            // Upgrade triggered by the RelayerManager (from version v>=1 to version v'>v)
+            _isFeatureAuthorisedForWallet(_wallet, msg.sender) ||
+            // Upgrade triggered by WalletFactory or UpgraderToVersionManager (from version v=0 to version v'>0)
+            IWallet(_wallet).authorised(msg.sender) ||
+            // Upgrade triggered directly by the owner (from version v>=1 to version v'>v)
+            isOwner(_wallet, msg.sender), 
             "VM: sender may not upgrade wallet"
         );
         uint256 fromVersion = walletVersions[_wallet];
         uint256 minVersion_ = minVersion;
         uint256 toVersion;
-        if(_toVersion < minVersion_ && _isWalletInitializing(_wallet)) {
+
+        if(_toVersion < minVersion_ && fromVersion == 0 && IWallet(_wallet).modules() == 2) {
+            // When the caller is the WalletFactory, we automatically change toVersion to minVersion if needed.
+            // Note that when fromVersion == 0, the caller could be the WalletFactory or the UpgraderToVersionManager. 
+            // The WalletFactory will be the only possible caller when the wallet has only 2 authorised modules 
+            // (that number would be >= 3 for a call from the UpgraderToVersionManager)
             toVersion = minVersion_;
         } else {
             toVersion = _toVersion;
@@ -302,11 +297,8 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      * @inheritdoc IVersionManager
      */
     function invokeStorage(address _wallet, address _storage, bytes calldata _data) external override {
-        require(
-            _isFeatureAuthorisedForWallet(_wallet, msg.sender) || // Storage invoked by a feature
-            _isWalletInitializing(_wallet), // Storage invoked by the WalletFactory
-            "VM: sender may not invoke storage"
-        );
+        require(_isFeatureAuthorisedForWallet(_wallet, msg.sender), "VM: sender may not invoke storage");
+        require(verifyData(_wallet, _data), "VM: target of _data != _wallet");
         require(isStorage[_storage], "VM: invalid storage invoked");
         (bool success,) = _storage.call(_data);
         require(success, "VM: _storage failed");
@@ -324,9 +316,5 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     function _isFeatureAuthorisedForWallet(address _wallet, address _feature) private view returns (bool) {
         return isFeatureInVersion[_feature][walletVersions[_wallet]];
-    }
-
-    function _isWalletInitializing(address _wallet) private view returns (bool) {
-        return walletVersions[_wallet] == 0 && msg.sender == walletFactory;
     }
 }

@@ -35,7 +35,7 @@ contract BaseWallet is IWallet {
     // The enabled static calls
     mapping (bytes4 => address) public override enabled;
     // The number of modules
-    uint public modules;
+    uint public override modules;
 
     event AuthorisedModule(address indexed module, bool value);
     event EnabledStaticCall(address indexed module, bytes4 indexed method);

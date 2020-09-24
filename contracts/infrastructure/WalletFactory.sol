@@ -148,6 +148,15 @@ contract WalletFactory is Owned, Managed {
         emit ModuleRegistryChanged(_moduleRegistry);
     }
 
+    /**
+     * @notice Inits the module for a wallet by doing nothing.
+     * The method can only be called by the wallet itself.
+     * @param _wallet The wallet.
+     */
+    function init(BaseWallet _wallet) external pure {
+        //do nothing
+    }
+
     // *************** Internal Functions ********************* //
 
     /**
@@ -167,20 +176,22 @@ contract WalletFactory is Owned, Managed {
     )
         internal
     {
-        // initialise the wallet with the owner and the VersionManager module
-        address[] memory modules = new address[](1);
-        modules[0] = _versionManager;
-        _wallet.init(_owner, modules);
-        
+        // add the factory to modules so it can add a guardian and upgrade the wallet to the required version
+        address[] memory extendedModules = new address[](2);
+        extendedModules[0] = _versionManager;
+        extendedModules[1] = address(this);
+
+        // initialise the wallet with the owner and the extended modules
+        _wallet.init(_owner, extendedModules);
+
         // add guardian
-        IVersionManager(_versionManager).invokeStorage(
-            address(_wallet),
-            guardianStorage,
-            abi.encodeWithSelector(IGuardianStorage(guardianStorage).addGuardian.selector, address(_wallet), _guardian)
-        );
+        IGuardianStorage(guardianStorage).addGuardian(address(_wallet), _guardian);
 
         // upgrade the wallet
         IVersionManager(_versionManager).upgradeWallet(address(_wallet), _version);
+
+        // remove the factory from the authorised modules
+        _wallet.authoriseModule(address(this), false);
 
         // emit event
         emit WalletCreated(address(_wallet), _owner, _guardian);
