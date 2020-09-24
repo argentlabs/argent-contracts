@@ -8,7 +8,6 @@ const BaseWallet = require("../build/BaseWallet");
 const Proxy = require("../build/Proxy");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const MultiSig = require("../build/MultiSigWallet");
-const WalletFactory = require("../build/WalletFactory");
 
 const NewGuardianManager = require("../build/GuardianManager");
 const NewTokenExchanger = require("../build/TokenExchanger");
@@ -135,7 +134,6 @@ class Benchmark {
 
     this.ModuleRegistryWrapper = await this.deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
     this.MultiSigWrapper = await this.deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-    this.WalletFactoryWrapper = await this.deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
     this.BaseWalletWrapper = await this.deployer.wrapDeployedContract(BaseWallet, config.contracts.BaseWallet);
 
     this.multisigExecutor = new MultisigExecutor(this.MultiSigWrapper, this.signers[0], true);
@@ -171,21 +169,12 @@ class Benchmark {
     const LimitStorageWrapper = await this.deployer.deploy(LimitStorage);
     const TokenPriceRegistryWrapper = await this.deployer.deploy(TokenPriceRegistry);
     const DexRegistryWrapper = await this.deployer.deploy(DexRegistry);
-    const BaseWalletWrapper = await this.deployer.deploy(BaseWallet);
-    const WalletFactoryWrapper = await this.deployer.deploy(
-      WalletFactory,
-      {},
-      this.config.contracts.ModuleRegistry,
-      BaseWalletWrapper.contractAddress,
-      this.config.modules.GuardianStorage,
-    );
 
     // Create new modules
     const VersionManagerWrapper = await this.deployer.deploy(
       VersionManager,
       {},
       this.config.contracts.ModuleRegistry,
-      WalletFactoryWrapper.contractAddress,
       LockStorageWrapper.contractAddress,
       this.config.modules.GuardianStorage,
       this.config.modules.TransferStorage,

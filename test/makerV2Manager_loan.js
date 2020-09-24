@@ -80,7 +80,6 @@ describe("MakerV2 Vaults", function () {
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,

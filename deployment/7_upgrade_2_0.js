@@ -102,7 +102,6 @@ const deploy = async (network) => {
     VersionManager,
     {},
     config.contracts.ModuleRegistry,
-    WalletFactoryWrapper.contractAddress,
     LockStorageWrapper.contractAddress,
     config.modules.GuardianStorage,
     config.modules.TransferStorage,

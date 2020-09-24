@@ -46,7 +46,6 @@ describe("GuardianManager", function () {
     guardianStorage = await deployer.deploy(GuardianStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,

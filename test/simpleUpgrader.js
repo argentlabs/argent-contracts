@@ -45,7 +45,6 @@ describe("SimpleUpgrader", function () {
   async function deployTestModule() {
     const module = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
@@ -242,7 +241,6 @@ describe("SimpleUpgrader", function () {
       // Setup the module for wallet
       versionManager = await deployer.deploy(VersionManager, {},
         registry.contractAddress,
-        ethers.constants.AddressZero,
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         ethers.constants.AddressZero,

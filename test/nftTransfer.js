@@ -56,7 +56,6 @@ describe("Token Transfer", function () {
     lockStorage = await deployer.deploy(LockStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,

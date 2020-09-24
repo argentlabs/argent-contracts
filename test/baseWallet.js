@@ -35,7 +35,6 @@ describe("BaseWallet", function () {
   async function deployTestModule() {
     const module = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,

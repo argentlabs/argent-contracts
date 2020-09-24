@@ -58,7 +58,6 @@ describe("Approved Transfer", function () {
     const limitStorage = await deployer.deploy(LimitStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,

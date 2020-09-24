@@ -69,14 +69,12 @@ describe("RelayerManager", function () {
     limitStorage = await deployer.deploy(LimitStorage);
     versionManager = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
       limitStorage.contractAddress);
     versionManagerV2 = await deployer.deploy(VersionManager, {},
       registry.contractAddress,
-      ethers.constants.AddressZero,
       lockStorage.contractAddress,
       guardianStorage.contractAddress,
       ethers.constants.AddressZero,
