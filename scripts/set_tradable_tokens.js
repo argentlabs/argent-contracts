@@ -38,7 +38,7 @@ async function main() {
 
   const tradable = Array(tokens.length).fill(true);
 
-//  const res = await TokenPriceStorageWrapper.getTradableForTokenList(tokens);
+  // const res = await TokenPriceStorageWrapper.getTradableForTokenList(tokens);
 
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice: 50e9 });
