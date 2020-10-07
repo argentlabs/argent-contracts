@@ -41,18 +41,22 @@ async function main() {
   const TokenPriceRegistryWrapper = await deployer.wrapDeployedContract(TokenPriceRegistry, config.modules.TokenPriceRegistry);
 
   const data = JSON.parse(fs.readFileSync(input, "utf8"));
-  const keys = Object.keys(data);
-  console.log(`${keys.length} tokens provided in ${input}`);
+  const addresses = Object.keys(data);
+  console.log(`${addresses.length} tokens provided in ${input}`);
 
-  const tradableStatus = await TokenPriceRegistryWrapper.getTradableForTokenList(keys);
+  const tradableStatus = await TokenPriceRegistryWrapper.getTradableForTokenList(addresses);
+  const priceStatus = await TokenPriceRegistryWrapper.getPriceForTokenList(addresses);
 
+  // we only update tokens meeting those two conditions:
+  // (1) tradable flag is different than the one on chain
+  // (2) on chain price is not zero 
   const filteredData = Object.entries(data).filter((item, index) => {
-    const currentStatus = tradableStatus[index];
-    return currentStatus !== item[1];
+    return (tradableStatus[index] !== item[1]) && (priceStatus[index].isZero() === false);
   });
+
   console.log(`${filteredData.length} tokens need update:`);
   for (const item of filteredData) {
-    console.log(`${item[0]}: ${item[1]}`);
+    console.log(item[0], item[1]);
   }
   
   console.log('gasPrice', ethers.utils.formatUnits(gasPrice, 'gwei'));
