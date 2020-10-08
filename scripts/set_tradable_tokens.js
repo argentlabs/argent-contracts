@@ -49,23 +49,21 @@ async function main() {
 
   // we only update tokens meeting those two conditions:
   // (1) tradable flag is different than the one on chain
-  // (2) on chain price is not zero 
-  const filteredData = Object.entries(data).filter((item, index) => {
-    return (tradableStatus[index] !== item[1]) && (priceStatus[index].isZero() === false);
-  });
+  // (2) on chain price is not zero
+  const filteredData = Object.entries(data).filter((item, index) => (tradableStatus[index] !== item[1]) && (priceStatus[index].isZero() === false));
 
   console.log(`${filteredData.length} tokens need update:`);
   for (const item of filteredData) {
     console.log(item[0], item[1]);
   }
-  
-  console.log('gasPrice', ethers.utils.formatUnits(gasPrice, 'gwei'));
-  console.log('gasLimit', gasLimit);
+
+  console.log("gasPrice", ethers.utils.formatUnits(gasPrice, "gwei"));
+  console.log("gasLimit", gasLimit);
 
   if (dry) return;
 
-  const tokens = filteredData.map(item => item[0]);
-  const tradable = filteredData.map(item => item[1]);
+  const tokens = filteredData.map((item) => item[0]);
+  const tradable = filteredData.map((item) => item[1]);
 
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice, gasLimit });
