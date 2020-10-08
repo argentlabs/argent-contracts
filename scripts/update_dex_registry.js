@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////////////////////////
 // Script to register and deregister DEXes in the DexRegistry contract
 //
 // Can be executed as:
@@ -7,7 +7,7 @@
 // where:
 //     - network = [test, staging, prod]
 //      - dex status = [true, false]
-//////////////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////////////
 
 const MultiSig = require("../build/MultiSigWallet");
 const DexRegistry = require("../build/DexRegistry");
@@ -16,9 +16,8 @@ const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
-
-  const dex_address = [];
-  const dex_status = [];
+  const dexAddress = [];
+  const dexStatus = [];
 
   // Read Command Line Arguments
   let idx = process.argv.indexOf("--network");
@@ -26,15 +25,15 @@ async function main() {
 
   idx = process.argv.indexOf("--dex");
 
-  let length = process.argv.length; 
-  for (i = idx + 1; i < length; i++) {
-    let pair = process.argv[i].split("=");
-    if(pair[1] != 'true' && pair[1] != 'false') {
+  const { length } = process.argv;
+  for (let i = idx + 1; i < length; i += 1) {
+    const pair = process.argv[i].split("=");
+    if (pair[1] !== "true" && pair[1] !== "false") {
       console.log("Error: invalid boolean value");
       return;
     }
-    dex_address.push(pair[0]);
-    dex_status.push(pair[1] == 'true');
+    dexAddress.push(pair[0]);
+    dexStatus.push(pair[1] === "true");
   }
 
   // Setup deployer
@@ -49,9 +48,8 @@ async function main() {
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
-  console.log(`Updating registry for dex [${dex_address}] with value [${dex_status}]`);
-  await multisigExecutor.executeCall(DexRegistryWrapper, "setAuthorised", [dex_address, dex_status]);
-
+  console.log(`Updating registry for dex [${dexAddress}] with value [${dexStatus}]`);
+  await multisigExecutor.executeCall(DexRegistryWrapper, "setAuthorised", [dexAddress, dexStatus]);
 }
 
 main().catch((err) => {
