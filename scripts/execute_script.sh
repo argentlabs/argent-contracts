@@ -6,7 +6,10 @@
 
 set -e # stop the script if any subprocess fails
 
-etherlime compile --runs 999
+# rm -rf build
+# npm run compile:lib
+# npm run compile
+# npm run compile:legacy
 
 FILE=$1
 shift

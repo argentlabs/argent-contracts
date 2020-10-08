@@ -1,3 +1,13 @@
+/////////////////////////////////////////////////////////////////////
+// Script to set the threshold of the Argent multisig.
+//
+// Can be executed as:
+// ./execute_script.sh update_multisig_threshold.js <network> --threshold <new threshold>
+//
+// where:
+//    - network = [test, staging, prod]
+//////////////////////////////////////////////////////////////////////
+
 const MultiSig = require("../build/MultiSigWallet");
 
 const DeployManager = require("../utils/deploy-manager.js");
