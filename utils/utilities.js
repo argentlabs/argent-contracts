@@ -20,8 +20,6 @@ module.exports = {
 
   asciiToBytes32: (input) => ethers.utils.formatBytes32String(input), // return ethers.utils.hexlify(ethers.utils.toUtf8Bytes(input));
 
-  bigNumberify: (input) => ethers.utils.bigNumberify(input),
-
   bigNumToBytes32: (input) => ethers.utils.hexZeroPad(input.toHexString(), 32),
 
   waitForUserInput: (text) => new Promise((resolve) => {
@@ -35,7 +33,7 @@ module.exports = {
     });
   }),
 
-  signOffchain: async (signers, from, to, value, data, nonce, gasPrice, gasLimit) => {
+  signOffchain: async (signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) => {
     const input = `0x${[
       "0x19",
       "0x00",
@@ -43,9 +41,12 @@ module.exports = {
       to,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(value), 32),
       data,
+      ethers.utils.hexZeroPad(ethers.utils.hexlify(chainId), 32),
       nonce,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(gasPrice), 32),
       ethers.utils.hexZeroPad(ethers.utils.hexlify(gasLimit), 32),
+      refundToken,
+      refundAddress,
     ].map((hex) => hex.slice(2)).join("")}`;
 
     const signedData = ethers.utils.keccak256(input);
@@ -62,22 +63,57 @@ module.exports = {
 
   sortWalletByAddress(wallets, addressKey = "address") {
     return wallets.sort((s1, s2) => {
-      const bn1 = ethers.utils.bigNumberify(s1[addressKey]);
-      const bn2 = ethers.utils.bigNumberify(s2[addressKey]);
+      const bn1 = ethers.BigNumber.from(s1[addressKey]);
+      const bn2 = ethers.BigNumber.from(s2[addressKey]);
       if (bn1.lt(bn2)) return -1;
       if (bn1.gt(bn2)) return 1;
       return 0;
     });
   },
 
+  // Parses the RelayerModule.execute receipt to decompose the success value of the transaction
+  // and additionally if an error was raised in the sub-call to optionally return that
   parseRelayReceipt(txReceipt) {
-    return txReceipt.events.find((l) => l.event === "TransactionExecuted").args.success;
+    const { args } = txReceipt.events.find((l) => l.event === "TransactionExecuted");
+
+    let errorBytes;
+    if (args.returnData.startsWith("0x08c379a0")) {
+      // Remove the encoded error signatures 08c379a0
+      const noErrorSelector = `0x${args.returnData.slice(10)}`;
+      const errorBytesArray = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
+      errorBytes = errorBytesArray[0]; // eslint-disable-line prefer-destructuring
+    } else {
+      errorBytes = args.returnData;
+    }
+    const error = ethers.utils.toUtf8String(errorBytes);
+    return { success: args.success, error };
+  },
+
+  parseLogs(txReceipt, contract, eventName) {
+    const filter = txReceipt.logs.filter((e) => (
+      e.topics.find((t) => (
+        contract.interface.events[eventName].topic === t
+      )) !== undefined
+    ));
+    const res = [];
+    for (const f of filter) {
+      res.push(contract.interface.events[eventName].decode(f.data, f.topics));
+    }
+    return res;
+  },
+
+  hasEvent(txReceipt, contract, eventName) {
+    return txReceipt.logs.find((e) => (
+      e.topics.find((t) => (
+        contract.interface.events[eventName].topic === t
+      )) !== undefined
+    )) !== undefined;
   },
 
   versionFingerprint(modules) {
     const concat = modules.map((module) => module.address).sort((m1, m2) => {
-      const bn1 = ethers.utils.bigNumberify(m1);
-      const bn2 = ethers.utils.bigNumberify(m2);
+      const bn1 = ethers.BigNumber.from(m1);
+      const bn2 = ethers.BigNumber.from(m2);
       if (bn1.lt(bn2)) {
         return 1;
       }
@@ -95,7 +131,7 @@ module.exports = {
 
   generateSaltValue() {
     return ethers.utils.hexZeroPad(
-      ethers.utils.bigNumberify(ethers.utils.randomBytes(32)).toHexString(),
+      ethers.BigNumber.from(ethers.utils.randomBytes(32)).toHexString(),
       32,
     );
   },

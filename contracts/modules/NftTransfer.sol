@@ -13,18 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.12;
 
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
-import "./common/OnlyOwnerModule.sol";
+import "./common/BaseFeature.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 
 /**
  * @title NftTransfer
- * @dev Module to transfer NFTs (ERC721),
+ * @notice Module to transfer NFTs (ERC721),
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
+contract NftTransfer is BaseFeature{
 
     bytes32 constant NAME = "NftTransfer";
 
@@ -33,6 +33,8 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     // The address of the CryptoKitties contract
     address public ckAddress;
+    // The token price registry
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     // *************** Events *************************** //
 
@@ -41,30 +43,37 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        ILockStorage _lockStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
+        IVersionManager _versionManager,
         address _ckAddress
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         ckAddress = _ckAddress;
+        tokenPriceRegistry = _tokenPriceRegistry;
     }
 
     // *************** External/Public Functions ********************* //
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
 
     /**
-     * @dev Inits the module for a wallet by setting up the onERC721Received
-     * static call redirection from the wallet to the module.
-     * @param _wallet The target wallet.
+     * @inheritdoc IFeature
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
-        _wallet.enableStaticCall(address(this), ERC721_RECEIVED);
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
+        _sigs = new bytes4[](1);
+        _sigs[0] = ERC721_RECEIVED;
     }
 
     /**
      * @notice Handle the receipt of an NFT
-     * @dev An ERC721 smart contract calls this function on the recipient contract
+     * @notice An ERC721 smart contract calls this function on the recipient contract
      * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received
      * will be forwarded to the method onERC721Received of the present module.
      * @return bytes4 `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
@@ -82,7 +91,7 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     }
 
     /**
-    * @dev lets the owner transfer NFTs from a wallet.
+    * @notice Lets the owner transfer NFTs from a wallet.
     * @param _wallet The target wallet.
     * @param _nftContract The ERC721 address.
     * @param _to The recipient.
@@ -91,7 +100,7 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
     * @param _data The data to pass with the transfer.
     */
     function transferNFT(
-        BaseWallet _wallet,
+        address _wallet,
         address _nftContract,
         address _to,
         uint256 _tokenId,
@@ -99,7 +108,7 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;
@@ -108,39 +117,25 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
         } else {
            if (_safe) {
                methodData = abi.encodeWithSignature(
-                   "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
+                   "safeTransferFrom(address,address,uint256,bytes)", _wallet, _to, _tokenId, _data);
            } else {
-               require(isERC721(_nftContract, _tokenId), "NT: Non-compliant NFT contract");
+               require(!coveredByDailyLimit(_nftContract), "NT: Forbidden ERC20 contract");
                methodData = abi.encodeWithSignature(
-                   "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
+                   "transferFrom(address,address,uint256)", _wallet, _to, _tokenId);
            }
         }
-        invokeWallet(address(_wallet), _nftContract, 0, methodData);
-        emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
+        invokeWallet(_wallet, _nftContract, 0, methodData);
+        emit NonFungibleTransfer(_wallet, _nftContract, _tokenId, _to, _data);
     }
 
     // *************** Internal Functions ********************* //
 
     /**
-    * @dev Check whether a given contract complies with ERC721.
-    * @param _nftContract The contract to check.
-    * @param _tokenId The tokenId to use for the check.
-    * @return true if the contract is an ERC721, false otherwise.
-    */
-    function isERC721(address _nftContract, uint256 _tokenId) internal returns (bool) {
-        // solium-disable-next-line security/no-low-level-calls
-        (bool success, bytes memory result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x80ac58cd));
-        if (success && result[0] != 0x0)
-            return true;
-
-        // solium-disable-next-line security/no-low-level-calls
-        (success, result) = _nftContract.call(abi.encodeWithSignature("supportsInterface(bytes4)", 0x6466353c));
-        if (success && result[0] != 0x0)
-            return true;
-
-        // solium-disable-next-line security/no-low-level-calls
-        (success,) = _nftContract.call(abi.encodeWithSignature("ownerOf(uint256)", _tokenId));
-        return success;
+    * @notice Returns true if the contract is a supported ERC20.
+    * @param _contract The address of the contract.
+     */
+    function coveredByDailyLimit(address _contract) internal view returns (bool) {
+        return tokenPriceRegistry.getTokenPrice(_contract) > 0;
     }
 
 }

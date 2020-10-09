@@ -27,6 +27,11 @@ Compile the contracts:
 npm run compile
 ```
 
+Compile the test contracts:
+```
+npm run compile:test
+```
+
 ## Test
 
 Launch ganache:
@@ -38,6 +43,12 @@ Run the tests:
 ```
 npm run test
 ```
+
+To run coverage testing:
+```
+npm run test:coverage
+```
+You need to not have `ganache` running with this as it uses own instance. 
 
 ## License
 

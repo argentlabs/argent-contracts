@@ -1,8 +1,8 @@
 const ModuleRegistry = require("../build/ModuleRegistry");
 const ENSManager = require("../build/ArgentENSManager");
 const ENSResolver = require("../build/ArgentENSResolver");
-const WalletFactory = require("../build/WalletFactory");
-const TokenPriceProvider = require("../build/TokenPriceProvider");
+const WalletFactory = require("../build-legacy/v1.6.0/WalletFactory");
+const TokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
 const CompoundRegistry = require("../build/CompoundRegistry");
 
 const DeployManager = require("../utils/deploy-manager.js");
@@ -56,7 +56,13 @@ const deploy = async (network) => {
   // Set contracts' owners
   // //////////////////////////////////
 
-  const wrappers = [ENSResolverWrapper, ENSManagerWrapper, WalletFactoryWrapper, ModuleRegistryWrapper, CompoundRegistryWrapper];
+  const wrappers = [
+    ENSResolverWrapper,
+    ENSManagerWrapper,
+    WalletFactoryWrapper,
+    ModuleRegistryWrapper,
+    CompoundRegistryWrapper,
+    TokenPriceProviderWrapper];
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     const changeOwnerTx = await wrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });

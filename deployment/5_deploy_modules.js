@@ -1,16 +1,16 @@
 const childProcess = require("child_process");
-const GuardianStorage = require("../build/GuardianStorage");
-const TransferStorage = require("../build/TransferStorage");
+const GuardianStorage = require("../build-legacy/v1.6.0/GuardianStorage");
+const TransferStorage = require("../build-legacy/v1.6.0/TransferStorage");
 
-const GuardianManager = require("../build/GuardianManager");
-const TokenExchanger = require("../build/TokenExchanger");
-const LockManager = require("../build/LockManager");
-const RecoveryManager = require("../build/RecoveryManager");
-const ApprovedTransfer = require("../build/ApprovedTransfer");
-const TransferManager = require("../build/TransferManager");
-const NftTransfer = require("../build/NftTransfer");
-const MakerManager = require("../build/MakerManager");
-const CompoundManager = require("../build/CompoundManager");
+const GuardianManager = require("../build-legacy/v1.6.0/GuardianManager");
+const TokenExchanger = require("../build-legacy/v1.6.0/TokenExchanger");
+const LockManager = require("../build-legacy/v1.6.0/LockManager");
+const RecoveryManager = require("../build-legacy/v1.6.0/RecoveryManager");
+const ApprovedTransfer = require("../build-legacy/v1.6.0/ApprovedTransfer");
+const TransferManager = require("../build-legacy/v1.6.0/TransferManager");
+const NftTransfer = require("../build-legacy/v1.6.0/NftTransfer");
+const CompoundManager = require("../build-legacy/v1.6.0/CompoundManager");
+const MakerV2Manager = require("../build-legacy/v1.6.0/MakerV2Manager");
 
 const DeployManager = require("../utils/deploy-manager.js");
 
@@ -55,7 +55,7 @@ const deploy = async (network) => {
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
   );
-    // Deploy the LockManager module
+  // Deploy the LockManager module
   const LockManagerWrapper = await deployer.deploy(
     LockManager,
     {},
@@ -63,7 +63,7 @@ const deploy = async (network) => {
     GuardianStorageWrapper.contractAddress,
     config.settings.lockPeriod || 0,
   );
-    // Deploy the RecoveryManager module
+  // Deploy the RecoveryManager module
   const RecoveryManagerWrapper = await deployer.deploy(
     RecoveryManager,
     {},
@@ -74,74 +74,65 @@ const deploy = async (network) => {
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
   );
-    // Deploy the ApprovedTransfer module
+  // Deploy the ApprovedTransfer module
   const ApprovedTransferWrapper = await deployer.deploy(
     ApprovedTransfer,
     {},
     config.contracts.ModuleRegistry,
     GuardianStorageWrapper.contractAddress,
   );
-    // Deploy the TransferManager module
+  // Deploy the TransferManager module
   const TransferManagerWrapper = await deployer.deploy(
     TransferManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.TransferStorage,
-    config.modules.GuardianStorage,
+    TransferStorageWrapper.contractAddress,
+    GuardianStorageWrapper.contractAddress,
     config.contracts.TokenPriceProvider,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
     "0x0000000000000000000000000000000000000000",
   );
-    // Deploy the TokenExchanger module
+  // Deploy the TokenExchanger module
   const TokenExchangerWrapper = await deployer.deploy(
     TokenExchanger,
     {},
     config.contracts.ModuleRegistry,
     GuardianStorageWrapper.contractAddress,
-    config.Kyber.contract,
+    config.Kyber ? config.Kyber.contract : "0x0000000000000000000000000000000000000000",
     config.contracts.MultiSigWallet,
     config.settings.feeRatio || 0,
   );
-    // Deploy the NFTTransfer module
+  // Deploy the NFTTransfer module
   const NftTransferWrapper = await deployer.deploy(
     NftTransfer,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     config.CryptoKitties.contract,
   );
-    // Deploy the MakerManager module
-  const MakerManagerWrapper = await deployer.deploy(
-    MakerManager,
-    {},
-    config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
-    config.defi.maker.tub,
-    config.defi.uniswap.factory,
-  );
-    // Deploy the CompoundManager module
+  // Deploy the CompoundManager module
   const CompoundManagerWrapper = await deployer.deploy(
     CompoundManager,
     {},
     config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
+    GuardianStorageWrapper.contractAddress,
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
   );
-    // Deploy MakerManagerV2
-  // const MakerV2ManagerWrapper = await deployer.deploy(
-  //   MakerV2Manager,
-  //   {},
-  //   config.contracts.ModuleRegistry,
-  //   config.modules.GuardianStorage,
-  //   config.defi.maker.migration,
-  //   config.defi.maker.pot,
-  //   config.defi.maker.jug,
-  //   config.contracts.MakerRegistry,
-  //   config.defi.uniswap.factory,
-  // );
+  // Deploy MakerManagerV2
+  const MakerV2ManagerWrapper = await deployer.deploy(
+    MakerV2Manager,
+    {},
+    config.contracts.ModuleRegistry,
+    GuardianStorageWrapper.contractAddress,
+    config.defi.maker.migration,
+    config.defi.maker.pot,
+    config.defi.maker.jug,
+    config.contracts.MakerRegistry,
+    config.defi.uniswap.factory,
+  );
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -157,9 +148,8 @@ const deploy = async (network) => {
     TransferManager: TransferManagerWrapper.contractAddress,
     TokenExchanger: TokenExchangerWrapper.contractAddress,
     NftTransfer: NftTransferWrapper.contractAddress,
-    MakerManager: MakerManagerWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
-    // MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
+    MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -177,9 +167,8 @@ const deploy = async (network) => {
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(TokenExchangerWrapper, "modules"),
     abiUploader.upload(NftTransferWrapper, "modules"),
-    abiUploader.upload(MakerManagerWrapper, "modules"),
+    abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(CompoundManagerWrapper, "modules"),
-    // abiUploader.upload(MakerV2ManagerWrapper, "modules"),
   ]);
 
   console.log("Config:", config);

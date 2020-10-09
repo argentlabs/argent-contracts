@@ -21,11 +21,15 @@ else
     shift
 fi
 
-npx etherlime compile --runs 999
+rm -rf build
+npm run compile:lib
+npm run compile
+npm run compile:legacy
 
 for IDX in "$@"
 do
     FILE=`ls ./deployment/${IDX}_*.js`
+    echo "Deployment file: $FILE"
     if [ ! -z "${CI:-}" ]; then
         echo "Waiting for ganache to launch on port 8545..."
         while ! nc -z localhost 8545; do sleep 1; done

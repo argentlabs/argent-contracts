@@ -13,31 +13,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.12;
 
-import "./common/BaseModule.sol";
+import "./common/IModule.sol";
+import "../infrastructure/IModuleRegistry.sol";
+import "../infrastructure/storage/ILockStorage.sol";
+import "../wallet/IWallet.sol";
 
 /**
  * @title SimpleUpgrader
- * @dev Temporary module used to add/remove other modules.
- * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.im>
+ * @notice Temporary module used to add/remove other modules.
+ * @author Olivier VDB - <olivier@argent.xyz>, Julien Niset - <julien@argent.xyz>
  */
-contract SimpleUpgrader is BaseModule {
+contract SimpleUpgrader is IModule {
 
-    bytes32 constant NAME = "SimpleUpgrader";
+    IModuleRegistry private registry;
+    ILockStorage private lockStorage;
     address[] public toDisable;
     address[] public toEnable;
 
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
+        IModuleRegistry _registry,
+        ILockStorage _lockStorage,
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        BaseModule(_registry, GuardianStorage(0), NAME)
         public
     {
+        registry = _registry;
+        lockStorage = _lockStorage;
         toDisable = _toDisable;
         toEnable = _toEnable;
     }
@@ -45,21 +52,29 @@ contract SimpleUpgrader is BaseModule {
     // *************** External/Public Functions ********************* //
 
     /**
-     * @dev Perform the upgrade for a wallet. This method gets called
-     * when SimpleUpgrader is temporarily added as a module.
+     * @notice Perform the upgrade for a wallet. This method gets called when SimpleUpgrader is temporarily added as a module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(address _wallet) external override {
+        require(msg.sender == _wallet, "SU: only wallet can call init");
+        require(!lockStorage.isLocked(_wallet), "SU: wallet locked");
+        require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
+
         uint256 i = 0;
         //add new modules
         for (; i < toEnable.length; i++) {
-            BaseWallet(_wallet).authoriseModule(toEnable[i], true);
+            IWallet(_wallet).authoriseModule(toEnable[i], true);
         }
         //remove old modules
         for (i = 0; i < toDisable.length; i++) {
-            BaseWallet(_wallet).authoriseModule(toDisable[i], false);
+            IWallet(_wallet).authoriseModule(toDisable[i], false);
         }
         // SimpleUpgrader did its job, we no longer need it as a module
-        BaseWallet(_wallet).authoriseModule(address(this), false);
+        IWallet(_wallet).authoriseModule(address(this), false);
     }
+
+    /**
+     * @inheritdoc IModule
+     */
+    function addModule(address _wallet, address _module) external override {}
 }

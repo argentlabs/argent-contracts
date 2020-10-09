@@ -1,6 +1,6 @@
-
-const { parseEther, bigNumberify, formatBytes32String } = require("ethers").utils;
+const { parseEther, formatBytes32String } = require("ethers").utils;
 const etherlime = require("etherlime-lib");
+const ethers = require("ethers");
 
 const UniswapFactory = require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = require("../lib/uniswap/UniswapExchange");
@@ -19,8 +19,8 @@ const CdpManager = require("../build/DssCdpManager");
 const GemJoin = require("../build/GemJoin");
 const DaiJoin = require("../build/DaiJoin");
 
-const RAY = bigNumberify("1000000000000000000000000000"); // 10**27
-const WAD = bigNumberify("1000000000000000000"); // 10**18
+const RAY = ethers.BigNumber.from("1000000000000000000000000000"); // 10**27
+const WAD = ethers.BigNumber.from("1000000000000000000"); // 10**18
 const RAD = RAY.mul(WAD);
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
 const USD_PER_ETH = WAD.mul(100); // 1 ETH = 100 USD
@@ -88,7 +88,6 @@ module.exports = {
     await tub.mold(formatBytes32String("mat"), MAT);
     // Set the governance fee to 7.5% APR
     await tub.mold(formatBytes32String("fee"), "1000000002293273137447730714");
-
 
     //
     // Deploy and setup MCD
@@ -161,7 +160,7 @@ module.exports = {
     const initialSaiAmountInMigrationVault = parseEther("1000");
     await sai["mint(address,uint256)"](infrastructure.address, initialSaiAmountInMigrationVault);
     await sai.from(infrastructure).approve(migration.contractAddress, initialSaiAmountInMigrationVault);
-    await migration.from(infrastructure).swapSaiToDai(initialSaiAmountInMigrationVault, { gasLimit: 2000000 });
+    await migration.from(infrastructure).swapSaiToDai(initialSaiAmountInMigrationVault);
 
     return {
       sai,

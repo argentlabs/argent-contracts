@@ -17,7 +17,8 @@
 
 pragma solidity ^0.5.4;
 
-import "./lib.sol";
+import { LibNote } from "./lib.sol";
+import { VatLike} from "./MakerInterfaces.sol";
 
 /*
    "Savings Dai" is obtained when Dai is deposited into
@@ -37,11 +38,6 @@ import "./lib.sol";
    - `drip`: perform rate collection
 
 */
-
-contract VatLike {
-    function move(address,address,uint256) external;
-    function suck(address,address,uint256) external;
-}
 
 contract Pot is LibNote {
     // --- Auth ---

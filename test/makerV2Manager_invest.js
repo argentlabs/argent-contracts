@@ -1,9 +1,17 @@
-const { AddressZero } = require("ethers").constants;
-const { deployMaker, WAD } = require("../utils/defi-deployer");
+const ethers = require("ethers");
+const {
+  deployMaker, deployUniswap, WAD, ETH_PER_DAI, ETH_PER_MKR,
+} = require("../utils/defi-deployer");
 const TestManager = require("../utils/test-manager");
-const MakerV2Invest = require("../build/TestMakerV2Invest");
-const Wallet = require("../build/BaseWallet");
+const Registry = require("../build/ModuleRegistry");
+const MakerV2Manager = require("../build/MakerV2Manager");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const GuardianStorage = require("../build/GuardianStorage");
+const LockStorage = require("../build/LockStorage");
+const MakerRegistry = require("../build/MakerRegistry");
+const RelayerManager = require("../build/RelayerManager");
+const VersionManager = require("../build/VersionManager");
 
 const DAI_SENT = WAD.div(100000000);
 
@@ -18,6 +26,9 @@ describe("MakerV2 DSR", function () {
   const owner = accounts[1].signer;
 
   let wallet;
+  let walletImplementation;
+  let relayerManager;
+  let versionManager;
   let makerV2;
   let sai;
   let dai;
@@ -25,24 +36,60 @@ describe("MakerV2 DSR", function () {
   before(async () => {
     const m = await deployMaker(deployer, infrastructure);
     [sai, dai] = [m.sai, m.dai];
-    const { migration, pot } = m;
+    const {
+      migration,
+      pot,
+      jug,
+      vat,
+      gov,
+    } = m;
 
+    const registry = await deployer.deploy(Registry);
     const guardianStorage = await deployer.deploy(GuardianStorage);
+    const lockStorage = await deployer.deploy(LockStorage);
+    versionManager = await deployer.deploy(VersionManager, {},
+      registry.contractAddress,
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
+
+    const makerRegistry = await deployer.deploy(MakerRegistry, {}, vat.contractAddress);
+
+    // Deploy Uniswap
+    const uni = await deployUniswap(deployer, manager, infrastructure, [gov, dai], [ETH_PER_MKR, ETH_PER_DAI]);
 
     makerV2 = await deployer.deploy(
-      MakerV2Invest,
+      MakerV2Manager,
       {},
-      AddressZero,
-      guardianStorage.contractAddress,
+      lockStorage.contractAddress,
       migration.contractAddress,
       pot.contractAddress,
-      { gasLimit: 8000000 },
+      jug.contractAddress,
+      makerRegistry.contractAddress,
+      uni.uniswapFactory.contractAddress,
+      versionManager.contractAddress,
     );
+
+    walletImplementation = await deployer.deploy(BaseWallet);
+
+    relayerManager = await deployer.deploy(RelayerManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      versionManager.contractAddress);
+    manager.setRelayerManager(relayerManager);
+
+    await versionManager.addVersion([makerV2.contractAddress, relayerManager.contractAddress], []);
   });
 
   beforeEach(async () => {
-    wallet = await deployer.deploy(Wallet);
-    await wallet.init(owner.address, [makerV2.contractAddress]);
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
+    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
     await sai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
     await dai["mint(address,uint256)"](wallet.contractAddress, DAI_SENT.mul(20));
   });

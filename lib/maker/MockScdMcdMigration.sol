@@ -10,8 +10,12 @@ contract MockVat is VatLike {
     function ilks(bytes32) public view returns (uint, uint, uint, uint, uint) { return (0, 0, 0, 0, 0); }
     function urns(bytes32, address) public view returns (uint, uint) { return (0, 0); }
     function frob(bytes32, address, address, address, int, int) public {}
-    function slip(bytes32,address,int) external {}
-    function move(address,address,uint) external {}
+    function slip(bytes32,address,int) public {}
+    function move(address,address,uint) public {}
+    function fold(bytes32,address,int) public {}
+    function suck(address,address,uint256) public {}
+    function flux(bytes32, address, address, uint) public {}
+    function fork(bytes32, address, address, int, int) public {}
 }
 
 contract MockTub is SaiTubLike {
@@ -31,6 +35,7 @@ contract MockTub is SaiTubLike {
 
 contract MockJoin is JoinLike {
     MockVat public vat;
+    uint public live;
     constructor (MockVat _vat) public { vat = _vat; }
     function ilk() public view returns (bytes32) { return bytes32(0); }
     function gem() public view returns (GemLike) { return GemLike(address(0)); }

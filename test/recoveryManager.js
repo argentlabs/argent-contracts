@@ -5,17 +5,26 @@ const GuardianManager = require("../build/GuardianManager");
 const LockManager = require("../build/LockManager");
 const RecoveryManager = require("../build/RecoveryManager");
 const GuardianStorage = require("../build/GuardianStorage");
-const Wallet = require("../build/BaseWallet");
+const LockStorage = require("../build/LockStorage");
+const Proxy = require("../build/Proxy");
+const BaseWallet = require("../build/BaseWallet");
 const Registry = require("../build/ModuleRegistry");
+const RelayerManager = require("../build/RelayerManager");
+const VersionManager = require("../build/VersionManager");
 
 const TestManager = require("../utils/test-manager");
-const { sortWalletByAddress, parseRelayReceipt, signOffchain } = require("../utils/utilities.js");
+const {
+  ETH_TOKEN,
+  sortWalletByAddress,
+  parseRelayReceipt,
+  signOffchain,
+} = require("../utils/utilities.js");
 
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 
 describe("RecoveryManager", function () {
-  this.timeout(10000);
+  this.timeout(100000);
 
   const manager = new TestManager(accounts);
 
@@ -28,28 +37,73 @@ describe("RecoveryManager", function () {
   const nonowner2 = accounts[9].signer;
 
   let deployer;
-  let registry;
   let guardianManager;
+  let lockStorage;
   let guardianStorage;
   let lockManager;
   let recoveryManager;
   let recoveryPeriod;
   let wallet;
+  let walletImplementation;
+  let relayerManager;
+  let versionManager;
+
+  before(async () => {
+    deployer = manager.newDeployer();
+    walletImplementation = await deployer.deploy(BaseWallet);
+  });
 
   beforeEach(async () => {
-    deployer = manager.newDeployer();
-    registry = await deployer.deploy(Registry);
+    const registry = await deployer.deploy(Registry);
     guardianStorage = await deployer.deploy(GuardianStorage);
-    guardianManager = await deployer.deploy(GuardianManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24, 12);
-    lockManager = await deployer.deploy(LockManager, {}, registry.contractAddress, guardianStorage.contractAddress, 24 * 5);
-    recoveryManager = await deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5, 24, 12);
+    lockStorage = await deployer.deploy(LockStorage);
+    versionManager = await deployer.deploy(VersionManager, {},
+      registry.contractAddress,
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero);
+
+    guardianManager = await deployer.deploy(GuardianManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      versionManager.contractAddress,
+      24, 12);
+    lockManager = await deployer.deploy(LockManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      versionManager.contractAddress,
+      24 * 5);
+    recoveryManager = await deployer.deploy(RecoveryManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      versionManager.contractAddress,
+      36, 24 * 5);
     recoveryPeriod = await recoveryManager.recoveryPeriod();
-    wallet = await deployer.deploy(Wallet);
-    await wallet.init(owner.address, [guardianManager.contractAddress, lockManager.contractAddress, recoveryManager.contractAddress]);
+    relayerManager = await deployer.deploy(RelayerManager, {},
+      lockStorage.contractAddress,
+      guardianStorage.contractAddress,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero,
+      versionManager.contractAddress);
+    manager.setRelayerManager(relayerManager);
+
+    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+
+    await versionManager.addVersion([
+      guardianManager.contractAddress,
+      lockManager.contractAddress,
+      recoveryManager.contractAddress,
+      relayerManager.contractAddress,
+    ], []);
+
+    await wallet.init(owner.address, [versionManager.contractAddress]);
+    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
   });
 
   async function addGuardians(guardians) {
-    // guardians can be Wallet or ContractWrapper objects
+    // guardians can be BaseWallet or ContractWrapper objects
     const guardianAddresses = guardians.map((guardian) => {
       if (guardian.address) return guardian.address;
       return guardian.contractAddress;
@@ -71,8 +125,10 @@ describe("RecoveryManager", function () {
     const wallets = [];
     let g;
     for (g of guardians) {
-      const guardianWallet = await deployer.deploy(Wallet);
-      await guardianWallet.init(g.address, [guardianManager.contractAddress]);
+      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
+      const guardianWallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+      await guardianWallet.init(g.address, [versionManager.contractAddress]);
+      await versionManager.from(g).upgradeWallet(guardianWallet.contractAddress, await versionManager.lastVersion());
       wallets.push(guardianWallet);
     }
     return wallets;
@@ -156,8 +212,9 @@ describe("RecoveryManager", function () {
 
     it("should not let anyone finalize the recovery procedure before the end of the recovery period", async () => {
       const txReceipt = await manager.relay(recoveryManager, "finalizeRecovery", [wallet.contractAddress], wallet, []);
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "finalization should have failed");
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "RM: the recovery period is not over yet");
 
       const isLocked = await lockManager.isLocked(wallet.contractAddress);
       assert.isTrue(isLocked, "should still be locked");
@@ -171,8 +228,9 @@ describe("RecoveryManager", function () {
       assert.isFalse(isLocked, "should no longer be locked by recovery");
       await manager.increaseTime(40); // moving time to after the end of the recovery period
       const txReceipt = await manager.relay(recoveryManager, "finalizeRecovery", [wallet.contractAddress], wallet, []);
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "finalization should have failed");
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "RM: there must be an ongoing recovery");
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner.address, "wallet owner should not have been changed");
 
@@ -188,8 +246,9 @@ describe("RecoveryManager", function () {
       assert.isFalse(isLocked, "should no longer be locked by recovery");
       await manager.increaseTime(40); // moving time to after the end of the recovery period
       const txReceipt = await manager.relay(recoveryManager, "finalizeRecovery", [wallet.contractAddress], wallet, []);
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "finalization should have failed");
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "finalization should have failed");
+      assert.equal(error, "RM: there must be an ongoing recovery");
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, owner.address, "wallet owner should not have been changed");
     });
@@ -300,13 +359,12 @@ describe("RecoveryManager", function () {
 
   describe("RecoveryManager high level logic", () => {
     it("should not be able to instantiate the RecoveryManager with lock period shorter than the recovery period", async () => {
-      await assert.revertWith(deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 35, 24, 12),
-        "RM: insecure security periods");
-    });
-
-    it("should not be able to instantiate the RecoveryManager with recovery period shorter than security period + security window", async () => {
-      await assert.revertWith(deployer.deploy(RecoveryManager, {}, registry.contractAddress, guardianStorage.contractAddress, 36, 24 * 5, 24, 13),
-        "RM: insecure security periods");
+      await assert.revertWith(deployer.deploy(RecoveryManager, {},
+        lockStorage.contractAddress,
+        guardianStorage.contractAddress,
+        versionManager.contractAddress,
+        36, 35),
+      "RM: insecure security periods");
     });
   });
 
@@ -385,8 +443,17 @@ describe("RecoveryManager", function () {
       it("should not be able to call ExecuteRecovery with an empty recovery address", async () => {
         const txReceipt = await manager.relay(recoveryManager, "executeRecovery",
           [wallet.contractAddress, ethers.constants.AddressZero], wallet, [guardian1]);
-        const success = parseRelayReceipt(txReceipt);
-        assert.isNotOk(success, "executeRecovery should fail");
+        const { success, error } = parseRelayReceipt(txReceipt);
+        assert.isFalse(success, "executeRecovery should fail");
+        assert.equal(error, "RM: new owner address cannot be null");
+      });
+
+      it("should not be able to call ExecuteRecovery with a guardian address", async () => {
+        const txReceipt = await manager.relay(recoveryManager, "executeRecovery",
+          [wallet.contractAddress, guardian1.address], wallet, [guardian1]);
+        const { success, error } = parseRelayReceipt(txReceipt);
+        assert.isFalse(success, "executeRecovery should fail");
+        assert.equal(error, "RM: new owner address cannot be a guardian");
       });
 
       it("should not be able to call ExecuteRecovery if already in the process of Recovery", async () => {
@@ -395,24 +462,46 @@ describe("RecoveryManager", function () {
 
         const txReceipt = await manager.relay(recoveryManager, "executeRecovery",
           [wallet.contractAddress, ethers.constants.AddressZero], wallet, [guardian1]);
-        const success = parseRelayReceipt(txReceipt);
-        assert.isNotOk(success, "executeRecovery should fail");
+        const { success, error } = parseRelayReceipt(txReceipt);
+        assert.isFalse(success, "executeRecovery should fail");
+        assert.equal(error, "RM: there cannot be an ongoing recovery");
       });
 
       it("should revert if an unknown method is executed", async () => {
         const nonce = await manager.getNonceForRelay();
+        const chainId = await manager.getChainId();
         let methodData = recoveryManager.contract.interface.functions.executeRecovery.encode([wallet.contractAddress, ethers.constants.AddressZero]);
         // Replace the `executeRecovery` method signature: b0ba4da0 with a non-existent one: e0b6fcfc
         methodData = methodData.replace("b0ba4da0", "e0b6fcfc");
 
-        const signatures = await signOffchain([guardian1], recoveryManager.contractAddress, wallet.contractAddress, 0, methodData, nonce, 0, 700000);
-        let errorReason;
-        try {
-          await recoveryManager.from(nonowner2).execute(wallet.contractAddress, methodData, nonce, signatures, 0, 700000, { gasLimit: 700000 });
-        } catch (err) {
-          errorReason = err.data[err.transactionHash].reason;
-        }
-        assert.equal(errorReason, "RM: unknown method");
+        const signatures = await signOffchain(
+          [guardian1],
+          relayerManager.contractAddress,
+          recoveryManager.contractAddress,
+          0,
+          methodData,
+          chainId,
+          nonce,
+          0,
+          700000,
+          ETH_TOKEN,
+          ethers.constants.AddressZero,
+        );
+        await assert.revertWith(
+          relayerManager.from(nonowner2).execute(
+            wallet.contractAddress,
+            recoveryManager.contractAddress,
+            methodData,
+            nonce,
+            signatures,
+            0,
+            700000,
+            ETH_TOKEN,
+            ethers.constants.AddressZero,
+            { gasLimit: 800000 },
+          ),
+          "RM: unknown method",
+        );
       });
     });
   });
@@ -471,8 +560,21 @@ describe("RecoveryManager", function () {
         "transferOwnership",
         [wallet.contractAddress, ethers.constants.AddressZero], wallet, [owner, guardian1],
       );
-      const success = parseRelayReceipt(txReceipt);
-      assert.isNotOk(success, "transferOwnership should fail");
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "transferOwnership should fail");
+      assert.equal(error, "RM: new owner address cannot be null");
+    });
+
+    it("should not allow transfer to a guardian address", async () => {
+      await addGuardians([guardian1]);
+      const txReceipt = await manager.relay(
+        recoveryManager,
+        "transferOwnership",
+        [wallet.contractAddress, guardian1.address], wallet, [owner, guardian1],
+      );
+      const { success, error } = parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "transferOwnership should fail");
+      assert.equal(error, "RM: new owner address cannot be a guardian");
     });
 
     it("when no guardians, owner should be able to transfer alone", async () => {
@@ -483,8 +585,8 @@ describe("RecoveryManager", function () {
         wallet,
         [owner],
       );
-      const success = parseRelayReceipt(txReceipt);
-      assert.isOk(success, "transferOwnership should succeed");
+      const { success } = parseRelayReceipt(txReceipt);
+      assert.isTrue(success, "transferOwnership should succeed");
     });
 
     it("should not allow owner not signing", async () => {

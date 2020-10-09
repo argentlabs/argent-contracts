@@ -13,18 +13,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.12;
 
+/**
+ * @title GuardianUtils
+ * @notice Bundles guardian read logic.
+ */
 library GuardianUtils {
 
     /**
-    * @dev Checks if an address is an account guardian or an account authorised to sign on behalf of a smart-contract guardian
+    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian
     * given a list of guardians.
     * @param _guardians the list of guardians
     * @param _guardian the address to test
     * @return true and the list of guardians minus the found guardian upon success, false and the original list of guardians if not found.
     */
-    function isGuardian(address[] memory _guardians, address _guardian) internal view returns (bool, address[] memory) {
+    function isGuardianOrGuardianSigner(address[] memory _guardians, address _guardian) internal view returns (bool, address[] memory) {
         if (_guardians.length == 0 || _guardian == address(0)) {
             return (false, _guardians);
         }
@@ -53,12 +58,12 @@ library GuardianUtils {
     }
 
    /**
-    * @dev Checks if an address is a contract.
+    * @notice Checks if an address is a contract.
     * @param _addr The address.
     */
     function isContract(address _addr) internal view returns (bool) {
         uint32 size;
-        // solium-disable-next-line security/no-inline-assembly
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             size := extcodesize(_addr)
         }
@@ -66,7 +71,7 @@ library GuardianUtils {
     }
 
     /**
-    * @dev Checks if an address is the owner of a guardian contract.
+    * @notice Checks if an address is the owner of a guardian contract.
     * The method does not revert if the call to the owner() method consumes more then 5000 gas.
     * @param _guardian The guardian contract
     * @param _owner The owner to verify.
@@ -74,7 +79,8 @@ library GuardianUtils {
     function isGuardianOwner(address _guardian, address _owner) internal view returns (bool) {
         address owner = address(0);
         bytes4 sig = bytes4(keccak256("owner()"));
-        // solium-disable-next-line security/no-inline-assembly
+
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             let ptr := mload(0x40)
             mstore(ptr,sig)

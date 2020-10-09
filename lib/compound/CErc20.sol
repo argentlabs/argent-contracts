@@ -154,7 +154,6 @@ contract CErc20 is CToken {
 
         token.transferFrom(from, address(this), amount);
 
-        // solium-disable-next-line security/no-inline-assembly
         assembly {
             switch returndatasize()
                 case 0 {                      // This is a non-standard ERC-20
@@ -191,7 +190,6 @@ contract CErc20 is CToken {
 
         token.transfer(to, amount);
 
-        // solium-disable-next-line security/no-inline-assembly
         assembly {
             switch returndatasize()
                 case 0 {                      // This is a non-standard ERC-20

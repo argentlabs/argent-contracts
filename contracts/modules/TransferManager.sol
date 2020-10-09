@@ -13,28 +13,27 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
-import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
-import "./common/OnlyOwnerModule.sol";
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
+
+import "./common/Utils.sol";
 import "./common/BaseTransfer.sol";
-import "./common/LimitManager.sol";
-import "./storage/TransferStorage.sol";
-import "../infrastructure/TokenPriceProvider.sol";
+import "./common/LimitUtils.sol";
+import "../infrastructure/storage/ILimitStorage.sol";
+import "../infrastructure/storage/ITransferStorage.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 import "../../lib/other/ERC20.sol";
 
 /**
  * @title TransferManager
- * @dev Module to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
- * This module is the V2 of TokenTransfer.
+ * @notice Feature to transfer and approve tokens (ETH or ERC20) or data (contract call) based on a security context (daily limit, whitelist, etc).
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTransfer, LimitManager {
+contract TransferManager is BaseTransfer {
 
     bytes32 constant NAME = "TransferManager";
 
-    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES = bytes4(keccak256("isValidSignature(bytes,bytes)"));
     bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
 
     enum ActionType { Transfer }
@@ -53,12 +52,16 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     uint256 public securityPeriod;
     // The execution window
     uint256 public securityWindow;
+    // The default limit
+    uint128 public defaultLimit;
     // The Token storage
-    TransferStorage public transferStorage;
-    // The Token price provider
-    TokenPriceProvider public priceProvider;
+    ITransferStorage public transferStorage;
     // The previous limit manager needed to migrate the limits
-    LimitManager public oldLimitManager;
+    TransferManager public oldTransferManager;
+    // The limit storage
+    ILimitStorage public limitStorage;
+    // The token price storage
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     // *************** Events *************************** //
 
@@ -68,73 +71,91 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     address token, address to, uint256 amount, bytes data);
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
+    event DailyLimitMigrated(address indexed wallet, uint256 currentDailyLimit, uint256 pendingDailyLimit, uint256 changeDailyLimitAfter);
+    event DailyLimitDisabled(address indexed wallet, uint256 securityPeriod);
 
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
-        TransferStorage _transferStorage,
-        GuardianStorage _guardianStorage,
-        address _priceProvider,
+        ILockStorage _lockStorage,
+        ITransferStorage _transferStorage,
+        ILimitStorage _limitStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
+        IVersionManager _versionManager,
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit,
-        LimitManager _oldLimitManager
+        address _wethToken,
+        TransferManager _oldTransferManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
-        LimitManager(_defaultLimit)
+        BaseFeature(_lockStorage, _versionManager, NAME)
+        BaseTransfer(_wethToken)
         public
     {
         transferStorage = _transferStorage;
-        priceProvider = TokenPriceProvider(_priceProvider);
+        limitStorage = _limitStorage;
+        tokenPriceRegistry = _tokenPriceRegistry;
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
-        oldLimitManager = _oldLimitManager;
+        defaultLimit = LimitUtils.safe128(_defaultLimit);
+        oldTransferManager = _oldTransferManager;
     }
 
     /**
-     * @dev Inits the module for a wallet by setting up the isValidSignature (EIP 1271)
-     * static call redirection from the wallet to the module and copying all the parameters
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
+
+    /**
+     * @inheritdoc IFeature
+     */
+    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
+        _sigs = new bytes4[](1);
+        _sigs[0] = ERC1271_ISVALIDSIGNATURE_BYTES32;
+    }
+
+
+    /**
+     * @notice Inits the feature for a wallet by setting up the isValidSignature (EIP 1271)
+     * static call redirection from the wallet to the feature and copying all the parameters
      * of the daily limit from the previous implementation of the LimitManager module.
      * @param _wallet The target wallet.
      */
-    function init(BaseWallet _wallet) public onlyWallet(_wallet) {
+    function init(address _wallet) external override(BaseFeature) onlyVersionManager {
 
-        // setup static calls
-        _wallet.enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES);
-        _wallet.enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
-
-        // setup default limit for new deployment
-        if (address(oldLimitManager) == address(0)) {
-            super.init(_wallet);
-            return;
-        }
-        // get limit from previous LimitManager
-        uint256 current = oldLimitManager.getCurrentLimit(_wallet);
-        (uint256 pending, uint64 changeAfter) = oldLimitManager.getPendingLimit(_wallet);
-        // setup default limit for new wallets
-        if (current == 0 && changeAfter == 0) {
-            super.init(_wallet);
-            return;
-        }
-        // migrate existing limit for existing wallets
-        if (current == pending) {
-            limits[address(_wallet)].limit.current = uint128(current);
+        if (address(oldTransferManager) == address(0)) {
+            setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
         } else {
-            limits[address(_wallet)].limit = Limit(uint128(current), uint128(pending), changeAfter);
-        }
-        // migrate daily pending if we are within a rolling period
-        (uint256 unspent, uint64 periodEnd) = oldLimitManager.getDailyUnspent(_wallet);
-        // solium-disable-next-line security/no-block-members
-        if (periodEnd > now) {
-            limits[address(_wallet)].dailySpent = DailySpent(uint128(current.sub(unspent)), periodEnd);
+            uint256 current = oldTransferManager.getCurrentLimit(_wallet);
+            (uint256 pending, uint64 changeAfter) = oldTransferManager.getPendingLimit(_wallet);
+            if (current == 0 && changeAfter == 0) {
+                // new wallet: we setup the default limit
+                setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
+            } else {
+                // migrate limit and daily spent (if we are in a rolling period)
+                (uint256 unspent, uint64 periodEnd) = oldTransferManager.getDailyUnspent(_wallet);
+
+                if (periodEnd < block.timestamp) {
+                    setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
+                } else {
+                    setLimitAndDailySpent(
+                        _wallet,
+                        ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter),
+                        ILimitStorage.DailySpent(LimitUtils.safe128(current.sub(unspent)), periodEnd)
+                    );
+                }
+
+                emit DailyLimitMigrated(_wallet, current, pending, changeAfter);
+            }
         }
     }
 
     // *************** External/Public Functions ********************* //
 
     /**
-    * @dev lets the owner transfer tokens (ETH or ERC20) from a wallet.
+    * @notice Lets the owner transfer tokens (ETH or ERC20) from a wallet.
     * @param _wallet The target wallet.
     * @param _token The address of the token to transfer.
     * @param _to The destination address
@@ -142,47 +163,47 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @param _data The data for the transaction
     */
     function transferToken(
-        BaseWallet _wallet,
+        address _wallet,
         address _token,
         address _to,
         uint256 _amount,
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _to)) {
             // transfer to whitelist
             doTransfer(_wallet, _token, _to, _amount, _data);
         } else {
-            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : priceProvider.getEtherValue(_amount, _token);
-            if (checkAndUpdateDailySpent(_wallet, etherAmount)) {
+            uint256 etherAmount = (_token == ETH_TOKEN) ? _amount : LimitUtils.getEtherValue(tokenPriceRegistry, _amount, _token);
+            if (LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, etherAmount)) {
                 // transfer under the limit
                 doTransfer(_wallet, _token, _to, _amount, _data);
             } else {
                 // transfer above the limit
                 (bytes32 id, uint256 executeAfter) = addPendingAction(ActionType.Transfer, _wallet, _token, _to, _amount, _data);
-                emit PendingTransferCreated(address(_wallet), id, executeAfter, _token, _to, _amount, _data);
+                emit PendingTransferCreated(_wallet, id, executeAfter, _token, _to, _amount, _data);
             }
         }
     }
 
     /**
-    * @dev lets the owner approve an allowance of ERC20 tokens for a spender (dApp).
+    * @notice Lets the owner approve an allowance of ERC20 tokens for a spender (dApp).
     * @param _wallet The target wallet.
     * @param _token The address of the token to transfer.
     * @param _spender The address of the spender
     * @param _amount The amount of tokens to approve
     */
     function approveToken(
-        BaseWallet _wallet,
+        address _wallet,
         address _token,
         address _spender,
         uint256 _amount
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         if (isWhitelisted(_wallet, _spender)) {
@@ -190,15 +211,15 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
             doApproveToken(_wallet, _token, _spender, _amount);
         } else {
             // get current alowance
-            uint256 currentAllowance = ERC20(_token).allowance(address(_wallet), _spender);
+            uint256 currentAllowance = ERC20(_token).allowance(_wallet, _spender);
             if (_amount <= currentAllowance) {
                 // approve if we reduce the allowance
                 doApproveToken(_wallet, _token, _spender, _amount);
             } else {
                 // check if delta is under the limit
                 uint delta = _amount - currentAllowance;
-                uint256 deltaInEth = priceProvider.getEtherValue(delta, _token);
-                require(checkAndUpdateDailySpent(_wallet, deltaInEth), "TM: Approve above daily limit");
+                uint256 deltaInEth = LimitUtils.getEtherValue(tokenPriceRegistry, delta, _token);
+                require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, deltaInEth), "TM: Approve above daily limit");
                 // approve if under the limit
                 doApproveToken(_wallet, _token, _spender, _amount);
             }
@@ -206,110 +227,118 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     }
 
     /**
-    * @dev lets the owner call a contract.
+    * @notice Lets the owner call a contract.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
     * @param _value The amount of ETH to transfer as part of call
     * @param _data The encoded method data
     */
     function callContract(
-        BaseWallet _wallet,
+        address _wallet,
         address _contract,
         uint256 _value,
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
-        // Make sure we don't call a module, the wallet itself, or a supported ERC20
-        authoriseContractCall(_wallet, _contract);
-
-        if (isWhitelisted(_wallet, _contract)) {
-            // call to whitelist
-            doCallContract(_wallet, _contract, _value, _data);
-        } else {
-            require(checkAndUpdateDailySpent(_wallet, _value), "TM: Call contract above daily limit");
-            // call under the limit
-            doCallContract(_wallet, _contract, _value, _data);
-        }
+        checkAndUpdateDailySpentIfNeeded(_wallet, ETH_TOKEN, _value, _contract);
+        doCallContract(_wallet, _contract, _value, _data);
     }
 
     /**
-    * @dev lets the owner do an ERC20 approve followed by a call to a contract.
+    * @notice Lets the owner do an ERC20 approve followed by a call to a contract.
     * We assume that the contract will pull the tokens and does not require ETH.
     * @param _wallet The target wallet.
     * @param _token The token to approve.
-    * @param _spender The address to approve.
+    * @param _proxy The address to approve, which may be different from the contract being called.
     * @param _amount The amount of ERC20 tokens to approve.
     * @param _contract The address of the contract.
     * @param _data The encoded method data
     */
     function approveTokenAndCallContract(
-        BaseWallet _wallet,
+        address _wallet,
         address _token,
-        address _spender,
+        address _proxy,
         uint256 _amount,
         address _contract,
         bytes calldata _data
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
     {
-        // Make sure we don't call a module, the wallet itself, or a supported ERC20
-        authoriseContractCall(_wallet, _contract);
-
-        if (!isWhitelisted(_wallet, _spender)) {
-            // check if the amount is under the daily limit
-            // check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
-            uint256 valueInEth = priceProvider.getEtherValue(_amount, _token);
-            require(checkAndUpdateDailySpent(_wallet, valueInEth), "TM: Approve above daily limit");
-        }
-
-        doApproveTokenAndCallContract(_wallet, _token, _spender, _amount, _contract, _data);
+        checkAndUpdateDailySpentIfNeeded(_wallet, _token, _amount, _contract);
+        doApproveTokenAndCallContract(_wallet, _token, _proxy, _amount, _contract, _data);
     }
 
     /**
-     * @dev Adds an address to the whitelist of a wallet.
+    * @notice Lets the owner wrap ETH into WETH, approve the WETH and call a contract.
+    * We assume that the contract will pull the tokens and does not require ETH.
+    * @param _wallet The target wallet.
+    * @param _proxy The address to approve, which may be different from the contract being called.
+    * @param _amount The amount of ETH to wrap and approve.
+    * @param _contract The address of the contract.
+    * @param _data The encoded method data
+    */
+    function approveWethAndCallContract(
+        address _wallet,
+        address _proxy,
+        uint256 _amount,
+        address _contract,
+        bytes calldata _data
+    )
+        external
+        onlyWalletOwnerOrFeature(_wallet)
+        onlyWhenUnlocked(_wallet)
+        onlyAuthorisedContractCall(_wallet, _contract)
+    {
+        checkAndUpdateDailySpentIfNeeded(_wallet, wethToken, _amount, _contract);
+        doApproveWethAndCallContract(_wallet, _proxy, _amount, _contract, _data);
+    }
+
+    /**
+     * @notice Adds an address to the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
     function addToWhitelist(
-        BaseWallet _wallet,
+        address _wallet,
         address _target
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
         require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
-        // solium-disable-next-line security/no-block-members
-        uint256 whitelistAfter = now.add(securityPeriod);
-        transferStorage.setWhitelist(_wallet, _target, whitelistAfter);
-        emit AddedToWhitelist(address(_wallet), _target, uint64(whitelistAfter));
+
+        uint256 whitelistAfter = block.timestamp.add(securityPeriod);
+        setWhitelist(_wallet, _target, whitelistAfter);
+        emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }
 
     /**
-     * @dev Removes an address from the whitelist of a wallet.
+     * @notice Removes an address from the whitelist of a wallet.
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
     function removeFromWhitelist(
-        BaseWallet _wallet,
+        address _wallet,
         address _target
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        require(isWhitelisted(_wallet, _target), "TT: target not whitelisted");
-        transferStorage.setWhitelist(_wallet, _target, 0);
-        emit RemovedFromWhitelist(address(_wallet), _target);
+        setWhitelist(_wallet, _target, 0);
+        emit RemovedFromWhitelist(_wallet, _target);
     }
 
     /**
-    * @dev Executes a pending transfer for a wallet.
+    * @notice Executes a pending transfer for a wallet.
     * The method can be called by anyone to enable orchestration.
     * @param _wallet The target wallet.
     * @param _token The token of the pending transfer.
@@ -319,7 +348,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @param _block The block at which the pending transfer was created.
     */
     function executePendingTransfer(
-        BaseWallet _wallet,
+        address _wallet,
         address _token,
         address _to,
         uint _amount,
@@ -330,110 +359,154 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         onlyWhenUnlocked(_wallet)
     {
         bytes32 id = keccak256(abi.encodePacked(ActionType.Transfer, _token, _to, _amount, _data, _block));
-        uint executeAfter = configs[address(_wallet)].pendingActions[id];
+        uint executeAfter = configs[_wallet].pendingActions[id];
         require(executeAfter > 0, "TT: unknown pending transfer");
         uint executeBefore = executeAfter.add(securityWindow);
-        // solium-disable-next-line security/no-block-members
-        require(executeAfter <= now && now <= executeBefore, "TT: transfer outside of the execution window");
-        delete configs[address(_wallet)].pendingActions[id];
+
+        require(executeAfter <= block.timestamp && block.timestamp <= executeBefore, "TT: transfer outside of the execution window");
+        delete configs[_wallet].pendingActions[id];
         doTransfer(_wallet, _token, _to, _amount, _data);
-        emit PendingTransferExecuted(address(_wallet), id);
+        emit PendingTransferExecuted(_wallet, id);
     }
 
     function cancelPendingTransfer(
-        BaseWallet _wallet,
+        address _wallet,
         bytes32 _id
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
     {
-        require(configs[address(_wallet)].pendingActions[_id] > 0, "TT: unknown pending action");
-        delete configs[address(_wallet)].pendingActions[_id];
-        emit PendingTransferCanceled(address(_wallet), _id);
+        require(configs[_wallet].pendingActions[_id] > 0, "TT: unknown pending action");
+        delete configs[_wallet].pendingActions[_id];
+        emit PendingTransferCanceled(_wallet, _id);
     }
 
     /**
-     * @dev Lets the owner of a wallet change its daily limit.
+     * @notice Lets the owner of a wallet change its daily limit.
      * The limit is expressed in ETH. Changes to the limit take 24 hours.
      * @param _wallet The target wallet.
      * @param _newLimit The new limit.
      */
-    function changeLimit(BaseWallet _wallet, uint256 _newLimit) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
-        changeLimit(_wallet, _newLimit, securityPeriod);
+    function changeLimit(address _wallet, uint256 _newLimit) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        ILimitStorage.Limit memory limit = LimitUtils.changeLimit(limitStorage, versionManager, _wallet, _newLimit, securityPeriod);
+        emit LimitChanged(_wallet, _newLimit, limit.changeAfter);
     }
 
     /**
-     * @dev Convenience method to disable the limit
+     * @notice Convenience method to disable the limit
      * The limit is disabled by setting it to an arbitrary large value.
      * @param _wallet The target wallet.
      */
-    function disableLimit(BaseWallet _wallet) external onlyWalletOwner(_wallet) onlyWhenUnlocked(_wallet) {
-        disableLimit(_wallet, securityPeriod);
+    function disableLimit(address _wallet) external onlyWalletOwnerOrFeature(_wallet) onlyWhenUnlocked(_wallet) {
+        LimitUtils.disableLimit(limitStorage, versionManager, _wallet, securityPeriod);
+        emit DailyLimitDisabled(_wallet, securityPeriod);
     }
 
     /**
-    * @dev Checks if an address is whitelisted for a wallet.
+    * @notice Gets the current daily limit for a wallet.
+    * @param _wallet The target wallet.
+    * @return _currentLimit The current limit expressed in ETH.
+    */
+    function getCurrentLimit(address _wallet) external view returns (uint256 _currentLimit) {
+        ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
+        return LimitUtils.currentLimit(limit);
+    }
+
+    /**
+    * @notice Returns whether the daily limit is disabled for a wallet.
+    * @param _wallet The target wallet.
+    * @return _limitDisabled true if the daily limit is disabled, false otherwise.
+    */
+    function isLimitDisabled(address _wallet) public view returns (bool _limitDisabled) {
+        return LimitUtils.isLimitDisabled(limitStorage, _wallet);
+    }
+
+    /**
+    * @notice Gets a pending limit for a wallet if any.
+    * @param _wallet The target wallet.
+    * @return _pendingLimit The pending limit (in ETH).
+    * @return _changeAfter The time at which the pending limit will become effective.
+    */
+    function getPendingLimit(address _wallet) external view returns (uint256 _pendingLimit, uint64 _changeAfter) {
+        ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
+
+        return ((block.timestamp < limit.changeAfter)? (limit.pending, uint64(limit.changeAfter)) : (0,0));
+    }
+
+    /**
+    * @notice Gets the amount of tokens that has not yet been spent during the current period.
+    * @param _wallet The target wallet.
+    * @return _unspent The amount of tokens (in ETH) that has not been spent yet.
+    * @return _periodEnd The end of the daily period.
+    */
+    function getDailyUnspent(address _wallet) external view returns (uint256 _unspent, uint64 _periodEnd) {
+        (
+            ILimitStorage.Limit memory limit,
+            ILimitStorage.DailySpent memory dailySpent
+        ) = limitStorage.getLimitAndDailySpent(_wallet);
+        uint256 currentLimit = LimitUtils.currentLimit(limit);
+
+        if (block.timestamp > dailySpent.periodEnd) {
+            return (currentLimit, uint64(block.timestamp.add(24 hours)));
+        } else if (dailySpent.alreadySpent < currentLimit) {
+            return (currentLimit.sub(dailySpent.alreadySpent), dailySpent.periodEnd);
+        } else {
+            return (0, dailySpent.periodEnd);
+        }
+    }
+
+    /**
+    * @notice Checks if an address is whitelisted for a wallet.
     * @param _wallet The target wallet.
     * @param _target The address.
-    * @return true if the address is whitelisted.
+    * @return _isWhitelisted true if the address is whitelisted.
     */
-    function isWhitelisted(BaseWallet _wallet, address _target) public view returns (bool _isWhitelisted) {
+    function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
         uint whitelistAfter = transferStorage.getWhitelist(_wallet, _target);
-        // solium-disable-next-line security/no-block-members
-        return whitelistAfter > 0 && whitelistAfter < now;
+        
+        return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
 
     /**
-    * @dev Gets the info of a pending transfer for a wallet.
+    * @notice Gets the info of a pending transfer for a wallet.
     * @param _wallet The target wallet.
     * @param _id The pending transfer ID.
-    * @return the epoch time at which the pending transfer can be executed.
+    * @return _executeAfter The epoch time at which the pending transfer can be executed.
     */
-    function getPendingTransfer(BaseWallet _wallet, bytes32 _id) external view returns (uint64 _executeAfter) {
+    function getPendingTransfer(address _wallet, bytes32 _id) external view returns (uint64 _executeAfter) {
         _executeAfter = uint64(configs[address(_wallet)].pendingActions[_id]);
     }
 
     /**
-    * @dev Implementation of EIP 1271.
-    * Should return whether the signature provided is valid for the provided data.
-    * @param _data Arbitrary length data signed on the behalf of address(this)
-    * @param _signature Signature byte array associated with _data
-    */
-    function isValidSignature(bytes calldata _data, bytes calldata _signature) external view returns (bytes4) {
-        bytes32 msgHash = keccak256(abi.encodePacked(_data));
-        isValidSignature(msgHash, _signature);
-        return ERC1271_ISVALIDSIGNATURE_BYTES;
-    }
-
-    /**
-    * @dev Implementation of EIP 1271.
+    * @notice Implementation of EIP 1271.
     * Should return whether the signature provided is valid for the provided data.
     * @param _msgHash Hash of a message signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _msgHash
     */
     function isValidSignature(bytes32 _msgHash, bytes memory _signature) public view returns (bytes4) {
         require(_signature.length == 65, "TM: invalid signature length");
-        address signer = recoverSigner(_msgHash, _signature, 0);
-        require(isOwner(BaseWallet(msg.sender), signer), "TM: Invalid signer");
+        address signer = Utils.recoverSigner(_msgHash, _signature, 0);
+        require(isOwner(msg.sender, signer), "TM: Invalid signer");
         return ERC1271_ISVALIDSIGNATURE_BYTES32;
     }
 
     // *************** Internal Functions ********************* //
 
     /**
-     * @dev Creates a new pending action for a wallet.
+     * @notice Creates a new pending action for a wallet.
      * @param _action The target action.
      * @param _wallet The target wallet.
      * @param _token The target token for the action.
      * @param _to The recipient of the action.
      * @param _amount The amount of token associated to the action.
      * @param _data The data associated to the action.
-     * @return the identifier for the new pending action and the time when the action can be executed
+     * @return id The identifier for the new pending action.
+     * @return executeAfter The time when the action can be executed
      */
     function addPendingAction(
         ActionType _action,
-        BaseWallet _wallet,
+        address _wallet,
         address _token,
         address _to,
         uint _amount,
@@ -443,52 +516,82 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         returns (bytes32 id, uint256 executeAfter)
     {
         id = keccak256(abi.encodePacked(_action, _token, _to, _amount, _data, block.number));
-        require(configs[address(_wallet)].pendingActions[id] == 0, "TM: duplicate pending action");
-        // solium-disable-next-line security/no-block-members
-        executeAfter = now.add(securityPeriod);
-        configs[address(_wallet)].pendingActions[id] = executeAfter;
+        require(configs[_wallet].pendingActions[id] == 0, "TM: duplicate pending action");
+
+        executeAfter = block.timestamp.add(securityPeriod);
+        configs[_wallet].pendingActions[id] = executeAfter;
     }
 
     /**
-    * @dev Make sure a contract call is not trying to call a module, the wallet itself, or a supported ERC20.
+    * @notice Make sure a contract call is not trying to call a supported ERC20.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
      */
-    function authoriseContractCall(BaseWallet _wallet, address _contract) internal view {
-        require(
-            _contract != address(_wallet) && // not the wallet itself
-            !_wallet.authorised(_contract) && // not an authorised module
-            (priceProvider.cachedPrices(_contract) == 0 || isLimitDisabled(_wallet)), // not an ERC20 listed in the provider (or limit disabled)
-            "TM: Forbidden contract");
+    function coveredByDailyLimit(address _wallet, address _contract) internal view returns (bool) {
+        return (tokenPriceRegistry.getTokenPrice(_contract) > 0 && !isLimitDisabled(_wallet));
     }
 
-    // *************** Implementation of RelayerModule methods ********************* //
+    /**
+    * @notice Verify and update the daily spent if the spender is not whitelisted.
+    * Reverts if the daily spent is insufficient or if the contract to call is
+    * protected by the daily limit (i.e. is a token contract).
+    * @param _wallet The target wallet.
+    * @param _token The token that the spender will spend.
+    * @param _amount The amount of ERC20 or ETH that the spender will spend.
+    * @param _contract The address of the contract called by the wallet for the spend to occur.
+    */
 
-    // Overrides refund to add the refund in the daily limit.
-    function refund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _gasLimit, uint _signatures, address _relayer) internal {
-        // 21000 (transaction) + 7620 (execution of refund) + 7324 (execution of updateDailySpent) + 672 to log the event + _gasUsed
-        uint256 amount = 36616 + _gasUsed;
-        if (_gasPrice > 0 && _signatures > 0 && amount <= _gasLimit) {
-            if (_gasPrice > tx.gasprice) {
-                amount = amount * tx.gasprice;
+    function checkAndUpdateDailySpentIfNeeded(
+        address _wallet,
+        address _token,
+        uint256 _amount,
+        address _contract
+    )
+        internal
+    {
+        if (!isWhitelisted(_wallet, _contract)) {
+            // Make sure we don't call a supported ERC20 that's not whitelisted
+            require(!coveredByDailyLimit(_wallet, _contract), "TM: Forbidden contract");
+
+            // Check if the amount is under the daily limit.
+            // Check the entire amount because the currently approved amount will be restored and should still count towards the daily limit
+            uint256 valueInEth;
+            if (_token == ETH_TOKEN || _token == wethToken) {
+                valueInEth = _amount;
             } else {
-                amount = amount * _gasPrice;
+                valueInEth = LimitUtils.getEtherValue(tokenPriceRegistry, _amount, _token);
             }
-            checkAndUpdateDailySpent(_wallet, amount);
-            invokeWallet(address(_wallet), _relayer, amount, EMPTY_BYTES);
+            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, valueInEth), "TM: Approve above daily limit");
         }
     }
 
-    // Overrides verifyRefund to add the refund in the daily limit.
-    function verifyRefund(BaseWallet _wallet, uint _gasUsed, uint _gasPrice, uint _signatures) internal view returns (bool) {
-        if (_gasPrice > 0 && _signatures > 0 && (
-            address(_wallet).balance < _gasUsed * _gasPrice ||
-            isWithinDailyLimit(_wallet, getCurrentLimit(_wallet), _gasUsed * _gasPrice) == false ||
-            _wallet.authorised(address(this)) == false
-        ))
-        {
-            return false;
-        }
-        return true;
+    // *************** Internal Functions ********************* //
+
+    function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(transferStorage),
+            abi.encodeWithSelector(transferStorage.setWhitelist.selector, _wallet, _target, _whitelistAfter)
+        );
+    }
+
+    function setLimit(address _wallet, ILimitStorage.Limit memory _limit) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setLimit.selector, _wallet, _limit)
+        );
+    }
+
+    function setLimitAndDailySpent(
+        address _wallet,
+        ILimitStorage.Limit memory _limit,
+        ILimitStorage.DailySpent memory _dailySpent
+    ) internal {
+        versionManager.invokeStorage(
+            _wallet,
+            address(limitStorage),
+            abi.encodeWithSelector(limitStorage.setLimitAndDailySpent.selector, _wallet, _limit, _dailySpent)
+        );
     }
 }

@@ -2,7 +2,11 @@ version: 2
 
 job_common: &job_common
   docker:
-    - image: circleci/node:10.12-stretch
+    - image: circleci/node:10.21-stretch
+  working_directory: ~/argent-contracts
+job_python: &job_python
+  docker:
+    - image: circleci/python:3.8.0b1-stretch-node
   working_directory: ~/argent-contracts
 step_save_cache: &step_save_cache
   save_cache:
@@ -18,7 +22,14 @@ step_setup_global_packages: &step_setup_global_packages
     name: "Set up global packages"
     command: |
       npm install
-
+step_setup_slither: &step_setup_slither
+  run:
+    name: "Setup slither analyser https://github.com/crytic/slither"
+    command: |
+      wget https://github.com/ethereum/solidity/releases/download/v0.5.4/solc-static-linux
+      chmod +x solc-static-linux
+      sudo mv solc-static-linux /usr/local/bin/solc
+      sudo pip3 install slither-analyzer
 jobs:
   unit-test:
     <<: *job_common
@@ -30,11 +41,20 @@ jobs:
           name: "Lint Solidity contracts"
           command: npm run lint:contracts
       - run:
+          name: "Testing deployment scripts and benchmark gas costs"
+          command: npm run ganache >/dev/null 2>&1 & npm run test:deployment && npm run test:benchmark
+      - run:
           name: "Compiling external library contracts"
           command: npm run compile:lib
       - run:
+          name: "Compiling legacy contracts"
+          command: npm run compile:legacy
+      - run:
           name: "Compiling contracts"
           command: npm run compile
+      - run:
+          name: "Compiling test contracts"
+          command: npm run compile:test
       - run:
           name: "Lint JavaScript"
           command: npm run lint:js
@@ -42,18 +62,37 @@ jobs:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
       - run:
-          name: "Testing deployment scripts"
-          command: npm run ganache >/dev/null 2>&1 & npm run test:deployment
-      - run:
           name: "Running coverage"
-          command: npm run test:coverage
+          command: |
+            npm run compile
+            npm run compile:test
+            npm run test:coverage
       - <<: *step_save_cache
       # Save coverage artifacts
       - store_artifacts:
           path: coverage
-
+  security-test:
+    <<: *job_python
+    steps:
+      - checkout
+      - <<: *step_restore_cache
+      - <<: *step_setup_global_packages
+      - <<: *step_setup_slither
+      - run:
+          name: "Run slither"
+          command: npm run security:slither
 workflows:
   version: 2
   commit:
     jobs:
       - unit-test
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 1 * * *" # 1am UTC
+          filters:
+            branches:
+              only:
+                - develop
+    jobs:
+      - security-test

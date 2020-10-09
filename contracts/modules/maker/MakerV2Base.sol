@@ -13,20 +13,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
-import "../common/BaseModule.sol";
-import "../common/RelayerModule.sol";
-import "../common/OnlyOwnerModule.sol";
-import "../../../lib/utils/SafeMath.sol";
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.12;
+
+import "../common/BaseFeature.sol";
+import "../../infrastructure/IMakerRegistry.sol";
 import "../../../lib/maker/MakerInterfaces.sol";
-import "../../infrastructure/MakerRegistry.sol";
+import "../../../lib/maker/DS/DSMath.sol";
 
 /**
  * @title MakerV2Base
- * @dev Common base to MakerV2Invest and MakerV2Loan.
+ * @notice Common base to MakerV2Invest and MakerV2Loan.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
+abstract contract MakerV2Base is DSMath, BaseFeature {
 
     bytes32 constant private NAME = "MakerV2Manager";
 
@@ -39,18 +39,16 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
     // The address of the Vat
     VatLike internal vat;
 
-    uint256 constant internal RAY = 10 ** 27;
-
     using SafeMath for uint256;
 
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
-        ScdMcdMigrationLike _scdMcdMigration
+        ILockStorage _lockStorage,
+        ScdMcdMigrationLike _scdMcdMigration,
+        IVersionManager _versionManager
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
         scdMcdMigration = address(_scdMcdMigration);
@@ -59,4 +57,10 @@ contract MakerV2Base is BaseModule, RelayerModule, OnlyOwnerModule {
         vat = daiJoin.vat();
     }
 
+    /**
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
 }

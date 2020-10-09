@@ -13,14 +13,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.12;
+
 import "./MakerV2Base.sol";
 import "./MakerV2Invest.sol";
 import "./MakerV2Loan.sol";
 
 /**
  * @title MakerV2Manager
- * @dev Module to lock/unlock MCD DAI into/from Maker's Pot,
+ * @notice Module to lock/unlock MCD DAI into/from Maker's Pot,
  * migrate old CDPs and open and manage new CDPs.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
@@ -29,15 +31,15 @@ contract MakerV2Manager is MakerV2Base, MakerV2Invest, MakerV2Loan {
     // *************** Constructor ********************** //
 
     constructor(
-        ModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
+        ILockStorage _lockStorage,
         ScdMcdMigrationLike _scdMcdMigration,
         PotLike _pot,
         JugLike _jug,
-        MakerRegistry _makerRegistry,
-        IUniswapFactory _uniswapFactory
+        IMakerRegistry _makerRegistry,
+        IUniswapFactory _uniswapFactory,
+        IVersionManager _versionManager
     )
-        MakerV2Base(_registry, _guardianStorage, _scdMcdMigration)
+        MakerV2Base(_lockStorage, _scdMcdMigration, _versionManager)
         MakerV2Invest(_pot)
         MakerV2Loan(_jug, _makerRegistry, _uniswapFactory)
         public

@@ -13,26 +13,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
-import "../modules/common/Module.sol";
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.12;
+
+import "../modules/common/IModule.sol";
+import "./IWallet.sol";
 
 /**
  * @title BaseWallet
- * @dev Simple modular wallet that authorises modules to call its invoke() method.
+ * @notice Simple modular wallet that authorises modules to call its invoke() method.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract BaseWallet {
+contract BaseWallet is IWallet {
 
     // The implementation of the proxy
     address public implementation;
     // The owner
-    address public owner;
+    address public override owner;
     // The authorised modules
-    mapping (address => bool) public authorised;
+    mapping (address => bool) public override authorised;
     // The enabled static calls
-    mapping (bytes4 => address) public enabled;
+    mapping (bytes4 => address) public override enabled;
     // The number of modules
-    uint public modules;
+    uint public override modules;
 
     event AuthorisedModule(address indexed module, bool value);
     event EnabledStaticCall(address indexed module, bytes4 indexed method);
@@ -41,7 +44,7 @@ contract BaseWallet {
     event OwnerChanged(address owner);
 
     /**
-     * @dev Throws if the sender is not an authorised module.
+     * @notice Throws if the sender is not an authorised module.
      */
     modifier moduleOnly {
         require(authorised[msg.sender], "BW: msg.sender not an authorized module");
@@ -49,7 +52,7 @@ contract BaseWallet {
     }
 
     /**
-     * @dev Inits the wallet by setting the owner and authorising a list of modules.
+     * @notice Inits the wallet by setting the owner and authorising a list of modules.
      * @param _owner The owner.
      * @param _modules The modules to authorise.
      */
@@ -61,7 +64,7 @@ contract BaseWallet {
         for (uint256 i = 0; i < _modules.length; i++) {
             require(authorised[_modules[i]] == false, "BW: module is already added");
             authorised[_modules[i]] = true;
-            Module(_modules[i]).init(this);
+            IModule(_modules[i]).init(address(this));
             emit AuthorisedModule(_modules[i], true);
         }
         if (address(this).balance > 0) {
@@ -70,17 +73,15 @@ contract BaseWallet {
     }
 
     /**
-     * @dev Enables/Disables a module.
-     * @param _module The target module.
-     * @param _value Set to true to authorise the module.
+     * @inheritdoc IWallet
      */
-    function authoriseModule(address _module, bool _value) external moduleOnly {
+    function authoriseModule(address _module, bool _value) external override moduleOnly {
         if (authorised[_module] != _value) {
             emit AuthorisedModule(_module, _value);
             if (_value == true) {
                 modules += 1;
                 authorised[_module] = true;
-                Module(_module).init(this);
+                IModule(_module).init(address(this));
             } else {
                 modules -= 1;
                 require(modules > 0, "BW: wallet must have at least one module");
@@ -90,69 +91,65 @@ contract BaseWallet {
     }
 
     /**
-    * @dev Enables a static method by specifying the target module to which the call
-    * must be delegated.
-    * @param _module The target module.
-    * @param _method The static method signature.
+    * @inheritdoc IWallet
     */
-    function enableStaticCall(address _module, bytes4 _method) external moduleOnly {
+    function enableStaticCall(address _module, bytes4 _method) external override moduleOnly {
         require(authorised[_module], "BW: must be an authorised module for static call");
         enabled[_method] = _module;
         emit EnabledStaticCall(_module, _method);
     }
 
     /**
-     * @dev Sets a new owner for the wallet.
-     * @param _newOwner The new owner.
+     * @inheritdoc IWallet
      */
-    function setOwner(address _newOwner) external moduleOnly {
+    function setOwner(address _newOwner) external override moduleOnly {
         require(_newOwner != address(0), "BW: address cannot be null");
         owner = _newOwner;
         emit OwnerChanged(_newOwner);
     }
 
     /**
-     * @dev Performs a generic transaction.
+     * @notice Performs a generic transaction.
      * @param _target The address for the transaction.
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
      */
     function invoke(address _target, uint _value, bytes calldata _data) external moduleOnly returns (bytes memory _result) {
         bool success;
-        // solium-disable-next-line security/no-call-value
-        (success, _result) = _target.call.value(_value)(_data);
+        (success, _result) = _target.call{value: _value}(_data);
         if (!success) {
-            // solium-disable-next-line security/no-inline-assembly
+            // solhint-disable-next-line no-inline-assembly
             assembly {
-                returndatacopy(0, 0, returndatasize)
-                revert(0, returndatasize)
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
             }
         }
         emit Invoked(msg.sender, _target, _value, _data);
     }
 
     /**
-     * @dev This method makes it possible for the wallet to comply to interfaces expecting the wallet to
-     * implement specific static methods. It delegates the static call to a target contract if the data corresponds
-     * to an enabled method, or logs the call otherwise.
+     * @notice This method delegates the static call to a target contract if the data corresponds
+     * to an enabled module, or logs the call otherwise.
      */
-    function() external payable {
-        if (msg.data.length > 0) {
-            address module = enabled[msg.sig];
-            if (module == address(0)) {
-                emit Received(msg.value, msg.sender, msg.data);
-            } else {
-                require(authorised[module], "BW: must be an authorised module for static call");
-                // solium-disable-next-line security/no-inline-assembly
-                assembly {
-                    calldatacopy(0, 0, calldatasize())
-                    let result := staticcall(gas, module, 0, calldatasize(), 0, 0)
-                    returndatacopy(0, 0, returndatasize())
-                    switch result
-                    case 0 {revert(0, returndatasize())}
-                    default {return (0, returndatasize())}
-                }
+    fallback() external payable {
+        address module = enabled[msg.sig];
+        if (module == address(0)) {
+            emit Received(msg.value, msg.sender, msg.data);
+        } else {
+            require(authorised[module], "BW: must be an authorised module for static call");
+
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                calldatacopy(0, 0, calldatasize())
+                let result := staticcall(gas(), module, 0, calldatasize(), 0, 0)
+                returndatacopy(0, 0, returndatasize())
+                switch result
+                case 0 {revert(0, returndatasize())}
+                default {return (0, returndatasize())}
             }
         }
+    }
+
+    receive() external payable {
     }
 }

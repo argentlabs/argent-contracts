@@ -8,7 +8,7 @@ class MultisigExecutor {
     this._multisigWrapper = multisigWrapper;
     this._ownerWallet = ownerWallet;
     this._autoSign = autoSign;
-    this._overrides = Object.assign(overrides, { gasLimit: 1000000 });
+    this._overrides = { gasLimit: 1000000, ...overrides };
   }
 
   async executeCall(contractWrapper, method, params) {
@@ -60,8 +60,8 @@ class MultisigExecutor {
 
     const parsedSignatures = Object.values(signaturesOutput).map((signature) => JSON.parse(signature));
     const sortedSignatures = parsedSignatures.sort((s1, s2) => {
-      const bn1 = ethers.utils.bigNumberify(s1.address);
-      const bn2 = ethers.utils.bigNumberify(s2.address);
+      const bn1 = ethers.BigNumber.from(s1.address);
+      const bn2 = ethers.BigNumber.from(s2.address);
       if (bn1.lt(bn2)) return -1;
       if (bn1.gt(bn2)) return 1;
       return 0;

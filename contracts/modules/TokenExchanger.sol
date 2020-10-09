@@ -13,20 +13,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
-import "../wallet/BaseWallet.sol";
-import "./common/BaseModule.sol";
-import "./common/RelayerModule.sol";
-import "./common/OnlyOwnerModule.sol";
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
+
+import "./common/BaseFeature.sol";
 import "../../lib/other/ERC20.sol";
-import "../../lib/other/KyberNetwork.sol";
+import "../../lib/paraswap/IAugustusSwapper.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
+import "../infrastructure/IDexRegistry.sol";
 
 /**
  * @title TokenExchanger
- * @dev Module to trade tokens (ETH or ERC20) using KyberNetworks.
- * @author Julien Niset - <julien@argent.im>
+ * @notice Module to trade tokens (ETH or ERC20) using ParaSwap.
+ * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
+contract TokenExchanger is BaseFeature {
 
     bytes32 constant NAME = "TokenExchanger";
 
@@ -34,137 +36,264 @@ contract TokenExchanger is BaseModule, RelayerModule, OnlyOwnerModule {
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    // Signatures of Paraswap's trade methods
+    // solhint-disable-next-line max-line-length
+    bytes4 constant internal MULTISWAP = 0xcbd1603e; // bytes4(keccak256("multiSwap(address,address,uint256,uint256,uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[],uint256,address,uint256,string)"))
+    // solhint-disable-next-line max-line-length
+    bytes4 constant internal BUY = 0xbb2a349b; // bytes4(keccak256("buy(address,address,uint256,uint256,uint256,(address,address,uint256,uint256,bytes,uint256)[],uint256,address,uint256,string)"))
 
-    // The address of the KyberNetwork proxy contract
-    address public kyber;
-    // The address of the contract collecting fees for Argent.
-    address public feeCollector;
-    // The Argent fee in 1-per-10000.
-    uint256 public feeRatio;
+    // The address of the Paraswap Proxy contract
+    address public paraswapProxy;
+    // The address of the Paraswap contract
+    address public paraswapSwapper;
+    // The label of the referrer
+    string public referrer;
+    // Registry of authorised exchanges
+    IDexRegistry public dexRegistry;
+    // The token price registry
+    ITokenPriceRegistry public tokenPriceRegistry;
 
     event TokenExchanged(address indexed wallet, address srcToken, uint srcAmount, address destToken, uint destAmount);
 
+
+    // *************** Constructor ********************** //
+
     constructor(
-        ModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
-        address _kyber,
-        address _feeCollector,
-        uint _feeRatio
+        ILockStorage _lockStorage,
+        ITokenPriceRegistry _tokenPriceRegistry,
+        IVersionManager _versionManager,
+        IDexRegistry _dexRegistry,
+        address _paraswap,
+        string memory _referrer
     )
-        BaseModule(_registry, _guardianStorage, NAME)
+        BaseFeature(_lockStorage, _versionManager, NAME)
         public
     {
-        kyber = _kyber;
-        feeCollector = _feeCollector;
-        feeRatio = _feeRatio;
+        tokenPriceRegistry = _tokenPriceRegistry;
+        dexRegistry = _dexRegistry;
+        paraswapSwapper = _paraswap;
+        paraswapProxy = IAugustusSwapper(_paraswap).getTokenTransferProxy();
+        referrer = _referrer;
     }
 
     /**
-     * @dev Lets the owner of the wallet execute a trade.
+     * @inheritdoc IFeature
+     */
+    function getRequiredSignatures(address, bytes calldata) external view override returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
+    }
+
+    /**
+     * @notice Lets the owner of the wallet execute a "sell" trade (fixed source amount, variable destination amount).
      * @param _wallet The target wallet
      * @param _srcToken The address of the source token.
-     * @param _srcAmount The amoutn of source token to trade.
      * @param _destToken The address of the destination token.
-     * @param _maxDestAmount The maximum amount of destination token accepted for the trade.
-     * @param _minConversionRate The minimum accepted rate for the trade.
-     * @return The amount of destination tokens that have been received.
+     * @param _srcAmount The exact amount of source tokens to sell.
+     * @param _minDestAmount The minimum amount of destination tokens required for the trade.
+     * @param _expectedDestAmount The expected amount of destination tokens (used only in ParaSwap's Swapped event).
+     * @param _path Sequence of sets of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (exact) amount of
+     * a given source token into a given (minimum) amount of a given destination token. The path is a sequence of sets of weighted routes where
+     * the destination token of a set of weighted routes matches the source token of the next set of weighted routes in the path.
+     * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minted by ParaSwap. 0 means gas token will not be used by ParaSwap
      */
-    function trade(
-        BaseWallet _wallet,
+    function sell(
+        address _wallet,
         address _srcToken,
-        uint256 _srcAmount,
         address _destToken,
-        uint256 _maxDestAmount,
-        uint256 _minConversionRate
+        uint256 _srcAmount,
+        uint256 _minDestAmount,
+        uint256 _expectedDestAmount,
+        IAugustusSwapper.Path[] calldata _path,
+        uint256 _mintPrice
     )
         external
-        onlyWalletOwner(_wallet)
+        onlyWalletOwnerOrFeature(_wallet)
         onlyWhenUnlocked(_wallet)
-        returns(uint256)
     {
-        bytes memory methodData;
-        require(_srcToken == ETH_TOKEN_ADDRESS || _destToken == ETH_TOKEN_ADDRESS, "TE: source or destination must be ETH");
-        (uint256 destAmount, uint256 fee, ) = getExpectedTrade(_srcToken, _destToken, _srcAmount);
-        if (destAmount > _maxDestAmount) {
-            fee = fee.mul(_maxDestAmount).div(destAmount);
-            destAmount = _maxDestAmount;
-        }
-        if (_srcToken == ETH_TOKEN_ADDRESS) {
-            uint256 srcTradable = _srcAmount.sub(fee);
-            methodData = abi.encodeWithSignature(
-                "trade(address,uint256,address,address,uint256,uint256,address)",
-                _srcToken,
-                srcTradable,
-                _destToken,
-                address(_wallet),
-                _maxDestAmount,
-                _minConversionRate,
-                feeCollector
-                );
-            invokeWallet(address(_wallet), kyber, srcTradable, methodData);
-        } else {
-            // approve kyber on erc20
-            methodData = abi.encodeWithSignature("approve(address,uint256)", kyber, _srcAmount);
-            invokeWallet(address(_wallet), _srcToken, 0, methodData);
-            // transfer erc20
-            methodData = abi.encodeWithSignature(
-                "trade(address,uint256,address,address,uint256,uint256,address)",
-                _srcToken,
-                _srcAmount,
-                _destToken,
-                address(_wallet),
-                _maxDestAmount,
-                _minConversionRate,
-                feeCollector
-                );
-            invokeWallet(address(_wallet), kyber, 0, methodData);
-        }
-
-        if (fee > 0) {
-            invokeWallet(address(_wallet), feeCollector, fee, "");
-        }
-        emit TokenExchanged(address(_wallet), _srcToken, _srcAmount, _destToken, destAmount);
-        return destAmount;
+        // Verify that the destination token is tradable
+        verifyTradable(_destToken);
+        // Verify that the exchange adapters used have been authorised
+        verifyExchangeAdapters(_path);
+        // Approve source amount if required
+        uint previousAllowance = approveToken(_wallet, _srcToken, _srcAmount);
+        // Perform trade and emit event
+        doSell(
+            _wallet,
+            _srcToken,
+            _destToken,
+            _srcAmount,
+            _minDestAmount,
+            _expectedDestAmount,
+            _path,
+            _mintPrice);
+        // Restore the previous allowance if needed. This should only be needed when the previous allowance
+        // was infinite. In other cases, paraswap.multiSwap() should have used exactly the additional allowance
+        // granted to it and therefore the previous allowance should have been restored.
+        restoreAllowance(_wallet, _srcToken, previousAllowance);
     }
 
     /**
-     * @dev Gets the expected terms of a trade.
+     * @notice Lets the owner of the wallet execute a "buy" trade (fixed destination amount, variable source amount).
+     * @param _wallet The target wallet
      * @param _srcToken The address of the source token.
      * @param _destToken The address of the destination token.
-     * @param _srcAmount The amount of source token to trade.
-     * @return the amount of destination tokens to be received and the amount of ETH paid to Argent as fee.
+     * @param _maxSrcAmount The maximum amount of source tokens to use for the trade.
+     * @param _destAmount The exact amount of destination tokens to buy.
+     * @param _expectedSrcAmount The expected amount of source tokens (used only in ParaSwap's Bought event).
+     * @param _routes Set of weighted ParaSwap routes. Each route specifies an exchange to use to convert a given (maximum) amount of a given
+     * source token into a given (exact) amount of a given destination token.
+     * @param _mintPrice gasPrice (in wei) at the time the gas tokens were minted by ParaSwap. 0 means gas token will not be used by ParaSwap
      */
-    function getExpectedTrade(
+    function buy(
+        address _wallet,
         address _srcToken,
         address _destToken,
-        uint256 _srcAmount
+        uint256 _maxSrcAmount,
+        uint256 _destAmount,
+        uint256 _expectedSrcAmount,
+        IAugustusSwapper.BuyRoute[] calldata _routes,
+        uint256 _mintPrice
     )
-        public
-        view
-        returns(uint256 _destAmount, uint256 _fee, uint256 _expectedRate)
+        external
+        onlyWalletOwnerOrFeature(_wallet)
+        onlyWhenUnlocked(_wallet)
     {
-        if (_srcToken == ETH_TOKEN_ADDRESS) {
-            _fee = computeFee(_srcAmount);
-            (_expectedRate,) = KyberNetwork(kyber).getExpectedRate(ERC20(_srcToken), ERC20(_destToken), _srcAmount.sub(_fee));
-            uint256 destDecimals = ERC20(_destToken).decimals();
-            // destAmount = expectedRate * (_srcAmount - fee) / ETH_PRECISION * (DEST_PRECISION / SRC_PRECISION)
-            _destAmount = _expectedRate.mul(_srcAmount.sub(_fee)).div(10 ** (36-destDecimals));
-        } else {
-            (_expectedRate,) = KyberNetwork(kyber).getExpectedRate(ERC20(_srcToken), ERC20(_destToken), _srcAmount);
-            uint256 srcDecimals = ERC20(_srcToken).decimals();
-            // destAmount = expectedRate * _srcAmount / ETH_PRECISION * (DEST_PRECISION / SRC_PRECISION) - fee
-            _destAmount = _expectedRate.mul(_srcAmount).div(10 ** srcDecimals);
-            _fee = computeFee(_destAmount);
-            _destAmount -= _fee;
+        // Verify that the destination token is tradable
+        verifyTradable(_destToken);
+        // Verify that the exchange adapters used have been authorised
+        verifyExchangeAdapters(_routes);
+        // Approve source amount if required
+        uint previousAllowance = approveToken(_wallet, _srcToken, _maxSrcAmount);
+        // Perform trade and emit event
+        doBuy(
+            _wallet,
+            _srcToken,
+            _destToken,
+            _maxSrcAmount,
+            _destAmount,
+            _expectedSrcAmount,
+            _routes,
+            _mintPrice);
+        // Restore the previous allowance if needed (paraswap.buy() may not have used exactly the additional allowance granted to it)
+        restoreAllowance(_wallet, _srcToken, previousAllowance);
+    }
+
+    // Internal & Private Methods
+
+    function verifyTradable(address _token) internal view {
+        require((_token == ETH_TOKEN_ADDRESS) || tokenPriceRegistry.isTokenTradable(_token), "TE: Token not tradable");
+    }
+
+    function verifyExchangeAdapters(IAugustusSwapper.Path[] calldata _path) internal view {
+        dexRegistry.verifyExchangeAdapters(_path);
+    }
+
+    function verifyExchangeAdapters(IAugustusSwapper.BuyRoute[] calldata _routes) internal view {
+        dexRegistry.verifyExchangeAdapters(_routes);
+    }
+
+    function approveToken(address _wallet, address _token, uint _amount) internal returns (uint256 _existingAllowance) {
+        // TODO: Use a "safe approve" logic similar to the one implemented below in other modules
+        if (_token != ETH_TOKEN_ADDRESS) {
+            _existingAllowance = ERC20(_token).allowance(_wallet, paraswapProxy);
+            if (_existingAllowance < uint256(-1)) {
+                if (_existingAllowance > 0) {
+                    // Clear the existing allowance to avoid issues with tokens like USDT that do not allow changing a non-zero allowance
+                    invokeWallet(_wallet, _token, 0, abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, 0));
+                }
+                // Increase the allowance to include the required amount
+                uint256 newAllowance = SafeMath.add(_existingAllowance, _amount);
+                invokeWallet(
+                    _wallet,
+                    _token,
+                    0,
+                    abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, newAllowance)
+                );
+            }
         }
     }
 
-    /**
-     * @dev Computes the Argent fee based on the amount of source tokens in ETH.
-     * @param _srcAmount The amount of source token to trade in ETH.
-     * @return the fee paid to Argent.
-     */
-    function computeFee(uint256 _srcAmount) internal view returns (uint256 fee) {
-        fee = (_srcAmount * feeRatio) / 10000;
+    function restoreAllowance(address _wallet, address _token, uint _previousAllowance) internal {
+        if (_token != ETH_TOKEN_ADDRESS) {
+            uint allowance = ERC20(_token).allowance(_wallet, paraswapProxy);
+            if (allowance != _previousAllowance) {
+                invokeWallet(
+                    _wallet,
+                    _token,
+                    0,
+                    abi.encodeWithSignature("approve(address,uint256)", paraswapProxy, _previousAllowance)
+                );
+            }
+        }
     }
+
+    function doTradeAndEmitEvent(
+        address _wallet,
+        address _srcToken,
+        address _destToken,
+        uint256 _srcAmount,
+        uint256 _destAmount,
+        bytes memory tradeData
+    )
+        internal
+    {
+        // Perform the trade
+        bytes memory swapRes = invokeWallet(
+            _wallet,
+            paraswapSwapper,
+            _srcToken == ETH_TOKEN_ADDRESS ? _srcAmount : 0, tradeData
+        );
+
+        // Emit event with best possible estimate of destination amount
+        uint256 estimatedDestAmount;
+        if (swapRes.length > 0) {
+            (estimatedDestAmount) = abi.decode(swapRes, (uint256));
+        } else {
+            estimatedDestAmount = _destAmount;
+        }
+        emit TokenExchanged(_wallet, _srcToken, _srcAmount, _destToken, estimatedDestAmount);
+    }
+
+    function doSell(
+        address _wallet,
+        address _srcToken,
+        address _destToken,
+        uint256 _srcAmount,
+        uint256 _minDestAmount,
+        uint256 _expectedDestAmount,
+        IAugustusSwapper.Path[] calldata _path,
+        uint256 _mintPrice
+    )
+        internal
+    {
+        // Build the calldata
+        string memory ref = referrer;
+        bytes memory tradeData = abi.encodeWithSelector(MULTISWAP,
+            _srcToken, _destToken, _srcAmount, _minDestAmount, _expectedDestAmount, _path, _mintPrice, address(0), 0, ref);
+
+        // Perform the trade
+        doTradeAndEmitEvent(_wallet, _srcToken, _destToken, _srcAmount, _minDestAmount, tradeData);
+    }
+
+    function doBuy(
+        address _wallet,
+        address _srcToken,
+        address _destToken,
+        uint256 _maxSrcAmount,
+        uint256 _destAmount,
+        uint256 _expectedSrcAmount,
+        IAugustusSwapper.BuyRoute[] calldata _routes,
+        uint256 _mintPrice
+    )
+        internal
+    {
+        // Build the calldata
+        string memory ref = referrer;
+        bytes memory tradeData = abi.encodeWithSelector(BUY,
+            _srcToken, _destToken, _maxSrcAmount, _destAmount, _expectedSrcAmount, _routes, _mintPrice, address(0), 0, ref);
+
+        // Perform the trade
+        doTradeAndEmitEvent(_wallet, _srcToken, _destToken, _maxSrcAmount, _destAmount, tradeData);
+    }
+
 }
