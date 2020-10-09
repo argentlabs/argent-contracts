@@ -16,7 +16,7 @@ const DeployManager = require("../utils/deploy-manager.js");
 
 async function main() {
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
+  const idx = process.argv.indexOf("--network");
   const network = process.argv[idx + 1];
 
   const deployManager = new DeployManager(network);
