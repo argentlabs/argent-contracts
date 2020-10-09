@@ -1,4 +1,12 @@
-// Usage: ./execute.sh updateBaseWallet.js staging
+// ///////////////////////////////////////////////////////////////////
+// Script to update the BaseWalet implementation in the WalletFactory contract
+//
+// Can be executed as:
+// ./execute_script.sh update_wallet_in_factory.js <network>
+//
+// where:
+//     - network = [ganache, test, staging, prod]
+// ////////////////////////////////////////////////////////////////////
 
 const BaseWallet = require("../build/BaseWallet");
 const WalletFactory = require("../build/WalletFactory");
@@ -6,12 +14,10 @@ const MultiSigWallet = require("../build/MultiSigWallet");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const DeployManager = require("../utils/deploy-manager.js");
 
-const defaultNetwork = "test";
-
 async function main() {
   // Read Command Line Arguments
   const idx = process.argv.indexOf("--network");
-  const network = idx > -1 ? process.argv[idx + 1] : defaultNetwork;
+  const network = process.argv[idx + 1];
 
   const deployManager = new DeployManager(network);
   await deployManager.setup();

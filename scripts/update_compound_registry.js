@@ -1,3 +1,16 @@
+// ///////////////////////////////////////////////////////////////////
+// Script to add/remove CTokens on Compound
+//
+// To add a token:
+// ./execute_script.sh update_compound_registry.js <network> --add --token <token address> --ctoken <ctoken address>
+//
+// To remove a token:
+// ./execute_script.sh update_compound_registry.js <network> --remove --token <token address>
+//
+// where:
+//    - network = [ganache, test, staging, prod]
+// ////////////////////////////////////////////////////////////////////
+
 const CompoundRegistry = require("../build/CompoundRegistry");
 const MultiSig = require("../build/MultiSigWallet");
 
