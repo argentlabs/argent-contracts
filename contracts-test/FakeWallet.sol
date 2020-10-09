@@ -36,7 +36,7 @@ contract FakeWallet is IWallet {
     }
 
     // The implementation of the proxy
-    address public implementation;
+    address public override implementation;
     // The owner
     address public override owner;
     // The authorised modules

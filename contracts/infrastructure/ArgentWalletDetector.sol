@@ -15,22 +15,15 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
-import "../infrastructure/base/Owned.sol";
-
-/**
- * @title IArgentProxy
- * @notice Interface for all Argent Proxy contracts exposing the target implementation.
- */
-interface IArgentProxy {
-    function implementation() external view returns (address);
-}
+import "./base/Owned.sol";
+import "../wallet/IWallet.sol";
 
 /**
  * @title ArgentWalletDetector
  * @notice Simple contract to detect if a given address represents an Argent wallet.
  * The `isArgentWallet` method returns true if the codehash matches one of the deployed Proxy
  * and if the target implementation matches one of the deployed BaseWallet.
- * Only the owner of the contract can add code hash ad implementations.
+ * Only the owner of the contract can add code hash and implementations.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract ArgentWalletDetector is Owned {
@@ -101,7 +94,7 @@ contract ArgentWalletDetector is Owned {
         bytes32 codeHash;   
     	assembly { codeHash := extcodehash(_argentWallet) }
         addCode(codeHash);
-        address implementation = IArgentProxy(_argentWallet).implementation(); 
+        address implementation = IWallet(_argentWallet).implementation(); 
         addImplementation(implementation);
     }
 
@@ -126,6 +119,6 @@ contract ArgentWalletDetector is Owned {
 	function isArgentWallet(address _wallet) external view returns (bool) {
 		bytes32 codeHash;    
     	assembly { codeHash := extcodehash(_wallet) }
-		return acceptedCodes[codeHash].exists && acceptedImplementations[IArgentProxy(_wallet).implementation()].exists;
+		return acceptedCodes[codeHash].exists && acceptedImplementations[IWallet(_wallet).implementation()].exists;
 	}
 }

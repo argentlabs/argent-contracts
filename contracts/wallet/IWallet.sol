@@ -21,6 +21,13 @@ pragma solidity >=0.5.4 <0.7.0;
  * @notice Interface for the BaseWallet
  */
 interface IWallet {
+
+    /**
+     * @notice Returns the implementation of the wallet.
+     * @return The wallet implementation.
+     */
+    function implementation() external view returns (address);
+
     /**
      * @notice Returns the wallet owner.
      * @return The wallet owner address.
