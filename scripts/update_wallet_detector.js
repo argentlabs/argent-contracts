@@ -1,5 +1,9 @@
 // ///////////////////////////////////////////////////////////////////
-// Script to add/remove a module from the ModuleRegistry
+// Script to add a new wallet version (code and/or implementation) to the ArgentWalletDetector.
+//
+// ////////////////////////// WARNING ///////////////////////////////////////////////
+// There is only one instance deployed that detects wallets for both staging and prod.
+// //////////////////////////////////////////////////////////////////////////////////
 //
 // To add a new wallet (code + implementation):
 // ./execute_script.sh update_wallet_detector.js <network> --wallet <wallet address>
@@ -11,7 +15,7 @@
 // ./execute_script.sh update_module_registry.js <network> --code <wallet code>
 //
 // where:
-//    - network = [test, staging, prod]
+//    - network = [test, prod]
 // ////////////////////////////////////////////////////////////////////
 
 const ArgentWalletDetector = require("../build/ArgentWalletDetector");
