@@ -5,7 +5,7 @@
 // ./execute_script.sh update_wallet_in_factory.js <network>
 //
 // where:
-//     - network = [test, staging, prod]
+//     - network = [ganache, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
 const BaseWallet = require("../build/BaseWallet");
@@ -14,12 +14,10 @@ const MultiSigWallet = require("../build/MultiSigWallet");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const DeployManager = require("../utils/deploy-manager.js");
 
-const defaultNetwork = "test";
-
 async function main() {
   // Read Command Line Arguments
-  const idx = process.argv.indexOf("--network");
-  const network = idx > -1 ? process.argv[idx + 1] : defaultNetwork;
+  let idx = process.argv.indexOf("--network");
+  const network = process.argv[idx + 1];
 
   const deployManager = new DeployManager(network);
   await deployManager.setup();

@@ -5,7 +5,7 @@
 // ./execute_script.sh update_dex_registry.js <network> --dex <dex address>=<dex status>
 //
 // where:
-//     - network = [test, staging, prod]
+//     - network = [ganache, test, staging, prod]
 //      - dex status = [true, false]
 // ////////////////////////////////////////////////////////////////////
 

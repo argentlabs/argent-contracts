@@ -5,7 +5,7 @@
 // ./execute_script.sh update_multisig_threshold.js <network> --threshold <new threshold>
 //
 // where:
-//    - network = [test, staging, prod]
+//    - network = [ganache, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
 const MultiSig = require("../build/MultiSigWallet");

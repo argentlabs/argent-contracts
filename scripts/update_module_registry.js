@@ -8,7 +8,7 @@
 // ./execute_script.sh update_module_registry.js <network> --remove --module <module address>
 //
 // where:
-//    - network = [test, staging, prod]
+//    - network = [ganache, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
 const ModuleRegistry = require("../build/ModuleRegistry");

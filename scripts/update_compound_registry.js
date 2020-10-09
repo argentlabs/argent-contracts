@@ -8,7 +8,7 @@
 // ./execute_script.sh update_compound_registry.js <network> --remove --token <token address>
 //
 // where:
-//    - network = [test, staging, prod]
+//    - network = [ganache, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
 const CompoundRegistry = require("../build/CompoundRegistry");
