@@ -21,8 +21,9 @@ const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
-
-  let wallet, code, implementation;  
+  let wallet;
+  let code;
+  let implementation;
 
   // Read Command Line Arguments
   let idx = process.argv.indexOf("--network");
