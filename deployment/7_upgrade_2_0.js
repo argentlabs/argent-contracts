@@ -6,9 +6,6 @@ const Upgrader = require("../build/UpgraderToVersionManager");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const DexRegistry = require("../build/DexRegistry");
-
 const ApprovedTransfer = require("../build/ApprovedTransfer");
 const CompoundManager = require("../build/CompoundManager");
 const GuardianManager = require("../build/GuardianManager");
@@ -71,15 +68,6 @@ const deploy = async (network) => {
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
-
-  // //////////////////////////////////
-  // Deploy infrastructure contracts
-  // //////////////////////////////////
-
-  // Deploy the new TokenPriceRegistry
-  const TokenPriceRegistryWrapper = await deployer.deploy(TokenPriceRegistry);
-  // Deploy the DexRegistry
-  const DexRegistryWrapper = await deployer.deploy(DexRegistry);
 
   // //////////////////////////////////
   // Deploy new modules
@@ -235,42 +223,16 @@ const deploy = async (network) => {
   // Setup new infrastructure
   // //////////////////////////////////
 
-  // Setup DexRegistry
-  const authorisedExchanges = Object.values(config.defi.paraswap.authorisedExchanges);
-  const DexRegistrySetAuthorisedTx = await DexRegistryWrapper.contract.setAuthorised(
-    authorisedExchanges, Array(authorisedExchanges.length).fill(true), { gasPrice },
-  );
-  await DexRegistryWrapper.verboseWaitForTransaction(DexRegistrySetAuthorisedTx, "Setting up DexRegistry");
-
   // //////////////////////////////////
   // Set contracts' managers
   // //////////////////////////////////
-
-  for (const idx in config.backend.accounts) {
-    const account = config.backend.accounts[idx];
-    const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
-    await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
-
-    const TokenPriceRegistryAddManagerTx = await TokenPriceRegistryWrapper.contract.addManager(account, { gasPrice });
-    await TokenPriceRegistryWrapper.verboseWaitForTransaction(TokenPriceRegistryAddManagerTx,
-      `Set ${account} as the manager of the TokenPriceRegistry`);
-  }
 
   // //////////////////////////////////
   // Set contracts' owners
   // //////////////////////////////////
 
-  let changeOwnerTx = await WalletFactoryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await WalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of WalletFactory");
-
-  changeOwnerTx = await TokenPriceRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await TokenPriceRegistryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of TokenPriceRegistryWrapper");
-
   changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await VersionManagerWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of VersionManagerWrapper");
-
-  changeOwnerTx = await DexRegistryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await DexRegistryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of DexRegistryWrapper");
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -278,7 +240,6 @@ const deploy = async (network) => {
 
   // TODO: change name from "module" to "feature" where appropriate
   configurator.updateModuleAddresses({
-    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
     GuardianManager: GuardianManagerWrapper.contractAddress,
@@ -293,7 +254,7 @@ const deploy = async (network) => {
   });
 
   configurator.updateInfrastructureAddresses({
-    DexRegistry: DexRegistryWrapper.contractAddress,
+
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -312,10 +273,8 @@ const deploy = async (network) => {
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(RelayerManagerWrapper, "modules"),
-    abiUploader.upload(TokenPriceRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
-    abiUploader.upload(DexRegistryWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////

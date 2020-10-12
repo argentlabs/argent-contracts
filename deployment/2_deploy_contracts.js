@@ -11,7 +11,10 @@ const ENS = require("../build/ENSRegistryWithFallback");
 const ENSManager = require("../build/ArgentENSManager");
 const ENSResolver = require("../build/ArgentENSResolver");
 const WalletFactory = require("../build-legacy/v1.6.0/WalletFactory");
-const TokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
+
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
+const DexRegistry = require("../build/DexRegistry");
+
 const MakerRegistry = require("../build/MakerRegistry");
 const ScdMcdMigration = require("../build/ScdMcdMigration");
 
@@ -55,19 +58,19 @@ const deploy = async (network) => {
   const LimitStorageWrapper = await deployer.deploy(LimitStorage);
 
   // //////////////////////////////////
-  // Deploy contracts
+  // Deploy infrastructure contracts
   // //////////////////////////////////
 
   // Deploy the Base Wallet Library
   const BaseWalletWrapper = await deployer.deploy(BaseWallet);
   // Deploy the MultiSig
   const MultiSigWrapper = await deployer.deploy(MultiSig, {}, newConfig.multisig.threshold, newConfig.multisig.owners);
-  // Deploy TokenPriceProvider
-  const TokenPriceProviderWrapper = await deployer.deploy(
-    TokenPriceProvider,
-    {},
-    newConfig.Kyber ? newConfig.Kyber.contract : "0x0000000000000000000000000000000000000000",
-  );
+
+  // Deploy the new TokenPriceRegistry
+  const TokenPriceRegistryWrapper = await deployer.deploy(TokenPriceRegistry);
+  // Deploy the DexRegistry
+  const DexRegistryWrapper = await deployer.deploy(DexRegistry);
+
   // Deploy Module Registry
   const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
   // Deploy Compound Registry
@@ -135,6 +138,7 @@ const deploy = async (network) => {
   configurator.updateModuleAddresses({
     GuardianStorage: GuardianStorageWrapper.contractAddress,
     TransferStorage: TransferStorageWrapper.contractAddress,
+    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
   });
 
   configurator.updateInfrastructureAddresses({
@@ -142,9 +146,9 @@ const deploy = async (network) => {
     WalletFactory: WalletFactoryWrapper.contractAddress,
     ENSResolver: ENSResolverWrapper.contractAddress,
     ENSManager: ENSManagerWrapper.contractAddress,
-    TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
     ModuleRegistry: ModuleRegistryWrapper.contractAddress,
     CompoundRegistry: CompoundRegistryWrapper.contractAddress,
+    DexRegistry: DexRegistryWrapper.contractAddress,
     BaseWallet: BaseWalletWrapper.contractAddress,
     LockStorage: LockStorageWrapper.contractAddress,
     LimitStorage: LimitStorageWrapper.contractAddress,
@@ -160,9 +164,10 @@ const deploy = async (network) => {
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(ENSResolverWrapper, "contracts"),
     abiUploader.upload(ENSManagerWrapper, "contracts"),
-    abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
     abiUploader.upload(CompoundRegistryWrapper, "contracts"),
+    abiUploader.upload(TokenPriceRegistryWrapper, "contracts"),
+    abiUploader.upload(DexRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);
 };
