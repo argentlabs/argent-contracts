@@ -1,3 +1,6 @@
+const GuardianStorage = require("../build-legacy/v1.6.0/GuardianStorage");
+const TransferStorage = require("../build-legacy/v1.6.0/TransferStorage");
+
 const BaseWallet = require("../build/BaseWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const CompoundRegistry = require("../build/CompoundRegistry");
@@ -37,6 +40,15 @@ const deploy = async (network) => {
   const walletRootEns = prevConfig.ENS.domain;
 
   // //////////////////////////////////
+  // Deploy Storage
+  // //////////////////////////////////
+
+  // Deploy the Guardian Storage
+  const GuardianStorageWrapper = await deployer.deploy(GuardianStorage);
+  // Deploy the Transfer Storage
+  const TransferStorageWrapper = await deployer.deploy(TransferStorage);
+
+  // //////////////////////////////////
   // Deploy contracts
   // //////////////////////////////////
 
@@ -61,7 +73,7 @@ const deploy = async (network) => {
     walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
-    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
+    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, GuardianStorageWrapper.contractAddress);
 
   // Deploy and configure Maker Registry
   const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, newConfig.defi.maker.migration);
@@ -114,6 +126,10 @@ const deploy = async (network) => {
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
+  configurator.updateModuleAddresses({
+    GuardianStorage: GuardianStorageWrapper.contractAddress,
+    TransferStorage: TransferStorageWrapper.contractAddress,
+  });
 
   configurator.updateInfrastructureAddresses({
     MultiSigWallet: MultiSigWrapper.contractAddress,
@@ -128,6 +144,8 @@ const deploy = async (network) => {
   await configurator.save();
 
   await Promise.all([
+    abiUploader.upload(GuardianStorageWrapper, "modules"),
+    abiUploader.upload(TransferStorageWrapper, "modules"),
     abiUploader.upload(MultiSigWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(ENSResolverWrapper, "contracts"),

@@ -1,6 +1,4 @@
 const childProcess = require("child_process");
-const GuardianStorage = require("../build-legacy/v1.6.0/GuardianStorage");
-const TransferStorage = require("../build-legacy/v1.6.0/TransferStorage");
 
 const GuardianManager = require("../build-legacy/v1.6.0/GuardianManager");
 const TokenExchanger = require("../build-legacy/v1.6.0/TokenExchanger");
@@ -34,15 +32,6 @@ const deploy = async (network) => {
   console.log(config);
 
   // //////////////////////////////////
-  // Deploy Storage
-  // //////////////////////////////////
-
-  // Deploy the Guardian Storage
-  const GuardianStorageWrapper = await deployer.deploy(GuardianStorage);
-  // Deploy the Transfer Storage
-  const TransferStorageWrapper = await deployer.deploy(TransferStorage);
-
-  // //////////////////////////////////
   // Deploy Modules
   // //////////////////////////////////
 
@@ -51,7 +40,7 @@ const deploy = async (network) => {
     GuardianManager,
     {},
     config.contracts.ModuleRegistry,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.GuardianStorage,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
   );
@@ -60,7 +49,7 @@ const deploy = async (network) => {
     LockManager,
     {},
     config.contracts.ModuleRegistry,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.GuardianStorage,
     config.settings.lockPeriod || 0,
   );
   // Deploy the RecoveryManager module
@@ -68,7 +57,7 @@ const deploy = async (network) => {
     RecoveryManager,
     {},
     config.contracts.ModuleRegistry,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.GuardianStorage,
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0,
     config.settings.securityPeriod || 0,
@@ -79,15 +68,15 @@ const deploy = async (network) => {
     ApprovedTransfer,
     {},
     config.contracts.ModuleRegistry,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.GuardianStorage,
   );
   // Deploy the TransferManager module
   const TransferManagerWrapper = await deployer.deploy(
     TransferManager,
     {},
     config.contracts.ModuleRegistry,
-    TransferStorageWrapper.contractAddress,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.TransferStorage,
+    config.modules.GuardianStorage,
     config.contracts.TokenPriceProvider,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
@@ -99,7 +88,7 @@ const deploy = async (network) => {
     TokenExchanger,
     {},
     config.contracts.ModuleRegistry,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.GuardianStorage,
     config.Kyber ? config.Kyber.contract : "0x0000000000000000000000000000000000000000",
     config.contracts.MultiSigWallet,
     config.settings.feeRatio || 0,
@@ -109,7 +98,7 @@ const deploy = async (network) => {
     NftTransfer,
     {},
     config.contracts.ModuleRegistry,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.GuardianStorage,
     config.CryptoKitties.contract,
   );
   // Deploy the CompoundManager module
@@ -117,7 +106,7 @@ const deploy = async (network) => {
     CompoundManager,
     {},
     config.contracts.ModuleRegistry,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.GuardianStorage,
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
   );
@@ -126,7 +115,7 @@ const deploy = async (network) => {
     MakerV2Manager,
     {},
     config.contracts.ModuleRegistry,
-    GuardianStorageWrapper.contractAddress,
+    config.modules.GuardianStorage,
     config.defi.maker.migration,
     config.defi.maker.pot,
     config.defi.maker.jug,
@@ -139,8 +128,6 @@ const deploy = async (network) => {
   // /////////////////////////////////////////////////
 
   configurator.updateModuleAddresses({
-    GuardianStorage: GuardianStorageWrapper.contractAddress,
-    TransferStorage: TransferStorageWrapper.contractAddress,
     GuardianManager: GuardianManagerWrapper.contractAddress,
     LockManager: LockManagerWrapper.contractAddress,
     RecoveryManager: RecoveryManagerWrapper.contractAddress,
@@ -158,8 +145,6 @@ const deploy = async (network) => {
   await configurator.save();
 
   await Promise.all([
-    abiUploader.upload(GuardianStorageWrapper, "modules"),
-    abiUploader.upload(TransferStorageWrapper, "modules"),
     abiUploader.upload(GuardianManagerWrapper, "modules"),
     abiUploader.upload(LockManagerWrapper, "modules"),
     abiUploader.upload(RecoveryManagerWrapper, "modules"),

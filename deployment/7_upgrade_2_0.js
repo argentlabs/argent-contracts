@@ -81,11 +81,6 @@ const deploy = async (network) => {
   // Deploy infrastructure contracts
   // //////////////////////////////////
 
-  // Deploy the Base Wallet Library
-  const BaseWalletWrapper = await deployer.deploy(BaseWallet);
-  // Deploy the Wallet Factory
-  const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
-    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, config.modules.GuardianStorage);
   // Deploy the new LockStorage
   const LockStorageWrapper = await deployer.deploy(LockStorage);
   // Deploy the new LimitStorage
