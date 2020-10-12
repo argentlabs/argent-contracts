@@ -1,5 +1,7 @@
 const GuardianStorage = require("../build-legacy/v1.6.0/GuardianStorage");
 const TransferStorage = require("../build-legacy/v1.6.0/TransferStorage");
+const LockStorage = require("../build/LockStorage");
+const LimitStorage = require("../build/LimitStorage");
 
 const BaseWallet = require("../build/BaseWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
@@ -47,6 +49,10 @@ const deploy = async (network) => {
   const GuardianStorageWrapper = await deployer.deploy(GuardianStorage);
   // Deploy the Transfer Storage
   const TransferStorageWrapper = await deployer.deploy(TransferStorage);
+  // Deploy the new LockStorage
+  const LockStorageWrapper = await deployer.deploy(LockStorage);
+  // Deploy the new LimitStorage
+  const LimitStorageWrapper = await deployer.deploy(LimitStorage);
 
   // //////////////////////////////////
   // Deploy contracts
@@ -140,12 +146,16 @@ const deploy = async (network) => {
     ModuleRegistry: ModuleRegistryWrapper.contractAddress,
     CompoundRegistry: CompoundRegistryWrapper.contractAddress,
     BaseWallet: BaseWalletWrapper.contractAddress,
+    LockStorage: LockStorageWrapper.contractAddress,
+    LimitStorage: LimitStorageWrapper.contractAddress,
   });
   await configurator.save();
 
   await Promise.all([
     abiUploader.upload(GuardianStorageWrapper, "modules"),
     abiUploader.upload(TransferStorageWrapper, "modules"),
+    abiUploader.upload(LockStorageWrapper, "contracts"),
+    abiUploader.upload(LimitStorageWrapper, "contracts"),
     abiUploader.upload(MultiSigWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(ENSResolverWrapper, "contracts"),

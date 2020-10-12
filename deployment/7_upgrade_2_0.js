@@ -6,9 +6,7 @@ const Upgrader = require("../build/UpgraderToVersionManager");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-const LimitStorage = require("../build/LimitStorage");
 const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const LockStorage = require("../build/LockStorage");
 const DexRegistry = require("../build/DexRegistry");
 
 const ApprovedTransfer = require("../build/ApprovedTransfer");
@@ -22,9 +20,6 @@ const MakerV2Manager = require("../build/MakerV2Manager");
 const TransferManager = require("../build/TransferManager");
 const RelayerManager = require("../build/RelayerManager");
 const VersionManager = require("../build/VersionManager");
-
-const BaseWallet = require("../build/BaseWallet");
-const WalletFactory = require("../build/WalletFactory");
 
 const utils = require("../utils/utilities.js");
 
@@ -81,10 +76,6 @@ const deploy = async (network) => {
   // Deploy infrastructure contracts
   // //////////////////////////////////
 
-  // Deploy the new LockStorage
-  const LockStorageWrapper = await deployer.deploy(LockStorage);
-  // Deploy the new LimitStorage
-  const LimitStorageWrapper = await deployer.deploy(LimitStorage);
   // Deploy the new TokenPriceRegistry
   const TokenPriceRegistryWrapper = await deployer.deploy(TokenPriceRegistry);
   // Deploy the DexRegistry
@@ -287,9 +278,7 @@ const deploy = async (network) => {
 
   // TODO: change name from "module" to "feature" where appropriate
   configurator.updateModuleAddresses({
-    LimitStorage: LimitStorageWrapper.contractAddress,
     TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
-    LockStorage: LockStorageWrapper.contractAddress,
     ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
     GuardianManager: GuardianManagerWrapper.contractAddress,
@@ -304,8 +293,6 @@ const deploy = async (network) => {
   });
 
   configurator.updateInfrastructureAddresses({
-    BaseWallet: BaseWalletWrapper.contractAddress,
-    WalletFactory: WalletFactoryWrapper.contractAddress,
     DexRegistry: DexRegistryWrapper.contractAddress,
   });
 
@@ -325,9 +312,7 @@ const deploy = async (network) => {
     abiUploader.upload(MakerV2ManagerWrapper, "modules"),
     abiUploader.upload(TransferManagerWrapper, "modules"),
     abiUploader.upload(RelayerManagerWrapper, "modules"),
-    abiUploader.upload(LimitStorageWrapper, "contracts"),
     abiUploader.upload(TokenPriceRegistryWrapper, "contracts"),
-    abiUploader.upload(LockStorageWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(DexRegistryWrapper, "contracts"),
