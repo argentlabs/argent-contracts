@@ -160,6 +160,7 @@ const deploy = async (network) => {
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
 
+  // TODO: change name from "module" to "feature" where appropriate
   configurator.updateModuleAddresses({
     GuardianManager: GuardianManagerWrapper.contractAddress,
     LockManager: LockManagerWrapper.contractAddress,
@@ -170,6 +171,8 @@ const deploy = async (network) => {
     NftTransfer: NftTransferWrapper.contractAddress,
     CompoundManager: CompoundManagerWrapper.contractAddress,
     MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
+    RelayerManager: RelayerManagerWrapper.contractAddress,
+    VersionManager: VersionManagerWrapper.contractAddress,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");

@@ -1,5 +1,5 @@
-const GuardianStorage = require("../build-legacy/v1.6.0/GuardianStorage");
-const TransferStorage = require("../build-legacy/v1.6.0/TransferStorage");
+const GuardianStorage = require("../build/GuardianStorage");
+const TransferStorage = require("../build/TransferStorage");
 const LockStorage = require("../build/LockStorage");
 const LimitStorage = require("../build/LimitStorage");
 
@@ -10,7 +10,7 @@ const MultiSig = require("../build/MultiSigWallet");
 const ENS = require("../build/ENSRegistryWithFallback");
 const ENSManager = require("../build/ArgentENSManager");
 const ENSResolver = require("../build/ArgentENSResolver");
-const WalletFactory = require("../build-legacy/v1.6.0/WalletFactory");
+const WalletFactory = require("../build/WalletFactory");
 
 const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 const DexRegistry = require("../build/DexRegistry");
@@ -139,6 +139,8 @@ const deploy = async (network) => {
     GuardianStorage: GuardianStorageWrapper.contractAddress,
     TransferStorage: TransferStorageWrapper.contractAddress,
     TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
+    LockStorage: LockStorageWrapper.contractAddress,
+    LimitStorage: LimitStorageWrapper.contractAddress,
   });
 
   configurator.updateInfrastructureAddresses({
@@ -150,8 +152,6 @@ const deploy = async (network) => {
     CompoundRegistry: CompoundRegistryWrapper.contractAddress,
     DexRegistry: DexRegistryWrapper.contractAddress,
     BaseWallet: BaseWalletWrapper.contractAddress,
-    LockStorage: LockStorageWrapper.contractAddress,
-    LimitStorage: LimitStorageWrapper.contractAddress,
   });
   await configurator.save();
 

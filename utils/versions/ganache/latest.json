@@ -1,1 +1,1 @@
-{"version":"2.0.1","createdAt":1599484922,"modules":[{"address":"0x320762f547A460453A1115251F72F6E4daef3c6c","name":"VersionManager"}],"fingerprint":"0x9ef43672"}
+{"modules":[{"address":"0xf4146041EdE0B35A6573DA0D820cA6Da785dFf17","name":"VersionManager"}],"fingerprint":"0xde5fa3e0","version":"1.0.0","createdAt":1602570421}

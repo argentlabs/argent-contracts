@@ -2,6 +2,7 @@ const semver = require("semver");
 const childProcess = require("child_process");
 const MultiSig = require("../build/MultiSigWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
+const VersionManager = require("../build/VersionManager");
 const Upgrader = require("../build/UpgraderToVersionManager");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -44,33 +45,10 @@ const deploy = async (network) => {
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
 
-  // Add Features to Version Manager
-  const newFeatures = [
-    GuardianManagerWrapper.contractAddress,
-    LockManagerWrapper.contractAddress,
-    RecoveryManagerWrapper.contractAddress,
-    ApprovedTransferWrapper.contractAddress,
-    TransferManagerWrapper.contractAddress,
-    TokenExchangerWrapper.contractAddress,
-    NftTransferWrapper.contractAddress,
-    CompoundManagerWrapper.contractAddress,
-    MakerV2ManagerWrapper.contractAddress,
-    RelayerManagerWrapper.contractAddress,
-  ];
-  const newFeaturesWithNoInit = [ // all features except the TransferManager
-    GuardianManagerWrapper.contractAddress,
-    LockManagerWrapper.contractAddress,
-    RecoveryManagerWrapper.contractAddress,
-    ApprovedTransferWrapper.contractAddress,
-    TokenExchangerWrapper.contractAddress,
-    NftTransferWrapper.contractAddress,
-    CompoundManagerWrapper.contractAddress,
-    MakerV2ManagerWrapper.contractAddress,
-    RelayerManagerWrapper.contractAddress,
-  ];
-  const newFeatureToInit = newFeatures.filter((f) => !newFeaturesWithNoInit.includes(f));
-  const VersionManagerAddVersionTx = await VersionManagerWrapper.contract.addVersion(newFeatures, newFeatureToInit, { gasPrice });
-  await VersionManagerWrapper.verboseWaitForTransaction(VersionManagerAddVersionTx, "Adding New Version");
+  // //////////////////////////////////
+  // Initialise the new version
+  // //////////////////////////////////
+  const VersionManagerWrapper = await deployer.wrapDeployedContract(VersionManager, config.modules.VersionManager);
 
   // //////////////////////////////////
   // Setup new infrastructure
@@ -84,30 +62,14 @@ const deploy = async (network) => {
   // Set contracts' owners
   // //////////////////////////////////
 
-  changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await VersionManagerWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of VersionManagerWrapper");
-
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
 
-  // TODO: change name from "module" to "feature" where appropriate
   configurator.updateModuleAddresses({
-    ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
-    CompoundManager: CompoundManagerWrapper.contractAddress,
-    GuardianManager: GuardianManagerWrapper.contractAddress,
-    LockManager: LockManagerWrapper.contractAddress,
-    NftTransfer: NftTransferWrapper.contractAddress,
-    RecoveryManager: RecoveryManagerWrapper.contractAddress,
-    TokenExchanger: TokenExchangerWrapper.contractAddress,
-    MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
-    TransferManager: TransferManagerWrapper.contractAddress,
-    RelayerManager: RelayerManagerWrapper.contractAddress,
-    VersionManager: VersionManagerWrapper.contractAddress,
   });
 
   configurator.updateInfrastructureAddresses({
-
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
