@@ -29,7 +29,7 @@ const deploy = async (network) => {
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const CompoundRegistryWrapper = await deployer.wrapDeployedContract(CompoundRegistry, config.contracts.CompoundRegistry);
   const TokenPriceRegistryWrapper = await deployer.wrapDeployedContract(TokenPriceRegistry, config.modules.TokenPriceRegistry);
-  const DexRegistryWrapper = await deployer.wrapDeployedContract(DexRegistry, config.contracts.TokenPriceRegistry);
+  const DexRegistryWrapper = await deployer.wrapDeployedContract(DexRegistry, config.contracts.DexRegistry);
 
   // Configure DexRegistry
   const authorisedExchanges = Object.values(config.defi.paraswap.authorisedExchanges);
