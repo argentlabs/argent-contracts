@@ -64,13 +64,6 @@ describe("ArgentWalletDetector", () => {
       assert.isTrue(isArgent, "should return true for an Argent wallet");
     });
 
-    it("should return true for an Argent wallet", async () => {
-      await detector.addImplementation(implementation1.contractAddress);
-      await detector.addCode(argentCode);
-      const isArgent = await detector.isArgentWallet(proxy1.contractAddress);
-      assert.isTrue(isArgent, "should return true for an Argent wallet");
-    });
-
     it("should return false when the code is not correct", async () => {
       await detector.addImplementation(implementation1.contractAddress);
       await detector.addCode(argentCode);

@@ -92,6 +92,7 @@ contract ArgentWalletDetector is Owned {
     */
     function addCodeAndImplementationFromWallet(address _argentWallet) external onlyOwner {
         bytes32 codeHash;   
+		// solhint-disable-next-line no-inline-assembly
     	assembly { codeHash := extcodehash(_argentWallet) }
         addCode(codeHash);
         address implementation = IWallet(_argentWallet).implementation(); 
@@ -118,6 +119,7 @@ contract ArgentWalletDetector is Owned {
     */
 	function isArgentWallet(address _wallet) external view returns (bool) {
 		bytes32 codeHash;    
+		// solhint-disable-next-line no-inline-assembly
     	assembly { codeHash := extcodehash(_wallet) }
 		return acceptedCodes[codeHash].exists && acceptedImplementations[IWallet(_wallet).implementation()].exists;
 	}
