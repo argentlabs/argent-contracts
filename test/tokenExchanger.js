@@ -183,10 +183,10 @@ contract("TokenExchanger", (accounts) => {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
     await wallet.init(owner, [versionManager.address]);
-    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
 
     // fund wallet
-    await wallet.send(parseEther("0.1"));
+    await wallet.send(parseEther("0.1").toString());
     await tokenA.mint(wallet.address, parseEther("1000"));
     await tokenB.mint(wallet.address, parseEther("1000"));
   });
@@ -365,7 +365,7 @@ contract("TokenExchanger", (accounts) => {
         variableAmount,
       });
       await tokenPriceRegistry.setTradableForTokenList([toToken], [false]);
-      await assert.revertWith(exchanger.from(owner)[method](...params, { gasLimit: 2000000 }), "TE: Token not tradable");
+      await assertrevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
       await tokenPriceRegistry.setTradableForTokenList([toToken], [true]);
     });
 
@@ -394,7 +394,7 @@ contract("TokenExchanger", (accounts) => {
       const proxy = await Proxy.new(oldWalletImplementation.address);
       const oldWallet = await OldWallet.at(proxy.address);
       await oldWallet.init(owner, [versionManager.address]);
-      await versionManager.from(owner).upgradeWallet(oldWallet.address, await versionManager.lastVersion());
+      await versionManager.upgradeWallet(oldWallet.address, await versionManager.lastVersion(), { from: owner });
       // fund wallet
       await oldWallet.send(parseEther("0.1"));
       // call sell/buy

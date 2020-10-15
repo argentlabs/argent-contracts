@@ -1,6 +1,4 @@
 /* global artifacts */
-const ethers = require("ethers");
-
 const KyberNetwork = artifacts.require("KyberNetworkTest");
 const ERC20 = artifacts.require("TestERC20");
 
@@ -32,7 +30,7 @@ contract("KyberNetwork", (accounts) => {
     const beforeETH = await getBalance(trader);
     assert.equal(beforeERC20.toNumber(), 0, "trader should have no ERC20");
     await kyber.trade(ETH_TOKEN, 10000, erc20.address, trader,
-      new BigNumber"10000000000000000000000"), 1, "0x0000000000000000000000000000000000000000", { value: 10000, from: trader });
+      new BigNumber("10000000000000000000000"), 1, "0x0000000000000000000000000000000000000000", { value: 10000, from: trader });
     const afterERC20 = await erc20.balanceOf(trader);
     const afterETH = await getBalance(trader);
     assert.equal(beforeETH.sub(afterETH).gt(10000), true, "trader should have exchanged 10000 wei");

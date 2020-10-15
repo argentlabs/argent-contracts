@@ -1,31 +1,28 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
+const GuardianManager = artifacts.require("GuardianManager");
+const LockStorage = artifacts.require("LockStorage");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const RelayerManager = artifacts.require("RelayerManager");
+const VersionManager = artifacts.require("VersionManager");
+const Registry = artifacts.require("ModuleRegistry");
+const TestFeature = artifacts.require("TestFeature");
+const TransferStorage = artifacts.require("TransferStorage");
+const LimitStorage = artifacts.require("LimitStorage");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const TransferManager = artifacts.require("TransferManager");
+const UpgraderToVersionManager = artifacts.require("UpgraderToVersionManager");
 
-const GuardianManager = require("../build/GuardianManager");
-const LockStorage = require("../build/LockStorage");
-const GuardianStorage = require("../build/GuardianStorage");
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const RelayerManager = require("../build/RelayerManager");
-const VersionManager = require("../build/VersionManager");
-const TransferStorage = require("../build/TransferStorage");
-const LimitStorage = require("../build/LimitStorage");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const TransferManager = require("../build/TransferManager");
-const Registry = require("../build/ModuleRegistry");
-const TestFeature = require("../build/TestFeature");
-const UpgraderToVersionManager = require("../build/UpgraderToVersionManager");
-
+const { assertRevert } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
-describe("VersionManager", function () {
-  this.timeout(100000);
+contract("VersionManager", (accounts) => {
 
   const manager = new RelayManager(accounts);
+  const owner = accounts[1];
 
-  const owner = accounts[1].signer;
-
-  let deployer;
   let wallet;
   let walletImplementation;
   let registry;
@@ -37,66 +34,67 @@ describe("VersionManager", function () {
   let testFeature;
 
   before(async () => {
-    deployer = manager.newDeployer();
-    walletImplementation = await deployer.deploy(BaseWallet);
+    walletImplementation = await BaseWallet.new();
   });
 
   beforeEach(async () => {
-    registry = await deployer.deploy(Registry);
-    lockStorage = await deployer.deploy(LockStorage);
-    guardianStorage = await deployer.deploy(GuardianStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    registry = await Registry.new();
+    lockStorage = await LockStorage.new();
+    guardianStorage = await GuardianStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
-    relayerManager = await deployer.deploy(RelayerManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
-    guardianManager = await deployer.deploy(GuardianManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
-      versionManager.contractAddress,
+      versionManager.address);
+    guardianManager = await GuardianManager.new(
+      lockStorage.address,
+      guardianStorage.address,
+      versionManager.address,
       24,
       12);
-    testFeature = await deployer.deploy(TestFeature, {},
-      lockStorage.contractAddress,
-      versionManager.contractAddress,
+    testFeature = await TestFeature.new(
+      lockStorage.address,
+      versionManager.address,
       42);
-    await versionManager.addVersion([guardianManager.contractAddress, relayerManager.contractAddress, testFeature.contractAddress], []);
+    await versionManager.addVersion([guardianManager.address, relayerManager.address, testFeature.address], []);
     manager.setRelayerManager(relayerManager);
 
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner, [versionManager.contractAddress]);
-    await versionManager.from(owner).upgradeWallet(wallet.contractAddress, await versionManager.lastVersion());
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = await BaseWallet.at(proxy.address);
+    await wallet.init(owner, [versionManager.address]);
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
   });
 
   describe("VersionManager owner", () => {
     it("should not let the VersionManager owner add a storage twice", async () => {
-      await assert.revertWith(versionManager.addStorage(lockStorage.contractAddress), "VM: storage already added");
+      await assertRevert(versionManager.addStorage(lockStorage.address), "VM: storage already added");
     });
 
     it("should not let the VersionManager owner add an inconsistent version", async () => {
       // Should fail: the _featuresToInit array includes a feature not listed in the _features array
-      await assert.revertWith(
-        versionManager.addVersion([relayerManager.contractAddress], [guardianManager.contractAddress]),
+      await assertRevert(
+        versionManager.addVersion([relayerManager.address], [guardianManager.address]),
         "VM: invalid _featuresToInit",
       );
     });
 
     it("should not let the VersionManager owner set an invalid minVersion", async () => {
       const lastVersion = await versionManager.lastVersion();
-      await assert.revertWith(
+
+      await assertRevert(
         versionManager.setMinVersion(0),
         "VM: invalid _minVersion",
       );
-      await assert.revertWith(
-        versionManager.setMinVersion(lastVersion.add(1)),
+
+      await assertRevert(
+        versionManager.setMinVersion(lastVersion.addn(1)),
         "VM: invalid _minVersion",
       );
     });
@@ -104,16 +102,16 @@ describe("VersionManager", function () {
 
   describe("Wallet owner", () => {
     it("should not let the relayer call a forbidden method", async () => {
-      await assert.revertWith(
-        manager.relay(versionManager, "setOwner", [wallet.contractAddress, owner], wallet, [owner]),
+      await assertRevert(
+        manager.relay(versionManager, "setOwner", [wallet.address, owner], wallet, [owner]),
         "VM: unknown method",
       );
     });
 
     it("should fail to upgrade a wallet when already on the last version", async () => {
       const lastVersion = await versionManager.lastVersion();
-      await assert.revertWith(
-        versionManager.from(owner).upgradeWallet(wallet.contractAddress, lastVersion),
+      await assertRevert(
+        versionManager.upgradeWallet(wallet.address, lastVersion, { from: owner }),
         "VM: already on new version",
       );
     });
@@ -123,29 +121,31 @@ describe("VersionManager", function () {
       await versionManager.addVersion([], []);
       await versionManager.setMinVersion(await versionManager.lastVersion());
 
-      await assert.revertWith(
-        versionManager.from(owner).upgradeWallet(wallet.contractAddress, badVersion),
+      await assertRevert(
+        versionManager.upgradeWallet(wallet.address, badVersion, { from: owner }),
         "VM: invalid _toVersion",
       );
     });
 
     it("should not let a feature call an unauthorised storage", async () => {
       // Note: we are calling the deprecated GuardianStorage.setLock so this particular method gets touched by coverage
-      const data1 = guardianStorage.contract.interface.functions.setLock.encode([wallet.contractAddress, 1]);
-      await testFeature.from(owner).invokeStorage(wallet.contractAddress, guardianStorage.contractAddress, data1);
-      let lock = await guardianStorage.getLock(wallet.contractAddress);
+      const data1 = guardianStorage.contract.methods.setLock(wallet.address, 1).encodeABI();
+
+      await testFeature.invokeStorage(wallet.address, guardianStorage.address, data1, { from: owner });
+      let lock = await guardianStorage.getLock(wallet.address);
       assert.isTrue(lock.eq(1), "Lock should have been set");
-      const data0 = guardianStorage.contract.interface.functions.setLock.encode([wallet.contractAddress, 0]);
-      await testFeature.from(owner).invokeStorage(wallet.contractAddress, guardianStorage.contractAddress, data0);
-      lock = await guardianStorage.getLock(wallet.contractAddress);
+      const data0 = guardianStorage.contract.methods.setLock(wallet.address, 0).encodeABI();
+
+      await testFeature.invokeStorage(wallet.address, guardianStorage.address, data0, { from: owner });
+      lock = await guardianStorage.getLock(wallet.address);
       assert.isTrue(lock.eq(0), "Lock should have been unset");
 
-      const newGuardianStorage = await deployer.deploy(GuardianStorage); // not authorised in VersionManager
-      await assert.revertWith(
-        testFeature.from(owner).invokeStorage(wallet.contractAddress, newGuardianStorage.contractAddress, data1),
+      const newGuardianStorage = await GuardianStorage.new(); // not authorised in VersionManager
+      await assertRevert(
+        testFeature.invokeStorage(wallet.address, newGuardianStorage.address, data1, { from: owner }),
         "VM: invalid storage invoked",
       );
-      lock = await newGuardianStorage.getLock(wallet.contractAddress);
+      lock = await newGuardianStorage.getLock(wallet.address);
       assert.isTrue(lock.eq(0), "Lock should not be set");
     });
 

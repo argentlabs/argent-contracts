@@ -129,7 +129,7 @@ contract("RelayerManager", (accounts) => {
     }
 
     await wallet.init(owner, [versionManager.address]);
-    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
   });
 
   describe("relaying feature transactions", () => {
@@ -151,7 +151,7 @@ contract("RelayerManager", (accounts) => {
       await versionManager.addVersion([testFeature.address], []);
       const wrongWallet = await deployer.deploy(BaseWallet);
       await wrongWallet.init(owner, [versionManager.address]);
-      await versionManager.from(owner).upgradeWallet(wrongWallet.address, await versionManager.lastVersion());
+      await versionManager.upgradeWallet(wrongWallet.address, await versionManager.lastVersion(), { from: owner });
       const params = [wrongWallet.address, 2];
       const txReceipt = await manager.relay(testFeature, "setIntOwnerOnly", params, wrongWallet, [owner]);
       const { success, error } = parseRelayReceipt(txReceipt);

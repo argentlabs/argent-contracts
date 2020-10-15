@@ -85,8 +85,8 @@ contract("NftTransfer", (accounts) => {
 
     await wallet1.init(owner1, [versionManager.address]);
     await wallet2.init(owner2, [versionManager.address]);
-    await versionManager.from(owner1).upgradeWallet(wallet1.address, await versionManager.lastVersion());
-    await versionManager.from(owner2).upgradeWallet(wallet2.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet1.address, await versionManager.lastVersion(), { from: owner1 });
+    await versionManager.upgradeWallet(wallet2.address, await versionManager.lastVersion(), { from: owner2 });
 
     erc721 = await ERC721.new();
     await erc721.mint(wallet1.address, tokenId);
@@ -107,7 +107,7 @@ contract("NftTransfer", (accounts) => {
           assert.equal(error, expectedError);
         }
       } else {
-        const txPromise = nftModule
+        const txPromise = nftFeature
           .transferNFT(wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32, { from: owner1, gasLimit: 300000 });
         if (shouldSucceed) {
           await txPromise;

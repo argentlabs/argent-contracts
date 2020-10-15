@@ -81,7 +81,8 @@ module.exports = {
   // Parses the RelayerModule.execute receipt to decompose the success value of the transaction
   // and additionally if an error was raised in the sub-call to optionally return that
   parseRelayReceipt(txReceipt) {
-    const { args } = txReceipt.logs.filter((e) => e.event === "TransactionExecuted").args;
+    const { args } = txReceipt.logs.find((e) => e.event === "TransactionExecuted");
+    console.log("args", args)
 
     let errorBytes;
     if (args.returnData.startsWith("0x08c379a0")) {
@@ -154,10 +155,12 @@ module.exports = {
   },
 
   async getNetworkId() {
-    // if (this.network === "ganache" || this.network.endsWith("-fork")) {
-    //   return 1; // ganache currently always uses 1 as chainId, see https://github.com/trufflesuite/ganache-core/issues/515
-    // }
-    const networkId = await web3.eth.net.getId();
+    return 1;
+    console.log("this.network", this.network)
+    if (this.network === "ganache" || this.network.endsWith("-fork")) {
+      return 1; // ganache currently always uses 1 as chainId, see https://github.com/trufflesuite/ganache-core/issues/515
+    }
+    const networkId = await web3.eth.net.getId(); // this gets the network Id not the chain id
     return networkId;
   },
 

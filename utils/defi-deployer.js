@@ -1,8 +1,8 @@
 /* global artifacts */
 
 const { parseEther, formatBytes32String } = require("ethers").utils;
-const ethers = require("ethers");
 const web3 = require("web3");
+const { BigNumber } = require("bignumber.js");
 
 const UniswapFactory = require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = require("../lib/uniswap/UniswapExchange");
@@ -23,13 +23,13 @@ const DaiJoin = artifacts.require("DaiJoin");
 
 const RAY = new BigNumber("1000000000000000000000000000"); // 10**27
 const WAD = new BigNumber("1000000000000000000"); // 10**18
-const RAD = RAY.mul(WAD);
+const RAD = RAY.times(WAD);
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
-const USD_PER_ETH = WAD.mul(100); // 1 ETH = 100 USD
-const USD_PER_MKR = WAD.mul(400); // 1 MKR = 400 USD
-const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 4 ETH
-const ETH_PER_DAI = WAD.mul(USD_PER_DAI).div(RAY).mul(WAD).div(USD_PER_ETH); // 1 DAI = 0.01 ETH
-const MAT = RAY.mul(3).div(2); // collateralizsation ratio = 150%
+const USD_PER_ETH = WAD.times(100); // 1 ETH = 100 USD
+const USD_PER_MKR = WAD.times(400); // 1 MKR = 400 USD
+const ETH_PER_MKR = WAD.times(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 4 ETH
+const ETH_PER_DAI = WAD.times(USD_PER_DAI).div(RAY).times(WAD).div(USD_PER_ETH); // 1 DAI = 0.01 ETH
+const MAT = RAY.times(3).div(2); // collateralizsation ratio = 150%
 
 module.exports = {
   RAY,

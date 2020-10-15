@@ -81,7 +81,7 @@ contract("LockManager", (accounts) => {
     ], []);
 
     await wallet.init(owner, [versionManager.address]);
-    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
   });
 
   describe("(Un)Lock by EOA guardians", () => {
