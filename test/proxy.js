@@ -21,7 +21,7 @@ contract("Proxy", (accounts) => {
 
   async function deployTestModule() {
     const module = await VersionManager.new(
-      registry.contractAddress,
+      registry.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,

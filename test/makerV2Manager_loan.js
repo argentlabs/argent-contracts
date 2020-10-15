@@ -10,6 +10,7 @@ const {
 
 const { parseEther, formatBytes32String } = ethers.utils;
 const { AddressZero } = ethers.constants;
+const RelayManager = require("../utils/relay-manager");
 
 const GemJoin = artifacts.require("GemJoin");
 const Registry = artifacts.require("ModuleRegistry");

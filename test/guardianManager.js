@@ -66,7 +66,7 @@ contract("GuardianManager", (accounts) => {
     const proxy = await deployer.deploy(Proxy, {}, walletImplementation.address);
     wallet = deployer.wrapDeployedContract(BaseWallet, proxy.address);
     await wallet.init(owner, [versionManager.address]);
-    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
   });
 
   describe("Adding Guardians", () => {

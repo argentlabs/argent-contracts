@@ -1,23 +1,16 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
 
-const Registry = require("../build/ModuleRegistry");
-const GuardianStorage = require("../build/GuardianStorage");
-const VersionManager = require("../build/VersionManager");
-const RelayerManager = require("../build/RelayerManager");
-const LockStorage = require("../build/LockStorage");
-const ERC20 = require("../build/TestERC20");
-const NonCompliantERC20 = require("../build/NonCompliantERC20");
+const Registry = artifacts.require("ModuleRegistry");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const VersionManager = artifacts.require("VersionManager");
+const RelayerManager = artifacts.require("RelayerManager");
+const LockStorage = artifacts.require("LockStorage");
+const ERC20 = artifacts.require("TestERC20");
+const NonCompliantERC20 = artifacts.require("NonCompliantERC20");
 
-const TestManager = require("../utils/test-manager");
-
-describe("BaseFeature", function () {
-  this.timeout(100000);
-
-  const manager = new TestManager();
-  const { deployer } = manager;
-
-  const owner = accounts[1].signer;
+contract("BaseFeature", (accounts) => {
+  const owner = accounts[1];
 
   let registry;
   let versionManager;
@@ -30,64 +23,64 @@ describe("BaseFeature", function () {
   });
 
   beforeEach(async () => {
-    registry = await deployer.deploy(Registry);
-    guardianStorage = await deployer.deploy(GuardianStorage);
-    lockStorage = await deployer.deploy(LockStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    registry = await Registry.new();
+    guardianStorage = await GuardianStorage.new();
+    lockStorage = await LockStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
-    relayerManager = await deployer.deploy(RelayerManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
-    await versionManager.addVersion([relayerManager.contractAddress], []);
+      versionManager.address);
+    await versionManager.addVersion([relayerManager.address], []);
 
-    token = await deployer.deploy(ERC20, {}, [owner], 10, 18);
+    token = await ERC20.new([owner], 10, 18);
   });
 
   describe("Recover tokens", async () => {
     it("should be able to recover ERC20 tokens sent to the feature", async () => {
-      let balance = await token.balanceOf(relayerManager.contractAddress);
+      let balance = await token.balanceOf(relayerManager.address);
       assert.equal(balance, 0);
 
-      await token.from(owner).transfer(relayerManager.contractAddress, 10000000);
-      balance = await token.balanceOf(relayerManager.contractAddress);
+      await token.transfer(relayerManager.address, 10000000, { from: owner });
+      balance = await token.balanceOf(relayerManager.address);
       assert.equal(balance, 10000000);
 
-      await relayerManager.recoverToken(token.contractAddress);
+      await relayerManager.recoverToken(token.address);
 
-      balance = await token.balanceOf(relayerManager.contractAddress);
+      balance = await token.balanceOf(relayerManager.address);
       assert.equal(balance, 0);
 
-      const versionManagerBalance = await token.balanceOf(versionManager.contractAddress);
+      const versionManagerBalance = await token.balanceOf(versionManager.address);
       assert.equal(versionManagerBalance, 10000000);
 
-      await versionManager.recoverToken(token.contractAddress);
+      await versionManager.recoverToken(token.address);
 
       const adminBalance = await token.balanceOf(accounts[0]);
       assert.equal(adminBalance, 10000000);
     });
 
     it("should be able to recover non-ERC20 compliant tokens sent to the feature", async () => {
-      const nonCompliantToken = await deployer.deploy(NonCompliantERC20, {});
-      await nonCompliantToken.mint(relayerManager.contractAddress, 10000000);
-      let balance = await nonCompliantToken.balanceOf(relayerManager.contractAddress);
+      const nonCompliantToken = await NonCompliantERC20.new();
+      await nonCompliantToken.mint(relayerManager.address, 10000000);
+      let balance = await nonCompliantToken.balanceOf(relayerManager.address);
       assert.equal(balance, 10000000);
 
-      await relayerManager.recoverToken(nonCompliantToken.contractAddress);
+      await relayerManager.recoverToken(nonCompliantToken.address);
 
-      balance = await nonCompliantToken.balanceOf(relayerManager.contractAddress);
+      balance = await nonCompliantToken.balanceOf(relayerManager.address);
       assert.equal(balance, 0);
 
-      const versionManagerBalance = await nonCompliantToken.balanceOf(versionManager.contractAddress);
+      const versionManagerBalance = await nonCompliantToken.balanceOf(versionManager.address);
       assert.equal(versionManagerBalance, 10000000);
 
-      await versionManager.recoverToken(nonCompliantToken.contractAddress);
+      await versionManager.recoverToken(nonCompliantToken.address);
 
       const adminBalance = await nonCompliantToken.balanceOf(accounts[0]);
       assert.equal(adminBalance, 10000000);

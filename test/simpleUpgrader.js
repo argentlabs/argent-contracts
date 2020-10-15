@@ -67,7 +67,7 @@ contract("SimpleUpgrader", (accounts) => {
       // and a second accepting an array of addresses. Behaviour as to which overload is selected to run
       // differs between CI and Coverage environments, adjusted for this here
       // todo: confirm the above still stands?
-      const isRegistered = await registry.isRegisteredModule(initialModule.address);
+      const isRegistered = await registry.isRegisteredModule([initialModule.address]);
       assert.equal(isRegistered, true, "module1 should be registered");
       const info = await registry.moduleInfo(initialModule.address);
       assert.equal(parseBytes32String(info), name, "module1 should be registered with the correct name");
@@ -82,7 +82,7 @@ contract("SimpleUpgrader", (accounts) => {
       await registry.registerModule(moduleToAdd.address, formatBytes32String("added"));
 
       await wallet.init(owner, [initialModule.address]);
-      await initialModule.from(owner).upgradeWallet(wallet.address, await initialModule.lastVersion());
+      await initialModule.upgradeWallet(wallet.address, await initialModule.lastVersion(), { from: owner });
       let isAuthorised = await wallet.authorised(initialModule.address);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // add module to wallet
@@ -100,7 +100,7 @@ contract("SimpleUpgrader", (accounts) => {
       await registry.registerModule(initialModule.address, formatBytes32String("initial"));
 
       await wallet.init(owner, [initialModule.address]);
-      await initialModule.from(owner).upgradeWallet(wallet.address, await initialModule.lastVersion());
+      await initialModule.upgradeWallet(wallet.address, await initialModule.lastVersion(), { from: owner });
       let isAuthorised = await wallet.authorised(initialModule.address);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // try (and fail) to add moduleToAdd to wallet
@@ -116,7 +116,7 @@ contract("SimpleUpgrader", (accounts) => {
       await registry.registerModule(moduleV1.address, formatBytes32String("V1"));
 
       await wallet.init(owner, [moduleV1.address]);
-      await moduleV1.from(owner).upgradeWallet(wallet.address, await moduleV1.lastVersion());
+      await moduleV1.upgradeWallet(wallet.address, await moduleV1.lastVersion(), { from: owner });
       // create module V2
       const { module: moduleV2 } = await deployTestModule();
       // create upgrader
@@ -154,7 +154,7 @@ contract("SimpleUpgrader", (accounts) => {
       const proxy = await Proxy.new(walletImplementation.address);
       wallet = await BaseWallet.at(proxy.address);
       await wallet.init(owner, [moduleV1.address]);
-      await moduleV1.from(owner).upgradeWallet(wallet.address, await moduleV1.lastVersion());
+      await moduleV1.upgradeWallet(wallet.address, await moduleV1.lastVersion(), { from: owner });
 
       // create module V2
       const { module: moduleV2 } = await deployTestModule();
@@ -187,7 +187,7 @@ contract("SimpleUpgrader", (accounts) => {
       if (relayed) {
         txReceipt = await manager.relay(moduleV1, "addModule", params1, wallet, [owner]);
         const { success } = (await utils.parseLogs(txReceipt, "TransactionExecuted"));
-        assert.equal(success, useOnlyOwnerModule, "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
+        assert.isTrue(success, "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
       } else {
         const tx = await moduleV1.addModule(...params1, { from: owner });
         txReceipt = tx.receipt;

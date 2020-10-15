@@ -4,6 +4,8 @@ const ethers = require("ethers");
 const {
   deployMaker, deployUniswap, WAD, ETH_PER_DAI, ETH_PER_MKR,
 } = require("../utils/defi-deployer");
+const RelayManager = require("../utils/relay-manager");
+
 const Registry = artifacts.require("ModuleRegistry");
 const MakerV2Manager = artifacts.require("MakerV2Manager");
 const Proxy = artifacts.require("Proxy");
@@ -84,7 +86,7 @@ contract("MakerV2Invest", (accounts) => {
     wallet = await BaseWallet.at(proxy.address);
 
     await wallet.init(owner, [versionManager.address]);
-    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
     await sai["mint(address,uint256)"](wallet.address, DAI_SENT.mul(20));
     await dai["mint(address,uint256)"](wallet.address, DAI_SENT.mul(20));
   });

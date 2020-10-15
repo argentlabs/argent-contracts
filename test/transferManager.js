@@ -2,6 +2,7 @@
 
 const ethers = require("ethers");
 const chai = require("chai");
+const { BigNumber } = require("bignumber.js");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 

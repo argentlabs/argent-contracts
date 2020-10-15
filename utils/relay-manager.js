@@ -19,6 +19,7 @@ class RelayManager {
     const nonce = _nonce || await getNonceForRelay();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
     const networkId = await getNetworkId();
+    console.log("networkId", networkId)
     const signatures = await signOffchain(
       _signers,
       this.relayerManager.address,

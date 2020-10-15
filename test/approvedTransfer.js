@@ -92,7 +92,7 @@ contract("ApprovedTransfer", (accounts) => {
     wallet = await BaseWallet.at(proxy.address);
 
     await wallet.init(owner, [versionManager.address]);
-    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
 
     const decimals = 12; // number of decimal for TOKN contract
     erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
@@ -101,8 +101,8 @@ contract("ApprovedTransfer", (accounts) => {
 
   async function addGuardians(guardians) {
     // guardians can be BaseWallet or ContractWrapper objects
-    for (const address of guardians) {
-      await guardianManager.addGuardian(wallet.address, address, { from: owner });
+    for (const guardian of guardians) {
+      await guardianManager.addGuardian(wallet.address, guardian, { from: owner });
     }
 
     await increaseTime(30);
@@ -115,17 +115,20 @@ contract("ApprovedTransfer", (accounts) => {
 
   async function createSmartContractGuardians(guardians) {
     const wallets = [];
-    for (const g of guardians) {
-      const guardianWallet = await BaseWallet.new();
-      await guardianWallet.init(g, [versionManager.address]);
-      await versionManager.upgradeWallet(guardianWallet.address, await versionManager.lastVersion(), { from: g });
-      wallets.push(guardianWallet);
+    for (const guardian of guardians) {
+      const proxy = await Proxy.new(walletImplementation.address);
+      const guardianWallet = await BaseWallet.at(proxy.address);
+
+      await guardianWallet.init(guardian, [versionManager.address]);
+      await versionManager.upgradeWallet(guardianWallet.address, await versionManager.lastVersion(), { from: guardian });
+      wallets.push(guardianWallet.address);
     }
     return wallets;
   }
 
   async function transferToken(_token, _signers) {
     const to = recipient;
+
     const before = _token === ETH_TOKEN ? await getBalance(to) : await erc20.balanceOf(to);
     await manager.relay(approvedTransfer, "transferToken",
       [wallet.address, _token, to, amountToTransfer, ZERO_BYTES32], wallet, _signers);
@@ -261,9 +264,9 @@ contract("ApprovedTransfer", (accounts) => {
   describe("Contract call", () => {
     it("should fail to call contract on a wallet with no guardian", async () => {
       contract = await TestContract.new();
-      const dataToTransfer = contract.contract.interface.functions.setState.encode([1]);
+      const dataToTransfer = contract.contract.methods.setState([1]).encodeABI();
 
-      await assert.revertWith(
+      await assertRevert(
         manager.relay(
           approvedTransfer,
           "callContract",

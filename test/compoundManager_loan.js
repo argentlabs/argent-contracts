@@ -2,6 +2,7 @@
 
 const ethers = require("ethers");
 const { parseEther } = require("ethers").utils;
+const { BigNumber } = require("bignumber.js");
 const utils = require("../utils/utilities.js");
 
 const GuardianStorage = artifacts.require("GuardianStorage");
@@ -168,7 +169,7 @@ contract("Loan Module", (accounts) => {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
     await wallet.init(owner, [versionManager.address]);
-    await versionManager.from(owner).upgradeWallet(wallet.address, await versionManager.lastVersion());
+    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
   });
 
   async function fundWallet({ ethAmount, token1Amount, token2Amount = 0 }) {
