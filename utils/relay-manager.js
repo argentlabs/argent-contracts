@@ -1,5 +1,5 @@
 const ethers = require("ethers");
-const { signOffchain, ETH_TOKEN, getNonceForRelay, getNetworkId, getAccount } = require("./utilities.js");
+const { signOffchain, ETH_TOKEN, getNonceForRelay, getChainId, getAccount } = require("./utilities.js");
 
 class RelayManager {
   setRelayerManager(relayerManager) {
@@ -18,15 +18,14 @@ class RelayManager {
     const relayerAccount = _relayerAccount || await getAccount(9);
     const nonce = _nonce || await getNonceForRelay();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
-    const networkId = await getNetworkId();
-    console.log("networkId", networkId)
+    const chainId = await getChainId();
     const signatures = await signOffchain(
       _signers,
       this.relayerManager.address,
       _module.address,
       0,
       methodData,
-      networkId,
+      chainId,
       nonce,
       _gasPrice,
       _gasLimit,
