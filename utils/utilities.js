@@ -101,7 +101,7 @@ module.exports = {
   },
 
   async hasEvent(txReceipt, eventName) {
-    const event = txReceipt.logs.find((e) => e.event === eventName);
+    const event = txReceipt.logs.filter((e) => e.event === eventName);
     return expect(event, "Event does not exist in recept").to.exist;
   },
 

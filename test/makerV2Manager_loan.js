@@ -146,7 +146,7 @@ contract("MakerV2Loan", (accounts) => {
     const { ilk } = await makerRegistry.collaterals(tokenAddress_);
     const { spot, dust } = await vat.ilks(ilk);
     const daiAmount = dust.div(RAY);
-    const collateralAmount = dust.div(spot).mul(2);
+    const collateralAmount = dust.div(spot).times(2);
     return { daiAmount, collateralAmount };
   }
 
@@ -262,7 +262,7 @@ contract("MakerV2Loan", (accounts) => {
       ? await getBalance(walletAddress)
       : await collateral.balanceOf(walletAddress);
 
-    const expectedCollateralChange = collateralAmount.mul(add ? -1 : 1).toString();
+    const expectedCollateralChange = collateralAmount.times(add ? -1 : 1).toString();
     assert.equal(
       afterCollateral.sub(beforeCollateral).toString(),
       expectedCollateralChange,
@@ -461,7 +461,7 @@ contract("MakerV2Loan", (accounts) => {
     const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
     // give some ETH to the wallet to be used for repayment
-    await owner.send({ to: walletAddress, value: collateralAmount.mul(2) });
+    await owner.send({ to: walletAddress, value: collateralAmount.times(2) });
     await increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.address);
     const method = "closeLoan";
@@ -563,7 +563,7 @@ contract("MakerV2Loan", (accounts) => {
         const tx = await makerV2[method](...params, { gasLimit: 1000000, from: owner });
         txReceipt = tx.receipt;
       }
-      assert.isTrue(await hasEvent(txReceipt, makerV2, "LoanAcquired"), "should have generated LoanAcquired event");
+      hasEvent(txReceipt, "LoanAcquired");
 
       // The loanId held by the MakerV2Manager will be different from the transferred vault id, in case the latter was merged into an existing vault
       const featureLoanId = await makerV2.loanIds(walletAddress, ilk);

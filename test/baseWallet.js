@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const { BigNumber } = require("bignumber.js");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -29,13 +30,13 @@ contract("BaseWallet", (accounts) => {
   let lockStorage;
 
   async function deployTestModule() {
-    const module = await deployer.deploy(VersionManager, {},
+    const module = await VersionManager.new(
       registry.address,
       lockStorage.address,
       guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
-    const feature = await deployer.deploy(TestFeature, {},
+    const feature = await TestFeature.new(
       lockStorage.address,
       module.address,
       42);
@@ -63,7 +64,7 @@ contract("BaseWallet", (accounts) => {
     it("should register a module with the correct info", async () => {
       const name = ethers.utils.formatBytes32String("module1");
       await registry.registerModule(module1.address, name);
-      const isRegistered = await registry.isRegisteredModule(module1.address);
+      const isRegistered = await registry.contract.methods['isRegisteredModule(address)'](module1.address).call();
       assert.isTrue(isRegistered, "module should be registered");
       const info = await registry.moduleInfo(module1.address);
       assert.equal(name, info, "name should be correct");
@@ -72,10 +73,10 @@ contract("BaseWallet", (accounts) => {
     it("should deregister a module", async () => {
       const name = ethers.utils.formatBytes32String("module2");
       await registry.registerModule(module2.address, name);
-      let isRegistered = await registry.isRegisteredModule(module2.address);
+      let isRegistered = await registry.contract.methods['isRegisteredModule(address)'](module2.address).call();
       assert.isTrue(isRegistered, "module should be registered");
       await registry.deregisterModule(module2.address);
-      isRegistered = await registry.isRegisteredModule(module2.address);
+      isRegistered = await registry.contract.methods['isRegisteredModule(address)'](module2.address).call();
       assert.isFalse(isRegistered, "module should be deregistered");
     });
 
@@ -147,7 +148,7 @@ contract("BaseWallet", (accounts) => {
 
       it("should accept ETH with data", async () => {
         const before = await getBalance(wallet.address);
-        await wallet.send(50000000, { data: 0x1234 });
+        await web3.eth.sendTransaction({ from: accounts[0], to: wallet.address, data: "0x1234", value: 50000000 });
         const after = await getBalance(wallet.address);
         assert.equal(after.sub(before).toNumber(), 50000000, "should have received ETH");
       });
@@ -173,10 +174,10 @@ contract("BaseWallet", (accounts) => {
         await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
         const module1IsAuthorised = await wallet.authorised(module1.address);
         assert.equal(module1IsAuthorised, true, "module1 should be authorised");
-        const walletAsFeature = deployer.wrapDeployedContract(TestFeature, wallet.address);
-        const boolVal = await walletAsFeature.contract.getBoolean();
-        const uintVal = await walletAsFeature.contract.getUint();
-        const addressVal = await walletAsFeature.contract.getAddress(nonowner);
+        const walletAsFeature = await TestFeature.at(wallet.address);
+        const boolVal = await walletAsFeature.getBoolean();
+        const uintVal = await walletAsFeature.getUint();
+        const addressVal = await walletAsFeature.getAddress(nonowner);
         assert.equal(boolVal, true, "should have the correct bool");
         assert.equal(uintVal, 42, "should have the correct uint");
         assert.equal(addressVal, nonowner, "should have the address");
@@ -189,7 +190,7 @@ contract("BaseWallet", (accounts) => {
         assert.equal(module1IsAuthorised, true, "module1 should be authorised");
 
         // removing module 1
-        const upgrader = await deployer.deploy(SimpleUpgrader, {},
+        const upgrader = await SimpleUpgrader.new(
           registry.address, lockStorage.address, [module1.address], []);
         await registry.registerModule(upgrader.address, ethers.utils.formatBytes32String("Removing module1"));
         await module1.addModule(wallet.address, upgrader.address, { from: owner });
@@ -198,14 +199,14 @@ contract("BaseWallet", (accounts) => {
 
         // trying to execute static call delegated to module1 (it should fail)
         const walletAsModule = await TestFeature.at(wallet.address);
-        await assertRevert(walletAsModule.getBoolean(), "BW: must be an authorised module for static call");
+        await assertRevert(walletAsModule.contract.methods.getBoolean(), "BW: must be an authorised module for static call");
       });
     });
   });
 
   describe("Old BaseWallet V1.3", () => {
     it("should work with new modules", async () => {
-      const oldWallet = await deployer.deploy(OldWalletV13);
+      const oldWallet = await OldWalletV13.new();
       await oldWallet.init(owner, [module1.address]);
       await module1.upgradeWallet(oldWallet.address, await module1.lastVersion(), { from: owner });
       await feature1.callDapp(oldWallet.address);
@@ -216,7 +217,7 @@ contract("BaseWallet", (accounts) => {
 
   describe("Old BaseWallet V1.6", () => {
     it("should work with new modules", async () => {
-      const oldWallet = await deployer.deploy(OldWalletV16);
+      const oldWallet = await OldWalletV16.new();
       await oldWallet.init(owner, [module1.address]);
       await module1.upgradeWallet(oldWallet.address, await module1.lastVersion(), { from: owner });
       await feature1.callDapp(oldWallet.address);

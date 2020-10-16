@@ -59,6 +59,7 @@ class RelayManager {
       _refundAddress,
       { gasLimit: _gasLimitRelay, gasPrice: _gasPrice, from: relayerAccount },
     );
+
     return tx.receipt;
   }
 }
