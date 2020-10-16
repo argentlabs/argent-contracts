@@ -4,7 +4,7 @@ const BaseWallet = require("../build/BaseWallet");
 
 const TestManager = require("../utils/test-manager");
 
-const argentCode = "0x7899f8a5e2362ec6ae586d08ca7a344acd3122abf2d23c5df2a18d7a540dd500";
+//const argentCode = "0x7899f8a5e2362ec6ae586d08ca7a344acd3122abf2d23c5df2a18d7a540dd500";
 const randomCode = "0x880ac7547a884027b93f5eaba5ff545919fdeb3c23ed0d2094db66303b3a80ac";
 
 describe("ArgentWalletDetector", () => {
@@ -16,6 +16,7 @@ describe("ArgentWalletDetector", () => {
   let implementation2;
   let proxy1;
   let proxy2;
+  let argentCode;
 
   before(async () => {
     deployer = manager.newDeployer();
@@ -23,6 +24,7 @@ describe("ArgentWalletDetector", () => {
     implementation2 = await deployer.deploy(BaseWallet);
     proxy1 = await deployer.deploy(Proxy, {}, implementation1.contractAddress);
     proxy2 = await deployer.deploy(Proxy, {}, implementation2.contractAddress);
+    argentCode = ethers.utils.keccak256(proxy1._contract.deployedBytecode);
   });
 
   beforeEach(async () => {
@@ -66,8 +68,8 @@ describe("ArgentWalletDetector", () => {
 
     it("should return false when the code is not correct", async () => {
       await detector.addImplementation(implementation1.contractAddress);
-      await detector.addCode(argentCode);
-      const isArgent = await detector.isArgentWallet(detector.contractAddress);
+      await detector.addCode(randomCode);
+      const isArgent = await detector.isArgentWallet(proxy1.contractAddress);
       assert.isFalse(isArgent, "should return false when the code is not correct");
     });
 
