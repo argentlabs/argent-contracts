@@ -1,7 +1,7 @@
 /* global artifacts */
-const { parseEther, formatBytes32String } = require("ethers").utils;
+const { formatBytes32String } = require("ethers").utils;
 const ethers = require("ethers");
-const { BigNumber } = require("bignumber.js");
+const { BN } = require("bn.js");
 const utils = require("../utils/utilities.js");
 
 const GuardianStorage = artifacts.require("GuardianStorage");
@@ -23,8 +23,8 @@ const CEther = artifacts.require("CEther");
 const CErc20 = artifacts.require("CErc20");
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 
-const WAD = new BigNumber("1000000000000000000"); // 10**18
-const ETH_EXCHANGE_RATE = new BigNumber("200000000000000000000000000");
+const WAD = new BN("1000000000000000000"); // 10**18
+const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
 
 const ERC20 = artifacts.require("TestERC20");
 
@@ -62,9 +62,9 @@ contract("Invest Manager with Compound", (accounts) => {
     const comptrollerImpl = await Comptroller.new();
     await comptrollerProxy._setPendingImplementation(comptrollerImpl.address);
     await comptrollerImpl._become(comptrollerProxy.address, oracle.address, WAD.div(10), 5, false);
-    comptroller = Comptroller.at(comptrollerProxy.address);
+    comptroller = await Comptroller.at(comptrollerProxy.address);
     // deploy Interest rate model
-    const interestModel = await InterestModel.new(WAD.mul(250).div(10000), WAD.mul(2000).div(10000));
+    const interestModel = await InterestModel.new(WAD.times(250).div(10000), WAD.times(2000).div(10000));
     // deploy CEther
     cEther = await CEther.new(
       comptrollerProxy.address,
@@ -100,9 +100,10 @@ contract("Invest Manager with Compound", (accounts) => {
     await comptroller._setCollateralFactor(cEther.address, WAD.div(10));
 
     // add liquidity to tokens
-    await cEther.mint({ value: parseEther("100"), from: liquidityProvider });
-    await token.approve(cToken.address, parseEther("100"), { from: liquidityProvider });
-    await cToken.mint(parseEther("10"), { from: liquidityProvider });
+    const tenEther = await web3.utils.toWei("10", "ether");
+    await cEther.mint({ value: tenEther, from: liquidityProvider });
+    await token.approve(cToken.address, tenEther, { from: liquidityProvider });
+    await cToken.mint(web3.utils.toWei("1", "ether"), { from: liquidityProvider });
 
     /* Deploy Argent Architecture */
 
@@ -158,6 +159,7 @@ contract("Invest Manager with Compound", (accounts) => {
       const cOracle = await comptroller.oracle();
       assert.isTrue(cOracle === oracleProxy.address, "oracle should be registered");
       const cTokenPrice = await oracleProxy.getUnderlyingPrice(cToken.address);
+      console.log("cTokenPrice", cTokenPrice)
       assert.isTrue(cTokenPrice.eq(WAD.div(10)), "cToken price should be 1e17");
       const cEtherPrice = await oracleProxy.getUnderlyingPrice(cEther.address);
       assert.isTrue(cEtherPrice.eq(WAD), "cEther price should be 1e18");
@@ -170,13 +172,13 @@ contract("Invest Manager with Compound", (accounts) => {
       // generate borrows to create interests
       await comptroller.enterMarkets([cEther.address, cToken.address], { from: borrower });
       if (investInEth) {
-        await token.approve(cToken.address, parseEther("20"), { from: borrower });
-        await cToken.mint(parseEther("20"), { from: borrower });
-        tx = await cEther.borrow(parseEther("0.1"), { from: borrower });
+        await token.approve(cToken.address, web3.utils.toWei("20", "ether"), { from: borrower });
+        await cToken.mint(web3.utils.toWei("20", "ether"), { from: borrower });
+        tx = await cEther.borrow(web3.utils.toWei("0.1", "ether"), { from: borrower });
         await utils.hasEvent(tx.receipt, "Borrow");
       } else {
-        await cEther.mint({ value: parseEther("2"), from: borrower });
-        tx = await cToken.borrow(parseEther("0.1"), { from: borrower });
+        await cEther.mint({ value: web3.utils.toWei("2", "ether"), from: borrower });
+        tx = await cToken.borrow(web3.utils.toWei("0.1", "ether"), { from: borrower });
         await utils.hasEvent(tx.receipt, "Borrow");
       }
       // increase time to accumulate interests
@@ -203,7 +205,7 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt = tx.receipt;
       }
 
-      await utils.hasEvent(txReceipt, "InvestmentAdded");
+      await utils.hasEvent(txReceipt, "CompoundManager.InvestmentAdded");
 
       await accrueInterests(days, investInEth);
 
@@ -218,7 +220,7 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt;
       const investInEth = (tokenAddress === ETH_TOKEN);
 
-      await addInvestment(tokenAddress, parseEther("0.1"), 365, false);
+      await addInvestment(tokenAddress, web3.utils.toWei("0.1", "ether"), 365, false);
       const before = investInEth ? await cEther.balanceOf(wallet.address) : await cToken.balanceOf(wallet.address);
 
       const params = [wallet.address, tokenAddress, fraction];
@@ -238,25 +240,25 @@ contract("Invest Manager with Compound", (accounts) => {
       // Successes
 
       it("should invest in ERC20 for 1 year and gain interests (blockchain tx)", async () => {
-        await addInvestment(token.address, parseEther("1"), 365, false);
+        await addInvestment(token.address, web3.utils.toWei("1", "ether"), 365, false);
       });
 
       it("should invest in ERC20 for 1 year and gain interests (relay tx)", async () => {
-        await addInvestment(token.address, parseEther("1"), 365, true);
+        await addInvestment(token.address, web3.utils.toWei("1", "ether"), 365, true);
       });
 
       it("should invest in ETH for 1 year and gain interests (blockchain tx)", async () => {
-        await addInvestment(ETH_TOKEN, parseEther("1"), 365, false);
+        await addInvestment(ETH_TOKEN, web3.utils.toWei("1", "ether"), 365, false);
       });
 
       it("should invest in ETH for 1 year and gain interests (relay tx)", async () => {
-        await addInvestment(ETH_TOKEN, parseEther("1"), 365, true);
+        await addInvestment(ETH_TOKEN, web3.utils.toWei("1", "ether"), 365, true);
       });
 
       // Reverts
 
       it("should fail to invest in ERC20 with an unknown token", async () => {
-        const params = [wallet.address, ethers.constants.AddressZero, parseEther("1"), 0];
+        const params = [wallet.address, ethers.constants.AddressZero, web3.utils.toWei("1", "ether"), 0];
         await utils.assertRevert(investManager.addInvestment(...params, { from: owner }), "CM: No market for target token");
       });
 
@@ -266,7 +268,7 @@ contract("Invest Manager with Compound", (accounts) => {
       });
 
       it("should fail to invest in ERC20 when not holding any ERC20", async () => {
-        const params = [wallet.address, token.address, parseEther("1"), 0];
+        const params = [wallet.address, token.address, web3.utils.toWei("1", "ether"), 0];
         await utils.assertRevert(investManager.addInvestment(...params, { from: owner }), "CM: mint failed");
       });
     });
@@ -305,8 +307,8 @@ contract("Invest Manager with Compound", (accounts) => {
       });
 
       it("should fail to remove all of an ERC20 investment when it collateralizes a loan", async () => {
-        const collateralAmount = parseEther("1");
-        const debtAmount = parseEther("0.001");
+        const collateralAmount = await web3.utils.toWei("1", "ether");
+        const debtAmount = await web3.utils.toWei("0.001", "ether");
         await token.transfer(wallet.address, collateralAmount);
         const openLoanParams = [
           wallet.address,

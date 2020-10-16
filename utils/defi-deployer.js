@@ -46,7 +46,7 @@ module.exports = {
       await uniswapFactory.createExchange(token.address, { from: infrastructure });
       const uniswapExchangeAddress = await uniswapFactory.getExchange(token.address);
       const tokenExchange = await UniswapExchange.at(uniswapExchangeAddress);
-      const tokenLiquidity = ethLiquidity.mul(WAD).div(ethPerToken[i]);
+      const tokenLiquidity = ethLiquidity.times(WAD).div(ethPerToken[i]);
       await token["mint(address,uint256)"](infrastructure, tokenLiquidity);
       await token.approve(tokenExchange.address, tokenLiquidity, { from: infrastructure });
       const { timestamp } = await web3.eth.getBlock("latest");
@@ -147,7 +147,7 @@ module.exports = {
     // Allow daiJoin to mint DAI
     await dai.rely(daiJoin.address);
     // Give daiJoin some internal DAI in the vat
-    await vat.suck(daiJoin.address, daiJoin.address, RAD.mul(1000000));
+    await vat.suck(daiJoin.address, daiJoin.address, RAD.times(1000000));
 
     // Deploy and setup SCD to MCD Migration
     const migration = await ScdMcdMigration.new(

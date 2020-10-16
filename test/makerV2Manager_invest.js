@@ -87,8 +87,8 @@ contract("MakerV2Invest", (accounts) => {
 
     await wallet.init(owner, [versionManager.address]);
     await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
-    await sai["mint(address,uint256)"](wallet.address, DAI_SENT.mul(20));
-    await dai["mint(address,uint256)"](wallet.address, DAI_SENT.mul(20));
+    await sai["mint(address,uint256)"](wallet.address, DAI_SENT.times(20));
+    await dai["mint(address,uint256)"](wallet.address, DAI_SENT.times(20));
   });
 
   async function exchangeWithPot({ toPot, relayed, all = false }) {

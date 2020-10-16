@@ -89,7 +89,7 @@ contract("MultiSigWallet", (accounts) => {
 
   async function getMultiSigParams(functioName, params) {
     const nonce = await multisig.nonce();
-    const data = multisig.contract.methods[functioName]([...params]).encodeABI;
+    const data = multisig.contract.methods[functioName]([...params]).encodeABI();
     const signedData = MultisigExecutor.signHash(multisig.address, multisig.address, 0, data, nonce.toNumber());
     const signatures = await getSignatures(signedData, [owner1, owner2]);
     return { data, signatures };
