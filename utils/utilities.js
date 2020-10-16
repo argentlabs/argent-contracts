@@ -82,7 +82,6 @@ module.exports = {
   // and additionally if an error was raised in the sub-call to optionally return that
   parseRelayReceipt(txReceipt) {
     const { args } = txReceipt.logs.find((e) => e.event === "TransactionExecuted");
-    console.log("args", args)
 
     let errorBytes;
     if (args.returnData.startsWith("0x08c379a0")) {
@@ -154,14 +153,14 @@ module.exports = {
     return timestamp;
   },
 
-  async getNetworkId() {
-    return 1;
-    console.log("this.network", this.network)
-    if (this.network === "ganache" || this.network.endsWith("-fork")) {
-      return 1; // ganache currently always uses 1 as chainId, see https://github.com/trufflesuite/ganache-core/issues/515
-    }
-    const networkId = await web3.eth.net.getId(); // this gets the network Id not the chain id
-    return networkId;
+  async getChainId() {
+    // TODO: The web3 version packaged with truffle is 1.2.1 while the getChainId logic 
+    // we need here was introduced in 1.2.2 
+    // Uncomment when https://github.com/trufflesuite/truffle/issues/2688#issuecomment-709879003 is resolved
+    //const chainId = await web3.eth.getChainId();
+    //console.log("chainId", chainId)
+    //return chainId;
+    return 1895;
   },
 
   async increaseTime(seconds) {
