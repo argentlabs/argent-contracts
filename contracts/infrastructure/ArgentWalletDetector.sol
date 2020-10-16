@@ -28,13 +28,13 @@ import "../wallet/IWallet.sol";
  */
 contract ArgentWalletDetector is Owned {
 	
-	// The accepeted code hash
+	// The accepted code hashes
 	bytes32[] private codes;
 	// The accepted implementations
 	address[] private implementations;
-	// mapping to efficiently check if a code is accepeted
+	// mapping to efficiently check if a code is accepted
     mapping (bytes32 => Info) public acceptedCodes;
-	// mapping to efficiently check is an implementation is accepeted
+	// mapping to efficiently check is an implementation is accepted
 	mapping (address => Info) public acceptedImplementations;
 
 	struct Info {
@@ -42,9 +42,9 @@ contract ArgentWalletDetector is Owned {
         uint128 index;
     }
 
-	// emits when a new accepeted code is added
+	// emits when a new accepted code is added
 	event CodeAdded(bytes32 indexed code);
-	// emits when a new accepeted implementation is added 
+	// emits when a new accepted implementation is added 
 	event ImplementationAdded(address indexed implementation);
 
 	constructor(bytes32[] memory _codes, address[] memory _implementations) public {
