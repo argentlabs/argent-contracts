@@ -1,7 +1,12 @@
 /* global artifacts */
 const { formatBytes32String } = require("ethers").utils;
 const ethers = require("ethers");
-const { BN } = require("bn.js");
+const chai = require("chai");
+const BN = require("bn.js");
+const bnChai = require("bn-chai");
+
+const { expect } = chai;
+chai.use(bnChai(BN));
 const utils = require("../utils/utilities.js");
 
 const GuardianStorage = artifacts.require("GuardianStorage");
@@ -61,10 +66,10 @@ contract("Invest Manager with Compound", (accounts) => {
     const comptrollerProxy = await Unitroller.new();
     const comptrollerImpl = await Comptroller.new();
     await comptrollerProxy._setPendingImplementation(comptrollerImpl.address);
-    await comptrollerImpl._become(comptrollerProxy.address, oracle.address, WAD.div(10), 5, false);
+    await comptrollerImpl._become(comptrollerProxy.address, oracle.address, WAD.divn(10), 5, false);
     comptroller = await Comptroller.at(comptrollerProxy.address);
     // deploy Interest rate model
-    const interestModel = await InterestModel.new(WAD.times(250).div(10000), WAD.times(2000).div(10000));
+    const interestModel = await InterestModel.new(WAD.muln(250).divn(10000), WAD.muln(2000).divn(10000));
     // deploy CEther
     cEther = await CEther.new(
       comptrollerProxy.address,
@@ -88,7 +93,7 @@ contract("Invest Manager with Compound", (accounts) => {
       18,
     );
     // add price to Oracle
-    await oracle.setUnderlyingPrice(cToken.address, WAD.div(10));
+    await oracle.setUnderlyingPrice(cToken.address, WAD.divn(10));
     // list cToken in Comptroller
     await comptroller._supportMarket(cEther.address);
     await comptroller._supportMarket(cToken.address);
@@ -96,8 +101,8 @@ contract("Invest Manager with Compound", (accounts) => {
     oracleProxy = await PriceOracleProxy.new(comptroller.address, oracle.address, cEther.address);
     await comptroller._setPriceOracle(oracleProxy.address);
     // set collateral factor
-    await comptroller._setCollateralFactor(cToken.address, WAD.div(10));
-    await comptroller._setCollateralFactor(cEther.address, WAD.div(10));
+    await comptroller._setCollateralFactor(cToken.address, WAD.divn(10));
+    await comptroller._setCollateralFactor(cEther.address, WAD.divn(10));
 
     // add liquidity to tokens
     const tenEther = await web3.utils.toWei("10", "ether");
@@ -159,10 +164,9 @@ contract("Invest Manager with Compound", (accounts) => {
       const cOracle = await comptroller.oracle();
       assert.isTrue(cOracle === oracleProxy.address, "oracle should be registered");
       const cTokenPrice = await oracleProxy.getUnderlyingPrice(cToken.address);
-      console.log("cTokenPrice", cTokenPrice)
-      assert.isTrue(cTokenPrice.eq(WAD.div(10)), "cToken price should be 1e17");
+      expect(cTokenPrice).to.eq.BN(WAD.divn(10));
       const cEtherPrice = await oracleProxy.getUnderlyingPrice(cEther.address);
-      assert.isTrue(cEtherPrice.eq(WAD), "cEther price should be 1e18");
+      expect(cEtherPrice).to.eq.BN(WAD);
     });
   });
 
@@ -232,8 +236,17 @@ contract("Invest Manager with Compound", (accounts) => {
       }
       await utils.hasEvent(txReceipt, "InvestmentRemoved");
 
+      // TODO: Manual division result rounding up until https://github.com/indutny/bn.js/issues/79 is added to BN.js 
+      const result = before.muln(10000 - fraction);
+      const divisionRemainder = new BN(result.modn(10000));
+
+      let divisionResult = result.divn(10000);
+      if (!divisionRemainder.isZero()) {
+        divisionResult = divisionResult.iaddn(1);
+      }
+
       const after = investInEth ? await cEther.balanceOf(wallet.address) : await cToken.balanceOf(wallet.address);
-      assert.isTrue(after.eq(Math.ceil((before * (10000 - fraction)) / 10000)), "should have removed the correct fraction");
+      expect(after).to.eq.BN(divisionResult);
     }
 
     describe("Add Investment", () => {
