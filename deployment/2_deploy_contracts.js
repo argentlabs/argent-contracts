@@ -138,7 +138,6 @@ const deploy = async (network) => {
   configurator.updateModuleAddresses({
     GuardianStorage: GuardianStorageWrapper.contractAddress,
     TransferStorage: TransferStorageWrapper.contractAddress,
-    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
     LockStorage: LockStorageWrapper.contractAddress,
     LimitStorage: LimitStorageWrapper.contractAddress,
   });
@@ -150,6 +149,7 @@ const deploy = async (network) => {
     ENSManager: ENSManagerWrapper.contractAddress,
     ModuleRegistry: ModuleRegistryWrapper.contractAddress,
     CompoundRegistry: CompoundRegistryWrapper.contractAddress,
+    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
     DexRegistry: DexRegistryWrapper.contractAddress,
     BaseWallet: BaseWalletWrapper.contractAddress,
   });

@@ -34,7 +34,7 @@ const deploy = async (network) => {
   console.log(config);
 
   // //////////////////////////////////
-  // Deploy new modules
+  // Deploy VersionManager module
   // //////////////////////////////////
   const VersionManagerWrapper = await deployer.deploy(
     VersionManager,
@@ -47,7 +47,7 @@ const deploy = async (network) => {
   );
 
   // //////////////////////////////////
-  // Deploy new features
+  // Deploy features
   // //////////////////////////////////
 
   // Deploy the GuardianManager module
