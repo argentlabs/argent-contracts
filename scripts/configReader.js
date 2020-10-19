@@ -33,9 +33,14 @@ async function main() {
   const configLoader = new ConfiguratorLoader.S3(bucket, key);
 
   const configurator = new Configurator(configLoader);
-  await configurator.load();
+
+  // This will allow the config to be printed regardless of whether it's valid or not
+  await configurator.load(false);
   const configuration = configurator.copyConfig();
   console.log(configuration);
+
+  // Validate the configuration. Prints any validation error.
+  configurator._validate();
 }
 
 main().catch((err) => {
