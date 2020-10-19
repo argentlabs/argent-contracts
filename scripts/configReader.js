@@ -37,7 +37,7 @@ async function main() {
   // This will allow the config to be printed regardless of whether it's valid or not
   await configurator.load(false);
   const configuration = configurator.copyConfig();
-  console.log(configuration);
+  console.log(JSON.stringify(configuration, null, 4));
 
   // Validate the configuration. Prints any validation error.
   configurator._validate();
