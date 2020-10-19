@@ -11,15 +11,12 @@
 
 require("dotenv").config();
 
-const path = require("path");
-
 const ConfiguratorLoader = require("../utils/configurator-loader.js");
 const Configurator = require("../utils/configurator.js");
 
 async function main() {
   const idx = process.argv.indexOf("--network");
   const network = process.argv[idx + 1];
-  const env = process.env.CONFIG_ENVIRONMENT;
   const remotelyManagedNetworks = (process.env.S3_BUCKET_SUFFIXES || "").split(":");
 
   // Ensure a supported network is requested
