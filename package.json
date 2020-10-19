@@ -78,7 +78,7 @@
     "inquirer": "^7.0.0",
     "istanbul": "^0.4.5",
     "lint-staged": "^10.2.11",
-    "node-fetch": "^2.3.0",
+    "node-fetch": "^2.6.1",
     "openzeppelin-solidity": "2.3",
     "ps-node": "^0.1.6",
     "semver": "^7.1.3",
