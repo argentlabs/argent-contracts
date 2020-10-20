@@ -14,7 +14,7 @@ if [ $NOCOMPILE != "--no-compile" ]; then
     npm run compile:lib
     npm run compile
     npm run compile:legacy
-    FILE=NO-COMPILE
+    FILE=$NOCOMPILE
 else
     FILE=$1
     shift

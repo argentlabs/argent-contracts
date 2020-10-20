@@ -16,7 +16,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 import "./base/Owned.sol";
-import "../wallet/IWallet.sol";
+
+interface IArgentWallet {
+    /**
+     * @notice Returns the implementation of the wallet.
+     * @return The wallet implementation.
+     */
+    function implementation() external view returns (address);
+}
 
 /**
  * @title ArgentWalletDetector
@@ -95,7 +102,7 @@ contract ArgentWalletDetector is Owned {
         // solhint-disable-next-line no-inline-assembly
         assembly { codeHash := extcodehash(_argentWallet) }
         addCode(codeHash);
-        address implementation = IWallet(_argentWallet).implementation(); 
+        address implementation = IArgentWallet(_argentWallet).implementation(); 
         addImplementation(implementation);
     }
 
@@ -121,6 +128,6 @@ contract ArgentWalletDetector is Owned {
         bytes32 codeHash;    
         // solhint-disable-next-line no-inline-assembly
         assembly { codeHash := extcodehash(_wallet) }
-        return acceptedCodes[codeHash].exists && acceptedImplementations[IWallet(_wallet).implementation()].exists;
+        return acceptedCodes[codeHash].exists && acceptedImplementations[IArgentWallet(_wallet).implementation()].exists;
     }
 }

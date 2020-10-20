@@ -27,7 +27,7 @@ import "./IWallet.sol";
 contract BaseWallet is IWallet {
 
     // The implementation of the proxy
-    address public override implementation;
+    address public implementation;
     // The owner
     address public override owner;
     // The authorised modules

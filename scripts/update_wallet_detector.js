@@ -9,10 +9,10 @@
 // ./execute_script.sh update_wallet_detector.js <network> --wallet <wallet address>
 //
 // To add a new implementation:
-// ./execute_script.sh update_module_registry.js <network> --implementation <wallet implementation>
+// ./execute_script.sh update_wallet_detector.js <network> --implementation <wallet implementation>
 //
 // To add a new code:
-// ./execute_script.sh update_module_registry.js <network> --code <wallet code>
+// ./execute_script.sh update_wallet_detector.js <network> --code <wallet code>
 //
 // where:
 //    - network = [test, prod]
@@ -66,12 +66,10 @@ async function main() {
   if (wallet) {
     console.log(`Adding wallet code and implementation from ${wallet}`);
     await multisigExecutor.executeCall(ArgentWalletDetectorWrapper, "addCodeAndImplementationFromWallet", [wallet]);
-  }
-  if (code) {
+  } else if (code) {
     console.log(`Adding wallet code ${code}`);
     await multisigExecutor.executeCall(ArgentWalletDetectorWrapper, "addCode", [code]);
-  }
-  if (implementation) {
+  } else if (implementation) {
     console.log(`Adding wallet implementation ${implementation}`);
     await multisigExecutor.executeCall(ArgentWalletDetectorWrapper, "addImplementation", [implementation]);
   }
