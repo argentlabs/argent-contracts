@@ -1,4 +1,4 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.7.4;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
