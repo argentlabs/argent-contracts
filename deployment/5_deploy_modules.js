@@ -96,7 +96,7 @@ const deploy = async (network) => {
     config.modules.LockStorage,
     config.modules.TransferStorage,
     config.modules.LimitStorage,
-    config.modules.TokenPriceRegistry,
+    config.contracts.TokenPriceRegistry,
     VersionManagerWrapper.contractAddress,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
@@ -109,7 +109,7 @@ const deploy = async (network) => {
     TokenExchanger,
     {},
     config.modules.LockStorage,
-    config.modules.TokenPriceRegistry,
+    config.contracts.TokenPriceRegistry,
     VersionManagerWrapper.contractAddress,
     config.contracts.DexRegistry,
     config.defi.paraswap.contract,
@@ -120,7 +120,7 @@ const deploy = async (network) => {
     NftTransfer,
     {},
     config.modules.LockStorage,
-    config.modules.TokenPriceRegistry,
+    config.contracts.TokenPriceRegistry,
     VersionManagerWrapper.contractAddress,
     config.CryptoKitties.contract,
   );
@@ -152,7 +152,7 @@ const deploy = async (network) => {
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     config.modules.LimitStorage,
-    config.modules.TokenPriceRegistry,
+    config.contracts.TokenPriceRegistry,
     VersionManagerWrapper.contractAddress,
   );
 

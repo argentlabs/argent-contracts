@@ -1,5 +1,5 @@
+/* global utils */
 const ethers = require("ethers");
-
 const ArgentWalletDetector = require("../build/ArgentWalletDetector");
 const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
