@@ -223,12 +223,14 @@ module.exports = {
       await promise;
       assert.fail(`Transaction succeeded, but expected error ${revertMessage}`);
     } catch (err) {
-      if (!revertMessage) {
-        assert.notEqual(err.hijackedStack.indexOf("VM Exception while processing transaction: revert"), -1);
-      } else {
         ({ reason } = err);
-        assert.equal(reason, revertMessage);
-      }
+        if (reason) {
+          assert.equal(reason, revertMessage);
+        } else if (!revertMessage) {
+          assert.notEqual(err.hijackedStack.indexOf("VM Exception while processing transaction: revert"), -1);
+        } else {
+          assert.notEqual(err.hijackedStack.indexOf(revertMessage), -1);
+        }
     }
   },
 
