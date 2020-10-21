@@ -1,8 +1,12 @@
 /* global artifacts */
 
 const ethers = require("ethers");
-const { BigNumber } = require("bignumber.js");
-const utils = require("../utils/utilities.js");
+const chai = require("chai");
+const BN = require("bn.js");
+const bnChai = require("bn-chai");
+
+const { expect } = chai;
+chai.use(bnChai(BN));
 
 const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");
@@ -24,14 +28,14 @@ const CEther = artifacts.require("CEther");
 const CErc20 = artifacts.require("CErc20");
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 
-const WAD = new BigNumber("1000000000000000000"); // 10**18
-const ETH_EXCHANGE_RATE = new BigNumber("200000000000000000000000000");
-
 const ERC20 = artifacts.require("TestERC20");
 
-const { ETH_TOKEN, getBalance } = require("../utils/utilities.js");
-const RelayManager = require("../utils/relay-manager");
+const WAD = new BN("1000000000000000000"); // 10**18
+const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
 
+const RelayManager = require("../utils/relay-manager");
+const { ETH_TOKEN } = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 contract("Loan Module", (accounts) => {
@@ -66,10 +70,10 @@ contract("Loan Module", (accounts) => {
     const comptrollerProxy = await Unitroller.new();
     const comptrollerImpl = await Comptroller.new();
     await comptrollerProxy._setPendingImplementation(comptrollerImpl.address);
-    await comptrollerImpl._become(comptrollerProxy.address, oracle.address, WAD.div(10), 5, false);
+    await comptrollerImpl._become(comptrollerProxy.address, oracle.address, WAD.divn(10), 5, false);
     comptroller = await Comptroller.at(comptrollerProxy.address);
     // deploy Interest rate model
-    const interestModel = await InterestModel.new(WAD.times(250).div(10000), WAD.times(2000).div(10000));
+    const interestModel = await InterestModel.new(WAD.muln(250).divn(10000), WAD.muln(2000).divn(10000));
     // deploy CEther
     cEther = await CEther.new(
       comptroller.address,
@@ -104,8 +108,8 @@ contract("Loan Module", (accounts) => {
     );
 
     // add price to Oracle
-    await oracle.setUnderlyingPrice(cToken1.address, WAD.div(10));
-    await oracle.setUnderlyingPrice(cToken2.address, WAD.div(10));
+    await oracle.setUnderlyingPrice(cToken1.address, WAD.divn(10));
+    await oracle.setUnderlyingPrice(cToken2.address, WAD.divn(10));
     // list cToken in Comptroller
     await comptroller._supportMarket(cEther.address);
     await comptroller._supportMarket(cToken1.address);
@@ -114,16 +118,16 @@ contract("Loan Module", (accounts) => {
     oracleProxy = await PriceOracleProxy.new(comptroller.address, oracle.address, cEther.address);
     await comptroller._setPriceOracle(oracleProxy.address);
     // set collateral factor
-    await comptroller._setCollateralFactor(cToken1.address, WAD.div(10));
-    await comptroller._setCollateralFactor(cToken2.address, WAD.div(10));
-    await comptroller._setCollateralFactor(cEther.address, WAD.div(10));
+    await comptroller._setCollateralFactor(cToken1.address, WAD.divn(10));
+    await comptroller._setCollateralFactor(cToken2.address, WAD.divn(10));
+    await comptroller._setCollateralFactor(cEther.address, WAD.divn(10));
 
     // add liquidity to tokens
-    await cEther.mint({ value: web3.utils.toWei("100", "ether"), from: liquidityProvider });
-    await token1.approve(cToken1.address, web3.utils.toWei("10", "ether"), { from: liquidityProvider });
-    await cToken1.mint(web3.utils.toWei("10", "ether"), { from: liquidityProvider });
-    await token2.approve(cToken2.address, web3.utils.toWei("10", "ether"), { from: liquidityProvider });
-    await cToken2.mint(web3.utils.toWei("10", "ether"), { from: liquidityProvider });
+    await cEther.mint({ value: web3.utils.toWei("100"), from: liquidityProvider });
+    await token1.approve(cToken1.address, web3.utils.toWei("10"), { from: liquidityProvider });
+    await cToken1.mint(web3.utils.toWei("10"), { from: liquidityProvider });
+    await token2.approve(cToken2.address, web3.utils.toWei("10"), { from: liquidityProvider });
+    await cToken2.mint(web3.utils.toWei("10"), { from: liquidityProvider });
 
     /* Deploy Argent Architecture */
 
@@ -181,9 +185,9 @@ contract("Loan Module", (accounts) => {
     async function testOpenLoan({
       collateral, collateralAmount, debt, debtAmount, relayed,
     }) {
-      const collateralBefore = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
+      const collateralBefore = (collateral === ETH_TOKEN) ? await utils.getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
-      const debtBefore = (debt === ETH_TOKEN) ? await getBalance(wallet.address)
+      const debtBefore = (debt === ETH_TOKEN) ? await utils.getBalance(wallet.address)
         : await debt.balanceOf(wallet.address);
 
       const params = [
@@ -199,19 +203,18 @@ contract("Loan Module", (accounts) => {
         const tx = await loanManager.openLoan(...params, { from: owner });
         txReceipt = tx.receipt;
       }
-      await utils.hasEvent(txReceipt, "LoanOpened");
-      const eventArgs = utils.parseLogs(txReceipt, "LoanOpened");
-      const loanId = eventArgs._loanId;
+
+      const event = await utils.getEvent(txReceipt, loanManager, "LoanOpened");
+      const loanId = event.args._loanId;
       assert.isDefined(loanId, "Loan ID should be defined");
 
-      const collateralAfter = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
+      const collateralAfter = (collateral === ETH_TOKEN) ? await utils.getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
-      const debtAfter = (debt === ETH_TOKEN) ? await getBalance(wallet.address)
+      const debtAfter = (debt === ETH_TOKEN) ? await utils.getBalance(wallet.address)
         : await debt.balanceOf(wallet.address);
 
-      assert.isTrue(collateralBefore.sub(collateralAfter).eq(collateralAmount),
-        `wallet should have ${collateralAmount} less ETH (relayed: ${relayed})`);
-      assert.isTrue(debtAfter.sub(debtBefore).eq(debtAmount), `wallet should have ${debtAmount} more token (relayed: ${relayed})`);
+      expect(collateralBefore.sub(collateralAfter)).to.eq.BN(new BN(collateralAmount));
+      expect(debtAfter.sub(debtBefore)).to.eq.BN(new BN(debtAmount));
 
       return loanId;
     }
@@ -219,7 +222,7 @@ contract("Loan Module", (accounts) => {
     async function testChangeCollateral({
       loanId, collateral, amount, add, relayed,
     }) {
-      const collateralBalanceBefore = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
+      const collateralBalanceBefore = (collateral === ETH_TOKEN) ? await utils.getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
 
       const method = add ? "addCollateral" : "removeCollateral";
@@ -235,23 +238,24 @@ contract("Loan Module", (accounts) => {
         const tx = await loanManager[method](...params, { from: owner });
         txReceipt = tx.receipt;
       }
-      const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await getBalance(wallet.address)
+      const collateralBalanceAfter = (collateral === ETH_TOKEN) ? await utils.getBalance(wallet.address)
         : await collateral.balanceOf(wallet.address);
       if (add) {
-        await utils.hasEvent(txReceipt, "CollateralAdded");
-        assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.sub(amount)),
-          `wallet collateral should have decreased by ${amount} (relayed: ${relayed})`);
+        await utils.hasEvent(txReceipt, loanManager, "CollateralAdded");
+        // Wallet collateral should have decreased by `amount`
+        expect(collateralBalanceAfter).to.eq.BN(collateralBalanceBefore.sub(amount));
+          
       } else {
-        await utils.hasEvent(txReceipt, "CollateralRemoved");
-        assert.isTrue(collateralBalanceAfter.eq(collateralBalanceBefore.add(amount)),
-          `wallet collateral should have invcreased by ${amount} (relayed: ${relayed})`);
+        await utils.hasEvent(txReceipt, loanManager, "CollateralRemoved");
+        // Wallet collateral should have increased by `amount`
+        expect(collateralBalanceAfter).to.eq.BN(collateralBalanceBefore.add(amount));
       }
     }
 
     async function testChangeDebt({
       loanId, debtToken, amount, add, relayed,
     }) {
-      const debtBalanceBefore = (debtToken === ETH_TOKEN) ? await getBalance(wallet.address)
+      const debtBalanceBefore = (debtToken === ETH_TOKEN) ? await utils.getBalance(wallet.address)
         : await debtToken.balanceOf(wallet.address);
 
       const method = add ? "addDebt" : "removeDebt";
@@ -267,13 +271,14 @@ contract("Loan Module", (accounts) => {
         const tx = await loanManager[method](...params, { from: owner });
         txReceipt = tx.receipt;
       }
-      const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await getBalance(wallet.address)
+      const debtBalanceAfter = (debtToken === ETH_TOKEN) ? await utils.getBalance(wallet.address)
         : await debtToken.balanceOf(wallet.address);
       if (add) {
-        await utils.hasEvent(txReceipt, "DebtAdded");
-        assert.isTrue(debtBalanceAfter.eq(debtBalanceBefore.add(amount)), `wallet debt should have increase by ${amount} (relayed: ${relayed})`);
+        await utils.hasEvent(txReceipt, loanManager, "DebtAdded");
+        // Wallet debt should have increase by `amount`
+        expect(debtBalanceAfter).to.eq.BN(debtBalanceBefore.add(amount));
       } else {
-        await utils.hasEvent(txReceipt, "DebtRemoved");
+        await utils.hasEvent(txReceipt, loanManager, "DebtRemoved");
         assert.isTrue(
           debtBalanceAfter.eq(debtBalanceBefore.sub(amount)) || amount.eq(ethers.constants.MaxUint256),
           `wallet debt should have decreased by ${amount} (relayed: ${relayed})`,
@@ -283,8 +288,8 @@ contract("Loan Module", (accounts) => {
 
     describe("Open Loan", () => {
       it("should borrow token with ETH as collateral (blockchain tx)", async () => {
-        const collateralAmount = await web3.utils.toWei("0.1");
-        const debtAmount = await web3.utils.toWei("0.05");
+        const collateralAmount = web3.utils.toWei("0.1");
+        const debtAmount = web3.utils.toWei("0.05");
         await fundWallet({ ethAmount: collateralAmount, token1Amount: 0 });
         await testOpenLoan({
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
@@ -326,18 +331,24 @@ contract("Loan Module", (accounts) => {
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
         let loan = await loanManager.getLoan(wallet.address, ZERO_BYTES32);
-        assert.isTrue(loan._status === 1 && loan._ethValue.gt(0), "should have obtained the liquidity info of the loan");
+        // Should obtain the liquidity info of the loan
+        expect(loan._status).to.eq.BN(new BN(1));
+        expect(loan._ethValue).to.be.gt.BN(0);
 
-        await oracle.setUnderlyingPrice(cToken1.address, WAD.times(10));
+        await oracle.setUnderlyingPrice(cToken1.address, WAD.muln(10));
         loan = await loanManager.getLoan(wallet.address, ZERO_BYTES32);
-        assert.isTrue(loan._status === 2 && loan._ethValue.gt(0), "should have obtained the shortfall info of the loan");
+        // Should obtain the shortfall info of the loan
+        expect(loan._status).to.eq.BN(new BN(2));
+        expect(loan._ethValue).to.be.gt.BN(0);
 
         await oracle.setUnderlyingPrice(cToken1.address, 0);
         await utils.assertRevert(loanManager.getLoan(wallet.address, ZERO_BYTES32), "CM: failed to get account liquidity");
 
-        await oracle.setUnderlyingPrice(cToken1.address, WAD.div(10));
+        await oracle.setUnderlyingPrice(cToken1.address, WAD.divn(10));
         loan = await loanManager.getLoan(ethers.constants.AddressZero, ZERO_BYTES32);
-        assert.isTrue(loan._status === 0 && loan._ethValue.eq(0), "should have obtained (0,0) for the non-existing loan info");
+        // Should obtain (0,0) for non-existing loan info
+        expect(loan._status).to.be.zero;
+        expect(loan._ethValue).to.be.zero;
       });
     });
 
@@ -357,7 +368,7 @@ contract("Loan Module", (accounts) => {
       it("should add ETH collateral to a loan (relayed tx)", async () => {
         await fundWallet({ ethAmount: web3.utils.toWei("0.2"), token1Amount: 0 });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.1"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.1"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeCollateral({
           loanId, collateral: ETH_TOKEN, amount: web3.utils.toWei("0.1"), add: true, relayed: true,
@@ -365,9 +376,9 @@ contract("Loan Module", (accounts) => {
       });
 
       it("should remove ETH collateral from a loan (blockchain tx)", async () => {
-        await fundWallet({ ethAmount: web3.utils.toWei("0.2", "ether"), token1Amount: 0 });
+        await fundWallet({ ethAmount: web3.utils.toWei("0.2"), token1Amount: 0 });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.2", "ether"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.2"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeCollateral({
           loanId, collateral: ETH_TOKEN, amount: web3.utils.toWei("0.001"), add: false, relayed: false,
@@ -415,19 +426,19 @@ contract("Loan Module", (accounts) => {
       });
 
       it("should remove token collateral from a loan (relayed tx)", async () => {
-        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5", "ether") });
+        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5") });
         const loanId = await testOpenLoan({
-          collateral: token1, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001"), relayed: false,
+          collateral: token1, collateralAmount: web3.utils.toWei("0.5"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001"), relayed: false,
         });
         await testChangeCollateral({
-          loanId, collateral: token1, amount: web3.utils.toWei("0.1", "ether"), add: false, relayed: true,
+          loanId, collateral: token1, amount: web3.utils.toWei("0.1"), add: false, relayed: true,
         });
       });
 
       // Reverts
 
       it("should fail to borrow an unknown token", async () => {
-        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1", "ether")];
+        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1")];
         await utils.assertRevert(loanManager.addDebt(...params, { from: owner }), "CM: No market for target token");
       });
 
@@ -437,12 +448,12 @@ contract("Loan Module", (accounts) => {
       });
 
       it("should fail to borrow token with no collateral", async () => {
-        const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, web3.utils.toWei("1", "ether")];
+        const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, web3.utils.toWei("1")];
         await utils.assertRevert(loanManager.addDebt(...params, { from: owner }), "CM: borrow failed");
       });
 
       it("should fail to repay an unknown token", async () => {
-        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1", "ether")];
+        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1")];
         await utils.assertRevert(loanManager.removeDebt(...params, { from: owner }), "CM: No market for target token");
       });
 
@@ -452,113 +463,113 @@ contract("Loan Module", (accounts) => {
       });
 
       it("should fail to repay too much debt token", async () => {
-        const collateralAmount = await web3.utils.toWei("1", "ether");
-        const debtAmount = await web3.utils.toWei("0.001", "ether");
+        const collateralAmount = await web3.utils.toWei("1");
+        const debtAmount = await web3.utils.toWei("0.001");
         await fundWallet({ ethAmount: collateralAmount, token1Amount: 0 });
         const loanId = await testOpenLoan({
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
-        const removeDebtParams = [wallet.address, loanId, token1.address, web3.utils.toWei("0.002", "ether")];
+        const removeDebtParams = [wallet.address, loanId, token1.address, web3.utils.toWei("0.002")];
         await utils.assertRevert(loanManager.removeDebt(...removeDebtParams, { from: owner }), "CM: repayBorrow failed");
       });
 
       it("should fail to remove an unknown collateral token", async () => {
-        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1", "ether")];
+        const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1")];
         await utils.assertRevert(loanManager.removeCollateral(...params, { from: owner }), "CM: No market for target token");
       });
 
       it("should fail to remove 0 collateral token", async () => {
-        const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, web3.utils.toWei("0", "ether")];
+        const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, web3.utils.toWei("0")];
         await utils.assertRevert(loanManager.removeCollateral(...params, { from: owner }), "CM: amount cannot be 0");
       });
 
       it("should fail to remove too much collateral token", async () => {
-        const collateralAmount = await web3.utils.toWei("1", "ether");
-        const debtAmount = await web3.utils.toWei("0.001", "ether");
+        const collateralAmount = await web3.utils.toWei("1");
+        const debtAmount = await web3.utils.toWei("0.001");
         await fundWallet({ ethAmount: collateralAmount, token1Amount: 0 });
         const loanId = await testOpenLoan({
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
-        const removeDebtParams = [wallet.address, loanId, token1.address, web3.utils.toWei("0.002", "ether")];
+        const removeDebtParams = [wallet.address, loanId, token1.address, web3.utils.toWei("0.002")];
         await utils.assertRevert(loanManager.removeCollateral(...removeDebtParams, { from: owner }), "CM: redeemUnderlying failed");
       });
     });
 
     describe("Increase/Decrease Debt", () => {
       it("should increase ETH debt to a token1/ETH loan (blockchain tx)", async () => {
-        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5", "ether") });
+        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5") });
         const loanId = await testOpenLoan({
-          collateral: token1, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001"), relayed: false,
+          collateral: token1, collateralAmount: web3.utils.toWei("0.5"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: ETH_TOKEN, amount: web3.utils.toWei("0.001", "ether"), add: true, relayed: false,
+          loanId, debtToken: ETH_TOKEN, amount: web3.utils.toWei("0.001"), add: true, relayed: false,
         });
       });
 
       it("should increase ETH debt to a token1/ETH loan (relayed tx)", async () => {
-        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5", "ether") });
+        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5") });
         const loanId = await testOpenLoan({
-          collateral: token1, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001", "ether"), relayed: false,
+          collateral: token1, collateralAmount: web3.utils.toWei("0.5"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: ETH_TOKEN, amount: web3.utils.toWei("0.001", "ether"), add: true, relayed: true,
+          loanId, debtToken: ETH_TOKEN, amount: web3.utils.toWei("0.001"), add: true, relayed: true,
         });
       });
 
       it("should increase token1 debt to a ETH/token1 loan (blockchain tx)", async () => {
-        await fundWallet({ ethAmount: web3.utils.toWei("0.5", "ether"), token1Amount: 0 });
+        await fundWallet({ ethAmount: web3.utils.toWei("0.5"), token1Amount: 0 });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: token1, amount: web3.utils.toWei("0.01", "ether"), add: true, relayed: false,
+          loanId, debtToken: token1, amount: web3.utils.toWei("0.01"), add: true, relayed: false,
         });
       });
 
       it("should increase token1 debt to a ETH/token1 loan (relayed tx)", async () => {
-        await fundWallet({ ethAmount: web3.utils.toWei("0.5", "ether"), token1Amount: 0 });
+        await fundWallet({ ethAmount: web3.utils.toWei("0.5"), token1Amount: 0 });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: token1, amount: web3.utils.toWei("0.01", "ether"), add: true, relayed: true,
+          loanId, debtToken: token1, amount: web3.utils.toWei("0.01"), add: true, relayed: true,
         });
       });
 
       it("should increase token2 debt to a ETH/token1 loan (blockchain tx)", async () => {
-        await fundWallet({ ethAmount: web3.utils.toWei("0.5", "ether"), token1Amount: 0 });
+        await fundWallet({ ethAmount: web3.utils.toWei("0.5"), token1Amount: 0 });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: token2, amount: web3.utils.toWei("0.01", "ether"), add: true, relayed: false,
+          loanId, debtToken: token2, amount: web3.utils.toWei("0.01"), add: true, relayed: false,
         });
       });
 
       it("should increase token2 debt to a ETH/token1 loan (relayed tx)", async () => {
-        await fundWallet({ ethAmount: web3.utils.toWei("0.5", "ether"), token1Amount: 0 });
+        await fundWallet({ ethAmount: web3.utils.toWei("0.5"), token1Amount: 0 });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: token2, amount: web3.utils.toWei("0.01", "ether"), add: true, relayed: true,
+          loanId, debtToken: token2, amount: web3.utils.toWei("0.01"), add: true, relayed: true,
         });
       });
 
       it("should repay ETH debt to a token1/ETH loan (blockchain tx)", async () => {
-        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5", "ether") });
+        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5") });
         const loanId = await testOpenLoan({
-          collateral: token1, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001", "ether"), relayed: false,
+          collateral: token1, collateralAmount: web3.utils.toWei("0.5"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: ETH_TOKEN, amount: web3.utils.toWei("0.0005", "ether"), add: false, relayed: false,
+          loanId, debtToken: ETH_TOKEN, amount: web3.utils.toWei("0.0005"), add: false, relayed: false,
         });
       });
 
       it("should repay ETH debt to a token1/ETH loan (relay tx)", async () => {
-        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5", "ether") });
+        await fundWallet({ ethAmount: 0, token1Amount: web3.utils.toWei("0.5") });
         const loanId = await testOpenLoan({
-          collateral: token1, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001", "ether"), relayed: false,
+          collateral: token1, collateralAmount: web3.utils.toWei("0.5"), debt: ETH_TOKEN, debtAmount: web3.utils.toWei("0.001"), relayed: false,
         });
         await testChangeDebt({
           loanId, debtToken: ETH_TOKEN, amount: web3.utils.toWei("0.0005"), add: false, relayed: true,
@@ -568,27 +579,27 @@ contract("Loan Module", (accounts) => {
       it("should repay token1 debt to a ETH/token1 loan (blockchain tx)", async () => {
         await fundWallet({ ethAmount: web3.utils.toWei("0.5"), token1Amount: 0 });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: token1, amount: web3.utils.toWei("0.005", "ether"), add: false, relayed: false,
+          loanId, debtToken: token1, amount: web3.utils.toWei("0.005"), add: false, relayed: false,
         });
       });
 
       it("should repay token1 debt to a ETH/token1 loan (relayed tx)", async () => {
-        await fundWallet({ ethAmount: web3.utils.toWei("0.5", "ether"), token1Amount: 0 });
+        await fundWallet({ ethAmount: web3.utils.toWei("0.5"), token1Amount: 0 });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeDebt({
-          loanId, debtToken: token1, amount: web3.utils.toWei("0.005", "ether"), add: false, relayed: true,
+          loanId, debtToken: token1, amount: web3.utils.toWei("0.005"), add: false, relayed: true,
         });
       });
 
       it("should repay the full token1 debt to a ETH/token1 loan (blockchain tx)", async () => {
-        await fundWallet({ ethAmount: web3.utils.toWei("0.5", "ether"), token1Amount: web3.utils.toWei("0.01", "ether") });
+        await fundWallet({ ethAmount: web3.utils.toWei("0.5"), token1Amount: web3.utils.toWei("0.01") });
         const loanId = await testOpenLoan({
-          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5", "ether"), debt: token1, debtAmount: web3.utils.toWei("0.01", "ether"), relayed: false,
+          collateral: ETH_TOKEN, collateralAmount: web3.utils.toWei("0.5"), debt: token1, debtAmount: web3.utils.toWei("0.01"), relayed: false,
         });
         await testChangeDebt({
           loanId, debtToken: token1, amount: ethers.constants.MaxUint256, add: false, relayed: false,
@@ -608,7 +619,7 @@ contract("Loan Module", (accounts) => {
           const tx = await loanManager[method](...params, { from: owner });
           txReceipt = tx.receipt;
         }
-        await utils.hasEvent(txReceipt, "LoanClosed");
+        await utils.hasEvent(txReceipt, loanManager, "LoanClosed");
 
         const marketsAfter = await comptroller.getAssetsIn(wallet.address);
         assert.isTrue(marketsAfter.length === marketsBefore.length - debtMarkets, `should have exited ${debtMarkets} market (relayed: ${relayed})`);

@@ -105,10 +105,10 @@ contract("Invest Manager with Compound", (accounts) => {
     await comptroller._setCollateralFactor(cEther.address, WAD.divn(10));
 
     // add liquidity to tokens
-    const tenEther = await web3.utils.toWei("10", "ether");
+    const tenEther = await web3.utils.toWei("10");
     await cEther.mint({ value: tenEther, from: liquidityProvider });
     await token.approve(cToken.address, tenEther, { from: liquidityProvider });
-    await cToken.mint(web3.utils.toWei("1", "ether"), { from: liquidityProvider });
+    await cToken.mint(web3.utils.toWei("1"), { from: liquidityProvider });
 
     /* Deploy Argent Architecture */
 
@@ -176,14 +176,14 @@ contract("Invest Manager with Compound", (accounts) => {
       // generate borrows to create interests
       await comptroller.enterMarkets([cEther.address, cToken.address], { from: borrower });
       if (investInEth) {
-        await token.approve(cToken.address, web3.utils.toWei("20", "ether"), { from: borrower });
-        await cToken.mint(web3.utils.toWei("20", "ether"), { from: borrower });
-        tx = await cEther.borrow(web3.utils.toWei("0.1", "ether"), { from: borrower });
-        await utils.hasEvent(tx.receipt, "Borrow");
+        await token.approve(cToken.address, web3.utils.toWei("20"), { from: borrower });
+        await cToken.mint(web3.utils.toWei("20"), { from: borrower });
+        tx = await cEther.borrow(web3.utils.toWei("0.1"), { from: borrower });
+        await utils.hasEvent(tx.receipt, cToken, "Borrow");
       } else {
-        await cEther.mint({ value: web3.utils.toWei("2", "ether"), from: borrower });
-        tx = await cToken.borrow(web3.utils.toWei("0.1", "ether"), { from: borrower });
-        await utils.hasEvent(tx.receipt, "Borrow");
+        await cEther.mint({ value: web3.utils.toWei("2"), from: borrower });
+        tx = await cToken.borrow(web3.utils.toWei("0.1"), { from: borrower });
+        await utils.hasEvent(tx.receipt, cToken, "Borrow");
       }
       // increase time to accumulate interests
       await increaseTime(3600 * 24 * days);
@@ -209,7 +209,8 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt = tx.receipt;
       }
 
-      await utils.hasEvent(txReceipt, "CompoundManager.InvestmentAdded");
+      console.log("txReceipt", txReceipt)
+      await utils.hasEvent(txReceipt, investManager, "InvestmentAdded");
 
       await accrueInterests(days, investInEth);
 
@@ -224,7 +225,7 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt;
       const investInEth = (tokenAddress === ETH_TOKEN);
 
-      await addInvestment(tokenAddress, web3.utils.toWei("0.1", "ether"), 365, false);
+      await addInvestment(tokenAddress, web3.utils.toWei("0.1"), 365, false);
       const before = investInEth ? await cEther.balanceOf(wallet.address) : await cToken.balanceOf(wallet.address);
 
       const params = [wallet.address, tokenAddress, fraction];
@@ -234,7 +235,7 @@ contract("Invest Manager with Compound", (accounts) => {
         tx = await investManager.removeInvestment(...params, { from: owner });
         txReceipt = tx.receipt;
       }
-      await utils.hasEvent(txReceipt, "InvestmentRemoved");
+      await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved");
 
       // TODO: Manual division result rounding up until https://github.com/indutny/bn.js/issues/79 is added to BN.js 
       const result = before.muln(10000 - fraction);
@@ -253,25 +254,25 @@ contract("Invest Manager with Compound", (accounts) => {
       // Successes
 
       it("should invest in ERC20 for 1 year and gain interests (blockchain tx)", async () => {
-        await addInvestment(token.address, web3.utils.toWei("1", "ether"), 365, false);
+        await addInvestment(token.address, web3.utils.toWei("1"), 365, false);
       });
 
       it("should invest in ERC20 for 1 year and gain interests (relay tx)", async () => {
-        await addInvestment(token.address, web3.utils.toWei("1", "ether"), 365, true);
+        await addInvestment(token.address, web3.utils.toWei("1"), 365, true);
       });
 
       it("should invest in ETH for 1 year and gain interests (blockchain tx)", async () => {
-        await addInvestment(ETH_TOKEN, web3.utils.toWei("1", "ether"), 365, false);
+        await addInvestment(ETH_TOKEN, web3.utils.toWei("1"), 365, false);
       });
 
       it("should invest in ETH for 1 year and gain interests (relay tx)", async () => {
-        await addInvestment(ETH_TOKEN, web3.utils.toWei("1", "ether"), 365, true);
+        await addInvestment(ETH_TOKEN, web3.utils.toWei("1"), 365, true);
       });
 
       // Reverts
 
       it("should fail to invest in ERC20 with an unknown token", async () => {
-        const params = [wallet.address, ethers.constants.AddressZero, web3.utils.toWei("1", "ether"), 0];
+        const params = [wallet.address, ethers.constants.AddressZero, web3.utils.toWei("1"), 0];
         await utils.assertRevert(investManager.addInvestment(...params, { from: owner }), "CM: No market for target token");
       });
 
@@ -281,7 +282,7 @@ contract("Invest Manager with Compound", (accounts) => {
       });
 
       it("should fail to invest in ERC20 when not holding any ERC20", async () => {
-        const params = [wallet.address, token.address, web3.utils.toWei("1", "ether"), 0];
+        const params = [wallet.address, token.address, web3.utils.toWei("1"), 0];
         await utils.assertRevert(investManager.addInvestment(...params, { from: owner }), "CM: mint failed");
       });
     });
@@ -320,8 +321,8 @@ contract("Invest Manager with Compound", (accounts) => {
       });
 
       it("should fail to remove all of an ERC20 investment when it collateralizes a loan", async () => {
-        const collateralAmount = await web3.utils.toWei("1", "ether");
-        const debtAmount = await web3.utils.toWei("0.001", "ether");
+        const collateralAmount = await web3.utils.toWei("1");
+        const debtAmount = await web3.utils.toWei("0.001");
         await token.transfer(wallet.address, collateralAmount);
         const openLoanParams = [
           wallet.address,

@@ -165,12 +165,12 @@ contract("MakerV2Loan", (accounts) => {
     let txReceipt;
     if (relayed) {
       txReceipt = await manager.relay(makerV2, method, params, wallet, [owner]);
-      const { success } = await parseLogs(txReceipt, "TransactionExecuted");
+      const { success } = parseLogs(txReceipt, relayerManager, "TransactionExecuted");
       assert.isTrue(success, "Relayed tx should succeed");
     } else {
       txReceipt = await (await makerV2[method](...params, { gasLimit: 2000000, from: owner })).wait();
     }
-    const loanId = (await parseLogs(txReceipt, "LoanOpened"))._loanId;
+    const loanId = (parseLogs(txReceipt, makerV2, "LoanOpened"))._loanId;
     assert.isDefined(loanId, "Loan ID should be defined");
 
     const afterCollateral = (collateral.address === ETH_TOKEN)
@@ -253,7 +253,7 @@ contract("MakerV2Loan", (accounts) => {
     const params = [wallet.address, loanId, collateral.address, collateralAmount];
     if (relayed) {
       const txR = await manager.relay(makerV2Manager, method, params, wallet, [owner]);
-      const txExecutedEvent = parseLogs(txR, "TransactionExecuted");
+      const txExecutedEvent = parseLogs(txR, relayerManager, "TransactionExecuted");
       assert.isTrue(txExecutedEvent.args.success, "Relayed tx should succeed");
     } else {
       await makerV2Manager[method](...params, { gasLimit: 2000000, from: owner });
@@ -351,7 +351,7 @@ contract("MakerV2Loan", (accounts) => {
     const params = [wallet.address, loanId, dai.address, daiAmount];
     if (relayed) {
       const txR = await manager.relay(makerV2, method, params, { address: walletAddress }, [owner]);
-      const txExecutedEvent = parseLogs(txR, "TransactionExecuted");
+      const txExecutedEvent = parseLogs(txR, relayerManager, "TransactionExecuted");
       assert.isTrue(txExecutedEvent.args.success, "Relayed tx should succeed");
     } else {
       await makerV2[method](...params, { gasLimit: 2000000, from: owner });
@@ -470,7 +470,7 @@ contract("MakerV2Loan", (accounts) => {
     const params = [wallet.address, loanId];
     if (relayed) {
       const txR = await manager.relay(makerV2, method, params, { address: walletAddress }, [owner]);
-      const txExecutedEvent = parseLogs(txR, "TransactionExecuted");
+      const txExecutedEvent = parseLogs(txR, relayerManager, "TransactionExecuted");
       assert.isTrue(txExecutedEvent.args.success, "Relayed tx should succeed");
     } else {
       await makerV2[method](...params, { gasLimit: 3000000, from: owner });
@@ -551,7 +551,7 @@ contract("MakerV2Loan", (accounts) => {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.address);
       const txR = await (await cdpManager.open(ilk, owner), { from: owner }).wait();
-      const txNewCdpEvent = parseLogs(txR, "NewCdp");
+      const txNewCdpEvent = parseLogs(txR, cdpManager, "NewCdp");
       const vaultId = txNewCdpEvent.args.cdp;
       // Transfer the vault to the wallet
       await cdpManager.give(vaultId, walletAddress, { from: owner });
@@ -562,13 +562,13 @@ contract("MakerV2Loan", (accounts) => {
       let txReceipt;
       if (relayed) {
         txReceipt = await manager.relay(makerV2, method, params, { address: walletAddress }, [owner]);
-        const txExecutedEvent = parseLogs(txR, "TransactionExecuted");
+        const txExecutedEvent = parseLogs(txR, relayerManager, "TransactionExecuted");
         assert.isTrue(txExecutedEvent.args.success, "Relayed tx should succeed");
       } else {
         const tx = await makerV2[method](...params, { gasLimit: 1000000, from: owner });
         txReceipt = tx.receipt;
       }
-      hasEvent(txReceipt, "LoanAcquired");
+      await hasEvent(txReceipt, makerV2, "LoanAcquired");
 
       // The loanId held by the MakerV2Manager will be different from the transferred vault id, in case the latter was merged into an existing vault
       const featureLoanId = await makerV2.loanIds(walletAddress, ilk);
@@ -594,7 +594,7 @@ contract("MakerV2Loan", (accounts) => {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.address);
       const txR = await (await cdpManager.open(ilk, owner, { from: owner })).wait();
-      const txNewCdpEvent = parseLogs(txR, "NewCdp");
+      const txNewCdpEvent = parseLogs(txR, cdpManager, "NewCdp");
       const vaultId = txNewCdpEvent.args.cdp;
       const loanId = bigNumToBytes32(vaultId);
       // We are NOT transferring the vault from the owner to the wallet
@@ -611,7 +611,7 @@ contract("MakerV2Loan", (accounts) => {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.address);
       const txR = await (await cdpManager.open(ilk, owner, { from: owner })).wait();
-      const txNewCdpEvent = parseLogs(txR, "NewCdp");
+      const txNewCdpEvent = parseLogs(txR, cdpManager, "NewCdp");
       const vaultId = txNewCdpEvent.args.cdp;
       const loanId = bigNumToBytes32(vaultId);
       // Transfer the vault to the fake wallet
@@ -642,7 +642,7 @@ contract("MakerV2Loan", (accounts) => {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.address);
       const txR = await (await cdpManager.open(ilk, owner, { from: owner })).wait();
-      const txNewCdpEvent = parseLogs(txR, "NewCdp");
+      const txNewCdpEvent = parseLogs(txR, cdpManager, "NewCdp");
       const vaultId = txNewCdpEvent.args.cdp;
       const loanId = bigNumToBytes32(vaultId);
       // Transfer the vault to the fake wallet
@@ -710,7 +710,7 @@ contract("MakerV2Loan", (accounts) => {
       const params = [walletAddress, lastVersion];
       if (relayed) {
         const txR = await manager.relay(versionManager, method, params, wallet, [owner]);
-        const txTransactionExecuted = parseLogs(txR, "NewCdp");
+        const txTransactionExecuted = parseLogs(txR, cdpManager, "NewCdp");
         assert.isTrue(txTransactionExecuted.args.success, "Relayed tx should succeed");
       } else {
         await versionManager[method](...params, { gasLimit: 2000000, from: owner });

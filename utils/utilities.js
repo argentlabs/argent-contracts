@@ -1,10 +1,8 @@
 const readline = require("readline");
 const ethers = require("ethers");
 const ethUtil = require("ethereumjs-util");
+const BN = require("bn.js");
 const fs = require("fs");
-const chai = require("chai");
-
-const { expect } = chai;
 
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -96,13 +94,50 @@ module.exports = {
     return { success: args.success, error };
   },
 
-  parseLogs(txReceipt, eventName) {
-    return txReceipt.logs.filter((e) => e.event === eventName)[0].args;
+  async hasEvent(txReceipt, emitter, eventName) {
+    const event = await this.getEvent(txReceipt, emitter, eventName);
+    return expect(event, "Event does not exist in recept").to.exist;
   },
 
-  async hasEvent(txReceipt, eventName) {
-    const event = txReceipt.logs.filter((e) => e.event === eventName);
-    return expect(event, "Event does not exist in recept").to.exist;
+  async getEvent(txReceipt, emitter, eventName) {
+    const receipt = await web3.eth.getTransactionReceipt(txReceipt.transactionHash);
+    const logs = await this.decodeLogs(receipt.logs, emitter, eventName);
+    const event = logs.find(e => e.event === eventName);
+    return event;
+  },
+
+  // Copied from https://github.com/OpenZeppelin/openzeppelin-test-helpers
+  // This decodes longs for a single event type, and returns a decoded object in
+  // the same form truffle-contract uses on its receipts
+  decodeLogs(logs, emitter, eventName) {
+    let abi;
+    let address;
+    
+    abi = emitter.abi;
+    try {
+      address = emitter.address;
+    } catch (e) {
+      address = null;
+    }
+
+    let eventABI = abi.filter(x => x.type === 'event' && x.name === eventName);
+    if (eventABI.length === 0) {
+      throw new Error(`No ABI entry for event '${eventName}'`);
+    } else if (eventABI.length > 1) {
+      throw new Error(`Multiple ABI entries for event '${eventName}', only uniquely named events are supported`);
+    }
+
+    eventABI = eventABI[0];
+
+    // The first topic will equal the hash of the event signature
+    const eventSignature = `${eventName}(${eventABI.inputs.map(input => input.type).join(',')})`;
+    const eventTopic = web3.utils.sha3(eventSignature);
+
+    // Only decode events of type 'EventName'
+    return logs
+      .filter(log => log.topics.length > 0 && log.topics[0] === eventTopic && (!address || log.address === address))
+      .map(log => web3.eth.abi.decodeLog(eventABI.inputs, log.data, log.topics.slice(1)))
+      .map(decoded => ({ event: eventName, args: decoded }));
   },
 
   versionFingerprint(modules) {
@@ -144,7 +179,7 @@ module.exports = {
   
   async getBalance(account) {
     const balance = await web3.eth.getBalance(account);
-    return ethers.BigNumber.from(balance);
+    return new BN(balance);
   },
 
   async getTimestamp(blockNumber) {

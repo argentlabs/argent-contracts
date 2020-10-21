@@ -314,7 +314,7 @@ contract("RelayerManager", (accounts) => {
     it("should emit the Refund event", async () => {
       await provisionFunds("100000000000", 0);
       const txReceipt = await callAndRefund({ refundToken: ETH_TOKEN });
-      await hasEvent(txReceipt, "Refund");
+      await hasEvent(txReceipt, relayerManager, "Refund");
     });
 
     it("should fail the transaction when when there is not enough ETH for the refund", async () => {
