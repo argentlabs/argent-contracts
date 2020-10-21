@@ -297,13 +297,13 @@ contract("TokenExchanger", (accounts) => {
     let txR;
     if (relayed) {
       txR = await manager.relay(exchanger, method, params, _wallet, [owner]);
-      const { success } = (await parseLogs(txR, "TransactionExecuted"));
+      const { success } = (parseLogs(txR, relayerManager, "TransactionExecuted"));
       assert.isTrue(success, "Relayed tx should succeed");
     } else {
       txR = await (await exchanger[method](...params, { gasLimit: 2000000, from: owner })).wait();
     }
 
-    const { destAmount } = await parseLogs(txR, "TokenExchanged");
+    const { destAmount } = parseLogs(txR, exchanger, "TokenExchanged");
 
     const afterFrom = await getBalance(fromToken, _wallet);
     const afterTo = await getBalance(toToken, _wallet);
