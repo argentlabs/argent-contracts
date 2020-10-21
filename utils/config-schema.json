@@ -165,6 +165,9 @@
         "TokenPriceStorage": {
           "$ref": "#/definitions/ethaddress"
         },
+        "TokenPriceRegistry": {
+          "$ref": "#/definitions/ethaddress"
+        },
         "LockManager": {
           "$ref": "#/definitions/ethaddress"
         },

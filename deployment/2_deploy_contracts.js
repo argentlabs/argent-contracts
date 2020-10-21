@@ -140,6 +140,7 @@ const deploy = async (network) => {
     TransferStorage: TransferStorageWrapper.contractAddress,
     LockStorage: LockStorageWrapper.contractAddress,
     LimitStorage: LimitStorageWrapper.contractAddress,
+    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
   });
 
   configurator.updateInfrastructureAddresses({
@@ -149,7 +150,6 @@ const deploy = async (network) => {
     ENSManager: ENSManagerWrapper.contractAddress,
     ModuleRegistry: ModuleRegistryWrapper.contractAddress,
     CompoundRegistry: CompoundRegistryWrapper.contractAddress,
-    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
     DexRegistry: DexRegistryWrapper.contractAddress,
     BaseWallet: BaseWalletWrapper.contractAddress,
   });
@@ -158,15 +158,15 @@ const deploy = async (network) => {
   await Promise.all([
     abiUploader.upload(GuardianStorageWrapper, "modules"),
     abiUploader.upload(TransferStorageWrapper, "modules"),
-    abiUploader.upload(LockStorageWrapper, "contracts"),
-    abiUploader.upload(LimitStorageWrapper, "contracts"),
+    abiUploader.upload(LockStorageWrapper, "modules"),
+    abiUploader.upload(LimitStorageWrapper, "modules"),
+    abiUploader.upload(TokenPriceRegistryWrapper, "modules"),
     abiUploader.upload(MultiSigWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(ENSResolverWrapper, "contracts"),
     abiUploader.upload(ENSManagerWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
     abiUploader.upload(CompoundRegistryWrapper, "contracts"),
-    abiUploader.upload(TokenPriceRegistryWrapper, "contracts"),
     abiUploader.upload(DexRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);
