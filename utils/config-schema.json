@@ -132,9 +132,6 @@
         "DexRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
-        "TokenPriceRegistry": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "ArgentWalletDetector": {
           "$ref": "#/definitions/ethaddress"
         }
@@ -144,6 +141,7 @@
         "WalletFactory",
         "ENSResolver",
         "ENSManager",
+        "TokenPriceProvider",
         "ModuleRegistry",
         "BaseWallet",
         "CompoundRegistry",
