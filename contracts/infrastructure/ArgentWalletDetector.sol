@@ -64,7 +64,7 @@ contract ArgentWalletDetector is Owned {
     }
 
     /**
-    * @notice Adds a new acceted code hash.
+    * @notice Adds a new accepted code hash.
     * @param _code The new code hash.
     */
     function addCode(bytes32 _code) public onlyOwner {
@@ -79,7 +79,7 @@ contract ArgentWalletDetector is Owned {
     }
 	
     /**
-    * @notice Adds a new acceted implementation.
+    * @notice Adds a new accepted implementation.
     * @param _impl The new implementation.
     */
     function addImplementation(address _impl) public onlyOwner {
@@ -94,7 +94,7 @@ contract ArgentWalletDetector is Owned {
     }
 
     /**
-    * @notice Adds a new acceted code hash and implementation from a deployed Argent wallet.
+    * @notice Adds a new accepted code hash and implementation from a deployed Argent wallet.
     * @param _argentWallet The deployed Argent wallet.
     */
     function addCodeAndImplementationFromWallet(address _argentWallet) external onlyOwner {

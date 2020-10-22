@@ -148,7 +148,7 @@
         "MakerRegistry",
         "DexRegistry"
       ],
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "modules": {
       "type": "object",
