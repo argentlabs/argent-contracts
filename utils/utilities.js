@@ -198,16 +198,52 @@ module.exports = {
     return 1895;
   },
 
-  async increaseTime(seconds) {
-    const networkId = await web3.eth.net.getId();
+  web3GetClient() {
+    return new Promise((resolve, reject) => {
+      web3.eth.getNodeInfo((err, res) => {
+        if (err !== null) return reject(err);
+        return resolve(res);
+      });
+    });
+  },
 
-    if (networkId === "1597649375983") {
-      await web3.currentProvider.send("evm_increaseTime", seconds);
-      await web3.currentProvider.send("evm_mine");
-    } else {
-      return new Promise((res) => { setTimeout(res, seconds * 1000); });
-    }
-    return null;
+  async increaseTime(seconds) {
+    const client = await this.web3GetClient();
+    console.log("client", client)
+    const p = new Promise((resolve, reject) => {
+      if (client.indexOf("TestRPC") === -1) {
+        console.warning("Client is not ganache-cli and cannot forward time");
+      } else {
+        web3.currentProvider.send(
+          {
+            jsonrpc: "2.0",
+            method: "evm_increaseTime",
+            params: [seconds],
+            id: 0,
+          },
+          (err) => {
+            if (err) {
+              return reject(err);
+            }
+            return web3.currentProvider.send(
+              {
+                jsonrpc: "2.0",
+                method: "evm_mine",
+                params: [],
+                id: 0,
+              },
+              (err2, res) => {
+                if (err2) {
+                  return reject(err2);
+                }
+                return resolve(res);
+              }
+            );
+          }
+        );
+      }
+    });
+    return p;
   },
 
   async getNonceForRelay() {

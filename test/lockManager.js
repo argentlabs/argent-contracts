@@ -15,6 +15,14 @@ const RelayManager = require("../utils/relay-manager");
 
 const utilities = require("../utils/utilities.js");
 
+const chai = require("chai");
+const BN = require("bn.js");
+const bnChai = require("bn-chai");
+const { assert } = require("chai");
+
+const { expect } = chai;
+chai.use(bnChai(BN));
+
 contract("LockManager", (accounts) => {
   const manager = new RelayManager();
 
@@ -71,7 +79,7 @@ contract("LockManager", (accounts) => {
     manager.setRelayerManager(relayerManager);
 
     const proxy = await Proxy.new(walletImplementation.address);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.address);
+    wallet = await BaseWallet.at(proxy.address);
 
     await versionManager.addVersion([
       guardianManager.address,
@@ -87,31 +95,32 @@ contract("LockManager", (accounts) => {
   describe("(Un)Lock by EOA guardians", () => {
     beforeEach(async () => {
       await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
-      const count = (await guardianManager.guardianCount(wallet.address)).toNumber();
-      assert.equal(count, 1, "1 guardian should be added");
+      const count = await guardianManager.guardianCount(wallet.address);
+      expect(count).to.be.eq.BN(1);
       const isGuardian = await guardianManager.isGuardian(wallet.address, guardian1);
-      assert.isTrue(isGuardian, "guardian1 should be a guardian of the wallet");
+      assert.isTrue(isGuardian);
       const isLocked = await lockManager.isLocked(wallet.address);
-      assert.isFalse(isLocked, "should be unlocked by default");
+      assert.isFalse(isLocked);
     });
 
     it("should be locked/unlocked by EOA guardians (blockchain transaction)", async () => {
       // lock
       await lockManager.lock(wallet.address, { from: guardian1 });
       let state = await lockManager.isLocked(wallet.address);
-      assert.isTrue(state, "should be locked by guardian");
+      assert.isTrue(state);
       let releaseTime = await lockManager.getLock(wallet.address);
-      assert.isTrue(releaseTime > 0, "releaseTime should be positive");
+      expect(releaseTime).to.be.gt.BN(0);
       const guardianStorageLock = await guardianStorage.getLock(wallet.address);
       const guardianStorageLocker = await guardianStorage.getLocker(wallet.address);
-      assert.isTrue(guardianStorageLock.eq(0), "legacy guardianStorage's lock should be unused");
+      // legacy guardianStorage's lock should be unused
+      expect(guardianStorageLock).to.be.zero;
       assert.isTrue(guardianStorageLocker === ethers.constants.AddressZero, "legacy guardianStorage's locker should be unused");
       // unlock
       await lockManager.unlock(wallet.address, { from: guardian1 });
       state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by guardian");
       releaseTime = await lockManager.getLock(wallet.address);
-      assert.equal(releaseTime, 0, "releaseTime should be zero");
+      expect(releaseTime).to.be.zero;
     });
 
     it("should be locked/unlocked by EOA guardians (relayed transaction)", async () => {
@@ -125,26 +134,26 @@ contract("LockManager", (accounts) => {
     });
 
     it("should fail to lock/unlock by non-guardian EOAs (blockchain transaction)", async () => {
-      await utilities.assertRevert(lockManager.lock(wallet.address, { from: nonguardian }), "locking from non-guardian should fail");
+      await utilities.assertRevert(lockManager.lock(wallet.address, { from: nonguardian }), "LM: must be guardian or feature");
 
       await lockManager.lock(wallet.address, { from: guardian1 });
       const state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian1");
 
-      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: nonguardian }), "LM: must be guardian or module");
+      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: nonguardian }), "LM: must be guardian or feature");
     });
   });
 
   describe("(Un)Lock by Smart Contract guardians", () => {
     beforeEach(async () => {
-      const proxy = await Proxy.at(walletImplementation.address);
+      const proxy = await Proxy.new(walletImplementation.address);
       const guardianWallet = await BaseWallet.at(proxy.address);
 
       await guardianWallet.init(guardian1, [versionManager.address]);
       await versionManager.upgradeWallet(guardianWallet.address, await versionManager.lastVersion(), { from: guardian1 });
       await guardianManager.addGuardian(wallet.address, guardianWallet.address, { from: owner });
-      const count = (await guardianManager.guardianCount(wallet.address)).toNumber();
-      assert.equal(count, 1, "1 guardian should be added");
+      const count = await guardianManager.guardianCount(wallet.address);
+      expect(count).to.be.eq.BN(1);
       const isGuardian = await guardianManager.isGuardian(wallet.address, guardianWallet.address);
       assert.isTrue(isGuardian, "guardian1 should be a guardian of the wallet");
       const isLocked = await lockManager.isLocked(wallet.address);
@@ -175,11 +184,12 @@ contract("LockManager", (accounts) => {
       let releaseTime = await lockManager.getLock(wallet.address);
       assert.isTrue(releaseTime > 0, "releaseTime should be positive");
 
-      await utilities.increaseTime(24 * 5 + 5);
+      await utilities.increaseTime(125); // 24 * 5 + 5
+      const y = await lockManager.getLock(wallet.address);
       state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by guardian");
       releaseTime = await lockManager.getLock(wallet.address);
-      assert.equal(releaseTime, 0, "releaseTime should be zero");
+      expect(releaseTime).to.be.zero;
     });
   });
 
