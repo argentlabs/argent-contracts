@@ -41,7 +41,7 @@ const VersionManager = artifacts.require("VersionManager");
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
-const { ETH_TOKEN, parseLogs, getTimestamp, assertRevert } = require("../utils/utilities.js");
+const { ETH_TOKEN, getEvent, getTimestamp, assertRevert } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 // Constants
@@ -297,13 +297,14 @@ contract("TokenExchanger", (accounts) => {
     let txR;
     if (relayed) {
       txR = await manager.relay(exchanger, method, params, _wallet, [owner]);
-      const { success } = (parseLogs(txR, relayerManager, "TransactionExecuted"));
-      assert.isTrue(success, "Relayed tx should succeed");
+      const event = await getEvent(txR, relayerManager, "TransactionExecuted");
+      assert.isTrue(event.args.success, "Relayed tx should succeed");
     } else {
       txR = await (await exchanger[method](...params, { gasLimit: 2000000, from: owner })).wait();
     }
 
-    const { destAmount } = parseLogs(txR, exchanger, "TokenExchanged");
+    const event = await utils.getEvent(txR, exchanger, "TokenExchanged");
+    const destAmount = event.args.destAmount;
 
     const afterFrom = await getBalance(fromToken, _wallet);
     const afterTo = await getBalance(toToken, _wallet);
