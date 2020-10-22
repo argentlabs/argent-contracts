@@ -39,22 +39,22 @@ contract("GuardianManager", (accounts) => {
   });
 
   beforeEach(async () => {
-    const registry = await deployer.deploy(Registry);
-    lockStorage = await deployer.deploy(LockStorage);
-    guardianStorage = await deployer.deploy(GuardianStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
+    const registry = await Registry.new();
+    lockStorage = await LockStorage.new();
+    guardianStorage = await GuardianStorage.new();
+    versionManager = await VersionManager.new(
       registry.address,
       lockStorage.address,
       guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero);
-    relayerManager = await deployer.deploy(RelayerManager, {},
+    relayerManager = await RelayerManager.new(
       lockStorage.address,
       guardianStorage.address,
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       versionManager.address);
-    guardianManager = await deployer.deploy(GuardianManager, {},
+    guardianManager = await GuardianManager.new(
       lockStorage.address,
       guardianStorage.address,
       versionManager.address,
@@ -63,8 +63,8 @@ contract("GuardianManager", (accounts) => {
     await versionManager.addVersion([guardianManager.address, relayerManager.address], []);
     manager.setRelayerManager(relayerManager);
 
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.address);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.address);
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = await BaseWallet.at(proxy.address);
     await wallet.init(owner, [versionManager.address]);
     await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
   });
@@ -143,7 +143,7 @@ contract("GuardianManager", (accounts) => {
 
       it("should only let the owner add an EOA guardian", async () => {
         await utilities.assertRevert(guardianManager.addGuardian(wallet.address, guardian1, { from: nonowner }),
-          "BM: must be owner or module");
+          "BF: must be owner or feature");
       });
 
       it("should not allow adding wallet owner as guardian", async () => {
@@ -213,14 +213,14 @@ contract("GuardianManager", (accounts) => {
       let dumbContract;
 
       beforeEach(async () => {
-        const proxy1 = await deployer.deploy(Proxy, {}, walletImplementation.address);
-        guardianWallet1 = deployer.wrapDeployedContract(BaseWallet, proxy1.address);
+        const proxy1 = await Proxy.new(walletImplementation.address);
+        guardianWallet1 = await BaseWallet.at(proxy1.address);
         await guardianWallet1.init(guardian1, [versionManager.address]);
 
-        const proxy2 = await deployer.deploy(Proxy, {}, walletImplementation.address);
-        guardianWallet2 = deployer.wrapDeployedContract(BaseWallet, proxy2.address);
+        const proxy2 = await Proxy.new(walletImplementation.address);
+        guardianWallet2 = await BaseWallet.at(proxy2.address);
         await guardianWallet2.init(guardian2, [versionManager.address]);
-        dumbContract = await deployer.deploy(DumbContract);
+        dumbContract = await DumbContract.new();
       });
 
       it("should let the owner add Smart Contract Guardians (blockchain transaction)", async () => {
@@ -234,7 +234,7 @@ contract("GuardianManager", (accounts) => {
 
         await guardianManager.addGuardian(wallet.address, guardianWallet2.address, { from: owner });
         count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
-        active = await guardianManager.isGuardian(wallet.address, guardian2);
+        active = await guardianManager.isGuardianOrGuardianSigner(wallet.address, guardian2);
         assert.isFalse(active, "second guardian owner should not yet be active");
         active = await guardianManager.isGuardian(wallet.address, guardianWallet2.address);
         assert.isFalse(active, "second guardian should not yet be active");
@@ -243,11 +243,11 @@ contract("GuardianManager", (accounts) => {
         await utilities.increaseTime(30);
         await guardianManager.confirmGuardianAddition(wallet.address, guardianWallet2.address);
         count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
-        active = await guardianManager.isGuardian(wallet.address, guardian2);
+        assert.equal(count, 2, "2 guardians should be active after security period");
+        active = await guardianManager.isGuardianOrGuardianSigner(wallet.address, guardian2);
         assert.isTrue(active, "second guardian owner should be active");
         active = await guardianManager.isGuardian(wallet.address, guardianWallet2.address);
         assert.isTrue(active, "second guardian should be active");
-        assert.equal(count, 2, "2 guardians should be active after security period");
       });
 
       it("should let the owner add a Smart Contract guardian (relayed transaction)", async () => {
@@ -265,15 +265,11 @@ contract("GuardianManager", (accounts) => {
           "GM: guardian must be EOA or implement owner()");
       });
 
-      describe("Non-Compliant Guardians", () => {
-        let nonCompliantGuardian;
-        beforeEach(async () => {
-          await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
-          nonCompliantGuardian = await NonCompliantGuardian.new();
-        });
-        it("it should fail to add a non-compliant guardian", async () => {
-          await utilities.assertRevert(guardianManager.addGuardian(wallet.address, nonCompliantGuardian.address, { from: owner }));
-        });
+      it("it should fail to add a non-compliant guardian", async () => {
+        await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
+        const nonCompliantGuardian = await NonCompliantGuardian.new();
+        await utilities.assertRevert(guardianManager.addGuardian(wallet.address, nonCompliantGuardian.address, { from: owner }),
+        "GM: guardian must be EOA or implement owner()");
       });
     });
   });
@@ -438,12 +434,12 @@ contract("GuardianManager", (accounts) => {
   describe("Guardian Storage", () => {
     it("should not allow non modules to addGuardian", async () => {
       await utilities.assertRevert(guardianStorage.addGuardian(wallet.address, guardian4),
-        "must be an authorized module to call this method");
+        "TS: must be an authorized module to call this method");
     });
 
     it("should not allow non modules to revokeGuardian", async () => {
       await utilities.assertRevert(guardianStorage.revokeGuardian(wallet.address, guardian1),
-        "must be an authorized module to call this method");
+        "TS: must be an authorized module to call this method");
     });
   });
 });
