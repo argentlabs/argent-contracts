@@ -47,11 +47,11 @@ contract("ApprovedTransfer", (accounts) => {
   let versionManager;
 
   before(async () => {
-    weth = await WETH.new()
-    const registry = await Registry.new()
-    const lockStorage = await LockStorage.new()
-    const guardianStorage = await GuardianStorage.new()
-    const limitStorage = await LimitStorage.new()
+    weth = await WETH.new();
+    const registry = await Registry.new();
+    const lockStorage = await LockStorage.new();
+    const guardianStorage = await GuardianStorage.new();
+    const limitStorage = await LimitStorage.new();
     versionManager = await VersionManager.new(
       registry.address,
       lockStorage.address,

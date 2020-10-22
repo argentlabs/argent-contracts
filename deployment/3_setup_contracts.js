@@ -1,3 +1,4 @@
+/* global artifacts */
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");

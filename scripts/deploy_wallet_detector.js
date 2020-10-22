@@ -8,7 +8,9 @@
 //    - network = [test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
-const ArgentWalletDetector = require("../build/ArgentWalletDetector");
+/* global artifacts */
+const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
+
 const DeployManager = require("../utils/deploy-manager.js");
 
 const defaultNetwork = "test";

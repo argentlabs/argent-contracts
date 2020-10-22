@@ -1,9 +1,12 @@
+/* global artifacts */
+
 const semver = require("semver");
 const childProcess = require("child_process");
-const MultiSig = require("../build/MultiSigWallet");
-const ModuleRegistry = require("../build/ModuleRegistry");
-const VersionManager = require("../build/VersionManager");
-const Upgrader = require("../build/UpgraderToVersionManager");
+
+const MultiSig = artifacts.require("MultiSigWallet");
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const VersionManager = artifacts.require("VersionManager");
+const Upgrader = artifacts.require("UpgraderToVersionManager");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 

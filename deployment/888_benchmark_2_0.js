@@ -1,31 +1,33 @@
 /* eslint max-classes-per-file: ["error", 2] */
+/* global artifacts */
 
 const ethers = require("ethers");
 const chai = require("chai");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
-const BaseWallet = require("../build/BaseWallet");
-const Proxy = require("../build/Proxy");
-const ModuleRegistry = require("../build/ModuleRegistry");
-const MultiSig = require("../build/MultiSigWallet");
 
-const NewGuardianManager = require("../build/GuardianManager");
-const NewTokenExchanger = require("../build/TokenExchanger");
-const NewLockManager = require("../build/LockManager");
-const NewRecoveryManager = require("../build/RecoveryManager");
-const NewApprovedTransfer = require("../build/ApprovedTransfer");
-const NewTransferManager = require("../build/TransferManager");
-const NewNftTransfer = require("../build/NftTransfer");
-const NewCompoundManager = require("../build/CompoundManager");
-const NewMakerV2Manager = require("../build/MakerV2Manager");
-const RelayerManager = require("../build/RelayerManager");
-const VersionManager = require("../build/VersionManager");
+const BaseWallet = artifacts.require("BaseWallet");
+const Proxy = artifacts.require("Proxy");
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const MultiSig = artifacts.require("MultiSigWallet");
 
-const UpgraderToVersionManager = require("../build/UpgraderToVersionManager");
-const LimitStorage = require("../build/LimitStorage");
-const LockStorage = require("../build/LockStorage");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const DexRegistry = require("../build/DexRegistry");
+const NewGuardianManager = artifacts.require("GuardianManager");
+const NewTokenExchanger = artifacts.require("TokenExchanger");
+const NewLockManager = artifacts.require("LockManager");
+const NewRecoveryManager = artifacts.require("RecoveryManager");
+const NewApprovedTransfer = artifacts.require("ApprovedTransfer");
+const NewTransferManager = artifacts.require("TransferManager");
+const NewNftTransfer = artifacts.require("NftTransfer");
+const NewCompoundManager = artifacts.require("CompoundManager");
+const NewMakerV2Manager = artifacts.require("MakerV2Manager");
+const RelayerManager = artifacts.require("RelayerManager");
+const VersionManager = artifacts.require("VersionManager");
+
+const UpgraderToVersionManager = artifacts.require("UpgraderToVersionManager");
+const LimitStorage = artifacts.require("LimitStorage");
+const LockStorage = artifacts.require("LockStorage");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const DexRegistry = artifacts.require("DexRegistry");
 
 const TransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const ApprovedTransfer = require("../build-legacy/v1.6.0/ApprovedTransfer");
@@ -38,7 +40,7 @@ const MakerV2Manager = require("../build-legacy/v1.6.0/MakerV2Manager");
 const CompoundManager = require("../build-legacy/v1.6.0/CompoundManager");
 
 const DeployManager = require("../utils/deploy-manager");
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const { sortWalletByAddress } = require("../utils/utilities.js");
@@ -120,7 +122,7 @@ class Benchmark {
     this.accounts = this.signers.map((s) => s._address);
     this.config = config;
 
-    this.testManager = new TestManager(this.accounts);
+    this.testManager = new RelayManager(this.accounts);
 
     this.GuardianManagerWrapper = await this.deployer.wrapDeployedContract(GuardianManager, config.modules.GuardianManager);
     this.LockManagerWrapper = await this.deployer.wrapDeployedContract(LockManager, config.modules.LockManager);

@@ -269,7 +269,7 @@ contract("GuardianManager", (accounts) => {
         await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
         const nonCompliantGuardian = await NonCompliantGuardian.new();
         await utilities.assertRevert(guardianManager.addGuardian(wallet.address, nonCompliantGuardian.address, { from: owner }),
-        "GM: guardian must be EOA or implement owner()");
+          "GM: guardian must be EOA or implement owner()");
       });
     });
   });

@@ -1,11 +1,11 @@
 /* global artifacts */
 const ethers = require("ethers");
-const { BigNumber } = require("bignumber.js");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const OldWalletV16 = require("../build-legacy/v1.6.0/BaseWallet");
 const OldWalletV13 = require("../build-legacy/v1.3.0/BaseWallet");
+
 const VersionManager = artifacts.require("VersionManager");
 const Registry = artifacts.require("ModuleRegistry");
 const SimpleUpgrader = artifacts.require("SimpleUpgrader");
@@ -64,7 +64,7 @@ contract("BaseWallet", (accounts) => {
     it("should register a module with the correct info", async () => {
       const name = ethers.utils.formatBytes32String("module1");
       await registry.registerModule(module1.address, name);
-      const isRegistered = await registry.contract.methods['isRegisteredModule(address)'](module1.address).call();
+      const isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module1.address).call();
       assert.isTrue(isRegistered, "module should be registered");
       const info = await registry.moduleInfo(module1.address);
       assert.equal(name, info, "name should be correct");
@@ -73,10 +73,10 @@ contract("BaseWallet", (accounts) => {
     it("should deregister a module", async () => {
       const name = ethers.utils.formatBytes32String("module2");
       await registry.registerModule(module2.address, name);
-      let isRegistered = await registry.contract.methods['isRegisteredModule(address)'](module2.address).call();
+      let isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module2.address).call();
       assert.isTrue(isRegistered, "module should be registered");
       await registry.deregisterModule(module2.address);
-      isRegistered = await registry.contract.methods['isRegisteredModule(address)'](module2.address).call();
+      isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module2.address).call();
       assert.isFalse(isRegistered, "module should be deregistered");
     });
 

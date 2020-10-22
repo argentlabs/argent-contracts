@@ -22,7 +22,6 @@ const { assertRevert } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 contract("UpgraderToVersionManager", (accounts) => {
-
   const manager = new RelayManager();
 
   const owner = accounts[1];

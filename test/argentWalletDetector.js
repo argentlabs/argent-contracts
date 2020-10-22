@@ -1,10 +1,11 @@
-/* global utils */
+/* global artifacts */
 const ethers = require("ethers");
-const ArgentWalletDetector = require("../build/ArgentWalletDetector");
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
 
-const TestManager = require("../utils/test-manager");
+const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+
+const utils = require("../utils/utilities.js");
 
 const RANDOM_CODE = "0x880ac7547a884027b93f5eaba5ff545919fdeb3c23ed0d2094db66303b3a80ac";
 const ZERO_BYTES32 = ethers.constants.HashZero;
@@ -14,9 +15,6 @@ const EMPTY_CODE_MSG = "AWR: empty _code";
 const EMPTY_IMPL_MSG = "AWR: empty _impl";
 
 describe("ArgentWalletDetector", () => {
-  const manager = new TestManager();
-
-  let deployer;
   let detector;
   let implementation1;
   let implementation2;
@@ -25,23 +23,22 @@ describe("ArgentWalletDetector", () => {
   let argentCode;
 
   before(async () => {
-    deployer = manager.newDeployer();
-    implementation1 = await deployer.deploy(BaseWallet);
-    implementation2 = await deployer.deploy(BaseWallet);
-    proxy1 = await deployer.deploy(Proxy, {}, implementation1.contractAddress);
-    proxy2 = await deployer.deploy(Proxy, {}, implementation2.contractAddress);
+    implementation1 = await BaseWallet.new();
+    implementation2 = await BaseWallet.new();
+    proxy1 = await Proxy.new(implementation1.contractAddress);
+    proxy2 = await Proxy.new(implementation2.contractAddress);
     argentCode = ethers.utils.keccak256(proxy1._contract.deployedBytecode);
   });
 
   beforeEach(async () => {
-    detector = await deployer.deploy(ArgentWalletDetector, {}, [], []);
+    detector = await ArgentWalletDetector.new([], []);
   });
 
   describe("add info", () => {
     it("should deploy with codes and implementations", async () => {
       const c = [argentCode, RANDOM_CODE];
       const i = [implementation1.contractAddress, implementation2.contractAddress];
-      detector = await deployer.deploy(ArgentWalletDetector, {}, c, i);
+      detector = await ArgentWalletDetector.new(c, i);
       const implementations = await detector.getImplementations();
       assert.equal(implementations[0], implementation1.contractAddress, "should have added first implementation");
       assert.equal(implementations[1], implementation2.contractAddress, "should have added second implementation");

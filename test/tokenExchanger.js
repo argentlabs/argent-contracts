@@ -3,6 +3,7 @@
 const ethers = require("ethers");
 const { parseEther } = require("ethers").utils;
 const { AddressZero } = require("ethers").constants;
+const BN = require("bn.js");
 
 // Paraswap
 const AugustusSwapper = artifacts.require("AugustusSwapper");
@@ -303,8 +304,8 @@ contract("TokenExchanger", (accounts) => {
       txR = await (await exchanger[method](...params, { gasLimit: 2000000, from: owner })).wait();
     }
 
-    const event = await utils.getEvent(txR, exchanger, "TokenExchanged");
-    const destAmount = event.args.destAmount;
+    const event = await getEvent(txR, exchanger, "TokenExchanged");
+    const { destAmount } = event.args;
 
     const afterFrom = await getBalance(fromToken, _wallet);
     const afterTo = await getBalance(toToken, _wallet);
@@ -366,7 +367,7 @@ contract("TokenExchanger", (accounts) => {
         variableAmount,
       });
       await tokenPriceRegistry.setTradableForTokenList([toToken], [false]);
-      await assertrevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
+      await assertRevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
       await tokenPriceRegistry.setTradableForTokenList([toToken], [true]);
     });
 
@@ -426,7 +427,7 @@ contract("TokenExchanger", (accounts) => {
     });
     it(`calls ${method} successfully with a pre-existing infinite allowance`, async () => {
       // Make the wallet grant an infinite allowance to the Paraswap proxy
-      const infiniteAllowance = new BigNumber(2).pow(256).sub(1);
+      const infiniteAllowance = new BN(2).pow(256).sub(1);
       await testTradeWithPreExistingAllowance(infiniteAllowance);
     });
   }

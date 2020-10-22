@@ -1,6 +1,7 @@
 // AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true etherlime deploy --file ./scripts/deploy_defi.js --compile false
 /* global artifacts */
 
+const BN = require("bn.js");
 const { parseEther, formatBytes32String } = require("ethers").utils;
 
 const DeployManager = require("../utils/deploy-manager.js");
@@ -14,13 +15,13 @@ const DSToken = artifacts.require("DSToken");
 const WETH = artifacts.require("WETH9");
 const DSValue = artifacts.require("DSValue");
 
-const RAY = new BigNumber("1000000000000000000000000000"); // 10**27
-const WAD = new BigNumber("1000000000000000000"); // 10**18
+const RAY = new BN("1000000000000000000000000000"); // 10**27
+const WAD = new BN("1000000000000000000"); // 10**18
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
-const USD_PER_ETH = WAD.times(250); // 1 ETH = 250 USD
-const USD_PER_MKR = WAD.times(700); // 1 MKR = 700 USD
+const USD_PER_ETH = WAD.muln(250); // 1 ETH = 250 USD
+const USD_PER_MKR = WAD.muln(700); // 1 MKR = 700 USD
 
-const ETH_PER_MKR = WAD.times(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 2.8 ETH
+const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 2.8 ETH
 
 async function getTimestamp(deployer) {
   const block = await deployer.provider.getBlock("latest");

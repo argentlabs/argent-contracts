@@ -149,7 +149,7 @@ contract("RelayerManager", (accounts) => {
 
     it("should fail when the RelayerManager is not authorised", async () => {
       await versionManager.addVersion([testFeature.address], []);
-      const wrongWallet = await deployer.deploy(BaseWallet);
+      const wrongWallet = await BaseWallet.new();
       await wrongWallet.init(owner, [versionManager.address]);
       await versionManager.upgradeWallet(wrongWallet.address, await versionManager.lastVersion(), { from: owner });
       const params = [wrongWallet.address, 2];

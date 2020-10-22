@@ -11,8 +11,9 @@
 //    - network = [ganache, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
-const ModuleRegistry = require("../build/ModuleRegistry");
-const MultiSig = require("../build/MultiSigWallet");
+/* global artifacts */
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const MultiSig = artifacts.require("MultiSigWallet");
 
 const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");

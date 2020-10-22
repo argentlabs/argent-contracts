@@ -36,6 +36,7 @@ const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
 const RelayManager = require("../utils/relay-manager");
 const { ETH_TOKEN } = require("../utils/utilities.js");
 const utils = require("../utils/utilities.js");
+
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 contract("Loan Module", (accounts) => {
@@ -244,7 +245,6 @@ contract("Loan Module", (accounts) => {
         await utils.hasEvent(txReceipt, loanManager, "CollateralAdded");
         // Wallet collateral should have decreased by `amount`
         expect(collateralBalanceBefore.sub(new BN(amount))).to.eq.BN(collateralBalanceAfter);
-          
       } else {
         await utils.hasEvent(txReceipt, loanManager, "CollateralRemoved");
         // Wallet collateral should have increased by `amount`

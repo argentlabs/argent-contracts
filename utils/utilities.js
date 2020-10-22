@@ -3,7 +3,9 @@ const ethers = require("ethers");
 const ethUtil = require("ethereumjs-util");
 const BN = require("bn.js");
 const fs = require("fs");
+const chai = require("chai");
 
+const { expect } = chai;
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 module.exports = {
@@ -102,7 +104,7 @@ module.exports = {
   async getEvent(txReceipt, emitter, eventName) {
     const receipt = await web3.eth.getTransactionReceipt(txReceipt.transactionHash);
     const logs = await this.decodeLogs(receipt.logs, emitter, eventName);
-    const event = logs.find(e => e.event === eventName);
+    const event = logs.find((e) => e.event === eventName);
     return event;
   },
 
@@ -110,34 +112,33 @@ module.exports = {
   // This decodes longs for a single event type, and returns a decoded object in
   // the same form truffle-contract uses on its receipts
   decodeLogs(logs, emitter, eventName) {
-    let abi;
     let address;
-    
-    abi = emitter.abi;
+
+    const { abi } = emitter;
     try {
       address = emitter.address;
     } catch (e) {
       address = null;
     }
 
-    let eventABI = abi.filter(x => x.type === 'event' && x.name === eventName);
-    if (eventABI.length === 0) {
+    const eventABIs = abi.filter((x) => x.type === "event" && x.name === eventName);
+    if (eventABIs.length === 0) {
       throw new Error(`No ABI entry for event '${eventName}'`);
-    } else if (eventABI.length > 1) {
+    } else if (eventABIs.length > 1) {
       throw new Error(`Multiple ABI entries for event '${eventName}', only uniquely named events are supported`);
     }
 
-    eventABI = eventABI[0];
+    const [eventABI] = eventABIs;
 
     // The first topic will equal the hash of the event signature
-    const eventSignature = `${eventName}(${eventABI.inputs.map(input => input.type).join(',')})`;
+    const eventSignature = `${eventName}(${eventABI.inputs.map((input) => input.type).join(",")})`;
     const eventTopic = web3.utils.sha3(eventSignature);
 
     // Only decode events of type 'EventName'
     return logs
-      .filter(log => log.topics.length > 0 && log.topics[0] === eventTopic && (!address || log.address === address))
-      .map(log => web3.eth.abi.decodeLog(eventABI.inputs, log.data, log.topics.slice(1)))
-      .map(decoded => ({ event: eventName, args: decoded }));
+      .filter((log) => log.topics.length > 0 && log.topics[0] === eventTopic && (!address || log.address === address))
+      .map((log) => web3.eth.abi.decodeLog(eventABI.inputs, log.data, log.topics.slice(1)))
+      .map((decoded) => ({ event: eventName, args: decoded }));
   },
 
   versionFingerprint(modules) {
@@ -189,12 +190,12 @@ module.exports = {
   },
 
   async getChainId() {
-    // TODO: The web3 version packaged with truffle is 1.2.1 while the getChainId logic 
-    // we need here was introduced in 1.2.2 
+    // TODO: The web3 version packaged with truffle is 1.2.1 while the getChainId logic
+    // we need here was introduced in 1.2.2
     // Uncomment when https://github.com/trufflesuite/truffle/issues/2688#issuecomment-709879003 is resolved
-    //const chainId = await web3.eth.getChainId();
-    //console.log("chainId", chainId)
-    //return chainId;
+    // const chainId = await web3.eth.getChainId();
+    // console.log("chainId", chainId)
+    // return chainId;
     return 1895;
   },
 
@@ -209,7 +210,7 @@ module.exports = {
 
   async increaseTime(seconds) {
     const client = await this.web3GetClient();
-    console.log("client", client)
+    console.log("client", client);
     const p = new Promise((resolve, reject) => {
       if (client.indexOf("TestRPC") === -1) {
         console.warning("Client is not ganache-cli and cannot forward time");
@@ -259,14 +260,14 @@ module.exports = {
       await promise;
       assert.fail(`Transaction succeeded, but expected error ${revertMessage}`);
     } catch (err) {
-        ({ reason } = err);
-        if (reason) {
-          assert.equal(reason, revertMessage);
-        } else if (!revertMessage) {
-          assert.notEqual(err.hijackedStack.indexOf("VM Exception while processing transaction: revert"), -1);
-        } else {
-          assert.notEqual(err.hijackedStack.indexOf(revertMessage), -1);
-        }
+      ({ reason } = err);
+      if (reason) {
+        assert.equal(reason, revertMessage);
+      } else if (!revertMessage) {
+        assert.notEqual(err.hijackedStack.indexOf("VM Exception while processing transaction: revert"), -1);
+      } else {
+        assert.notEqual(err.hijackedStack.indexOf(revertMessage), -1);
+      }
     }
   },
 

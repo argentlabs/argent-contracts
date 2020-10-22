@@ -10,10 +10,12 @@
 // --dry: if set, will not send the transaction, just output what will be updated
 //
 
+/* global artifacts */
 const fs = require("fs");
 const ethers = require("ethers");
-const MultiSig = require("../build/MultiSigWallet");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
+
+const MultiSig = artifacts.require("MultiSigWallet");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
