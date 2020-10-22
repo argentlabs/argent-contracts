@@ -16,7 +16,7 @@ const MakerRegistry = artifacts.require("MakerRegistry");
 const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = artifacts.require("VersionManager");
 
-const DAI_SENT = WAD.div(100000000);
+const DAI_SENT = WAD.divn(100000000);
 
 contract("MakerV2Invest", (accounts) => {
   const manager = new RelayManager();
