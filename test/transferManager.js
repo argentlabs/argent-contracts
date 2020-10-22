@@ -2,11 +2,9 @@
 
 const ethers = require("ethers");
 const chai = require("chai");
-const { BigNumber } = require("bignumber.js");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { assert } = chai;
 const { expect } = chai;
 chai.use(bnChai(BN));
 
@@ -23,6 +21,7 @@ const RelayerManager = artifacts.require("RelayerManager");
 const TransferManager = artifacts.require("TransferManager");
 const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
+
 const ERC20 = artifacts.require("TestERC20");
 const WETH = artifacts.require("WETH9");
 const TestContract = artifacts.require("TestContract");
@@ -66,7 +65,7 @@ contract("TransferManager", (accounts) => {
 
   before(async () => {
     weth = await WETH.new();
-    const registry = await Registry.new();
+    registry = await Registry.new();
     priceProvider = await LegacyTokenPriceProvider.new(ethers.constants.AddressZero);
     await priceProvider.addManager(infrastructure);
 
@@ -132,7 +131,7 @@ contract("TransferManager", (accounts) => {
 
     erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await tokenPriceRegistry.setPriceForTokenList([erc20.address], [tokenRate.toString()]);
-    await wallet.send(new BigNumber("1000000000000000000"));
+    await wallet.send(new BN("1000000000000000000"));
   });
 
   async function getEtherValue(amount, token) {
@@ -275,7 +274,7 @@ contract("TransferManager", (accounts) => {
       const existingWallet = await BaseWallet.at(proxy.address);
 
       await existingWallet.init(owner, [previousTransferManager.address]);
-      await existingWallet.send(new BigNumber("100000000"));
+      await existingWallet.send(new BN("100000000"));
 
       // change the limit
       await previousTransferManager.changeLimit(existingWallet.address, 4000000, { from: owner });
@@ -345,7 +344,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should return the correct unspent daily limit amount", async () => {
-      await wallet.send(new BigNumber(ETH_LIMIT));
+      await wallet.send(new BN(ETH_LIMIT));
       const transferAmount = ETH_LIMIT - 100;
       await transferManager.transferToken(wallet.address, ETH_TOKEN, recipient, transferAmount, ZERO_BYTES32, { from: owner });
       const { _unspent } = await transferManager.getDailyUnspent(wallet.address);
@@ -353,7 +352,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should return the correct spent daily limit amount", async () => {
-      await wallet.send(new BigNumber(ETH_LIMIT));
+      await wallet.send(new BN(ETH_LIMIT));
       // Transfer 100 wei
       const tx = await transferManager.transferToken(wallet.address, ETH_TOKEN, recipient, 100, ZERO_BYTES32, { from: owner });
       const timestamp = await manager.getTimestamp(tx.receipt.block);
@@ -366,7 +365,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should return 0 if the entire daily limit amount has been spent", async () => {
-      await wallet.send(new BigNumber(ETH_LIMIT));
+      await wallet.send(new BN(ETH_LIMIT));
       await transferManager.transferToken(wallet.address, ETH_TOKEN, recipient, ETH_LIMIT, ZERO_BYTES32, { from: owner });
       const { _unspent } = await transferManager.getDailyUnspent(wallet.address);
       assert.equal(_unspent.toNumber(), 0);
@@ -732,7 +731,7 @@ contract("TransferManager", (accounts) => {
       const fun = consumer === contract.address ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
       const token = wrapEth ? weth : erc20;
       const dataToTransfer = contract.contract.methods[fun]([state, token.address, amount]).encodeABI();
-      const unspentBefore = await transferModule.getDailyUnspent(wallet.address);
+      const unspentBefore = await transferManager.getDailyUnspent(wallet.address);
       const params = [wallet.address]
         .concat(wrapEth ? [] : [erc20.address])
         .concat([consumer, amount, contract.address, dataToTransfer]);

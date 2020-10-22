@@ -18,8 +18,9 @@
 //    - network = [test, prod]
 // ////////////////////////////////////////////////////////////////////
 
-const ArgentWalletDetector = require("../build/ArgentWalletDetector");
-const MultiSig = require("../build/MultiSigWallet");
+/* global artifacts */
+const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
+const MultiSig = artifacts.require("MultiSigWallet");
 
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");

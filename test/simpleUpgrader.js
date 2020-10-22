@@ -1,9 +1,9 @@
 /* global artifacts */
 
 const ethers = require("ethers");
+const { formatBytes32String, parseBytes32String } = require("ethers").utils;
 const utils = require("../utils/utilities.js");
 
-const { formatBytes32String, parseBytes32String } = require("ethers").utils;
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const SimpleUpgrader = artifacts.require("SimpleUpgrader");
@@ -14,8 +14,8 @@ const LockStorage = artifacts.require("LockStorage");
 const Registry = artifacts.require("ModuleRegistry");
 const RecoveryManager = artifacts.require("RecoveryManager");
 const VersionManager = artifacts.require("VersionManager");
-
 const RelayerManager = artifacts.require("RelayerManager");
+
 const RelayManager = require("../utils/relay-manager");
 
 contract("SimpleUpgrader", (accounts) => {
@@ -177,7 +177,7 @@ contract("SimpleUpgrader", (accounts) => {
       if (toAdd.length === 0) {
         if (relayed) {
           txReceipt = await manager.relay(moduleV1, "addModule", params2, wallet, [owner]);
-          const event = await utils.getEvent(txReceipt, relayer, "TransactionExecuted");
+          const event = await utils.getEvent(txReceipt, relayerV1, "TransactionExecuted");
           assert.isTrue(!event.args.success, "Relayed upgrade to 0 module should have failed.");
         } else {
           utils.assertRevert(moduleV1.addModule(...params2, { from: owner }));
@@ -186,7 +186,7 @@ contract("SimpleUpgrader", (accounts) => {
       }
       if (relayed) {
         txReceipt = await manager.relay(moduleV1, "addModule", params1, wallet, [owner]);
-        const event = await utils.getEvent(txReceipt, relayer, "TransactionExecuted");
+        const event = await utils.getEvent(txReceipt, relayerV1, "TransactionExecuted");
         assert.isTrue(event.args.success, "Relayed tx should only have succeeded if an OnlyOwnerModule was used");
       } else {
         const tx = await moduleV1.addModule(...params1, { from: owner });
@@ -196,7 +196,7 @@ contract("SimpleUpgrader", (accounts) => {
       // test event ordering
       const event = await utils.getEvent(txReceipt, wallet, "AuthorisedModule");
       const upgraderAuthorisedLogIndex = event.args.findIndex((a) => a.module === upgrader1.address && a.value === true);
-      const upgraderUnauthorisedLogIndex = logs.findIndex((a) => a.module === upgrader1.address && a.value === false);
+      const upgraderUnauthorisedLogIndex = event.args.findIndex((a) => a.module === upgrader1.address && a.value === false);
       assert.isBelow(upgraderAuthorisedLogIndex, upgraderUnauthorisedLogIndex,
         "AuthorisedModule(upgrader, false) should come after AuthorisedModule(upgrader, true)");
 

@@ -12,7 +12,6 @@
 // ////////////////////////////////////////////////////////////////////
 
 /* global artifacts */
-
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 

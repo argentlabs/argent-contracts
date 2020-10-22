@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+
 const RelayerManager = artifacts.require("RelayerManager");
 const GuardianManager = artifacts.require("GuardianManager");
 const LockManager = artifacts.require("LockManager");
@@ -11,14 +12,12 @@ const Registry = artifacts.require("ModuleRegistry");
 const RecoveryManager = artifacts.require("RecoveryManager");
 const VersionManager = artifacts.require("VersionManager");
 
-const RelayManager = require("../utils/relay-manager");
-
-const utilities = require("../utils/utilities.js");
-
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 const { assert } = require("chai");
+const utilities = require("../utils/utilities.js");
+const RelayManager = require("../utils/relay-manager");
 
 const { expect } = chai;
 chai.use(bnChai(BN));
@@ -185,7 +184,6 @@ contract("LockManager", (accounts) => {
       assert.isTrue(releaseTime > 0, "releaseTime should be positive");
 
       await utilities.increaseTime(125); // 24 * 5 + 5
-      const y = await lockManager.getLock(wallet.address);
       state = await lockManager.isLocked(wallet.address);
       assert.isFalse(state, "should be unlocked by guardian");
       releaseTime = await lockManager.getLock(wallet.address);

@@ -20,7 +20,8 @@
     "guard-for-in": "off",
     "function-paren-newline": "off",
     "comma-dangle": "off",
-    "object-curly-newline": "off"
+    "object-curly-newline": "off",
+    "no-unused-expressions": "off"
   },
   "parserOptions": {
     "ecmaVersion": 2018

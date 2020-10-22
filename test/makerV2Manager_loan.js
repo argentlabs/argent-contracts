@@ -1,6 +1,8 @@
 /* global artifacts */
 
 const ethers = require("ethers");
+const BN = require("bn.js");
+
 const {
   bigNumToBytes32, ETH_TOKEN, getEvent, hasEvent, increaseTime, getBalance, assertRevert
 } = require("../utils/utilities.js");
@@ -27,9 +29,9 @@ const TransferStorage = artifacts.require("TransferStorage");
 const LimitStorage = artifacts.require("LimitStorage");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const TransferManager = artifacts.require("TransferManager");
-const BadFeature = artifacts.require("TestFeature");
 const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = artifacts.require("VersionManager");
+const BadFeature = artifacts.require("TestFeature");
 
 contract("MakerV2Loan", (accounts) => {
   const manager = new RelayManager();
@@ -325,7 +327,7 @@ contract("MakerV2Loan", (accounts) => {
     it("should not remove collateral with invalid collateral amount", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await assertRevert(
-        makerV2.removeCollateral(walletAddress, loanId, ETH_TOKEN, new BigNumber(2).pow(255), { from: owner }),
+        makerV2.removeCollateral(walletAddress, loanId, ETH_TOKEN, new BN(2).pow(255), { from: owner }),
         "MV2: int overflow",
       );
     });
@@ -768,7 +770,7 @@ contract("MakerV2Loan", (accounts) => {
 
     it("should not allow (fake) feature to give unowned vault", async () => {
       // Deploy a (fake) bad feature
-      const badFeature = await BadFeaturenew(lockStorage.address, versionManager.address, 0);
+      const badFeature = await BadFeature.new(lockStorage.address, versionManager.address, 0);
 
       // Add the bad feature to the wallet
       await versionManager.addVersion([

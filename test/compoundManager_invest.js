@@ -209,7 +209,7 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt = tx.receipt;
       }
 
-      console.log("txReceipt", txReceipt)
+      console.log("txReceipt", txReceipt);
       await utils.hasEvent(txReceipt, investManager, "InvestmentAdded");
 
       await accrueInterests(days, investInEth);
@@ -237,7 +237,7 @@ contract("Invest Manager with Compound", (accounts) => {
       }
       await utils.hasEvent(txReceipt, investManager, "InvestmentRemoved");
 
-      // TODO: Manual division result rounding up until https://github.com/indutny/bn.js/issues/79 is added to BN.js 
+      // TODO: Manual division result rounding up until https://github.com/indutny/bn.js/issues/79 is added to BN.js
       const result = before.muln(10000 - fraction);
       const divisionRemainder = new BN(result.modn(10000));
 

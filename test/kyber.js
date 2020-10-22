@@ -2,11 +2,10 @@
 const KyberNetwork = artifacts.require("KyberNetworkTest");
 const ERC20 = artifacts.require("TestERC20");
 
-const { ETH_TOKEN, getBalance } = require("../utils/utilities.js");
-
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
+const { ETH_TOKEN, getBalance } = require("../utils/utilities.js");
 
 const { expect } = chai;
 chai.use(bnChai(BN));

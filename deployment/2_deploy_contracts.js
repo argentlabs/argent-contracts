@@ -1,3 +1,4 @@
+/* global artifacts */
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const LockStorage = artifacts.require("LockStorage");

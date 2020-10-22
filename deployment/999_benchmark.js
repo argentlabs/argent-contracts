@@ -1,5 +1,5 @@
 /* eslint max-classes-per-file: ["error", 2] */
-/* global artifacts, accounts */
+/* global artifacts */
 const ethers = require("ethers");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
@@ -21,8 +21,7 @@ const NftTransfer = artifacts.require("NftTransfer");
 const CompoundManager = artifacts.require("CompoundManager");
 const MakerV2Manager = artifacts.require("MakerV2Manager");
 const RelayerManager = artifacts.require("RelayerManager");
-
-const VersionManager = require("../build/VersionManager");
+const VersionManager = artifacts.require("VersionManager");
 
 const DeployManager = require("../utils/deploy-manager");
 const RelayManager = require("../utils/relay-manager");

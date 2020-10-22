@@ -9,8 +9,9 @@
 //      - dex status = [true, false]
 // ////////////////////////////////////////////////////////////////////
 
-const MultiSig = require("../build/MultiSigWallet");
-const DexRegistry = require("../build/DexRegistry");
+/* global artifacts */
+const MultiSig = artifacts.require("MultiSigWallet");
+const DexRegistry = artifacts.require("DexRegistry");
 
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
