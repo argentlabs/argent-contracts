@@ -626,7 +626,7 @@ contract("TransferManager", (accounts) => {
         await doDirectApprove({ signer: nonowner, amount: 10 });
         assert.fail("approve should have failed");
       } catch (error) {
-        assert.equal(error, "BM: must be owner or module");
+        assert.equal(error, "BF: must be owner or feature");
       }
     });
 
