@@ -1,8 +1,6 @@
 const ethers = require("ethers");
 const inquirer = require("inquirer");
 
-const utils = require("./utilities.js");
-
 class MultisigExecutor {
   constructor(multisigWrapper, ownerWallet, autoSign = true, overrides = {}) {
     this._multisigWrapper = multisigWrapper;
@@ -12,16 +10,14 @@ class MultisigExecutor {
   }
 
   async executeCall(contractWrapper, method, params) {
-    const { contractAddress } = contractWrapper;
-
     // Encode the method call with its parameters
     const data = contractWrapper.contract.methods[method](params).encodeABI();
 
     // Get the nonce
-    const nonce = (await this._multisigWrapper.contract.nonce()).toNumber();
+    const nonce = (await this._multisigWrapper.nonce()).toNumber();
 
     // Get the sign Hash
-    const signHash = MultisigExecutor.signHash(this._multisigWrapper.address, contractAddress, 0, data, nonce);
+    const signHash = MultisigExecutor.signHash(this._multisigWrapper.address, contractWrapper.address, 0, data, nonce);
 
     if (this._autoSign === true) {
       // Get the off chain signature
@@ -33,17 +29,17 @@ class MultisigExecutor {
       signature = ethers.utils.joinSignature(split);
 
       // Call "execute" on the Multisig wallet with data and signatures
-      const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signature, this._overrides);
+      const executeTransaction = await this._multisigWrapper.execute(contractWrapper.address, 0, data, signature, this._overrides);
 
       return executeTransaction.receipt;
     }
     // Get the threshold
-    const threshold = (await this._multisigWrapper.contract.threshold()).toNumber();
+    const threshold = (await this._multisigWrapper.threshold()).toNumber();
 
     console.log("******* MultisigExecutor *******");
-    console.log(`Signing data for transaction to ${contractWrapper._contract.contractName} located at ${contractAddress}:`);
+    console.log(`Signing data for transaction to ${contractWrapper._contract.contractName} located at ${contractWrapper.address}:`);
     console.log(`multisig: ${this._multisigWrapper.address}`);
-    console.log(`to:       ${contractAddress}`);
+    console.log(`to:       ${contractWrapper.address}`);
     console.log("value:    0");
     console.log(`data:     ${data}`);
     console.log(`nonce:    ${nonce}`);
@@ -69,7 +65,7 @@ class MultisigExecutor {
     const signatures = `0x${sortedSignatures.map((s) => s.sig.slice(2)).join("")}`;
 
     // Call "execute" on the Multisig wallet with data and signatures
-    const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signatures, this._overrides);
+    const executeTransaction = await this._multisigWrapper.execute(contractWrapper.address, 0, data, signatures, this._overrides);
 
     return executeTransaction.receipt;
   }
@@ -85,7 +81,7 @@ class MultisigExecutor {
       ethers.utils.hexZeroPad(ethers.utils.hexlify(nonce), 32),
     ].map((hex) => hex.slice(2)).join("")}`;
 
-    return utils.sha3(input);
+    return web3.utils.sha3(input);
   }
 }
 
