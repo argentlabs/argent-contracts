@@ -199,7 +199,7 @@ contract("BaseWallet", (accounts) => {
 
         // trying to execute static call delegated to module1 (it should fail)
         const walletAsModule = await TestFeature.at(wallet.address);
-        await assertRevert(walletAsModule.contract.methods.getBoolean(), "BW: must be an authorised module for static call");
+        await assertRevert(walletAsModule.getBoolean(), "BW: must be an authorised module for static call");
       });
     });
   });

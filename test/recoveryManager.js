@@ -105,18 +105,13 @@ contract("RecoveryManager", (accounts) => {
 
   async function addGuardians(guardians) {
     // guardians can be BaseWallet or ContractWrapper objects
-    const guardianAddresses = guardians.map((guardian) => {
-      if (guardian) return guardian;
-      return guardian.address;
-    });
-
-    for (const address of guardianAddresses) {
-      await guardianManager.addGuardian(wallet.address, address, { from: owner });
+    for (const guardian of guardians) {
+      await guardianManager.addGuardian(wallet.address, guardian, { from: owner });
     }
 
     await increaseTime(30);
-    for (let i = 1; i < guardianAddresses.length; i += 1) {
-      await guardianManager.confirmGuardianAddition(wallet.address, guardianAddresses[i]);
+    for (let i = 1; i < guardians.length; i += 1) {
+      await guardianManager.confirmGuardianAddition(wallet.address, guardians[i]);
     }
     const count = (await guardianManager.guardianCount(wallet.address)).toNumber();
     assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);

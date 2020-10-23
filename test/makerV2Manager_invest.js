@@ -1,6 +1,7 @@
 /* global artifacts */
 
 const ethers = require("ethers");
+const BN = require("bn.js");
 const {
   deployMaker, deployUniswap, WAD, ETH_PER_DAI, ETH_PER_MKR,
 } = require("../utils/defi-deployer");
@@ -16,13 +17,12 @@ const MakerRegistry = artifacts.require("MakerRegistry");
 const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = artifacts.require("VersionManager");
 
-const DAI_SENT = WAD.divn(100000000);
-
 contract("MakerV2Invest", (accounts) => {
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const DAI_SENT = WAD.div(new BN(100000000));
 
   let wallet;
   let walletImplementation;

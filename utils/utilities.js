@@ -199,7 +199,7 @@ module.exports = {
     return 1895;
   },
 
-  web3GetClient() {
+  async web3GetClient() {
     return new Promise((resolve, reject) => {
       web3.eth.getNodeInfo((err, res) => {
         if (err !== null) return reject(err);
@@ -210,7 +210,6 @@ module.exports = {
 
   async increaseTime(seconds) {
     const client = await this.web3GetClient();
-    console.log("client", client);
     const p = new Promise((resolve, reject) => {
       if (client.indexOf("TestRPC") === -1) {
         console.warning("Client is not ganache-cli and cannot forward time");
