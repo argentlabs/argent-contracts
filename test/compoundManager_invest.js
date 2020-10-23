@@ -26,6 +26,7 @@ const Comptroller = artifacts.require("Comptroller");
 const InterestModel = artifacts.require("WhitePaperInterestRateModel");
 const CEther = artifacts.require("CEther");
 const CErc20 = artifacts.require("CErc20");
+const CToken = artifacts.require("CToken");
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 
 const WAD = new BN("1000000000000000000"); // 10**18
@@ -33,7 +34,7 @@ const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
 
 const ERC20 = artifacts.require("TestERC20");
 
-const { ETH_TOKEN, increaseTime } = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 contract("Invest Manager with Compound", (accounts) => {
@@ -175,18 +176,19 @@ contract("Invest Manager with Compound", (accounts) => {
       let tx;
       // generate borrows to create interests
       await comptroller.enterMarkets([cEther.address, cToken.address], { from: borrower });
+
       if (investInEth) {
         await token.approve(cToken.address, web3.utils.toWei("20"), { from: borrower });
         await cToken.mint(web3.utils.toWei("20"), { from: borrower });
         tx = await cEther.borrow(web3.utils.toWei("0.1"), { from: borrower });
-        await utils.hasEvent(tx.receipt, cToken, "Borrow");
+        await utils.hasEvent(tx.receipt, CToken, "Borrow");
       } else {
         await cEther.mint({ value: web3.utils.toWei("2"), from: borrower });
         tx = await cToken.borrow(web3.utils.toWei("0.1"), { from: borrower });
-        await utils.hasEvent(tx.receipt, cToken, "Borrow");
+        await utils.hasEvent(tx.receipt, CToken, "Borrow");
       }
       // increase time to accumulate interests
-      await increaseTime(3600 * 24 * days);
+      await utils.increaseTime(3600 * 24 * days);
       await cToken.accrueInterest();
       await cEther.accrueInterest();
     }
@@ -209,7 +211,6 @@ contract("Invest Manager with Compound", (accounts) => {
         txReceipt = tx.receipt;
       }
 
-      console.log("txReceipt", txReceipt);
       await utils.hasEvent(txReceipt, investManager, "InvestmentAdded");
 
       await accrueInterests(days, investInEth);

@@ -10,7 +10,7 @@ const {
   deployMaker, deployUniswap, RAY, ETH_PER_DAI, ETH_PER_MKR,
 } = require("../utils/defi-deployer");
 
-const { parseEther, formatBytes32String } = ethers.utils;
+const { formatBytes32String } = ethers.utils;
 const { AddressZero } = ethers.constants;
 const RelayManager = require("../utils/relay-manager");
 
@@ -139,8 +139,8 @@ contract("MakerV2Loan", (accounts) => {
     await wallet.init(owner, [versionManager.address]);
     await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
     walletAddress = wallet.address;
-    await wallet.send(parseEther("2.0"));
-    await dai["mint(address,uint256)"](walletAddress, parseEther("10"));
+    await wallet.send(web3.utils.toWei("2.0"));
+    await dai["mint(address,uint256)"](walletAddress, web3.utils.toWei("10"));
   });
 
   async function getTestAmounts(tokenAddress) {
@@ -287,14 +287,14 @@ contract("MakerV2Loan", (accounts) => {
     it("should add collateral (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeCollateral({
-        loanId, collateralAmount: parseEther("0.010"), add: true, relayed: false,
+        loanId, collateralAmount: web3.utils.toWei("0.010"), add: true, relayed: false,
       });
     });
 
     it("should add collateral (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testChangeCollateral({
-        loanId, collateralAmount: parseEther("0.010"), add: true, relayed: true,
+        loanId, collateralAmount: web3.utils.toWei("0.010"), add: true, relayed: true,
       });
     });
 
@@ -305,7 +305,7 @@ contract("MakerV2Loan", (accounts) => {
 
       await wallet2.init(owner2, [versionManager.address]);
       await assertRevert(
-        makerV2.addCollateral(wallet2.address, loanId, ETH_TOKEN, parseEther("0.010"), { from: owner2 }),
+        makerV2.addCollateral(wallet2.address, loanId, ETH_TOKEN, web3.utils.toWei("0.010"), { from: owner2 }),
         "MV2: unauthorized loanId",
       );
     });
@@ -313,14 +313,14 @@ contract("MakerV2Loan", (accounts) => {
     it("should remove collateral (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeCollateral({
-        loanId, collateralAmount: parseEther("0.010"), add: false, relayed: false,
+        loanId, collateralAmount: web3.utils.toWei("0.010"), add: false, relayed: false,
       });
     });
 
     it("should remove collateral (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testChangeCollateral({
-        loanId, collateralAmount: parseEther("0.010"), add: false, relayed: true,
+        loanId, collateralAmount: web3.utils.toWei("0.010"), add: false, relayed: true,
       });
     });
 
@@ -339,7 +339,7 @@ contract("MakerV2Loan", (accounts) => {
 
       await wallet2.init(owner2, [versionManager.address]);
       await assertRevert(
-        makerV2.removeCollateral(wallet2.address, loanId, ETH_TOKEN, parseEther("0.010"), { from: owner2 }),
+        makerV2.removeCollateral(wallet2.address, loanId, ETH_TOKEN, web3.utils.toWei("0.010"), { from: owner2 }),
         "MV2: unauthorized loanId",
       );
     });
@@ -388,14 +388,14 @@ contract("MakerV2Loan", (accounts) => {
     it("should increase debt (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeDebt({
-        loanId, daiAmount: parseEther("0.5"), add: true, relayed: false,
+        loanId, daiAmount: web3.utils.toWei("0.5"), add: true, relayed: false,
       });
     });
 
     it("should increase debt (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testChangeDebt({
-        loanId, daiAmount: parseEther("0.5"), add: true, relayed: true,
+        loanId, daiAmount: web3.utils.toWei("0.5"), add: true, relayed: true,
       });
     });
 
@@ -406,7 +406,7 @@ contract("MakerV2Loan", (accounts) => {
 
       await wallet2.init(owner2, [versionManager.address]);
       await assertRevert(
-        makerV2.addDebt(wallet2.address, loanId, ETH_TOKEN, parseEther("0.010"), { from: owner2 }),
+        makerV2.addDebt(wallet2.address, loanId, ETH_TOKEN, web3.utils.toWei("0.010"), { from: owner2 }),
         "MV2: unauthorized loanId",
       );
     });
@@ -414,14 +414,14 @@ contract("MakerV2Loan", (accounts) => {
 
   async function testRepayDebt({ relayed }) {
     const { collateralAmount, daiAmount: daiAmount_ } = await getTestAmounts(ETH_TOKEN);
-    const daiAmount = daiAmount_.add(parseEther("0.3"));
+    const daiAmount = daiAmount_.add(web3.utils.toWei("0.3"));
 
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
     await increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.address);
     const beforeETH = await getBalance(wallet.address);
     await testChangeDebt({
-      loanId, daiAmount: parseEther("0.2"), add: false, relayed,
+      loanId, daiAmount: web3.utils.toWei("0.2"), add: false, relayed,
     });
 
     const afterDAI = await dai.balanceOf(wallet.address);
@@ -456,7 +456,7 @@ contract("MakerV2Loan", (accounts) => {
 
       await wallet2.init(owner2, [versionManager.address]);
       await assertRevert(
-        makerV2.removeDebt(wallet2.address, loanId, ETH_TOKEN, parseEther("0.010"), { from: owner2 }),
+        makerV2.removeDebt(wallet2.address, loanId, ETH_TOKEN, web3.utils.toWei("0.010"), { from: owner2 }),
         "MV2: unauthorized loanId",
       );
     });
@@ -693,7 +693,7 @@ contract("MakerV2Loan", (accounts) => {
       if (withBatVault) {
         // Open a BAT vault with the old MakerV2 feature
         const batTestAmounts = await getTestAmounts(bat.address);
-        await bat["mint(address,uint256)"](walletAddress, batTestAmounts.collateralAmount.add(parseEther("0.01")));
+        await bat["mint(address,uint256)"](walletAddress, batTestAmounts.collateralAmount.add(web3.utils.toWei("0.01")));
         loanId2 = await testOpenLoan({
           collateralAmount: batTestAmounts.collateralAmount,
           daiAmount: batTestAmounts.daiAmount,
@@ -721,7 +721,7 @@ contract("MakerV2Loan", (accounts) => {
       // Make sure that the vaults can be manipulated from the upgraded feature
       await testChangeCollateral({
         loanId: loanId1,
-        collateralAmount: parseEther("0.010"),
+        collateralAmount: web3.utils.toWei("0.010"),
         add: true,
         relayed,
         makerV2Manager: upgradedMakerV2,
@@ -731,7 +731,7 @@ contract("MakerV2Loan", (accounts) => {
       if (withBatVault) {
         await testChangeCollateral({
           loanId: loanId2,
-          collateralAmount: parseEther("0.010"),
+          collateralAmount: web3.utils.toWei("0.010"),
           add: true,
           relayed,
           collateral: bat,

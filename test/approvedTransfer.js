@@ -17,7 +17,8 @@ const TestContract = artifacts.require("TestContract");
 const TestLimitFeature = artifacts.require("TestLimitFeature");
 
 const RelayManager = require("../utils/relay-manager");
-const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN, increaseTime, getBalance, assertRevert } = require("../utils/utilities.js");
+const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN, getBalance, assertRevert } = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
@@ -105,7 +106,7 @@ contract("ApprovedTransfer", (accounts) => {
       await guardianManager.addGuardian(wallet.address, guardian, { from: owner });
     }
 
-    await increaseTime(30);
+    await utils.increaseTime(30);
     for (let i = 1; i < guardians.length; i += 1) {
       await guardianManager.confirmGuardianAddition(wallet.address, guardians[i]);
     }

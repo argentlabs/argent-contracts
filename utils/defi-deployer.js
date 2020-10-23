@@ -21,8 +21,8 @@ const CdpManager = artifacts.require("DssCdpManager");
 const GemJoin = artifacts.require("GemJoin");
 const DaiJoin = artifacts.require("DaiJoin");
 
-const RAY = new BN("1000000000000000000000000000"); // 10**27
-const WAD = new BN("1000000000000000000"); // 10**18
+const RAY = new BN(10).pow(new BN(27)); // 10**27
+const WAD = new BN(10).pow(new BN(18)); // 10**18
 const RAD = RAY.mul(WAD);
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
 const USD_PER_ETH = WAD.muln(100); // 1 ETH = 100 USD
