@@ -1,4 +1,8 @@
 /* global artifacts */
+const fs = require("fs");
+const ethers = require("ethers");
+const ethUtil = require("ethereumjs-util");
+
 const MultiSigWallet = artifacts.require("MultiSigWallet");
 const TestRegistry = artifacts.require("TestRegistry");
 
@@ -42,22 +46,28 @@ contract("MultiSigWallet", (accounts) => {
     if (sortSigners) {
       sortedSigners = utilities.sortWalletByAddress(signers);
     }
-    const signHashBuffer = Buffer.from(signedData.slice(2), "hex");
-    let signatures = "0x";
+    const dataBuff = ethUtil.toBuffer(signedData);
+    const msgHashBuff = ethUtil.hashPersonalMessage(dataBuff);
 
-    for (const signer of sortedSigners) {
-      let sig = await signer.signMessage(signHashBuffer);
+    const accountsJson = JSON.parse(fs.readFileSync("./ganache-accounts.json", "utf8"));
+    const sigs = `0x${sortedSigners.map((signer) => {
+      const pkey = accountsJson.private_keys[signer.toLowerCase()];
+      const sig = ethUtil.ecsign(msgHashBuff, Buffer.from(pkey, "hex"));
+      const signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
+      const split = ethers.utils.splitSignature(signature);
+      let joinedSignature = ethers.utils.joinSignature(split).slice(2);
+
       if (returnBadSignatures) {
-        sig += "a1";
+        joinedSignature += "a1";
       }
-      signatures += sig.slice(2);
-    }
-    return signatures;
+      return joinedSignature;
+    }).join("")}`;
+    return sigs;
   }
 
   async function executeSendSuccess(signers) {
     let nonce = await multisig.nonce();
-    const data = reg.contract.methods.register([number]).encodeABI();
+    const data = reg.contract.methods.register(number).encodeABI();
     const signedData = MultisigExecutor.signHash(multisig.address, reg.address, value, data, nonce.toNumber());
     const signatures = await getSignatures(signedData, signers);
 
@@ -79,7 +89,7 @@ contract("MultiSigWallet", (accounts) => {
   async function executeSendFailure(signers, nonceOffset, sortSigners, returnBadSignatures, errorMessage) {
     let nonce = await multisig.nonce();
     nonce = nonce.toNumber() + nonceOffset;
-    const data = reg.contract.methods.register([number]).encodeABI();
+    const data = reg.contract.methods.register(number).encodeABI();
 
     const signedData = MultisigExecutor.signHash(multisig.address, reg.address, value, data, nonce);
     const signatures = await getSignatures(signedData, signers, sortSigners, returnBadSignatures);
@@ -89,7 +99,7 @@ contract("MultiSigWallet", (accounts) => {
 
   async function getMultiSigParams(functioName, params) {
     const nonce = await multisig.nonce();
-    const data = multisig.contract.methods[functioName]([...params]).encodeABI();
+    const data = multisig.contract.methods[functioName](...params).encodeABI();
     const signedData = MultisigExecutor.signHash(multisig.address, multisig.address, 0, data, nonce.toNumber());
     const signatures = await getSignatures(signedData, [owner1, owner2]);
     return { data, signatures };
@@ -218,26 +228,26 @@ contract("MultiSigWallet", (accounts) => {
     });
 
     it("should fail due to non-owner signer", async () => {
-      await executeSendFailure([owner, owner3], 0, "Not enough valid signatures");
+      await executeSendFailure([owner, owner3], 0, true, false, "MSW: Not enough valid signatures");
     });
 
     it("should fail with fewer signers than threshold", async () => {
-      await executeSendFailure([owner1], 0, "MSW: Not enough signatures");
+      await executeSendFailure([owner1], 0, true, false, "MSW: Not enough signatures");
     });
 
     it("should fail with one signer signing twice", async () => {
-      await executeSendFailure([owner1, owner1], 0, true, "MSW: Badly ordered signatures");
+      await executeSendFailure([owner1, owner1], 0, true, false, "MSW: Badly ordered signatures");
     });
 
     it("should fail with signers in wrong order", async () => {
       let signers = utilities.sortWalletByAddress([owner1, owner2]);
       signers = signers.reverse(); // opposite order it should be
-      await executeSendFailure(signers, 0, false, "MSW: Badly ordered signatures");
+      await executeSendFailure(signers, 0, false, false, "MSW: Badly ordered signatures");
     });
 
     it("should fail with the wrong nonce", async () => {
       const nonceOffset = 1;
-      await executeSendFailure([owner1, owner2], nonceOffset, true, "MSW: Not enough valid signatures");
+      await executeSendFailure([owner1, owner2], nonceOffset, true, false, "MSW: Not enough valid signatures");
     });
 
     it("should fail with the wrong signature", async () => {
