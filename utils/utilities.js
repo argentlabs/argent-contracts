@@ -84,15 +84,18 @@ module.exports = {
     const { args } = txReceipt.logs.find((e) => e.event === "TransactionExecuted");
 
     let errorBytes;
-    if (args.returnData.startsWith("0x08c379a0")) {
-      // Remove the encoded error signatures 08c379a0
-      const noErrorSelector = `0x${args.returnData.slice(10)}`;
-      const errorBytesArray = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
-      errorBytes = errorBytesArray[0]; // eslint-disable-line prefer-destructuring
-    } else {
-      errorBytes = args.returnData;
+    let error;
+    if (args.returnData) {
+      if (args.returnData.startsWith("0x08c379a0")) {
+        // Remove the encoded error signatures 08c379a0
+        const noErrorSelector = `0x${args.returnData.slice(10)}`;
+        const errorBytesArray = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
+        errorBytes = errorBytesArray[0]; // eslint-disable-line prefer-destructuring
+      } else {
+        errorBytes = args.returnData;
+      }
+      error = ethers.utils.toUtf8String(errorBytes);
     }
-    const error = ethers.utils.toUtf8String(errorBytes);
     return { success: args.success, error };
   },
 
