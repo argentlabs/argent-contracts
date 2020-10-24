@@ -2,7 +2,8 @@
 const ethers = require("ethers");
 const BN = require("bn.js");
 const { formatBytes32String } = require("ethers").utils;
-const { parseRelayReceipt, hasEvent, getBalance, assertRevert } = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -22,15 +23,6 @@ const VersionManager = artifacts.require("VersionManager");
 const ERC20 = artifacts.require("TestERC20");
 
 const RelayManager = require("../utils/relay-manager");
-const { ETH_TOKEN, getNonceForRelay } = require("../utils/utilities.js");
-
-const FEATURE_NOT_AUTHORISED_FOR_WALLET = "RM: feature not authorised";
-const INVALID_DATA_REVERT_MSG = "RM: Invalid dataWallet";
-const DUPLICATE_REQUEST_REVERT_MSG = "RM: Duplicate request";
-const INVALID_WALLET_REVERT_MSG = "RM: Target of _data != _wallet";
-const RELAYER_NOT_AUTHORISED_FOR_WALLET = "BF: must be owner or feature";
-const GAS_LESS_THAN_GASLIMIT = "RM: not enough gas provided";
-const WRONG_NUMBER_SIGNATURES = "RM: Wrong number of signatures";
 
 contract("RelayerManager", (accounts) => {
   const manager = new RelayManager();
@@ -135,15 +127,15 @@ contract("RelayerManager", (accounts) => {
   describe("relaying feature transactions", () => {
     it("should fail when _data is less than 36 bytes", async () => {
       const params = []; // the first argument is not the wallet address, which should make the relaying revert
-      await assertRevert(
-        manager.relay(testFeature, "clearInt", params, wallet, [owner]), INVALID_DATA_REVERT_MSG,
+      await utils.assertRevert(
+        manager.relay(testFeature, "clearInt", params, wallet, [owner]), "RM: Invalid dataWallet",
       );
     });
 
     it("should fail when feature is not authorised", async () => {
       const params = [wallet.address, 2];
-      await assertRevert(
-        manager.relay(testFeatureNew, "setIntOwnerOnly", params, wallet, [owner]), FEATURE_NOT_AUTHORISED_FOR_WALLET,
+      await utils.assertRevert(
+        manager.relay(testFeatureNew, "setIntOwnerOnly", params, wallet, [owner]), "RM: feature not authorised",
       );
     });
 
@@ -154,9 +146,11 @@ contract("RelayerManager", (accounts) => {
       await versionManager.upgradeWallet(wrongWallet.address, await versionManager.lastVersion(), { from: owner });
       const params = [wrongWallet.address, 2];
       const txReceipt = await manager.relay(testFeature, "setIntOwnerOnly", params, wrongWallet, [owner]);
-      const { success, error } = parseRelayReceipt(txReceipt);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success);
-      assert.equal(error, RELAYER_NOT_AUTHORISED_FOR_WALLET);
+      assert.equal(error, "BF: must be owner or feature");
+
       // reset last version to default bundle
       await versionManager.addVersion([
         relayerManager.address,
@@ -171,14 +165,14 @@ contract("RelayerManager", (accounts) => {
 
     it("should fail when the first param is not the wallet ", async () => {
       const params = [owner, 4];
-      await assertRevert(
-        manager.relay(testFeature, "setIntOwnerOnly", params, wallet, [owner]), INVALID_WALLET_REVERT_MSG,
+      await utils.assertRevert(
+        manager.relay(testFeature, "setIntOwnerOnly", params, wallet, [owner]), "RM: Target of _data != _wallet",
       );
     });
 
     it("should fail when the gas of the transaction is less then the gasLimit ", async () => {
       const params = [wallet.address, 2];
-      const nonce = await getNonceForRelay();
+      const nonce = await utils.getNonceForRelay();
       const gasLimit = 2000000;
       const relayParams = [
         testFeature,
@@ -194,30 +188,34 @@ contract("RelayerManager", (accounts) => {
         ETH_TOKEN,
         ethers.constants.AddressZero,
         gasLimit * 0.9];
-      await assertRevert(manager.relay(...relayParams), GAS_LESS_THAN_GASLIMIT);
+      const txReceipt = await manager.relay(...relayParams);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "RM: not enough gas provided");
     });
 
     it("should fail when a wrong number of signatures is provided", async () => {
       const params = [wallet.address, 2];
       const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner, recipient]];
-      await assertRevert(manager.relay(...relayParams), WRONG_NUMBER_SIGNATURES);
+      await utils.assertRevert(manager.relay(...relayParams), "RM: Wrong number of signatures");
     });
 
     it("should fail a duplicate transaction", async () => {
       const params = [wallet.address, 2];
-      const nonce = await getNonceForRelay();
+      const nonce = await utils.getNonceForRelay();
       const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner],
         accounts[9], false, 2000000, nonce];
       await manager.relay(...relayParams);
-      await assertRevert(
-        manager.relay(...relayParams), DUPLICATE_REQUEST_REVERT_MSG,
+      await utils.assertRevert(
+        manager.relay(...relayParams), "RM: Duplicate request",
       );
     });
 
     it("should fail when relaying to itself", async () => {
       const dataMethod = "setIntOwnerOnly";
       const dataParam = [wallet.address, 2];
-      const methodData = testFeature.contract.methods[dataMethod](dataParam).encodeABI();
+      const methodData = testFeature.contract.methods[dataMethod](...dataParam).encodeABI();
       const params = [
         wallet.address,
         testFeature.address,
@@ -229,29 +227,29 @@ contract("RelayerManager", (accounts) => {
         ETH_TOKEN,
         ethers.constants.AddressZero,
       ];
-      await assertRevert(
+      await utils.assertRevert(
         manager.relay(relayerManager, "execute", params, wallet, [owner]), "BF: disabled method",
       );
     });
 
     it("should update the nonce after the transaction", async () => {
-      const nonce = await getNonceForRelay();
+      const nonce = await utils.getNonceForRelay();
       await manager.relay(testFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner],
         accounts[9], false, 2000000, nonce);
 
       const updatedNonce = await relayerManager.getNonce(wallet.address);
-      const updatedNonceHex = await ethers.utils.hexZeroPad(updatedNonce.toHexString(), 32);
-      assert.equal(nonce, updatedNonceHex);
+      const updatedNonceHex = await updatedNonce.toString(16, 32);
+      assert.equal(nonce, `0x${updatedNonceHex}`);
     });
   });
 
-  describe("refund", () => {
+  describe("refund relayed transactions", () => {
     let erc20;
     beforeEach(async () => {
       const decimals = 12; // number of decimal for TOKN contract
-      const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
+      const tokenRate = new BN(10).pow(new BN(19)).mul(new BN(51)); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
       erc20 = await ERC20.new([infrastructure], 10000000, decimals); // TOKN contract with 10M tokens (10M TOKN for account[0])
-      await tokenPriceRegistry.setPriceForTokenList([erc20.address], [tokenRate.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20.address], [tokenRate]);
       await limitFeature.setLimitAndDailySpent(wallet.address, 10000000000, 0);
     });
 
@@ -265,7 +263,7 @@ contract("RelayerManager", (accounts) => {
     }
 
     async function callAndRefund({ refundToken }) {
-      const nonce = await getNonceForRelay();
+      const nonce = await utils.getNonceForRelay();
       const relayParams = [
         testFeature,
         "setIntOwnerOnly",
@@ -289,11 +287,11 @@ contract("RelayerManager", (accounts) => {
 
     it("should refund in ETH", async () => {
       await provisionFunds("100000000000000", 0);
-      const wBalanceStart = await getBalance(wallet.address);
-      const rBalanceStart = await getBalance(recipient);
+      const wBalanceStart = await utils.getBalance(wallet.address);
+      const rBalanceStart = await utils.getBalance(recipient);
       await callAndRefund({ refundToken: ETH_TOKEN });
-      const wBalanceEnd = await getBalance(wallet.address);
-      const rBalanceEnd = await getBalance(recipient);
+      const wBalanceEnd = await utils.getBalance(wallet.address);
+      const rBalanceEnd = await utils.getBalance(recipient);
       const refund = wBalanceStart.sub(wBalanceEnd);
       assert.isTrue(refund.gt(0), "should have refunded ETH");
       assert.isTrue(refund.eq(rBalanceEnd.sub(rBalanceStart)), "should have refunded the recipient");
@@ -314,17 +312,17 @@ contract("RelayerManager", (accounts) => {
     it("should emit the Refund event", async () => {
       await provisionFunds("100000000000", 0);
       const txReceipt = await callAndRefund({ refundToken: ETH_TOKEN });
-      await hasEvent(txReceipt, relayerManager, "Refund");
+      await utils.hasEvent(txReceipt, relayerManager, "Refund");
     });
 
-    it("should fail the transaction when when there is not enough ETH for the refund", async () => {
+    it("should fail the transaction when there is not enough ETH for the refund", async () => {
       await provisionFunds(10, 0);
-      await assertRevert(callAndRefund({ refundToken: ETH_TOKEN }), "VM: wallet invoke reverted");
+      await utils.assertRevert(callAndRefund({ refundToken: ETH_TOKEN }), "VM: wallet invoke reverted");
     });
 
-    it("should fail the transaction when when there is not enough ERC20 for the refund", async () => {
+    it("should fail the transaction when there is not enough ERC20 for the refund", async () => {
       await provisionFunds(0, 10);
-      await assertRevert(callAndRefund({ refundToken: erc20.address }), "ERC20: transfer amount exceeds balance");
+      await utils.assertRevert(callAndRefund({ refundToken: erc20.address }), "ERC20: transfer amount exceeds balance");
     });
 
     it("should include the refund in the daily limit", async () => {
@@ -343,12 +341,12 @@ contract("RelayerManager", (accounts) => {
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
       let dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
-      const rBalanceStart = await getBalance(recipient);
+      const rBalanceStart = await utils.getBalance(recipient);
       // add a guardian
       await guardianManager.addGuardian(wallet.address, guardian, { from: owner });
       // call approvedTransfer
       const params = [wallet.address, ETH_TOKEN, recipient, 1000, ethers.constants.HashZero];
-      const nonce = await getNonceForRelay();
+      const nonce = await utils.getNonceForRelay();
       const gasLimit = 2000000;
       const relayParams = [
         approvedTransfer,
@@ -367,12 +365,12 @@ contract("RelayerManager", (accounts) => {
       await manager.relay(...relayParams);
       dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 0, "daily spent should be reset");
-      const rBalanceEnd = await getBalance(recipient);
+      const rBalanceEnd = await utils.getBalance(recipient);
       assert.isTrue(rBalanceEnd.gt(rBalanceStart), "should have refunded the recipient");
     });
 
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
-      await assertRevert(
+      await utils.assertRevert(
         manager.relay(badFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner]), "RM: Wrong signature requirement",
       );
     });
@@ -382,7 +380,7 @@ contract("RelayerManager", (accounts) => {
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 999999990 });
       const dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 999999990, "initial daily spent should be 999999990");
-      await assertRevert(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limit");
+      await utils.assertRevert(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limit");
     });
   });
 
@@ -407,7 +405,7 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should fail to add module which is not registered", async () => {
-      await assertRevert(versionManager.addModule(wallet.address, versionManagerV2.address, { from: owner }),
+      await utils.assertRevert(versionManager.addModule(wallet.address, versionManagerV2.address, { from: owner }),
         "VM: module is not registered");
     });
   });
