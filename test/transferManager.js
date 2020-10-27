@@ -1,5 +1,5 @@
-/* global accounts, utils */
-const ethers = require("ethers");
+/* global accounts */
+const { ethers, utils } = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
@@ -24,7 +24,7 @@ const ERC20 = require("../build/TestERC20");
 const WETH = require("../build/WETH9");
 const TestContract = require("../build/TestContract");
 
-const { ETH_TOKEN, hasEvent } = require("../utils/utilities.js");
+const { ETH_TOKEN, hasEvent, personalSign } = require("../utils/utilities.js");
 
 const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
@@ -886,6 +886,20 @@ describe("TransferManager", function () {
       await weth.from(infrastructure).deposit({ value: amount });
       await weth.from(infrastructure).transfer(wallet.contractAddress, amount);
       await doApproveTokenAndCallContract({ amount, state: 3, wrapEth: true });
+    });
+  });
+
+  describe("Static calls", () => {
+    it("should delegate isValidSignature static calls to the TransferManager", async () => {
+      const ERC1271_ISVALIDSIGNATURE_BYTES32 = utils.keccak256(utils.toUtf8Bytes("isValidSignature(bytes32,bytes)")).slice(0, 10);
+      const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);
+      assert.equal(isValidSignatureDelegate, versionManager.contractAddress);
+
+      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const signHash = utils.keccak256("0x1234");
+      const sig = await personalSign(signHash, owner);
+      const valid = await walletAsTransferManager.isValidSignature(signHash, sig);
+      assert.equal(valid, ERC1271_ISVALIDSIGNATURE_BYTES32);
     });
   });
 });
