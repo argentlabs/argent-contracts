@@ -59,7 +59,6 @@ describe("VersionManager", function () {
     testFeature = await deployer.deploy(TestFeature, {},
       lockStorage.contractAddress,
       versionManager.contractAddress,
-      true,
       42);
     await versionManager.addVersion([guardianManager.contractAddress, relayerManager.contractAddress, testFeature.contractAddress], []);
     manager.setRelayerManager(relayerManager);
