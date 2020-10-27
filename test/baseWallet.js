@@ -42,7 +42,6 @@ describe("BaseWallet", function () {
     const feature = await deployer.deploy(TestFeature, {},
       lockStorage.contractAddress,
       module.contractAddress,
-      true,
       42);
     await module.addVersion([feature.contractAddress], []);
     return { module, feature };
