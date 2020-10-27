@@ -1,5 +1,5 @@
-/* global accounts */
-const { ethers, utils } = require("ethers");
+/* global accounts, utils */
+const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
@@ -891,12 +891,12 @@ describe("TransferManager", function () {
 
   describe("Static calls", () => {
     it("should delegate isValidSignature static calls to the TransferManager", async () => {
-      const ERC1271_ISVALIDSIGNATURE_BYTES32 = utils.keccak256(utils.toUtf8Bytes("isValidSignature(bytes32,bytes)")).slice(0, 10);
+      const ERC1271_ISVALIDSIGNATURE_BYTES32 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("isValidSignature(bytes32,bytes)")).slice(0, 10);
       const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);
       assert.equal(isValidSignatureDelegate, versionManager.contractAddress);
 
       const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
-      const signHash = utils.keccak256("0x1234");
+      const signHash = ethers.utils.keccak256("0x1234");
       const sig = await personalSign(signHash, owner);
       const valid = await walletAsTransferManager.isValidSignature(signHash, sig);
       assert.equal(valid, ERC1271_ISVALIDSIGNATURE_BYTES32);
