@@ -135,4 +135,6 @@ module.exports = {
       32,
     );
   },
+
+  personalSign: async (signHash, signer) => ethers.utils.joinSignature(signer.signingKey.signDigest(signHash)),
 };
