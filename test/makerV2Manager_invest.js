@@ -1,10 +1,14 @@
 /* global artifacts */
 
 const ethers = require("ethers");
+const chai = require("chai");
 const BN = require("bn.js");
-const {
-  deployMaker, deployUniswap, WAD, ETH_PER_DAI, ETH_PER_MKR,
-} = require("../utils/defi-deployer");
+const bnChai = require("bn-chai");
+
+const { expect } = chai;
+chai.use(bnChai(BN));
+
+const { deployMaker, deployUniswap, WAD, ETH_PER_DAI, ETH_PER_MKR } = require("../utils/defi-deployer");
 const RelayManager = require("../utils/relay-manager");
 
 const Registry = artifacts.require("ModuleRegistry");
@@ -87,8 +91,8 @@ contract("MakerV2Invest", (accounts) => {
 
     await wallet.init(owner, [versionManager.address]);
     await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
-    await sai["mint(address,uint256)"](wallet.address, DAI_SENT.times(20));
-    await dai["mint(address,uint256)"](wallet.address, DAI_SENT.times(20));
+    await sai.mint(wallet.address, DAI_SENT.muln(20));
+    await dai.mint(wallet.address, DAI_SENT.muln(20));
   });
 
   async function exchangeWithPot({ toPot, relayed, all = false }) {
@@ -102,22 +106,27 @@ contract("MakerV2Invest", (accounts) => {
     } else {
       method = "exitDsr";
     }
-    const params = [wallet.address].concat(all ? [] : [DAI_SENT]);
+    const params = [wallet.address].concat(all ? [] : [DAI_SENT.toString()]);
+
     if (relayed) {
       await manager.relay(makerV2, method, params, wallet, [owner]);
     } else {
-      await (await makerV2[method](...params, { gasLimit: 2000000, from: owner })).wait();
+      await makerV2[method](...params, { gasLimit: 2000000, from: owner });
     }
     const walletAfter = (await dai.balanceOf(wallet.address)).add(await sai.balanceOf(wallet.address));
     const investedAfter = await makerV2.dsrBalance(wallet.address);
     const deltaInvested = toPot ? investedAfter.sub(investedBefore) : investedBefore.sub(investedAfter);
     const deltaWallet = toPot ? walletBefore.sub(walletAfter) : walletAfter.sub(walletBefore);
-    assert.isTrue(deltaInvested.gt(0), "DAI in DSR should have changed.");
-    assert.isTrue(deltaWallet.gt(0), "DAI in wallet should have changed.");
+    // DAI in DSR should have changed
+    expect(deltaInvested).to.be.gt.BN(0);
+    // DAI in wallet should have changed
+    expect(deltaWallet).to.be.gt.BN(0);
 
     if (all) {
-      assert.isTrue(investedAfter.eq(0), "Pot should be emptied");
-      assert.isTrue(walletAfter.gt(walletBefore), "DAI in wallet should have increased");
+      // Pot should be emptied
+      expect(investedAfter).to.be.zero;
+      // DAI in wallet should have increased
+      expect(walletAfter).to.be.gt.BN(walletBefore);
     }
   }
 

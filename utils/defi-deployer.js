@@ -1,11 +1,10 @@
 /* global artifacts */
 
-const { parseEther, formatBytes32String } = require("ethers").utils;
-const web3 = require("web3");
+const { formatBytes32String } = require("ethers").utils;
 const BN = require("bn.js");
 
-const UniswapFactory = require("../lib/uniswap/UniswapFactory");
-const UniswapExchange = require("../lib/uniswap/UniswapExchange");
+const UniswapFactory = artifacts.require("UniswapFactory");
+const UniswapExchange = artifacts.require("UniswapExchange");
 
 const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 const DSValue = artifacts.require("DSValue");
@@ -37,7 +36,7 @@ module.exports = {
   ETH_PER_MKR,
   ETH_PER_DAI,
 
-  deployUniswap: async (infrastructure, tokens = [], ethPerToken = [], ethLiquidity = parseEther("10")) => {
+  deployUniswap: async (infrastructure, tokens = [], ethPerToken = [], ethLiquidity = web3.utils.toWei("10")) => {
     const uniswapFactory = await UniswapFactory.new();
     const uniswapTemplateExchange = await UniswapExchange.new();
     await uniswapFactory.initializeFactory(uniswapTemplateExchange.address);
@@ -46,8 +45,9 @@ module.exports = {
       await uniswapFactory.createExchange(token.address, { from: infrastructure });
       const uniswapExchangeAddress = await uniswapFactory.getExchange(token.address);
       const tokenExchange = await UniswapExchange.at(uniswapExchangeAddress);
-      const tokenLiquidity = ethLiquidity.mul(WAD).div(ethPerToken[i]);
-      await token["mint(address,uint256)"](infrastructure, tokenLiquidity);
+
+      const tokenLiquidity = new BN(ethLiquidity).mul(WAD).div(ethPerToken[i]);
+      await token.mint(infrastructure, tokenLiquidity);
       await token.approve(tokenExchange.address, tokenLiquidity, { from: infrastructure });
       const { timestamp } = await web3.eth.getBlock("latest");
       await tokenExchange.addLiquidity(1, tokenLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000, from: infrastructure });
@@ -82,11 +82,11 @@ module.exports = {
     await skr.setOwner(tub.address);
     await sai.setOwner(tub.address);
     // Setup USD/ETH oracle with a convertion rate of 100 USD/ETH
-    await pip.poke(`0x${USD_PER_ETH.toHexString().slice(2).padStart(64, "0")}`);
+    await pip.poke(`0x${USD_PER_ETH.toString(16, 64)}`);
     // Setup USD/MKR oracle with a convertion rate of 400 USD/MKR
-    await pep.poke(`0x${USD_PER_MKR.toHexString().slice(2).padStart(64, "0")}`);
+    await pep.poke(`0x${USD_PER_MKR.toString(16, 64)}`);
     // Set the total DAI debt ceiling to 50,000 DAI
-    await tub.mold(formatBytes32String("cap"), parseEther("50000"));
+    await tub.mold(formatBytes32String("cap"), web3.utils.toWei("50000"));
     // Set the collateralization ratio to 150%
     await tub.mold(formatBytes32String("mat"), MAT);
     // Set the governance fee to 7.5% APR
@@ -99,7 +99,7 @@ module.exports = {
     // Vat setup
     const vat = await Vat.new();
     // Setting the debt ceiling
-    await vat["file(bytes32,uint256)"](formatBytes32String("Line"), "138000000000000000000000000000000000000000000000000000");
+    await vat.file(formatBytes32String("Line"), "138000000000000000000000000000000000000000000000000000");
 
     const cdpManager = await CdpManager.new(vat.address);
 
@@ -158,8 +158,8 @@ module.exports = {
       daiJoin.address,
     );
     // Setting up the common migration vault used by ScdMcdMigration
-    const initialSaiAmountInMigrationVault = parseEther("1000");
-    await sai["mint(address,uint256)"](infrastructure, initialSaiAmountInMigrationVault);
+    const initialSaiAmountInMigrationVault = web3.utils.toWei("1000");
+    await sai.mint(infrastructure, initialSaiAmountInMigrationVault);
     await sai.approve(migration.address, initialSaiAmountInMigrationVault, { from: infrastructure });
     await migration.swapSaiToDai(initialSaiAmountInMigrationVault, { from: infrastructure });
 

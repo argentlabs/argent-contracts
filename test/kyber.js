@@ -5,10 +5,11 @@ const ERC20 = artifacts.require("TestERC20");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
-const { ETH_TOKEN, getBalance } = require("../utils/utilities.js");
 
 const { expect } = chai;
 chai.use(bnChai(BN));
+
+const { ETH_TOKEN, getBalance } = require("../utils/utilities.js");
 
 const ERC20_SUPPLY = 10000000;
 const ERC20_DECIMALS = 18;

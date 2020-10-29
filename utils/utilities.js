@@ -25,7 +25,7 @@ module.exports = {
 
   asciiToBytes32: (input) => ethers.utils.formatBytes32String(input), // return ethers.utils.hexlify(ethers.utils.toUtf8Bytes(input));
 
-  bigNumToBytes32: (input) => ethers.utils.hexZeroPad(input.toHexString(), 32),
+  numberToBytes32: (input) => `0x${new BN(input).toString(16, 64)}`,
 
   waitForUserInput: (text) => new Promise((resolve) => {
     const rl = readline.createInterface({
