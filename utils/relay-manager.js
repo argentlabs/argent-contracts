@@ -47,6 +47,7 @@ class RelayManager {
       );
       return gasUsed;
     }
+
     const tx = await this.relayerManager.execute(
       _wallet.address,
       _module.address,

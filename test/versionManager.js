@@ -16,7 +16,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const TransferManager = artifacts.require("TransferManager");
 const UpgraderToVersionManager = artifacts.require("UpgraderToVersionManager");
 
-const { assertRevert } = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 contract("VersionManager", (accounts) => {
@@ -74,12 +74,12 @@ contract("VersionManager", (accounts) => {
 
   describe("VersionManager owner", () => {
     it("should not let the VersionManager owner add a storage twice", async () => {
-      await assertRevert(versionManager.addStorage(lockStorage.address), "VM: storage already added");
+      await utils.assertRevert(versionManager.addStorage(lockStorage.address), "VM: storage already added");
     });
 
     it("should not let the VersionManager owner add an inconsistent version", async () => {
       // Should fail: the _featuresToInit array includes a feature not listed in the _features array
-      await assertRevert(
+      await utils.assertRevert(
         versionManager.addVersion([relayerManager.address], [guardianManager.address]),
         "VM: invalid _featuresToInit",
       );
@@ -88,12 +88,12 @@ contract("VersionManager", (accounts) => {
     it("should not let the VersionManager owner set an invalid minVersion", async () => {
       const lastVersion = await versionManager.lastVersion();
 
-      await assertRevert(
+      await utils.assertRevert(
         versionManager.setMinVersion(0),
         "VM: invalid _minVersion",
       );
 
-      await assertRevert(
+      await utils.assertRevert(
         versionManager.setMinVersion(lastVersion.addn(1)),
         "VM: invalid _minVersion",
       );
@@ -102,7 +102,7 @@ contract("VersionManager", (accounts) => {
 
   describe("Wallet owner", () => {
     it("should not let the relayer call a forbidden method", async () => {
-      await assertRevert(
+      await utils.assertRevert(
         manager.relay(versionManager, "setOwner", [wallet.address, owner], wallet, [owner]),
         "VM: unknown method",
       );
@@ -110,7 +110,7 @@ contract("VersionManager", (accounts) => {
 
     it("should fail to upgrade a wallet when already on the last version", async () => {
       const lastVersion = await versionManager.lastVersion();
-      await assertRevert(
+      await utils.assertRevert(
         versionManager.upgradeWallet(wallet.address, lastVersion, { from: owner }),
         "VM: already on new version",
       );
@@ -121,7 +121,7 @@ contract("VersionManager", (accounts) => {
       await versionManager.addVersion([], []);
       await versionManager.setMinVersion(await versionManager.lastVersion());
 
-      await assertRevert(
+      await utils.assertRevert(
         versionManager.upgradeWallet(wallet.address, badVersion, { from: owner }),
         "VM: invalid _toVersion",
       );
@@ -133,20 +133,20 @@ contract("VersionManager", (accounts) => {
 
       await testFeature.invokeStorage(wallet.address, guardianStorage.address, data1, { from: owner });
       let lock = await guardianStorage.getLock(wallet.address);
-      assert.isTrue(lock.eq(1), "Lock should have been set");
+      assert.equal(lock, 1, "Lock should have been set");
       const data0 = guardianStorage.contract.methods.setLock(wallet.address, 0).encodeABI();
 
       await testFeature.invokeStorage(wallet.address, guardianStorage.address, data0, { from: owner });
       lock = await guardianStorage.getLock(wallet.address);
-      assert.isTrue(lock.eq(0), "Lock should have been unset");
+      assert.equal(lock, 0, "Lock should have been unset");
 
       const newGuardianStorage = await GuardianStorage.new(); // not authorised in VersionManager
-      await assertRevert(
+      await utils.assertRevert(
         testFeature.invokeStorage(wallet.address, newGuardianStorage.address, data1, { from: owner }),
         "VM: invalid storage invoked",
       );
       lock = await newGuardianStorage.getLock(wallet.address);
-      assert.isTrue(lock.eq(0), "Lock should not be set");
+      assert.equal(lock, 0, "Lock should not be set");
     });
 
     it("should not allow the fallback to be called via a non-static call", async () => {

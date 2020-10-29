@@ -15,7 +15,7 @@ const VersionManager = artifacts.require("VersionManager");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
-const { assert } = require("chai");
+
 const utilities = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 

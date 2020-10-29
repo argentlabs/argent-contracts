@@ -104,7 +104,7 @@ contract("SimpleUpgrader", (accounts) => {
       let isAuthorised = await wallet.authorised(initialModule.address);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // try (and fail) to add moduleToAdd to wallet
-      await utils.assertRevert(initialModule.addModule(wallet.address, moduleToAdd.address, { from: owner }));
+      await utils.assertRevert(initialModule.addModule(wallet.address, moduleToAdd.address, { from: owner }), "VM: module is not registered");
       isAuthorised = await wallet.authorised(moduleToAdd.address);
       assert.equal(isAuthorised, false, "unregistered module should not be authorised");
     });
@@ -180,7 +180,7 @@ contract("SimpleUpgrader", (accounts) => {
           const event = await utils.getEvent(txReceipt, relayerV1, "TransactionExecuted");
           assert.isTrue(!event.args.success, "Relayed upgrade to 0 module should have failed.");
         } else {
-          utils.assertRevert(moduleV1.addModule(...params2, { from: owner }));
+          utils.assertRevert(moduleV1.addModule(...params2, { from: owner }), "BW: wallet must have at least one module");
         }
         return;
       }
@@ -195,10 +195,8 @@ contract("SimpleUpgrader", (accounts) => {
 
       // test event ordering
       const event = await utils.getEvent(txReceipt, wallet, "AuthorisedModule");
-      const upgraderAuthorisedLogIndex = event.args.findIndex((a) => a.module === upgrader1.address && a.value === true);
-      const upgraderUnauthorisedLogIndex = event.args.findIndex((a) => a.module === upgrader1.address && a.value === false);
-      assert.isBelow(upgraderAuthorisedLogIndex, upgraderUnauthorisedLogIndex,
-        "AuthorisedModule(upgrader, false) should come after AuthorisedModule(upgrader, true)");
+      assert.equal(event.args.module, upgrader1.address);
+      assert.isTrue(event.args.value);
 
       // test if the upgrade worked
       const isV1Authorised = await wallet.authorised(moduleV1.address);

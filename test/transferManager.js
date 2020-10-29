@@ -19,6 +19,7 @@ const LimitStorage = artifacts.require("LimitStorage");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const RelayerManager = artifacts.require("RelayerManager");
 const TransferManager = artifacts.require("TransferManager");
+
 const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
 const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
 
@@ -66,6 +67,7 @@ contract("TransferManager", (accounts) => {
   before(async () => {
     weth = await WETH.new();
     registry = await Registry.new();
+
     priceProvider = await LegacyTokenPriceProvider.new(ethers.constants.AddressZero);
     await priceProvider.addManager(infrastructure);
 
@@ -86,7 +88,7 @@ contract("TransferManager", (accounts) => {
       registry.address,
       transferStorage.address,
       guardianStorage.address,
-      priceProvider.address,
+      ethers.constants.AddressZero,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       ETH_LIMIT,
@@ -162,9 +164,9 @@ contract("TransferManager", (accounts) => {
       await existingWallet.init(owner, [versionManager.address]);
       await versionManager.upgradeWallet(existingWallet.address, await versionManager.lastVersion(), { from: owner });
 
-      const defautlimit = await transferManager1.defaultLimit();
+      const defaultLimit = await transferManager1.defaultLimit();
       const limit = await transferManager1.getCurrentLimit(existingWallet.address);
-      assert.equal(limit.toNumber(), defautlimit.toNumber());
+      expect(limit).to.eq.BN(defaultLimit);
 
       // reset the last version to the default bundle
       await versionManager.addVersion([transferManager.address, relayerManager.address], [transferManager.address]);
@@ -175,13 +177,13 @@ contract("TransferManager", (accounts) => {
     it("should add/remove an account to/from the whitelist", async () => {
       await transferManager.addToWhitelist(wallet.address, recipient, { from: owner });
       let isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
-      assert.equal(isTrusted, false, "should not be trusted during the security period");
+      assert.isFalse(isTrusted, "should not be trusted during the security period");
       await increaseTime(3);
       isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
-      assert.equal(isTrusted, true, "should be trusted after the security period");
+      assert.isTrue(isTrusted, "should be trusted after the security period");
       await transferManager.removeFromWhitelist(wallet.address, recipient, { from: owner });
       isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
-      assert.equal(isTrusted, false, "should no removed from whitelist immediately");
+      assert.isFalse(isTrusted, "should no removed from whitelist immediately");
     });
 
     it("should not be able to whitelist a token twice", async () => {
@@ -198,7 +200,7 @@ contract("TransferManager", (accounts) => {
 
       await increaseTime(3);
       const isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
-      assert.equal(isTrusted, false);
+      assert.isFalse(isTrusted);
     });
   });
 
@@ -215,36 +217,36 @@ contract("TransferManager", (accounts) => {
 
     it("should get a token price correctly", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
-      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice]);
       const tokenPriceSet = await tokenPriceRegistry.getTokenPrice(erc20First.address);
-      expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
+      expect(tokenPrice).to.eq.BN(tokenPriceSet);
     });
 
     it("should get multiple token prices correctly", async () => {
       await tokenPriceRegistry.setPriceForTokenList([erc20First.address, erc20Second.address], [1800, 1900]);
       const tokenPricesSet = await tokenPriceRegistry.getPriceForTokenList([erc20First.address, erc20Second.address]);
-      expect(1800).to.eq.BN(tokenPricesSet[0].toString());
-      expect(1900).to.eq.BN(tokenPricesSet[1].toString());
+      expect(1800).to.eq.BN(tokenPricesSet[0]);
+      expect(1900).to.eq.BN(tokenPricesSet[1]);
     });
 
     it("should set token price correctly", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
-      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice]);
       const tokenPriceSet = await tokenPriceRegistry.getTokenPrice(erc20First.address);
-      expect(tokenPrice).to.eq.BN(tokenPriceSet.toString());
+      expect(tokenPrice).to.eq.BN(tokenPriceSet);
     });
 
     it("should set multiple token prices correctly", async () => {
       await tokenPriceRegistry.setPriceForTokenList([erc20First.address, erc20Second.address], [1800, 1900]);
       const tokenPrice1Set = await tokenPriceRegistry.getTokenPrice(erc20First.address);
-      expect(1800).to.eq.BN(tokenPrice1Set.toString());
+      expect(1800).to.eq.BN(tokenPrice1Set);
       const tokenPrice2Set = await tokenPriceRegistry.getTokenPrice(erc20Second.address);
-      expect(1900).to.eq.BN(tokenPrice2Set.toString());
+      expect(1900).to.eq.BN(tokenPrice2Set);
     });
 
     it("should be able to get the ether value of a given amount of tokens", async () => {
       const tokenPrice = new BN(10).pow(new BN(18)).muln(1800);
-      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [tokenPrice]);
       const etherValue = await getEtherValue("15000000000000000000", erc20First.address);
       // expectedValue = 1800*10^18/10^18 (price for 1 token wei) * 15*10^18 (amount) = 1800 * 15*10^18 = 27,000 * 10^18
       const expectedValue = new BN(10).pow(new BN(18)).muln(27000);
@@ -253,7 +255,7 @@ contract("TransferManager", (accounts) => {
 
     it("should be able to get the ether value for a token with 0 decimals", async () => {
       const tokenPrice = new BN(10).pow(new BN(36)).muln(23000);
-      await tokenPriceRegistry.setPriceForTokenList([erc20ZeroDecimals.address], [tokenPrice.toString()]);
+      await tokenPriceRegistry.setPriceForTokenList([erc20ZeroDecimals.address], [tokenPrice]);
       const etherValue = await getEtherValue(100, erc20ZeroDecimals.address);
       // expectedValue = 23000*10^36 * 100 / 10^18 = 2,300,000 * 10^18
       const expectedValue = new BN(10).pow(new BN(18)).muln(2300000);
@@ -263,7 +265,7 @@ contract("TransferManager", (accounts) => {
     it("should return 0 as the ether value for a low priced token", async () => {
       await tokenPriceRegistry.setPriceForTokenList([erc20First.address], [23000]);
       const etherValue = await getEtherValue(100, erc20First.address);
-      assert.equal(etherValue.toString(), 0); // 2,300,000
+      assert.equal(etherValue, 0); // 2,300,000
     });
   });
 
@@ -274,13 +276,13 @@ contract("TransferManager", (accounts) => {
       const existingWallet = await BaseWallet.at(proxy.address);
 
       await existingWallet.init(owner, [previousTransferManager.address]);
-      await existingWallet.send(new BN("100000000"));
+      await existingWallet.send(100000000);
 
       // change the limit
       await previousTransferManager.changeLimit(existingWallet.address, 4000000, { from: owner });
       await increaseTime(SECURITY_PERIOD + 1);
       let limit = await previousTransferManager.getCurrentLimit(existingWallet.address);
-      assert.equal(limit.toNumber(), 4000000, "limit should be changed");
+      expect(limit).to.eq.BN(4000000);
       // transfer some funds
       await previousTransferManager.transferToken(existingWallet.address, ETH_TOKEN, recipient, 1000000, ZERO_BYTES32, { from: owner });
       // add new module
@@ -290,23 +292,24 @@ contract("TransferManager", (accounts) => {
       assert.isTrue(utils.hasEvent(txReceipt, "DailyLimitMigrated"));
       // check result
       limit = await transferManager.getCurrentLimit(existingWallet.address);
-      assert.equal(limit.toNumber(), 4000000, "limit should have been migrated");
+      expect(limit).to.eq.BN(4000000);
       const unspent = await transferManager.getDailyUnspent(existingWallet.address);
-      assert.equal(unspent[0].toNumber(), 4000000 - 1000000, "unspent should have been migrated");
+      // unspent should have been migrated
+      expect(unspent[0]).to.eq.BN(4000000 - 1000000);
     });
 
     it("should set the default limit for new wallets", async () => {
       const limit = await transferManager.getCurrentLimit(wallet.address);
-      assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
+      expect(limit).to.eq.BN(ETH_LIMIT);
     });
 
     it("should only increase the limit after the security period", async () => {
       await transferManager.changeLimit(wallet.address, 4000000, { from: owner });
       let limit = await transferManager.getCurrentLimit(wallet.address);
-      assert.equal(limit.toNumber(), ETH_LIMIT, "limit should be ETH_LIMIT");
+      expect(limit).to.eq.BN(ETH_LIMIT);
       await increaseTime(SECURITY_PERIOD + 1);
       limit = await transferManager.getCurrentLimit(wallet.address);
-      assert.equal(limit.toNumber(), 4000000, "limit should be changed");
+      expect(limit).to.eq.BN(4000000);
     });
 
     it("should decrease the limit immediately", async () => {

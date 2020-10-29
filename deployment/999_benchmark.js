@@ -3,7 +3,6 @@
 const ethers = require("ethers");
 const Table = require("cli-table2");
 const tinyreq = require("tinyreq");
-const { assert } = require("chai");
 
 const BaseWallet = artifacts.require("BaseWallet");
 const Proxy = artifacts.require("Proxy");

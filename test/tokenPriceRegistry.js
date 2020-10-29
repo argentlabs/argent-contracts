@@ -1,9 +1,15 @@
 /* global artifacts */
+const chai = require("chai");
+const BN = require("bn.js");
+const bnChai = require("bn-chai");
+
+const { expect } = chai;
+chai.use(bnChai(BN));
 
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const ERC20 = artifacts.require("TestERC20");
 
-const { increaseTime, assertRevert } = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
 
 contract("TokenPriceRegistry", (accounts) => {
   const owner = accounts[0];
@@ -27,31 +33,33 @@ contract("TokenPriceRegistry", (accounts) => {
     it("lets managers change price after security period", async () => {
       await tokenPriceRegistry.setPriceForTokenList([tokenAddress], [111111], { from: manager });
       const beforePrice = await tokenPriceRegistry.getTokenPrice(tokenAddress);
-      assert.equal(beforePrice.toString(), "111111");
-      await increaseTime(3601);
+      expect(beforePrice).to.eq.BN(111111);
+      await utils.increaseTime(3601);
       await tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager });
       const afterPrice = await tokenPriceRegistry.getTokenPrice(tokenAddress);
-      assert.equal(afterPrice.toString(), "222222");
+      expect(afterPrice).to.eq.BN(222222);
     });
 
     it("does not let managers change price with invalid array lengths", async () => {
-      await assertRevert(tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222, 333333], { from: manager }), "TPS: Array length mismatch");
+      await utils.assertRevert(
+        tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222, 333333], { from: manager }),
+        "TPS: Array length mismatch");
     });
 
     it("does not let managers change price before security period", async () => {
       await tokenPriceRegistry.setPriceForTokenList([tokenAddress], [111111], { from: manager });
-      await increaseTime(3500);
-      await assertRevert(tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager }), "TPS: Price updated too early");
+      await utils.increaseTime(3500);
+      await utils.assertRevert(tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager }), "TPS: Price updated too early");
     });
 
     it("lets the owner change security period", async () => {
       await tokenPriceRegistry.setPriceForTokenList([tokenAddress], [111111], { from: manager });
-      await increaseTime(1600);
-      await assertRevert(tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager }), "TPS: Price updated too early");
+      await utils.increaseTime(1600);
+      await utils.assertRevert(tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager }), "TPS: Price updated too early");
       await tokenPriceRegistry.setMinPriceUpdatePeriod(0, { from: owner });
       await tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager });
       const afterPrice = await tokenPriceRegistry.getTokenPrice(tokenAddress);
-      assert.equal(afterPrice.toString(), "222222");
+      expect(afterPrice).to.eq.BN(222222);
     });
   });
 
@@ -72,10 +80,12 @@ contract("TokenPriceRegistry", (accounts) => {
       await tokenPriceRegistry.setTradableForTokenList([tokenAddress], [false], { from: manager });
       const tradable = await tokenPriceRegistry.isTokenTradable(tokenAddress);
       assert.isFalse(tradable);
-      await assertRevert(tokenPriceRegistry.setTradableForTokenList([tokenAddress], [true], { from: manager }), "TPS: Unauthorised");
+      await utils.assertRevert(tokenPriceRegistry.setTradableForTokenList([tokenAddress], [true], { from: manager }), "TPS: Unauthorised");
     });
     it("does not let managers change tradable with invalid array lengths", async () => {
-      await assertRevert(tokenPriceRegistry.setTradableForTokenList([tokenAddress], [false, false], { from: manager }), "TPS: Array length mismatch");
+      await utils.assertRevert(
+        tokenPriceRegistry.setTradableForTokenList([tokenAddress], [false, false], { from: manager }),
+        "TPS: Array length mismatch");
     });
   });
 });
