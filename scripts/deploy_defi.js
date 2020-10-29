@@ -2,7 +2,7 @@
 /* global artifacts */
 
 const BN = require("bn.js");
-const { parseEther, formatBytes32String } = require("ethers").utils;
+const { formatBytes32String } = require("ethers").utils;
 
 const DeployManager = require("../utils/deploy-manager.js");
 
@@ -66,13 +66,13 @@ async function deploy() {
   await skr.setOwner(tub.address);
   await sai.setOwner(tub.address);
   // setup USD/ETH oracle with a convertion rate of 100 USD/ETH
-  await pip.poke(`0x${USD_PER_ETH.toHexString().slice(2).padStart(64, "0")}`);
+  await pip.poke(`0x${USD_PER_ETH.toString(16, 64)}`);
   // setup USD/MKR oracle with a convertion rate of 400 USD/MKR
-  await pep.poke(`0x${USD_PER_MKR.toHexString().slice(2).padStart(64, "0")}`);
+  await pep.poke(`0x${USD_PER_MKR.toString(16, 64)}`);
   // set the total DAI debt ceiling to 50,000 DAI
-  await tub.mold(formatBytes32String("cap"), parseEther("50000"));
+  await tub.mold(formatBytes32String("cap"), web3.utils.toWei("50000"));
   // set the liquidity ratio to 150%
-  await tub.mold(formatBytes32String("mat"), RAY.times(3).div(2));
+  await tub.mold(formatBytes32String("mat"), RAY.muln(3).divn(2));
   // set the governance fee to 7.5% APR
   await tub.mold(formatBytes32String("fee"), "1000000002293273137447730714", { gasLimit: 150000 });
   // set the liquidation penalty to 13%
@@ -86,9 +86,9 @@ async function deploy() {
 
   /* *************** create MKR exchange ***************** */
 
-  const ethLiquidity = parseEther("1");
-  const mkrLiquidity = ethLiquidity.times(WAD).div(ETH_PER_MKR);
-  await gov["mint(address,uint256)"](manager, mkrLiquidity);
+  const ethLiquidity = new BN(web3.utils.toWei("1"));
+  const mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
+  await gov.mint(manager, mkrLiquidity);
 
   await uniswapFactory.createExchange(gov.address, { gasLimit: 450000 });
   let exchange = "0x0000000000000000000000000000000000000000";

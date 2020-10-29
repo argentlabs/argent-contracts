@@ -1,14 +1,16 @@
 /* global artifacts */
 
 const ethers = require("ethers");
+const chai = require("chai");
 const BN = require("bn.js");
+const bnChai = require("bn-chai");
 
-const {
-  bigNumToBytes32, ETH_TOKEN, getEvent, hasEvent, increaseTime, getBalance, assertRevert
-} = require("../utils/utilities.js");
-const {
-  deployMaker, deployUniswap, RAY, ETH_PER_DAI, ETH_PER_MKR,
-} = require("../utils/defi-deployer");
+const { expect } = chai;
+chai.use(bnChai(BN));
+
+const utils = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
+const { deployMaker, deployUniswap, RAY, ETH_PER_DAI, ETH_PER_MKR } = require("../utils/defi-deployer");
 
 const { formatBytes32String } = ethers.utils;
 const { AddressZero } = ethers.constants;
@@ -140,7 +142,7 @@ contract("MakerV2Loan", (accounts) => {
     await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
     walletAddress = wallet.address;
     await wallet.send(web3.utils.toWei("2.0"));
-    await dai["mint(address,uint256)"](walletAddress, web3.utils.toWei("10"));
+    await dai.mint(walletAddress, web3.utils.toWei("10"));
   });
 
   async function getTestAmounts(tokenAddress) {
@@ -148,7 +150,7 @@ contract("MakerV2Loan", (accounts) => {
     const { ilk } = await makerRegistry.collaterals(tokenAddress_);
     const { spot, dust } = await vat.ilks(ilk);
     const daiAmount = dust.div(RAY);
-    const collateralAmount = dust.div(spot).times(2);
+    const collateralAmount = dust.div(spot).muln(2);
     return { daiAmount, collateralAmount };
   }
 
@@ -156,47 +158,39 @@ contract("MakerV2Loan", (accounts) => {
     collateralAmount, daiAmount, relayed, collateral = { address: ETH_TOKEN },
   }) {
     const beforeCollateral = (collateral.address === ETH_TOKEN)
-      ? await getBalance(walletAddress)
+      ? await utils.getBalance(walletAddress)
       : await collateral.balanceOf(walletAddress);
 
     const beforeDAI = await dai.balanceOf(walletAddress);
     const beforeDAISupply = await dai.totalSupply();
 
     const method = "openLoan";
-    const params = [walletAddress, collateral.address, collateralAmount, dai.address, daiAmount];
+    const params = [walletAddress, collateral.address, collateralAmount.toString(), dai.address, daiAmount.toString()];
     let txReceipt;
     if (relayed) {
       txReceipt = await manager.relay(makerV2, method, params, wallet, [owner]);
-      const eventTransactionExecuted = await getEvent(txReceipt, relayerManager, "TransactionExecuted");
+      const eventTransactionExecuted = await utils.getEvent(txReceipt, relayerManager, "TransactionExecuted");
       assert.isTrue(eventTransactionExecuted.args.success, "Relayed tx should succeed");
     } else {
-      txReceipt = await (await makerV2[method](...params, { gasLimit: 2000000, from: owner })).wait();
+      const tx = await makerV2[method](...params, { gasLimit: 2000000, from: owner });
+      txReceipt = tx.receipt;
     }
-    const eventLoanOpened = await getEvent(txReceipt, makerV2, "LoanOpened");
+    const eventLoanOpened = await utils.getEvent(txReceipt, makerV2, "LoanOpened");
     const loanId = eventLoanOpened.args._loanId;
     assert.isDefined(loanId, "Loan ID should be defined");
 
     const afterCollateral = (collateral.address === ETH_TOKEN)
-      ? await getBalance(walletAddress)
+      ? await utils.getBalance(walletAddress)
       : await collateral.balanceOf(walletAddress);
     const afterDAI = await dai.balanceOf(walletAddress);
     const afterDAISupply = await dai.totalSupply();
 
-    assert.equal(
-      beforeCollateral.sub(afterCollateral).toString(),
-      collateralAmount.toString(),
-      `wallet should have ${collateralAmount} less collateral (relayed: ${relayed})`,
-    );
-    assert.equal(
-      afterDAI.sub(beforeDAI).toString(),
-      daiAmount.toString(),
-      `wallet should have ${daiAmount} more DAI (relayed: ${relayed})`,
-    );
-    assert.equal(
-      afterDAISupply.sub(beforeDAISupply).toString(),
-      daiAmount.toString(),
-      `${daiAmount} DAI should have been minted (relayed: ${relayed})`,
-    );
+    // wallet should have ${collateralAmount} less collateral (relayed: ${relayed})
+    expect(beforeCollateral.sub(afterCollateral)).to.eq.BN(collateralAmount);
+    // wallet should have ${daiAmount} more DAI (relayed: ${relayed})
+    expect(afterDAI.sub(beforeDAI)).to.eq.BN(daiAmount);
+    // ${daiAmount} DAI should have been minted (relayed: ${relayed})
+    expect(afterDAISupply.sub(beforeDAISupply)).to.eq.BN(daiAmount);
 
     return loanId;
   }
@@ -226,19 +220,19 @@ contract("MakerV2Loan", (accounts) => {
 
     it("should open>close>reopen a Loan (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
-      await (await makerV2.closeLoan(walletAddress, loanId, { gasLimit: 4500000, from: owner })).wait();
+      await makerV2.closeLoan(walletAddress, loanId, { gasLimit: 4500000, from: owner });
       await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
     });
 
     it("should not open a loan for the wrong debt token", async () => {
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.openLoan(walletAddress, ETH_TOKEN, collateralAmount, sai.address, daiAmount, { from: owner }),
         "MV2: debt token not DAI",
       );
     });
 
     it("should not open a loan for an unsupported collateral token", async () => {
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.openLoan(walletAddress, sai.address, collateralAmount, dai.address, daiAmount, { from: owner }),
         "MV2: unsupported collateral",
       );
@@ -249,29 +243,27 @@ contract("MakerV2Loan", (accounts) => {
     loanId, collateralAmount, add, relayed, collateral = { address: ETH_TOKEN }, makerV2Manager = makerV2,
   }) {
     const beforeCollateral = (collateral.address === ETH_TOKEN)
-      ? await getBalance(walletAddress)
+      ? await utils.getBalance(walletAddress)
       : await collateral.balanceOf(walletAddress);
 
     const method = add ? "addCollateral" : "removeCollateral";
-    const params = [wallet.address, loanId, collateral.address, collateralAmount];
+    const params = [wallet.address, loanId, collateral.address, collateralAmount.toString()];
     if (relayed) {
       const txR = await manager.relay(makerV2Manager, method, params, wallet, [owner]);
-      const txExecutedEvent = await getEvent(txR, relayerManager, "TransactionExecuted");
+      const txExecutedEvent = await utils.getEvent(txR, relayerManager, "TransactionExecuted");
       assert.isTrue(txExecutedEvent.args.success, "Relayed tx should succeed");
     } else {
       await makerV2Manager[method](...params, { gasLimit: 2000000, from: owner });
     }
 
     const afterCollateral = (collateral.address === ETH_TOKEN)
-      ? await getBalance(walletAddress)
+      ? await utils.getBalance(walletAddress)
       : await collateral.balanceOf(walletAddress);
 
-    const expectedCollateralChange = collateralAmount.times(add ? -1 : 1).toString();
-    assert.equal(
-      afterCollateral.sub(beforeCollateral).toString(),
-      expectedCollateralChange,
-      `wallet collateral should have changed by ${expectedCollateralChange} (relayed: ${relayed})`,
-    );
+    const x = add ? -1 : 1;
+    const expectedCollateralChange = collateralAmount.mul(new BN(x));
+    // wallet collateral should have changed by ${expectedCollateralChange} (relayed: ${relayed})
+    expect(afterCollateral.sub(beforeCollateral)).to.eq.BN(expectedCollateralChange);
   }
 
   describe("Add/Remove Collateral", () => {
@@ -287,14 +279,14 @@ contract("MakerV2Loan", (accounts) => {
     it("should add collateral (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeCollateral({
-        loanId, collateralAmount: web3.utils.toWei("0.010"), add: true, relayed: false,
+        loanId, collateralAmount: new BN(web3.utils.toWei("0.010")), add: true, relayed: false,
       });
     });
 
     it("should add collateral (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testChangeCollateral({
-        loanId, collateralAmount: web3.utils.toWei("0.010"), add: true, relayed: true,
+        loanId, collateralAmount: new BN(web3.utils.toWei("0.010")), add: true, relayed: true,
       });
     });
 
@@ -304,7 +296,7 @@ contract("MakerV2Loan", (accounts) => {
       const wallet2 = await BaseWallet.at(proxy.address);
 
       await wallet2.init(owner2, [versionManager.address]);
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.addCollateral(wallet2.address, loanId, ETH_TOKEN, web3.utils.toWei("0.010"), { from: owner2 }),
         "MV2: unauthorized loanId",
       );
@@ -313,21 +305,21 @@ contract("MakerV2Loan", (accounts) => {
     it("should remove collateral (blockchain tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
       await testChangeCollateral({
-        loanId, collateralAmount: web3.utils.toWei("0.010"), add: false, relayed: false,
+        loanId, collateralAmount: new BN(web3.utils.toWei("0.010")), add: false, relayed: false,
       });
     });
 
     it("should remove collateral (relayed tx)", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: true });
       await testChangeCollateral({
-        loanId, collateralAmount: web3.utils.toWei("0.010"), add: false, relayed: true,
+        loanId, collateralAmount: new BN(web3.utils.toWei("0.010")), add: false, relayed: true,
       });
     });
 
     it("should not remove collateral with invalid collateral amount", async () => {
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
-      await assertRevert(
-        makerV2.removeCollateral(walletAddress, loanId, ETH_TOKEN, new BN(2).pow(255), { from: owner }),
+      await utils.assertRevert(
+        makerV2.removeCollateral(walletAddress, loanId, ETH_TOKEN, new BN(2).pow(new BN(255)), { from: owner }),
         "MV2: int overflow",
       );
     });
@@ -338,7 +330,7 @@ contract("MakerV2Loan", (accounts) => {
       const wallet2 = await BaseWallet.at(proxy.address);
 
       await wallet2.init(owner2, [versionManager.address]);
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.removeCollateral(wallet2.address, loanId, ETH_TOKEN, web3.utils.toWei("0.010"), { from: owner2 }),
         "MV2: unauthorized loanId",
       );
@@ -349,24 +341,21 @@ contract("MakerV2Loan", (accounts) => {
     loanId, daiAmount, add, relayed,
   }) {
     const beforeDAI = await dai.balanceOf(wallet.address);
-    const beforeETH = await getBalance(wallet.address);
+    const beforeETH = await utils.getBalance(wallet.address);
     const method = add ? "addDebt" : "removeDebt";
-    const params = [wallet.address, loanId, dai.address, daiAmount];
+    const params = [wallet.address, loanId, dai.address, daiAmount.toString()];
     if (relayed) {
       const txR = await manager.relay(makerV2, method, params, { address: walletAddress }, [owner]);
-      const txExecutedEvent = await getEvent(txR, relayerManager, "TransactionExecuted");
+      const txExecutedEvent = await utils.getEvent(txR, relayerManager, "TransactionExecuted");
       assert.isTrue(txExecutedEvent.args.success, "Relayed tx should succeed");
     } else {
       await makerV2[method](...params, { gasLimit: 2000000, from: owner });
     }
     const afterDAI = await dai.balanceOf(wallet.address);
-    const afterETH = await getBalance(wallet.address);
+    const afterETH = await utils.getBalance(wallet.address);
     if (add) {
-      assert.equal(
-        afterDAI.sub(beforeDAI).toString(),
-        daiAmount.toString(),
-        `wallet DAI should have increased by ${daiAmount.toString()} (relayed: ${relayed})`,
-      );
+      // wallet DAI should have increased by ${daiAmount.toString()} (relayed: ${relayed})
+      expect(afterDAI.sub(beforeDAI)).to.eq.BN(daiAmount);
     } else {
       assert.isTrue(
         afterDAI.lt(beforeDAI) || afterETH.lt(beforeETH),
@@ -405,7 +394,7 @@ contract("MakerV2Loan", (accounts) => {
       const wallet2 = await BaseWallet.at(proxy.address);
 
       await wallet2.init(owner2, [versionManager.address]);
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.addDebt(wallet2.address, loanId, ETH_TOKEN, web3.utils.toWei("0.010"), { from: owner2 }),
         "MV2: unauthorized loanId",
       );
@@ -414,18 +403,18 @@ contract("MakerV2Loan", (accounts) => {
 
   async function testRepayDebt({ relayed }) {
     const { collateralAmount, daiAmount: daiAmount_ } = await getTestAmounts(ETH_TOKEN);
-    const daiAmount = daiAmount_.add(web3.utils.toWei("0.3"));
+    const daiAmount = daiAmount_.add(new BN(web3.utils.toWei("0.3")));
 
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
-    await increaseTime(3); // wait 3 seconds
+    await utils.increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.address);
-    const beforeETH = await getBalance(wallet.address);
+    const beforeETH = await utils.getBalance(wallet.address);
     await testChangeDebt({
       loanId, daiAmount: web3.utils.toWei("0.2"), add: false, relayed,
     });
 
     const afterDAI = await dai.balanceOf(wallet.address);
-    const afterETH = await getBalance(wallet.address);
+    const afterETH = await utils.getBalance(wallet.address);
 
     assert.isTrue(afterDAI.lt(beforeDAI) && afterETH.eq(beforeETH), "should have less DAI");
   }
@@ -442,8 +431,8 @@ contract("MakerV2Loan", (accounts) => {
     it("should not repay debt when only dust left", async () => {
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
       const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed: false });
-      await assertRevert(
-        makerV2.removeDebt(walletAddress, loanId, dai.address, daiAmount.sub(1), { from: owner }),
+      await utils.assertRevert(
+        makerV2.removeDebt(walletAddress, loanId, dai.address, daiAmount.subn(1), { from: owner }),
         "MV2: repay less or full",
       );
     });
@@ -455,7 +444,7 @@ contract("MakerV2Loan", (accounts) => {
       const wallet2 = await BaseWallet.at(proxy.address);
 
       await wallet2.init(owner2, [versionManager.address]);
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.removeDebt(wallet2.address, loanId, ETH_TOKEN, web3.utils.toWei("0.010"), { from: owner2 }),
         "MV2: unauthorized loanId",
       );
@@ -466,21 +455,21 @@ contract("MakerV2Loan", (accounts) => {
     const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
     const loanId = await testOpenLoan({ collateralAmount, daiAmount, relayed });
     // give some ETH to the wallet to be used for repayment
-    await owner.send({ to: walletAddress, value: collateralAmount.times(2) });
-    await increaseTime(3); // wait 3 seconds
+    await wallet.send(collateralAmount.muln(2), { from: owner });
+    await utils.increaseTime(3); // wait 3 seconds
     const beforeDAI = await dai.balanceOf(wallet.address);
     const method = "closeLoan";
     const params = [wallet.address, loanId];
     if (relayed) {
       const txR = await manager.relay(makerV2, method, params, { address: walletAddress }, [owner]);
-      const txExecutedEvent = await getEvent(txR, relayerManager, "TransactionExecuted");
+      const txExecutedEvent = await utils.getEvent(txR, relayerManager, "TransactionExecuted");
       assert.isTrue(txExecutedEvent.args.success, "Relayed tx should succeed");
     } else {
       await makerV2[method](...params, { gasLimit: 3000000, from: owner });
     }
     const afterDAI = await dai.balanceOf(wallet.address);
-
-    assert.isTrue(afterDAI.lt(beforeDAI), "should have spent some DAI");
+    // should have spent some DAI
+    expect(afterDAI).to.be.lt.BN(beforeDAI);
   }
 
   describe("Close Vaults", () => {
@@ -499,7 +488,7 @@ contract("MakerV2Loan", (accounts) => {
       const wallet2 = await BaseWallet.at(proxy.address);
 
       await wallet2.init(owner2, [versionManager.address]);
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.closeLoan(wallet2.address, loanId, { from: owner2 }),
         "MV2: unauthorized loanId",
       );
@@ -518,7 +507,7 @@ contract("MakerV2Loan", (accounts) => {
     it("should open a loan with a newly added collateral token", async () => {
       await makerRegistry.addCollateral(batJoin.address);
       const { daiAmount, collateralAmount } = await getTestAmounts(bat.address);
-      await bat["mint(address,uint256)"](walletAddress, collateralAmount);
+      await bat.mint(walletAddress, collateralAmount);
       await testOpenLoan({
         collateralAmount, daiAmount, collateral: bat, relayed: false,
       });
@@ -527,12 +516,12 @@ contract("MakerV2Loan", (accounts) => {
 
     it("should not add a collateral when Join is not in the Vat", async () => {
       const badJoin = await GemJoin.new(vat.address, formatBytes32String("BAD"), bat.address);
-      await assertRevert(makerRegistry.addCollateral(badJoin.address), "MR: _joinAdapter not authorised in vat");
+      await utils.assertRevert(makerRegistry.addCollateral(badJoin.address), "MR: _joinAdapter not authorised in vat");
     });
 
     it("should not add a duplicate collateral", async () => {
       await makerRegistry.addCollateral(batJoin.address);
-      await assertRevert(makerRegistry.addCollateral(batJoin.address), "MR: collateral already added");
+      await utils.assertRevert(makerRegistry.addCollateral(batJoin.address), "MR: collateral already added");
       await makerRegistry.removeCollateral(bat.address); // cleanup
     });
 
@@ -545,7 +534,7 @@ contract("MakerV2Loan", (accounts) => {
     });
 
     it("should not remove a non-existing collateral", async () => {
-      await assertRevert(makerRegistry.removeCollateral(bat.address), "MR: collateral does not exist");
+      await utils.assertRevert(makerRegistry.removeCollateral(bat.address), "MR: collateral does not exist");
     });
   });
 
@@ -553,30 +542,32 @@ contract("MakerV2Loan", (accounts) => {
     async function testAcquireVault({ relayed }) {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.address);
-      const txR = await (await cdpManager.open(ilk, owner), { from: owner }).wait();
-      const txNewCdpEvent = await getEvent(txR, cdpManager, "NewCdp");
+      const tx = await cdpManager.open(ilk, owner, { from: owner });
+      const txNewCdpEvent = await utils.getEvent(tx.receipt, cdpManager, "NewCdp");
       const vaultId = txNewCdpEvent.args.cdp;
       // Transfer the vault to the wallet
       await cdpManager.give(vaultId, walletAddress, { from: owner });
       // Transfer the vault to the feature
-      const loanId = bigNumToBytes32(vaultId);
+      const loanId = utils.numberToBytes32(vaultId);
+
       const method = "acquireLoan";
       const params = [walletAddress, loanId];
       let txReceipt;
       if (relayed) {
         txReceipt = await manager.relay(makerV2, method, params, { address: walletAddress }, [owner]);
-        const txExecutedEvent = await getEvent(txR, relayerManager, "TransactionExecuted");
-        assert.isTrue(txExecutedEvent.args.success, "Relayed tx should succeed");
+        const { success } = await utils.parseRelayReceipt(txReceipt);
+        assert.isTrue(success, "Relayed tx should succeed");
       } else {
-        const tx = await makerV2[method](...params, { gasLimit: 1000000, from: owner });
-        txReceipt = tx.receipt;
+        const tx1 = await makerV2[method](...params, { gasLimit: 1000000, from: owner });
+        txReceipt = tx1.receipt;
       }
-      await hasEvent(txReceipt, makerV2, "LoanAcquired");
+      await utils.hasEvent(txReceipt, makerV2, "LoanAcquired");
 
       // The loanId held by the MakerV2Manager will be different from the transferred vault id, in case the latter was merged into an existing vault
       const featureLoanId = await makerV2.loanIds(walletAddress, ilk);
       // Add some collateral and debt
       const { collateralAmount, daiAmount } = await getTestAmounts(ETH_TOKEN);
+
       await testChangeCollateral({
         loanId: featureLoanId, collateralAmount, add: true, relayed, makerV2,
       });
@@ -596,12 +587,12 @@ contract("MakerV2Loan", (accounts) => {
     it("should not transfer a vault that is not owned by the wallet", async () => {
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.address);
-      const txR = await (await cdpManager.open(ilk, owner, { from: owner })).wait();
-      const txNewCdpEvent = await getEvent(txR, cdpManager, "NewCdp");
+      const tx = await cdpManager.open(ilk, owner, { from: owner });
+      const txNewCdpEvent = await utils.getEvent(tx.receipt, cdpManager, "NewCdp");
       const vaultId = txNewCdpEvent.args.cdp;
-      const loanId = bigNumToBytes32(vaultId);
+      const loanId = utils.numberToBytes32(vaultId);
       // We are NOT transferring the vault from the owner to the wallet
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.acquireLoan(walletAddress, loanId, { from: owner }), "MV2: wrong vault owner",
       );
     });
@@ -610,16 +601,19 @@ contract("MakerV2Loan", (accounts) => {
       // Deploy a fake wallet
       const fakeWallet = await FakeWallet.new(false, AddressZero, 0, "0x00");
       await fakeWallet.init(owner, [versionManager.address]);
-      await versionManager.upgradeWallet(fakeWallet.address, await versionManager.lastVersion(), { from: owner });
+      const lastVersion = await versionManager.lastVersion();
+      await versionManager.upgradeWallet(fakeWallet.address, lastVersion.toString(), { from: owner });
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.address);
-      const txR = await (await cdpManager.open(ilk, owner, { from: owner })).wait();
-      const txNewCdpEvent = await getEvent(txR, cdpManager, "NewCdp");
+      const tx = await cdpManager.open(ilk, owner, { from: owner });
+      const txNewCdpEvent = await utils.getEvent(tx.receipt, cdpManager, "NewCdp");
       const vaultId = txNewCdpEvent.args.cdp;
-      const loanId = bigNumToBytes32(vaultId);
+      const loanId = utils.numberToBytes32(vaultId);
+
       // Transfer the vault to the fake wallet
       await cdpManager.give(vaultId, fakeWallet.address, { from: owner });
-      await assertRevert(
+
+      await utils.assertRevert(
         makerV2.acquireLoan(fakeWallet.address, loanId, { from: owner }), "MV2: failed give",
       );
     });
@@ -638,19 +632,20 @@ contract("MakerV2Loan", (accounts) => {
 
     it("should not allow reentrancy in acquireLoan", async () => {
       // Deploy a fake wallet capable of reentrancy
-      const acquireLoanCallData = makerV2.contract.methods.acquireLoan([AddressZero, bigNumToBytes32(ethers.BigNumber.from(0))]).encodeABI();
+      const acquireLoanCallData = makerV2.contract.methods.acquireLoan(AddressZero, utils.numberToBytes32(0)).encodeABI();
       const fakeWallet = await FakeWallet.new(true, makerV2.address, 0, acquireLoanCallData);
       await fakeWallet.init(owner, [versionManager.address]);
-      await versionManager.upgradeWallet(fakeWallet.address, await versionManager.lastVersion(), { from: owner });
+      const lastVersion = await versionManager.lastVersion();
+      await versionManager.upgradeWallet(fakeWallet.address, lastVersion.toString(), { from: owner });
       // Create the vault with `owner` as owner
       const { ilk } = await makerRegistry.collaterals(weth.address);
-      const txR = await (await cdpManager.open(ilk, owner, { from: owner })).wait();
-      const txNewCdpEvent = await getEvent(txR, cdpManager, "NewCdp");
+      const tx = await cdpManager.open(ilk, owner, { from: owner });
+      const txNewCdpEvent = await utils.getEvent(tx.receipt, cdpManager, "NewCdp");
       const vaultId = txNewCdpEvent.args.cdp;
-      const loanId = bigNumToBytes32(vaultId);
+      const loanId = utils.numberToBytes32(vaultId);
       // Transfer the vault to the fake wallet
       await cdpManager.give(vaultId, fakeWallet.address, { from: owner });
-      await assertRevert(
+      await utils.assertRevert(
         makerV2.acquireLoan(fakeWallet.address, loanId, { from: owner }), "MV2: reentrant call",
       );
     });
@@ -693,7 +688,7 @@ contract("MakerV2Loan", (accounts) => {
       if (withBatVault) {
         // Open a BAT vault with the old MakerV2 feature
         const batTestAmounts = await getTestAmounts(bat.address);
-        await bat["mint(address,uint256)"](walletAddress, batTestAmounts.collateralAmount.add(web3.utils.toWei("0.01")));
+        await bat.mint(walletAddress, batTestAmounts.collateralAmount.add(web3.utils.toWei("0.01")));
         loanId2 = await testOpenLoan({
           collateralAmount: batTestAmounts.collateralAmount,
           daiAmount: batTestAmounts.daiAmount,
@@ -713,7 +708,7 @@ contract("MakerV2Loan", (accounts) => {
       const params = [walletAddress, lastVersion];
       if (relayed) {
         const txR = await manager.relay(versionManager, method, params, wallet, [owner]);
-        const txTransactionExecuted = await getEvent(txR, cdpManager, "NewCdp");
+        const txTransactionExecuted = await utils.getEvent(txR, cdpManager, "NewCdp");
         assert.isTrue(txTransactionExecuted.args.success, "Relayed tx should succeed");
       } else {
         await versionManager[method](...params, { gasLimit: 2000000, from: owner });
@@ -765,7 +760,7 @@ contract("MakerV2Loan", (accounts) => {
     });
 
     it("should not allow non-feature to give vault", async () => {
-      await assertRevert(makerV2.giveVault(walletAddress, formatBytes32String(""), { from: owner }), "BF: must be a wallet feature");
+      await utils.assertRevert(makerV2.giveVault(walletAddress, formatBytes32String(""), { from: owner }), "BF: must be a wallet feature");
     });
 
     it("should not allow (fake) feature to give unowned vault", async () => {
@@ -781,8 +776,8 @@ contract("MakerV2Loan", (accounts) => {
       const lastVersion = await versionManager.lastVersion();
       await versionManager.upgradeWallet(walletAddress, lastVersion, { gasLimit: 2000000, from: owner });
       // Use the bad module to attempt a bad giveVault call
-      const callData = makerV2.contract.methods.giveVault([walletAddress, bigNumToBytes32(ethers.BigNumber.from(666))]).encodeABI();
-      await assertRevert(badFeature.callContract(makerV2.address, 0, callData, { from: owner }), "MV2: unauthorized loanId");
+      const callData = makerV2.contract.methods.giveVault([walletAddress, utils.numberToBytes32(666)]).encodeABI();
+      await utils.assertRevert(badFeature.callContract(makerV2.address, 0, callData, { from: owner }), "MV2: unauthorized loanId");
     });
   });
 });
