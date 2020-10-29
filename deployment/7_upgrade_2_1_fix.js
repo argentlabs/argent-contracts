@@ -6,7 +6,16 @@ const Upgrader = require("../build/UpgraderToVersionManager");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-const VersionManager = require("../build/VersionManager");
+const ApprovedTransfer = require("../build/ApprovedTransfer");
+const CompoundManager = require("../build/CompoundManager");
+const GuardianManager = require("../build/GuardianManager");
+const LockManager = require("../build/LockManager");
+const NftTransfer = require("../build/NftTransfer");
+const RecoveryManager = require("../build/RecoveryManager");
+const TokenExchanger = require("../build/TokenExchanger");
+const MakerV2Manager = require("../build/MakerV2Manager");
+const TransferManager = require("../build/TransferManager");
+const RelayerManager = require("../build/RelayerManager");
 
 const utils = require("../utils/utilities.js");
 
@@ -62,32 +71,140 @@ const deploy = async (network) => {
   );
   newModuleWrappers.push(VersionManagerWrapper);
 
+  // //////////////////////////////////
+  // Deploy new features
+  // //////////////////////////////////
+  const ApprovedTransferWrapper = await deployer.deploy(
+    ApprovedTransfer,
+    {},
+    config.modules.LockStorage,
+    config.modules.GuardianStorage,
+    config.modules.LimitStorage,
+    VersionManagerWrapper.contractAddress,
+    config.defi.weth,
+  );
+
+  const CompoundManagerWrapper = await deployer.deploy(
+    CompoundManager,
+    {},
+    config.modules.LockStorage,
+    config.defi.compound.comptroller,
+    config.contracts.CompoundRegistry,
+    VersionManagerWrapper.contractAddress,
+  );
+
+  const GuardianManagerWrapper = await deployer.deploy(
+    GuardianManager,
+    {},
+    config.modules.LockStorage,
+    config.modules.GuardianStorage,
+    VersionManagerWrapper.contractAddress,
+    config.settings.securityPeriod || 0,
+    config.settings.securityWindow || 0,
+  );
+
+  const LockManagerWrapper = await deployer.deploy(
+    LockManager,
+    {},
+    config.modules.LockStorage,
+    config.modules.GuardianStorage,
+    VersionManagerWrapper.contractAddress,
+    config.settings.lockPeriod || 0,
+  );
+
+  const NftTransferWrapper = await deployer.deploy(
+    NftTransfer,
+    {},
+    config.modules.LockStorage,
+    config.modules.TokenPriceRegistry,
+    VersionManagerWrapper.contractAddress,
+    config.CryptoKitties.contract,
+  );
+
+  const RecoveryManagerWrapper = await deployer.deploy(
+    RecoveryManager,
+    {},
+    config.modules.LockStorage,
+    config.modules.GuardianStorage,
+    VersionManagerWrapper.contractAddress,
+    config.settings.recoveryPeriod || 0,
+    config.settings.lockPeriod || 0,
+  );
+
+  const TokenExchangerWrapper = await deployer.deploy(
+    TokenExchanger,
+    {},
+    config.modules.LockStorage,
+    config.modules.TokenPriceRegistry,
+    VersionManagerWrapper.contractAddress,
+    config.contracts.DexRegistry,
+    config.defi.paraswap.contract,
+    "argent",
+  );
+
+  const MakerV2ManagerWrapper = await deployer.deploy(
+    MakerV2Manager,
+    {},
+    config.modules.LockStorage,
+    config.defi.maker.migration,
+    config.defi.maker.pot,
+    config.defi.maker.jug,
+    config.contracts.MakerRegistry,
+    config.defi.uniswap.factory,
+    VersionManagerWrapper.contractAddress,
+  );
+
+  const TransferManagerWrapper = await deployer.deploy(
+    TransferManager,
+    {},
+    config.modules.LockStorage,
+    config.modules.TransferStorage,
+    config.modules.LimitStorage,
+    config.modules.TokenPriceRegistry,
+    VersionManagerWrapper.contractAddress,
+    config.settings.securityPeriod || 0,
+    config.settings.securityWindow || 0,
+    config.settings.defaultLimit || "1000000000000000000",
+    config.defi.weth,
+    ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
+  );
+
+  const RelayerManagerWrapper = await deployer.deploy(
+    RelayerManager,
+    {},
+    config.modules.LockStorage,
+    config.modules.GuardianStorage,
+    config.modules.LimitStorage,
+    config.modules.TokenPriceRegistry,
+    VersionManagerWrapper.contractAddress,
+  );
+
   // Add Features to Version Manager
-  const features = [
-    config.modules.GuardianManager,
-    config.modules.LockManager,
-    config.modules.RecoveryManager,
-    config.modules.ApprovedTransfer,
-    config.modules.TransferManager,
-    config.modules.TokenExchanger,
-    config.modules.NftTransfer,
-    config.modules.CompoundManager,
-    config.modules.MakerV2Manager,
-    config.modules.RelayerManager,
+  const newFeatures = [
+    GuardianManagerWrapper.contractAddress,
+    LockManagerWrapper.contractAddress,
+    RecoveryManagerWrapper.contractAddress,
+    ApprovedTransferWrapper.contractAddress,
+    TransferManagerWrapper.contractAddress,
+    TokenExchangerWrapper.contractAddress,
+    NftTransferWrapper.contractAddress,
+    CompoundManagerWrapper.contractAddress,
+    MakerV2ManagerWrapper.contractAddress,
+    RelayerManagerWrapper.contractAddress,
   ];
-  const featuresWithNoInit = [ // all features except the TransferManager
-    config.modules.GuardianManager,
-    config.modules.LockManager,
-    config.modules.RecoveryManager,
-    config.modules.ApprovedTransfer,
-    config.modules.TokenExchanger,
-    config.modules.NftTransfer,
-    config.modules.CompoundManager,
-    config.modules.MakerV2Manager,
-    config.modules.RelayerManager,
+  const newFeaturesWithNoInit = [ // all features except the TransferManager
+    GuardianManagerWrapper.contractAddress,
+    LockManagerWrapper.contractAddress,
+    RecoveryManagerWrapper.contractAddress,
+    ApprovedTransferWrapper.contractAddress,
+    TokenExchangerWrapper.contractAddress,
+    NftTransferWrapper.contractAddress,
+    CompoundManagerWrapper.contractAddress,
+    MakerV2ManagerWrapper.contractAddress,
+    RelayerManagerWrapper.contractAddress,
   ];
-  const featureToInit = features.filter((f) => !featuresWithNoInit.includes(f));
-  const VersionManagerAddVersionTx = await VersionManagerWrapper.contract.addVersion(features, featureToInit, { gasPrice });
+  const newFeatureToInit = newFeatures.filter((f) => !newFeaturesWithNoInit.includes(f));
+  const VersionManagerAddVersionTx = await VersionManagerWrapper.contract.addVersion(newFeatures, newFeatureToInit, { gasPrice });
   await VersionManagerWrapper.verboseWaitForTransaction(VersionManagerAddVersionTx, "Adding New Version");
 
   // //////////////////////////////////
@@ -102,6 +219,17 @@ const deploy = async (network) => {
   // /////////////////////////////////////////////////
 
   configurator.updateModuleAddresses({
+    ApprovedTransfer: ApprovedTransferWrapper.contractAddress,
+    CompoundManager: CompoundManagerWrapper.contractAddress,
+    GuardianManager: GuardianManagerWrapper.contractAddress,
+    LockManager: LockManagerWrapper.contractAddress,
+    NftTransfer: NftTransferWrapper.contractAddress,
+    RecoveryManager: RecoveryManagerWrapper.contractAddress,
+    TokenExchanger: TokenExchangerWrapper.contractAddress,
+    MakerV2Manager: MakerV2ManagerWrapper.contractAddress,
+    TransferManager: TransferManagerWrapper.contractAddress,
+    RelayerManager: RelayerManagerWrapper.contractAddress,
+
     VersionManager: VersionManagerWrapper.contractAddress,
   });
 
@@ -110,6 +238,17 @@ const deploy = async (network) => {
   await configurator.save();
 
   await Promise.all([
+    abiUploader.upload(ApprovedTransferWrapper, "modules"),
+    abiUploader.upload(CompoundManagerWrapper, "modules"),
+    abiUploader.upload(GuardianManagerWrapper, "modules"),
+    abiUploader.upload(LockManagerWrapper, "modules"),
+    abiUploader.upload(NftTransferWrapper, "modules"),
+    abiUploader.upload(RecoveryManagerWrapper, "modules"),
+    abiUploader.upload(TokenExchangerWrapper, "modules"),
+    abiUploader.upload(MakerV2ManagerWrapper, "modules"),
+    abiUploader.upload(TransferManagerWrapper, "modules"),
+    abiUploader.upload(RelayerManagerWrapper, "modules"),
+
     abiUploader.upload(VersionManagerWrapper, "modules"),
   ]);
 
