@@ -1,9 +1,14 @@
 /* global artifacts */
 
 const ethers = require("ethers");
-const { parseEther } = require("ethers").utils;
 const { AddressZero } = require("ethers").constants;
+
+const chai = require("chai");
 const BN = require("bn.js");
+const bnChai = require("bn-chai");
+
+const { expect } = chai;
+chai.use(bnChai(BN));
 
 // Paraswap
 const AugustusSwapper = artifacts.require("AugustusSwapper");
@@ -42,13 +47,14 @@ const VersionManager = artifacts.require("VersionManager");
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
-const { ETH_TOKEN, getEvent, getTimestamp, assertRevert } = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 // Constants
 const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts
-const TOKEN_A_RATE = parseEther("0.06");
-const TOKEN_B_RATE = parseEther("0.03");
+const TOKEN_A_RATE = web3.utils.toWei("0.06");
+const TOKEN_B_RATE = web3.utils.toWei("0.03");
 
 contract("TokenExchanger", (accounts) => {
   const manager = new RelayManager();
@@ -95,29 +101,29 @@ contract("TokenExchanger", (accounts) => {
     manager.setRelayerManager(relayerManager);
 
     // Deploy test tokens
-    tokenA = await ERC20.new([infrastructure], parseEther("1000"), DECIMALS);
-    tokenB = await ERC20.new([infrastructure], parseEther("1000"), DECIMALS);
+    tokenA = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
+    tokenB = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
 
     // Deploy and fund Kyber
     kyberNetwork = await KyberNetwork.new();
-    await tokenA.mint(kyberNetwork.address, parseEther("1000"));
-    await tokenB.mint(kyberNetwork.address, parseEther("1000"));
+    await tokenA.mint(kyberNetwork.address, web3.utils.toWei("1000"));
+    await tokenB.mint(kyberNetwork.address, web3.utils.toWei("1000"));
     await kyberNetwork.addToken(tokenA.address, TOKEN_A_RATE, DECIMALS);
     await kyberNetwork.addToken(tokenB.address, TOKEN_B_RATE, DECIMALS);
-    await kyberNetwork.send(parseEther("10").toString());
+    await kyberNetwork.send(web3.utils.toWei("10").toString());
 
     // Deploy and fund UniswapV2
     const uniswapFactory = await UniswapV2Factory.new(AddressZero);
     const weth = await WETH.new();
     uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
-    await tokenA.approve(uniswapRouter.address, parseEther("300"));
-    await tokenB.approve(uniswapRouter.address, parseEther("600"));
-    const timestamp = await getTimestamp();
+    await tokenA.approve(uniswapRouter.address, web3.utils.toWei("300"));
+    await tokenB.approve(uniswapRouter.address, web3.utils.toWei("600"));
+    const timestamp = await utils.getTimestamp();
     await uniswapRouter.addLiquidity(
       tokenA.address,
       tokenB.address,
-      parseEther("300"),
-      parseEther("600"),
+      web3.utils.toWei("300"),
+      web3.utils.toWei("600"),
       1,
       1,
       infrastructure,
@@ -187,15 +193,15 @@ contract("TokenExchanger", (accounts) => {
     await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
 
     // fund wallet
-    await wallet.send(parseEther("0.1").toString());
-    await tokenA.mint(wallet.address, parseEther("1000"));
-    await tokenB.mint(wallet.address, parseEther("1000"));
+    await wallet.send(web3.utils.toWei("0.1"));
+    await tokenA.mint(wallet.address, web3.utils.toWei("1000"));
+    await tokenB.mint(wallet.address, web3.utils.toWei("1000"));
   });
 
   async function getBalance(tokenAddress, _wallet) {
     let balance;
     if (tokenAddress === ETH_TOKEN) {
-      balance = await getBalance(_wallet.address);
+      balance = await utils.getBalance(_wallet.address);
     } else if (tokenAddress === tokenA.address) {
       balance = await tokenA.balanceOf(_wallet.address);
     } else {
@@ -282,9 +288,11 @@ contract("TokenExchanger", (accounts) => {
   }) {
     const beforeFrom = await getBalance(fromToken, _wallet);
     const beforeTo = await getBalance(toToken, _wallet);
-    const fixedAmount = parseEther("0.01");
+    const fixedAmount = web3.utils.toWei("0.01");
     const variableAmount = method === "sell" ? 1 : beforeFrom;
-    if (method === "sell") { assert.isTrue(beforeFrom.gte(fixedAmount), "wallet should have enough of fromToken"); }
+
+    // wallet should have enough of fromToken
+    if (method === "sell") { expect(beforeFrom).to.be.gte.BN(fixedAmount); }
 
     const params = getParams({
       method,
@@ -292,33 +300,41 @@ contract("TokenExchanger", (accounts) => {
       toToken,
       fixedAmount, // srcAmount for sell; destAmount for buy
       variableAmount, // destAmount for sell; srcAmount for buy
-      _wallet,
+      _wallet
     });
 
     let txR;
     if (relayed) {
       txR = await manager.relay(exchanger, method, params, _wallet, [owner]);
-      const event = await getEvent(txR, relayerManager, "TransactionExecuted");
+      const event = await utils.getEvent(txR, relayerManager, "TransactionExecuted");
       assert.isTrue(event.args.success, "Relayed tx should succeed");
     } else {
-      txR = await (await exchanger[method](...params, { gasLimit: 2000000, from: owner })).wait();
+      const calldata = await exchanger.contract.methods[method](...params).encodeABI();
+      const tx = await exchanger.sendTransaction({ data: calldata, gasLimit: 2000000, from: owner });
+      txR = tx.receipt;
     }
 
-    const event = await getEvent(txR, exchanger, "TokenExchanged");
+    const event = await utils.getEvent(txR, exchanger, "TokenExchanged");
     const { destAmount } = event.args;
 
     const afterFrom = await getBalance(fromToken, _wallet);
     const afterTo = await getBalance(toToken, _wallet);
 
     if (method === "sell") {
-      assert.isTrue(beforeFrom.sub(afterFrom).eq(fixedAmount), "should send the exact amount of fromToken");
-      assert.isTrue(afterTo.gt(beforeTo), "should receive some toToken");
-      assert.isTrue(destAmount.gte(variableAmount), "should receive more toToken than minimum specified");
+      // should send the exact amount of fromToken
+      expect(beforeFrom.sub(afterFrom)).to.eq.BN(fixedAmount);
+      // should receive some toToken
+      expect(afterTo).to.be.gt.BN(beforeTo);
+      // should receive more toToken than minimum specified
+      expect(destAmount).to.be.gte.BN(variableAmount);
     }
     if (method === "buy") {
-      assert.isTrue(beforeFrom.gt(afterFrom), "should send some fromToken");
-      assert.isTrue(afterTo.sub(beforeTo).eq(fixedAmount), "should receive the exact amount of toToken");
-      assert.isTrue(destAmount.eq(fixedAmount), "destAmount should be the requested amount of toToken");
+      // should send some fromToken
+      expect(beforeFrom).to.be.gt.BN(afterFrom);
+      // should receive the exact amount of toToken
+      expect(afterTo.sub(beforeTo)).to.eq.BN(fixedAmount);
+      // destAmount should be the requested amount of toToken
+      expect(destAmount).to.eq.BN(fixedAmount);
     }
   }
 
@@ -357,7 +373,7 @@ contract("TokenExchanger", (accounts) => {
     it("can exclude non tradable tokens", async () => {
       const fromToken = tokenA.address;
       const toToken = tokenB.address;
-      const fixedAmount = parseEther("0.01");
+      const fixedAmount = web3.utils.toWei("0.01");
       const variableAmount = method === "sell" ? "1" : await getBalance(fromToken, wallet);
       const params = getParams({
         method,
@@ -367,7 +383,7 @@ contract("TokenExchanger", (accounts) => {
         variableAmount,
       });
       await tokenPriceRegistry.setTradableForTokenList([toToken], [false]);
-      await assertRevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
+      await utils.assertRevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
       await tokenPriceRegistry.setTradableForTokenList([toToken], [true]);
     });
 
@@ -376,7 +392,7 @@ contract("TokenExchanger", (accounts) => {
       const toToken = tokenB.address;
       // whitelist no exchange
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [false, false]);
-      const fixedAmount = parseEther("0.01");
+      const fixedAmount = web3.utils.toWei("0.01");
       const variableAmount = method === "sell" ? "1" : await getBalance(fromToken, wallet);
       const params = getParams({
         method,
@@ -385,7 +401,7 @@ contract("TokenExchanger", (accounts) => {
         fixedAmount,
         variableAmount,
       });
-      await assertRevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
+      await utils.assertRevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
       // reset whitelist
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });
@@ -398,7 +414,7 @@ contract("TokenExchanger", (accounts) => {
       await oldWallet.init(owner, [versionManager.address]);
       await versionManager.upgradeWallet(oldWallet.address, await versionManager.lastVersion(), { from: owner });
       // fund wallet
-      await oldWallet.send(parseEther("0.1"));
+      await oldWallet.send(web3.utils.toWei("0.1"));
       // call sell/buy
       await testTrade({
         method,
@@ -418,16 +434,17 @@ contract("TokenExchanger", (accounts) => {
       });
       // check that the pre-existing allowance is restored
       const newAllowance = await tokenA.allowance(wallet.address, spender);
-      assert.equal(newAllowance.toString(), allowance.toString(), "Pre-existing allowance not restored");
+      expect(newAllowance).to.eq.BN(allowance);
     };
 
     it(`calls ${method} successfully with a pre-existing allowance`, async () => {
       // Make the wallet grant some non-zero allowance to the Paraswap proxy
       await testTradeWithPreExistingAllowance(3);
     });
+
     it(`calls ${method} successfully with a pre-existing infinite allowance`, async () => {
       // Make the wallet grant an infinite allowance to the Paraswap proxy
-      const infiniteAllowance = new BN(2).pow(256).sub(1);
+      const infiniteAllowance = new BN(2).pow(new BN(256)).subn(1);
       await testTradeWithPreExistingAllowance(infiniteAllowance);
     });
   }

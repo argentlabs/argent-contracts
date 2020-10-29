@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const utils = require("../utils/utilities.js");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -10,7 +11,6 @@ const LockStorage = artifacts.require("LockStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const NftTransfer = artifacts.require("NftTransfer");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
-
 const ERC721 = artifacts.require("TestERC721");
 const CK = artifacts.require("CryptoKittyTest");
 const ERC20 = artifacts.require("TestERC20");
@@ -19,7 +19,7 @@ const ERC20Approver = artifacts.require("ERC20Approver");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const RelayManager = require("../utils/relay-manager");
-const { parseRelayReceipt, callStatic, assertRevert } = require("../utils/utilities.js");
+const { callStatic } = require("../utils/utilities.js");
 
 contract("NftTransfer", (accounts) => {
   const manager = new RelayManager();
@@ -101,7 +101,7 @@ contract("NftTransfer", (accounts) => {
       if (relayed) {
         const txReceipt = await manager.relay(nftFeature, "transferNFT",
           [wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32], wallet1, [owner1]);
-        const { success, error } = parseRelayReceipt(txReceipt);
+        const { success, error } = utils.parseRelayReceipt(txReceipt);
         assert.equal(success, shouldSucceed);
         if (!shouldSucceed) {
           assert.equal(error, expectedError);
@@ -112,7 +112,7 @@ contract("NftTransfer", (accounts) => {
         if (shouldSucceed) {
           await txPromise;
         } else {
-          assertRevert(txPromise, expectedError);
+          utils.assertRevert(txPromise, expectedError);
         }
       }
       if (shouldSucceed) {
