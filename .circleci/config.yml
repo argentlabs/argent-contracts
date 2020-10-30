@@ -75,6 +75,9 @@ jobs:
           name: "Compiling test contracts"
           command: npm run compile:test
       - run:
+          name: "Provision lib artefacts"
+          command: npm run provision:lib:artefacts
+      - run:
           name: "Lint JavaScript"
           command: npm run lint:js
       - run:
