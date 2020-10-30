@@ -8,7 +8,7 @@ const VersionManager = require("../build/VersionManager");
 const RelayerManager = require("../build/RelayerManager");
 const LockStorage = require("../build/LockStorage");
 const GuardianStorage = require("../build/GuardianStorage");
-const NftModule = require("../build/NftTransfer");
+const NftTransfer = require("../build/NftTransfer");
 const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 
 const ERC721 = require("../build/TestERC721");
@@ -19,7 +19,7 @@ const ERC20Approver = require("../build/ERC20Approver");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const TestManager = require("../utils/test-manager");
-const { parseRelayReceipt } = require("../utils/utilities.js");
+const { parseRelayReceipt, callStatic } = require("../utils/utilities.js");
 
 describe("Token Transfer", function () {
   this.timeout(100000);
@@ -71,7 +71,7 @@ describe("Token Transfer", function () {
     ck = await deployer.deploy(CK);
     tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
     await tokenPriceRegistry.addManager(infrastructure.address);
-    nftFeature = await deployer.deploy(NftModule, {},
+    nftFeature = await deployer.deploy(NftTransfer, {},
       lockStorage.contractAddress,
       tokenPriceRegistry.contractAddress,
       versionManager.contractAddress,
@@ -228,6 +228,18 @@ describe("Token Transfer", function () {
           nftContract: erc20,
           recipientAddress: wallet2.contractAddress,
         });
+      });
+    });
+
+    describe("Static calls", () => {
+      it("should delegate onERC721Received static calls to the NftTransfer feature", async () => {
+        const ERC721_RECEIVED = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("onERC721Received(address,address,uint256,bytes)")).slice(0, 10);
+        const erc721ReceivedDelegate = await wallet1.enabled(ERC721_RECEIVED);
+        assert.equal(erc721ReceivedDelegate, versionManager.contractAddress);
+
+        const walletAsTransferManager = deployer.wrapDeployedContract(NftTransfer, wallet1.contractAddress);
+        const result = await callStatic(walletAsTransferManager, "onERC721Received", infrastructure.address, infrastructure.address, 0, "0x");
+        assert.equal(result, ERC721_RECEIVED);
       });
     });
   });
