@@ -88,8 +88,11 @@
     "web3-eth-abi": "^1.2.9"
   },
   "devDependencies": {
+    "-": "0.0.1",
     "eslint": "^7.5.0",
     "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.20.1"
+    "eslint-plugin-import": "^2.20.1",
+    "eth-gas-reporter": "^0.2.19",
+    "mocha-junit-reporter": "^2.0.0"
   }
 }

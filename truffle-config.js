@@ -80,7 +80,15 @@ module.exports = {
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
+    useColors: true,
     timeout: 1000000,
+    reporter: "eth-gas-reporter",
+    reporterOptions: {
+      currency: "USD",
+      gasPrice: 50,
+      onlyCalledMethods: false,
+      excludeContracts: ["Migrations"],
+    },
   },
 
   // Configure your compilers
