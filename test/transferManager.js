@@ -901,5 +901,23 @@ describe("TransferManager", function () {
       const valid = await walletAsTransferManager.isValidSignature(signHash, sig);
       assert.equal(valid, ERC1271_ISVALIDSIGNATURE_BYTES32);
     });
+    it("should revert isValidSignature static call for invalid signature", async () => {
+      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const signHash = ethers.utils.keccak256("0x1234");
+      const sig = `${await personalSign(signHash, owner)}a1`;
+
+      await assert.revertWith(
+        walletAsTransferManager.isValidSignature(signHash, sig), "TM: invalid signature length",
+      );
+    });
+    it("should revert isValidSignature static call for invalid signer", async () => {
+      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const signHash = ethers.utils.keccak256("0x1234");
+      const sig = await personalSign(signHash, nonowner);
+
+      await assert.revertWith(
+        walletAsTransferManager.isValidSignature(signHash, sig), "TM: Invalid signer",
+      );
+    });
   });
 });
