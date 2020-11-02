@@ -87,7 +87,7 @@ module.exports = {
       currency: "USD",
       onlyCalledMethods: true,
       excludeContracts: ["Migrations"],
-      outputFile: "gas-costs-report"
+      outputFile: "gas-usage-report.log"
     },
   },
 

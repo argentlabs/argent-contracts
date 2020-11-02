@@ -83,6 +83,10 @@ jobs:
       - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
+      # Save coverage artifacts
+      - store_artifacts:
+          path: gas-usage-report.rst
+          destination: reports/gas-usage-report.log
       - run: npx codechecks
       - run:
           name: "Running coverage"
@@ -94,6 +98,7 @@ jobs:
       # Save coverage artifacts
       - store_artifacts:
           path: coverage
+          destination: coverage-artifacts
   security-test:
     <<: *job_python
     steps:

@@ -41,3 +41,4 @@ coverage
 coverage.json
 
 crytic-export
+gas-usage-report.log
