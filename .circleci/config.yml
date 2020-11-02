@@ -83,6 +83,7 @@ jobs:
       - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
+      - run: npx codechecks
       - run:
           name: "Running coverage"
           command: |
