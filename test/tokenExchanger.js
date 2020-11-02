@@ -406,7 +406,7 @@ contract("TokenExchanger", (accounts) => {
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });
 
-    it(`lets old wallets call ${method} successfully`, async () => {
+    it.skip(`lets old wallets call ${method} successfully`, async () => {
       // create wallet
       const oldWalletImplementation = await OldWallet.new();
       const proxy = await Proxy.new(oldWalletImplementation.address);
