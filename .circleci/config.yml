@@ -75,7 +75,7 @@ jobs:
           command: npm run ganache >/dev/null 2>&1 & npm run test
       # Save coverage artifacts
       - store_artifacts:
-          path: gas-usage-report.rst
+          path: gas-usage-report.log
           destination: reports/gas-usage-report.log
       - run: npx codechecks
       - run:
