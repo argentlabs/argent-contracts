@@ -110,8 +110,8 @@ describe("RelayerManager", function () {
       versionManager.contractAddress,
       36, 24 * 5);
 
-    testFeature = await deployer.deploy(TestFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
-    testFeatureNew = await deployer.deploy(TestFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
+    testFeature = await deployer.deploy(TestFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, 0);
+    testFeatureNew = await deployer.deploy(TestFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, 0);
 
     limitFeature = await deployer.deploy(TestLimitFeature, {},
       lockStorage.contractAddress, limitStorage.contractAddress, versionManager.contractAddress);

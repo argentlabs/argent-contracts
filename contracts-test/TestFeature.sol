@@ -13,21 +13,17 @@ contract TestFeature is BaseFeature {
 
     bytes32 constant NAME = "TestFeature";
 
-    bool boolVal;
     uint uintVal;
-
     TestDapp public dapp;
 
     constructor(
         ILockStorage _lockStorage,
         IVersionManager _versionManager,
-        bool _boolVal,
         uint _uintVal
     ) 
         BaseFeature(_lockStorage, _versionManager, NAME) 
         public 
     {
-        boolVal = _boolVal;
         uintVal = _uintVal;
         dapp = new TestDapp();
     }
@@ -70,11 +66,11 @@ contract TestFeature is BaseFeature {
     }
 
     function getBoolean() public view returns (bool) {
-        return boolVal;
+        return true;
     }
 
     function getUint() public view returns (uint) {
-        return uintVal;
+        return 42;
     }
 
     function getAddress(address _addr) public pure returns (address) {

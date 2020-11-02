@@ -763,7 +763,7 @@ describe("MakerV2 Vaults", function () {
 
     it("should not allow (fake) feature to give unowned vault", async () => {
       // Deploy a (fake) bad feature
-      const badFeature = await deployer.deploy(BadFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, false, 0);
+      const badFeature = await deployer.deploy(BadFeature, {}, lockStorage.contractAddress, versionManager.contractAddress, 0);
 
       // Add the bad feature to the wallet
       await versionManager.addVersion([
