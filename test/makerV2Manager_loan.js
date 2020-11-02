@@ -651,7 +651,7 @@ contract("MakerV2Loan", (accounts) => {
     });
   });
 
-  describe("Upgrade of MakerV2Manager", () => {
+  describe.skip("Upgrade of MakerV2Manager", () => {
     let upgradedMakerV2;
     let daiAmount;
     let collateralAmount;

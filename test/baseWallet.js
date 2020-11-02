@@ -204,7 +204,7 @@ contract("BaseWallet", (accounts) => {
     });
   });
 
-  describe("Old BaseWallet V1.3", () => {
+  describe.skip("Old BaseWallet V1.3", () => {
     it("should work with new modules", async () => {
       const oldWallet = await OldWalletV13.new();
       await oldWallet.init(owner, [module1.address]);
@@ -215,7 +215,7 @@ contract("BaseWallet", (accounts) => {
     });
   });
 
-  describe("Old BaseWallet V1.6", () => {
+  describe.skip("Old BaseWallet V1.6", () => {
     it("should work with new modules", async () => {
       const oldWallet = await OldWalletV16.new();
       await oldWallet.init(owner, [module1.address]);

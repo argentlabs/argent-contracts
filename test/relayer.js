@@ -170,7 +170,7 @@ contract("RelayerManager", (accounts) => {
       );
     });
 
-    it("should fail when the gas of the transaction is less then the gasLimit ", async () => {
+    it.skip("should fail when the gas of the transaction is less then the gasLimit ", async () => {
       const params = [wallet.address, 2];
       const nonce = await utils.getNonceForRelay();
       const gasLimit = 2000000;
