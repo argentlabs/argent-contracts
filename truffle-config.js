@@ -86,7 +86,7 @@ module.exports = {
     reporterOptions: {
       currency: "USD",
       gasPrice: 50,
-      onlyCalledMethods: false,
+      onlyCalledMethods: true,
       excludeContracts: ["Migrations"],
     },
   },
