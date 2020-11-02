@@ -39,3 +39,5 @@ ganache-accounts.json
 .coverage_tests
 coverage
 coverage.json
+
+gas-usage-report.log
