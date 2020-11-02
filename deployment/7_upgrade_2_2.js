@@ -20,7 +20,7 @@ const VersionManager = require("../build/VersionManager");
 
 const utils = require("../utils/utilities.js");
 
-const TARGET_VERSION = "2.1.0";
+const TARGET_VERSION = "2.2.0";
 const MODULES_TO_ENABLE = [
   "VersionManager",
 ];
