@@ -24,7 +24,7 @@
     "test": "npx truffle test",
     "ctest": "npm run compile && npm run test",
     "provision:lib:artefacts": "bash ./scripts/provision_lib_artefacts.sh",
-    "test:coverage": "bash ./scripts/provision_lib_artefacts.sh & npx etherlime coverage && istanbul check-coverage --statements 94 --branches 83 --functions 96 --lines 94",
+    "test:coverage": "npx truffle run coverage && istanbul check-coverage --statements 94 --branches 83 --functions 96 --lines 94",
     "lint:js": "eslint .",
     "lint:contracts": "npx solhint contracts/**/*.sol && npx solhint contracts/**/**/*.sol",
     "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`",
@@ -95,6 +95,7 @@
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-plugin-import": "^2.20.1",
     "eth-gas-reporter": "^0.2.19",
-    "mocha-junit-reporter": "^2.0.0"
+    "mocha-junit-reporter": "^2.0.0",
+    "solidity-coverage": "^0.7.11"
   }
 }
