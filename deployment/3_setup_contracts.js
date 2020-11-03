@@ -53,9 +53,6 @@ const deploy = async (network) => {
 
   for (const idx in config.backend.accounts) {
     const account = config.backend.accounts[idx];
-    const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
-    await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
-
     const TokenPriceRegistryAddManagerTx = await TokenPriceRegistryWrapper.contract.addManager(account, { gasPrice });
     await TokenPriceRegistryWrapper.verboseWaitForTransaction(TokenPriceRegistryAddManagerTx,
       `Set ${account} as the manager of the TokenPriceRegistry`);

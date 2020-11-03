@@ -40,7 +40,6 @@ describe("Wallet Factory", function () {
       moduleRegistry.contractAddress,
       implementation.contractAddress,
       guardianStorage.contractAddress);
-    await factory.addManager(infrastructure.address);
   });
 
   async function deployVersionManager() {
@@ -160,6 +159,13 @@ describe("Wallet Factory", function () {
       await assert.revertWith(
         factory.from(infrastructure).createWallet(ethers.constants.AddressZero, versionManager.contractAddress, guardian.address, 1),
         "WF: owner cannot be null",
+      );
+    });
+
+    it("should fail to create with owner as guardian", async () => {
+      await assert.revertWith(
+        factory.from(infrastructure).createWallet(owner.address, versionManager.contractAddress, owner.address, 1),
+        "WF: owner cannot guardian",
       );
     });
 

@@ -19,7 +19,6 @@ pragma solidity ^0.6.12;
 import "../wallet/Proxy.sol";
 import "../wallet/BaseWallet.sol";
 import "./base/Owned.sol";
-import "./base/Managed.sol";
 import "./storage/IGuardianStorage.sol";
 import "./IModuleRegistry.sol";
 import "../modules/common/IVersionManager.sol";
@@ -29,7 +28,7 @@ import "../modules/common/IVersionManager.sol";
  * @notice The WalletFactory contract creates and assigns wallets to accounts.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract WalletFactory is Owned, Managed {
+contract WalletFactory is Owned {
 
     // The address of the module dregistry
     address public moduleRegistry;
@@ -74,7 +73,6 @@ contract WalletFactory is Owned, Managed {
         uint256 _version
     )
         external
-        onlyManager
     {
         validateInputs(_owner, _versionManager, _guardian, _version);
         Proxy proxy = new Proxy(walletImplementation);
@@ -100,7 +98,6 @@ contract WalletFactory is Owned, Managed {
         uint256 _version
     )
         external
-        onlyManager
         returns (address _wallet)
     {
         validateInputs(_owner, _versionManager, _guardian, _version);
@@ -218,6 +215,7 @@ contract WalletFactory is Owned, Managed {
      */
     function validateInputs(address _owner, address _versionManager, address _guardian, uint256 _version) internal view {
         require(_owner != address(0), "WF: owner cannot be null");
+        require(_owner != _guardian, "WF: owner cannot guardian");
         require(IModuleRegistry(moduleRegistry).isRegisteredModule(_versionManager), "WF: invalid _versionManager");
         require(_guardian != (address(0)), "WF: guardian cannot be null");
         require(_version > 0, "WF: invalid _version");
