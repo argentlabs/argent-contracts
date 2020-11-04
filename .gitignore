@@ -4,6 +4,7 @@ build-legacy
 tmp
 bin
 .outputParameter
+flatten
 
 ## Core latex/pdflatex auxiliary files:
 *.aux

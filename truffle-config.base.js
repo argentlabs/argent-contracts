@@ -18,7 +18,9 @@
  *
  */
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+const HDWalletProvider = require("@truffle/hdwallet-provider");
+require("dotenv").config();
+
 // const infuraKey = "fj4jll3k.....";
 //
 // const fs = require('fs');
@@ -46,6 +48,11 @@ module.exports = {
       port: 8545, // Standard Ethereum port (default: none)
       network_id: "1597649375983",
       gas: 20700000
+    },
+
+    ropsten: {
+      provider: () => new HDWalletProvider(`${process.env.MNEMONIC}`, `https://ropsten.infura.io/v3/${process.env.INFURA_ID}`),
+      network_id: 3,
     },
 
     // Another network with more advanced options...
@@ -104,5 +111,9 @@ module.exports = {
     },
   },
 
-  plugins: ["solidity-coverage"],
+  plugins: ["solidity-coverage", "truffle-plugin-verify"],
+
+  api_keys: {
+    etherscan: process.env.ETHERSCAN_API_KEY
+  },
 };
