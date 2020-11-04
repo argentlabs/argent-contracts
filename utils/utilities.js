@@ -180,7 +180,7 @@ module.exports = {
     );
     return contract.callStatic[method](...args);
   },
-  
+
   async getBalance(account) {
     const balance = await web3.eth.getBalance(account);
     return new BN(balance);

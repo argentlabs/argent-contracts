@@ -232,9 +232,9 @@ contract("NftTransfer", (accounts) => {
       it("should delegate onERC721Received static calls to the NftTransfer feature", async () => {
         const ERC721_RECEIVED = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("onERC721Received(address,address,uint256,bytes)")).slice(0, 10);
         const erc721ReceivedDelegate = await wallet1.enabled(ERC721_RECEIVED);
-        assert.equal(erc721ReceivedDelegate, versionManager.contractAddress);
+        assert.equal(erc721ReceivedDelegate, versionManager.address);
 
-        const walletAsTransferManager = deployer.wrapDeployedContract(NftTransfer, wallet1.contractAddress);
+        const walletAsTransferManager = await NftTransfer.at(wallet1.address);
         const result = await callStatic(walletAsTransferManager, "onERC721Received", infrastructure.address, infrastructure.address, 0, "0x");
         assert.equal(result, ERC721_RECEIVED);
       });

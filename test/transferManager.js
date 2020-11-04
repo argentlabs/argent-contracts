@@ -896,16 +896,16 @@ contract.skip("TransferManager", (accounts) => {
     it("should delegate isValidSignature static calls to the TransferManager", async () => {
       const ERC1271_ISVALIDSIGNATURE_BYTES32 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("isValidSignature(bytes32,bytes)")).slice(0, 10);
       const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);
-      assert.equal(isValidSignatureDelegate, versionManager.contractAddress);
+      assert.equal(isValidSignatureDelegate, versionManager.address);
 
-      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const walletAsTransferManager = await TransferManager.at(wallet.address);
       const signHash = ethers.utils.keccak256("0x1234");
       const sig = await utils.personalSign(signHash, owner);
       const valid = await walletAsTransferManager.isValidSignature(signHash, sig);
       assert.equal(valid, ERC1271_ISVALIDSIGNATURE_BYTES32);
     });
     it("should revert isValidSignature static call for invalid signature", async () => {
-      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const walletAsTransferManager = await TransferManager.at(wallet.address);
       const signHash = ethers.utils.keccak256("0x1234");
       const sig = `${await utils.personalSign(signHash, owner)}a1`;
 
@@ -914,7 +914,7 @@ contract.skip("TransferManager", (accounts) => {
       );
     });
     it("should revert isValidSignature static call for invalid signer", async () => {
-      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const walletAsTransferManager = await TransferManager.at(wallet.address);
       const signHash = ethers.utils.keccak256("0x1234");
       const sig = await utils.personalSign(signHash, nonowner);
 
