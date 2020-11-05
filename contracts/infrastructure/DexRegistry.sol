@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../infrastructure/base/Owned.sol";
+import "./base/Owned.sol";
 import "./IDexRegistry.sol";
 
 /**
