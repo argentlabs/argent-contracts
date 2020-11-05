@@ -13,7 +13,7 @@
     "compile:infrastructure_0.5": "npx etherlime compile --workingDirectory contracts/infrastructure_0.5 --solcVersion 0.5.4 --runs=999",
     "compile:infrastructure_0.6": "npx etherlime compile --workingDirectory contracts/infrastructure --runs=999",
     "compile:infrastructure": "npm run compile:infrastructure_0.5 && npm run compile:infrastructure_0.6",
-    "compile:modules": "npx etherlime compile --workingDirectory contracts/modules --runs=999",
+    "compile:modules": "npx etherlime compile --workingDirectory contracts/modules --runs=999 && rm build/ApprovedTransfer.json && npx etherlime compile --workingDirectory contracts/modules/ApprovedTransfer --runs=999 && rm build/RelayerManager.json && npx etherlime compile --workingDirectory contracts/modules/RelayerManager --runs=999 && rm build/TransferManager.json && npx etherlime compile --workingDirectory contracts/modules/TransferManager --runs=999 && rm build/TokenExchanger.json && npx etherlime compile --workingDirectory contracts/modules/TokenExchanger --runs=999",
     "compile:wallet": "npx etherlime compile --workingDirectory contracts/wallet --runs=999",
     "compile:test": "npx etherlime compile --workingDirectory contracts-test --runs=999",
     "compile": "npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet",
