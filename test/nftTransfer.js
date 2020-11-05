@@ -19,7 +19,6 @@ const ERC20Approver = artifacts.require("ERC20Approver");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const RelayManager = require("../utils/relay-manager");
-const { callStatic } = require("../utils/utilities.js");
 
 contract("NftTransfer", (accounts) => {
   const manager = new RelayManager();
@@ -235,7 +234,7 @@ contract("NftTransfer", (accounts) => {
         assert.equal(erc721ReceivedDelegate, versionManager.address);
 
         const walletAsTransferManager = await NftTransfer.at(wallet1.address);
-        const result = await callStatic(walletAsTransferManager, "onERC721Received", infrastructure.address, infrastructure.address, 0, "0x");
+        const result = await walletAsTransferManager.onERC721Received.call(infrastructure, infrastructure, 0, "0x");
         assert.equal(result, ERC721_RECEIVED);
       });
     });
