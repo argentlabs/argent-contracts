@@ -5,7 +5,7 @@
 // ./execute_script.sh update_multisig_threshold.js <network> --threshold <new threshold>
 //
 // where:
-//    - network = [ganache, test, staging, prod]
+//    - network = [development, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
 /* global artifacts */

@@ -40,13 +40,12 @@ const deploy = async (network) => {
   const { configurator } = manager;
   const { deployer } = manager;
   const { versionUploader } = manager;
-  const { gasPrice } = deployer.defaultOverrides;
   const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
 
   // //////////////////////////////////
   // Initialise the new version
