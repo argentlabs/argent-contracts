@@ -8,7 +8,11 @@ const ABIUploader = require("./abi-uploader.js");
 const VersionUploader = require("./version-uploader.js");
 
 class DeployManager {
-  constructor(network, deploymentAccount) {
+  constructor(deploymentAccount) {
+    const idx = process.argv.indexOf("--network");
+    const network = idx > -1 ? process.argv[idx + 1] : "development";
+    console.log(`## ${network} network ##`);
+
     this.network = network;
     this.deploymentAccount = deploymentAccount;
     this.env = process.env.CONFIG_ENVIRONMENT;

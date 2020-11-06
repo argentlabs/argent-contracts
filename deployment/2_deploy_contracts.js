@@ -25,18 +25,11 @@ const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 module.exports = async (callback) => {
-  // //////////////////////////////////
-  // Setup
-  // //////////////////////////////////
-  const idx = process.argv.indexOf("--network");
-  const network = idx > -1 ? process.argv[idx + 1] : "development";
-  console.log(`## ${network} network ##`);
-
   // TODO: Maybe get the signer account a better way?
   const accounts = await web3.eth.getAccounts();
   const deploymentAccount = accounts[0];
 
-  const manager = new DeployManager(network, deploymentAccount);
+  const manager = new DeployManager(deploymentAccount);
   await manager.setup();
 
   const { configurator } = manager;
