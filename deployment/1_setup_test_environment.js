@@ -19,8 +19,7 @@ const DeployManager = require("../utils/deploy-manager.js");
 const BYTES32_NULL = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 // For development purpose
-async function deployENSRegistry(deployer, owner, domain) {
-  const { gasPrice } = deployer.defaultOverrides;
+async function deployENSRegistry(owner, domain) {
   // Deploy the public ENS registry
   const ensRegistryWithoutFallback = await ENSRegistry.new();
   const ENSWrapper = await ENSRegistryWithFallback.new(ensRegistryWithoutFallback.address);
@@ -31,18 +30,17 @@ async function deployENSRegistry(deployer, owner, domain) {
   const domainName = parts[0];
 
   // Create the 'eth' and 'xyz' namespaces
-  const setSubnodeOwnerXYZ = await ENSWrapper.contract.setSubnodeOwner(BYTES32_NULL, utils.sha3(extension), owner, { gasPrice });
-  await ENSWrapper.verboseWaitForTransaction(setSubnodeOwnerXYZ, `Setting Subnode Owner for ${extension}`);
+  console.log(`Setting Subnode Owner for ${extension}`);
+  await ENSWrapper.setSubnodeOwner(BYTES32_NULL, utils.sha3(extension), owner);
 
   // Create the 'argentx.xyz' wallet ENS namespace
-  const setSubnodeOwnerArgent = await ENSWrapper.contract.setSubnodeOwner(utils.namehash(extension), utils.sha3(domainName), owner, { gasPrice });
-  await ENSWrapper.verboseWaitForTransaction(setSubnodeOwnerArgent, `Setting Subnode Owner for ${domainName}.${extension}`);
+  console.log(`Setting Subnode Owner for ${domainName}.${extension}`);
+  await ENSWrapper.setSubnodeOwner(utils.namehash(extension), utils.sha3(domainName), owner);
 
   return ENSWrapper.address;
 }
 
-async function deployParaswap(deployer) {
-  const deploymentAccount = await deployer.signer.getAddress();
+async function deployParaswap(deploymentAccount) {
   const whitelist = await Whitelisted.new();
   const partnerDeployer = await PartnerDeployer.new();
   const partnerRegistry = await PartnerRegistry.new(partnerDeployer.address);
@@ -58,26 +56,28 @@ async function deployParaswap(deployer) {
   return { paraswap: paraswap.address, kyberAdapter: kyberAdapter.address };
 }
 
-const deploy = async (network) => {
-  const manager = new DeployManager(network);
+module.exports = async (callback) => {
+  const idx = process.argv.indexOf("--network");
+  const network = idx > -1 ? process.argv[idx + 1] : "development";
+  console.log(`## ${network} network ##`);
+
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+
+  const manager = new DeployManager(network, deploymentAccount);
   await manager.setup();
-
   const { configurator } = manager;
-  const { deployer } = manager;
-  const { gasPrice } = deployer.defaultOverrides;
-
   const { config } = configurator;
-
-  const deploymentAccount = await deployer.signer.getAddress();
 
   if (config.ENS.deployOwnRegistry) {
     // on some testnets, we use our own ENSRegistry
-    const address = await deployENSRegistry(deployer, deploymentAccount, config.ENS.domain);
+    const address = await deployENSRegistry(deploymentAccount, config.ENS.domain);
     configurator.updateENSRegistry(address);
   }
 
   if (config.defi.paraswap.deployOwn) {
-    const { paraswap, kyberAdapter } = await deployParaswap(deployer);
+    const { paraswap, kyberAdapter } = await deployParaswap(deploymentAccount);
     configurator.updateParaswap(paraswap, { Kyber: kyberAdapter });
   }
 
@@ -85,8 +85,7 @@ const deploy = async (network) => {
     const UniswapFactoryWrapper = await UniswapFactory.new();
     configurator.updateUniswapFactory(UniswapFactoryWrapper.address);
     const UniswapExchangeTemplateWrapper = await UniswapExchange.new();
-    const initializeFactoryTx = await UniswapFactoryWrapper.contract.initializeFactory(UniswapExchangeTemplateWrapper.address, { gasPrice });
-    await UniswapFactoryWrapper.verboseWaitForTransaction(initializeFactoryTx, "Initializing UniswapFactory");
+    await UniswapFactoryWrapper.initializeFactory(UniswapExchangeTemplateWrapper.address);
   }
 
   if (config.defi.maker.deployOwn) {
@@ -103,8 +102,5 @@ const deploy = async (network) => {
 
   // save configuration
   await configurator.save();
-};
-
-module.exports = {
-  deploy,
+  callback();
 };

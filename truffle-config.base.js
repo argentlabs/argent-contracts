@@ -17,12 +17,21 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
-
-const HDWalletProvider = require("@truffle/hdwallet-provider");
 require("dotenv").config();
 
-// const infuraKey = "fj4jll3k.....";
-//
+const HDWalletProvider = require("@truffle/hdwallet-provider");
+const DeployManager = require("./utils/deploy-manager.js");
+
+const _gasPrice = process.env.DEPLOYER_GAS_PRICE || 20000000000;
+const _gasLimit = 6000000;
+
+async function getKeys(network) {
+  const manager = new DeployManager(network);
+  await manager.setup();
+  const { pkey, infuraKey } = manager;
+  return (pkey, infuraKey);
+}
+
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
@@ -50,9 +59,34 @@ module.exports = {
       gas: 20700000
     },
 
-    ropsten: {
-      provider: () => new HDWalletProvider(`${process.env.MNEMONIC}`, `https://ropsten.infura.io/v3/${process.env.INFURA_ID}`),
-      network_id: 3,
+    test: {
+      provider: async () => {
+        const { pkey, infuraKey } = await getKeys("test");
+        return new HDWalletProvider(pkey, `https://ropsten.infura.io/v3/${infuraKey}`);
+      },
+      network_id: 3, // ropsten
+      gas: _gasLimit,
+      gasPrice: _gasPrice,
+    },
+
+    staging: {
+      provider: async () => {
+        const { pkey, infuraKey } = await getKeys("staging");
+        return new HDWalletProvider(pkey, `https://mainnet.infura.io/v3/${infuraKey}`);
+      },
+      network_id: 1, // mainnet
+      gas: _gasLimit,
+      gasPrice: _gasPrice,
+    },
+
+    prod: {
+      provider: async () => {
+        const { pkey, infuraKey } = await getKeys("prod");
+        return new HDWalletProvider(pkey, `https://mainnet.infura.io/v3/${infuraKey}`);
+      },
+      network_id: 1, // mainnet
+      gas: _gasLimit,
+      gasPrice: _gasPrice,
     },
 
     // Another network with more advanced options...
