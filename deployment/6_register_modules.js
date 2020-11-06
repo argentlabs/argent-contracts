@@ -20,74 +20,77 @@ const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-const deploy = async (network) => {
+module.exports = async (callback) => {
   // //////////////////////////////////
   // Setup
   // //////////////////////////////////
+  const id = process.argv.indexOf("--network");
+  const network = id > -1 ? process.argv[id + 1] : "development";
+  console.log(`## ${network} network ##`);
 
-  const manager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+
+  const manager = new DeployManager(network, deploymentAccount);
   await manager.setup();
 
   const { configurator } = manager;
-  const { deployer } = manager;
   const { versionUploader } = manager;
-  const { gasPrice } = deployer.defaultOverrides;
-
-  const deploymentWallet = deployer.signer;
 
   const { config } = configurator;
   console.log("Config:", config);
 
-  const GuardianManagerWrapper = await deployer.wrapDeployedContract(GuardianManager, config.modules.GuardianManager);
-  const LockManagerWrapper = await deployer.wrapDeployedContract(LockManager, config.modules.LockManager);
-  const RecoveryManagerWrapper = await deployer.wrapDeployedContract(RecoveryManager, config.modules.RecoveryManager);
-  const ApprovedTransferWrapper = await deployer.wrapDeployedContract(ApprovedTransfer, config.modules.ApprovedTransfer);
-  const TransferManagerWrapper = await deployer.wrapDeployedContract(TransferManager, config.modules.TransferManager);
-  const TokenExchangerWrapper = await deployer.wrapDeployedContract(TokenExchanger, config.modules.TokenExchanger);
-  const NftTransferWrapper = await deployer.wrapDeployedContract(NftTransfer, config.modules.NftTransfer);
-  const CompoundManagerWrapper = await deployer.wrapDeployedContract(CompoundManager, config.modules.CompoundManager);
-  const MakerV2ManagerWrapper = await deployer.wrapDeployedContract(MakerV2Manager, config.modules.MakerV2Manager);
-  const RelayerManagerWrapper = await deployer.wrapDeployedContract(RelayerManager, config.modules.RelayerManager);
-  const VersionManagerWrapper = await deployer.wrapDeployedContract(VersionManager, config.modules.VersionManager);
+  const GuardianManagerWrapper = await GuardianManager.new(config.modules.GuardianManager);
+  const LockManagerWrapper = await LockManager.new(config.modules.LockManager);
+  const RecoveryManagerWrapper = await RecoveryManager.new(config.modules.RecoveryManager);
+  const ApprovedTransferWrapper = await ApprovedTransfer.new(config.modules.ApprovedTransfer);
+  const TransferManagerWrapper = await TransferManager.new(config.modules.TransferManager);
+  const TokenExchangerWrapper = await TokenExchanger.new(config.modules.TokenExchanger);
+  const NftTransferWrapper = await NftTransfer.new(config.modules.NftTransfer);
+  const CompoundManagerWrapper = await CompoundManager.new(config.modules.CompoundManager);
+  const MakerV2ManagerWrapper = await MakerV2Manager.new(config.modules.MakerV2Manager);
+  const RelayerManagerWrapper = await RelayerManager.new(config.modules.RelayerManager);
+  const VersionManagerWrapper = await VersionManager.new(config.modules.VersionManager);
 
-  const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
+  const ModuleRegistryWrapper = await ModuleRegistry.new(config.contracts.ModuleRegistry);
+  const MultiSigWrapper = await MultiSig.new(config.contracts.MultiSigWallet);
 
   const wrappers = [VersionManagerWrapper];
 
   // Add Features to Version Manager
   const features = [
-    GuardianManagerWrapper.contractAddress,
-    LockManagerWrapper.contractAddress,
-    RecoveryManagerWrapper.contractAddress,
-    ApprovedTransferWrapper.contractAddress,
-    TransferManagerWrapper.contractAddress,
-    TokenExchangerWrapper.contractAddress,
-    NftTransferWrapper.contractAddress,
-    CompoundManagerWrapper.contractAddress,
-    MakerV2ManagerWrapper.contractAddress,
-    RelayerManagerWrapper.contractAddress,
+    GuardianManagerWrapper.address,
+    LockManagerWrapper.address,
+    RecoveryManagerWrapper.address,
+    ApprovedTransferWrapper.address,
+    TransferManagerWrapper.address,
+    TokenExchangerWrapper.address,
+    NftTransferWrapper.address,
+    CompoundManagerWrapper.address,
+    MakerV2ManagerWrapper.address,
+    RelayerManagerWrapper.address,
   ];
   const featuresWithNoInit = [ // all features except the TransferManager
-    GuardianManagerWrapper.contractAddress,
-    LockManagerWrapper.contractAddress,
-    RecoveryManagerWrapper.contractAddress,
-    ApprovedTransferWrapper.contractAddress,
-    TokenExchangerWrapper.contractAddress,
-    NftTransferWrapper.contractAddress,
-    CompoundManagerWrapper.contractAddress,
-    MakerV2ManagerWrapper.contractAddress,
-    RelayerManagerWrapper.contractAddress,
+    GuardianManagerWrapper.address,
+    LockManagerWrapper.address,
+    RecoveryManagerWrapper.address,
+    ApprovedTransferWrapper.address,
+    TokenExchangerWrapper.address,
+    NftTransferWrapper.address,
+    CompoundManagerWrapper.address,
+    MakerV2ManagerWrapper.address,
+    RelayerManagerWrapper.address,
   ];
   const featureToInit = features.filter((f) => !featuresWithNoInit.includes(f));
-  const VersionManagerAddVersionTx = await VersionManagerWrapper.contract.addVersion(features, featureToInit, { gasPrice });
-  await VersionManagerWrapper.verboseWaitForTransaction(VersionManagerAddVersionTx, "Adding New Version");
+  console.log("Adding New Version");
+  await VersionManagerWrapper.addVersion(features, featureToInit);
 
   // //////////////////////////////////
   // Register and configure VersionManager
   // //////////////////////////////////
 
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
@@ -95,8 +98,8 @@ const deploy = async (network) => {
       [wrapper.address, utils.asciiToBytes32(wrapper._contract.contractName)]);
   }
 
-  const changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
-  await VersionManagerWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of VersionManagerWrapper");
+  console.log("Set the MultiSig as the owner of VersionManagerWrapper");
+  await VersionManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
 
   // //////////////////////////////////
   // Upload Version
@@ -110,8 +113,6 @@ const deploy = async (network) => {
     createdAt: Math.floor((new Date()).getTime() / 1000),
   };
   await versionUploader.upload(version);
-};
 
-module.exports = {
-  deploy,
+  callback();
 };

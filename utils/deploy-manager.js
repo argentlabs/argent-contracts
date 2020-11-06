@@ -1,7 +1,5 @@
 require("dotenv").config();
-const etherlime = require("etherlime-lib");
 const path = require("path");
-const ethers = require("ethers");
 
 const Configurator = require("./configurator.js");
 const ConfiguratorLoader = require("./configurator-loader.js");
@@ -9,14 +7,10 @@ const PrivateKeyLoader = require("./private-key-loader.js");
 const ABIUploader = require("./abi-uploader.js");
 const VersionUploader = require("./version-uploader.js");
 
-const defaultConfigs = {
-  gasPrice: ethers.BigNumber.from(process.env.DEPLOYER_GAS_PRICE || 20000000000),
-  gasLimit: 6000000,
-};
-
 class DeployManager {
-  constructor(network) {
+  constructor(network, deploymentAccount) {
     this.network = network;
+    this.deploymentAccount = deploymentAccount;
     this.env = process.env.CONFIG_ENVIRONMENT;
     this.remotelyManagedNetworks = (process.env.S3_BUCKET_SUFFIXES || "").split(":");
 
@@ -38,35 +32,24 @@ class DeployManager {
     await this.configurator.load();
     const { config } = this.configurator;
 
+    if (config.settings.deployer.type === "infura") {
+      const { key, envvar } = config.settings.deployer.options;
+      this.infuraKey = key || process.env[envvar];
+    }
     // getting private key if any is available
-    let pkey;
     if (config.settings.privateKey && config.settings.privateKey.type === "plain") {
       const { value, envvar } = config.settings.privateKey.options;
-      pkey = value || process.env[envvar];
+      this.pkey = value || process.env[envvar];
     } else if (config.settings.privateKey && config.settings.privateKey.type === "s3") {
       const { options } = config.settings.privateKey;
       const pkeyLoader = new PrivateKeyLoader(options.bucket, options.key);
-      pkey = await pkeyLoader.fetch();
+      this.pkey = await pkeyLoader.fetch();
     }
 
-    // setting deployer
-    if (config.settings.deployer.type === "ganache") {
-      this.deployer = new etherlime.EtherlimeGanacheDeployer(pkey); // will use etherlime accounts if pkey is undefined
-    } else if (config.settings.deployer.type === "infura") {
-      const { network, key, envvar } = config.settings.deployer.options;
-      this.deployer = new etherlime.InfuraPrivateKeyDeployer(pkey, network, key || process.env[envvar]);
-    } else if (config.settings.deployer.type === "jsonrpc") {
-      const { url } = config.settings.deployer.options;
-      this.deployer = new etherlime.JSONRPCPrivateKeyDeployer(pkey, url);
-    }
-    // set default gasPrice and gasLimit
-    this.deployer.setDefaultOverrides(defaultConfigs);
-
-    // setting backend accounts and multi-sig owner for test environments not managed on S3
+    // setting backend accounts and multi-sig owner for environments not managed on S3
     if (!this.remotelyManagedNetworks.includes(this.network)) {
-      const account = await this.deployer.signer.getAddress();
-      this.configurator.updateBackendAccounts([account]);
-      this.configurator.updateMultisigOwner([account]);
+      this.configurator.updateBackendAccounts([this.deploymentAccount]);
+      this.configurator.updateMultisigOwner([this.deploymentAccount]);
     }
 
     // abi upload

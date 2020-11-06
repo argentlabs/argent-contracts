@@ -19,16 +19,22 @@ const DeployManager = require("../utils/deploy-manager.js");
 //                 Version 2.1
 // ///////////////////////////////////////////////////////
 
-const deploy = async (network) => {
+module.exports = async (callback) => {
   // //////////////////////////////////
   // Setup
   // //////////////////////////////////
+  const idx = process.argv.indexOf("--network");
+  const network = idx > -1 ? process.argv[idx + 1] : "development";
+  console.log(`## ${network} network ##`);
 
-  const manager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+
+  const manager = new DeployManager(network, deploymentAccount);
   await manager.setup();
 
   const { configurator } = manager;
-  const { deployer } = manager;
   const { abiUploader } = manager;
 
   const { config } = configurator;
@@ -37,9 +43,7 @@ const deploy = async (network) => {
   // //////////////////////////////////
   // Deploy VersionManager module
   // //////////////////////////////////
-  const VersionManagerWrapper = await deployer.deploy(
-    VersionManager,
-    {},
+  const VersionManagerWrapper = await VersionManager.new(
     config.contracts.ModuleRegistry,
     config.modules.LockStorage,
     config.modules.GuardianStorage,
@@ -52,9 +56,7 @@ const deploy = async (network) => {
   // //////////////////////////////////
 
   // Deploy the GuardianManager module
-  const GuardianManagerWrapper = await deployer.deploy(
-    GuardianManager,
-    {},
+  const GuardianManagerWrapper = await GuardianManager.new(
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     VersionManagerWrapper.address,
@@ -62,18 +64,14 @@ const deploy = async (network) => {
     config.settings.securityWindow || 0,
   );
   // Deploy the LockManager module
-  const LockManagerWrapper = await deployer.deploy(
-    LockManager,
-    {},
+  const LockManagerWrapper = await LockManager.new(
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     VersionManagerWrapper.address,
     config.settings.lockPeriod || 0,
   );
   // Deploy the RecoveryManager module
-  const RecoveryManagerWrapper = await deployer.deploy(
-    RecoveryManager,
-    {},
+  const RecoveryManagerWrapper = await RecoveryManager.new(
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     VersionManagerWrapper.address,
@@ -81,9 +79,7 @@ const deploy = async (network) => {
     config.settings.lockPeriod || 0,
   );
   // Deploy the ApprovedTransfer module
-  const ApprovedTransferWrapper = await deployer.deploy(
-    ApprovedTransfer,
-    {},
+  const ApprovedTransferWrapper = await ApprovedTransfer.new(
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     config.modules.LimitStorage,
@@ -91,9 +87,7 @@ const deploy = async (network) => {
     config.defi.weth,
   );
   // Deploy the TransferManager module
-  const TransferManagerWrapper = await deployer.deploy(
-    TransferManager,
-    {},
+  const TransferManagerWrapper = await TransferManager.new(
     config.modules.LockStorage,
     config.modules.TransferStorage,
     config.modules.LimitStorage,
@@ -106,9 +100,7 @@ const deploy = async (network) => {
     ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
   );
   // Deploy the TokenExchanger module
-  const TokenExchangerWrapper = await deployer.deploy(
-    TokenExchanger,
-    {},
+  const TokenExchangerWrapper = await TokenExchanger.new(
     config.modules.LockStorage,
     config.modules.TokenPriceRegistry,
     VersionManagerWrapper.address,
@@ -117,27 +109,21 @@ const deploy = async (network) => {
     "argent",
   );
   // Deploy the NFTTransfer module
-  const NftTransferWrapper = await deployer.deploy(
-    NftTransfer,
-    {},
+  const NftTransferWrapper = await NftTransfer.new(
     config.modules.LockStorage,
     config.modules.TokenPriceRegistry,
     VersionManagerWrapper.address,
     config.CryptoKitties.contract,
   );
   // Deploy the CompoundManager module
-  const CompoundManagerWrapper = await deployer.deploy(
-    CompoundManager,
-    {},
+  const CompoundManagerWrapper = await CompoundManager.new(
     config.modules.LockStorage,
     config.defi.compound.comptroller,
     config.contracts.CompoundRegistry,
     VersionManagerWrapper.address,
   );
   // Deploy MakerManagerV2
-  const MakerV2ManagerWrapper = await deployer.deploy(
-    MakerV2Manager,
-    {},
+  const MakerV2ManagerWrapper = await MakerV2Manager.new(
     config.modules.LockStorage,
     config.defi.maker.migration,
     config.defi.maker.pot,
@@ -147,9 +133,7 @@ const deploy = async (network) => {
     VersionManagerWrapper.address,
   );
   // Deploy RelayerManager
-  const RelayerManagerWrapper = await deployer.deploy(
-    RelayerManager,
-    {},
+  const RelayerManagerWrapper = await RelayerManager.new(
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     config.modules.LimitStorage,
@@ -196,8 +180,6 @@ const deploy = async (network) => {
   ]);
 
   console.log("Config:", config);
-};
 
-module.exports = {
-  deploy,
+  callback();
 };
