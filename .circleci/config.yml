@@ -60,8 +60,8 @@ jobs:
           name: "Lint Solidity contracts"
           command: npm run lint:contracts
       - run:
-          name: "Testing deployment scripts and benchmark gas costs"
-          command: npm run ganache >/dev/null 2>&1 & npm run test:deployment && npm run test:benchmark
+          name: "Test deployment scripts"
+          command: npm run ganache >/dev/null 2>&1 & npm run test:deployment
       - run:
           name: "Compiling external library contracts"
           command: npm run compile:lib
