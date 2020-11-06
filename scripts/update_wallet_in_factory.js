@@ -5,7 +5,7 @@
 // ./execute_script.sh update_wallet_in_factory.js <network>
 //
 // where:
-//     - network = [ganache, test, staging, prod]
+//     - network = [development, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
 /* global artifacts */

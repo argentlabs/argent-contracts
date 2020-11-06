@@ -172,15 +172,6 @@ module.exports = {
 
   personalSign: async (signHash, signer) => ethers.utils.joinSignature(signer.signingKey.signDigest(signHash)),
 
-  callStatic: async (contractWrapper, method, ...args) => {
-    const contract = new ethers.Contract(
-      contractWrapper.contractAddress,
-      contractWrapper.contract.interface.abi,
-      ethers.getDefaultProvider(contractWrapper.provider.connection.url),
-    );
-    return contract.callStatic[method](...args);
-  },
-
   async getBalance(account) {
     const balance = await web3.eth.getBalance(account);
     return new BN(balance);

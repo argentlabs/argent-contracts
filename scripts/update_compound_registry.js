@@ -8,7 +8,7 @@
 // ./execute_script.sh update_compound_registry.js <network> --remove --token <token address>
 //
 // where:
-//    - network = [ganache, test, staging, prod]
+//    - network = [development, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
 /* global artifacts */
