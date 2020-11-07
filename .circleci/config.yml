@@ -78,12 +78,6 @@ jobs:
           path: gas-usage-report.log
           destination: reports/gas-usage-report.log
       - run: npx codechecks
-      - run:
-          name: "Running coverage"
-          command: |
-            npm run compile
-            npm run compile:test
-            npm run test:coverage
       - <<: *step_save_cache
       # Save coverage artifacts
       - store_artifacts:
