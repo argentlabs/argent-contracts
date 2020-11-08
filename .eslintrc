@@ -21,7 +21,10 @@
     "function-paren-newline": "off",
     "comma-dangle": "off",
     "object-curly-newline": "off",
-    "no-unused-expressions": "off"
+    "no-unused-expressions": "off",
+    "import/no-extraneous-dependencies": "off",
+    "import/no-unresolved": "off"
+
   },
   "parserOptions": {
     "ecmaVersion": 2018
