@@ -38,7 +38,7 @@ module.exports = {
     });
   }),
 
-  signOffchain: async (signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) => {
+  async signOffchain(signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
     const messageHash = `0x${[
       "0x19",
       "0x00",
@@ -259,10 +259,12 @@ module.exports = {
       ({ reason } = err);
       if (reason) {
         assert.equal(reason, revertMessage);
-      } else if (!revertMessage) {
+      } else if (!revertMessage && err.hijackedStack) {
         assert.notEqual(err.hijackedStack.indexOf("VM Exception while processing transaction: revert"), -1);
-      } else {
+      } else if (err.hijackedStack) {
         assert.notEqual(err.hijackedStack.indexOf(revertMessage), -1);
+      } else {
+        assert.fail("Could not validate error message", err);
       }
     }
   },
