@@ -1,5 +1,6 @@
 const ethers = require("ethers");
 const inquirer = require("inquirer");
+const utils = require("./utilities.js");
 
 class MultisigExecutor {
   constructor(multisigWrapper, ownerWallet, autoSign = true, overrides = {}) {
@@ -21,8 +22,7 @@ class MultisigExecutor {
 
     if (this._autoSign === true) {
       // Get the off chain signature
-      const signHashBuffer = Buffer.from(signHash.slice(2), "hex");
-      let signature = await this._ownerWallet.signMessage(signHashBuffer);
+      let signature = await utils.signMessageHash(this._ownerWallet, signHash);
 
       // to make sure signature ends with 27/28
       const split = ethers.utils.splitSignature(signature);
@@ -81,7 +81,7 @@ class MultisigExecutor {
       ethers.utils.hexZeroPad(ethers.utils.hexlify(nonce), 32),
     ].map((hex) => hex.slice(2)).join("")}`;
 
-    return web3.utils.sha3(input);
+    return input;
   }
 }
 

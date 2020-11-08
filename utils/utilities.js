@@ -39,7 +39,7 @@ module.exports = {
   }),
 
   signOffchain: async (signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) => {
-    const input = `0x${[
+    const messageHash = `0x${[
       "0x19",
       "0x00",
       from,
@@ -54,18 +54,21 @@ module.exports = {
       refundAddress,
     ].map((hex) => hex.slice(2)).join("")}`;
 
-    const dataBuff = ethUtil.toBuffer(ethers.utils.keccak256(input));
+    const sigs = `0x${signers.map((signer) => this.signMessageHash(signer, messageHash)).join("")}`;
+    return sigs;
+  },
+
+  signMessageHash(signer, messageHash) {
+    const dataBuff = ethUtil.toBuffer(ethers.utils.keccak256(messageHash));
     const msgHashBuff = ethUtil.hashPersonalMessage(dataBuff);
 
     const accountsJson = JSON.parse(fs.readFileSync("./ganache-accounts.json", "utf8"));
-    const sigs = `0x${signers.map((signer) => {
-      const pkey = accountsJson.private_keys[signer.toLowerCase()];
-      const sig = ethUtil.ecsign(msgHashBuff, Buffer.from(pkey, "hex"));
-      const signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
-      const split = ethers.utils.splitSignature(signature);
-      return ethers.utils.joinSignature(split).slice(2);
-    }).join("")}`;
-    return sigs;
+
+    const pkey = accountsJson.private_keys[signer.toLowerCase()];
+    const sig = ethUtil.ecsign(msgHashBuff, Buffer.from(pkey, "hex"));
+    const signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
+    const split = ethers.utils.splitSignature(signature);
+    return ethers.utils.joinSignature(split).slice(2);
   },
 
   sortWalletByAddress(wallets) {
