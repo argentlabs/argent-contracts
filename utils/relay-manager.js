@@ -1,5 +1,6 @@
 const ethers = require("ethers");
-const { signOffchain, ETH_TOKEN, getNonceForRelay, getChainId, getAccount } = require("./utilities.js");
+const { ETH_TOKEN } = require("./utilities.js");
+const utils = require("./utilities.js");
 
 class RelayManager {
   setRelayerManager(relayerManager) {
@@ -15,11 +16,11 @@ class RelayManager {
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero,
     _gasLimitRelay = (_gasLimit * 1.1)) {
-    const relayerAccount = _relayerAccount || await getAccount(9);
-    const nonce = _nonce || await getNonceForRelay();
+    const relayerAccount = _relayerAccount || await utils.getAccount(9);
+    const nonce = _nonce || await utils.getNonceForRelay();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
-    const chainId = await getChainId();
-    const signatures = await signOffchain(
+    const chainId = await utils.getChainId();
+    const signatures = await utils.signOffchain(
       _signers,
       this.relayerManager.address,
       _module.address,

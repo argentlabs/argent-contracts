@@ -1,8 +1,4 @@
 /* global artifacts */
-const fs = require("fs");
-const ethers = require("ethers");
-const ethUtil = require("ethereumjs-util");
-
 const MultiSigWallet = artifacts.require("MultiSigWallet");
 const TestRegistry = artifacts.require("TestRegistry");
 
@@ -40,22 +36,14 @@ contract("MultiSigWallet", (accounts) => {
     assert.equal(bal.toNumber(), value);
   });
 
-  async function getSignatures(signedData, signers, sortSigners = true, returnBadSignatures = false) {
+  async function getSignatures(messageHash, signers, sortSigners = true, returnBadSignatures = false) {
     // Sort the signers
     let sortedSigners = signers;
     if (sortSigners) {
       sortedSigners = utilities.sortWalletByAddress(signers);
     }
-    const dataBuff = ethUtil.toBuffer(signedData);
-    const msgHashBuff = ethUtil.hashPersonalMessage(dataBuff);
-
-    const accountsJson = JSON.parse(fs.readFileSync("./ganache-accounts.json", "utf8"));
     const sigs = `0x${sortedSigners.map((signer) => {
-      const pkey = accountsJson.private_keys[signer.toLowerCase()];
-      const sig = ethUtil.ecsign(msgHashBuff, Buffer.from(pkey, "hex"));
-      const signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
-      const split = ethers.utils.splitSignature(signature);
-      let joinedSignature = ethers.utils.joinSignature(split).slice(2);
+      let joinedSignature = utilities.signMessageHash(signer, messageHash);
 
       if (returnBadSignatures) {
         joinedSignature += "a1";
