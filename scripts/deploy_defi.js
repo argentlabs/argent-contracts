@@ -1,4 +1,4 @@
-// AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true etherlime deploy --file ./scripts/deploy_defi.js --compile false
+// AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true npx truffle exec ./scripts/deploy_defi.js
 /* global artifacts */
 
 const BN = require("bn.js");
@@ -33,14 +33,13 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function deploy() {
-  const idx = process.argv.indexOf("--network");
-  const network = idx > -1 ? process.argv[idx + 1] : "test";
-
-  const deployManager = new DeployManager(network);
+async function main() {
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const deployManager = new DeployManager(deploymentAccount);
   await deployManager.setup();
   const { deployer } = deployManager;
-  const manager = deployer.signer; // the pit
 
   /* ************* Deploy Maker *************** */
   const vox = await Vox.new(USD_PER_DAI);
@@ -60,7 +59,7 @@ async function deploy() {
     pip.address,
     pep.address,
     vox.address,
-    manager);
+    deploymentAccount);
 
   // let the Tub mint PETH and DAI
   await skr.setOwner(tub.address);
@@ -88,7 +87,7 @@ async function deploy() {
 
   const ethLiquidity = new BN(web3.utils.toWei("1"));
   const mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
-  await gov.mint(manager, mkrLiquidity);
+  await gov.mint(deploymentAccount, mkrLiquidity);
 
   await uniswapFactory.createExchange(gov.address, { gasLimit: 450000 });
   let exchange = "0x0000000000000000000000000000000000000000";
@@ -110,6 +109,6 @@ async function deploy() {
   console.log("********************************");
 }
 
-module.exports = {
-  deploy,
-};
+main().catch((err) => {
+  throw err;
+});

@@ -20,7 +20,7 @@ const MODULES_TO_DISABLE = [];
 
 const BACKWARD_COMPATIBILITY = 3;
 
-const deploy = async (network) => {
+const main = async (network) => {
   if (!["kovan", "kovan-fork", "staging", "prod"].includes(network)) {
     console.warn("------------------------------------------------------------------------");
     console.warn(`WARNING: The MakerManagerV2 module is not fully functional on ${network}`);
@@ -34,23 +34,25 @@ const deploy = async (network) => {
   // Setup
   // //////////////////////////////////
 
-  const manager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const manager = new DeployManager(deploymentAccount);
   await manager.setup();
 
   const { configurator } = manager;
   const { deployer } = manager;
   const { versionUploader } = manager;
-  const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
-  const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   // //////////////////////////////////
   // Initialise the new version
   // //////////////////////////////////
-  const VersionManagerWrapper = await deployer.wrapDeployedContract(VersionManager, config.modules.VersionManager);
+  const VersionManagerWrapper = await VersionManager.at(config.modules.VersionManager);
 
   // //////////////////////////////////
   // Setup new infrastructure
@@ -145,6 +147,6 @@ const deploy = async (network) => {
   await versionUploader.upload(newVersion);
 };
 
-module.exports = {
-  deploy,
-};
+main().catch((err) => {
+  throw err;
+});

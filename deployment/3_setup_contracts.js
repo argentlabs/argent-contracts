@@ -19,7 +19,6 @@ module.exports = async (callback) => {
 
   const { configurator } = manager;
   const { config } = configurator;
-  console.log("Config:", config);
 
   const ENSResolverWrapper = await ENSResolver.at(config.contracts.ENSResolver);
   const ENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);

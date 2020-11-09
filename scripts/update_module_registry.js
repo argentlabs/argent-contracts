@@ -23,10 +23,7 @@ async function main() {
   let add;
 
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--add");
+  let idx = process.argv.indexOf("--add");
   if (idx > 0) {
     add = true;
   } else {
@@ -46,16 +43,17 @@ async function main() {
   const targetName = process.argv[idx + 1];
 
   // Setup deployer
-  const manager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const manager = new DeployManager(deploymentAccount);
   await manager.setup();
   const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
-  const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   if (add) {
     console.log(`Registering module ${targetName} to ModuleRegistry`);

@@ -31,10 +31,7 @@ async function main() {
   let implementation;
 
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--wallet");
+  let idx = process.argv.indexOf("--wallet");
   if (idx > 0) {
     wallet = process.argv[idx + 1];
   } else {
@@ -53,16 +50,17 @@ async function main() {
   }
 
   // Setup deployer
-  const manager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const manager = new DeployManager(deploymentAccount);
   await manager.setup();
   const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
-  const ArgentWalletDetectorWrapper = await deployer.wrapDeployedContract(ArgentWalletDetector, config.contracts.ArgentWalletDetector);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   if (wallet) {
     console.log(`Adding wallet code and implementation from ${wallet}`);

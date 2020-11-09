@@ -30,9 +30,7 @@ module.exports = async (callback) => {
 
   const { configurator } = manager;
   const { versionUploader } = manager;
-
   const { config } = configurator;
-  console.log("Config:", config);
 
   const GuardianManagerWrapper = await GuardianManager.new(config.modules.GuardianManager);
   const LockManagerWrapper = await LockManager.new(config.modules.LockManager);
