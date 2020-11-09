@@ -175,6 +175,26 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         return (1, OwnerSignature.Required);
     }
 
+    /* ***************** Static Call Delegation ************************* */
+
+    /**
+     * @notice This method is used by the VersionManager's fallback (via an internal call) to determine whether
+     * the current transaction is a staticcall or not. The method succeeds if the current transaction is a static call, 
+     * and reverts otherwise. 
+     * @dev The use of an if/else allows to encapsulate the whole logic in a single function.
+     */
+    function verifyIsInStaticCall() public {
+        if(msg.sender != address(this)) { // first entry in the method (via an internal call)
+            (bool success,) = address(this).call(abi.encodeWithSelector(VersionManager(0).verifyIsInStaticCall.selector));
+            require(!success, "VM: not in a staticcall");
+        } else { // second entry in the method (via an external call)
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                sstore(47474747, 1)
+            }
+        }
+    }
+
     /**
      * @notice This method delegates the static call to a target feature
      */
@@ -182,6 +202,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         uint256 version = walletVersions[msg.sender];
         address feature = staticCallExecutors[version][msg.sig];
         require(feature != address(0), "VM: static call not supported for wallet version");
+        verifyIsInStaticCall();
 
         // solhint-disable-next-line no-inline-assembly
         assembly {
