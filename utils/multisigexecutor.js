@@ -3,9 +3,9 @@ const inquirer = require("inquirer");
 const utils = require("./utilities.js");
 
 class MultisigExecutor {
-  constructor(multisigWrapper, ownerWallet, autoSign = true, overrides = {}) {
+  constructor(multisigWrapper, ownerAccount, autoSign = true, overrides = {}) {
     this._multisigWrapper = multisigWrapper;
-    this._ownerWallet = ownerWallet;
+    this._ownerAccount = ownerAccount;
     this._autoSign = autoSign;
     this._overrides = { gasLimit: 1000000, ...overrides };
   }
@@ -22,7 +22,7 @@ class MultisigExecutor {
 
     if (this._autoSign === true) {
       // Get the off chain signature
-      let signature = await utils.signMessageHash(this._ownerWallet, signHash);
+      let signature = await utils.signMessageHash(this._ownerAccount, signHash);
 
       // to make sure signature ends with 27/28
       const split = ethers.utils.splitSignature(signature);

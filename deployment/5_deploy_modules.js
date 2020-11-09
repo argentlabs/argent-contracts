@@ -173,7 +173,5 @@ module.exports = async (callback) => {
     abiUploader.upload(VersionManagerWrapper, "modules"),
   ]);
 
-  console.log("Config:", config);
-
   callback();
 };

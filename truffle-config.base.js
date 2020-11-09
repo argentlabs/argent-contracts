@@ -25,8 +25,10 @@ const DeployManager = require("./utils/deploy-manager.js");
 const _gasPrice = process.env.DEPLOYER_GAS_PRICE || 20000000000;
 const _gasLimit = 6000000;
 
-async function getKeys(network) {
-  const manager = new DeployManager(network);
+async function getKeys() {
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const manager = new DeployManager(deploymentAccount);
   await manager.setup();
   const { pkey, infuraKey } = manager;
   return (pkey, infuraKey);
@@ -61,7 +63,7 @@ module.exports = {
 
     test: {
       provider: async () => {
-        const { pkey, infuraKey } = await getKeys("test");
+        const { pkey, infuraKey } = await getKeys();
         return new HDWalletProvider(pkey, `https://ropsten.infura.io/v3/${infuraKey}`);
       },
       network_id: 3, // ropsten
@@ -71,7 +73,7 @@ module.exports = {
 
     staging: {
       provider: async () => {
-        const { pkey, infuraKey } = await getKeys("staging");
+        const { pkey, infuraKey } = await getKeys();
         return new HDWalletProvider(pkey, `https://mainnet.infura.io/v3/${infuraKey}`);
       },
       network_id: 1, // mainnet
@@ -81,7 +83,7 @@ module.exports = {
 
     prod: {
       provider: async () => {
-        const { pkey, infuraKey } = await getKeys("prod");
+        const { pkey, infuraKey } = await getKeys();
         return new HDWalletProvider(pkey, `https://mainnet.infura.io/v3/${infuraKey}`);
       },
       network_id: 1, // mainnet

@@ -1,4 +1,4 @@
-// AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true etherlime deploy --file ./scripts/deploy_custom_upgrader.js --compile false
+// AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true npx truffle exec ./scripts/deploy_custom_upgrader.js
 
 /* global artifacts */
 const ModuleRegistry = artifacts.require("ModuleRegistry");
@@ -9,8 +9,7 @@ const utils = require("../utils/utilities.js");
 const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-async function deploy() {
-  const network = "test";
+async function main() {
   const modulesToRemove = [];
   const modulesToAdd = [
     "0x624EbBd0f4169E2e11861618045491b6A4e29E77",
@@ -20,17 +19,18 @@ async function deploy() {
   ];
   const upgraderName = "0x4ef2f261_0xee7263da";
 
-  const manager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const manager = new DeployManager(deploymentAccount);
   await manager.setup();
 
   const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   const UpgraderWrapper = await Upgrader.new(
     modulesToRemove,
@@ -41,6 +41,6 @@ async function deploy() {
     [UpgraderWrapper.address, utils.asciiToBytes32(upgraderName)]);
 }
 
-module.exports = {
-  deploy,
-};
+main().catch((err) => {
+  throw err;
+});

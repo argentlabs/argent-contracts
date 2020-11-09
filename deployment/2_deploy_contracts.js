@@ -37,7 +37,6 @@ module.exports = async (callback) => {
 
   const newConfig = configurator.config;
   const prevConfig = configurator.copyConfig();
-  console.log("Previous Config:", prevConfig);
 
   const walletRootEns = prevConfig.ENS.domain;
 

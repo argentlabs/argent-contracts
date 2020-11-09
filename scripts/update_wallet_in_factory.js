@@ -17,15 +17,12 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 const DeployManager = require("../utils/deploy-manager.js");
 
 async function main() {
-  // Read Command Line Arguments
-  const idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  const deployManager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const deployManager = new DeployManager(deploymentAccount);
   await deployManager.setup();
   const { configurator } = deployManager;
-  const { deployer } = deployManager;
-  const manager = deployer.signer;
   const { config } = configurator;
   console.log("Config:", config);
 
@@ -37,7 +34,7 @@ async function main() {
   console.log("Setting up WalletFactory with new BaseWallet...");
   const walletFactoryWrapper = await WalletFactory.at(config.contracts.WalletFactory);
   const multisigWrapper = await MultiSigWallet.at(config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(multisigWrapper, manager, config.multisig.autosign);
+  const multisigExecutor = new MultisigExecutor(multisigWrapper, deploymentAccount, config.multisig.autosign);
   await multisigExecutor.executeCall(
     walletFactoryWrapper,
     "changeWalletImplementation",

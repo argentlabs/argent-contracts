@@ -13,8 +13,6 @@ const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
 const DeployManager = require("../utils/deploy-manager.js");
 
-const defaultNetwork = "test";
-
 const PROXYWALLET_CODEHASH = [
   "0x0b44c9be520023d9f6091278e7e5a8853257eb9fb3d78e6951315df59679e3b2", // factory prod Mar-30-2020
   "0x83baa4b265772664a88dcfc8be0e24e1fe969a3c66f03851c6aa2f5da73cd7fd", // factory prod Feb-04-2019
@@ -29,18 +27,17 @@ const BASEWALLET_IMPL = [
 ]; // mainnet only
 
 async function main() {
-  // Read Command Line Arguments
-  const idx = process.argv.indexOf("--network");
-  const network = idx > -1 ? process.argv[idx + 1] : defaultNetwork;
-
-  const deployManager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const deployManager = new DeployManager(deploymentAccount);
   await deployManager.setup();
-  const { deployer, configurator, abiUploader } = deployManager;
+  const { configurator, abiUploader } = deployManager;
   const { config } = configurator;
 
   // Deploy ArgentWalletDetector contract
   console.log("Deploying ArgentWalletDetector...");
-  const ArgentWalletDetectortWrapper = await deployer.deploy(ArgentWalletDetector, {}, PROXYWALLET_CODEHASH, BASEWALLET_IMPL);
+  const ArgentWalletDetectortWrapper = await ArgentWalletDetector.new(PROXYWALLET_CODEHASH, BASEWALLET_IMPL);
 
   // Transfer ownership to the multisig
   console.log("Transferring ownership to the Multisig...");

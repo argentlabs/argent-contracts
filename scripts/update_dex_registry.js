@@ -21,10 +21,7 @@ async function main() {
   const dexStatus = [];
 
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--dex");
+  const idx = process.argv.indexOf("--dex");
 
   const { length } = process.argv;
   for (let i = idx + 1; i < length; i += 1) {
@@ -38,16 +35,17 @@ async function main() {
   }
 
   // Setup deployer
-  const manager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const manager = new DeployManager(deploymentAccount);
   await manager.setup();
   const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
-  const DexRegistryWrapper = await deployer.wrapDeployedContract(DexRegistry, config.contracts.DexRegistry);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const DexRegistryWrapper = await DexRegistry.at(config.contracts.DexRegistry);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   console.log(`Updating registry for dex [${dexAddress}] with value [${dexStatus}]`);
   await multisigExecutor.executeCall(DexRegistryWrapper, "setAuthorised", [dexAddress, dexStatus]);

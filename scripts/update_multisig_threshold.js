@@ -16,22 +16,20 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--threshold");
+  const idx = process.argv.indexOf("--threshold");
   const threshold = process.argv[idx + 1];
 
   // Setup deployer
-  const manager = new DeployManager(network);
+  // TODO: Maybe get the signer account a better way?
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+  const manager = new DeployManager(deploymentAccount);
   await manager.setup();
   const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
   const { config } = configurator;
 
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   // deregister
   await multisigExecutor.executeCall(MultiSigWrapper, "changeThreshold", [threshold]);
