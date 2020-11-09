@@ -189,9 +189,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
             require(!success, "VM: not in a staticcall");
         } else { // second entry in the method (via an external call)
             // solhint-disable-next-line no-inline-assembly
-            assembly {
-                sstore(47474747, 1)
-            }
+            assembly { log0(0, 0) }
         }
     }
 
