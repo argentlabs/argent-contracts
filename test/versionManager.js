@@ -1,7 +1,6 @@
 /* global accounts */
 const ethers = require("ethers");
 
-const { AddressZero } = ethers.constants;
 const GuardianManager = require("../build/GuardianManager");
 const LockStorage = require("../build/LockStorage");
 const GuardianStorage = require("../build/GuardianStorage");
@@ -170,8 +169,8 @@ describe("VersionManager", function () {
         3600,
         3600,
         10000,
-        AddressZero,
-        AddressZero);
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero);
       await versionManager2.addVersion([transferManager.contractAddress], []);
       await registry.registerModule(versionManager2.contractAddress, ethers.utils.formatBytes32String("VersionManager2"));
 
