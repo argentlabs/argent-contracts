@@ -112,7 +112,7 @@ describe("Token Transfer", function () {
         }
       } else {
         const txPromise = nftFeature.from(owner1)
-          .transferNFT(wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32);
+          .transferNFT(wallet1.contractAddress, nftContract.contractAddress, recipientAddress, nftId, safe, ZERO_BYTES32, { gasLimit: 300000 });
         if (shouldSucceed) {
           await txPromise;
         } else {
