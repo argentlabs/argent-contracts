@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Usage: ./deploy.sh [network] [aws-profile-suffix] [...steps]
-#        ./deploy.sh [network] [...steps] (if network == aws-profile-suffix)
+# Usage: ./deploy.sh [--no-compile] [network] [aws-profile-suffix] [...steps]
+#        ./deploy.sh [--no-compile] [network] [...steps] (if network == aws-profile-suffix)
 #
 # Examples: ./deploy.sh development 1 2 3 4
 #           ./deploy.sh test 1 2 3 4 5 6
@@ -10,8 +10,20 @@
 
 set -e # stop the script if any subprocess fails
 
-NETWORK=$1
+NOCOMPILE=$1
 shift
+
+if [ $NOCOMPILE != "--no-compile" ]; then
+    rm -rf build
+    npm run compile:lib
+    npm run compile
+    npm run compile:legacy
+    npm run provision:lib:artefacts
+    NETWORK=$NOCOMPILE
+else
+    NETWORK=$1
+    shift
+fi
 
 re='^[0-9]+$'
 if [[ $1 =~ $re ]] ; then
@@ -21,11 +33,7 @@ else
     shift
 fi
 
-rm -rf build
-npm run compile:lib
-npm run compile
-npm run compile:legacy
-npm run provision:lib:artefacts
+
 
 for IDX in "$@"
 do
