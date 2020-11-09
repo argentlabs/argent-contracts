@@ -70,7 +70,7 @@ jobs:
       - run:
           name: "Test deployment scripts"
           command: npm run ganache >/dev/null 2>&1 & npm run test:deployment
-          no_output_timeout: 30m
+          no_output_timeout: 60m
       - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
