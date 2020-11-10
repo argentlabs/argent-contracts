@@ -185,7 +185,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      */
     function verifyStaticCall() public {
         if(msg.sender != address(this)) { // first entry in the method (via an internal call)
-            (bool success,) = address(this).call{gas: 1000}(abi.encodeWithSelector(VersionManager(0).verifyStaticCall.selector));
+            (bool success,) = address(this).call{gas: 3000}(abi.encodeWithSelector(VersionManager(0).verifyStaticCall.selector));
             require(!success, "VM: not in a staticcall");
         } else { // second entry in the method (via an external call)
             // solhint-disable-next-line no-inline-assembly
