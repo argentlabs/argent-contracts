@@ -183,9 +183,9 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
      * and reverts otherwise. 
      * @dev The use of an if/else allows to encapsulate the whole logic in a single function.
      */
-    function verifyIsInStaticCall() public {
+    function verifyStaticCall() public {
         if(msg.sender != address(this)) { // first entry in the method (via an internal call)
-            (bool success,) = address(this).call(abi.encodeWithSelector(VersionManager(0).verifyIsInStaticCall.selector));
+            (bool success,) = address(this).call{gas: 1000}(abi.encodeWithSelector(VersionManager(0).verifyStaticCall.selector));
             require(!success, "VM: not in a staticcall");
         } else { // second entry in the method (via an external call)
             // solhint-disable-next-line no-inline-assembly
@@ -200,7 +200,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         uint256 version = walletVersions[msg.sender];
         address feature = staticCallExecutors[version][msg.sig];
         require(feature != address(0), "VM: static call not supported for wallet version");
-        verifyIsInStaticCall();
+        verifyStaticCall();
 
         // solhint-disable-next-line no-inline-assembly
         assembly {
