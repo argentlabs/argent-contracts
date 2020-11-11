@@ -1,5 +1,6 @@
 /* global accounts */
 const ethers = require("ethers");
+
 const GuardianManager = require("../build/GuardianManager");
 const LockStorage = require("../build/LockStorage");
 const GuardianStorage = require("../build/GuardianStorage");
@@ -7,8 +8,13 @@ const Proxy = require("../build/Proxy");
 const BaseWallet = require("../build/BaseWallet");
 const RelayerManager = require("../build/RelayerManager");
 const VersionManager = require("../build/VersionManager");
+const TransferStorage = require("../build/TransferStorage");
+const LimitStorage = require("../build/LimitStorage");
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
+const TransferManager = require("../build/TransferManager");
 const Registry = require("../build/ModuleRegistry");
 const TestFeature = require("../build/TestFeature");
+const UpgraderToVersionManager = require("../build/UpgraderToVersionManager");
 
 const TestManager = require("../utils/test-manager");
 
@@ -22,6 +28,7 @@ describe("VersionManager", function () {
   let deployer;
   let wallet;
   let walletImplementation;
+  let registry;
   let lockStorage;
   let guardianStorage;
   let guardianManager;
@@ -35,7 +42,7 @@ describe("VersionManager", function () {
   });
 
   beforeEach(async () => {
-    const registry = await deployer.deploy(Registry);
+    registry = await deployer.deploy(Registry);
     lockStorage = await deployer.deploy(LockStorage);
     guardianStorage = await deployer.deploy(GuardianStorage);
     versionManager = await deployer.deploy(VersionManager, {},
@@ -140,6 +147,50 @@ describe("VersionManager", function () {
       );
       lock = await newGuardianStorage.getLock(wallet.contractAddress);
       assert.isTrue(lock.eq(0), "Lock should not be set");
+    });
+
+    it("should not allow the fallback to be called via a non-static call", async () => {
+      // Deploy new VersionManager with TransferManager
+      const versionManager2 = await deployer.deploy(VersionManager, {},
+        registry.contractAddress,
+        lockStorage.contractAddress,
+        guardianStorage.contractAddress,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero);
+      const tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
+      const transferStorage = await deployer.deploy(TransferStorage);
+      const limitStorage = await deployer.deploy(LimitStorage);
+      const transferManager = await deployer.deploy(TransferManager, {},
+        lockStorage.contractAddress,
+        transferStorage.contractAddress,
+        limitStorage.contractAddress,
+        tokenPriceRegistry.contractAddress,
+        versionManager2.contractAddress,
+        3600,
+        3600,
+        10000,
+        ethers.constants.AddressZero,
+        ethers.constants.AddressZero);
+      await versionManager2.addVersion([transferManager.contractAddress], []);
+      await registry.registerModule(versionManager2.contractAddress, ethers.utils.formatBytes32String("VersionManager2"));
+
+      // Deploy Upgrader to new VersionManager
+      const upgrader = await deployer.deploy(UpgraderToVersionManager, {},
+        registry.contractAddress,
+        lockStorage.contractAddress,
+        [versionManager.contractAddress], // toDisable
+        versionManager2.contractAddress);
+      await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("Upgrader"));
+
+      // Upgrade wallet to new VersionManger
+      await versionManager.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress);
+
+      // Attempt to call a malicious (non-static) call on the old VersionManager
+      const data = testFeature.contract.interface.functions.badStaticCall.encode([]);
+      await assert.revertWith(
+        transferManager.from(owner).callContract(wallet.contractAddress, versionManager.contractAddress, 0, data),
+        "VM: not in a staticcall",
+      );
     });
   });
 });
