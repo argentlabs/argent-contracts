@@ -81,6 +81,9 @@ jobs:
       - run:
           name: "Run slither"
           command: npm run security:slither
+      - run:
+          name: "Validate TokenPriceRegistry tokens against ERC20 standard"
+          command: npm run validate:erc20
 workflows:
   version: 2
   commit:
