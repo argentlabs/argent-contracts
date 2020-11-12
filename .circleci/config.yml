@@ -30,6 +30,7 @@ step_setup_slither: &step_setup_slither
       chmod +x solc-static-linux
       sudo mv solc-static-linux /usr/local/bin/solc
       sudo pip3 install slither-analyzer
+      sudo apt-get install jq
 jobs:
   unit-test:
     <<: *job_common
@@ -88,7 +89,7 @@ workflows:
   version: 2
   commit:
     jobs:
-      - unit-test
+      - security-test
   nightly:
     triggers:
       - schedule:
