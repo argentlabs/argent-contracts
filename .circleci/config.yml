@@ -99,7 +99,7 @@ workflows:
   version: 2
   commit:
     jobs:
-      - security-test
+      - unit-test
   nightly:
     triggers:
       - schedule:
