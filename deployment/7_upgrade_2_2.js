@@ -17,6 +17,7 @@ const MakerV2Manager = require("../build/MakerV2Manager");
 const TransferManager = require("../build/TransferManager");
 const RelayerManager = require("../build/RelayerManager");
 const VersionManager = require("../build/VersionManager");
+const WalletFactory = require("../build/WalletFactory");
 
 const utils = require("../utils/utilities.js");
 
@@ -58,6 +59,23 @@ const deploy = async (network) => {
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice });
 
   // //////////////////////////////////
+  // Deploy infrastructure contracts
+  // //////////////////////////////////
+
+  const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
+    config.contracts.ModuleRegistry, config.contracts.BaseWallet, config.modules.GuardianStorage);
+
+  // //////////////////////////////////
+  // Set contracts' managers
+  // //////////////////////////////////
+
+  for (const idx in config.backend.accounts) {
+    const account = config.backend.accounts[idx];
+    const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
+    await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
+  }
+
+  // //////////////////////////////////
   // Deploy new modules
   // //////////////////////////////////
 
@@ -75,6 +93,7 @@ const deploy = async (network) => {
   // //////////////////////////////////
   // Deploy new features
   // //////////////////////////////////
+
   const ApprovedTransferWrapper = await deployer.deploy(
     ApprovedTransfer,
     {},
@@ -212,8 +231,11 @@ const deploy = async (network) => {
   // Set contracts' owners
   // //////////////////////////////////
 
-  const changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  let changeOwnerTx = await VersionManagerWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
   await VersionManagerWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of VersionManagerWrapper");
+
+  changeOwnerTx = await WalletFactoryWrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });
+  await WalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of WalletFactory");
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -234,6 +256,10 @@ const deploy = async (network) => {
     VersionManager: VersionManagerWrapper.contractAddress,
   });
 
+  configurator.updateInfrastructureAddresses({
+    WalletFactory: WalletFactoryWrapper.contractAddress,
+  });
+
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
   configurator.updateGitHash(gitHash);
   await configurator.save();
@@ -251,6 +277,8 @@ const deploy = async (network) => {
     abiUploader.upload(RelayerManagerWrapper, "modules"),
 
     abiUploader.upload(VersionManagerWrapper, "modules"),
+
+    abiUploader.upload(WalletFactoryWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
