@@ -84,7 +84,7 @@ jobs:
       - <<: *step_setup_slither
       - <<: *step_setup_solc_select
       - run:
-          name: "Setup PATH"
+          name: "Validate TokenPriceRegistry tokens against ERC20 standard"
           command: |
             export PATH=/home/circleci/.solc-select:$PATH
             echo "export PATH=/home/circleci/.solc-select:$PATH" >> ~/.bashrc
