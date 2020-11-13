@@ -31,6 +31,12 @@ step_setup_slither: &step_setup_slither
       sudo mv solc-static-linux /usr/local/bin/solc
       sudo pip3 install slither-analyzer
       sudo apt-get install jq
+step_setup_solc_select: &step_setup_solc_select
+  run:
+    name: "Setup solc-select"
+    command: |
+      git clone https://github.com/crytic/solc-select.git
+      bash ./solc-select/scripts/install.sh
 jobs:
   unit-test:
     <<: *job_common
@@ -73,12 +79,15 @@ jobs:
       - store_artifacts:
           path: coverage
   security-test:
+    environment:
+       BASH_ENV: ~/.bashrc
     <<: *job_python
     steps:
       - checkout
       - <<: *step_restore_cache
       - <<: *step_setup_global_packages
       - <<: *step_setup_slither
+      - <<: *step_setup_solc_select
       - run:
           name: "Run slither"
           command: npm run security:slither
