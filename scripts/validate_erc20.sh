@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 source .env
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $DIR
-mkdir "temp"
-
 for tokenAddress in $(curl -s 'https://cloud.argent-api.com/v1/tokens/dailyLimit' | jq -r '.tokens[] | select(.address != "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") | .address')
 do
     echo "${tokenAddress}"
@@ -17,9 +13,5 @@ do
     compilerVersion=$(cut -d"+" -f1<<<"$compilerVersionString")
     echo $compilerVersion
 
-    (jq -r '.SourceCode'<<<"$resultEtherScan") > "./temp/$contractName.sol"
-
-    SOLC_VERSION=$compilerVersion slither-check-erc "./temp/$contractName.sol" "$contractName" --erc ERC20
-
+    slither-check-erc $tokenAddress "$contractName" --erc ERC20 --etherscan-apikey $ETHERSCAN_API_KEY
 done
-rm -r "temp"
