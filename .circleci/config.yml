@@ -84,14 +84,12 @@ jobs:
       - <<: *step_setup_slither
       - <<: *step_setup_solc_select
       - run:
-          name: "Validate TokenPriceRegistry tokens against ERC20 standard"
-          command: |
+          name: "Check TokenPriceRegistry tokens for ERC20 compliance"
+          command:  |
             export PATH=/home/circleci/.solc-select:$PATH
             echo "export PATH=/home/circleci/.solc-select:$PATH" >> ~/.bashrc
             solc --version
-      - run:
-          name: "Check TokenPriceRegistry tokens for ERC20 compliance"
-          command: npm run validate:erc20
+            npm run validate:erc20
       - run:
           name: "Run slither"
           command: npm run security:slither
