@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-source .env
+if [! -z ${CI}]; then
+    source .env
+fi
 
 for tokenAddress in $(curl -s 'https://cloud.argent-api.com/v1/tokens/dailyLimit' | jq -r '.tokens[] | select(.address != "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") | .address')
 do
@@ -13,5 +15,5 @@ do
     compilerVersion=$(cut -d"+" -f1<<<"$compilerVersionString")
     echo $compilerVersion
 
-    slither-check-erc $tokenAddress "$contractName" --erc ERC20 --etherscan-apikey $ETHERSCAN_API_KEY
+    slither-check-erc $tokenAddress "$contractName" --erc ERC20 --etherscan-apikey "$ETHERSCAN_API_KEY"
 done
