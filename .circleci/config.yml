@@ -76,8 +76,6 @@ jobs:
       - store_artifacts:
           path: coverage
   security-test:
-    environment:
-       BASH_ENV: ~/.bashrc
     <<: *job_python
     steps:
       - checkout
@@ -85,6 +83,12 @@ jobs:
       - <<: *step_setup_global_packages
       - <<: *step_setup_slither
       - <<: *step_setup_solc_select
+      - run:
+          name: "Setup PATH"
+          command: |
+            export PATH=/home/circleci/.solc-select:$PATH
+            echo "export PATH=/home/circleci/.solc-select:$PATH" >> ~/.bashrc
+            solc --version
       - run:
           name: "Check TokenPriceRegistry tokens for ERC20 compliance"
           command: npm run validate:erc20
