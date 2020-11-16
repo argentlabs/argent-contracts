@@ -183,12 +183,12 @@ contract("VersionManager", (accounts) => {
       await registry.registerModule(upgrader.address, ethers.utils.formatBytes32String("Upgrader"));
 
       // Upgrade wallet to new VersionManger
-      await versionManager.from(owner).addModule(wallet.address, upgrader.address);
+      await versionManager.addModule(wallet.address, upgrader.address, { from: owner });
 
       // Attempt to call a malicious (non-static) call on the old VersionManager
-      const data = testFeature.contract.interface.functions.badStaticCall.encode([]);
-      await assert.revertWith(
-        transferManager.from(owner).callContract(wallet.address, versionManager.address, 0, data),
+      const data = await testFeature.contract.methods.badStaticCall().encodeABI();
+      await utils.assertRevert(
+        transferManager.callContract(wallet.address, versionManager.address, 0, data, { from: owner }),
         "VM: not in a staticcall",
       );
     });
