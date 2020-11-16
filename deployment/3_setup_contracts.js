@@ -1,9 +1,10 @@
 const ModuleRegistry = require("../build/ModuleRegistry");
 const ENSManager = require("../build/ArgentENSManager");
 const ENSResolver = require("../build/ArgentENSResolver");
-const WalletFactory = require("../build-legacy/v1.6.0/WalletFactory");
-const TokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
+const WalletFactory = require("../build/WalletFactory");
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 const CompoundRegistry = require("../build/CompoundRegistry");
+const DexRegistry = require("../build/DexRegistry");
 
 const DeployManager = require("../utils/deploy-manager.js");
 
@@ -27,7 +28,15 @@ const deploy = async (network) => {
   const WalletFactoryWrapper = await deployer.wrapDeployedContract(WalletFactory, config.contracts.WalletFactory);
   const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
   const CompoundRegistryWrapper = await deployer.wrapDeployedContract(CompoundRegistry, config.contracts.CompoundRegistry);
-  const TokenPriceProviderWrapper = await deployer.wrapDeployedContract(TokenPriceProvider, config.contracts.TokenPriceProvider);
+  const TokenPriceRegistryWrapper = await deployer.wrapDeployedContract(TokenPriceRegistry, config.modules.TokenPriceRegistry);
+  const DexRegistryWrapper = await deployer.wrapDeployedContract(DexRegistry, config.contracts.DexRegistry);
+
+  // Configure DexRegistry
+  const authorisedExchanges = Object.values(config.defi.paraswap.authorisedExchanges);
+  const DexRegistrySetAuthorisedTx = await DexRegistryWrapper.contract.setAuthorised(
+    authorisedExchanges, Array(authorisedExchanges.length).fill(true), { gasPrice },
+  );
+  await DexRegistryWrapper.verboseWaitForTransaction(DexRegistrySetAuthorisedTx, "Setting up DexRegistry");
 
   // //////////////////////////////////
   // Set contracts' managers
@@ -47,9 +56,9 @@ const deploy = async (network) => {
     const WalletFactoryAddManagerTx = await WalletFactoryWrapper.contract.addManager(account, { gasPrice });
     await WalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
 
-    const TokenPriceProviderAddManagerTx = await TokenPriceProviderWrapper.contract.addManager(account, { gasPrice });
-    await TokenPriceProviderWrapper.verboseWaitForTransaction(TokenPriceProviderAddManagerTx,
-      `Set ${account} as the manager of the TokenPriceProvider`);
+    const TokenPriceRegistryAddManagerTx = await TokenPriceRegistryWrapper.contract.addManager(account, { gasPrice });
+    await TokenPriceRegistryWrapper.verboseWaitForTransaction(TokenPriceRegistryAddManagerTx,
+      `Set ${account} as the manager of the TokenPriceRegistry`);
   }
 
   // //////////////////////////////////
@@ -62,7 +71,9 @@ const deploy = async (network) => {
     WalletFactoryWrapper,
     ModuleRegistryWrapper,
     CompoundRegistryWrapper,
-    TokenPriceProviderWrapper];
+    TokenPriceRegistryWrapper,
+    DexRegistryWrapper];
+
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     const changeOwnerTx = await wrapper.contract.changeOwner(config.contracts.MultiSigWallet, { gasPrice });

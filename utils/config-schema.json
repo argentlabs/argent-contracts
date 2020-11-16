@@ -131,6 +131,9 @@
         },
         "DexRegistry": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "ArgentWalletDetector": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": [
@@ -163,6 +166,9 @@
           "$ref": "#/definitions/ethaddress"
         },
         "TokenPriceStorage": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "TokenPriceRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
         "LockManager": {

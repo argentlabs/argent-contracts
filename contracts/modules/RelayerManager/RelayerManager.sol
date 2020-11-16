@@ -17,13 +17,13 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./common/Utils.sol";
-import "./common/BaseFeature.sol";
-import "./common/GuardianUtils.sol";
-import "./common/LimitUtils.sol";
-import "../infrastructure/storage/ILimitStorage.sol";
-import "../infrastructure/ITokenPriceRegistry.sol";
-import "../infrastructure/storage/IGuardianStorage.sol";
+import "../common/Utils.sol";
+import "../common/BaseFeature.sol";
+import "../common/GuardianUtils.sol";
+import "../common/LimitUtils.sol";
+import "../../infrastructure/storage/ILimitStorage.sol";
+import "../../infrastructure/ITokenPriceRegistry.sol";
+import "../../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RelayerManager

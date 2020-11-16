@@ -13,21 +13,17 @@ contract TestFeature is BaseFeature {
 
     bytes32 constant NAME = "TestFeature";
 
-    bool boolVal;
     uint uintVal;
-
     TestDapp public dapp;
 
     constructor(
         ILockStorage _lockStorage,
         IVersionManager _versionManager,
-        bool _boolVal,
         uint _uintVal
     ) 
         BaseFeature(_lockStorage, _versionManager, NAME) 
         public 
     {
-        boolVal = _boolVal;
         uintVal = _uintVal;
         dapp = new TestDapp();
     }
@@ -63,22 +59,27 @@ contract TestFeature is BaseFeature {
      * @inheritdoc IFeature
      */
     function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
-        _sigs = new bytes4[](3);
+        _sigs = new bytes4[](4);
         _sigs[0] = bytes4(keccak256("getBoolean()"));
         _sigs[1] = bytes4(keccak256("getUint()"));
         _sigs[2] = bytes4(keccak256("getAddress(address)"));
+        _sigs[3] = bytes4(keccak256("badStaticCall()"));
     }
 
     function getBoolean() public view returns (bool) {
-        return boolVal;
+        return true;
     }
 
     function getUint() public view returns (uint) {
-        return uintVal;
+        return 42;
     }
 
     function getAddress(address _addr) public pure returns (address) {
         return _addr;
+    }
+
+    function badStaticCall() external {
+        uintVal = 123456;
     }
 
     function callDapp(address _wallet)

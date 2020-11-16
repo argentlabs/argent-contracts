@@ -24,7 +24,7 @@ const ERC20 = require("../build/TestERC20");
 const WETH = require("../build/WETH9");
 const TestContract = require("../build/TestContract");
 
-const { ETH_TOKEN, hasEvent } = require("../utils/utilities.js");
+const { ETH_TOKEN, hasEvent, personalSign } = require("../utils/utilities.js");
 
 const ETH_LIMIT = 1000000;
 const SECURITY_PERIOD = 2;
@@ -886,6 +886,38 @@ describe("TransferManager", function () {
       await weth.from(infrastructure).deposit({ value: amount });
       await weth.from(infrastructure).transfer(wallet.contractAddress, amount);
       await doApproveTokenAndCallContract({ amount, state: 3, wrapEth: true });
+    });
+  });
+
+  describe("Static calls", () => {
+    it("should delegate isValidSignature static calls to the TransferManager", async () => {
+      const ERC1271_ISVALIDSIGNATURE_BYTES32 = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("isValidSignature(bytes32,bytes)")).slice(0, 10);
+      const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);
+      assert.equal(isValidSignatureDelegate, versionManager.contractAddress);
+
+      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const signHash = ethers.utils.keccak256("0x1234");
+      const sig = await personalSign(signHash, owner);
+      const valid = await walletAsTransferManager.isValidSignature(signHash, sig);
+      assert.equal(valid, ERC1271_ISVALIDSIGNATURE_BYTES32);
+    });
+    it("should revert isValidSignature static call for invalid signature", async () => {
+      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const signHash = ethers.utils.keccak256("0x1234");
+      const sig = `${await personalSign(signHash, owner)}a1`;
+
+      await assert.revertWith(
+        walletAsTransferManager.isValidSignature(signHash, sig), "TM: invalid signature length",
+      );
+    });
+    it("should revert isValidSignature static call for invalid signer", async () => {
+      const walletAsTransferManager = deployer.wrapDeployedContract(TransferManager, wallet.contractAddress);
+      const signHash = ethers.utils.keccak256("0x1234");
+      const sig = await personalSign(signHash, nonowner);
+
+      await assert.revertWith(
+        walletAsTransferManager.isValidSignature(signHash, sig), "TM: Invalid signer",
+      );
     });
   });
 });

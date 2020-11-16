@@ -1,3 +1,8 @@
+const GuardianStorage = require("../build/GuardianStorage");
+const TransferStorage = require("../build/TransferStorage");
+const LockStorage = require("../build/LockStorage");
+const LimitStorage = require("../build/LimitStorage");
+
 const BaseWallet = require("../build/BaseWallet");
 const ModuleRegistry = require("../build/ModuleRegistry");
 const CompoundRegistry = require("../build/CompoundRegistry");
@@ -5,8 +10,11 @@ const MultiSig = require("../build/MultiSigWallet");
 const ENS = require("../build/ENSRegistryWithFallback");
 const ENSManager = require("../build/ArgentENSManager");
 const ENSResolver = require("../build/ArgentENSResolver");
-const WalletFactory = require("../build-legacy/v1.6.0/WalletFactory");
-const TokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
+const WalletFactory = require("../build/WalletFactory");
+
+const TokenPriceRegistry = require("../build/TokenPriceRegistry");
+const DexRegistry = require("../build/DexRegistry");
+
 const MakerRegistry = require("../build/MakerRegistry");
 const ScdMcdMigration = require("../build/ScdMcdMigration");
 
@@ -37,19 +45,32 @@ const deploy = async (network) => {
   const walletRootEns = prevConfig.ENS.domain;
 
   // //////////////////////////////////
-  // Deploy contracts
+  // Deploy Storage
+  // //////////////////////////////////
+
+  // Deploy the Guardian Storage
+  const GuardianStorageWrapper = await deployer.deploy(GuardianStorage);
+  // Deploy the Transfer Storage
+  const TransferStorageWrapper = await deployer.deploy(TransferStorage);
+  // Deploy the new LockStorage
+  const LockStorageWrapper = await deployer.deploy(LockStorage);
+  // Deploy the new LimitStorage
+  const LimitStorageWrapper = await deployer.deploy(LimitStorage);
+
+  // //////////////////////////////////
+  // Deploy infrastructure contracts
   // //////////////////////////////////
 
   // Deploy the Base Wallet Library
   const BaseWalletWrapper = await deployer.deploy(BaseWallet);
   // Deploy the MultiSig
   const MultiSigWrapper = await deployer.deploy(MultiSig, {}, newConfig.multisig.threshold, newConfig.multisig.owners);
-  // Deploy TokenPriceProvider
-  const TokenPriceProviderWrapper = await deployer.deploy(
-    TokenPriceProvider,
-    {},
-    newConfig.Kyber ? newConfig.Kyber.contract : "0x0000000000000000000000000000000000000000",
-  );
+
+  // Deploy the new TokenPriceRegistry
+  const TokenPriceRegistryWrapper = await deployer.deploy(TokenPriceRegistry);
+  // Deploy the DexRegistry
+  const DexRegistryWrapper = await deployer.deploy(DexRegistry);
+
   // Deploy Module Registry
   const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
   // Deploy Compound Registry
@@ -61,7 +82,7 @@ const deploy = async (network) => {
     walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
-    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, ENSManagerWrapper.contractAddress);
+    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, GuardianStorageWrapper.contractAddress);
 
   // Deploy and configure Maker Registry
   const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, newConfig.defi.maker.migration);
@@ -114,27 +135,39 @@ const deploy = async (network) => {
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
+  configurator.updateModuleAddresses({
+    GuardianStorage: GuardianStorageWrapper.contractAddress,
+    TransferStorage: TransferStorageWrapper.contractAddress,
+    LockStorage: LockStorageWrapper.contractAddress,
+    LimitStorage: LimitStorageWrapper.contractAddress,
+    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
+  });
 
   configurator.updateInfrastructureAddresses({
     MultiSigWallet: MultiSigWrapper.contractAddress,
     WalletFactory: WalletFactoryWrapper.contractAddress,
     ENSResolver: ENSResolverWrapper.contractAddress,
     ENSManager: ENSManagerWrapper.contractAddress,
-    TokenPriceProvider: TokenPriceProviderWrapper.contractAddress,
     ModuleRegistry: ModuleRegistryWrapper.contractAddress,
     CompoundRegistry: CompoundRegistryWrapper.contractAddress,
+    DexRegistry: DexRegistryWrapper.contractAddress,
     BaseWallet: BaseWalletWrapper.contractAddress,
   });
   await configurator.save();
 
   await Promise.all([
+    abiUploader.upload(GuardianStorageWrapper, "modules"),
+    abiUploader.upload(TransferStorageWrapper, "modules"),
+    abiUploader.upload(LockStorageWrapper, "modules"),
+    abiUploader.upload(LimitStorageWrapper, "modules"),
+    abiUploader.upload(TokenPriceRegistryWrapper, "modules"),
     abiUploader.upload(MultiSigWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(ENSResolverWrapper, "contracts"),
     abiUploader.upload(ENSManagerWrapper, "contracts"),
-    abiUploader.upload(TokenPriceProviderWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
     abiUploader.upload(CompoundRegistryWrapper, "contracts"),
+    abiUploader.upload(DexRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);
 };
