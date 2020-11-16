@@ -151,16 +151,16 @@ contract("VersionManager", (accounts) => {
 
     it("should not allow the fallback to be called via a non-static call", async () => {
       // Deploy new VersionManager with TransferManager
-      const versionManager2 = await deployer.deploy(VersionManager, {},
+      const versionManager2 = await VersionManager.new(
         registry.contractAddress,
         lockStorage.contractAddress,
         guardianStorage.contractAddress,
         ethers.constants.AddressZero,
         ethers.constants.AddressZero);
-      const tokenPriceRegistry = await deployer.deploy(TokenPriceRegistry);
-      const transferStorage = await deployer.deploy(TransferStorage);
-      const limitStorage = await deployer.deploy(LimitStorage);
-      const transferManager = await deployer.deploy(TransferManager, {},
+      const tokenPriceRegistry = await TokenPriceRegistry.new();
+      const transferStorage = await TransferStorage.new();
+      const limitStorage = await LimitStorage.new();
+      const transferManager = await TransferManager.new(
         lockStorage.contractAddress,
         transferStorage.contractAddress,
         limitStorage.contractAddress,
@@ -175,7 +175,7 @@ contract("VersionManager", (accounts) => {
       await registry.registerModule(versionManager2.contractAddress, ethers.utils.formatBytes32String("VersionManager2"));
 
       // Deploy Upgrader to new VersionManager
-      const upgrader = await deployer.deploy(UpgraderToVersionManager, {},
+      const upgrader = await UpgraderToVersionManager.new(
         registry.contractAddress,
         lockStorage.contractAddress,
         [versionManager.contractAddress], // toDisable
