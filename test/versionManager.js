@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 
 const GuardianManager = artifacts.require("GuardianManager");
 const LockStorage = artifacts.require("LockStorage");
@@ -16,7 +17,6 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const TransferManager = artifacts.require("TransferManager");
 const UpgraderToVersionManager = artifacts.require("UpgraderToVersionManager");
 
-const utils = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 contract("VersionManager", (accounts) => {
@@ -74,12 +74,12 @@ contract("VersionManager", (accounts) => {
 
   describe("VersionManager owner", () => {
     it("should not let the VersionManager owner add a storage twice", async () => {
-      await utils.assertRevert(versionManager.addStorage(lockStorage.address), "VM: storage already added");
+      await truffleAssert.reverts(versionManager.addStorage(lockStorage.address), "VM: storage already added");
     });
 
     it("should not let the VersionManager owner add an inconsistent version", async () => {
       // Should fail: the _featuresToInit array includes a feature not listed in the _features array
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         versionManager.addVersion([relayerManager.address], [guardianManager.address]),
         "VM: invalid _featuresToInit",
       );
@@ -88,12 +88,12 @@ contract("VersionManager", (accounts) => {
     it("should not let the VersionManager owner set an invalid minVersion", async () => {
       const lastVersion = await versionManager.lastVersion();
 
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         versionManager.setMinVersion(0),
         "VM: invalid _minVersion",
       );
 
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         versionManager.setMinVersion(lastVersion.addn(1)),
         "VM: invalid _minVersion",
       );
@@ -102,7 +102,7 @@ contract("VersionManager", (accounts) => {
 
   describe("Wallet owner", () => {
     it("should not let the relayer call a forbidden method", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(versionManager, "setOwner", [wallet.address, owner], wallet, [owner]),
         "VM: unknown method",
       );
@@ -110,7 +110,7 @@ contract("VersionManager", (accounts) => {
 
     it("should fail to upgrade a wallet when already on the last version", async () => {
       const lastVersion = await versionManager.lastVersion();
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         versionManager.upgradeWallet(wallet.address, lastVersion, { from: owner }),
         "VM: already on new version",
       );
@@ -121,7 +121,7 @@ contract("VersionManager", (accounts) => {
       await versionManager.addVersion([], []);
       await versionManager.setMinVersion(await versionManager.lastVersion());
 
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         versionManager.upgradeWallet(wallet.address, badVersion, { from: owner }),
         "VM: invalid _toVersion",
       );
@@ -141,7 +141,7 @@ contract("VersionManager", (accounts) => {
       assert.equal(lock, 0, "Lock should have been unset");
 
       const newGuardianStorage = await GuardianStorage.new(); // not authorised in VersionManager
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         testFeature.invokeStorage(wallet.address, newGuardianStorage.address, data1, { from: owner }),
         "VM: invalid storage invoked",
       );
@@ -187,7 +187,7 @@ contract("VersionManager", (accounts) => {
 
       // Attempt to call a malicious (non-static) call on the old VersionManager
       const data = await testFeature.contract.methods.badStaticCall().encodeABI();
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         transferManager.callContract(wallet.address, versionManager.address, 0, data, { from: owner }),
         "VM: not in a staticcall",
       );

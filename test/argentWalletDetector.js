@@ -1,6 +1,7 @@
 /* global artifacts */
 const { expect, assert } = require("chai");
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 
 const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 const Proxy = artifacts.require("Proxy");
@@ -79,11 +80,11 @@ describe("ArgentWalletDetector", () => {
     });
 
     it("should fail to add an empty code", async () => {
-      await utils.assertRevert(detector.addCode(ZERO_BYTES32), EMPTY_CODE_MSG);
+      await truffleAssert.reverts(detector.addCode(ZERO_BYTES32), EMPTY_CODE_MSG);
     });
 
     it("should fail to add an empty implementation", async () => {
-      await utils.assertRevert(detector.addImplementation(ZERO_ADDRESS), EMPTY_IMPL_MSG);
+      await truffleAssert.reverts(detector.addImplementation(ZERO_ADDRESS), EMPTY_IMPL_MSG);
     });
 
     it("should add code and implementation from a wallet", async () => {

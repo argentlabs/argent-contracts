@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 
 const GuardianManager = artifacts.require("GuardianManager");
 const LockStorage = artifacts.require("LockStorage");
@@ -100,7 +101,7 @@ contract("GuardianManager", (accounts) => {
         await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
 
         await utilities.increaseTime(48); // 42 == 2 * security_period
-        await utilities.assertRevert(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
+        await truffleAssert.reverts(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
           "GM: Too late to confirm guardian addition");
 
         const count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
@@ -112,7 +113,7 @@ contract("GuardianManager", (accounts) => {
       it("should not allow confirming too early", async () => {
         await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
         await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
-        await utilities.assertRevert(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
+        await truffleAssert.reverts(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
           "GM: Too early to confirm guardian addition");
       });
 
@@ -123,7 +124,7 @@ contract("GuardianManager", (accounts) => {
         await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
 
         await utilities.increaseTime(48); // 42 == 2 * security_period
-        await utilities.assertRevert(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
+        await truffleAssert.reverts(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
           "GM: Too late to confirm guardian addition");
 
         // second time
@@ -142,25 +143,25 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should only let the owner add an EOA guardian", async () => {
-        await utilities.assertRevert(guardianManager.addGuardian(wallet.address, guardian1, { from: nonowner }),
+        await truffleAssert.reverts(guardianManager.addGuardian(wallet.address, guardian1, { from: nonowner }),
           "BF: must be owner or feature");
       });
 
       it("should not allow adding wallet owner as guardian", async () => {
-        await utilities.assertRevert(guardianManager.addGuardian(wallet.address, owner, { from: owner }),
+        await truffleAssert.reverts(guardianManager.addGuardian(wallet.address, owner, { from: owner }),
           "GM: target guardian cannot be owner");
       });
 
       it("should not allow adding an existing guardian twice", async () => {
         await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
-        await utilities.assertRevert(guardianManager.addGuardian(wallet.address, guardian1, { from: owner }),
+        await truffleAssert.reverts(guardianManager.addGuardian(wallet.address, guardian1, { from: owner }),
           "GM: target is already a guardian");
       });
 
       it("should not allow adding a duplicate request to add a guardian to the request queue", async () => {
         await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
         await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
-        await utilities.assertRevert(guardianManager.addGuardian(wallet.address, guardian2, { from: owner }),
+        await truffleAssert.reverts(guardianManager.addGuardian(wallet.address, guardian2, { from: owner }),
           "GM: addition of target as guardian is already pending");
       });
 
@@ -261,14 +262,14 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should not let owner add a Smart Contract guardian that does not have an owner manager", async () => {
-        await utilities.assertRevert(guardianManager.addGuardian(wallet.address, dumbContract.address, { from: owner }),
+        await truffleAssert.reverts(guardianManager.addGuardian(wallet.address, dumbContract.address, { from: owner }),
           "GM: guardian must be EOA or implement owner()");
       });
 
       it("it should fail to add a non-compliant guardian", async () => {
         await guardianManager.addGuardian(wallet.address, guardian1, { from: owner });
         const nonCompliantGuardian = await NonCompliantGuardian.new();
-        await utilities.assertRevert(guardianManager.addGuardian(wallet.address, nonCompliantGuardian.address, { from: owner }),
+        await truffleAssert.reverts(guardianManager.addGuardian(wallet.address, nonCompliantGuardian.address, { from: owner }),
           "GM: guardian must be EOA or implement owner()");
       });
     });
@@ -300,13 +301,13 @@ contract("GuardianManager", (accounts) => {
     });
 
     it("should not be able to revoke a nonexistent guardian", async () => {
-      await utilities.assertRevert(guardianManager.revokeGuardian(wallet.address, nonowner, { from: owner }),
+      await truffleAssert.reverts(guardianManager.revokeGuardian(wallet.address, nonowner, { from: owner }),
         "GM: must be an existing guardian");
     });
 
     it("should not confirm a guardian revokation too early", async () => {
       await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
-      await utilities.assertRevert(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
+      await truffleAssert.reverts(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
         "GM: Too early to confirm guardian revokation");
     });
 
@@ -314,13 +315,13 @@ contract("GuardianManager", (accounts) => {
       await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
 
       await utilities.increaseTime(48); // 48 == 2 * security_period
-      await utilities.assertRevert(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
+      await truffleAssert.reverts(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
         "GM: Too late to confirm guardian revokation");
     });
 
     it("should not be able to revoke a guardian twice", async () => {
       await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
-      await utilities.assertRevert(guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner }),
+      await truffleAssert.reverts(guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner }),
         "GM: revokation of target as guardian is already pending");
     });
 
@@ -329,7 +330,7 @@ contract("GuardianManager", (accounts) => {
       await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
 
       await utilities.increaseTime(48); // 48 == 2 * security_period
-      await utilities.assertRevert(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
+      await truffleAssert.reverts(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
         "GM: Too late to confirm guardian revokation");
 
       // second time
@@ -389,12 +390,12 @@ contract("GuardianManager", (accounts) => {
       await guardianManager.addGuardian(wallet.address, guardian2, { from: owner });
       await guardianManager.cancelGuardianAddition(wallet.address, guardian2, { from: owner });
       await utilities.increaseTime(30);
-      await utilities.assertRevert(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
+      await truffleAssert.reverts(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
         "GM: no pending addition as guardian for target");
     });
 
     it("owner should not be able to cancel a nonexistent addition of a guardian request", async () => {
-      await utilities.assertRevert(guardianManager.cancelGuardianAddition(wallet.address, guardian2, { from: owner }),
+      await truffleAssert.reverts(guardianManager.cancelGuardianAddition(wallet.address, guardian2, { from: owner }),
         "GM: no pending addition as guardian for target");
     });
 
@@ -403,12 +404,12 @@ contract("GuardianManager", (accounts) => {
       await guardianManager.revokeGuardian(wallet.address, guardian1, { from: owner });
       await guardianManager.cancelGuardianRevokation(wallet.address, guardian1, { from: owner });
       await utilities.increaseTime(30);
-      await utilities.assertRevert(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
+      await truffleAssert.reverts(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
         "GM: no pending guardian revokation for target");
     });
 
     it("owner should not be able to cancel a nonexistent pending revokation of guardian", async () => {
-      await utilities.assertRevert(guardianManager.cancelGuardianRevokation(wallet.address, nonowner, { from: owner }),
+      await truffleAssert.reverts(guardianManager.cancelGuardianRevokation(wallet.address, nonowner, { from: owner }),
         "GM: no pending guardian revokation for target");
     });
 
@@ -417,7 +418,7 @@ contract("GuardianManager", (accounts) => {
       await manager.relay(guardianManager, "addGuardian", [wallet.address, guardian2], wallet, [owner]);
       await manager.relay(guardianManager, "cancelGuardianAddition", [wallet.address, guardian2], wallet, [owner]);
       await utilities.increaseTime(30);
-      await utilities.assertRevert(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
+      await truffleAssert.reverts(guardianManager.confirmGuardianAddition(wallet.address, guardian2),
         "GM: no pending addition as guardian for target");
     });
 
@@ -426,19 +427,19 @@ contract("GuardianManager", (accounts) => {
       await manager.relay(guardianManager, "revokeGuardian", [wallet.address, guardian1], wallet, [owner]);
       await manager.relay(guardianManager, "cancelGuardianRevokation", [wallet.address, guardian1], wallet, [owner]);
       await utilities.increaseTime(30);
-      await utilities.assertRevert(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
+      await truffleAssert.reverts(guardianManager.confirmGuardianRevokation(wallet.address, guardian1),
         "GM: no pending guardian revokation for target");
     });
   });
 
   describe("Guardian Storage", () => {
     it("should not allow non modules to addGuardian", async () => {
-      await utilities.assertRevert(guardianStorage.addGuardian(wallet.address, guardian4),
+      await truffleAssert.reverts(guardianStorage.addGuardian(wallet.address, guardian4),
         "TS: must be an authorized module to call this method");
     });
 
     it("should not allow non modules to revokeGuardian", async () => {
-      await utilities.assertRevert(guardianStorage.revokeGuardian(wallet.address, guardian1),
+      await truffleAssert.reverts(guardianStorage.revokeGuardian(wallet.address, guardian1),
         "TS: must be an authorized module to call this method");
     });
   });

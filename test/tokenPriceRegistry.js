@@ -1,4 +1,5 @@
 /* global artifacts */
+const truffleAssert = require("truffle-assertions");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
@@ -41,7 +42,7 @@ contract("TokenPriceRegistry", (accounts) => {
     });
 
     it("does not let managers change price with invalid array lengths", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222, 333333], { from: manager }),
         "TPS: Array length mismatch");
     });
@@ -49,13 +50,17 @@ contract("TokenPriceRegistry", (accounts) => {
     it("does not let managers change price before security period", async () => {
       await tokenPriceRegistry.setPriceForTokenList([tokenAddress], [111111], { from: manager });
       await utils.increaseTime(3500);
-      await utils.assertRevert(tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager }), "TPS: Price updated too early");
+      await truffleAssert.reverts(
+        tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager }),
+        "TPS: Price updated too early");
     });
 
     it("lets the owner change security period", async () => {
       await tokenPriceRegistry.setPriceForTokenList([tokenAddress], [111111], { from: manager });
       await utils.increaseTime(1600);
-      await utils.assertRevert(tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager }), "TPS: Price updated too early");
+      await truffleAssert.reverts(
+        tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager }),
+        "TPS: Price updated too early");
       await tokenPriceRegistry.setMinPriceUpdatePeriod(0, { from: owner });
       await tokenPriceRegistry.setPriceForTokenList([tokenAddress], [222222], { from: manager });
       const afterPrice = await tokenPriceRegistry.getTokenPrice(tokenAddress);
@@ -80,10 +85,10 @@ contract("TokenPriceRegistry", (accounts) => {
       await tokenPriceRegistry.setTradableForTokenList([tokenAddress], [false], { from: manager });
       const tradable = await tokenPriceRegistry.isTokenTradable(tokenAddress);
       assert.isFalse(tradable);
-      await utils.assertRevert(tokenPriceRegistry.setTradableForTokenList([tokenAddress], [true], { from: manager }), "TPS: Unauthorised");
+      await truffleAssert.reverts(tokenPriceRegistry.setTradableForTokenList([tokenAddress], [true], { from: manager }), "TPS: Unauthorised");
     });
     it("does not let managers change tradable with invalid array lengths", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         tokenPriceRegistry.setTradableForTokenList([tokenAddress], [false, false], { from: manager }),
         "TPS: Array length mismatch");
     });

@@ -1,4 +1,5 @@
 /* global artifacts */
+const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const BN = require("bn.js");
 
@@ -137,7 +138,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not let owner execute the recovery procedure", async () => {
       const expectedRevertMsg = guardians.length >= 3 ? WRONG_SIGNATURE_NUMBER_REVERT_MSG : INVALID_SIGNATURES_REVERT_MSG;
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "executeRecovery",
@@ -150,7 +151,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not let a majority of guardians and owner execute the recovery procedure", async () => {
       const majority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "executeRecovery",
@@ -166,7 +167,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not let a minority of guardians execute the recovery procedure", async () => {
       const minority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "executeRecovery",
@@ -240,7 +241,7 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not let 1 guardian cancel the recovery procedure", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "cancelRecovery",
@@ -255,7 +256,7 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not let the owner cancel the recovery procedure", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "cancelRecovery",
@@ -270,7 +271,7 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not allow duplicate guardian signatures", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "cancelRecovery",
@@ -285,7 +286,7 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not allow non guardians signatures", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "cancelRecovery",
@@ -312,7 +313,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not let owner + minority of guardians execute an ownership transfer", async () => {
       const minority = guardians.slice(0, Math.ceil((guardians.length) / 2) - 1);
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "transferOwnership",
@@ -328,7 +329,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not let majority of guardians execute an ownership transfer without owner", async () => {
       const majority = guardians.slice(0, Math.ceil((guardians.length) / 2));
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "transferOwnership",
@@ -345,7 +346,7 @@ contract("RecoveryManager", (accounts) => {
 
   describe("RecoveryManager high level logic", () => {
     it("should not be able to instantiate the RecoveryManager with lock period shorter than the recovery period", async () => {
-      await utils.assertRevert(RecoveryManager.new(
+      await truffleAssert.reverts(RecoveryManager.new(
         lockStorage.address,
         guardianStorage.address,
         versionManager.address,
@@ -357,7 +358,7 @@ contract("RecoveryManager", (accounts) => {
   describe("Execute Recovery", () => {
     it("should not allow recovery to be executed with no guardians", async () => {
       const noGuardians = [];
-      await utils.assertRevert(manager.relay(
+      await truffleAssert.reverts(manager.relay(
         recoveryManager,
         "executeRecovery",
         [wallet.address, newowner],
@@ -389,7 +390,7 @@ contract("RecoveryManager", (accounts) => {
 
       it("should not allow duplicate guardian signatures", async () => {
         const badMajority = [guardian1, guardian1];
-        await utils.assertRevert(
+        await truffleAssert.reverts(
           manager.relay(
             recoveryManager,
             "executeRecovery",
@@ -473,7 +474,7 @@ contract("RecoveryManager", (accounts) => {
           utils.ETH_TOKEN,
           ethers.constants.AddressZero,
         );
-        await utils.assertRevert(
+        await truffleAssert.reverts(
           relayerManager.execute(
             wallet.address,
             recoveryManager.address,
@@ -578,7 +579,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not allow owner not signing", async () => {
       await addGuardians([guardian1]);
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "transferOwnership",
@@ -591,7 +592,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not allow duplicate owner signatures", async () => {
       await addGuardians([guardian1]);
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "transferOwnership",
@@ -604,7 +605,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not allow duplicate guardian signatures", async () => {
       await addGuardians([guardian1, guardian2, guardian3]);
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "transferOwnership",
@@ -617,7 +618,7 @@ contract("RecoveryManager", (accounts) => {
 
     it("should not allow non guardian signatures", async () => {
       await addGuardians([guardian1]);
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           recoveryManager,
           "transferOwnership",

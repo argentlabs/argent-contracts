@@ -1,4 +1,5 @@
 /* global artifacts */
+const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const BN = require("bn.js");
 const { formatBytes32String } = require("ethers").utils;
@@ -127,14 +128,14 @@ contract("RelayerManager", (accounts) => {
   describe("relaying feature transactions", () => {
     it("should fail when _data is less than 36 bytes", async () => {
       const params = []; // the first argument is not the wallet address, which should make the relaying revert
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(testFeature, "clearInt", params, wallet, [owner]), "RM: Invalid dataWallet",
       );
     });
 
     it("should fail when feature is not authorised", async () => {
       const params = [wallet.address, 2];
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(testFeatureNew, "setIntOwnerOnly", params, wallet, [owner]), "RM: feature not authorised",
       );
     });
@@ -165,7 +166,7 @@ contract("RelayerManager", (accounts) => {
 
     it("should fail when the first param is not the wallet ", async () => {
       const params = [owner, 4];
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(testFeature, "setIntOwnerOnly", params, wallet, [owner]), "RM: Target of _data != _wallet",
       );
     });
@@ -198,7 +199,7 @@ contract("RelayerManager", (accounts) => {
     it("should fail when a wrong number of signatures is provided", async () => {
       const params = [wallet.address, 2];
       const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner, recipient]];
-      await utils.assertRevert(manager.relay(...relayParams), "RM: Wrong number of signatures");
+      await truffleAssert.reverts(manager.relay(...relayParams), "RM: Wrong number of signatures");
     });
 
     it("should fail a duplicate transaction", async () => {
@@ -207,7 +208,7 @@ contract("RelayerManager", (accounts) => {
       const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner],
         accounts[9], false, 2000000, nonce];
       await manager.relay(...relayParams);
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(...relayParams), "RM: Duplicate request",
       );
     });
@@ -227,7 +228,7 @@ contract("RelayerManager", (accounts) => {
         ETH_TOKEN,
         ethers.constants.AddressZero,
       ];
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(relayerManager, "execute", params, wallet, [owner]), "BF: disabled method",
       );
     });
@@ -317,12 +318,12 @@ contract("RelayerManager", (accounts) => {
 
     it("should fail the transaction when there is not enough ETH for the refund", async () => {
       await provisionFunds(10, 0);
-      await utils.assertRevert(callAndRefund({ refundToken: ETH_TOKEN }), "VM: wallet invoke reverted");
+      await truffleAssert.reverts(callAndRefund({ refundToken: ETH_TOKEN }), "VM: wallet invoke reverted");
     });
 
     it("should fail the transaction when there is not enough ERC20 for the refund", async () => {
       await provisionFunds(0, 10);
-      await utils.assertRevert(callAndRefund({ refundToken: erc20.address }), "ERC20: transfer amount exceeds balance");
+      await truffleAssert.reverts(callAndRefund({ refundToken: erc20.address }), "ERC20: transfer amount exceeds balance");
     });
 
     it("should include the refund in the daily limit", async () => {
@@ -370,7 +371,7 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         manager.relay(badFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner]), "RM: Wrong signature requirement",
       );
     });
@@ -380,7 +381,7 @@ contract("RelayerManager", (accounts) => {
       await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 999999990 });
       const dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 999999990, "initial daily spent should be 999999990");
-      await utils.assertRevert(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limit");
+      await truffleAssert.reverts(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limit");
     });
   });
 
@@ -405,7 +406,7 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should fail to add module which is not registered", async () => {
-      await utils.assertRevert(versionManager.addModule(wallet.address, versionManagerV2.address, { from: owner }),
+      await truffleAssert.reverts(versionManager.addModule(wallet.address, versionManagerV2.address, { from: owner }),
         "VM: module is not registered");
     });
   });

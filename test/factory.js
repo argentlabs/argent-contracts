@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 
 const BaseWallet = artifacts.require("BaseWallet");
 const VersionManager = artifacts.require("VersionManager");
@@ -55,21 +56,21 @@ contract("WalletFactory", (accounts) => {
 
   describe("Create and configure the factory", () => {
     it("should not allow to be created with empty ModuleRegistry", async () => {
-      await utils.assertRevert(Factory.new(
+      await truffleAssert.reverts(Factory.new(
         ZERO_ADDRESS,
         implementation.address,
         guardianStorage.address), "WF: ModuleRegistry address not defined");
     });
 
     it("should not allow to be created with empty WalletImplementation", async () => {
-      await utils.assertRevert(Factory.new(
+      await truffleAssert.reverts(Factory.new(
         moduleRegistry.address,
         ZERO_ADDRESS,
         guardianStorage.address), "WF: WalletImplementation address not defined");
     });
 
     it("should not allow to be created with empty GuardianStorage", async () => {
-      await utils.assertRevert(Factory.new(
+      await truffleAssert.reverts(Factory.new(
         moduleRegistry.address,
         implementation.address,
         ZERO_ADDRESS), "WF: GuardianStorage address not defined");
@@ -83,12 +84,12 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should not allow owner to change the module registry to zero address", async () => {
-      await utils.assertRevert(factory.changeModuleRegistry(ethers.constants.AddressZero), "WF: address cannot be null");
+      await truffleAssert.reverts(factory.changeModuleRegistry(ethers.constants.AddressZero), "WF: address cannot be null");
     });
 
     it("should not allow non-owner to change the module registry", async () => {
       const randomAddress = utils.getRandomAddress();
-      await utils.assertRevert(factory.changeModuleRegistry(randomAddress, { from: other }), "Must be owner");
+      await truffleAssert.reverts(factory.changeModuleRegistry(randomAddress, { from: other }), "Must be owner");
     });
   });
 
@@ -138,17 +139,17 @@ contract("WalletFactory", (accounts) => {
 
     it("should fail to create when the guardian is empty", async () => {
       // we create the wallet
-      await utils.assertRevert(factory.createWallet(owner, versionManager.address, ZERO_ADDRESS, 1),
+      await truffleAssert.reverts(factory.createWallet(owner, versionManager.address, ZERO_ADDRESS, 1),
         "WF: guardian cannot be null");
     });
 
     it("should fail to create when there are is no VersionManager", async () => {
-      await utils.assertRevert(factory.createWallet(owner, ethers.constants.AddressZero, guardian, 1),
+      await truffleAssert.reverts(factory.createWallet(owner, ethers.constants.AddressZero, guardian, 1),
         "WF: invalid _versionManager");
     });
 
     it("should fail to create with zero address as owner", async () => {
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         factory.createWallet(ethers.constants.AddressZero, versionManager.address, guardian, 1),
         "WF: owner cannot be null",
       );
@@ -156,7 +157,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should fail to create with unregistered module", async () => {
       const randomAddress = utils.getRandomAddress();
-      await utils.assertRevert(factory.createWallet(owner, randomAddress, guardian, 1),
+      await truffleAssert.reverts(factory.createWallet(owner, randomAddress, guardian, 1),
         "WF: invalid _versionManager");
     });
   });
@@ -266,12 +267,12 @@ contract("WalletFactory", (accounts) => {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, event.args.wallet, "should have the correct address");
       // we create the second wallet
-      await utils.assertRevert(factory.createCounterfactualWallet(owner, versionManager.address, guardian, salt, 1));
+      await truffleAssert.reverts(factory.createCounterfactualWallet(owner, versionManager.address, guardian, salt, 1));
     });
 
     it("should fail to create counterfactually when there are no modules (with guardian)", async () => {
       const salt = utils.generateSaltValue();
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         factory.createCounterfactualWallet(
           owner, ethers.constants.AddressZero, guardian, salt, 1
         ),
@@ -281,7 +282,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should fail to create when the guardian is empty", async () => {
       const salt = utils.generateSaltValue();
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         factory.createCounterfactualWallet(owner, versionManager.address, ZERO_ADDRESS, salt, 1),
         "WF: guardian cannot be null",
       );
@@ -306,7 +307,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should fail to get an address when the guardian is empty", async () => {
       const salt = utils.generateSaltValue();
-      await utils.assertRevert(
+      await truffleAssert.reverts(
         factory.getAddressForCounterfactualWallet(owner, versionManager.address, ZERO_ADDRESS, salt, 1),
         "WF: guardian cannot be null",
       );

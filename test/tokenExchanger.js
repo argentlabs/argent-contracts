@@ -1,5 +1,6 @@
 /* global artifacts */
 
+const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const { AddressZero } = require("ethers").constants;
 
@@ -383,7 +384,7 @@ contract("TokenExchanger", (accounts) => {
         variableAmount,
       });
       await tokenPriceRegistry.setTradableForTokenList([toToken], [false]);
-      await utils.assertRevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
+      await truffleAssert.reverts(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
       await tokenPriceRegistry.setTradableForTokenList([toToken], [true]);
     });
 
@@ -401,7 +402,7 @@ contract("TokenExchanger", (accounts) => {
         fixedAmount,
         variableAmount,
       });
-      await utils.assertRevert(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
+      await truffleAssert.reverts(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
       // reset whitelist
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });

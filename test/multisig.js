@@ -1,4 +1,6 @@
 /* global artifacts */
+const truffleAssert = require("truffle-assertions");
+
 const MultiSigWallet = artifacts.require("MultiSigWallet");
 const TestRegistry = artifacts.require("TestRegistry");
 
@@ -82,7 +84,7 @@ contract("MultiSigWallet", (accounts) => {
     const signedData = MultisigExecutor.signHash(multisig.address, reg.address, value, data, nonce);
     const signatures = await getSignatures(signedData, signers, sortSigners, returnBadSignatures);
 
-    await utilities.assertRevert(multisig.execute(reg.address, value, data, signatures), errorMessage);
+    await truffleAssert.reverts(multisig.execute(reg.address, value, data, signatures), errorMessage);
   }
 
   async function getMultiSigParams(functioName, params) {
@@ -95,11 +97,11 @@ contract("MultiSigWallet", (accounts) => {
 
   describe("Creating and changing the multisig", () => {
     it("should not be able to instantiate without owners", async () => {
-      await utilities.assertRevert(MultiSigWallet.new(2, []), "MSW: Not enough or too many owners");
+      await truffleAssert.reverts(MultiSigWallet.new(2, []), "MSW: Not enough or too many owners");
     });
 
     it("should not be able to instantiate with 0 threshold", async () => {
-      await utilities.assertRevert(MultiSigWallet.new(0, owners), "MSW: Invalid threshold");
+      await truffleAssert.reverts(MultiSigWallet.new(0, owners), "MSW: Invalid threshold");
     });
 
     it("should store owners correctly", async () => {
@@ -118,15 +120,15 @@ contract("MultiSigWallet", (accounts) => {
     });
 
     it("should not be able to execute addOwner externally", async () => {
-      await utilities.assertRevert(multisig.addOwner(newowner), "MSW: Calling account is not wallet");
+      await truffleAssert.reverts(multisig.addOwner(newowner), "MSW: Calling account is not wallet");
     });
 
     it("should not be able to execute removeOwner externally", async () => {
-      await utilities.assertRevert(multisig.removeOwner(newowner), "MSW: Calling account is not wallet");
+      await truffleAssert.reverts(multisig.removeOwner(newowner), "MSW: Calling account is not wallet");
     });
 
     it("should not be able to execute changeThreshold externally", async () => {
-      await utilities.assertRevert(multisig.changeThreshold(15), "MSW: Calling account is not wallet");
+      await truffleAssert.reverts(multisig.changeThreshold(15), "MSW: Calling account is not wallet");
     });
 
     it("should be able to add new owner", async () => {
@@ -151,12 +153,12 @@ contract("MultiSigWallet", (accounts) => {
 
       const randomAddress = await utilities.getRandomAddress();
       const { data, signatures } = await getMultiSigParams("addOwner", [randomAddress]);
-      await utilities.assertRevert(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
+      await truffleAssert.reverts(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should not be able to add owner twice", async () => {
       const { data, signatures } = await getMultiSigParams("addOwner", [owner1]);
-      await utilities.assertRevert(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
+      await truffleAssert.reverts(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should be able to remove existing owner", async () => {
@@ -172,13 +174,13 @@ contract("MultiSigWallet", (accounts) => {
       await multisig.execute(multisig.address, 0, values1.data, values1.signatures);
 
       const values2 = await getMultiSigParams("removeOwner", [owner2]);
-      await utilities.assertRevert(multisig.execute(multisig.address, 0, values2.data, values2.signatures), "MSW: External call failed");
+      await truffleAssert.reverts(multisig.execute(multisig.address, 0, values2.data, values2.signatures), "MSW: External call failed");
     });
 
     it("should not be able to remove a nonexisting owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
       const { data, signatures } = await getMultiSigParams("removeOwner", [randomAddress]);
-      await utilities.assertRevert(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
+      await truffleAssert.reverts(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
 
     it("should be able to change the threshold", async () => {
@@ -194,7 +196,7 @@ contract("MultiSigWallet", (accounts) => {
 
     it("should not be able to change the threshold to be more than the current number of owners", async () => {
       const { data, signatures } = await getMultiSigParams("changeThreshold", [4]);
-      await utilities.assertRevert(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
+      await truffleAssert.reverts(multisig.execute(multisig.address, 0, data, signatures), "MSW: External call failed");
     });
   });
 
