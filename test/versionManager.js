@@ -152,43 +152,43 @@ contract("VersionManager", (accounts) => {
     it("should not allow the fallback to be called via a non-static call", async () => {
       // Deploy new VersionManager with TransferManager
       const versionManager2 = await VersionManager.new(
-        registry.contractAddress,
-        lockStorage.contractAddress,
-        guardianStorage.contractAddress,
+        registry.address,
+        lockStorage.address,
+        guardianStorage.address,
         ethers.constants.AddressZero,
         ethers.constants.AddressZero);
       const tokenPriceRegistry = await TokenPriceRegistry.new();
       const transferStorage = await TransferStorage.new();
       const limitStorage = await LimitStorage.new();
       const transferManager = await TransferManager.new(
-        lockStorage.contractAddress,
-        transferStorage.contractAddress,
-        limitStorage.contractAddress,
-        tokenPriceRegistry.contractAddress,
-        versionManager2.contractAddress,
+        lockStorage.address,
+        transferStorage.address,
+        limitStorage.address,
+        tokenPriceRegistry.address,
+        versionManager2.address,
         3600,
         3600,
         10000,
         ethers.constants.AddressZero,
         ethers.constants.AddressZero);
-      await versionManager2.addVersion([transferManager.contractAddress], []);
-      await registry.registerModule(versionManager2.contractAddress, ethers.utils.formatBytes32String("VersionManager2"));
+      await versionManager2.addVersion([transferManager.address], []);
+      await registry.registerModule(versionManager2.address, ethers.utils.formatBytes32String("VersionManager2"));
 
       // Deploy Upgrader to new VersionManager
       const upgrader = await UpgraderToVersionManager.new(
-        registry.contractAddress,
-        lockStorage.contractAddress,
-        [versionManager.contractAddress], // toDisable
-        versionManager2.contractAddress);
-      await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("Upgrader"));
+        registry.address,
+        lockStorage.address,
+        [versionManager.address], // toDisable
+        versionManager2.address);
+      await registry.registerModule(upgrader.address, ethers.utils.formatBytes32String("Upgrader"));
 
       // Upgrade wallet to new VersionManger
-      await versionManager.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress);
+      await versionManager.from(owner).addModule(wallet.address, upgrader.address);
 
       // Attempt to call a malicious (non-static) call on the old VersionManager
       const data = testFeature.contract.interface.functions.badStaticCall.encode([]);
       await assert.revertWith(
-        transferManager.from(owner).callContract(wallet.contractAddress, versionManager.contractAddress, 0, data),
+        transferManager.from(owner).callContract(wallet.address, versionManager.address, 0, data),
         "VM: not in a staticcall",
       );
     });
