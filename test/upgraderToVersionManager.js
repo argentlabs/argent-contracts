@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -18,7 +19,6 @@ const SECURITY_PERIOD = 3600;
 const SECURITY_WINDOW = 3600;
 const ETH_LIMIT = 1000000;
 
-const { assertRevert } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 contract.skip("UpgraderToVersionManager", (accounts) => {
@@ -103,7 +103,7 @@ contract.skip("UpgraderToVersionManager", (accounts) => {
     await versionManager.addVersion([], []);
     const lastVersion = await versionManager.lastVersion();
     await versionManager.setMinVersion(lastVersion);
-    await assertRevert(
+    await truffleAssert.reverts(
       previousTransferManager.addModule(wallet.address, upgrader.address, { from: owner }),
       "VM: invalid _toVersion",
     );

@@ -1,5 +1,6 @@
 /* global artifacts */
 
+const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
@@ -342,7 +343,7 @@ contract("Loan Module", (accounts) => {
         expect(loan._ethValue).to.be.gt.BN(0);
 
         await oracle.setUnderlyingPrice(cToken1.address, 0);
-        await utils.assertRevert(loanManager.getLoan(wallet.address, ZERO_BYTES32), "CM: failed to get account liquidity");
+        await truffleAssert.reverts(loanManager.getLoan(wallet.address, ZERO_BYTES32), "CM: failed to get account liquidity");
 
         await oracle.setUnderlyingPrice(cToken1.address, WAD.divn(10));
         loan = await loanManager.getLoan(ethers.constants.AddressZero, ZERO_BYTES32);
@@ -439,27 +440,27 @@ contract("Loan Module", (accounts) => {
 
       it("should fail to borrow an unknown token", async () => {
         const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1")];
-        await utils.assertRevert(loanManager.addDebt(...params, { from: owner }), "CM: No market for target token");
+        await truffleAssert.reverts(loanManager.addDebt(...params, { from: owner }), "CM: No market for target token");
       });
 
       it("should fail to borrow 0 token", async () => {
         const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, 0];
-        await utils.assertRevert(loanManager.addDebt(...params, { from: owner }), "CM: amount cannot be 0");
+        await truffleAssert.reverts(loanManager.addDebt(...params, { from: owner }), "CM: amount cannot be 0");
       });
 
       it("should fail to borrow token with no collateral", async () => {
         const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, web3.utils.toWei("1")];
-        await utils.assertRevert(loanManager.addDebt(...params, { from: owner }), "CM: borrow failed");
+        await truffleAssert.reverts(loanManager.addDebt(...params, { from: owner }), "CM: borrow failed");
       });
 
       it("should fail to repay an unknown token", async () => {
         const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1")];
-        await utils.assertRevert(loanManager.removeDebt(...params, { from: owner }), "CM: No market for target token");
+        await truffleAssert.reverts(loanManager.removeDebt(...params, { from: owner }), "CM: No market for target token");
       });
 
       it("should fail to repay 0 token", async () => {
         const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, 0];
-        await utils.assertRevert(loanManager.removeDebt(...params, { from: owner }), "CM: amount cannot be 0");
+        await truffleAssert.reverts(loanManager.removeDebt(...params, { from: owner }), "CM: amount cannot be 0");
       });
 
       it("should fail to repay too much debt token", async () => {
@@ -470,17 +471,17 @@ contract("Loan Module", (accounts) => {
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
         const removeDebtParams = [wallet.address, loanId, token1.address, web3.utils.toWei("0.002")];
-        await utils.assertRevert(loanManager.removeDebt(...removeDebtParams, { from: owner }), "CM: repayBorrow failed");
+        await truffleAssert.reverts(loanManager.removeDebt(...removeDebtParams, { from: owner }), "CM: repayBorrow failed");
       });
 
       it("should fail to remove an unknown collateral token", async () => {
         const params = [wallet.address, ZERO_BYTES32, ethers.constants.AddressZero, web3.utils.toWei("1")];
-        await utils.assertRevert(loanManager.removeCollateral(...params, { from: owner }), "CM: No market for target token");
+        await truffleAssert.reverts(loanManager.removeCollateral(...params, { from: owner }), "CM: No market for target token");
       });
 
       it("should fail to remove 0 collateral token", async () => {
         const params = [wallet.address, ZERO_BYTES32, ETH_TOKEN, web3.utils.toWei("0")];
-        await utils.assertRevert(loanManager.removeCollateral(...params, { from: owner }), "CM: amount cannot be 0");
+        await truffleAssert.reverts(loanManager.removeCollateral(...params, { from: owner }), "CM: amount cannot be 0");
       });
 
       it("should fail to remove too much collateral token", async () => {
@@ -491,7 +492,7 @@ contract("Loan Module", (accounts) => {
           collateral: ETH_TOKEN, collateralAmount, debt: token1, debtAmount, relayed: false,
         });
         const removeDebtParams = [wallet.address, loanId, token1.address, web3.utils.toWei("0.002")];
-        await utils.assertRevert(loanManager.removeCollateral(...removeDebtParams, { from: owner }), "CM: redeemUnderlying failed");
+        await truffleAssert.reverts(loanManager.removeCollateral(...removeDebtParams, { from: owner }), "CM: redeemUnderlying failed");
       });
     });
 

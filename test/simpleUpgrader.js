@@ -1,5 +1,6 @@
 /* global artifacts */
 
+const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const { formatBytes32String, parseBytes32String } = require("ethers").utils;
 const utils = require("../utils/utilities.js");
@@ -104,7 +105,7 @@ contract("SimpleUpgrader", (accounts) => {
       let isAuthorised = await wallet.authorised(initialModule.address);
       assert.equal(isAuthorised, true, "initial module should be authorised");
       // try (and fail) to add moduleToAdd to wallet
-      await utils.assertRevert(initialModule.addModule(wallet.address, moduleToAdd.address, { from: owner }), "VM: module is not registered");
+      await truffleAssert.reverts(initialModule.addModule(wallet.address, moduleToAdd.address, { from: owner }), "VM: module is not registered");
       isAuthorised = await wallet.authorised(moduleToAdd.address);
       assert.equal(isAuthorised, false, "unregistered module should not be authorised");
     });
@@ -125,7 +126,7 @@ contract("SimpleUpgrader", (accounts) => {
       await registry.registerModule(upgrader.address, formatBytes32String("V1toV2"));
 
       // check we can't upgrade from V1 to V2
-      await utils.assertRevert(moduleV1.addModule(wallet.address, upgrader.address, { from: owner }), "SU: Not all modules are registered");
+      await truffleAssert.reverts(moduleV1.addModule(wallet.address, upgrader.address, { from: owner }), "SU: Not all modules are registered");
       // register module V2
       await registry.registerModule(moduleV2.address, formatBytes32String("V2"));
       // now we can upgrade
@@ -180,7 +181,7 @@ contract("SimpleUpgrader", (accounts) => {
           const event = await utils.getEvent(txReceipt, relayerV1, "TransactionExecuted");
           assert.isTrue(!event.args.success, "Relayed upgrade to 0 module should have failed.");
         } else {
-          utils.assertRevert(moduleV1.addModule(...params2, { from: owner }), "BW: wallet must have at least one module");
+          truffleAssert.reverts(moduleV1.addModule(...params2, { from: owner }), "BW: wallet must have at least one module");
         }
         return;
       }
@@ -291,7 +292,7 @@ contract("SimpleUpgrader", (accounts) => {
       await lockManager.lock(wallet.address, { from: guardian });
 
       // Try to upgrade while wallet is locked
-      await utils.assertRevert(versionManager.addModule(wallet.address, upgrader.address, { from: owner }), "BF: wallet locked");
+      await truffleAssert.reverts(versionManager.addModule(wallet.address, upgrader.address, { from: owner }), "BF: wallet locked");
 
       // Check wallet is still locked
       const locked = await lockManager.isLocked(wallet.address);
@@ -319,7 +320,7 @@ contract("SimpleUpgrader", (accounts) => {
       assert.isTrue(locked, "wallet should be locked");
 
       // Try to upgrade while wallet is under recovery
-      await utils.assertRevert(versionManager.addModule(wallet.address, upgrader.address, { from: owner }), "BF: wallet locked");
+      await truffleAssert.reverts(versionManager.addModule(wallet.address, upgrader.address, { from: owner }), "BF: wallet locked");
 
       // Check wallet is still locked
       locked = await lockManager.isLocked(wallet.address);

@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -13,7 +14,7 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");
 const TestFeature = artifacts.require("TestFeature");
 
-const { getBalance, assertRevert } = require("../utils/utilities.js");
+const { getBalance } = require("../utils/utilities.js");
 
 contract("BaseWallet", (accounts) => {
   const owner = accounts[1];
@@ -126,15 +127,15 @@ contract("BaseWallet", (accounts) => {
       it("should not reinitialize a wallet", async () => {
         await wallet.init(owner, [module1.address]);
         await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-        await assertRevert(wallet.init(owner, [module1.address]), "BW: wallet already initialised");
+        await truffleAssert.reverts(wallet.init(owner, [module1.address]), "BW: wallet already initialised");
       });
 
       it("should not initialize a wallet with no module", async () => {
-        await assertRevert(wallet.init(owner, []), "BW: construction requires at least 1 module");
+        await truffleAssert.reverts(wallet.init(owner, []), "BW: construction requires at least 1 module");
       });
 
       it("should not initialize a wallet with duplicate modules", async () => {
-        await assertRevert(wallet.init(owner, [module1.address, module1.address]), "BW: module is already added");
+        await truffleAssert.reverts(wallet.init(owner, [module1.address, module1.address]), "BW: module is already added");
       });
     });
 
@@ -157,14 +158,14 @@ contract("BaseWallet", (accounts) => {
     describe("Authorisations", () => {
       it("should not let a non-module deauthorise a module", async () => {
         await wallet.init(owner, [module1.address]);
-        await assertRevert(wallet.authoriseModule(module1.address, false), "BW: msg.sender not an authorized module");
+        await truffleAssert.reverts(wallet.authoriseModule(module1.address, false), "BW: msg.sender not an authorized module");
       });
 
       it("should not let a feature set the owner to address(0)", async () => {
         await wallet.init(owner, [module1.address]);
         await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
 
-        await assertRevert(feature1.invalidOwnerChange(wallet.address), "BW: address cannot be null");
+        await truffleAssert.reverts(feature1.invalidOwnerChange(wallet.address), "BW: address cannot be null");
       });
     });
 
@@ -199,7 +200,7 @@ contract("BaseWallet", (accounts) => {
 
         // trying to execute static call delegated to module1 (it should fail)
         const walletAsModule = await TestFeature.at(wallet.address);
-        await assertRevert(walletAsModule.getBoolean(), "BW: must be an authorised module for static call");
+        await truffleAssert.reverts(walletAsModule.getBoolean(), "BW: must be an authorised module for static call");
       });
     });
   });
@@ -211,7 +212,7 @@ contract("BaseWallet", (accounts) => {
       await module1.upgradeWallet(oldWallet.address, await module1.lastVersion(), { from: owner });
       await feature1.callDapp(oldWallet.address);
       await feature1.callDapp2(oldWallet.address, 2, false);
-      await assertRevert(feature1.fail(oldWallet.address, "just because"));
+      await truffleAssert.reverts(feature1.fail(oldWallet.address, "just because"));
     });
   });
 
@@ -222,7 +223,7 @@ contract("BaseWallet", (accounts) => {
       await module1.upgradeWallet(oldWallet.address, await module1.lastVersion(), { from: owner });
       await feature1.callDapp(oldWallet.address);
       await feature1.callDapp2(oldWallet.address, 2, true);
-      await assertRevert(feature1.fail(oldWallet.address, "just because"));
+      await truffleAssert.reverts(feature1.fail(oldWallet.address, "just because"));
     });
   });
 });

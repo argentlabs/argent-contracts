@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -17,7 +18,7 @@ const TestContract = artifacts.require("TestContract");
 const TestLimitFeature = artifacts.require("TestLimitFeature");
 
 const RelayManager = require("../utils/relay-manager");
-const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN, getBalance, assertRevert } = require("../utils/utilities.js");
+const { sortWalletByAddress, parseRelayReceipt, ETH_TOKEN, getBalance } = require("../utils/utilities.js");
 const utils = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
@@ -150,7 +151,7 @@ contract("ApprovedTransfer", (accounts) => {
 
   describe("Transfer", () => {
     async function expectFailingTransferToken(_token, _signers, _reason) {
-      await assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           approvedTransfer,
           "transferToken",
@@ -267,7 +268,7 @@ contract("ApprovedTransfer", (accounts) => {
       contract = await TestContract.new();
       const dataToTransfer = contract.contract.methods.setState([1]).encodeABI();
 
-      await assertRevert(
+      await truffleAssert.reverts(
         manager.relay(
           approvedTransfer,
           "callContract",

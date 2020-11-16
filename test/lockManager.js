@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 
 const RelayerManager = artifacts.require("RelayerManager");
 const GuardianManager = artifacts.require("GuardianManager");
@@ -133,13 +134,13 @@ contract("LockManager", (accounts) => {
     });
 
     it("should fail to lock/unlock by non-guardian EOAs (blockchain transaction)", async () => {
-      await utilities.assertRevert(lockManager.lock(wallet.address, { from: nonguardian }), "LM: must be guardian or feature");
+      await truffleAssert.reverts(lockManager.lock(wallet.address, { from: nonguardian }), "LM: must be guardian or feature");
 
       await lockManager.lock(wallet.address, { from: guardian1 });
       const state = await lockManager.isLocked(wallet.address);
       assert.isTrue(state, "should be locked by guardian1");
 
-      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: nonguardian }), "LM: must be guardian or feature");
+      await truffleAssert.reverts(lockManager.unlock(wallet.address, { from: nonguardian }), "LM: must be guardian or feature");
     });
   });
 
@@ -170,7 +171,7 @@ contract("LockManager", (accounts) => {
     });
 
     it("should fail to lock/unlock by Smart Contract guardians when signer is not authorized (relayed transaction)", async () => {
-      await utilities.assertRevert(manager.relay(lockManager, "lock", [wallet.address], wallet, [nonguardian]), "RM: Invalid signatures");
+      await truffleAssert.reverts(manager.relay(lockManager, "lock", [wallet.address], wallet, [nonguardian]), "RM: Invalid signatures");
     });
   });
 
@@ -202,7 +203,7 @@ contract("LockManager", (accounts) => {
       // unlock
       await lockManager.unlock(wallet.address, { from: guardian1 });
       // try to unlock again
-      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: guardian1 }),
+      await truffleAssert.reverts(lockManager.unlock(wallet.address, { from: guardian1 }),
         "LM: wallet must be locked");
     });
 
@@ -211,7 +212,7 @@ contract("LockManager", (accounts) => {
       await manager.relay(recoveryManager, "executeRecovery", [wallet.address, accounts[5]], wallet, [guardian1]);
 
       // try to unlock
-      await utilities.assertRevert(lockManager.unlock(wallet.address, { from: guardian1 }),
+      await truffleAssert.reverts(lockManager.unlock(wallet.address, { from: guardian1 }),
         "LM: cannot unlock a wallet that was locked by another feature");
     });
   });

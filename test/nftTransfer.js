@@ -1,5 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
 const utils = require("../utils/utilities.js");
 
 const Proxy = artifacts.require("Proxy");
@@ -111,7 +112,7 @@ contract("NftTransfer", (accounts) => {
         if (shouldSucceed) {
           await txPromise;
         } else {
-          utils.assertRevert(txPromise, expectedError);
+          truffleAssert.reverts(txPromise, expectedError);
         }
       }
       if (shouldSucceed) {

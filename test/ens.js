@@ -7,6 +7,7 @@ const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const ENSReverseRegistrar = artifacts.require("ReverseRegistrar");
 
+const truffleAssert = require("truffle-assertions");
 const utilities = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
@@ -100,7 +101,7 @@ contract("ENS contracts", (accounts) => {
 
     it("should fail to register an ENS name when the caller is not a manager", async () => {
       const label = "wallet";
-      await utilities.assertRevert(ensManager.register(label, owner, { from: anonmanager }), "M: Must be manager");
+      await truffleAssert.reverts(ensManager.register(label, owner, { from: anonmanager }), "M: Must be manager");
     });
 
     it("should be able to change the root node owner", async () => {
@@ -112,7 +113,7 @@ contract("ENS contracts", (accounts) => {
 
     it("should not be able to change the root node owner if not the owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
-      await utilities.assertRevert(ensManager.changeRootnodeOwner(randomAddress, { from: amanager }), "Must be owner");
+      await truffleAssert.reverts(ensManager.changeRootnodeOwner(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should be able to change the ens resolver", async () => {
@@ -124,11 +125,11 @@ contract("ENS contracts", (accounts) => {
 
     it("should not be able to change the ens resolver if not owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
-      await utilities.assertRevert(ensManager.changeENSResolver(randomAddress, { from: amanager }), "Must be owner");
+      await truffleAssert.reverts(ensManager.changeENSResolver(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should not be able to change the ens resolver to an empty address", async () => {
-      await utilities.assertRevert(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");
+      await truffleAssert.reverts(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");
     });
   });
 

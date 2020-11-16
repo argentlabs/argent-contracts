@@ -250,25 +250,6 @@ module.exports = {
       .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   },
 
-  async assertRevert(promise, revertMessage) {
-    let reason;
-    try {
-      await promise;
-      assert.fail(`Transaction succeeded, but expected error ${revertMessage}`);
-    } catch (err) {
-      ({ reason } = err);
-      if (reason) {
-        assert.equal(reason, revertMessage);
-      } else if (!revertMessage && err.hijackedStack) {
-        assert.notEqual(err.hijackedStack.indexOf("VM Exception while processing transaction: revert"), -1);
-      } else if (err.hijackedStack) {
-        assert.notEqual(err.hijackedStack.indexOf(revertMessage), -1);
-      } else {
-        assert.fail("Could not validate error message", err);
-      }
-    }
-  },
-
   async getAccount(index) {
     const accounts = await web3.eth.getAccounts();
     return accounts[index];
