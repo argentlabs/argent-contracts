@@ -40,3 +40,5 @@ flat
 .coverage_tests
 coverage
 coverage.json
+
+crytic-export

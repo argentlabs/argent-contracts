@@ -26,10 +26,14 @@ step_setup_slither: &step_setup_slither
   run:
     name: "Setup slither analyser https://github.com/crytic/slither"
     command: |
-      wget https://github.com/ethereum/solidity/releases/download/v0.5.4/solc-static-linux
-      chmod +x solc-static-linux
-      sudo mv solc-static-linux /usr/local/bin/solc
       sudo pip3 install slither-analyzer
+      sudo apt-get install jq
+step_setup_solc_select: &step_setup_solc_select
+  run:
+    name: "Setup solc-select"
+    command: |
+      git clone https://github.com/crytic/solc-select.git
+      bash ./solc-select/scripts/install.sh
 jobs:
   unit-test:
     <<: *job_common
@@ -78,6 +82,14 @@ jobs:
       - <<: *step_restore_cache
       - <<: *step_setup_global_packages
       - <<: *step_setup_slither
+      - <<: *step_setup_solc_select
+      - run:
+          name: "Check TokenPriceRegistry tokens for ERC20 compliance"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            echo "export PATH=/home/circleci/.solc-select:$PATH" >> ~/.bashrc
+            solc --version
+            npm run validate:erc20
       - run:
           name: "Run slither"
           command: npm run security:slither
