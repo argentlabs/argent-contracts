@@ -3,10 +3,16 @@ version: 2
 job_common: &job_common
   docker:
     - image: circleci/node:10.21-stretch
+      auth:
+          username: argentcircleci
+          password: $DOCKERHUB_PASSWORD
   working_directory: ~/argent-contracts
 job_python: &job_python
   docker:
     - image: circleci/python:3.8.0b1-stretch-node
+      auth:
+        username: argentcircleci
+        password: $DOCKERHUB_PASSWORD
   working_directory: ~/argent-contracts
 step_save_cache: &step_save_cache
   save_cache:
