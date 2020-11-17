@@ -30,7 +30,7 @@
     "test:deployment": "./scripts/deploy.sh ganache `seq 1 7`",
     "test:benchmark": "./scripts/deploy.sh ganache 999",
     "validate:erc20": "bash ./scripts/validate_erc20.sh",
-    "security:slither": "npm run security:slither:infrastructure && npm run security:slither:modules",
+    "security:slither": "npm run security:slither:infrastructure && npm run security:slither:modules && npm run security:slither:wallet",
     "security:slither:infrastructure": "rm -rf build && npm run compile:infrastructure && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
     "security:slither:modules": "rm -rf build && npm run compile:modules && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
     "security:slither:wallet": "rm -rf build && npm run compile:wallet && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
