@@ -98,7 +98,9 @@ jobs:
             npm run validate:erc20
       - run:
           name: "Run slither"
-          command: npm run security:slither
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            npm run security:slither
 workflows:
   version: 2
   commit:
