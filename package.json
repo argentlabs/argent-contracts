@@ -21,7 +21,7 @@
     "ganache": "npx ganache-cli --chainId 1895 --networkId 1597649375983 --gasLimit=20700000 -e 10000 --acctKeys=\"./ganache-accounts.json\" --deterministic",
     "kovan-fork": "npx ganache-cli -i 42 -l 20700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')@16988040",
     "kovan-fork-latest": "npx ganache-cli -i 42 -l 20700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')",
-    "test": "npx truffle test",
+    "test": "npx truffle test --compile-none",
     "ctest": "npm run compile && npm run test",
     "provision:lib:artefacts": "bash ./scripts/provision_lib_artefacts.sh",
     "test:coverage": "node scripts/coverage.js && istanbul check-coverage --statements 94 --branches 83 --functions 96 --lines 94",
