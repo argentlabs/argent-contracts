@@ -65,6 +65,7 @@ module.exports = {
     const accountsJson = JSON.parse(fs.readFileSync("./ganache-accounts.json", "utf8"));
 
     const pkey = accountsJson.private_keys[signer.toLowerCase()];
+    if (!pkey) throw new Error(`${signer} account private key not found`);
     const sig = ethUtil.ecsign(msgHashBuff, Buffer.from(pkey, "hex"));
     const signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
     const split = ethers.utils.splitSignature(signature);
