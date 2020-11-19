@@ -32,7 +32,9 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
-const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
+
+// const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
+let OldWallet;
 
 const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");

@@ -4,8 +4,11 @@ const truffleAssert = require("truffle-assertions");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
-const OldWalletV16 = require("../build-legacy/v1.6.0/BaseWallet");
-const OldWalletV13 = require("../build-legacy/v1.3.0/BaseWallet");
+
+// const OldWalletV16 = require("../build-legacy/v1.6.0/BaseWallet");
+// const OldWalletV13 = require("../build-legacy/v1.3.0/BaseWallet");
+let OldWalletV13;
+let OldWalletV16;
 
 const VersionManager = artifacts.require("VersionManager");
 const Registry = artifacts.require("ModuleRegistry");
