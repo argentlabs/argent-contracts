@@ -21,8 +21,10 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const RelayerManager = artifacts.require("RelayerManager");
 const TransferManager = artifacts.require("TransferManager");
 
-const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
-const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
+// const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
+// const LegacyTokenPriceProvider = require("../build-legacy/v1.6.0/TokenPriceProvider");
+let LegacyTransferManager;
+let LegacyTokenPriceProvider;
 
 const ERC20 = artifacts.require("TestERC20");
 const WETH = artifacts.require("WETH9");
