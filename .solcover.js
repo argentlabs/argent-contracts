@@ -17,6 +17,7 @@ for (address of Object.keys(ganacheAccounts.private_keys)){
 }
 
 module.exports = {
+  client: require('ganache-cli'),
   skipFiles: ['Migrations.sol'],
   providerOptions: {
     accounts: accounts,
