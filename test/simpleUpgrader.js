@@ -64,11 +64,7 @@ contract("SimpleUpgrader", (accounts) => {
       const name = "test_1.1";
       const { module: initialModule } = await deployTestModule();
       await registry.registerModule(initialModule.address, formatBytes32String(name));
-      // Here we adjust how we call isRegisteredModule which has 2 overlaods, one accepting a single address
-      // and a second accepting an array of addresses. Behaviour as to which overload is selected to run
-      // differs between CI and Coverage environments, adjusted for this here
-      // todo: confirm the above still stands?
-      const isRegistered = await registry.isRegisteredModule([initialModule.address]);
+      const isRegistered = await registry.contract.methods["isRegisteredModule(address[])"]([initialModule.address]).call();
       assert.equal(isRegistered, true, "module1 should be registered");
       const info = await registry.moduleInfo(initialModule.address);
       assert.equal(parseBytes32String(info), name, "module1 should be registered with the correct name");
