@@ -22,7 +22,7 @@ class MultisigExecutor {
 
     if (this._autoSign === true) {
       // Get the off chain signature
-      let signature = await utils.signMessageHash(this._ownerAccount, signHash);
+      let signature = utils.signMessageHash(this._ownerAccount, signHash);
 
       // to make sure signature ends with 27/28
       const split = ethers.utils.splitSignature(signature);

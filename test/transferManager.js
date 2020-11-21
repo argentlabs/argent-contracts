@@ -517,7 +517,6 @@ contract("TransferManager", (accounts) => {
         const params = [wallet.address, ETH_TOKEN, recipient, ETH_LIMIT * 2, ZERO_BYTES32];
         const tx = await transferManager.transferToken(...params, { from: owner });
 
-        await utils.increaseTime(1);
         await truffleAssert.reverts(
           transferManager.executePendingTransfer(wallet.address, ETH_TOKEN, recipient, ETH_LIMIT * 2, ZERO_BYTES32, tx.receipt.blockNumber),
           "TT: transfer outside of the execution window");
@@ -527,7 +526,6 @@ contract("TransferManager", (accounts) => {
         const params = [wallet.address, ETH_TOKEN, recipient, ETH_LIMIT * 2, ZERO_BYTES32];
         const txReceipt = await manager.relay(transferManager, "transferToken", params, wallet, [owner]);
 
-        await utils.increaseTime(1);
         await truffleAssert.reverts(
           transferManager.executePendingTransfer(wallet.address, ETH_TOKEN, recipient, ETH_LIMIT * 2, ZERO_BYTES32, txReceipt.blockNumber),
           "TT: transfer outside of the execution window");
@@ -897,36 +895,36 @@ contract("TransferManager", (accounts) => {
     });
   });
 
-  describe.skip("Static calls", () => {
-    it("should delegate isValidSignature static calls to the TransferManager", async () => {
+  describe("Static calls", () => {
+    it.skip("should delegate isValidSignature static calls to the TransferManager", async () => {
       const ERC1271_ISVALIDSIGNATURE_BYTES32 = utils.sha3("isValidSignature(bytes32,bytes)").slice(0, 10);
       const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);
       assert.equal(isValidSignatureDelegate, versionManager.address);
 
       const walletAsTransferManager = await TransferManager.at(wallet.address);
       const signHash = ethers.utils.keccak256("0x1234");
-      const signedData = utils.signMessageHash(owner, signHash);
-      const valid = await walletAsTransferManager.isValidSignature(signedData.messageHash, signedData.signature);
+      const signature = `0x${utils.signMessageHash(owner, signHash)}`;
+      const valid = await walletAsTransferManager.isValidSignature(signHash, signature);
       assert.equal(valid, ERC1271_ISVALIDSIGNATURE_BYTES32);
     });
 
     it("should revert isValidSignature static call for invalid signature", async () => {
       const walletAsTransferManager = await TransferManager.at(wallet.address);
       const signHash = ethers.utils.keccak256("0x1234");
-      const signedData = utils.signMessageHash(owner, signHash);
+      const signature = utils.signMessageHash(owner, signHash);
 
       await truffleAssert.reverts(
-        walletAsTransferManager.isValidSignature(signedData.messageHash, `${signedData.signature}a1`), "TM: invalid signature length",
+        walletAsTransferManager.isValidSignature(signHash, `0x${signature}a1`), "TM: invalid signature length",
       );
     });
 
     it("should revert isValidSignature static call for invalid signer", async () => {
       const walletAsTransferManager = await TransferManager.at(wallet.address);
       const signHash = ethers.utils.keccak256("0x1234");
-      const signedData = utils.signMessageHash(owner, signHash);
+      const signature = `0x${utils.signMessageHash(owner, signHash)}`;
 
       await truffleAssert.reverts(
-        walletAsTransferManager.isValidSignature(signedData.messageHash, signedData.signature), "TM: Invalid signer",
+        walletAsTransferManager.isValidSignature(signHash, signature), "TM: Invalid signer",
       );
     });
   });

@@ -63,14 +63,16 @@ module.exports = {
     const msgHashBuff = ethUtil.hashPersonalMessage(dataBuff);
 
     const accountsJson = JSON.parse(fs.readFileSync("./ganache-accounts.json", "utf8"));
-
     const pkey = accountsJson.private_keys[signer.toLowerCase()];
     if (!pkey) throw new Error(`${signer} account private key not found`);
+
     const sig = ethUtil.ecsign(msgHashBuff, Buffer.from(pkey, "hex"));
     const signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
     const split = ethers.utils.splitSignature(signature);
     return ethers.utils.joinSignature(split).slice(2);
   },
+
+  personalSign: async (signHash, signer) => ethers.utils.joinSignature(signer.signingKey.signDigest(signHash)),
 
   sortWalletByAddress(wallets) {
     return wallets.sort((s1, s2) => {
@@ -173,8 +175,6 @@ module.exports = {
       32,
     );
   },
-
-  personalSign: async (signHash, signer) => ethers.utils.joinSignature(signer.signingKey.signDigest(signHash)),
 
   async getBalance(account) {
     const balance = await web3.eth.getBalance(account);
