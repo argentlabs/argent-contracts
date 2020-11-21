@@ -1,9 +1,9 @@
 module.exports = {
   client: require('ganache-cli'),
   skipFiles: [
-    "contracts-test",
-    "lib",
-    "maker"
+    "../contracts-test",
+    "../contracts-legacy",
+    "../lib"
   ],
   providerOptions: {
     port: 8555,
