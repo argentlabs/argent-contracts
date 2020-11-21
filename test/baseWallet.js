@@ -1,14 +1,16 @@
 /* global artifacts */
 const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
+const TruffleContract = require("@truffle/contract");
+
+const OldWalletV13Contract = require("../build-legacy/v1.3.0/BaseWallet");
+const OldWalletV16Contract = require("../build-legacy/v1.6.0/BaseWallet");
+
+const OldWalletV13 = TruffleContract(OldWalletV13Contract);
+const OldWalletV16 = TruffleContract(OldWalletV16Contract);
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
-
-// const OldWalletV16 = require("../build-legacy/v1.6.0/BaseWallet");
-// const OldWalletV13 = require("../build-legacy/v1.3.0/BaseWallet");
-let OldWalletV13;
-let OldWalletV16;
 
 const VersionManager = artifacts.require("VersionManager");
 const Registry = artifacts.require("ModuleRegistry");
@@ -49,6 +51,11 @@ contract("BaseWallet", (accounts) => {
   }
 
   before(async () => {
+    OldWalletV13.defaults({ from: accounts[0] });
+    OldWalletV13.setProvider(web3.currentProvider);
+    OldWalletV16.defaults({ from: accounts[0] });
+    OldWalletV16.setProvider(web3.currentProvider);
+
     registry = await Registry.new();
     guardianStorage = await GuardianStorage.new();
     lockStorage = await LockStorage.new();
@@ -208,7 +215,7 @@ contract("BaseWallet", (accounts) => {
     });
   });
 
-  describe.skip("Old BaseWallet V1.3", () => {
+  describe("Old BaseWallet V1.3", () => {
     it("should work with new modules", async () => {
       const oldWallet = await OldWalletV13.new();
       await oldWallet.init(owner, [module1.address]);
@@ -219,7 +226,7 @@ contract("BaseWallet", (accounts) => {
     });
   });
 
-  describe.skip("Old BaseWallet V1.6", () => {
+  describe("Old BaseWallet V1.6", () => {
     it("should work with new modules", async () => {
       const oldWallet = await OldWalletV16.new();
       await oldWallet.init(owner, [module1.address]);

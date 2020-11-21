@@ -11,6 +11,12 @@ const bnChai = require("bn-chai");
 const { expect } = chai;
 chai.use(bnChai(BN));
 
+const TruffleContract = require("@truffle/contract");
+
+const BaseWalletContract = require("../build-legacy/v1.3.0/BaseWallet.json");
+
+const OldWallet = TruffleContract(BaseWalletContract);
+
 // Paraswap
 const AugustusSwapper = artifacts.require("AugustusSwapper");
 const Whitelisted = artifacts.require("Whitelisted");
@@ -32,10 +38,6 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
-
-// const OldWallet = require("../build-legacy/v1.3.0/BaseWallet");
-let OldWallet;
-
 const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");
 const TokenExchanger = artifacts.require("TokenExchanger");
@@ -83,6 +85,9 @@ contract("TokenExchanger", (accounts) => {
   let versionManager;
 
   before(async () => {
+    OldWallet.defaults({ from: accounts[0] });
+    OldWallet.setProvider(web3.currentProvider);
+
     const registry = await ModuleRegistry.new();
     dexRegistry = await DexRegistry.new();
     guardianStorage = await GuardianStorage.new();
@@ -409,7 +414,7 @@ contract("TokenExchanger", (accounts) => {
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });
 
-    it.skip(`lets old wallets call ${method} successfully`, async () => {
+    it(`lets old wallets call ${method} successfully`, async () => {
       // create wallet
       const oldWalletImplementation = await OldWallet.new();
       const proxy = await Proxy.new(oldWalletImplementation.address);

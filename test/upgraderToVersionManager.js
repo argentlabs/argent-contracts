@@ -1,6 +1,11 @@
 /* global artifacts */
 const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
+const TruffleContract = require("@truffle/contract");
+
+const LegacyTransferManagerContract = require("../build-legacy/v1.6.0/TransferManager.json");
+
+const LegacyTransferManager = TruffleContract(LegacyTransferManagerContract);
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -12,7 +17,6 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const LimitStorage = artifacts.require("LimitStorage");
 const RelayerManager = artifacts.require("RelayerManager");
 const TransferManager = artifacts.require("TransferManager");
-const LegacyTransferManager = artifacts.require("legacy/v1.6.0/TransferManager");
 const UpgraderToVersionManager = artifacts.require("UpgraderToVersionManager");
 
 const SECURITY_PERIOD = 3600;
@@ -20,8 +24,9 @@ const SECURITY_WINDOW = 3600;
 const ETH_LIMIT = 1000000;
 
 const RelayManager = require("../utils/relay-manager");
+const utils = require("../utils/utilities.js");
 
-contract.skip("UpgraderToVersionManager", (accounts) => {
+contract("UpgraderToVersionManager", (accounts) => {
   const manager = new RelayManager();
 
   const owner = accounts[1];
@@ -40,6 +45,9 @@ contract.skip("UpgraderToVersionManager", (accounts) => {
   let upgrader;
 
   before(async () => {
+    LegacyTransferManager.defaults({ from: accounts[0] });
+    LegacyTransferManager.setProvider(web3.currentProvider);
+
     walletImplementation = await BaseWallet.new();
     const registry = await Registry.new();
     lockStorage = await LockStorage.new();
@@ -121,7 +129,7 @@ contract.skip("UpgraderToVersionManager", (accounts) => {
 
     it("should add/remove an account to/from the whitelist", async () => {
       await transferManager.addToWhitelist(wallet.address, recipient, { from: owner });
-      await manager.increaseTime(SECURITY_PERIOD + 1);
+      await utils.increaseTime(SECURITY_PERIOD + 1);
       let isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
       assert.equal(isTrusted, true, "should be trusted after the security period");
       await transferManager.removeFromWhitelist(wallet.address, recipient, { from: owner });
@@ -131,7 +139,7 @@ contract.skip("UpgraderToVersionManager", (accounts) => {
 
     it("should change the limit via relayed transaction", async () => {
       await manager.relay(transferManager, "changeLimit", [wallet.address, 4000000], wallet, [owner]);
-      await manager.increaseTime(SECURITY_PERIOD + 1);
+      await utils.increaseTime(SECURITY_PERIOD + 1);
       const limit = await transferManager.getCurrentLimit(wallet.address);
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
     });

@@ -15,7 +15,8 @@ class RelayManager {
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero,
-    _gasLimitRelay = (_gasLimit * 1.1)) {
+    _gasLimitRelay) {
+    if (!_gasLimitRelay) { _gasLimitRelay = (_gasLimit * 1.1); } // eslint-disable-line no-param-reassign
     const relayerAccount = _relayerAccount || await utils.getAccount(9);
     const nonce = _nonce || await utils.getNonceForRelay();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
@@ -33,6 +34,7 @@ class RelayManager {
       _refundToken,
       _refundAddress,
     );
+
     if (_estimate === true) {
       const gasUsed = await this.relayerManager.estimate.execute(
         _wallet.address,
@@ -44,7 +46,7 @@ class RelayManager {
         _gasLimit,
         _refundToken,
         _refundAddress,
-        { gasLimit: _gasLimitRelay, gasPrice: _gasPrice },
+        { gas: _gasLimitRelay, gasPrice: _gasPrice },
       );
       return gasUsed;
     }
@@ -59,7 +61,7 @@ class RelayManager {
       _gasLimit,
       _refundToken,
       _refundAddress,
-      { gasLimit: _gasLimitRelay, gasPrice: _gasPrice, from: relayerAccount },
+      { gas: _gasLimitRelay, gasPrice: _gasPrice, from: relayerAccount },
     );
 
     return tx.receipt;

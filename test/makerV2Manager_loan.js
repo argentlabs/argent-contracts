@@ -19,7 +19,6 @@ const RelayManager = require("../utils/relay-manager");
 
 const GemJoin = artifacts.require("GemJoin");
 const Registry = artifacts.require("ModuleRegistry");
-
 const MakerV2Manager = artifacts.require("MakerV2Manager");
 const UpgradedMakerV2Manager = artifacts.require("TestUpgradedMakerV2Manager");
 const MakerRegistry = artifacts.require("MakerRegistry");
@@ -165,15 +164,14 @@ contract("MakerV2Loan", (accounts) => {
     const beforeDAI = await dai.balanceOf(walletAddress);
     const beforeDAISupply = await dai.totalSupply();
 
-    const method = "openLoan";
     const params = [walletAddress, collateral.address, collateralAmount.toString(), dai.address, daiAmount.toString()];
     let txReceipt;
     if (relayed) {
-      txReceipt = await manager.relay(makerV2, method, params, wallet, [owner]);
-      const eventTransactionExecuted = await utils.getEvent(txReceipt, relayerManager, "TransactionExecuted");
-      assert.isTrue(eventTransactionExecuted.args.success, "Relayed tx should succeed");
+      txReceipt = await manager.relay(makerV2, "openLoan", params, wallet, [owner]);
+      const { success } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, "Relayed tx should succeed");
     } else {
-      const tx = await makerV2[method](...params, { gasLimit: 2000000, from: owner });
+      const tx = await makerV2.openLoan(...params, { gasLimit: 2000000, from: owner });
       txReceipt = tx.receipt;
     }
     const eventLoanOpened = await utils.getEvent(txReceipt, makerV2, "LoanOpened");
@@ -652,7 +650,7 @@ contract("MakerV2Loan", (accounts) => {
     });
   });
 
-  describe.skip("Upgrade of MakerV2Manager", () => {
+  describe("Upgrade of MakerV2Manager", () => {
     let upgradedMakerV2;
     let daiAmount;
     let collateralAmount;
@@ -672,8 +670,7 @@ contract("MakerV2Loan", (accounts) => {
         makerRegistry.address,
         uniswapFactory.address,
         makerV2.address,
-        versionManager.address,
-        { gasLimit: 10700000 },
+        versionManager.address
       );
 
       // Adding BAT to the registry of supported collateral tokens
@@ -689,7 +686,7 @@ contract("MakerV2Loan", (accounts) => {
       if (withBatVault) {
         // Open a BAT vault with the old MakerV2 feature
         const batTestAmounts = await getTestAmounts(bat.address);
-        await bat.mint(walletAddress, batTestAmounts.collateralAmount.add(web3.utils.toWei("0.01")));
+        await bat.mint(walletAddress, batTestAmounts.collateralAmount.add(new BN(web3.utils.toWei("0.01"))));
         loanId2 = await testOpenLoan({
           collateralAmount: batTestAmounts.collateralAmount,
           daiAmount: batTestAmounts.daiAmount,
@@ -704,20 +701,20 @@ contract("MakerV2Loan", (accounts) => {
         transferManager.address,
         relayerManager.address,
       ], [upgradedMakerV2.address]);
-      const method = "upgradeWallet";
+
       const lastVersion = await versionManager.lastVersion();
-      const params = [walletAddress, lastVersion];
+      const params = [walletAddress, lastVersion.toNumber()];
       if (relayed) {
-        const txR = await manager.relay(versionManager, method, params, wallet, [owner]);
-        const txTransactionExecuted = await utils.getEvent(txR, cdpManager, "NewCdp");
-        assert.isTrue(txTransactionExecuted.args.success, "Relayed tx should succeed");
+        const txR = await manager.relay(versionManager, "upgradeWallet", params, wallet, [owner]);
+        const { success } = utils.parseRelayReceipt(txR);
+        assert.isTrue(success, "Relayed tx should succeed");
       } else {
-        await versionManager[method](...params, { gasLimit: 2000000, from: owner });
+        await versionManager.upgradeWallet(...params, { gasLimit: 2000000, from: owner });
       }
       // Make sure that the vaults can be manipulated from the upgraded feature
       await testChangeCollateral({
         loanId: loanId1,
-        collateralAmount: web3.utils.toWei("0.010"),
+        collateralAmount: new BN(web3.utils.toWei("0.010")),
         add: true,
         relayed,
         makerV2Manager: upgradedMakerV2,
@@ -727,7 +724,7 @@ contract("MakerV2Loan", (accounts) => {
       if (withBatVault) {
         await testChangeCollateral({
           loanId: loanId2,
-          collateralAmount: web3.utils.toWei("0.010"),
+          collateralAmount: new BN(web3.utils.toWei("0.010")),
           add: true,
           relayed,
           collateral: bat,
@@ -777,7 +774,7 @@ contract("MakerV2Loan", (accounts) => {
       const lastVersion = await versionManager.lastVersion();
       await versionManager.upgradeWallet(walletAddress, lastVersion, { gasLimit: 2000000, from: owner });
       // Use the bad module to attempt a bad giveVault call
-      const callData = makerV2.contract.methods.giveVault([walletAddress, utils.numberToBytes32(666)]).encodeABI();
+      const callData = makerV2.contract.methods.giveVault(walletAddress, utils.numberToBytes32(666)).encodeABI();
       await truffleAssert.reverts(badFeature.callContract(makerV2.address, 0, callData, { from: owner }), "MV2: unauthorized loanId");
     });
   });

@@ -171,7 +171,7 @@ contract("RelayerManager", (accounts) => {
       );
     });
 
-    it.skip("should fail when the gas of the transaction is less then the gasLimit ", async () => {
+    it("should fail when the gas of the transaction is less then the gasLimit", async () => {
       const params = [wallet.address, 2];
       const nonce = await utils.getNonceForRelay();
       const gasLimit = 2000000;
@@ -189,11 +189,8 @@ contract("RelayerManager", (accounts) => {
         ETH_TOKEN,
         ethers.constants.AddressZero,
         gasLimit * 0.9];
-      const txReceipt = await manager.relay(...relayParams);
 
-      const { success, error } = utils.parseRelayReceipt(txReceipt);
-      assert.isFalse(success);
-      assert.equal(error, "RM: not enough gas provided");
+      await truffleAssert.reverts(manager.relay(...relayParams), "RM: not enough gas provided");
     });
 
     it("should fail when a wrong number of signatures is provided", async () => {

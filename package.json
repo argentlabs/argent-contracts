@@ -74,6 +74,7 @@
     "-": "0.0.1",
     "@codechecks/client": "^0.1.10",
     "@truffle/config": "^1.2.33",
+    "@truffle/contract": "^4.2.31",
     "@truffle/hdwallet-provider": "^1.2.0",
     "bn-chai": "^1.0.1",
     "bn.js": "^5.1.3",
