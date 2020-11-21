@@ -23,9 +23,6 @@ const utils = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
-const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
-const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
-
 contract("ApprovedTransfer", (accounts) => {
   const manager = new RelayManager();
 
@@ -175,7 +172,7 @@ contract("ApprovedTransfer", (accounts) => {
           await transferToken(ETH_TOKEN, [owner, guardian1]);
         });
         it("should fail to transfer ETH when signer is not a guardian", async () => {
-          await expectFailingTransferToken(ETH_TOKEN, [owner, guardian2], INVALID_SIGNATURES_REVERT_MSG);
+          await expectFailingTransferToken(ETH_TOKEN, [owner, guardian2], "RM: Invalid signatures");
         });
         it("should transfer ERC20 with 1 confirmation for 1 guardian", async () => {
           await transferToken(erc20.address, [owner, guardian1]);
@@ -194,13 +191,13 @@ contract("ApprovedTransfer", (accounts) => {
           await addGuardians([guardian1, guardian2, guardian3]);
         });
         it("should not transfer ETH with 1 confirmation for 3 guardians", async () => {
-          await expectFailingTransferToken(ETH_TOKEN, [owner, guardian1], WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+          await expectFailingTransferToken(ETH_TOKEN, [owner, guardian1], "RM: Wrong number of signatures");
         });
         it("should transfer ETH with 2 confirmations for 3 guardians", async () => {
           await transferToken(ETH_TOKEN, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
         });
         it("should fail to transfer ERC20 with 1 confirmation for 3 guardians", async () => {
-          await expectFailingTransferToken(erc20.address, [owner, guardian1], WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+          await expectFailingTransferToken(erc20.address, [owner, guardian1], "RM: Wrong number of signatures");
         });
         it("should transfer ERC20 with 2 confirmations for 3 guardians", async () => {
           await transferToken(erc20.address, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
@@ -233,13 +230,13 @@ contract("ApprovedTransfer", (accounts) => {
           await addGuardians(await createSmartContractGuardians([guardian1, guardian2, guardian3]));
         });
         it("should not transfer ETH with 1 confirmation for 3 guardians", async () => {
-          await expectFailingTransferToken(ETH_TOKEN, [owner, guardian1], WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+          await expectFailingTransferToken(ETH_TOKEN, [owner, guardian1], "RM: Wrong number of signatures");
         });
         it("should transfer ETH with 2 confirmations for 3 guardians", async () => {
           await transferToken(ETH_TOKEN, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
         });
         it("should not transfer ERC20 with 1 confirmations for 3 guardians", async () => {
-          await expectFailingTransferToken(erc20.address, [owner, guardian1], WRONG_SIGNATURE_NUMBER_REVERT_MSG);
+          await expectFailingTransferToken(erc20.address, [owner, guardian1], "RM: Wrong number of signatures");
         });
         it("should transfer ERC20 with 2 confirmations for 3 guardians", async () => {
           await transferToken(erc20.address, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
