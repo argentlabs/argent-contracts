@@ -123,6 +123,7 @@ jobs:
           command:  |
             export PATH=/home/circleci/.solc-select:$PATH
             npm run security:slither
+          when: always
 workflows:
   version: 2
   commit:
