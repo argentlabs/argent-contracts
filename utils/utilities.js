@@ -72,6 +72,14 @@ module.exports = {
     return ethers.utils.joinSignature(split).slice(2);
   },
 
+  async signMessage(signer, message) {
+    const sig = await web3.eth.sign(message, signer);
+    let v = parseInt(sig.substring(130, 132), 16);
+    if (v < 27) v += 27;
+    const normalizedSig = `${sig.substring(0, 130)}${v.toString(16)}`;
+    return normalizedSig;
+  },
+
   personalSign: async (signHash, signer) => ethers.utils.joinSignature(signer.signingKey.signDigest(signHash)),
 
   sortWalletByAddress(wallets) {

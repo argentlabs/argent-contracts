@@ -896,15 +896,16 @@ contract("TransferManager", (accounts) => {
   });
 
   describe("Static calls", () => {
-    it.skip("should delegate isValidSignature static calls to the TransferManager", async () => {
+    it("should delegate isValidSignature static calls to the TransferManager", async () => {
       const ERC1271_ISVALIDSIGNATURE_BYTES32 = utils.sha3("isValidSignature(bytes32,bytes)").slice(0, 10);
       const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);
       assert.equal(isValidSignatureDelegate, versionManager.address);
 
       const walletAsTransferManager = await TransferManager.at(wallet.address);
-      const signHash = ethers.utils.keccak256("0x1234");
-      const signature = `0x${utils.signMessageHash(owner, signHash)}`;
-      const valid = await walletAsTransferManager.isValidSignature(signHash, signature);
+      const msg = "0x1234";
+      const signature = await utils.signMessage(owner, msg);
+      const messageHash = web3.eth.accounts.hashMessage(msg);
+      const valid = await walletAsTransferManager.isValidSignature(messageHash, signature);
       assert.equal(valid, ERC1271_ISVALIDSIGNATURE_BYTES32);
     });
 
