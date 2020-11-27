@@ -1,4 +1,5 @@
 /* global artifacts */
+global.web3 = web3;
 
 const semver = require("semver");
 const childProcess = require("child_process");
@@ -7,7 +8,8 @@ const MultiSig = artifacts.require("MultiSigWallet");
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const VersionManager = artifacts.require("VersionManager");
 const Upgrader = artifacts.require("UpgraderToVersionManager");
-const DeployManager = require("../utils/deploy-manager.js");
+
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const utils = require("../utils/utilities.js");
@@ -33,16 +35,7 @@ const main = async (network) => {
   // //////////////////////////////////
   // Setup
   // //////////////////////////////////
-
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const { versionUploader } = manager;
+  const { deploymentAccount, configurator, versionUploader } = await deployManager.getProps();
   const { config } = configurator;
 
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
@@ -90,7 +83,7 @@ const main = async (network) => {
   for (let idx = 0; idx < newModuleWrappers.length; idx += 1) {
     const wrapper = newModuleWrappers[idx];
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
-      [wrapper.contractAddress, utils.asciiToBytes32(wrapper._contract.contractName)]);
+      [wrapper.contractAddress, utils.asciiToBytes32(wrapper.constructor.contractName)]);
   }
 
   // //////////////////////////////////
@@ -107,7 +100,7 @@ const main = async (network) => {
       toRemove = version.modules.filter((module) => moduleNamesToRemove.includes(module.name));
       toAdd = newModuleWrappers.map((wrapper) => ({
         address: wrapper.contractAddress,
-        name: wrapper._contract.contractName,
+        name: wrapper.constructor.contractName,
       }));
       const toKeep = version.modules.filter((module) => !moduleNamesToRemove.includes(module.name));
       const modulesInNewVersion = toKeep.concat(toAdd);
@@ -125,9 +118,7 @@ const main = async (network) => {
 
     const upgraderName = `${version.fingerprint}_${fingerprint}`;
 
-    const UpgraderWrapper = await deployer.deploy(
-      Upgrader,
-      {},
+    const UpgraderWrapper = await Upgrader.new(
       config.contracts.ModuleRegistry,
       config.modules.GuardianStorage, // using the "old LockStorage" here which was part of the GuardianStorage in 1.6
       toRemove.map((module) => module.address),

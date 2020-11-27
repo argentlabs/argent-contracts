@@ -12,11 +12,14 @@
 // ////////////////////////////////////////////////////////////////////
 
 /* global artifacts */
+
+global.web3 = web3;
+
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 
 const utils = require("../utils/utilities.js");
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
@@ -42,13 +45,7 @@ async function main() {
   idx = process.argv.indexOf("--name");
   const targetName = process.argv[idx + 1];
 
-  // Setup deployer
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-  const { configurator } = manager;
+  const { deploymentAccount, configurator } = await deployManager.getProps();
   const { config } = configurator;
 
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);

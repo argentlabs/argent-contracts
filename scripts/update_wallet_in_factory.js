@@ -9,20 +9,17 @@
 // ////////////////////////////////////////////////////////////////////
 
 /* global artifacts */
+global.web3 = web3;
+
 const BaseWallet = artifacts.require("BaseWallet");
 const WalletFactory = artifacts.require("WalletFactory");
 const MultiSigWallet = artifacts.require("MultiSigWallet");
 
 const MultisigExecutor = require("../utils/multisigexecutor.js");
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 
 async function main() {
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-  const deployManager = new DeployManager(deploymentAccount);
-  await deployManager.setup();
-  const { configurator } = deployManager;
+  const { deploymentAccount, configurator } = await deployManager.getProps();
   const { config } = configurator;
   console.log("Config:", config);
 

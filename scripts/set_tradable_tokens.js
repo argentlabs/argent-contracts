@@ -12,13 +12,12 @@
 
 /* global artifacts */
 const fs = require("fs");
-const ethers = require("ethers");
 
 const MultiSig = artifacts.require("MultiSigWallet");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
-const DeployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
+const deployManager = require("../utils/deploy-manager.js");
 
 async function main() {
   // Read Command Line Arguments
@@ -28,16 +27,10 @@ async function main() {
   idx = process.argv.indexOf("--dry");
   const dry = (idx !== -1);
 
-  // Setup deployer
-  // TODO: Maybe get the signer account a better way?
+  const { configurator } = await deployManager.getProps();
+  const { config } = configurator;
   const accounts = await web3.eth.getAccounts();
   const deploymentAccount = accounts[0];
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const { config } = configurator;
-  const { gasPrice, gasLimit } = deployer.defaultOverrides;
 
   const TokenPriceRegistryWrapper = await TokenPriceRegistry.at(config.modules.TokenPriceRegistry);
 
@@ -58,16 +51,13 @@ async function main() {
     console.log(item[0], item[1]);
   }
 
-  console.log("gasPrice", ethers.utils.formatUnits(gasPrice, "gwei"));
-  console.log("gasLimit", gasLimit);
-
   if (dry) return;
 
   const tokens = filteredData.map((item) => item[0]);
   const tradable = filteredData.map((item) => item[1]);
 
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign, { gasPrice, gasLimit });
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
   await multisigExecutor.executeCall(TokenPriceRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
 }
 

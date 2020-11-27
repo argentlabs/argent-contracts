@@ -1,5 +1,7 @@
 /* global artifacts */
 
+global.web3 = web3;
+
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 
@@ -16,36 +18,27 @@ const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = artifacts.require("VersionManager");
 
 const utils = require("../utils/utilities.js");
-
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-module.exports = async (callback) => {
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-
-  const { configurator } = manager;
-  const { versionUploader } = manager;
+async function main() {
+  const { deploymentAccount, configurator, versionUploader } = await deployManager.getProps();
   const { config } = configurator;
 
-  const GuardianManagerWrapper = await GuardianManager.new(config.modules.GuardianManager);
-  const LockManagerWrapper = await LockManager.new(config.modules.LockManager);
-  const RecoveryManagerWrapper = await RecoveryManager.new(config.modules.RecoveryManager);
-  const ApprovedTransferWrapper = await ApprovedTransfer.new(config.modules.ApprovedTransfer);
-  const TransferManagerWrapper = await TransferManager.new(config.modules.TransferManager);
-  const TokenExchangerWrapper = await TokenExchanger.new(config.modules.TokenExchanger);
-  const NftTransferWrapper = await NftTransfer.new(config.modules.NftTransfer);
-  const CompoundManagerWrapper = await CompoundManager.new(config.modules.CompoundManager);
-  const MakerV2ManagerWrapper = await MakerV2Manager.new(config.modules.MakerV2Manager);
-  const RelayerManagerWrapper = await RelayerManager.new(config.modules.RelayerManager);
-  const VersionManagerWrapper = await VersionManager.new(config.modules.VersionManager);
+  const GuardianManagerWrapper = await GuardianManager.at(config.modules.GuardianManager);
+  const LockManagerWrapper = await LockManager.at(config.modules.LockManager);
+  const RecoveryManagerWrapper = await RecoveryManager.at(config.modules.RecoveryManager);
+  const ApprovedTransferWrapper = await ApprovedTransfer.at(config.modules.ApprovedTransfer);
+  const TransferManagerWrapper = await TransferManager.at(config.modules.TransferManager);
+  const TokenExchangerWrapper = await TokenExchanger.at(config.modules.TokenExchanger);
+  const NftTransferWrapper = await NftTransfer.at(config.modules.NftTransfer);
+  const CompoundManagerWrapper = await CompoundManager.at(config.modules.CompoundManager);
+  const MakerV2ManagerWrapper = await MakerV2Manager.at(config.modules.MakerV2Manager);
+  const RelayerManagerWrapper = await RelayerManager.at(config.modules.RelayerManager);
+  const VersionManagerWrapper = await VersionManager.at(config.modules.VersionManager);
 
-  const ModuleRegistryWrapper = await ModuleRegistry.new(config.contracts.ModuleRegistry);
-  const MultiSigWrapper = await MultiSig.new(config.contracts.MultiSigWallet);
+  const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
 
   const wrappers = [VersionManagerWrapper];
 
@@ -86,7 +79,7 @@ module.exports = async (callback) => {
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
-      [wrapper.address, utils.asciiToBytes32(wrapper._contract.contractName)]);
+      [wrapper.address, utils.asciiToBytes32(wrapper.constructor.contractName)]);
   }
 
   console.log("Set the MultiSig as the owner of VersionManagerWrapper");
@@ -96,7 +89,7 @@ module.exports = async (callback) => {
   // Upload Version
   // //////////////////////////////////
 
-  const modules = wrappers.map((wrapper) => ({ address: wrapper.address, name: wrapper._contract.contractName }));
+  const modules = wrappers.map((wrapper) => ({ address: wrapper.address, name: wrapper.constructor.contractName }));
   const version = {
     modules,
     fingerprint: utils.versionFingerprint(modules),
@@ -105,5 +98,10 @@ module.exports = async (callback) => {
   };
   await versionUploader.upload(version);
 
-  callback();
+  console.log("## completed deployment script 6 ##");
+}
+
+// For truffle exec
+module.exports = function (callback) {
+  main().then(() => callback()).catch((err) => callback(err));
 };

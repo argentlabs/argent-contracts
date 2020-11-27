@@ -1,4 +1,6 @@
 /* global artifacts */
+global.web3 = web3;
+
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const LockStorage = artifacts.require("LockStorage");
@@ -20,21 +22,11 @@ const MakerRegistry = artifacts.require("MakerRegistry");
 const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 
 const utils = require("../utils/utilities.js");
-
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-module.exports = async (callback) => {
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-
-  const { configurator } = manager;
-  const { abiUploader } = manager;
-
+async function main() {
+  const { deploymentAccount, configurator, abiUploader } = await deployManager.getProps();
   const newConfig = configurator.config;
   const prevConfig = configurator.copyConfig();
 
@@ -164,5 +156,11 @@ module.exports = async (callback) => {
     abiUploader.upload(DexRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);
-  callback();
+
+  console.log("## completed deployment script 2 ##");
+}
+
+// For truffle exec
+module.exports = function (callback) {
+  main().then(() => callback()).catch((err) => callback(err));
 };

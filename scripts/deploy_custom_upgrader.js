@@ -6,10 +6,15 @@ const MultiSig = artifacts.require("MultiSigWallet");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
 const utils = require("../utils/utilities.js");
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
+  const { configurator } = await deployManager.getProps();
+  const { config } = configurator;
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
+
   const modulesToRemove = [];
   const modulesToAdd = [
     "0x624EbBd0f4169E2e11861618045491b6A4e29E77",
@@ -18,15 +23,6 @@ async function main() {
     "0xE739e93dD617D28216dB669AcFdbFC70BF95663c",
   ];
   const upgraderName = "0x4ef2f261_0xee7263da";
-
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-
-  const { configurator } = manager;
-  const { config } = configurator;
 
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);

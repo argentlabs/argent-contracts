@@ -1,4 +1,7 @@
 /* global artifacts */
+
+global.web3 = web3;
+
 const childProcess = require("child_process");
 
 const ApprovedTransfer = artifacts.require("ApprovedTransfer");
@@ -13,24 +16,14 @@ const TransferManager = artifacts.require("TransferManager");
 const RelayerManager = artifacts.require("RelayerManager");
 const VersionManager = artifacts.require("VersionManager");
 
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 
 // ///////////////////////////////////////////////////////
 //                 Version 2.1
 // ///////////////////////////////////////////////////////
 
-module.exports = async (callback) => {
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-
-  const manager = new DeployManager(deploymentAccount);
-  const { network } = manager;
-  await manager.setup();
-
-  const { configurator } = manager;
-  const { abiUploader } = manager;
-
+async function main() {
+  const { network, configurator, abiUploader } = await deployManager.getProps();
   const { config } = configurator;
   console.log(config);
 
@@ -173,5 +166,10 @@ module.exports = async (callback) => {
     abiUploader.upload(VersionManagerWrapper, "modules"),
   ]);
 
-  callback();
+  console.log("## completed deployment script 5 ##");
+}
+
+// For truffle exec
+module.exports = function (callback) {
+  main().then(() => callback()).catch((err) => callback(err));
 };

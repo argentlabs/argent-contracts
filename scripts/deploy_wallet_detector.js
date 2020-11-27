@@ -11,7 +11,7 @@
 /* global artifacts */
 const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
-const DeployManager = require("../utils/deploy-manager.js");
+const { configurator, abiUploader } = require("deploy-manager.js");
 
 const PROXYWALLET_CODEHASH = [
   "0x0b44c9be520023d9f6091278e7e5a8853257eb9fb3d78e6951315df59679e3b2", // factory prod Mar-30-2020
@@ -27,12 +27,6 @@ const BASEWALLET_IMPL = [
 ]; // mainnet only
 
 async function main() {
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-  const deployManager = new DeployManager(deploymentAccount);
-  await deployManager.setup();
-  const { configurator, abiUploader } = deployManager;
   const { config } = configurator;
 
   // Deploy ArgentWalletDetector contract

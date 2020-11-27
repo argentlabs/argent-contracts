@@ -1,5 +1,7 @@
 /* global artifacts */
 
+global.web3 = web3;
+
 const ENSRegistry = artifacts.require("ENSRegistry");
 const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
 const UniswapFactory = artifacts.require("../lib/uniswap/UniswapFactory");
@@ -14,7 +16,7 @@ const PartnerDeployer = artifacts.require("PartnerDeployer");
 const KyberAdapter = artifacts.require("Kyber");
 
 const utils = require("../utils/utilities.js");
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 
 const BYTES32_NULL = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -56,14 +58,8 @@ async function deployParaswap(deploymentAccount) {
   return { paraswap: paraswap.address, kyberAdapter: kyberAdapter.address };
 }
 
-module.exports = async (callback) => {
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-  const { configurator } = manager;
+async function main() {
+  const { configurator, deploymentAccount } = await deployManager.getProps();
   const { config } = configurator;
 
   if (config.ENS.deployOwnRegistry) {
@@ -98,5 +94,11 @@ module.exports = async (callback) => {
 
   // save configuration
   await configurator.save();
-  callback();
+
+  console.log("## completed deployment script 1 ##");
+}
+
+// For truffle exec
+module.exports = function (callback) {
+  main().then(() => callback()).catch((err) => callback(err));
 };

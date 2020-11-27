@@ -2,9 +2,7 @@
 /* global artifacts */
 
 const BN = require("bn.js");
-const { formatBytes32String } = require("ethers").utils;
-
-const DeployManager = require("../utils/deploy-manager.js");
+const { utils } = require("ethers");
 
 const UniswapFactory = require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = require("../lib/uniswap/UniswapExchange");
@@ -23,30 +21,21 @@ const USD_PER_MKR = WAD.muln(700); // 1 MKR = 700 USD
 
 const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 2.8 ETH
 
-async function getTimestamp(deployer) {
-  const block = await deployer.provider.getBlock("latest");
-  return block.timestamp;
-}
-
 function sleep(ms) {
   console.log("sleeping...");
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main() {
-  // TODO: Maybe get the signer account a better way?
   const accounts = await web3.eth.getAccounts();
   const deploymentAccount = accounts[0];
-  const deployManager = new DeployManager(deploymentAccount);
-  await deployManager.setup();
-  const { deployer } = deployManager;
 
   /* ************* Deploy Maker *************** */
   const vox = await Vox.new(USD_PER_DAI);
-  const sai = await DSToken.new(formatBytes32String("DAI"));
-  const gov = await DSToken.new(formatBytes32String("MKR"));
-  const sin = await DSToken.new(formatBytes32String("SIN"));
-  const skr = await DSToken.new(formatBytes32String("PETH"));
+  const sai = await DSToken.new(utils.formatBytes32String("DAI"));
+  const gov = await DSToken.new(utils.formatBytes32String("MKR"));
+  const sin = await DSToken.new(utils.formatBytes32String("SIN"));
+  const skr = await DSToken.new(utils.formatBytes32String("PETH"));
   const gem = await WETH.new();
   const pip = await DSValue.new();
   const pep = await DSValue.new();
@@ -69,13 +58,13 @@ async function main() {
   // setup USD/MKR oracle with a convertion rate of 400 USD/MKR
   await pep.poke(`0x${USD_PER_MKR.toString(16, 64)}`);
   // set the total DAI debt ceiling to 50,000 DAI
-  await tub.mold(formatBytes32String("cap"), web3.utils.toWei("50000"));
+  await tub.mold(utils.formatBytes32String("cap"), web3.utils.toWei("50000"));
   // set the liquidity ratio to 150%
-  await tub.mold(formatBytes32String("mat"), RAY.muln(3).divn(2));
+  await tub.mold(utils.formatBytes32String("mat"), RAY.muln(3).divn(2));
   // set the governance fee to 7.5% APR
-  await tub.mold(formatBytes32String("fee"), "1000000002293273137447730714", { gasLimit: 150000 });
+  await tub.mold(utils.formatBytes32String("fee"), "1000000002293273137447730714", { gasLimit: 150000 });
   // set the liquidation penalty to 13%
-  await tub.mold(formatBytes32String("axe"), "1130000000000000000000000000", { gasLimit: 150000 });
+  await tub.mold(utils.formatBytes32String("axe"), "1130000000000000000000000000", { gasLimit: 150000 });
 
   /* ************* Deploy Uniswap ****************** */
 
@@ -98,7 +87,7 @@ async function main() {
   }
   const mkrExchange = await UniswapExchange.at(exchange);
   await gov.approve(mkrExchange.address, mkrLiquidity);
-  const timestamp = await getTimestamp(deployer);
+  const timestamp = await utils.getTimestamp();
   await mkrExchange.addLiquidity(1, mkrLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 250000 });
 
   console.log("******* contracts *******");

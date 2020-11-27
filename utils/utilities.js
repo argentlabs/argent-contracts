@@ -72,7 +72,7 @@ module.exports = {
     return ethers.utils.joinSignature(split).slice(2);
   },
 
-  async signMessage(signer, message) {
+  async signMessage(message, signer) {
     const sig = await web3.eth.sign(message, signer);
     let v = parseInt(sig.substring(130, 132), 16);
     if (v < 27) v += 27;
@@ -261,6 +261,7 @@ module.exports = {
 
   async getAccount(index) {
     const accounts = await web3.eth.getAccounts();
+    console.log("accounts", accounts);
     return accounts[index];
   }
 };

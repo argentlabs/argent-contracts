@@ -1,4 +1,6 @@
 /* global artifacts */
+global.web3 = web3;
+
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
@@ -7,17 +9,10 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
 
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 
-module.exports = async (callback) => {
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-
-  const { configurator } = manager;
+async function main() {
+  const { configurator } = await deployManager.getProps();
   const { config } = configurator;
 
   const ENSResolverWrapper = await ENSResolver.at(config.contracts.ENSResolver);
@@ -70,8 +65,14 @@ module.exports = async (callback) => {
 
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
-    console.log(`Set the MultiSig as the owner of ${wrapper._contract.contractName}`);
+    console.log(`Set the MultiSig as the owner of ${wrapper.constructor.contractName}`);
     await wrapper.changeOwner(config.contracts.MultiSigWallet);
   }
-  callback();
+
+  console.log("## completed deployment script 3 ##");
+}
+
+// For truffle exec
+module.exports = function (callback) {
+  main().then(() => callback()).catch((err) => callback(err));
 };

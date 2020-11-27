@@ -11,7 +11,7 @@
 /* global artifacts */
 const MultiSig = artifacts.require("MultiSigWallet");
 
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
@@ -19,13 +19,7 @@ async function main() {
   const idx = process.argv.indexOf("--threshold");
   const threshold = process.argv[idx + 1];
 
-  // Setup deployer
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-  const { configurator } = manager;
+  const { deploymentAccount, configurator } = await deployManager.getProps();
   const { config } = configurator;
 
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);

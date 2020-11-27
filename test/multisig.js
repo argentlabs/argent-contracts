@@ -44,14 +44,20 @@ contract("MultiSigWallet", (accounts) => {
     if (sortSigners) {
       sortedSigners = utilities.sortWalletByAddress(signers);
     }
-    const sigs = `0x${sortedSigners.map((signer) => {
-      let joinedSignature = utilities.signMessageHash(signer, messageHash);
+
+    let sigs = "0x";
+    for (let index = 0; index < sortedSigners.length; index += 1) {
+      const signer = sortedSigners[index];
+      let sig = await utilities.signMessage(messageHash, signer);
 
       if (returnBadSignatures) {
-        joinedSignature += "a1";
+        sig += "a1";
       }
-      return joinedSignature;
-    }).join("")}`;
+
+      sig = sig.slice(2);
+      sigs += sig;
+    }
+
     return sigs;
   }
 

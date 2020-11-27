@@ -20,18 +20,16 @@
 require("dotenv").config();
 
 const HDWalletProvider = require("@truffle/hdwallet-provider");
-const DeployManager = require("./utils/deploy-manager.js");
+// const deployManager = require("./utils/deploy-manager.js");
 
 const _gasPrice = process.env.DEPLOYER_GAS_PRICE || 20000000000;
 const _gasLimit = 6000000;
 
-async function getKeys() {
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-  const { pkey, infuraKey } = manager;
-  return (pkey, infuraKey);
+function getKeys() {
+  // NOTE: While https://github.com/trufflesuite/truffle/issues/1054 is implemented we are using a temporary fix
+  // const { pkey, infuraKey } = await deployManager.getProps();
+  // return (pkey, infuraKey);
+  return { pkey: process.env.PKEY, infuraKey: process.env.INFURA_KEY };
 }
 
 // const fs = require('fs');
@@ -62,18 +60,18 @@ module.exports = {
     },
 
     test: {
-      provider: async () => {
-        const { pkey, infuraKey } = await getKeys();
+      provider: () => {
+        const { pkey, infuraKey } = getKeys();
         return new HDWalletProvider(pkey, `https://ropsten.infura.io/v3/${infuraKey}`);
       },
       network_id: 3, // ropsten
       gas: _gasLimit,
-      gasPrice: _gasPrice,
+      gasPrice: _gasPrice
     },
 
     staging: {
-      provider: async () => {
-        const { pkey, infuraKey } = await getKeys();
+      provider: () => {
+        const { pkey, infuraKey } = getKeys();
         return new HDWalletProvider(pkey, `https://mainnet.infura.io/v3/${infuraKey}`);
       },
       network_id: 1, // mainnet
@@ -82,8 +80,8 @@ module.exports = {
     },
 
     prod: {
-      provider: async () => {
-        const { pkey, infuraKey } = await getKeys();
+      provider: () => {
+        const { pkey, infuraKey } = getKeys();
         return new HDWalletProvider(pkey, `https://mainnet.infura.io/v3/${infuraKey}`);
       },
       network_id: 1, // mainnet

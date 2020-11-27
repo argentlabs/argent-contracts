@@ -10,10 +10,12 @@
 // ////////////////////////////////////////////////////////////////////
 
 /* global artifacts */
+global.web3 = web3;
+
 const MultiSig = artifacts.require("MultiSigWallet");
 const DexRegistry = artifacts.require("DexRegistry");
 
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
@@ -34,13 +36,7 @@ async function main() {
     dexStatus.push(pair[1] === "true");
   }
 
-  // Setup deployer
-  // TODO: Maybe get the signer account a better way?
-  const accounts = await web3.eth.getAccounts();
-  const deploymentAccount = accounts[0];
-  const manager = new DeployManager(deploymentAccount);
-  await manager.setup();
-  const { configurator } = manager;
+  const { deploymentAccount, configurator } = await deployManager.getProps();
   const { config } = configurator;
 
   const DexRegistryWrapper = await DexRegistry.at(config.contracts.DexRegistry);
