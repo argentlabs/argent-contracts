@@ -1,8 +1,6 @@
 const readline = require("readline");
 const ethers = require("ethers");
-const ethUtil = require("ethereumjs-util");
 const BN = require("bn.js");
-const fs = require("fs");
 const chai = require("chai");
 
 const { expect } = chai;
@@ -39,7 +37,7 @@ module.exports = {
   }),
 
   async signOffchain(signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
-    const messageHash = `0x${[
+    const message = `0x${[
       "0x19",
       "0x00",
       from,
@@ -54,22 +52,16 @@ module.exports = {
       refundAddress,
     ].map((hex) => hex.slice(2)).join("")}`;
 
-    const sigs = `0x${signers.map((signer) => this.signMessageHash(signer, messageHash)).join("")}`;
-    return sigs;
-  },
+    const messageHash = ethers.utils.keccak256(message);
+    const signatures = await Promise.all(
+      signers.map(async (signer) => {
+        const sig = await this.signMessage(messageHash, signer);
+        return sig.slice(2);
+      })
+    );
+    const joinedSignatures = `0x${signatures.join("")}`;
 
-  signMessageHash(signer, messageHash) {
-    const dataBuff = ethUtil.toBuffer(ethers.utils.keccak256(messageHash));
-    const msgHashBuff = ethUtil.hashPersonalMessage(dataBuff);
-
-    const accountsJson = JSON.parse(fs.readFileSync("./ganache-accounts.json", "utf8"));
-    const pkey = accountsJson.private_keys[signer.toLowerCase()];
-    if (!pkey) throw new Error(`${signer} account private key not found`);
-
-    const sig = ethUtil.ecsign(msgHashBuff, Buffer.from(pkey, "hex"));
-    const signature = ethUtil.toRpcSig(sig.v, sig.r, sig.s);
-    const split = ethers.utils.splitSignature(signature);
-    return ethers.utils.joinSignature(split).slice(2);
+    return joinedSignatures;
   },
 
   async signMessage(message, signer) {
@@ -261,7 +253,6 @@ module.exports = {
 
   async getAccount(index) {
     const accounts = await web3.eth.getAccounts();
-    console.log("accounts", accounts);
     return accounts[index];
   }
 };

@@ -86,7 +86,6 @@
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.20.1",
     "eth-gas-reporter": "^0.2.19",
-    "ethereumjs-util": "^7.0.7",
     "ganache-cli": "^6.12.1",
     "husky": "^4.3.0",
     "istanbul": "^0.4.5",
