@@ -119,10 +119,28 @@ jobs:
             solc --version
             npm run validate:erc20
       - run:
-          name: "Run slither"
+          name: "Run slither on infrastructure contracts based on solc 0.5"
           command:  |
             export PATH=/home/circleci/.solc-select:$PATH
-            npm run security:slither
+            npm run security:slither:infrastructure_0.5
+          when: always
+      - run:
+          name: "Run slither on infrastructure contracts based on solc 0.6"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            npm run security:slither:infrastructure_0.6
+          when: always
+      - run:
+          name: "Run slither on wallet modules contracts"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            npm run security:slither:modules
+          when: always
+      - run:
+          name: "Run slither on wallet contracts"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            npm run security:slither:wallet
           when: always
 workflows:
   version: 2
