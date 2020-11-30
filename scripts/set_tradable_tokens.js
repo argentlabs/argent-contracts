@@ -10,35 +10,29 @@
 // --dry: if set, will not send the transaction, just output what will be updated
 //
 
+/* global artifacts */
 const fs = require("fs");
-const ethers = require("ethers");
-const MultiSig = require("../build/MultiSigWallet");
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
 
-const DeployManager = require("../utils/deploy-manager.js");
+const MultiSig = artifacts.require("MultiSigWallet");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+
 const MultisigExecutor = require("../utils/multisigexecutor.js");
+const deployManager = require("../utils/deploy-manager.js");
 
 async function main() {
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--input");
+  let idx = process.argv.indexOf("--input");
   const input = process.argv[idx + 1];
 
   idx = process.argv.indexOf("--dry");
   const dry = (idx !== -1);
 
-  // Setup deployer
-  const manager = new DeployManager(network);
-  await manager.setup();
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
+  const { configurator } = await deployManager.getProps();
   const { config } = configurator;
-  const { gasPrice, gasLimit } = deployer.defaultOverrides;
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
 
-  const TokenPriceRegistryWrapper = await deployer.wrapDeployedContract(TokenPriceRegistry, config.modules.TokenPriceRegistry);
+  const TokenPriceRegistryWrapper = await TokenPriceRegistry.at(config.modules.TokenPriceRegistry);
 
   const data = JSON.parse(fs.readFileSync(input, "utf8"));
   const addresses = Object.keys(data);
@@ -57,16 +51,13 @@ async function main() {
     console.log(item[0], item[1]);
   }
 
-  console.log("gasPrice", ethers.utils.formatUnits(gasPrice, "gwei"));
-  console.log("gasLimit", gasLimit);
-
   if (dry) return;
 
   const tokens = filteredData.map((item) => item[0]);
   const tradable = filteredData.map((item) => item[1]);
 
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign, { gasPrice, gasLimit });
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
   await multisigExecutor.executeCall(TokenPriceRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
 }
 

@@ -5,32 +5,25 @@
 // ./execute_script.sh update_multisig_threshold.js <network> --threshold <new threshold>
 //
 // where:
-//    - network = [ganache, test, staging, prod]
+//    - network = [development, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
-const MultiSig = require("../build/MultiSigWallet");
+/* global artifacts */
+const MultiSig = artifacts.require("MultiSigWallet");
 
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--threshold");
+  const idx = process.argv.indexOf("--threshold");
   const threshold = process.argv[idx + 1];
 
-  // Setup deployer
-  const manager = new DeployManager(network);
-  await manager.setup();
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
+  const { deploymentAccount, configurator } = await deployManager.getProps();
   const { config } = configurator;
 
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   // deregister
   await multisigExecutor.executeCall(MultiSigWrapper, "changeThreshold", [threshold]);

@@ -6,7 +6,7 @@
 //
 // where:
 //     - network = [test, staging, prod]
-// note: ganache configuration in solution under ./utils/config/ganache.json
+// note: development configuration in solution under ./utils/config/development.json
 // ////////////////////////////////////////////////////////////////////
 
 require("dotenv").config();

@@ -1,27 +1,30 @@
-const ENSRegistry = require("../build/ENSRegistry");
-const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
-const UniswapFactory = require("../lib/uniswap/UniswapFactory");
-const UniswapExchange = require("../lib/uniswap/UniswapExchange");
-const MakerMigration = require("../build/MockScdMcdMigration");
+/* global artifacts */
+
+global.web3 = web3;
+
+const ENSRegistry = artifacts.require("ENSRegistry");
+const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
+const UniswapFactory = artifacts.require("../lib/uniswap/UniswapFactory");
+const UniswapExchange = artifacts.require("../lib/uniswap/UniswapExchange");
+const MakerMigration = artifacts.require("MockScdMcdMigration");
 
 // Paraswap
-const AugustusSwapper = require("../build/AugustusSwapper");
-const Whitelisted = require("../build/Whitelisted");
-const PartnerRegistry = require("../build/PartnerRegistry");
-const PartnerDeployer = require("../build/PartnerDeployer");
-const KyberAdapter = require("../build/Kyber");
+const AugustusSwapper = artifacts.require("AugustusSwapper");
+const Whitelisted = artifacts.require("Whitelisted");
+const PartnerRegistry = artifacts.require("PartnerRegistry");
+const PartnerDeployer = artifacts.require("PartnerDeployer");
+const KyberAdapter = artifacts.require("Kyber");
 
 const utils = require("../utils/utilities.js");
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 
 const BYTES32_NULL = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 // For development purpose
-async function deployENSRegistry(deployer, owner, domain) {
-  const { gasPrice } = deployer.defaultOverrides;
+async function deployENSRegistry(owner, domain) {
   // Deploy the public ENS registry
-  const ensRegistryWithoutFallback = await deployer.deploy(ENSRegistry);
-  const ENSWrapper = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
+  const ensRegistryWithoutFallback = await ENSRegistry.new();
+  const ENSWrapper = await ENSRegistryWithFallback.new(ensRegistryWithoutFallback.address);
 
   // ENS domain
   const parts = domain.split(".");
@@ -29,84 +32,73 @@ async function deployENSRegistry(deployer, owner, domain) {
   const domainName = parts[0];
 
   // Create the 'eth' and 'xyz' namespaces
-  const setSubnodeOwnerXYZ = await ENSWrapper.contract.setSubnodeOwner(BYTES32_NULL, utils.sha3(extension), owner, { gasPrice });
-  await ENSWrapper.verboseWaitForTransaction(setSubnodeOwnerXYZ, `Setting Subnode Owner for ${extension}`);
+  console.log(`Setting Subnode Owner for ${extension}`);
+  await ENSWrapper.setSubnodeOwner(BYTES32_NULL, utils.sha3(extension), owner);
 
   // Create the 'argentx.xyz' wallet ENS namespace
-  const setSubnodeOwnerArgent = await ENSWrapper.contract.setSubnodeOwner(utils.namehash(extension), utils.sha3(domainName), owner, { gasPrice });
-  await ENSWrapper.verboseWaitForTransaction(setSubnodeOwnerArgent, `Setting Subnode Owner for ${domainName}.${extension}`);
+  console.log(`Setting Subnode Owner for ${domainName}.${extension}`);
+  await ENSWrapper.setSubnodeOwner(utils.namehash(extension), utils.sha3(domainName), owner);
 
-  return ENSWrapper.contractAddress;
+  return ENSWrapper.address;
 }
 
-async function deployParaswap(deployer) {
-  const deploymentAccount = await deployer.signer.getAddress();
-  const whitelist = await deployer.deploy(Whitelisted);
-  const partnerDeployer = await deployer.deploy(PartnerDeployer);
-  const partnerRegistry = await deployer.deploy(PartnerRegistry, {}, partnerDeployer.contractAddress);
-  const paraswap = await deployer.deploy(
-    AugustusSwapper,
-    {},
-    whitelist.contractAddress,
+async function deployParaswap(deploymentAccount) {
+  const whitelist = await Whitelisted.new();
+  const partnerDeployer = await PartnerDeployer.new();
+  const partnerRegistry = await PartnerRegistry.new(partnerDeployer.address);
+  const paraswap = await AugustusSwapper.new(
+    whitelist.address,
     deploymentAccount,
-    partnerRegistry.contractAddress,
+    partnerRegistry.address,
     deploymentAccount,
     deploymentAccount,
   );
-  const kyberAdapter = await deployer.deploy(KyberAdapter, {}, deploymentAccount);
-  await whitelist.addWhitelisted(kyberAdapter.contractAddress);
-  return { paraswap: paraswap.contractAddress, kyberAdapter: kyberAdapter.contractAddress };
+  const kyberAdapter = await KyberAdapter.new(deploymentAccount);
+  await whitelist.addWhitelisted(kyberAdapter.address);
+  return { paraswap: paraswap.address, kyberAdapter: kyberAdapter.address };
 }
 
-const deploy = async (network) => {
-  const manager = new DeployManager(network);
-  await manager.setup();
-
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const { gasPrice } = deployer.defaultOverrides;
-
+async function main() {
+  const { configurator, deploymentAccount } = await deployManager.getProps();
   const { config } = configurator;
-
-  const deploymentAccount = await deployer.signer.getAddress();
 
   if (config.ENS.deployOwnRegistry) {
     // on some testnets, we use our own ENSRegistry
-    const address = await deployENSRegistry(deployer, deploymentAccount, config.ENS.domain);
+    const address = await deployENSRegistry(deploymentAccount, config.ENS.domain);
     configurator.updateENSRegistry(address);
   }
 
   if (config.defi.paraswap.deployOwn) {
-    const { paraswap, kyberAdapter } = await deployParaswap(deployer);
+    const { paraswap, kyberAdapter } = await deployParaswap(deploymentAccount);
     configurator.updateParaswap(paraswap, { Kyber: kyberAdapter });
   }
 
   if (config.defi.uniswap.deployOwn) {
-    const UniswapFactoryWrapper = await deployer.deploy(UniswapFactory);
-    configurator.updateUniswapFactory(UniswapFactoryWrapper.contractAddress);
-    const UniswapExchangeTemplateWrapper = await deployer.deploy(UniswapExchange);
-    const initializeFactoryTx = await UniswapFactoryWrapper.contract.initializeFactory(UniswapExchangeTemplateWrapper.contractAddress, { gasPrice });
-    await UniswapFactoryWrapper.verboseWaitForTransaction(initializeFactoryTx, "Initializing UniswapFactory");
+    const UniswapFactoryWrapper = await UniswapFactory.new();
+    configurator.updateUniswapFactory(UniswapFactoryWrapper.address);
+    const UniswapExchangeTemplateWrapper = await UniswapExchange.new();
+    await UniswapFactoryWrapper.initializeFactory(UniswapExchangeTemplateWrapper.address);
   }
 
   if (config.defi.maker.deployOwn) {
     // Deploy Maker's mock Migration contract if needed
-    const MakerMigrationWrapper = await deployer.deploy(
-      MakerMigration,
-      {},
+    const MakerMigrationWrapper = await MakerMigration.new(
       config.defi.maker.vat || "0x0000000000000000000000000000000000000000",
       config.defi.maker.daiJoin || "0x0000000000000000000000000000000000000000",
       config.defi.maker.wethJoin || "0x0000000000000000000000000000000000000000",
       config.defi.maker.tub || "0x0000000000000000000000000000000000000000",
       config.defi.maker.cdpManager || "0x0000000000000000000000000000000000000000",
     );
-    configurator.updateMakerMigration(MakerMigrationWrapper.contractAddress);
+    configurator.updateMakerMigration(MakerMigrationWrapper.address);
   }
 
   // save configuration
   await configurator.save();
-};
 
-module.exports = {
-  deploy,
+  console.log("## completed deployment script 1 ##");
+}
+
+// For truffle exec
+module.exports = function (callback) {
+  main().then(() => callback()).catch((err) => callback(err));
 };

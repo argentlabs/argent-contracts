@@ -18,10 +18,14 @@
 //    - network = [test, prod]
 // ////////////////////////////////////////////////////////////////////
 
-const ArgentWalletDetector = require("../build/ArgentWalletDetector");
-const MultiSig = require("../build/MultiSigWallet");
+/* global artifacts */
 
-const DeployManager = require("../utils/deploy-manager.js");
+global.web3 = web3;
+
+const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
+const MultiSig = artifacts.require("MultiSigWallet");
+
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
@@ -30,10 +34,7 @@ async function main() {
   let implementation;
 
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--wallet");
+  let idx = process.argv.indexOf("--wallet");
   if (idx > 0) {
     wallet = process.argv[idx + 1];
   } else {
@@ -51,17 +52,12 @@ async function main() {
     }
   }
 
-  // Setup deployer
-  const manager = new DeployManager(network);
-  await manager.setup();
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
+  const { deploymentAccount, configurator } = await deployManager.getProps();
   const { config } = configurator;
 
-  const ArgentWalletDetectorWrapper = await deployer.wrapDeployedContract(ArgentWalletDetector, config.contracts.ArgentWalletDetector);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   if (wallet) {
     console.log(`Adding wallet code and implementation from ${wallet}`);

@@ -1,113 +1,103 @@
-// AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true etherlime deploy --file ./scripts/deploy_defi.js --compile false
-const ethers = require("ethers");
-const { parseEther, formatBytes32String } = require("ethers").utils;
+// AWS_PROFILE=argent-test AWS_SDK_LOAD_CONFIG=true npx truffle exec ./scripts/deploy_defi.js
+/* global artifacts */
 
-const DeployManager = require("../utils/deploy-manager.js");
+const BN = require("bn.js");
+const { utils } = require("ethers");
 
 const UniswapFactory = require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = require("../lib/uniswap/UniswapExchange");
 
-const Vox = require("../build/SaiVox");
-const Tub = require("../build/SaiTub");
-const DSToken = require("../build/DSToken");
-const WETH = require("../build/WETH9");
-const DSValue = require("../build/DSValue");
+const Vox = artifacts.require("SaiVox");
+const Tub = artifacts.require("SaiTub");
+const DSToken = artifacts.require("DSToken");
+const WETH = artifacts.require("WETH9");
+const DSValue = artifacts.require("DSValue");
 
-const RAY = ethers.BigNumber.from("1000000000000000000000000000"); // 10**27
-const WAD = ethers.BigNumber.from("1000000000000000000"); // 10**18
+const RAY = new BN("1000000000000000000000000000"); // 10**27
+const WAD = new BN("1000000000000000000"); // 10**18
 const USD_PER_DAI = RAY; // 1 DAI = 1 USD
-const USD_PER_ETH = WAD.mul(250); // 1 ETH = 250 USD
-const USD_PER_MKR = WAD.mul(700); // 1 MKR = 700 USD
+const USD_PER_ETH = WAD.muln(250); // 1 ETH = 250 USD
+const USD_PER_MKR = WAD.muln(700); // 1 MKR = 700 USD
 
 const ETH_PER_MKR = WAD.mul(USD_PER_MKR).div(USD_PER_ETH); // 1 MKR = 2.8 ETH
-
-async function getTimestamp(deployer) {
-  const block = await deployer.provider.getBlock("latest");
-  return block.timestamp;
-}
 
 function sleep(ms) {
   console.log("sleeping...");
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function deploy() {
-  const idx = process.argv.indexOf("--network");
-  const network = idx > -1 ? process.argv[idx + 1] : "test";
-
-  const deployManager = new DeployManager(network);
-  await deployManager.setup();
-  const { deployer } = deployManager;
-  const manager = deployer.signer; // the pit
+async function main() {
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
 
   /* ************* Deploy Maker *************** */
-  const vox = await deployer.deploy(Vox, {}, USD_PER_DAI);
-  const sai = await deployer.deploy(DSToken, {}, formatBytes32String("DAI"));
-  const gov = await deployer.deploy(DSToken, {}, formatBytes32String("MKR"));
-  const sin = await deployer.deploy(DSToken, {}, formatBytes32String("SIN"));
-  const skr = await deployer.deploy(DSToken, {}, formatBytes32String("PETH"));
-  const gem = await deployer.deploy(WETH);
-  const pip = await deployer.deploy(DSValue);
-  const pep = await deployer.deploy(DSValue);
-  const tub = await deployer.deploy(Tub, {},
-    sai.contractAddress,
-    sin.contractAddress,
-    skr.contractAddress,
-    gem.contractAddress,
-    gov.contractAddress,
-    pip.contractAddress,
-    pep.contractAddress,
-    vox.contractAddress,
-    manager.address);
+  const vox = await Vox.new(USD_PER_DAI);
+  const sai = await DSToken.new(utils.formatBytes32String("DAI"));
+  const gov = await DSToken.new(utils.formatBytes32String("MKR"));
+  const sin = await DSToken.new(utils.formatBytes32String("SIN"));
+  const skr = await DSToken.new(utils.formatBytes32String("PETH"));
+  const gem = await WETH.new();
+  const pip = await DSValue.new();
+  const pep = await DSValue.new();
+  const tub = await Tub.new(
+    sai.address,
+    sin.address,
+    skr.address,
+    gem.address,
+    gov.address,
+    pip.address,
+    pep.address,
+    vox.address,
+    deploymentAccount);
 
   // let the Tub mint PETH and DAI
-  await skr.setOwner(tub.contractAddress);
-  await sai.setOwner(tub.contractAddress);
+  await skr.setOwner(tub.address);
+  await sai.setOwner(tub.address);
   // setup USD/ETH oracle with a convertion rate of 100 USD/ETH
-  await pip.poke(`0x${USD_PER_ETH.toHexString().slice(2).padStart(64, "0")}`);
+  await pip.poke(`0x${USD_PER_ETH.toString(16, 64)}`);
   // setup USD/MKR oracle with a convertion rate of 400 USD/MKR
-  await pep.poke(`0x${USD_PER_MKR.toHexString().slice(2).padStart(64, "0")}`);
+  await pep.poke(`0x${USD_PER_MKR.toString(16, 64)}`);
   // set the total DAI debt ceiling to 50,000 DAI
-  await tub.mold(formatBytes32String("cap"), parseEther("50000"));
+  await tub.mold(utils.formatBytes32String("cap"), web3.utils.toWei("50000"));
   // set the liquidity ratio to 150%
-  await tub.mold(formatBytes32String("mat"), RAY.mul(3).div(2));
+  await tub.mold(utils.formatBytes32String("mat"), RAY.muln(3).divn(2));
   // set the governance fee to 7.5% APR
-  await tub.mold(formatBytes32String("fee"), "1000000002293273137447730714", { gasLimit: 150000 });
+  await tub.mold(utils.formatBytes32String("fee"), "1000000002293273137447730714", { gasLimit: 150000 });
   // set the liquidation penalty to 13%
-  await tub.mold(formatBytes32String("axe"), "1130000000000000000000000000", { gasLimit: 150000 });
+  await tub.mold(utils.formatBytes32String("axe"), "1130000000000000000000000000", { gasLimit: 150000 });
 
   /* ************* Deploy Uniswap ****************** */
 
-  const uniswapFactory = await deployer.deploy(UniswapFactory);
-  const uniswapTemplateExchange = await deployer.deploy(UniswapExchange);
-  await uniswapFactory.initializeFactory(uniswapTemplateExchange.contractAddress);
+  const uniswapFactory = await UniswapFactory.new();
+  const uniswapTemplateExchange = await UniswapExchange.new();
+  await uniswapFactory.initializeFactory(uniswapTemplateExchange.address);
 
   /* *************** create MKR exchange ***************** */
 
-  const ethLiquidity = parseEther("1");
+  const ethLiquidity = new BN(web3.utils.toWei("1"));
   const mkrLiquidity = ethLiquidity.mul(WAD).div(ETH_PER_MKR);
-  await gov["mint(address,uint256)"](manager.address, mkrLiquidity);
+  await gov.mint(deploymentAccount, mkrLiquidity);
 
-  await uniswapFactory.createExchange(gov.contractAddress, { gasLimit: 450000 });
+  await uniswapFactory.createExchange(gov.address, { gasLimit: 450000 });
   let exchange = "0x0000000000000000000000000000000000000000";
   while (exchange === "0x0000000000000000000000000000000000000000") {
-    exchange = await uniswapFactory.getExchange(gov.contractAddress);
+    exchange = await uniswapFactory.getExchange(gov.address);
     console.log("exchange: ", exchange);
     await sleep(5000);
   }
-  const mkrExchange = await deployer.wrapDeployedContract(UniswapExchange, exchange);
-  await gov.approve(mkrExchange.contractAddress, mkrLiquidity);
-  const timestamp = await getTimestamp(deployer);
+  const mkrExchange = await UniswapExchange.at(exchange);
+  await gov.approve(mkrExchange.address, mkrLiquidity);
+  const timestamp = await utils.getTimestamp();
   await mkrExchange.addLiquidity(1, mkrLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 250000 });
 
   console.log("******* contracts *******");
-  console.log(`DAI: ${sai.contractAddress}`);
-  console.log(`MKR: ${gov.contractAddress}`);
-  console.log(`MAKER TUB: ${tub.contractAddress}`);
-  console.log(`UNISWAP FACTORY: ${uniswapFactory.contractAddress}`);
+  console.log(`DAI: ${sai.address}`);
+  console.log(`MKR: ${gov.address}`);
+  console.log(`MAKER TUB: ${tub.address}`);
+  console.log(`UNISWAP FACTORY: ${uniswapFactory.address}`);
   console.log("********************************");
 }
 
-module.exports = {
-  deploy,
-};
+main().catch((err) => {
+  throw err;
+});

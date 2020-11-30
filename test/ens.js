@@ -1,81 +1,74 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
 
-const ENSRegistry = require("../build/ENSRegistry");
-const ENSRegistryWithFallback = require("../build/ENSRegistryWithFallback");
-const ENSManager = require("../build/ArgentENSManager");
-const ENSResolver = require("../build/ArgentENSResolver");
-const ENSReverseRegistrar = require("../build/ReverseRegistrar");
+const ENSRegistry = artifacts.require("ENSRegistry");
+const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
+const ENSManager = artifacts.require("ArgentENSManager");
+const ENSResolver = artifacts.require("ArgentENSResolver");
+const ENSReverseRegistrar = artifacts.require("ReverseRegistrar");
 
-const TestManager = require("../utils/test-manager");
+const truffleAssert = require("truffle-assertions");
 const utilities = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
-describe("ENS contracts", function () {
-  this.timeout(100000);
-
-  const manager = new TestManager();
-
-  const infrastructure = accounts[0].signer;
-  const owner = accounts[1].signer;
-  const amanager = accounts[2].signer;
-  const anonmanager = accounts[3].signer;
+contract("ENS contracts", (accounts) => {
+  const infrastructure = accounts[0];
+  const owner = accounts[1];
+  const amanager = accounts[2];
+  const anonmanager = accounts[3];
 
   const root = "xyz";
   const subnameWallet = "argent";
   const walletNode = ethers.utils.namehash(`${subnameWallet}.${root}`);
 
-  let deployer;
   let ensRegistry;
   let ensResolver;
   let ensReverse;
   let ensManager;
 
   beforeEach(async () => {
-    deployer = manager.newDeployer();
-    const ensRegistryWithoutFallback = await deployer.deploy(ENSRegistry);
-    ensRegistry = await deployer.deploy(ENSRegistryWithFallback, {}, ensRegistryWithoutFallback.contractAddress);
-    ensResolver = await deployer.deploy(ENSResolver);
-    ensReverse = await deployer.deploy(ENSReverseRegistrar, {}, ensRegistry.contractAddress, ensResolver.contractAddress);
-    ensManager = await deployer.deploy(ENSManager, {},
-      `${subnameWallet}.${root}`, walletNode, ensRegistry.contractAddress, ensResolver.contractAddress);
-    await ensResolver.addManager(ensManager.contractAddress);
-    await ensResolver.addManager(infrastructure.address);
-    await ensManager.addManager(infrastructure.address);
+    const ensRegistryWithoutFallback = await ENSRegistry.new();
+    ensRegistry = await ENSRegistryWithFallback.new(ensRegistryWithoutFallback.address);
+    ensResolver = await ENSResolver.new();
+    ensReverse = await ENSReverseRegistrar.new(ensRegistry.address, ensResolver.address);
+    ensManager = await ENSManager.new(`${subnameWallet}.${root}`, walletNode, ensRegistry.address, ensResolver.address);
+    await ensResolver.addManager(ensManager.address);
+    await ensResolver.addManager(infrastructure);
+    await ensManager.addManager(infrastructure);
 
-    await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes(root)), infrastructure.address);
+    await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes(root)), infrastructure);
     await ensRegistry.setSubnodeOwner(
-      ethers.utils.namehash(root), ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subnameWallet)), ensManager.contractAddress,
+      ethers.utils.namehash(root), ethers.utils.keccak256(ethers.utils.toUtf8Bytes(subnameWallet)), ensManager.address,
     );
-    await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("reverse")), infrastructure.address);
+    await ensRegistry.setSubnodeOwner(ZERO_BYTES32, ethers.utils.keccak256(ethers.utils.toUtf8Bytes("reverse")), infrastructure);
     await ensRegistry.setSubnodeOwner(
-      ethers.utils.namehash("reverse"), ethers.utils.keccak256(ethers.utils.toUtf8Bytes("addr")), ensReverse.contractAddress,
+      ethers.utils.namehash("reverse"), ethers.utils.keccak256(ethers.utils.toUtf8Bytes("addr")), ensReverse.address,
     );
   });
 
   describe("ENS Manager", () => {
     it("should be the owner of the wallet root", async () => {
       const nodeOwner = await ensRegistry.owner(walletNode);
-      assert.equal(nodeOwner, ensManager.contractAddress, "ens manager should be the owner of the wallet root node");
+      assert.equal(nodeOwner, ensManager.address, "ens manager should be the owner of the wallet root node");
     });
 
     it("should return correct ENSResolver", async () => {
       const ensResolverOnManager = await ensManager.ensResolver();
-      assert.equal(ensResolverOnManager, ensResolver.contractAddress, "should have the correct ENSResolver addrress");
+      assert.equal(ensResolverOnManager, ensResolver.address, "should have the correct ENSResolver addrress");
     });
 
     it("should register an ENS name", async () => {
       const label = "wallet";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
-      await ensManager.from(infrastructure).register(label, owner.address);
+      await ensManager.register(label, owner);
 
       const recordExists = await ensRegistry.recordExists(labelNode);
       assert.isTrue(recordExists);
       const nodeOwner = await ensRegistry.owner(labelNode);
-      assert.equal(nodeOwner, owner.address);
+      assert.equal(nodeOwner, owner);
       const res = await ensRegistry.resolver(labelNode);
-      assert.equal(res, ensResolver.contractAddress);
+      assert.equal(res, ensResolver.address);
     });
 
     it("should return the correct availability for a subnode", async () => {
@@ -87,10 +80,10 @@ describe("ENS contracts", function () {
       assert.isTrue(available);
 
       // then we register it
-      await ensManager.from(infrastructure).register(label, owner.address);
+      await ensManager.register(label, owner);
 
       const nodeOwner = await ensRegistry.owner(labelNode);
-      assert.equal(nodeOwner, owner.address);
+      assert.equal(nodeOwner, owner);
 
       // then the node is unavailable
       available = await ensManager.isAvailable(labelNode1);
@@ -100,15 +93,15 @@ describe("ENS contracts", function () {
     it("should add a new manager and register an ENS name", async () => {
       const label = "wallet";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
-      await ensManager.addManager(amanager.address);
-      await ensManager.from(amanager).register(label, owner.address);
+      await ensManager.addManager(amanager);
+      await ensManager.register(label, owner, { from: amanager });
       const nodeOwner = await ensRegistry.owner(labelNode);
-      assert.equal(nodeOwner, owner.address, "new manager should have registered the ens name");
+      assert.equal(nodeOwner, owner, "new manager should have registered the ens name");
     });
 
     it("should fail to register an ENS name when the caller is not a manager", async () => {
       const label = "wallet";
-      await assert.revert(ensManager.from(anonmanager).register(label, owner.address), "registering should throw");
+      await truffleAssert.reverts(ensManager.register(label, owner, { from: anonmanager }), "M: Must be manager");
     });
 
     it("should be able to change the root node owner", async () => {
@@ -120,7 +113,7 @@ describe("ENS contracts", function () {
 
     it("should not be able to change the root node owner if not the owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
-      await assert.revertWith(ensManager.from(amanager).changeRootnodeOwner(randomAddress), "Must be owner");
+      await truffleAssert.reverts(ensManager.changeRootnodeOwner(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should be able to change the ens resolver", async () => {
@@ -132,11 +125,11 @@ describe("ENS contracts", function () {
 
     it("should not be able to change the ens resolver if not owner", async () => {
       const randomAddress = await utilities.getRandomAddress();
-      await assert.revertWith(ensManager.from(amanager).changeENSResolver(randomAddress), "Must be owner");
+      await truffleAssert.reverts(ensManager.changeENSResolver(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should not be able to change the ens resolver to an empty address", async () => {
-      await assert.revertWith(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");
+      await truffleAssert.reverts(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");
     });
   });
 
@@ -162,9 +155,9 @@ describe("ENS contracts", function () {
 
     it("should resolve a name", async () => {
       const label = "wallet";
-      await ensManager.from(infrastructure).register(label, owner.address);
+      await ensManager.register(label, owner);
 
-      const node = await ensReverse.node(owner.address);
+      const node = await ensReverse.node(owner);
       const name = await ensResolver.name(node);
       assert.equal(name, "wallet.argent.xyz");
     });

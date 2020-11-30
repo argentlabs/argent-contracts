@@ -4,6 +4,7 @@ build-legacy
 tmp
 bin
 .outputParameter
+flatten
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
@@ -28,13 +29,12 @@ bin
 
 .env
 utils/config/*.json
-!utils/config/ganache.json
+!utils/config/development.json
 !utils/config/kovan.json
 !utils/config/kovan-fork.json
+ganache-accounts.json
 
-## Etherlime
-**/.etherlime-store
-flat
+## solidity-coverage
 .coverage_artifacts
 .coverage_contracts
 .coverage_tests
@@ -42,3 +42,4 @@ coverage
 coverage.json
 
 crytic-export
+gas-usage-report.log
