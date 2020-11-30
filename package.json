@@ -29,13 +29,15 @@
     "lint:contracts": "npx solhint contracts/**/*.sol && npx solhint contracts/**/**/*.sol",
     "test:deployment": "./scripts/deploy.sh --no-compile development `seq 1 6`",
     "validate:erc20": "bash ./scripts/validate_erc20.sh",
-    "security:slither": "npm run security:slither:infrastructure && npm run security:slither:modules && npm run security:slither:wallet",
-    "security:slither:infrastructure": "rm -rf build && npm run compile:infrastructure && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
-    "security:slither:modules": "rm -rf build && npx etherlime compile --workingDirectory contracts/modules --runs=999 && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
-    "security:slither:wallet": "rm -rf build && npm run compile:wallet && slither . --ignore-compile --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
-    "security:slither:infrastructure:triage": "rm -rf build && npm run compile:infrastructure && slither . --ignore-compile --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
-    "security:slither:modules:triage": "rm -rf build && npx etherlime compile --workingDirectory contracts/modules && slither . --ignore-compile --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external",
-    "security:slither:wallet:triage": "rm -rf build && npm run compile:wallet && slither . --ignore-compile --triage-mode --filter-paths lib --solc-disable-warnings --exclude-low --exclude-informational --exclude=naming-convention,unused-state-variables,solc-version,assembly-usage,low-level-calls,public-function-that-could-be-declared-as-external"
+    "security:slither": "npm run security:slither:infrastructure_0.5 && npm run security:slither:infrastructure_0.6 && npm run security:slither:modules && npm run security:slither:wallet",
+    "security:slither:infrastructure_0.5": "rm -rf build && npm run compile:infrastructure_0.5 && slither .",
+    "security:slither:infrastructure_0.6": "rm -rf build && npm run compile:infrastructure_0.6 && slither .",
+    "security:slither:modules": "rm -rf build && npx truffle compile --config truffle-config-modules.js && slither .",
+    "security:slither:wallet": "rm -rf build && npm run compile:wallet && slither .",
+    "security:slither:infrastructure_0.5:triage": "rm -rf build && npm run compile:infrastructure_0.5 && slither . --triage-mode",
+    "security:slither:infrastructure_0.6:triage": "rm -rf build && npm run compile:infrastructure_0.6 && slither . --triage-mode",
+    "security:slither:modules:triage": "rm -rf build && npx truffle compile --config truffle-config-modules.js && slither . --triage-mode",
+    "security:slither:wallet:triage": "rm -rf build && npm run compile:wallet && slither . --triage-mode"
   },
   "lint-staged": {
     "*.js": [

@@ -1,0 +1,8 @@
+{
+  "filter_paths": "lib",
+  "detectors_to_exclude": "naming-convention,solc-version,assembly,low-level-calls",
+  "solc_disable_warnings": true,
+  "exclude_low": true,
+  "exclude_informational": true,
+  "truffle_ignore_compile": true
+}
