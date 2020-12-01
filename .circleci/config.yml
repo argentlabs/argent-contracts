@@ -3,10 +3,16 @@ version: 2
 job_common: &job_common
   docker:
     - image: circleci/node:10.21-stretch
+      auth:
+          username: argentcircleci
+          password: $DOCKERHUB_PASSWORD
   working_directory: ~/argent-contracts
 job_python: &job_python
   docker:
     - image: circleci/python:3.8.0b1-stretch-node
+      auth:
+        username: argentcircleci
+        password: $DOCKERHUB_PASSWORD
   working_directory: ~/argent-contracts
 step_save_cache: &step_save_cache
   save_cache:
@@ -22,27 +28,40 @@ step_setup_global_packages: &step_setup_global_packages
     name: "Set up global packages"
     command: |
       npm install
+step_pull_solc_docker: &step_pull_solc_docker
+  run:
+    name: "Pull solc docker images"
+    command: |
+      docker pull ethereum/solc:0.5.4
+      docker pull ethereum/solc:0.6.12
 step_setup_slither: &step_setup_slither
   run:
     name: "Setup slither analyser https://github.com/crytic/slither"
     command: |
-      wget https://github.com/ethereum/solidity/releases/download/v0.5.4/solc-static-linux
-      chmod +x solc-static-linux
-      sudo mv solc-static-linux /usr/local/bin/solc
       sudo pip3 install slither-analyzer
+      sudo apt-get install jq
+step_setup_solc_select: &step_setup_solc_select
+  run:
+    name: "Setup solc-select"
+    command: |
+      git clone https://github.com/crytic/solc-select.git
+      bash ./solc-select/scripts/install.sh
 jobs:
   unit-test:
     <<: *job_common
     steps:
       - checkout
       - <<: *step_restore_cache
+      - setup_remote_docker:
+          version: 19.03.13
+      - <<: *step_pull_solc_docker
       - <<: *step_setup_global_packages
+      - run:
+          name: "Lint JavaScript"
+          command: npm run lint:js
       - run:
           name: "Lint Solidity contracts"
           command: npm run lint:contracts
-      - run:
-          name: "Testing deployment scripts and benchmark gas costs"
-          command: npm run ganache >/dev/null 2>&1 & npm run test:deployment && npm run test:benchmark
       - run:
           name: "Compiling external library contracts"
           command: npm run compile:lib
@@ -56,11 +75,20 @@ jobs:
           name: "Compiling test contracts"
           command: npm run compile:test
       - run:
-          name: "Lint JavaScript"
-          command: npm run lint:js
+          name: "Provision lib artefacts"
+          command: npm run provision:lib:artefacts
+      - run:
+          name: "Test deployment scripts"
+          command: npm run ganache >/dev/null 2>&1 & npm run test:deployment
+          no_output_timeout: 60m
       - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
+      # Save coverage artifacts
+      - store_artifacts:
+          path: gas-usage-report.log
+          destination: reports/gas-usage-report.log
+      - run: npx codechecks
       - run:
           name: "Running coverage"
           command: |
@@ -71,16 +99,49 @@ jobs:
       # Save coverage artifacts
       - store_artifacts:
           path: coverage
+          destination: coverage-artifacts
   security-test:
     <<: *job_python
     steps:
       - checkout
       - <<: *step_restore_cache
+      - setup_remote_docker:
+          version: 19.03.13
+      - <<: *step_pull_solc_docker
       - <<: *step_setup_global_packages
       - <<: *step_setup_slither
+      - <<: *step_setup_solc_select
       - run:
-          name: "Run slither"
-          command: npm run security:slither
+          name: "Check TokenPriceRegistry tokens for ERC20 compliance"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            echo "export PATH=/home/circleci/.solc-select:$PATH" >> ~/.bashrc
+            solc --version
+            npm run validate:erc20
+      - run:
+          name: "Run slither on infrastructure contracts based on solc 0.5"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            npm run security:slither:infrastructure_0.5
+          when: always
+      - run:
+          name: "Run slither on infrastructure contracts based on solc 0.6"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            npm run security:slither:infrastructure_0.6
+          when: always
+      - run:
+          name: "Run slither on wallet modules contracts"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            npm run security:slither:modules
+          when: always
+      - run:
+          name: "Run slither on wallet contracts"
+          command:  |
+            export PATH=/home/circleci/.solc-select:$PATH
+            npm run security:slither:wallet
+          when: always
 workflows:
   version: 2
   commit:

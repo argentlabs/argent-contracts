@@ -8,24 +8,25 @@
 // ./execute_script.sh update_module_registry.js <network> --remove --module <module address>
 //
 // where:
-//    - network = [ganache, test, staging, prod]
+//    - network = [development, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
-const ModuleRegistry = require("../build/ModuleRegistry");
-const MultiSig = require("../build/MultiSigWallet");
+/* global artifacts */
+
+global.web3 = web3;
+
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const MultiSig = artifacts.require("MultiSigWallet");
 
 const utils = require("../utils/utilities.js");
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
   let add;
 
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--add");
+  let idx = process.argv.indexOf("--add");
   if (idx > 0) {
     add = true;
   } else {
@@ -44,17 +45,12 @@ async function main() {
   idx = process.argv.indexOf("--name");
   const targetName = process.argv[idx + 1];
 
-  // Setup deployer
-  const manager = new DeployManager(network);
-  await manager.setup();
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
+  const { deploymentAccount, configurator } = await deployManager.getProps();
   const { config } = configurator;
 
-  const ModuleRegistryWrapper = await deployer.wrapDeployedContract(ModuleRegistry, config.contracts.ModuleRegistry);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   if (add) {
     console.log(`Registering module ${targetName} to ModuleRegistry`);

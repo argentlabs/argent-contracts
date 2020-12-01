@@ -1,34 +1,37 @@
-/* global accounts */
+/* global artifacts */
 const ethers = require("ethers");
+const truffleAssert = require("truffle-assertions");
+const TruffleContract = require("@truffle/contract");
 
-const Proxy = require("../build/Proxy");
-const BaseWallet = require("../build/BaseWallet");
-const Registry = require("../build/ModuleRegistry");
-const VersionManager = require("../build/VersionManager");
-const TransferStorage = require("../build/TransferStorage");
-const LockStorage = require("../build/LockStorage");
-const GuardianStorage = require("../build/GuardianStorage");
-const LimitStorage = require("../build/LimitStorage");
-const RelayerManager = require("../build/RelayerManager");
-const TransferManager = require("../build/TransferManager");
-const LegacyTransferManager = require("../build-legacy/v1.6.0/TransferManager");
-const UpgraderToVersionManager = require("../build/UpgraderToVersionManager");
+const LegacyTransferManagerContract = require("../build-legacy/v1.6.0/TransferManager.json");
+
+const LegacyTransferManager = TruffleContract(LegacyTransferManagerContract);
+
+const Proxy = artifacts.require("Proxy");
+const BaseWallet = artifacts.require("BaseWallet");
+const Registry = artifacts.require("ModuleRegistry");
+const VersionManager = artifacts.require("VersionManager");
+const TransferStorage = artifacts.require("TransferStorage");
+const LockStorage = artifacts.require("LockStorage");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const LimitStorage = artifacts.require("LimitStorage");
+const RelayerManager = artifacts.require("RelayerManager");
+const TransferManager = artifacts.require("TransferManager");
+const UpgraderToVersionManager = artifacts.require("UpgraderToVersionManager");
 
 const SECURITY_PERIOD = 3600;
 const SECURITY_WINDOW = 3600;
 const ETH_LIMIT = 1000000;
 
-const TestManager = require("../utils/test-manager");
+const RelayManager = require("../utils/relay-manager");
+const utils = require("../utils/utilities.js");
 
-describe("UpgraderToVersionManager", function () {
-  this.timeout(100000);
+contract("UpgraderToVersionManager", (accounts) => {
+  const manager = new RelayManager();
 
-  const manager = new TestManager();
+  const owner = accounts[1];
+  const recipient = accounts[2];
 
-  const owner = accounts[1].signer;
-  const recipient = accounts[2].signer;
-
-  let deployer;
   let transferStorage;
   let lockStorage;
   let guardianStorage;
@@ -42,18 +45,20 @@ describe("UpgraderToVersionManager", function () {
   let upgrader;
 
   before(async () => {
-    deployer = manager.newDeployer();
-    walletImplementation = await deployer.deploy(BaseWallet);
-    const registry = await deployer.deploy(Registry);
-    lockStorage = await deployer.deploy(LockStorage);
-    guardianStorage = await deployer.deploy(GuardianStorage);
-    transferStorage = await deployer.deploy(TransferStorage);
+    LegacyTransferManager.defaults({ from: accounts[0] });
+    LegacyTransferManager.setProvider(web3.currentProvider);
+
+    walletImplementation = await BaseWallet.new();
+    const registry = await Registry.new();
+    lockStorage = await LockStorage.new();
+    guardianStorage = await GuardianStorage.new();
+    transferStorage = await TransferStorage.new();
 
     // Deploy old architecture
-    previousTransferManager = await deployer.deploy(LegacyTransferManager, {},
-      registry.contractAddress,
-      transferStorage.contractAddress,
-      guardianStorage.contractAddress,
+    previousTransferManager = await LegacyTransferManager.new(
+      registry.address,
+      transferStorage.address,
+      guardianStorage.address,
       ethers.constants.AddressZero,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
@@ -61,53 +66,53 @@ describe("UpgraderToVersionManager", function () {
       ethers.constants.AddressZero);
 
     // Deploy new modules
-    limitStorage = await deployer.deploy(LimitStorage);
-    versionManager = await deployer.deploy(VersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
-      transferStorage.contractAddress,
-      limitStorage.contractAddress);
-    upgrader = await deployer.deploy(UpgraderToVersionManager, {},
-      registry.contractAddress,
-      lockStorage.contractAddress,
-      [previousTransferManager.contractAddress], // toDisable
-      versionManager.contractAddress);
-    await registry.registerModule(versionManager.contractAddress, ethers.utils.formatBytes32String("VersionManager"));
-    await registry.registerModule(upgrader.contractAddress, ethers.utils.formatBytes32String("Upgrader"));
+    limitStorage = await LimitStorage.new();
+    versionManager = await VersionManager.new(
+      registry.address,
+      lockStorage.address,
+      guardianStorage.address,
+      transferStorage.address,
+      limitStorage.address);
+    upgrader = await UpgraderToVersionManager.new(
+      registry.address,
+      lockStorage.address,
+      [previousTransferManager.address], // toDisable
+      versionManager.address);
+    await registry.registerModule(versionManager.address, ethers.utils.formatBytes32String("VersionManager"));
+    await registry.registerModule(upgrader.address, ethers.utils.formatBytes32String("Upgrader"));
 
     // Deploy new features
-    transferManager = await deployer.deploy(TransferManager, {},
-      lockStorage.contractAddress,
-      transferStorage.contractAddress,
-      limitStorage.contractAddress,
+    transferManager = await TransferManager.new(
+      lockStorage.address,
+      transferStorage.address,
+      limitStorage.address,
       ethers.constants.AddressZero,
-      versionManager.contractAddress,
+      versionManager.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       ETH_LIMIT,
       ethers.constants.AddressZero,
-      previousTransferManager.contractAddress);
-    relayerManager = await deployer.deploy(RelayerManager, {},
-      lockStorage.contractAddress,
-      guardianStorage.contractAddress,
-      limitStorage.contractAddress,
+      previousTransferManager.address);
+    relayerManager = await RelayerManager.new(
+      lockStorage.address,
+      guardianStorage.address,
+      limitStorage.address,
       ethers.constants.AddressZero,
-      versionManager.contractAddress);
+      versionManager.address);
     manager.setRelayerManager(relayerManager);
-    await versionManager.addVersion([transferManager.contractAddress, relayerManager.contractAddress], [transferManager.contractAddress]);
+    await versionManager.addVersion([transferManager.address, relayerManager.address], [transferManager.address]);
   });
 
   it("should fail to upgrade a pre-VersionManager wallet to a version lower than minVersion", async () => {
-    const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-    wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
-    await wallet.init(owner.address, [previousTransferManager.contractAddress]);
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = await BaseWallet.at(proxy.address);
+    await wallet.init(owner, [previousTransferManager.address]);
     const prevVersion = await versionManager.lastVersion();
     await versionManager.addVersion([], []);
     const lastVersion = await versionManager.lastVersion();
     await versionManager.setMinVersion(lastVersion);
-    await assert.revertWith(
-      previousTransferManager.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress),
+    await truffleAssert.reverts(
+      previousTransferManager.addModule(wallet.address, upgrader.address, { from: owner }),
       "VM: invalid _toVersion",
     );
     await versionManager.setMinVersion(prevVersion);
@@ -115,27 +120,27 @@ describe("UpgraderToVersionManager", function () {
 
   describe("After migrating a pre-VersionManager wallet", () => {
     beforeEach(async () => {
-      const proxy = await deployer.deploy(Proxy, {}, walletImplementation.contractAddress);
-      wallet = deployer.wrapDeployedContract(BaseWallet, proxy.contractAddress);
+      const proxy = await Proxy.new(walletImplementation.address);
+      wallet = await BaseWallet.at(proxy.address);
 
-      await wallet.init(owner.address, [previousTransferManager.contractAddress]);
-      await previousTransferManager.from(owner).addModule(wallet.contractAddress, upgrader.contractAddress);
+      await wallet.init(owner, [previousTransferManager.address]);
+      await previousTransferManager.addModule(wallet.address, upgrader.address, { from: owner });
     });
 
     it("should add/remove an account to/from the whitelist", async () => {
-      await transferManager.from(owner).addToWhitelist(wallet.contractAddress, recipient.address);
-      await manager.increaseTime(SECURITY_PERIOD + 1);
-      let isTrusted = await transferManager.isWhitelisted(wallet.contractAddress, recipient.address);
+      await transferManager.addToWhitelist(wallet.address, recipient, { from: owner });
+      await utils.increaseTime(SECURITY_PERIOD + 1);
+      let isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
       assert.equal(isTrusted, true, "should be trusted after the security period");
-      await transferManager.from(owner).removeFromWhitelist(wallet.contractAddress, recipient.address);
-      isTrusted = await transferManager.isWhitelisted(wallet.contractAddress, recipient.address);
+      await transferManager.removeFromWhitelist(wallet.address, recipient, { from: owner });
+      isTrusted = await transferManager.isWhitelisted(wallet.address, recipient);
       assert.equal(isTrusted, false, "should no removed from whitelist immediately");
     });
 
     it("should change the limit via relayed transaction", async () => {
-      await manager.relay(transferManager, "changeLimit", [wallet.contractAddress, 4000000], wallet, [owner]);
-      await manager.increaseTime(SECURITY_PERIOD + 1);
-      const limit = await transferManager.getCurrentLimit(wallet.contractAddress);
+      await manager.relay(transferManager, "changeLimit", [wallet.address, 4000000], wallet, [owner]);
+      await utils.increaseTime(SECURITY_PERIOD + 1);
+      const limit = await transferManager.getCurrentLimit(wallet.address);
       assert.equal(limit.toNumber(), 4000000, "limit should be changed");
     });
   });
