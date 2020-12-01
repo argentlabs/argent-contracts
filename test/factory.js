@@ -129,6 +129,13 @@ contract("WalletFactory", (accounts) => {
       await truffleAssert.reverts(factory.changeModuleRegistry(randomAddress, { from: other }), "Must be owner");
     });
 
+    it("should fail to create with owner as guardian", async () => {
+      await truffleAssert.reverts(
+        factory.createWallet(owner, versionManager.address, owner, 1),
+        "WF: owner cannot be guardian",
+      );
+    });
+
     it("should not allow non-owner to change the refund address", async () => {
       const randomAddress = utils.getRandomAddress();
       await truffleAssert.reverts(factory.changeRefundAddress(randomAddress, { from: other }), "Must be owner");

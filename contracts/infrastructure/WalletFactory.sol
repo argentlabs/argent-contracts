@@ -219,6 +219,7 @@ contract WalletFactory is Owned, Managed {
      */
     function validateInputs(address _owner, address _versionManager, address _guardian, uint256 _version) internal view {
         require(_owner != address(0), "WF: owner cannot be null");
+        require(_owner != _guardian, "WF: owner cannot be guardian");
         require(IModuleRegistry(moduleRegistry).isRegisteredModule(_versionManager), "WF: invalid _versionManager");
         require(_guardian != (address(0)), "WF: guardian cannot be null");
         require(_version > 0, "WF: invalid _version");
