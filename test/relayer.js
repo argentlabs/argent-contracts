@@ -181,8 +181,6 @@ contract("RelayerManager", (accounts) => {
         params,
         wallet,
         [owner],
-        accounts[9],
-        false,
         gasLimit,
         nonce,
         0,
@@ -202,8 +200,7 @@ contract("RelayerManager", (accounts) => {
     it("should fail a duplicate transaction", async () => {
       const params = [wallet.address, 2];
       const nonce = await utils.getNonceForRelay();
-      const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner],
-        accounts[9], false, 2000000, nonce];
+      const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner], 2000000, nonce];
       await manager.relay(...relayParams);
       await truffleAssert.reverts(
         manager.relay(...relayParams), "RM: Duplicate request",
@@ -232,8 +229,7 @@ contract("RelayerManager", (accounts) => {
 
     it("should update the nonce after the transaction", async () => {
       const nonce = await utils.getNonceForRelay();
-      await manager.relay(testFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner],
-        accounts[9], false, 2000000, nonce);
+      await manager.relay(testFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner], 2000000, nonce);
 
       const updatedNonce = await relayerManager.getNonce(wallet.address);
       const updatedNonceHex = await updatedNonce.toString(16, 32);
@@ -268,8 +264,6 @@ contract("RelayerManager", (accounts) => {
         [wallet.address, 2],
         wallet,
         [owner],
-        accounts[9],
-        false,
         2000000,
         nonce,
         10,
@@ -352,8 +346,6 @@ contract("RelayerManager", (accounts) => {
         params,
         wallet,
         [owner, guardian],
-        accounts[9],
-        false,
         gasLimit,
         nonce,
         0,

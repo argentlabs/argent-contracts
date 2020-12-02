@@ -8,14 +8,12 @@ class RelayManager {
   }
 
   async relay(_module, _method, _params, _wallet, _signers,
-    _relayerAccount,
-    _estimate = false,
     _gasLimit = 1,
     _nonce,
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero) {
-    const relayerAccount = _relayerAccount || await utils.getAccount(9);
+    const relayerAccount = await utils.getAccount(9);
     const nonce = _nonce || await utils.getNonceForRelay();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
     const chainId = await utils.getChainId();

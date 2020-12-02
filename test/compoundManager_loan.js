@@ -615,7 +615,7 @@ contract("Loan Module", (accounts) => {
         const params = [wallet.address, loanId];
         let txReceipt;
         if (relayed) {
-          txReceipt = await manager.relay(loanManager, method, params, wallet, [owner], accounts[9], false, 2000000);
+          txReceipt = await manager.relay(loanManager, method, params, wallet, [owner]);
         } else {
           const tx = await loanManager[method](...params, { from: owner });
           txReceipt = tx.receipt;
