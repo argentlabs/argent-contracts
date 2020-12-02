@@ -8,11 +8,12 @@ class RelayManager {
   }
 
   async relay(_module, _method, _params, _wallet, _signers,
-    _gasLimit = 1,
+    _gasLimit = 2000000,
     _nonce,
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
-    _refundAddress = ethers.constants.AddressZero) {
+    _refundAddress = ethers.constants.AddressZero,
+    _gasLimitRelay) {
     const relayerAccount = await utils.getAccount(9);
     const nonce = _nonce || await utils.getNonceForRelay();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
@@ -45,8 +46,10 @@ class RelayManager {
     );
 
     console.log("method", _method);
-    console.log("gasEstimate", gasEstimate.toString());
+    console.log("gasEstimate", gasEstimate);
 
+    // If gas limit was explicitely passed, use that, otherwise use the estimate
+    const gas = _gasLimitRelay || gasEstimate;
     const tx = await this.relayerManager.execute(
       _wallet.address,
       _module.address,
@@ -57,10 +60,14 @@ class RelayManager {
       _gasLimit,
       _refundToken,
       _refundAddress,
-      { gas: gasEstimate, gasPrice: _gasPrice, from: relayerAccount },
+      { gas, gasPrice: _gasPrice, from: relayerAccount },
     );
-    console.log("gasUsed    ", tx.receipt.gasUsed.toString());
 
+    console.log("gasUsed    ", tx.receipt.gasUsed);
+
+    if (gasEstimate < tx.receipt.gasUsed) {
+      console.log("INSUFFICIENT GAS ESTIMATED");
+    }
     return tx.receipt;
   }
 }

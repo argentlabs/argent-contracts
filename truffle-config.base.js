@@ -56,7 +56,6 @@ module.exports = {
       host: "127.0.0.1", // Localhost (default: none)
       port: 8545, // Standard Ethereum port (default: none)
       network_id: "1597649375983",
-      gas: 20700000
     },
 
     test: {
@@ -122,7 +121,7 @@ module.exports = {
   mocha: {
     useColors: true,
     timeout: 1000000,
-    reporter: "eth-gas-reporter",
+    reporter: "spec",
     reporterOptions: {
       currency: "USD",
       onlyCalledMethods: true,
