@@ -33,7 +33,7 @@ class RelayManager {
       _refundAddress,
     );
 
-    const gasEstimate = await this.relayerManager.estimate.execute(
+    const gasEstimate = await this.relayerManager.execute.estimateGas(
       _wallet.address,
       _module.address,
       methodData,
