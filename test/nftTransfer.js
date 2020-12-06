@@ -154,7 +154,7 @@ contract("NftTransfer", (accounts) => {
         await testNftTransfer({ safe: false, relayed: true, recipientAddress: wallet2.address });
       });
 
-      it.skip("should allow safe NFT transfer from wallet1 to wallet2 (relayed)", async () => {
+      it("should allow safe NFT transfer from wallet1 to wallet2 (relayed)", async () => {
         await testNftTransfer({ safe: true, relayed: true, recipientAddress: wallet2.address });
       });
     });
