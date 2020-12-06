@@ -7,17 +7,18 @@ class RelayManager {
     this.relayerManager = relayerManager;
   }
 
+  // Relays without refund by default, unless the gasPrice is explicitely set to be >0
   async relay(_module, _method, _params, _wallet, _signers,
-    _gasLimit = 2000000,
-    _nonce,
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
-    _refundAddress = ethers.constants.AddressZero,
-    _gasLimitRelay) {
+    _refundAddress = ethers.constants.AddressZero) {
     const relayerAccount = await utils.getAccount(9);
-    const nonce = _nonce || await utils.getNonceForRelay();
+    const nonce = await utils.getNonceForRelay();
+
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
     const chainId = await utils.getChainId();
+    const _gasLimit = 2000000;
+
     const signatures = await utils.signOffchain(
       _signers,
       this.relayerManager.address,
@@ -48,8 +49,7 @@ class RelayManager {
     console.log("method", _method);
     console.log("gasEstimate", gasEstimate);
 
-    // If gas limit was explicitely passed, use that, otherwise use the estimate
-    const gas = _gasLimitRelay || gasEstimate;
+    const gas = _gasLimit * 1.1;
     const tx = await this.relayerManager.execute(
       _wallet.address,
       _module.address,

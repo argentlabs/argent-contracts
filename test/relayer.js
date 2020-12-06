@@ -1,10 +1,15 @@
 /* global artifacts */
 const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
+const chai = require("chai");
 const BN = require("bn.js");
+const bnChai = require("bn-chai");
 const { formatBytes32String } = require("ethers").utils;
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN } = require("../utils/utilities.js");
+
+const { expect } = chai;
+chai.use(bnChai(BN));
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -172,45 +177,80 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should fail when the gas of the transaction is less then the gasLimit", async () => {
-      const params = [wallet.address, 2];
       const nonce = await utils.getNonceForRelay();
       const gasLimit = 2000000;
-      const relayParams = [
-        testFeature,
-        "setIntOwnerOnly",
-        params,
-        wallet,
-        [owner],
-        gasLimit,
-        nonce,
-        0,
-        ETH_TOKEN,
-        ethers.constants.AddressZero,
-        gasLimit * 0.9];
 
-      await truffleAssert.reverts(manager.relay(...relayParams), "RM: not enough gas provided");
+      await truffleAssert.reverts(
+        relayerManager.execute(
+          wallet.address,
+          testFeature.address,
+          "0xdeadbeef",
+          nonce,
+          "0xdeadbeef",
+          0,
+          gasLimit,
+          ETH_TOKEN,
+          ethers.constants.AddressZero,
+          { gas: gasLimit * 0.9, gasPrice: 0, from: accounts[9] }
+        ), "RM: not enough gas provided");
     });
 
     it("should fail when a wrong number of signatures is provided", async () => {
       const params = [wallet.address, 2];
-      const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner, recipient]];
-      await truffleAssert.reverts(manager.relay(...relayParams), "RM: Wrong number of signatures");
-    });
-
-    it("should fail a duplicate transaction", async () => {
-      const params = [wallet.address, 2];
-      const nonce = await utils.getNonceForRelay();
-      const relayParams = [testFeature, "setIntOwnerOnly", params, wallet, [owner], 2000000, nonce];
-      await manager.relay(...relayParams);
       await truffleAssert.reverts(
-        manager.relay(...relayParams), "RM: Duplicate request",
+        manager.relay(testFeature, "setIntOwnerOnly", params, wallet, [owner, recipient]),
+        "RM: Wrong number of signatures"
       );
     });
 
+    it("should fail a duplicate transaction", async () => {
+      const methodData = testFeature.contract.methods.setIntOwnerOnly(wallet.address, 2).encodeABI();
+      const nonce = await utils.getNonceForRelay();
+      const chainId = await utils.getChainId();
+
+      const signatures = await utils.signOffchain(
+        [owner],
+        relayerManager.address,
+        testFeature.address,
+        0,
+        methodData,
+        chainId,
+        nonce,
+        0,
+        0,
+        ETH_TOKEN,
+        ethers.constants.AddressZero,
+      );
+
+      await relayerManager.execute(
+        wallet.address,
+        testFeature.address,
+        methodData,
+        nonce,
+        signatures,
+        0,
+        0,
+        ETH_TOKEN,
+        ethers.constants.AddressZero,
+        { from: accounts[9] });
+
+      await truffleAssert.reverts(
+        relayerManager.execute(
+          wallet.address,
+          testFeature.address,
+          methodData,
+          nonce,
+          signatures,
+          0,
+          0,
+          ETH_TOKEN,
+          ethers.constants.AddressZero,
+          { from: accounts[9] }
+        ), "RM: Duplicate request");
+    });
+
     it("should fail when relaying to itself", async () => {
-      const dataMethod = "setIntOwnerOnly";
-      const dataParam = [wallet.address, 2];
-      const methodData = testFeature.contract.methods[dataMethod](...dataParam).encodeABI();
+      const methodData = testFeature.contract.methods.setIntOwnerOnly(wallet.address, 2).encodeABI();
       const params = [
         wallet.address,
         testFeature.address,
@@ -228,12 +268,11 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should update the nonce after the transaction", async () => {
-      const nonce = await utils.getNonceForRelay();
-      await manager.relay(testFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner], 2000000, nonce);
+      const nonceBefore = await relayerManager.getNonce(wallet.address);
+      await manager.relay(testFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner]);
 
-      const updatedNonce = await relayerManager.getNonce(wallet.address);
-      const updatedNonceHex = await updatedNonce.toString(16, 32);
-      assert.equal(nonce, `0x${updatedNonceHex}`);
+      const nonceAfter = await relayerManager.getNonce(wallet.address);
+      expect(nonceAfter).to.be.gt.BN(nonceBefore);
     });
   });
 
@@ -257,15 +296,12 @@ contract("RelayerManager", (accounts) => {
     }
 
     async function callAndRefund({ refundToken }) {
-      const nonce = await utils.getNonceForRelay();
       const relayParams = [
         testFeature,
         "setIntOwnerOnly",
         [wallet.address, 2],
         wallet,
         [owner],
-        2000000,
-        nonce,
         10,
         refundToken,
         recipient];
@@ -338,21 +374,8 @@ contract("RelayerManager", (accounts) => {
       await guardianManager.addGuardian(wallet.address, guardian, { from: owner });
       // call approvedTransfer
       const params = [wallet.address, ETH_TOKEN, recipient, 1000, ethers.constants.HashZero];
-      const nonce = await utils.getNonceForRelay();
-      const gasLimit = 2000000;
-      const relayParams = [
-        approvedTransfer,
-        "transferToken",
-        params,
-        wallet,
-        [owner, guardian],
-        gasLimit,
-        nonce,
-        0,
-        ETH_TOKEN,
-        ethers.constants.AddressZero,
-        gasLimit * 1.1];
-      await manager.relay(...relayParams);
+      await manager.relay(approvedTransfer, "transferToken", params, wallet, [owner, guardian]);
+
       dailySpent = await limitFeature.getDailySpent(wallet.address);
       assert.isTrue(dailySpent.toNumber() === 0, "daily spent should be reset");
       const rBalanceEnd = await utils.getBalance(recipient);
