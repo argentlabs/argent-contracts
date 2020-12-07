@@ -348,11 +348,35 @@ contract("WalletFactory", (accounts) => {
       );
     });
 
+    it("should fail to create when the owner is empty", async () => {
+      const salt = utils.generateSaltValue();
+      await truffleAssert.reverts(
+        factory.createCounterfactualWallet(ZERO_ADDRESS, versionManager.address, guardian, salt, 1, "0x", "0x", 0),
+        "WF: owner cannot be null",
+      );
+    });
+
     it("should fail to create when the guardian is empty", async () => {
       const salt = utils.generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(owner, versionManager.address, ZERO_ADDRESS, salt, 1, 0, ZERO_ADDRESS, ZERO_BYTES32,"0x", "0x", 0),
         "WF: guardian cannot be null",
+      );
+    });
+
+    it("should fail to create when the owner is the guardian", async () => {
+      const salt = utils.generateSaltValue();
+      await truffleAssert.reverts(
+        factory.createCounterfactualWallet(owner, versionManager.address, owner, salt, 1, "0x", "0x", 0),
+        "WF: owner cannot be guardian",
+      );
+    });
+
+    it("should fail to create when the version is 0", async () => {
+      const salt = utils.generateSaltValue();
+      await truffleAssert.reverts(
+        factory.createCounterfactualWallet(owner, versionManager.address, guardian, salt, 0, "0x", "0x", 0),
+        "WF: invalid _version",
       );
     });
 
@@ -387,6 +411,28 @@ contract("WalletFactory", (accounts) => {
         factory.getAddressForCounterfactualWallet(owner, versionManager.address, ZERO_ADDRESS, salt, 1),
         "WF: guardian cannot be null",
       );
+    });
+  });
+
+  describe("Managed-like contract logic", () => {
+    it("should not be able to add manager if not called by owner", async () => {
+      await truffleAssert.reverts(factory.addManager(other, { from: other }), "Must be owner");
+    });
+
+    it("should not be able to set manager to zero address", async () => {
+      await truffleAssert.reverts(factory.addManager(ethers.constants.AddressZero), "M: Address must not be null");
+    });
+
+    it("should be able to set manager twice without error", async () => {
+      // Set manager once
+      await factory.addManager(other);
+      let isManager = await factory.managers(other);
+      assert.isTrue(isManager);
+
+      // Set manager twice
+      await factory.addManager(other);
+      isManager = await factory.managers(other);
+      assert.isTrue(isManager);
     });
   });
 });
