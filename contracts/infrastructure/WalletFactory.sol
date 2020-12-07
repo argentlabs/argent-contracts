@@ -99,7 +99,7 @@ contract WalletFactory is Owned {
         address _owner,
         address _versionManager,
         address _guardian,
-        bytes32 _salt,
+        bytes20 _salt,
         uint256 _version,
         uint256 _refundAmount,
         address _refundToken,
@@ -142,7 +142,7 @@ contract WalletFactory is Owned {
         address _owner,
         address _versionManager,
         address _guardian,
-        bytes32 _salt,
+        bytes20 _salt,
         uint256 _version
     )
         external
@@ -221,14 +221,17 @@ contract WalletFactory is Owned {
 
     /**
      * @notice Generates a new salt based on a provided salt, an owner, a list of modules and an optional guardian.
+     * The extra parameters are pre-hashed to be compatible with zk-sync CREATE2 API (!! the order of the parameters 
+     * assumes https://github.com/matter-labs/zksync/pull/259 has been merged !!).
+     * @param _salt The salt provided. In practice the hash of the L2 public key.
      * @param _salt The slat provided.
      * @param _owner The owner address.
      * @param _versionManager The version manager module
      * @param _guardian The guardian address.
      * @param _version The version of feature bundle
      */
-    function newSalt(bytes32 _salt, address _owner, address _versionManager, address _guardian, uint256 _version) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_salt, _owner, _versionManager, _guardian, _version));
+    function newSalt(bytes20 _salt, address _owner, address _versionManager, address _guardian, uint256 _version) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(keccak256(abi.encodePacked(_owner, _versionManager, _guardian, _version)), _salt));
     }
 
     /**
