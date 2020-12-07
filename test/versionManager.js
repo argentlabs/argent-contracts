@@ -84,20 +84,6 @@ contract("VersionManager", (accounts) => {
         "VM: invalid _featuresToInit",
       );
     });
-
-    it("should not let the VersionManager owner set an invalid minVersion", async () => {
-      const lastVersion = await versionManager.lastVersion();
-
-      await truffleAssert.reverts(
-        versionManager.setMinVersion(0),
-        "VM: invalid _minVersion",
-      );
-
-      await truffleAssert.reverts(
-        versionManager.setMinVersion(lastVersion.addn(1)),
-        "VM: invalid _minVersion",
-      );
-    });
   });
 
   describe("Wallet owner", () => {
@@ -113,17 +99,6 @@ contract("VersionManager", (accounts) => {
       await truffleAssert.reverts(
         versionManager.upgradeWallet(wallet.address, lastVersion, { from: owner }),
         "VM: already on new version",
-      );
-    });
-
-    it("should fail to upgrade a wallet to a version lower than minVersion", async () => {
-      const badVersion = await versionManager.lastVersion();
-      await versionManager.addVersion([], []);
-      await versionManager.setMinVersion(await versionManager.lastVersion());
-
-      await truffleAssert.reverts(
-        versionManager.upgradeWallet(wallet.address, badVersion, { from: owner }),
-        "VM: invalid _toVersion",
       );
     });
 
