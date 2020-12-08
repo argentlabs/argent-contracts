@@ -87,10 +87,65 @@ contract("VersionManager", (accounts) => {
   });
 
   describe("Wallet owner", () => {
+    it("should make unsupported static call fail", async () => {
+      // add a new version without TestFeature's static calls
+      await versionManager.addVersion([guardianManager.address, relayerManager.address], []);
+      await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
+      const walletAsTestFeature = await TestFeature.at(wallet.address);
+      await truffleAssert.reverts(
+        walletAsTestFeature.getBoolean(),
+        "VM: static call not supported for wallet version");
+      // cleanup: re-add previous version
+      await versionManager.addVersion([guardianManager.address, relayerManager.address, testFeature.address], []);
+    });
+
+    it("should skip init() when feature was already authorised in previous version", async () => {
+      const numInitsBefore = await testFeature.numInits(wallet.address);
+      await versionManager.addVersion([guardianManager.address, relayerManager.address, testFeature.address], []);
+      await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
+      const numInitsAfter = await testFeature.numInits(wallet.address);
+      assert.isTrue(numInitsBefore.eq(numInitsAfter), "numInits should be unchanged");
+    });
+
     it("should not let the relayer call a forbidden method", async () => {
       await truffleAssert.reverts(
         manager.relay(versionManager, "setOwner", [wallet.address, owner], wallet, [owner]),
         "VM: unknown method",
+      );
+    });
+
+    it("should not let non-feature call setOwner", async () => {
+      await truffleAssert.reverts(
+        versionManager.setOwner(wallet.address, owner),
+        "VM: sender should be authorized feature",
+      );
+    });
+
+    it("should not let non-feature call invokeStorage", async () => {
+      await truffleAssert.reverts(
+        versionManager.invokeStorage(wallet.address, owner, "0x"),
+        "VM: sender may not invoke storage",
+      );
+    });
+
+    it("should not let non-feature call checkAuthorisedFeatureAndInvokeWallet", async () => {
+      await truffleAssert.reverts(
+        versionManager.checkAuthorisedFeatureAndInvokeWallet(wallet.address, owner, 0, "0x"),
+        "VM: sender may not invoke wallet",
+      );
+    });
+
+    it("should not let non-feature call upgradeWallet", async () => {
+      await truffleAssert.reverts(
+        versionManager.upgradeWallet(wallet.address, 0),
+        "VM: sender may not upgrade wallet",
+      );
+    });
+
+    it("should fail to upgrade a wallet with an invalid version", async () => {
+      await truffleAssert.reverts(
+        versionManager.upgradeWallet(wallet.address, 666, { from: owner }),
+        "VM: invalid _toVersion",
       );
     });
 
@@ -122,6 +177,23 @@ contract("VersionManager", (accounts) => {
       );
       lock = await newGuardianStorage.getLock(wallet.address);
       assert.equal(lock, 0, "Lock should not be set");
+    });
+
+    it("should not let a feature call a storage using bad data", async () => {
+      const badData = guardianStorage.contract.methods.setLock(accounts[2], 1).encodeABI(); // bad wallet address
+      await truffleAssert.reverts(
+        testFeature.invokeStorage(wallet.address, ethers.constants.AddressZero, badData, { from: owner }),
+        "VM: target of _data != _wallet",
+      );
+    });
+
+    it("should not let a feature call a storage using bad data", async () => {
+      let badData = guardianStorage.contract.methods.setLock(wallet.address, 1).encodeABI();
+      badData = `0x11223344${badData.slice(10)}`; // bad method signature
+      await truffleAssert.reverts(
+        testFeature.invokeStorage(wallet.address, guardianStorage.address, badData, { from: owner }),
+        "VM: _storage failed",
+      );
     });
 
     it("should not allow the fallback to be called via a non-static call", async () => {

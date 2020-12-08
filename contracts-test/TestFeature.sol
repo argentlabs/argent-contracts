@@ -15,6 +15,7 @@ contract TestFeature is BaseFeature {
 
     uint uintVal;
     TestDapp public dapp;
+    mapping (address => uint) public numInits;
 
     constructor(
         ILockStorage _lockStorage,
@@ -26,6 +27,10 @@ contract TestFeature is BaseFeature {
     {
         uintVal = _uintVal;
         dapp = new TestDapp();
+    }
+
+    function init(address _wallet) external override  {
+        numInits[_wallet] += 1;
     }
 
     function invalidOwnerChange(address _wallet) external {
