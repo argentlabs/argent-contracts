@@ -101,7 +101,9 @@ contract("VersionManager", (accounts) => {
 
     it("should skip init() when feature was already authorised in previous version", async () => {
       const numInitsBefore = await testFeature.numInits(wallet.address);
-      await versionManager.addVersion([guardianManager.address, relayerManager.address, testFeature.address], []);
+      await versionManager.addVersion(
+        [guardianManager.address, relayerManager.address, testFeature.address], [testFeature.address]
+      );
       await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
       const numInitsAfter = await testFeature.numInits(wallet.address);
       assert.isTrue(numInitsBefore.eq(numInitsAfter), "numInits should be unchanged");
