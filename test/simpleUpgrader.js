@@ -144,7 +144,7 @@ contract("SimpleUpgrader", (accounts) => {
     async function testUpgradeModule({ relayed, modulesToAdd = (moduleV2) => [moduleV2] }) {
       // create module V1
       const { module: moduleV1, relayer: relayerV1 } = await deployTestModule();
-      manager.setRelayerManager(relayerV1);
+      await manager.setRelayerManager(relayerV1);
       // register module V1
       await registry.registerModule(moduleV1.address, formatBytes32String("V1"));
       // create wallet with module V1 and relayer feature
@@ -260,7 +260,7 @@ contract("SimpleUpgrader", (accounts) => {
         ethers.constants.AddressZero,
         ethers.constants.AddressZero,
         versionManager.address);
-      manager.setRelayerManager(relayerManager);
+      await manager.setRelayerManager(relayerManager);
 
       // Setup the wallet with the initial set of modules
       await versionManager.addVersion([

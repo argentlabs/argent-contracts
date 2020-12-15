@@ -81,7 +81,7 @@ contract("RelayerManager", (accounts) => {
       limitStorage.address,
       tokenPriceRegistry.address,
       versionManager.address);
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
   });
 
   beforeEach(async () => {

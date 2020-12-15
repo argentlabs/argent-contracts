@@ -75,7 +75,7 @@ contract("ApprovedTransfer", (accounts) => {
       limitStorage.address,
       ethers.constants.AddressZero,
       versionManager.address);
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
     walletImplementation = await BaseWallet.new();
 
     limitFeature = await TestLimitFeature.new(

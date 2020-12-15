@@ -63,7 +63,7 @@ contract("NftTransfer", (accounts) => {
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       versionManager.address);
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
     ck = await CK.new();
     tokenPriceRegistry = await TokenPriceRegistry.new();
     await tokenPriceRegistry.addManager(infrastructure);

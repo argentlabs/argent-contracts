@@ -106,7 +106,7 @@ contract("TokenExchanger", (accounts) => {
       ethers.constants.AddressZero,
       versionManager.address,
     );
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
 
     // Deploy test tokens
     tokenA = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);

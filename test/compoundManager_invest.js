@@ -142,7 +142,7 @@ contract("Invest Manager with Compound", (accounts) => {
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       versionManager.address);
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([
       investManager.address,

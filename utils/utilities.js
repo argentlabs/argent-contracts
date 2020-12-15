@@ -37,6 +37,19 @@ module.exports = {
   }),
 
   async signOffchain(signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
+    const messageHash = this.getMessageHash(from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress);
+    const signatures = await Promise.all(
+      signers.map(async (signer) => {
+        const sig = await this.signMessage(messageHash, signer);
+        return sig.slice(2);
+      })
+    );
+    const joinedSignatures = `0x${signatures.join("")}`;
+
+    return joinedSignatures;
+  },
+
+  getMessageHash(from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
     const message = `0x${[
       "0x19",
       "0x00",
@@ -53,15 +66,7 @@ module.exports = {
     ].map((hex) => hex.slice(2)).join("")}`;
 
     const messageHash = ethers.utils.keccak256(message);
-    const signatures = await Promise.all(
-      signers.map(async (signer) => {
-        const sig = await this.signMessage(messageHash, signer);
-        return sig.slice(2);
-      })
-    );
-    const joinedSignatures = `0x${signatures.join("")}`;
-
-    return joinedSignatures;
+    return messageHash;
   },
 
   async signMessage(message, signer) {
