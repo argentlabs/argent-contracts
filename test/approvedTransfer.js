@@ -1,4 +1,5 @@
 /* global artifacts */
+const { assert } = require("chai");
 const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
 
@@ -318,8 +319,9 @@ contract("ApprovedTransfer", (accounts) => {
           const txReceipt = await manager.relay(approvedTransfer, "approveTokenAndCallContract",
             [wallet.address, erc20.address, wallet.address, amountToApprove, target.address, invalidData],
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
-          const { success } = parseRelayReceipt(txReceipt);
+          const { success, error } = parseRelayReceipt(txReceipt);
           assert.isFalse(success);
+          assert.equal(error, "BT: Forbidden contract");
         }
 
         it("should revert when target contract is the wallet", async () => {

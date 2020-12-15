@@ -93,34 +93,23 @@ contract("NftTransfer", (accounts) => {
   });
 
   describe("NFT transfers", () => {
-    async function testNftTransfer({
-      safe = true, relayed, recipientAddress, nftContract = erc721, nftId = tokenId, shouldSucceed = true, expectedError,
-    }) {
+    async function testNftTransfer({ safe = true, relayed, recipientAddress, nftContract = erc721, nftId = tokenId }) {
       const beforeWallet1 = await nftContract.balanceOf(wallet1.address);
       const beforeRecipient = await nftContract.balanceOf(recipientAddress);
       if (relayed) {
         const txReceipt = await manager.relay(nftFeature, "transferNFT",
           [wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32], wallet1, [owner1]);
-        const { success, error } = utils.parseRelayReceipt(txReceipt);
-        assert.equal(success, shouldSucceed);
-        if (!shouldSucceed) {
-          assert.equal(error, expectedError);
-        }
+        const { success } = utils.parseRelayReceipt(txReceipt);
+        assert.isTrue(success);
       } else {
-        const txPromise = nftFeature
-          .transferNFT(wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32, { from: owner1, gasLimit: 300000 });
-        if (shouldSucceed) {
-          await txPromise;
-        } else {
-          await truffleAssert.reverts(txPromise, expectedError);
-        }
+        await nftFeature.transferNFT(wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32,
+          { from: owner1, gasLimit: 300000 });
       }
-      if (shouldSucceed) {
-        const afterWallet1 = await nftContract.balanceOf(wallet1.address);
-        const afterRecipient = await nftContract.balanceOf(recipientAddress);
-        assert.equal(beforeWallet1.sub(afterWallet1).toNumber(), 1, `wallet1 should have one less NFT (safe: ${safe}, relayed: ${relayed})`);
-        assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more NFT (safe: ${safe}, relayed: ${relayed})`);
-      }
+
+      const afterWallet1 = await nftContract.balanceOf(wallet1.address);
+      const afterRecipient = await nftContract.balanceOf(recipientAddress);
+      assert.equal(beforeWallet1.sub(afterWallet1).toNumber(), 1, `wallet1 should have one less NFT (safe: ${safe}, relayed: ${relayed})`);
+      assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1, `recipient should have one more NFT (safe: ${safe}, relayed: ${relayed})`);
     }
 
     describe("transfer to EOA account", () => {
@@ -204,27 +193,18 @@ contract("NftTransfer", (accounts) => {
       });
 
       it("should NOT allow ERC20 transfer from wallet1 to wallet2", async () => {
-        await testNftTransfer({
-          shouldSucceed: false,
-          expectedError: "NT: Forbidden ERC20 contract",
-          safe: false,
-          relayed: false,
-          nftId: 100,
-          nftContract: erc20,
-          recipientAddress: wallet2.address,
-        });
+        await truffleAssert.reverts(nftFeature.transferNFT(wallet1.address, erc20.address, wallet2.address, 100, false, ZERO_BYTES32,
+          { from: owner1, gasLimit: 300000 }),
+        "NT: Forbidden ERC20 contract");
       });
 
       it("should NOT allow ERC20 transfer from wallet1 to wallet2 (relayed)", async () => {
-        await testNftTransfer({
-          shouldSucceed: false,
-          expectedError: "NT: Forbidden ERC20 contract",
-          safe: false,
-          relayed: true,
-          nftId: 100,
-          nftContract: erc20,
-          recipientAddress: wallet2.address,
-        });
+        const txReceipt = await manager.relay(nftFeature, "transferNFT",
+          [wallet1.address, erc20.address, wallet2.address, 100, false, ZERO_BYTES32], wallet1, [owner1]);
+
+        const { success, error } = utils.parseRelayReceipt(txReceipt);
+        assert.isFalse(success);
+        assert.equal(error, "NT: Forbidden ERC20 contract");
       });
     });
 

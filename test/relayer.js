@@ -169,7 +169,7 @@ contract("RelayerManager", (accounts) => {
       ], []);
     });
 
-    it("should fail when the first param is not the wallet ", async () => {
+    it("should fail when the first param is not the wallet", async () => {
       const params = [owner, 4];
       await truffleAssert.reverts(
         manager.relay(testFeature, "setIntOwnerOnly", params, wallet, [owner]), "RM: Target of _data != _wallet",
@@ -280,20 +280,14 @@ contract("RelayerManager", (accounts) => {
     let erc20;
     beforeEach(async () => {
       const decimals = 12; // number of decimal for TOKN contract
-      const tokenRate = new BN(10).pow(new BN(19)).mul(new BN(51)); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
       erc20 = await ERC20.new([infrastructure], 10000000, decimals); // TOKN contract with 10M tokens (10M TOKN for account[0])
+
+      // Prices stored in registry = price per token * 10^(18-token decimals)
+      const tokenRate = new BN(10).pow(new BN(19)).mul(new BN(51)); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
       await tokenPriceRegistry.setPriceForTokenList([erc20.address], [tokenRate]);
+
       await limitFeature.setLimitAndDailySpent(wallet.address, 10000000000, 0);
     });
-
-    async function provisionFunds(ethAmount, erc20Amount) {
-      if (ethAmount) {
-        await wallet.send(ethAmount);
-      }
-      if (erc20Amount) {
-        await erc20.transfer(wallet.address, erc20Amount);
-      }
-    }
 
     async function callAndRefund({ refundToken }) {
       const relayParams = [
@@ -309,66 +303,67 @@ contract("RelayerManager", (accounts) => {
       return txReceipt;
     }
 
-    async function setLimitAndDailySpent({ limit, alreadySpent }) {
-      await limitFeature.setLimitAndDailySpent(wallet.address, limit, alreadySpent);
-    }
-
     it("should refund in ETH", async () => {
-      await provisionFunds("100000000000000", 0);
+      await wallet.send("100000000000000");
       const wBalanceStart = await utils.getBalance(wallet.address);
       const rBalanceStart = await utils.getBalance(recipient);
       await callAndRefund({ refundToken: ETH_TOKEN });
       const wBalanceEnd = await utils.getBalance(wallet.address);
       const rBalanceEnd = await utils.getBalance(recipient);
       const refund = wBalanceStart.sub(wBalanceEnd);
-      assert.isTrue(refund.gt(0), "should have refunded ETH");
-      assert.isTrue(refund.eq(rBalanceEnd.sub(rBalanceStart)), "should have refunded the recipient");
+      // should have refunded ETH
+      expect(refund).to.be.gt.BN(0);
+      // should have refunded the recipient
+      expect(refund).to.eq.BN(rBalanceEnd.sub(rBalanceStart));
     });
 
     it("should refund in ERC20", async () => {
-      await provisionFunds(0, "100000000000000");
+      await erc20.transfer(wallet.address, "10000000000");
       const wBalanceStart = await erc20.balanceOf(wallet.address);
       const rBalanceStart = await erc20.balanceOf(recipient);
       await callAndRefund({ refundToken: erc20.address });
       const wBalanceEnd = await erc20.balanceOf(wallet.address);
       const rBalanceEnd = await erc20.balanceOf(recipient);
       const refund = wBalanceStart.sub(wBalanceEnd);
-      assert.isTrue(refund.gt(0), "should have refunded ERC20");
-      assert.isTrue(refund.eq(rBalanceEnd.sub(rBalanceStart)), "should have refunded the recipient");
+      // should have refunded ERC20
+      expect(refund).to.be.gt.BN(0);
+      // should have refunded the recipient
+      expect(refund).to.eq.BN(rBalanceEnd.sub(rBalanceStart));
     });
 
     it("should emit the Refund event", async () => {
-      await provisionFunds("100000000000", 0);
+      await wallet.send("100000000000");
       const txReceipt = await callAndRefund({ refundToken: ETH_TOKEN });
       await utils.hasEvent(txReceipt, relayerManager, "Refund");
     });
 
     it("should fail the transaction when there is not enough ETH for the refund", async () => {
-      await provisionFunds(10, 0);
+      await wallet.send(10);
       await truffleAssert.reverts(callAndRefund({ refundToken: ETH_TOKEN }), "VM: wallet invoke reverted");
     });
 
     it("should fail the transaction when there is not enough ERC20 for the refund", async () => {
-      await provisionFunds(0, 10);
+      await erc20.transfer(wallet.address, 10);
       await truffleAssert.reverts(callAndRefund({ refundToken: erc20.address }), "ERC20: transfer amount exceeds balance");
     });
 
     it("should include the refund in the daily limit", async () => {
-      await provisionFunds("100000000000", 0);
-      await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
+      await wallet.send("100000000000");
+      await limitFeature.setLimitAndDailySpent(wallet.address, "1000000000", 10);
       let dailySpent = await limitFeature.getDailySpent(wallet.address);
-      assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
+      expect(dailySpent).to.eq.BN(10);
       await callAndRefund({ refundToken: ETH_TOKEN });
       dailySpent = await limitFeature.getDailySpent(wallet.address);
-      assert.isTrue(dailySpent > 10, "Daily spent should be greater then 10");
+      expect(dailySpent).to.be.gt.BN(10);
     });
 
     it("should refund and reset the daily limit when approved by guardians", async () => {
       // set funds and limit/daily spent
-      await provisionFunds("100000000000", 0);
-      await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 10 });
+      await wallet.send("100000000000");
+      await limitFeature.setLimitAndDailySpent(wallet.address, 1000000000, 10);
       let dailySpent = await limitFeature.getDailySpent(wallet.address);
-      assert.isTrue(dailySpent.toNumber() === 10, "initial daily spent should be 10");
+      // initial daily spent should be 10
+      expect(dailySpent).to.eq.BN(10);
       const rBalanceStart = await utils.getBalance(recipient);
       // add a guardian
       await guardianManager.addGuardian(wallet.address, guardian, { from: owner });
@@ -377,9 +372,10 @@ contract("RelayerManager", (accounts) => {
       await manager.relay(approvedTransfer, "transferToken", params, wallet, [owner, guardian]);
 
       dailySpent = await limitFeature.getDailySpent(wallet.address);
-      assert.isTrue(dailySpent.toNumber() === 0, "daily spent should be reset");
+      // daily spent should be reset
+      expect(dailySpent).to.be.zero;
       const rBalanceEnd = await utils.getBalance(recipient);
-      assert.isTrue(rBalanceEnd.gt(rBalanceStart), "should have refunded the recipient");
+      expect(rBalanceEnd).to.be.gt.BN(rBalanceStart);
     });
 
     it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
@@ -389,10 +385,10 @@ contract("RelayerManager", (accounts) => {
     });
 
     it("should fail the transaction when the refund is over the daily limit", async () => {
-      await provisionFunds("100000000000", 0);
-      await setLimitAndDailySpent({ limit: 1000000000, alreadySpent: 999999990 });
+      await wallet.send("100000000000");
+      await limitFeature.setLimitAndDailySpent(wallet.address, 1000000000, 999999990);
       const dailySpent = await limitFeature.getDailySpent(wallet.address);
-      assert.isTrue(dailySpent.toNumber() === 999999990, "initial daily spent should be 999999990");
+      expect(dailySpent).to.eq.BN(999999990);
       await truffleAssert.reverts(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limit");
     });
   });
