@@ -79,7 +79,7 @@ class RelayManager {
       + 16 * non-empty calldata bytes
       + 4 * empty calldata bytes
     */
-    const gas = gasLimit + 21000 + nonZeros * 16 + zeros * 4;
+    const gas = gasLimit + 21000 + nonZeros * 16 + zeros * 4 + 50000;
 
     const tx = await this.relayerManager.execute(
       _wallet.address,
@@ -123,6 +123,14 @@ class RelayManager {
       requiredSigsGas = 1000;
     }
 
+    // Estimate cost of checkAndUpdateUniqueness call
+    let nonceCheckGas = 0;
+    if (_signers.length === 1) {
+      nonceCheckGas = 6200;
+    } else if (_signers.length > 1) {
+      nonceCheckGas = 22200;
+    }
+
     let gasEstimateFeatureCall = 0;
     try {
       gasEstimateFeatureCall = await _module.contract.methods[_method](..._params).estimateGas({ from: this.relayerManager.address });
@@ -157,8 +165,8 @@ class RelayManager {
       }
     }
 
-    // gasLimit = 1856 + [0,1000,4800] + 2052 + 45144 + (10000 * _signers.length) + gasEstimateFeatureCall + [30000,40000]
-    const gasLimit = 49052 + requiredSigsGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;
+    // gasLimit = 1856 + [0,1000,4800] + 2052 + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + [30000,40000]
+    const gasLimit = 3908 + requiredSigsGas + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;
     return gasLimit;
   }
 
