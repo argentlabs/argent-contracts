@@ -104,9 +104,8 @@ class RelayManager {
   }
 
   /* Returns the gas limit to use as gasLimit parameter in execute function
-    + 1500 (gasleft() check)
     + 1856  (isFeatureAuthorisedInVersionManager check)
-    + 0 / 1000 / 5000 based on which contract implements getRequiredSignatures()
+    + 0 / 1000 / 4800 based on which contract implements getRequiredSignatures()
     + 2052 (getSignHash call)
     + 45144 (checkAndUpdateUniqueness call)
     + 10000 * number of signatures (validateSignatures call, should best be estimated but this is also close enough)
@@ -120,7 +119,7 @@ class RelayManager {
     let requiredSigsGas = 0;
     const { contractName } = _module.constructor;
     if (contractName === "ApprovedTransfer" || contractName === "RecoveryManager") {
-      requiredSigsGas = 5000;
+      requiredSigsGas = 4800;
     } else if (contractName === "GuardianManager") {
       requiredSigsGas = 1000;
     }
@@ -159,7 +158,7 @@ class RelayManager {
       }
     }
 
-    // gasLimit = 1856 + [0,1000,5000] + 2052 + 45144 + (10000 * _signers.length) + gasEstimateFeatureCall + [30000,40000] + 2131
+    // gasLimit = 1856 + [0,1000,4800] + 2052 + 45144 + (10000 * _signers.length) + gasEstimateFeatureCall + [30000,40000] + 2131
     const gasLimit = 51183 + requiredSigsGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;
     return gasLimit;
   }
