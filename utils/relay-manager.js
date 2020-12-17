@@ -109,8 +109,9 @@ class RelayManager {
     + 0 / 1000 / 5000 based on which contract implements getRequiredSignatures()
     + 2052 (getSignHash call)
     + 45144 (checkAndUpdateUniqueness call)
-    + 9500 * number of signatures (validateSignatures call, should best be estimated but this is also close enough)
+    + 10000 * number of signatures (validateSignatures call, should best be estimated but this is also close enough)
     + Function call estimate
+    + 40000 / 30000 refund cost for 1 signatures and >1 signatures respectively
     + 2131  (TransactionExecuted event log)
 
     Ignoring multiplication and comparisson as that is <10 gas per operation
@@ -152,7 +153,8 @@ class RelayManager {
       }
     }
 
-    const gasLimit = 1500 + 1856 + requiredSigsGas + 2052 + 45144 + (9500 * _signers.length) + gasEstimateFeatureCall + refundGas + 2131;
+    // gasLimit = 1856 + [0,1000,5000] + 2052 + 45144 + (10000 * _signers.length) + gasEstimateFeatureCall + [30000,40000] + 2131
+    const gasLimit = 51183 + requiredSigsGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;
     return gasLimit;
   }
 
