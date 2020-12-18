@@ -165,8 +165,9 @@ class RelayManager {
       }
     }
 
-    // gasLimit = 1856 + [0,1000,4800] + 2052 + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + [30000,40000]
+    // gasLimit = 1856 + [0,1000,4800] + 2052 + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + [40000,30000]
     const gasLimit = 3908 + requiredSigsGas + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;
+    // [50108, 51108, 60908] + (10000 * _signers.length) + gasEstimateFeatureCall
     return gasLimit;
   }
 
