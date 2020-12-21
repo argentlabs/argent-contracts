@@ -94,11 +94,10 @@ class RelayManager {
       { gas, gasPrice: _gasPrice, from: relayerAccount },
     );
 
-    console.log("gasLimit", gasLimit);
-    console.log("_gasLimit", _gasLimit);
-    console.log("gas sent", gas);
-    console.log("gas used", tx.receipt.gasUsed);
-    console.log("ratio", _gasLimit / tx.receipt.gasUsed);
+    // console.log("_gasLimit", _gasLimit);
+    // console.log("gas sent", gas);
+    // console.log("gas used", tx.receipt.gasUsed);
+    // console.log("ratio", _gasLimit / tx.receipt.gasUsed);
 
     return tx.receipt;
   }
@@ -143,7 +142,7 @@ class RelayManager {
       // simpleUpgrader should not upgrade to 0 module (relayed tx)
       // nftTransfer should allow safe NFT transfer from wallet1 to wallet2 (relayed)
       if (gasEstimateFeatureCall <= 0) {
-        gasEstimateFeatureCall = 90000;
+        gasEstimateFeatureCall = 80000;
       }
     }
 

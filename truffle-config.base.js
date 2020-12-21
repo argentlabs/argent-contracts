@@ -121,7 +121,7 @@ module.exports = {
   mocha: {
     useColors: true,
     timeout: 1000000,
-    reporter: "spec",
+    reporter: "eth-gas-reporter",
     reporterOptions: {
       currency: "USD",
       onlyCalledMethods: true,

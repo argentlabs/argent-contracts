@@ -103,7 +103,7 @@ contract("NftTransfer", (accounts) => {
         assert.isTrue(success);
       } else {
         await nftFeature.transferNFT(wallet1.address, nftContract.address, recipientAddress, nftId, safe, ZERO_BYTES32,
-          { from: owner1, gasLimit: 300000 });
+          { from: owner1 });
       }
 
       const afterWallet1 = await nftContract.balanceOf(wallet1.address);
