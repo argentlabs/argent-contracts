@@ -142,7 +142,7 @@ class RelayManager {
       // simpleUpgrader should not upgrade to 0 module (relayed tx)
       // nftTransfer should allow safe NFT transfer from wallet1 to wallet2 (relayed)
       if (gasEstimateFeatureCall <= 0) {
-        gasEstimateFeatureCall = 80000;
+        gasEstimateFeatureCall = 140000;
       }
     }
 
