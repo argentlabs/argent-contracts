@@ -126,6 +126,9 @@ class RelayManager {
     let nonceCheckGas = 0;
     if (_signers.length === 1) {
       nonceCheckGas = 6200;
+      // Most calls here are the first for wallet so default to 20K gas extra for a storage slot update
+      // We could check if the wallet nonce is empty before we add this
+      nonceCheckGas += 20000;
     } else if (_signers.length > 1) {
       nonceCheckGas = 22200;
     }
