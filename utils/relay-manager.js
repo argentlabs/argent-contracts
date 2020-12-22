@@ -26,7 +26,7 @@ class RelayManager {
     const chainId = await utils.getChainId();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
 
-    const gasLimit = await this.getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice, _refundToken);
+    const gasLimit = await this.getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice);
     // Uncomment when debugging gas limits
     // await this.debugGasLimits(_module, _method, _params, _wallet, _signers);
 
@@ -113,7 +113,7 @@ class RelayManager {
 
     Ignoring multiplication and comparisson as that is <10 gas per operation
   */
-  async getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice, _refundToken) {
+  async getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice) {
     let requiredSigsGas = 0;
     const { contractName } = _module.constructor;
     if (contractName === "ApprovedTransfer" || contractName === "RecoveryManager") {
@@ -157,11 +157,12 @@ class RelayManager {
         refundGas = 40000;
       }
 
-      // If the refund is with a token, add transfer cost.
-      // We are using a simple ERC20 transfer cost, however this varies by supported token, e.g. ZRX, BAT, REP, DAI, USDC, or USDT
-      if (_refundToken !== ETH_TOKEN) {
-        refundGas += 30000;
-      }
+      // We can achieve better overall estimate if instead of adding a 50K buffer in gas calculation for relayer.execute
+      // we add token transfer cost selectively for token refunds.
+      // In tests we are using a simple ERC20 transfer cost, however this varies by supported token, e.g. ZRX, BAT, DAI, USDC, or USDT
+      // if (_refundToken !== ETH_TOKEN) {
+      //   refundGas += 30000;
+      // }
     }
 
     // gasLimit = 1856 + [0,1000,4800] + 2052 + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + [40000,30000]
