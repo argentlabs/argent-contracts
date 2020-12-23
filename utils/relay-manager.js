@@ -103,7 +103,7 @@ class RelayManager {
   }
 
   /* Returns the gas limit to use as gasLimit parameter in execute function
-    + 1856  (isFeatureAuthorisedInVersionManager check)
+    + 5200  (isFeatureAuthorisedInVersionManager check)
     + 0 / 1000 / 4800 based on which contract implements getRequiredSignatures()
     + 2052 (getSignHash call)
     + 45144 (checkAndUpdateUniqueness call)
@@ -168,9 +168,9 @@ class RelayManager {
       // }
     }
 
-    // gasLimit = 1856 + [0,1000,4800] + 2052 + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + [40000,30000]
-    const gasLimit = 3908 + requiredSigsGas + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;
-    // [50108, 51108, 60908] + (10000 * _signers.length) + gasEstimateFeatureCall
+    // gasLimit = 5200 + [0,1000,4800] + 2052 + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + [40000,30000]
+    const gasLimit = 7252 + requiredSigsGas + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;
+    // [32452, 33452, 43250] + (10000 * _signers.length) + gasEstimateFeatureCall
     return gasLimit;
   }
 
