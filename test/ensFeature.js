@@ -96,8 +96,14 @@ contract("EnsFeature", (accounts) => {
 
     it("should fail to register with empty label", async () => {
       const label = "";
-      await truffleAssert.reverts(ensFeature.registerWalletENS(wallet.address, label),
+      await truffleAssert.reverts(ensFeature.registerWalletENS(wallet.address, label, { from: owner }),
         "EF: ENS label must be defined");
+    });
+
+    it("should fail to register by a non owner", async () => {
+      const label = "wallet";
+      await truffleAssert.reverts(ensFeature.registerWalletENS(wallet.address, label),
+        "BF: must be owner or feature");
     });
   });
 });

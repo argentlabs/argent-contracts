@@ -45,7 +45,11 @@ contract EnsFeature is BaseFeature {
       _;
     }
 
-  function registerWalletENS(address payable _wallet, string memory _label) external validateENSLabel(_label) {
+  function registerWalletENS(address payable _wallet, string memory _label) 
+    external
+    onlyWalletOwnerOrFeature(_wallet)
+    validateENSLabel(_label)
+  {
     // claim reverse
     address ensResolver = IENSManager(ensManager).ensResolver();
     bytes memory methodData = abi.encodeWithSignature("claimWithResolver(address,address)", ensManager, ensResolver);
