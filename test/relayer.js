@@ -296,7 +296,7 @@ contract("RelayerManager", (accounts) => {
         [wallet.address, 2],
         wallet,
         [owner],
-        10,
+        10000,
         refundToken,
         recipient];
       const txReceipt = await manager.relay(...relayParams);
@@ -349,7 +349,7 @@ contract("RelayerManager", (accounts) => {
 
     it("should include the refund in the daily limit", async () => {
       await wallet.send("100000000000");
-      await limitFeature.setLimitAndDailySpent(wallet.address, "1000000000", 10);
+      await limitFeature.setLimitAndDailySpent(wallet.address, "100000000000000000", 10);
       let dailySpent = await limitFeature.getDailySpent(wallet.address);
       expect(dailySpent).to.eq.BN(10);
       await callAndRefund({ refundToken: ETH_TOKEN });

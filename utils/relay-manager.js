@@ -31,16 +31,17 @@ class RelayManager {
     // await this.debugGasLimits(_module, _method, _params, _wallet, _signers);
 
     // When the refund is in token (not ETH), calculate the amount needed for refund
-    let _gasLimit = gasLimit;
+    let gasPrice = _gasPrice;
     if (_refundToken !== ETH_TOKEN) {
       const tokenPriceRegistryAddress = await this.relayerManager.tokenPriceRegistry();
       const tokenPriceRegistry = await ITokenPriceRegistry.at(tokenPriceRegistryAddress);
-
       const tokenPrice = await tokenPriceRegistry.getTokenPrice(_refundToken);
-      const refundCost = new BN(gasLimit).muln(_gasPrice);
+
+      // How many tokens to pay per unit of gas spent
+      // refundCost = gasLimit * gasPrice
       // tokenAmount = refundCost * 10^18 / tokenPrice
-      const tokenAmount = new BN(10).pow(new BN(18)).mul(refundCost).div(tokenPrice);
-      _gasLimit = tokenAmount.toNumber();
+      const tokenAmount = new BN(10).pow(new BN(18)).muln(_gasPrice).div(tokenPrice);
+      gasPrice = tokenAmount.toNumber();
     }
 
     const signatures = await utils.signOffchain(
@@ -51,8 +52,8 @@ class RelayManager {
       methodData,
       chainId,
       nonce,
-      _gasPrice,
-      _gasLimit,
+      gasPrice,
+      gasLimit,
       _refundToken,
       _refundAddress,
     );
@@ -63,8 +64,8 @@ class RelayManager {
       methodData,
       nonce,
       signatures,
-      _gasPrice,
-      _gasLimit,
+      gasPrice,
+      gasLimit,
       _refundToken,
       _refundAddress).encodeABI();
 
@@ -87,17 +88,17 @@ class RelayManager {
       methodData,
       nonce,
       signatures,
-      _gasPrice,
-      _gasLimit,
+      gasPrice,
+      gasLimit,
       _refundToken,
       _refundAddress,
-      { gas, gasPrice: _gasPrice, from: relayerAccount },
+      { gas, gasPrice, from: relayerAccount },
     );
 
-    // console.log("_gasLimit", _gasLimit);
+    // console.log("gasLimit", gasLimit);
     // console.log("gas sent", gas);
     // console.log("gas used", tx.receipt.gasUsed);
-    // console.log("ratio", _gasLimit / tx.receipt.gasUsed);
+    // console.log("ratio", gasLimit / tx.receipt.gasUsed);
 
     return tx.receipt;
   }
