@@ -79,6 +79,7 @@ class RelayManager {
       + 21k (base transaction)
       + 16 * non-empty calldata bytes
       + 4 * empty calldata bytes
+      + 50k buffer
     */
     const gas = gasLimit + 21000 + nonZeros * 16 + zeros * 4 + 50000;
 
@@ -107,7 +108,8 @@ class RelayManager {
     + 5200  (isFeatureAuthorisedInVersionManager check)
     + 0 / 1000 / 4800 based on which contract implements getRequiredSignatures()
     + 2052 (getSignHash call)
-    + 45144 (checkAndUpdateUniqueness call)
+    + 6200 / 22200 (checkAndUpdateUniqueness call based on which nonce strategy is used
+      Only in tests we add 15k provision for the first setting of nonce on wallet
     + 10000 * number of signatures (validateSignatures call, should best be estimated but this is also close enough)
     + Function call estimate
     + 40000 / 30000 refund cost for 1 signatures and >1 signatures respectively
@@ -129,7 +131,7 @@ class RelayManager {
       nonceCheckGas = 6200;
       // Most calls here are the first for wallet so default to 20K gas extra for a storage slot update
       // We could check if the wallet nonce is empty before we add this
-      nonceCheckGas += 20000;
+      nonceCheckGas += 15000;
     } else if (_signers.length > 1) {
       nonceCheckGas = 22200;
     }
@@ -154,6 +156,7 @@ class RelayManager {
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
     const requiredSignatures = await _module.getRequiredSignatures(_wallet.address, methodData);
 
+    // Relayer only refund when gasPrice > 0 and the owner is signing
     if (_gasPrice > 0 && requiredSignatures[1].toNumber() === 1) {
       if (_signers.length > 1) {
         refundGas = 30000;
