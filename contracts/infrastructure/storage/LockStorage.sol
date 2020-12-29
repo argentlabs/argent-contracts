@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.4;
 import "../../wallet/BaseWallet.sol";
 import "./Storage.sol";
 import "./ILockStorage.sol";
@@ -59,7 +59,7 @@ contract LockStorage is ILockStorage, Storage {
      * @return true if the lock is set for the wallet.
      */
     function isLocked(address _wallet) external view override returns (bool) {
-        return configs[_wallet].lock > now;
+        return configs[_wallet].lock > block.timestamp;
     }
 
     /**
