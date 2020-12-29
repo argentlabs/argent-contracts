@@ -1,4 +1,4 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.7.6;
 import "../contracts/wallet/BaseWallet.sol";
 import "../contracts/modules/common/BaseFeature.sol";
 import "../contracts/infrastructure/storage/ILockStorage.sol";
