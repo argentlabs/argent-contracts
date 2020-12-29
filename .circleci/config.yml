@@ -33,7 +33,7 @@ step_pull_solc_docker: &step_pull_solc_docker
     name: "Pull solc docker images"
     command: |
       docker pull ethereum/solc:0.5.4
-      docker pull ethereum/solc:0.6.12
+      docker pull ethereum/solc:0.7.4
 step_setup_slither: &step_setup_slither
   run:
     name: "Setup slither analyser https://github.com/crytic/slither"
