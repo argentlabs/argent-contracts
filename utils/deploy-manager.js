@@ -48,7 +48,13 @@ module.exports = {
     } else if (config.settings.privateKey && config.settings.privateKey.type === "s3") {
       const { options } = config.settings.privateKey;
       const pkeyLoader = new PrivateKeyLoader(options.bucket, options.key);
-      pkey = await pkeyLoader.fetch();
+      try {
+        pkey = await pkeyLoader.fetch();
+      } catch (e) {
+        // if we failed here, it's most likely because the AWS account is not authorised
+        // to read the pkey. But since we don't currently use the AWS pkey, we can safely continue
+        console.warn("Failed to fetch pkey:", e);
+      }
     }
 
     // setting backend account and multi-sig owner for environments not managed on S3
