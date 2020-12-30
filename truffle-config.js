@@ -2,7 +2,7 @@ const baseConfig = require("./truffle-config.base.js");
 
 module.exports = {
   ...baseConfig,
-  contracts_directory: "contracts/*.sol",
+  contracts_directory: "contracts",
 
   compilers: {
     solc: {

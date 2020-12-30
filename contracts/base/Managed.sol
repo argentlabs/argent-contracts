@@ -1,4 +1,4 @@
-// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+// Copyright (C) 2021  Argent Labs Ltd. <https://argent.xyz>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
-pragma solidity >=0.5.4 <0.8.0;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity ^0.7.6;
 
 import "./Owned.sol";
 
