@@ -17,7 +17,7 @@
 pragma solidity ^0.7.6;
 
 /**
- * @title Interface for the Registry implementation
+ * @title Interface for the Registry of function signatures
  * @notice Used by the Proxy delegate to resolve registered function signatures against implementation contracts
  * @author Elena Gesheva - <elena@argent.xyz>
  */
