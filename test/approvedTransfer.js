@@ -1,5 +1,4 @@
 /* global artifacts */
-const { assert } = require("chai");
 const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
 
