@@ -72,7 +72,7 @@ class RelayManager {
       _refundAddress).encodeABI();
 
     // Get the number of zero and non-zero bytes in the relayer.execute calldata
-    const nonZerosString = executeData.toString().slice(2).replace(/0/g, "");
+    const nonZerosString = executeData.toString().slice(2).replace(/00(?=(..)*$)/g, "");
     const nonZeros = nonZerosString.length;
     const zeros = executeData.length - nonZeros;
 
