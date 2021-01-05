@@ -19,7 +19,7 @@ import "../../../lib/utils/strings.sol";
 import "../../infrastructure/ens/IENSManager.sol";
 import "./ENSResolver.sol";
 import "./ENSReverseRegistrar.sol";
-import "../../infrastructure/base/Managed.sol";
+import "../base/Managed.sol";
 
 /**
  * @title ArgentENSManager

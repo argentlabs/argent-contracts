@@ -33,7 +33,6 @@ contract("WalletFactory", (accounts) => {
     moduleRegistry = await ModuleRegistry.new();
     guardianStorage = await GuardianStorage.new();
     factory = await Factory.new(
-      moduleRegistry.address,
       implementation.address,
       guardianStorage.address,
       refundAddress);
@@ -62,7 +61,6 @@ contract("WalletFactory", (accounts) => {
 
   beforeEach(async () => {
     // Restore the good state of factory (we set these to bad addresses in some tests)
-    await factory.changeModuleRegistry(moduleRegistry.address);
     await factory.changeRefundAddress(refundAddress);
 
     versionManager = await deployVersionManager();
@@ -70,17 +68,8 @@ contract("WalletFactory", (accounts) => {
   });
 
   describe("Create and configure the factory", () => {
-    it("should not allow to be created with empty ModuleRegistry", async () => {
-      await truffleAssert.reverts(Factory.new(
-        ZERO_ADDRESS,
-        implementation.address,
-        guardianStorage.address,
-        refundAddress), "WF: ModuleRegistry address not defined");
-    });
-
     it("should not allow to be created with empty WalletImplementation", async () => {
       await truffleAssert.reverts(Factory.new(
-        moduleRegistry.address,
         ZERO_ADDRESS,
         guardianStorage.address,
         refundAddress), "WF: WalletImplementation address not defined");
@@ -88,7 +77,6 @@ contract("WalletFactory", (accounts) => {
 
     it("should not allow to be created with empty GuardianStorage", async () => {
       await truffleAssert.reverts(Factory.new(
-        moduleRegistry.address,
         implementation.address,
         ZERO_ADDRESS,
         refundAddress), "WF: GuardianStorage address not defined");
@@ -102,13 +90,6 @@ contract("WalletFactory", (accounts) => {
         ZERO_ADDRESS), "WF: refund address not defined");
     });
 
-    it("should allow owner to change the module registry", async () => {
-      const randomAddress = utils.getRandomAddress();
-      await factory.changeModuleRegistry(randomAddress);
-      const updatedModuleRegistry = await factory.moduleRegistry();
-      assert.equal(updatedModuleRegistry, randomAddress);
-    });
-
     it("should allow owner to change the refund address", async () => {
       const randomAddress = utils.getRandomAddress();
       await factory.changeRefundAddress(randomAddress);
@@ -116,17 +97,8 @@ contract("WalletFactory", (accounts) => {
       assert.equal(updatedRefundAddress, randomAddress);
     });
 
-    it("should not allow owner to change the module registry to zero address", async () => {
-      await truffleAssert.reverts(factory.changeModuleRegistry(ZERO_ADDRESS), "WF: address cannot be null");
-    });
-
     it("should not allow owner to change the refund address to zero address", async () => {
       await truffleAssert.reverts(factory.changeRefundAddress(ZERO_ADDRESS), "WF: address cannot be null");
-    });
-
-    it("should not allow non-owner to change the module registry", async () => {
-      const randomAddress = utils.getRandomAddress();
-      await truffleAssert.reverts(factory.changeModuleRegistry(randomAddress, { from: other }), "Must be owner");
     });
 
     it("should fail to create with owner as guardian", async () => {
@@ -139,11 +111,6 @@ contract("WalletFactory", (accounts) => {
     it("should not allow non-owner to change the refund address", async () => {
       const randomAddress = utils.getRandomAddress();
       await truffleAssert.reverts(factory.changeRefundAddress(randomAddress, { from: other }), "Must be owner");
-    });
-
-    it("should not allow non-owner to change the module registry", async () => {
-      const randomAddress = utils.getRandomAddress();
-      await truffleAssert.reverts(factory.changeModuleRegistry(randomAddress, { from: other }), "Must be owner");
     });
   });
 

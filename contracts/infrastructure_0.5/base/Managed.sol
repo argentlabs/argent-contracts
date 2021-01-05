@@ -14,9 +14,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity >=0.5.4 <0.7.0;
+pragma solidity ^0.5.4;
 
-import "./Owned.sol";
+import "../../infrastructure/base/Owned.sol";
 
 /**
  * @title Managed
@@ -55,7 +55,7 @@ contract Managed is Owned {
     * @notice Revokes a manager.
     * @param _manager The address of the manager.
     */
-    function revokeManager(address _manager) external virtual onlyOwner {
+    function revokeManager(address _manager) external onlyOwner {
         require(managers[_manager] == true, "M: Target must be an existing manager");
         delete managers[_manager];
         emit ManagerRevoked(_manager);

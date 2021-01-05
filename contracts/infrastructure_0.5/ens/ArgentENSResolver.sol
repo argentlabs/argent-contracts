@@ -14,8 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.5.4;
-import "../../infrastructure/base/Owned.sol";
-import "../../infrastructure/base/Managed.sol";
+import "../base/Managed.sol";
 import "./ENSResolver.sol";
 
 /**

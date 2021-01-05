@@ -196,9 +196,7 @@ const main = async () => {
 
   console.log("Deploying WalletFactory");
   // Deploy the Wallet Factory
-  const WalletFactoryWrapper = await WalletFactory.new(
-    config.contracts.ModuleRegistry, config.contracts.BaseWallet, config.modules.GuardianStorage
-  );
+  const WalletFactoryWrapper = await WalletFactory.new(config.contracts.BaseWallet, config.modules.GuardianStorage);
 
   // //////////////////////////////////
   // Set contracts' managers
