@@ -118,7 +118,6 @@ const main = async () => {
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
     config.defi.weth,
-    ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
   );
   // Deploy the TokenExchanger module
   const TokenExchangerWrapper = await TokenExchanger.new(

@@ -180,7 +180,6 @@ contract("TokenExchanger", (accounts) => {
       3600,
       10000,
       AddressZero,
-      AddressZero,
     );
 
     // Deploy wallet implementation

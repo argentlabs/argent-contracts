@@ -56,8 +56,6 @@ contract TransferManager is BaseTransfer {
     uint128 public defaultLimit;
     // The Token storage
     ITransferStorage public transferStorage;
-    // The previous limit manager needed to migrate the limits
-    TransferManager public oldTransferManager;
     // The limit storage
     ILimitStorage public limitStorage;
     // The token price storage
@@ -71,7 +69,6 @@ contract TransferManager is BaseTransfer {
     address token, address to, uint256 amount, bytes data);
     event PendingTransferExecuted(address indexed wallet, bytes32 indexed id);
     event PendingTransferCanceled(address indexed wallet, bytes32 indexed id);
-    event DailyLimitMigrated(address indexed wallet, uint256 currentDailyLimit, uint256 pendingDailyLimit, uint256 changeDailyLimitAfter);
     event DailyLimitDisabled(address indexed wallet, uint256 securityPeriod);
 
     // *************** Constructor ********************** //
@@ -85,8 +82,7 @@ contract TransferManager is BaseTransfer {
         uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _defaultLimit,
-        address _wethToken,
-        TransferManager _oldTransferManager
+        address _wethToken
     )
         BaseFeature(_lockStorage, _versionManager, NAME)
         BaseTransfer(_wethToken)
@@ -98,7 +94,6 @@ contract TransferManager is BaseTransfer {
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
         defaultLimit = LimitUtils.safe128(_defaultLimit);
-        oldTransferManager = _oldTransferManager;
     }
 
     /**
@@ -116,39 +111,15 @@ contract TransferManager is BaseTransfer {
         _sigs[0] = ERC1271_ISVALIDSIGNATURE_BYTES32;
     }
 
-
     /**
-     * @notice Inits the feature for a wallet by setting up the isValidSignature (EIP 1271)
-     * static call redirection from the wallet to the feature and copying all the parameters
-     * of the daily limit from the previous implementation of the LimitManager module.
+     * @notice Inits the feature for a wallet by setting the default daily limit if needed.
      * @param _wallet The target wallet.
      */
     function init(address _wallet) external override(BaseFeature) onlyVersionManager {
-
-        if (address(oldTransferManager) == address(0)) {
+        ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
+        if (limit.current == 0 && limit.changeAfter == 0) {
+            // new wallet: we setup the default limit
             setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
-        } else {
-            uint256 current = oldTransferManager.getCurrentLimit(_wallet);
-            (uint256 pending, uint64 changeAfter) = oldTransferManager.getPendingLimit(_wallet);
-            if (current == 0 && changeAfter == 0) {
-                // new wallet: we setup the default limit
-                setLimit(_wallet, ILimitStorage.Limit(defaultLimit, 0, 0));
-            } else {
-                // migrate limit and daily spent (if we are in a rolling period)
-                (uint256 unspent, uint64 periodEnd) = oldTransferManager.getDailyUnspent(_wallet);
-
-                if (periodEnd < block.timestamp) {
-                    setLimit(_wallet, ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter));
-                } else {
-                    setLimitAndDailySpent(
-                        _wallet,
-                        ILimitStorage.Limit(LimitUtils.safe128(current), LimitUtils.safe128(pending), changeAfter),
-                        ILimitStorage.DailySpent(LimitUtils.safe128(current.sub(unspent)), periodEnd)
-                    );
-                }
-
-                emit DailyLimitMigrated(_wallet, current, pending, changeAfter);
-            }
         }
     }
 

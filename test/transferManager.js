@@ -10,11 +10,8 @@ const { expect } = chai;
 chai.use(bnChai(BN));
 
 const TruffleContract = require("@truffle/contract");
-
-const LegacyTransferManagerContract = require("../build-legacy/v1.6.0/TransferManager");
 const LegacyTokenPriceProviderContract = require("../build-legacy/v1.6.0/TokenPriceProvider");
 
-const LegacyTransferManager = TruffleContract(LegacyTransferManagerContract);
 const LegacyTokenPriceProvider = TruffleContract(LegacyTokenPriceProviderContract);
 
 const Proxy = artifacts.require("Proxy");
@@ -62,7 +59,6 @@ contract("TransferManager", (accounts) => {
   let limitStorage;
   let tokenPriceRegistry;
   let transferManager;
-  let previousTransferManager;
   let wallet;
   let walletImplementation;
   let erc20;
@@ -71,8 +67,6 @@ contract("TransferManager", (accounts) => {
   let versionManager;
 
   before(async () => {
-    LegacyTransferManager.defaults({ from: accounts[0] });
-    LegacyTransferManager.setProvider(web3.currentProvider);
     LegacyTokenPriceProvider.defaults({ from: accounts[0] });
     LegacyTokenPriceProvider.setProvider(web3.currentProvider);
 
@@ -95,17 +89,6 @@ contract("TransferManager", (accounts) => {
       transferStorage.address,
       limitStorage.address);
 
-    previousTransferManager = await LegacyTransferManager.new(
-      registry.address,
-      transferStorage.address,
-      guardianStorage.address,
-      ethers.constants.AddressZero,
-      SECURITY_PERIOD,
-      SECURITY_WINDOW,
-      ETH_LIMIT,
-      ethers.constants.AddressZero,
-    );
-
     transferManager = await TransferManager.new(
       lockStorage.address,
       transferStorage.address,
@@ -115,8 +98,7 @@ contract("TransferManager", (accounts) => {
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       ETH_LIMIT,
-      weth.address,
-      previousTransferManager.address);
+      weth.address);
 
     await registry.registerModule(versionManager.address, ethers.utils.formatBytes32String("VersionManager"));
 
@@ -155,34 +137,6 @@ contract("TransferManager", (accounts) => {
     const ethPrice = new BN(price.toString()).mul(new BN(amount)).div(new BN(10).pow(new BN(18)));
     return ethPrice;
   }
-
-  describe("Initialising the module", () => {
-    it("when no previous transfer manager is passed, should initialise with default limit", async () => {
-      const transferManager1 = await TransferManager.new(
-        lockStorage.address,
-        transferStorage.address,
-        limitStorage.address,
-        tokenPriceRegistry.address,
-        versionManager.address,
-        SECURITY_PERIOD,
-        SECURITY_WINDOW,
-        10,
-        ethers.constants.AddressZero,
-        ethers.constants.AddressZero);
-      await versionManager.addVersion([transferManager1.address], [transferManager1.address]);
-      const proxy = await Proxy.new(walletImplementation.address);
-      const existingWallet = await BaseWallet.at(proxy.address);
-      await existingWallet.init(owner, [versionManager.address]);
-      await versionManager.upgradeWallet(existingWallet.address, await versionManager.lastVersion(), { from: owner });
-
-      const defaultLimit = await transferManager1.defaultLimit();
-      const limit = await transferManager1.getCurrentLimit(existingWallet.address);
-      expect(limit).to.eq.BN(defaultLimit);
-
-      // reset the last version to the default bundle
-      await versionManager.addVersion([transferManager.address, relayerManager.address], [transferManager.address]);
-    });
-  });
 
   describe("Managing the whitelist", () => {
     it("should add/remove an account to/from the whitelist", async () => {
@@ -281,34 +235,6 @@ contract("TransferManager", (accounts) => {
   });
 
   describe("Daily limit", () => {
-    it("should migrate daily limit for existing wallets", async () => {
-      // create wallet with previous module and funds
-      const proxy = await Proxy.new(walletImplementation.address);
-      const existingWallet = await BaseWallet.at(proxy.address);
-
-      await existingWallet.init(owner, [previousTransferManager.address]);
-      await existingWallet.send(100000000);
-
-      // change the limit
-      await previousTransferManager.changeLimit(existingWallet.address, 4000000, { from: owner });
-      await utils.increaseTime(SECURITY_PERIOD + 1);
-      let limit = await previousTransferManager.getCurrentLimit(existingWallet.address);
-      expect(limit).to.eq.BN(4000000);
-      // transfer some funds
-      await previousTransferManager.transferToken(existingWallet.address, ETH_TOKEN, recipient, 1000000, ZERO_BYTES32, { from: owner });
-      // add new module
-      await previousTransferManager.addModule(existingWallet.address, versionManager.address, { from: owner });
-      const tx = await versionManager.upgradeWallet(existingWallet.address, await versionManager.lastVersion(), { from: owner });
-      const txReceipt = tx.receipt;
-      await utils.hasEvent(txReceipt, transferManager, "DailyLimitMigrated");
-      // check result
-      limit = await transferManager.getCurrentLimit(existingWallet.address);
-      expect(limit).to.eq.BN(4000000);
-      const unspent = await transferManager.getDailyUnspent(existingWallet.address);
-      // unspent should have been migrated
-      expect(unspent[0]).to.eq.BN(4000000 - 1000000);
-    });
-
     it("should set the default limit for new wallets", async () => {
       const limit = await transferManager.getCurrentLimit(wallet.address);
       expect(limit).to.eq.BN(ETH_LIMIT);

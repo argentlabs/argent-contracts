@@ -218,7 +218,6 @@ contract("VersionManager", (accounts) => {
         3600,
         3600,
         10000,
-        ethers.constants.AddressZero,
         ethers.constants.AddressZero);
       await versionManager2.addVersion([transferManager.address], []);
       await registry.registerModule(versionManager2.address, ethers.utils.formatBytes32String("VersionManager2"));

@@ -90,8 +90,7 @@ contract("UpgraderToVersionManager", (accounts) => {
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       ETH_LIMIT,
-      ethers.constants.AddressZero,
-      previousTransferManager.address);
+      ethers.constants.AddressZero);
     relayerManager = await RelayerManager.new(
       lockStorage.address,
       guardianStorage.address,
