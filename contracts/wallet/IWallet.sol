@@ -16,28 +16,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
-import "./IRegistry.sol";
-import "./base/Owned.sol";
+import "./modules/IApprovedTransfer.sol";
+import "./modules/ICompoundManager.sol";
+import "./modules/IGuardianManager.sol";
+import "./modules/ILockManager.sol";
+import "./modules/INftTransfer.sol";
+import "./modules/IRecoveryManager.sol";
+import "./modules/ITokenExchanger.sol";
+import "./modules/ITransferManager.sol";
 
 /**
- * @title Registry implementation
- * @notice Used by the Proxy delegate to resolve registered function signatures against implementation contracts
+ * @title IWallet
+ * @notice Interface functions for a wallet consolidated for clarity.
  * @author Elena Gesheva - <elena@argent.xyz>
  */
-contract Registry is IRegistry, Owned {
-  mapping (bytes4 => address) public pointers;
+interface IWallet is
+  IApprovedTransfer,
+  ICompoundManager,
+  IGuardianManager,
+  ILockManager,
+  INftTransfer,
+  IRecoveryManager,
+  ITokenExchanger,
+  ITransferManager {
 
-  function register(string memory descriptor, address implementation) external
-  onlyOwner
-  {
-    pointers[stringToSig(descriptor)] = implementation;
-  }
-
-  function lookup(bytes4 sig) external override view returns(address) {
-    return pointers[sig];
-  }
-
-  function stringToSig(string memory descriptor) public pure returns(bytes4) {
-    return bytes4(keccak256(abi.encodePacked(descriptor)));
-  }
+  uint public version;
 }

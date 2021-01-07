@@ -17,7 +17,7 @@
 pragma solidity ^0.7.6;
 
 import "../infrastructure/IRegistry.sol";
-import "../base/Owned.sol";
+import "../infrastructure/base/Owned.sol";
 
 /**
  * @title DelegateProxy

@@ -16,28 +16,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
-import "./IRegistry.sol";
-import "./base/Owned.sol";
-
 /**
- * @title Registry implementation
- * @notice Used by the Proxy delegate to resolve registered function signatures against implementation contracts
+ * @title IRecoveryManager
+ * @notice Interface functions for a wallet consolidated for clarity.
  * @author Elena Gesheva - <elena@argent.xyz>
  */
-contract Registry is IRegistry, Owned {
-  mapping (bytes4 => address) public pointers;
-
-  function register(string memory descriptor, address implementation) external
-  onlyOwner
-  {
-    pointers[stringToSig(descriptor)] = implementation;
-  }
-
-  function lookup(bytes4 sig) external override view returns(address) {
-    return pointers[sig];
-  }
-
-  function stringToSig(string memory descriptor) public pure returns(bytes4) {
-    return bytes4(keccak256(abi.encodePacked(descriptor)));
-  }
+interface IRecoveryManager {
+  
 }

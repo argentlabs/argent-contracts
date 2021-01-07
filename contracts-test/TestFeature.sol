@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.7.6;
 import "../contracts/infrastructure/storage/ILockStorage.sol";
-import "../contracts/modules/common/BaseFeature.sol";
+import "../contracts/modules/common/BaseModule.sol";
 import "./TestDapp.sol";
 
 /**
@@ -9,7 +9,7 @@ import "./TestDapp.sol";
  * @notice Basic test module
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract TestFeature is BaseFeature {
+contract TestFeature is BaseModule {
 
     bytes32 constant NAME = "TestFeature";
 
@@ -21,7 +21,7 @@ contract TestFeature is BaseFeature {
         IVersionManager _versionManager,
         uint _uintVal
     ) 
-        BaseFeature(_lockStorage, _versionManager, NAME)
+        BaseModule(_lockStorage, _versionManager, NAME)
     {
         uintVal = _uintVal;
         dapp = new TestDapp();

@@ -3,14 +3,14 @@ pragma solidity ^0.7.6;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "../contracts/modules/common/BaseFeature.sol";
+import "../contracts/modules/common/BaseModule.sol";
 import "../contracts/modules/common/LimitUtils.sol";
 
 /**
  * @title TestLimitFeature
  * @notice Basic feature to set the daily limit
  */
-contract TestLimitFeature is BaseFeature {
+contract TestLimitFeature is BaseModule {
 
     bytes32 constant NAME = "TestLimitModule";
 
@@ -23,7 +23,7 @@ contract TestLimitFeature is BaseFeature {
         ILimitStorage _limitStorage,
         IVersionManager _versionManager
     )
-        BaseFeature(_lockStorage, _versionManager, NAME)
+        BaseModule(_lockStorage, _versionManager, NAME)
     {
         limitStorage = _limitStorage;
     }

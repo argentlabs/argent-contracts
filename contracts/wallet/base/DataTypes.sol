@@ -16,28 +16,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
-import "./IRegistry.sol";
-import "./base/Owned.sol";
-
 /**
- * @title Registry implementation
- * @notice Used by the Proxy delegate to resolve registered function signatures against implementation contracts
+ * @title DataTypes interface for Argent specific struct, enum, constant and event definitions in a wallet.
+ * @notice 
  * @author Elena Gesheva - <elena@argent.xyz>
  */
-contract Registry is IRegistry, Owned {
-  mapping (bytes4 => address) public pointers;
+contract DataTypes {
 
-  function register(string memory descriptor, address implementation) external
-  onlyOwner
-  {
-    pointers[stringToSig(descriptor)] = implementation;
-  }
+    struct GuardianInfo {
+        bool exists;
+        uint128 index;
+    }
 
-  function lookup(bytes4 sig) external override view returns(address) {
-    return pointers[sig];
-  }
+    // Empty calldata
+    bytes constant internal EMPTY_BYTES = "";
+    // Mock token address for ETH
+    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    // large limit when the limit can be considered disabled
+    uint128 constant internal LIMIT_DISABLED = uint128(-1);
 
-  function stringToSig(string memory descriptor) public pure returns(bytes4) {
-    return bytes4(keccak256(abi.encodePacked(descriptor)));
-  }
+    bytes4 constant internal CONFIRM_ADDITION_PREFIX = bytes4(keccak256("confirmGuardianAddition(address,address)"));
+    bytes4 constant internal CONFIRM_REVOKATION_PREFIX = bytes4(keccak256("confirmGuardianRevokation(address,address)")); 
 }
