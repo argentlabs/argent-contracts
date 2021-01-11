@@ -169,7 +169,7 @@ class RelayManager {
         refundGas = 40000;
       }
 
-      // We can achieve better overall estimate if instead of adding a 50K buffer in gas calculation for relayer.execute
+      // We can achieve better overall estimate if instead of adding a 72k buffer in gas calculation for relayer.execute
       // we add token transfer cost selectively for token refunds.
       // In tests we are using a simple ERC20 transfer cost, however this varies by supported token, e.g. ZRX, BAT, DAI, USDC, or USDT
       // if (_refundToken !== ETH_TOKEN) {
