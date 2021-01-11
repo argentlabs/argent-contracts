@@ -19,7 +19,7 @@ pragma solidity ^0.6.12;
 import "../wallet/Proxy.sol";
 import "../wallet/BaseWallet.sol";
 import "./base/Owned.sol";
-import "./base/Managed.sol";
+import "./base/ManagedV2.sol";
 import "./storage/IGuardianStorage.sol";
 import "../modules/common/IVersionManager.sol";
 import "../modules/common/Utils.sol";
@@ -27,9 +27,9 @@ import "../modules/common/Utils.sol";
 /**
  * @title WalletFactory
  * @notice The WalletFactory contract creates and assigns wallets to accounts.
- * @author Julien Niset - <julien@argent.xyz>
+ * @author Julien Niset, Olivier VDB - <julien@argent.xyz>, <olivier@argent.xyz>
  */
-contract WalletFactory is Managed {
+contract WalletFactory is ManagedV2 {
 
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 

@@ -3,6 +3,7 @@ const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
 
 const Managed = artifacts.require("Managed");
+const ManagedV2 = artifacts.require("ManagedV2");
 
 contract("Managed and Owned", (accounts) => {
   const infrastructure = accounts[0];
@@ -12,11 +13,11 @@ contract("Managed and Owned", (accounts) => {
 
   let managed;
 
-  beforeEach(async () => {
-    managed = await Managed.new();
-  });
-
   describe("Owned contract logic", () => {
+    beforeEach(async () => {
+      managed = await Managed.new();
+    });
+
     it("should set owner to caller", async () => {
       const owner = await managed.owner();
       assert.equal(owner, infrastructure);
@@ -34,7 +35,10 @@ contract("Managed and Owned", (accounts) => {
     });
   });
 
-  describe("Managed contract logic", () => {
+  function testsFor(managedContract) {
+    beforeEach(async () => {
+      managed = await managedContract.new();
+    });
     it("should be able to add manager", async () => {
       // Ensure the manager test accounts are not managers to start with
       let isManager1 = await managed.managers(manager1);
@@ -94,5 +98,8 @@ contract("Managed and Owned", (accounts) => {
     it("should not be able to revoke a nonexisting managerr", async () => {
       await truffleAssert.reverts(managed.revokeManager(manager2), "M: Target must be an existing manager");
     });
-  });
+  }
+
+  describe("Managed contract logic", () => testsFor(Managed));
+  describe("ManagedV2 contract logic", () => testsFor(ManagedV2));
 });

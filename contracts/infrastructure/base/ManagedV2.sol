@@ -21,9 +21,10 @@ import "./Owned.sol";
 /**
  * @title Managed
  * @notice Basic contract that defines a set of managers. Only the owner can add/remove managers.
- * @author Julien Niset - <julien@argent.xyz>
+ * infrastructure/base/ManagedV2.sol differs from infrastructure_0.5/base/Managed.sol in being solidity 0.6 compatible
+ * @author Julien Niset, Olivier VDB - <julien@argent.xyz>, <olivier@argent.xyz>
  */
-contract Managed is Owned {
+contract ManagedV2 is Owned {
 
     // The managers
     mapping (address => bool) public managers;
