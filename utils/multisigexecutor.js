@@ -69,8 +69,28 @@ class MultisigExecutor {
 
     const signatures = `0x${sortedSignatures.map((s) => s.sig.slice(2)).join("")}`;
 
+    const estimateGas = await this._multisigWrapper.contract.estimate.execute(contractAddress, 0, data, signatures, this._overrides);
+
+    const { gasPriceGwei, gasLimit } = await inquirer.prompt([{
+      type: "number",
+      name: "gasLimit",
+      message: "Gas Limit",
+      default: estimateGas.toString(),
+    }, {
+      type: "number",
+      name: "gasPriceGwei",
+      message: "Gas Price (gwei)",
+      default: this._overrides.gasPrice.div(1e9).toString(),
+    }]);
+
+    const overrides = {
+      ...this._overrides,
+      gasLimit: ethers.BigNumber.from(gasLimit),
+      gasPrice: ethers.utils.parseUnits(String(gasPriceGwei), "gwei"),
+    };
+
     // Call "execute" on the Multisig wallet with data and signatures
-    const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signatures, this._overrides);
+    const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signatures, overrides);
     const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
 
     return result;

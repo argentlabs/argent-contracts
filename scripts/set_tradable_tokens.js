@@ -56,10 +56,6 @@ async function main() {
   for (const item of filteredData) {
     console.log(item[0], item[1]);
   }
-
-  console.log("gasPrice", ethers.utils.formatUnits(gasPrice, "gwei"));
-  console.log("gasLimit", gasLimit);
-
   if (dry) return;
 
   const tokens = filteredData.map((item) => item[0]);
