@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
-import "./DelegateProxy.sol";
-import "./IWallet.sol";
-import "../infrastructure/base/Managed.sol";
+import "./base/Managed.sol";
+import "../wallet/DelegateProxy.sol";
+import "../wallet/modules/IGuardianManager.sol";
 
 /**
  * @title WalletFactory
@@ -33,7 +33,7 @@ contract WalletFactory is Managed {
     mapping (uint256 => address) public registries;
 
     event WalletVersionAdded(uint indexed version, address indexed registry);
-    event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian, uint indexed version);
+    event WalletCreated(address indexed wallet, uint indexed version, address indexed owner, address guardian);
 
     /**
      * @notice Lets the owner add a new wallet version, i.e. a new registry of functions in modules.
@@ -53,16 +53,13 @@ contract WalletFactory is Managed {
      * @param _owner The account address.
      * @param _guardian The guardian address.
      */
-    function createWallet(
-        address _owner,
-        address _guardian
-    )
-        external
-        onlyManager
+    function createWallet(address _owner, address _guardian)
+    external
+    onlyManager
     {
         validateInputs(_owner, _guardian, latestVersion);
         DelegateProxy proxy = new DelegateProxy();
-        configureWallet(proxy, _owner, _guardian, latestVersion);
+        configureWallet(address(proxy), _owner, _guardian, latestVersion);
     }
      
     /**
@@ -87,8 +84,8 @@ contract WalletFactory is Managed {
         validateInputs(_owner, _guardian, _version);
         bytes32 newsalt = newSalt(_salt, _owner, _guardian, _version);
         DelegateProxy proxy = new DelegateProxy{salt: newsalt}();
-        configureWallet(proxy, _owner, _guardian, _version);
-        return wallet;
+        configureWallet(address(proxy), _owner, _guardian, _version);
+        return address(proxy);
     }
 
     /**
@@ -127,18 +124,18 @@ contract WalletFactory is Managed {
      * @param _version The version of the feature bundle.
      */
     function configureWallet(
-        DelegateProxy _wallet,
+        address payable _wallet,
         address _owner,
         address _guardian,
         uint256 _version
     )
         internal
     {
-        _wallet.setRegistry(registries[_version]);
-        _wallet.addGuardian(_guardian);
-        _wallet.setOwner(_owner);
+        DelegateProxy(_wallet).setRegistry(registries[_version]);
+        IGuardianManager(_wallet).addGuardian(_guardian);
+        Owned(_wallet).changeOwner(_owner);
  
-        emit WalletCreated(address(_wallet), _owner, _guardian, _version);
+        emit WalletCreated(_wallet, _version, _owner, _guardian);
     }
 
     /**
@@ -155,7 +152,6 @@ contract WalletFactory is Managed {
     /**
      * @notice Throws if the owner, guardian, version or version manager is invalid.
      * @param _owner The owner address.
-     * @param _versionManager The version manager module
      * @param _guardian The guardian address
      * @param _version The version of feature bundle
      */

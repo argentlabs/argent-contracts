@@ -13,11 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
 import "./BaseModule.sol";
-import "../../../lib/other/ERC20.sol";
+
+interface IWETH {
+    function deposit() external payable;
+    function withdraw(uint256 amount) external;
+}
 
 /**
  * @title BaseTransfer
@@ -26,7 +30,7 @@ import "../../../lib/other/ERC20.sol";
  */
 abstract contract BaseTransfer is BaseModule {
  
-    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to);
+    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
     event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
     event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event ApprovedAndCalledContract(
@@ -43,16 +47,10 @@ abstract contract BaseTransfer is BaseModule {
     // *************** Internal Functions ********************* //
     /**
     * @notice Make sure a contract call is not trying to call a module, a feature, or the wallet itself.
-    * @param _wallet The target wallet.
     * @param _contract The address of the contract.
      */
     modifier onlyAuthorisedContractCall(address _contract) {
-        require(
-            _contract != address(this) && // not calling the wallet
-            !IWallet(_wallet).authorised(_contract) && // not calling an authorised module
-            !versionManager.isFeatureAuthorised(_wallet, _contract), // not calling an authorised feature
-            "BT: Forbidden contract"
-        );
+        require(_contract != address(this), "BT: Forbidden contract");
         _;
     }
 
@@ -62,17 +60,18 @@ abstract contract BaseTransfer is BaseModule {
     * @param _to The recipient.
     * @param _value The amount of ETH to transfer
     */
-    function doTransfer(address _token, address _to, uint256 _value) internal {
+    function doTransfer(address _token, address payable _to, uint256 _value, bytes memory _data) internal {
         if (_token == ETH_TOKEN) {
-            transfer(_to, _value);
+            // TODO think of the implications of using .transfer instead of the low level .call wiht {value} 
+            _to.transfer(_value);
         } else {
-            bytes memory transferSuccessBytes = ERC20(_token).transfer(_to, _value);
-            // Check transfer is successful, when `transfer` returns a success bool result
-            if (transferSuccessBytes.length > 0) {
-                require(abi.decode(transferSuccessBytes, (bool)), "RM: Transfer failed");
-            }
+            ERC20(_token).transfer(_to, _value);
+            // TODO Check transfer is successful, when `transfer` returns a success bool result
+            // if (transferSuccessBytes.length > 0) {
+            //     require(abi.decode(transferSuccessBytes, (bool)), "RM: Transfer failed");
+            // }
         }
-        emit Transfer(address(this), _token, _value, _to);
+        emit Transfer(address(this), _token, _value, _to, _data);
     }
 
     /**
@@ -170,12 +169,13 @@ abstract contract BaseTransfer is BaseModule {
         internal
     {
         address _wallet = address(this);
-        uint256 wethBalance = ERC20(wethToken).balanceOf(_wallet);
+        address _wethToken = Configuration(registry).wethToken();
+        uint256 wethBalance = ERC20(_wethToken).balanceOf(_wallet);
         if (wethBalance < _amount) {
             // Wrap ETH into WETH
-            wethToken.deposit{value: _amount - wethBalance}();
+            IWETH(_wethToken).deposit{value: _amount - wethBalance}();
         }
 
-        doApproveTokenAndCallContract(_wallet, wethToken, _proxy, _amount, _contract, _data);
+        doApproveTokenAndCallContract(_wethToken, _proxy, _amount, _contract, _data);
     }
 }

@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
+import "../../../lib/other/ERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./WalletStorage.sol";
 
@@ -25,7 +26,6 @@ import "./WalletStorage.sol";
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
 contract BaseModule is WalletStorage {
-    using SafeMath for uint256;
 
     /**
      * @notice Throws if the wallet is locked.
@@ -55,8 +55,7 @@ contract BaseModule is WalletStorage {
      * @notice Throws if the caller is not a guardian for the wallet.
      */
     modifier onlyGuardian() {
-        bool isGuardian = info[msg.sender].exists;
-        require(isGuardian, "BM: must be guardian");
+        require(isGuardian(msg.sender), "BM: must be guardian");
         _;
     }
 
@@ -65,24 +64,14 @@ contract BaseModule is WalletStorage {
      * @return _isLocked `true` if the wallet is locked otherwise `false`.
      */
     function isLocked() public view returns (bool) {
-        return lock > block.timestamp;
-    }
-
-    /**
-    * @notice Checks that the wallet address provided as the first parameter of _data matches _wallet
-    * @return false if the addresses are different.
-    */
-    function verifyData(address _wallet, bytes calldata _data) internal pure returns (bool) {
-        require(_data.length >= 36, "BM: Invalid dataWallet");
-        address dataWallet = abi.decode(_data[4:], (address));
-        return dataWallet == _wallet;
+        return walletLock.releaseAfter > block.timestamp;
     }
 
     /**
      * @notice Returns the number of guardians for a wallet.
      * @return the number of guardians.
      */
-    function guardianCount() external view returns (uint256) {
+    function guardianCount() public view returns (uint256) {
         return guardians.length;
     }
 
@@ -91,7 +80,7 @@ contract BaseModule is WalletStorage {
      * @param _guardian The account.
      * @return true if the account is a guardian for a wallet.
      */
-    function isGuardian(address _guardian) external view returns (bool) {
+    function isGuardian(address _guardian) public view returns (bool) {
         return info[_guardian].exists;
     }
 }

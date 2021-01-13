@@ -17,6 +17,7 @@
 pragma solidity ^0.7.6;
 
 import "../../infrastructure/base/Owned.sol";
+import "./Configuration.sol";
 import "./DataTypes.sol";
 
 /**
@@ -26,47 +27,34 @@ import "./DataTypes.sol";
  */
 contract WalletStorage is DataTypes, Owned {
     // address public owner; from Owned - storage slot 0
-    address public registry; // from DelegateProxy - storage slot 1
-
-    // The address of the WETH token
-    address public wethToken;
-
-    // the lock's release timestamp
-    uint256 public lock;
-    // the module that set the last lock
-    address public locker;
-
-    // Limit struct
-    // the current limit
-    uint128 public current;
-    // the pending limit if any
-    uint128 public pending;
-    // when the pending limit becomes the current limit
-    uint64 public changeAfter;
-
-    // DailySpent struct
-    // The amount already spent during the current period
-    uint128 public alreadySpent;
-    // The end of the current period
-    uint64 public periodEnd;
+    Configuration public registry; // from DelegateProxy - storage slot 1
 
     // the list of guardians
     address[] public guardians;
     // the info about guardians
     mapping (address => GuardianInfo) public info;
-    // the lock's release timestamp
-    uint256 public lockRelease;
-    // the module that set the last lock
-    address public locker;
-    // The lock period
-    uint256 public lockPeriod;
+
+    Limit public limit;
+
+    DailySpent public dailySpent;
+
+    Lock public walletLock;
+
     // The time at which a guardian addition or revokation will be confirmable by the owner
     mapping (bytes32 => uint256) public pending;
 
-    // The security period
-    uint256 public securityPeriod;
-    // The security window
-    uint256 public securityWindow;
-
     mapping (address => uint256) internal whitelist;
+
+    // Mapping between pending action hash and their timestamp
+    mapping (bytes32 => uint256) public pendingActions;
+
+    RecoveryConfig internal recoveryConfig;
+
+    // Mapping [ilk] -> loanId, that keeps track of cdp owners
+    // while also enforcing a maximum of one loan per token (ilk) and per wallet
+    // (which will make future upgrades of the module easier)
+    mapping(bytes32 => bytes32) public loanIds;
+
+    // Lock used by MakerV2Loan.nonReentrant()
+    bool private _notEntered = true;
 }

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
 interface IGuardianManager {
@@ -34,6 +34,19 @@ interface IGuardianManager {
     function addGuardian(address _guardian) external;
 
     /**
+     * @notice Confirms the pending addition of a guardian to a wallet.
+     * The method must be called during the confirmation window and can be called by anyone to enable orchestration.
+     * @param _guardian The guardian.
+     */
+    function confirmGuardianAddition(address _guardian) external;
+
+    /**
+     * @notice Lets the owner cancel a pending guardian addition.
+     * @param _guardian The guardian.
+     */
+    function cancelGuardianAddition(address _guardian) external;
+
+    /**
      * @notice Lets an authorised module revoke a guardian from a wallet.
      * @dev Revokation must be confirmed by calling the confirmGuardianRevokation() method.
      * @param _guardian The guardian to revoke.
@@ -52,19 +65,6 @@ interface IGuardianManager {
      * @param _guardian The guardian.
      */
     function cancelGuardianRevokation(address _guardian) external;
-
-    /**
-     * @notice Confirms the pending addition of a guardian to a wallet.
-     * The method must be called during the confirmation window and can be called by anyone to enable orchestration.
-     * @param _guardian The guardian.
-     */
-    function confirmGuardianAddition(address _guardian) external;
-
-    /**
-     * @notice Lets the owner cancel a pending guardian addition.
-     * @param _guardian The guardian.
-     */
-    function cancelGuardianAddition(address _guardian) external;
 
     /**
      * @notice Get the active guardians for a wallet.

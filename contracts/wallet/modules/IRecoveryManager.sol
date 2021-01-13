@@ -22,5 +22,39 @@ pragma solidity ^0.7.6;
  * @author Elena Gesheva - <elena@argent.xyz>
  */
 interface IRecoveryManager {
-  
+    event RecoveryExecuted(address indexed wallet, address indexed _recovery, uint64 executeAfter);
+    event RecoveryFinalized(address indexed wallet, address indexed _recovery);
+    event RecoveryCanceled(address indexed wallet, address indexed _recovery);
+    event OwnershipTransfered(address indexed wallet, address indexed _newOwner);
+
+    /**
+     * @notice Lets the guardians start the execution of the recovery procedure.
+     * Once triggered the recovery is pending for the security period before it can be finalised.
+     * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2).
+     * @param _recovery The address to which ownership should be transferred.
+     */
+    function executeRecovery(address _recovery) external;
+
+    /**
+     * @notice Finalizes an ongoing recovery procedure if the security period is over.
+     * The method is public and callable by anyone to enable orchestration.
+     */
+    function finalizeRecovery() external;
+
+    /**
+     * @notice Lets the owner cancel an ongoing recovery procedure.
+     * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2) - 1.
+     */
+    function cancelRecovery() external;
+
+    /**
+     * @notice Lets the owner transfer the wallet ownership. This is executed immediately.
+     * @param _newOwner The address to which ownership should be transferred.
+     */
+    function transferOwnership(address _newOwner) external;
+
+    /**
+    * @notice Gets the details of the ongoing recovery procedure if any.
+    */
+    function getRecovery() external view returns(address _address, uint64 _executeAfter, uint32 _guardianCount);
 }

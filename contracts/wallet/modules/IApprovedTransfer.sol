@@ -18,7 +18,7 @@ pragma solidity ^0.7.6;
 
 /**
  * @title IApprovedTransfer
- * @notice Interface functions for a wallet consolidated for clarity.
+ * @notice Interface functions for ApprovedTransfer module.
  * @author Elena Gesheva - <elena@argent.xyz>
  */
 interface IApprovedTransfer {
@@ -29,7 +29,7 @@ interface IApprovedTransfer {
     * @param _amount The amount of token to transfer
     * @param _data  The data for the transaction (only for ETH transfers)
     */
-  function transferToken(address _token, address _to, uint256 _amount, bytes calldata _data) external;
+  function transferToken(address _token, address payable _to, uint256 _amount, bytes calldata _data) external;
   
   /**
     * @notice Call a contract.
@@ -72,11 +72,5 @@ interface IApprovedTransfer {
     * @param _contract The contract to call.
     * @param _data The encoded method data
     */
-    function approveWethAndCallContract(
-        address _spender,
-        uint256 _amount,
-        address _contract,
-        bytes calldata _data
-    )
-        external;
+    function approveWethAndCallContract(address _spender, uint256 _amount, address _contract, bytes calldata _data) external;
 }

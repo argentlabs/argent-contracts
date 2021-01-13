@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
 import "../base/Utils.sol";
@@ -31,8 +31,13 @@ import "./IGuardianManager.sol";
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract GuardianManager is IGuardianManager, BaseModule {
+    bytes4 constant internal CONFIRM_ADDITION_PREFIX = bytes4(keccak256("confirmGuardianAddition(address,address)"));
+    bytes4 constant internal CONFIRM_REVOKATION_PREFIX = bytes4(keccak256("confirmGuardianRevokation(address,address)")); 
 
-    function addGuardian(address _guardian) external 
+    /**
+    * @inheritdoc IGuardianManager
+    */
+    function addGuardian(address _guardian) external override
     onlyWalletOwner()
     onlyWhenUnlocked()
     {
@@ -43,31 +48,39 @@ contract GuardianManager is IGuardianManager, BaseModule {
         // Note that this test is not meant to be strict and can be bypassed by custom malicious contracts.
         (bool success,) = _guardian.call{gas: 5000}(abi.encodeWithSignature("owner()"));
         require(success, "GM: guardian must be EOA or implement owner()");
+        uint256 _securityPeriod = Configuration(registry).securityPeriod();
+
         if (guardianCount() == 0) {
-            addGuardian(_guardian);
+            _addGuardian(_guardian);
             emit GuardianAdded(address(this), _guardian);
         } else {
             bytes32 id = keccak256(abi.encodePacked(_guardian, "addition"));
             require(
-                pending[id] == 0 || block.timestamp > pending[id] + securityWindow,
+                pending[id] == 0 || block.timestamp > pending[id] + Configuration(registry).securityWindow(),
                 "GM: addition of target as guardian is already pending");
-            pending[id] = block.timestamp + securityPeriod;
-            emit GuardianAdditionRequested(address(this), _guardian, block.timestamp + securityPeriod);
+            pending[id] = block.timestamp + _securityPeriod;
+            emit GuardianAdditionRequested(address(this), _guardian, block.timestamp + _securityPeriod);
         }
     }
 
-    function confirmGuardianAddition(address _guardian) external onlyWhenUnlocked() {
+    /**
+    * @inheritdoc IGuardianManager
+    */
+    function confirmGuardianAddition(address _guardian) external override onlyWhenUnlocked() {
         bytes32 id = keccak256(abi.encodePacked(_guardian, "addition"));
 
         require(pending[id] > 0, "GM: no pending addition as guardian for target");
         require(pending[id] < block.timestamp, "GM: Too early to confirm guardian addition");
-        require(block.timestamp < pending[id] + securityWindow, "GM: Too late to confirm guardian addition");
-        addGuardian(_guardian);
+        require(block.timestamp < pending[id] + Configuration(registry).securityWindow(), "GM: Too late to confirm guardian addition");
+        _addGuardian(_guardian);
         emit GuardianAdded(address(this), _guardian);
         delete pending[id];
     }
 
-    function cancelGuardianAddition(address _guardian) external onlyWalletOwner() onlyWhenUnlocked() {
+    /**
+    * @inheritdoc IGuardianManager
+    */
+    function cancelGuardianAddition(address _guardian) external override onlyWalletOwner() onlyWhenUnlocked() {
         bytes32 id = keccak256(abi.encodePacked(_guardian, "addition"));
 
         require(pending[id] > 0, "GM: no pending addition as guardian for target");
@@ -75,34 +88,88 @@ contract GuardianManager is IGuardianManager, BaseModule {
         emit GuardianAdditionCancelled(address(this), _guardian);
     }
 
-    function revokeGuardian(address _guardian) external onlyWalletOwner(_wallet) {
+    /**
+    * @inheritdoc IGuardianManager
+    */
+    function revokeGuardian(address _guardian) external override onlyWalletOwner() {
         require(isGuardian(_guardian), "GM: must be an existing guardian");
         bytes32 id = keccak256(abi.encodePacked(_guardian, "revokation"));
 
+        uint256 _securityPeriod = Configuration(registry).securityPeriod();
         require(
-            pending[id] == 0 || block.timestamp > pending[id] + securityWindow,
+            pending[id] == 0 || block.timestamp > pending[id] + Configuration(registry).securityWindow(),
             "GM: revokation of target as guardian is already pending"); // TODO need to allow if confirmation window passed
-        pending[id] = block.timestamp + securityPeriod;
-        emit GuardianRevokationRequested(address(this), _guardian, block.timestamp + securityPeriod);
+        pending[id] = block.timestamp + _securityPeriod;
+        emit GuardianRevokationRequested(address(this), _guardian, block.timestamp + _securityPeriod);
     }
 
-    function confirmGuardianRevokation(address _guardian) external {
+    /**
+    * @inheritdoc IGuardianManager
+    */
+    function confirmGuardianRevokation(address _guardian) external override {
         bytes32 id = keccak256(abi.encodePacked(_guardian, "revokation"));
 
         require(pending[id] > 0, "GM: no pending guardian revokation for target");
         require(pending[id] < block.timestamp, "GM: Too early to confirm guardian revokation");
-        require(block.timestamp < pending[id] + securityWindow, "GM: Too late to confirm guardian revokation");
-        revokeGuardian(_guardian);
+        require(block.timestamp < pending[id] + Configuration(registry).securityWindow(), "GM: Too late to confirm guardian revokation");
+
+        address lastGuardian = guardians[guardians.length - 1];
+        if (_guardian != lastGuardian) {
+            uint128 targetIndex = info[_guardian].index;
+            guardians[targetIndex] = lastGuardian;
+            info[lastGuardian].index = targetIndex;
+        }
+        guardians.pop();
+        delete info[_guardian];
+
         emit GuardianRevoked(address(this), _guardian);
         delete pending[id];
     }
 
-    function cancelGuardianRevokation(address _guardian) external onlyWalletOwner() onlyWhenUnlocked() {
+    /**
+    * @inheritdoc IGuardianManager
+    */
+    function cancelGuardianRevokation(address _guardian) external override
+    onlyWalletOwner()
+    onlyWhenUnlocked() 
+    {
         bytes32 id = keccak256(abi.encodePacked(_guardian, "revokation"));
 
         require(pending[id] > 0, "GM: no pending guardian revokation for target");
         delete pending[id];
         emit GuardianRevokationCancelled(address(this), _guardian);
+    }
+
+    /**
+    * @inheritdoc IGuardianManager
+    */
+    function getGuardians() public view override returns (address[] memory) {
+        address[] memory guardians = new address[](guardians.length);
+        for (uint256 i = 0; i < guardians.length; i++) {
+            guardians[i] = guardians[i];
+        }
+        return guardians;
+    }
+
+    /**
+    * @dev Checks if an address is the owner of a guardian contract.
+    * The method does not revert if the call to the owner() method consumes more then 5000 gas.
+    * @param _guardian The guardian contract
+    * @param _owner The owner to verify.
+    */
+    function isGuardianOwner(address _guardian, address _owner) internal view returns (bool) {
+        address owner = address(0);
+        bytes4 sig = bytes4(keccak256("owner()"));
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr,sig)
+            let result := staticcall(5000, _guardian, ptr, 0x20, ptr, 0x20)
+            if eq(result, 1) {
+                owner := mload(ptr)
+            }
+        }
+        return owner == _owner;
     }
 
     /**
@@ -136,7 +203,7 @@ contract GuardianManager is IGuardianManager, BaseModule {
                     continue;
                 }
                 // check if _guardian is the owner of a smart contract guardian
-                if (isContract(_guardians[i]) && isGuardianOwner(_guardians[i], _guardian)) {
+                if (Utils.isContract(_guardians[i]) && isGuardianOwner(_guardians[i], _guardian)) {
                     isFound = true;
                     continue;
                 }
@@ -149,27 +216,10 @@ contract GuardianManager is IGuardianManager, BaseModule {
         return isFound ? (true, updatedGuardians) : (false, _guardians);
     }
 
-    function addGuardian(address _guardian) private {
-        info[_guardian].exists = true;
-        info[_guardian].index = uint128(guardians.push(_guardian) - 1);
-    }
-
-    function revokeGuardian(address _guardian) private {
-        address lastGuardian = guardians[config.guardians.length - 1];
-        if (_guardian != lastGuardian) {
-            uint128 targetIndex = info[_guardian].index;
-            guardians[targetIndex] = lastGuardian;
-            info[lastGuardian].index = targetIndex;
-        }
-        guardians.length--;
-        delete info[_guardian];
-    }
-
-    function getGuardians() external view returns (address[] memory) {
-        address[] memory guardians = new address[](guardians.length);
-        for (uint256 i = 0; i < guardians.length; i++) {
-            guardians[i] = guardians[i];
-        }
-        return guardians;
+    function _addGuardian(address _guardian) private {
+        GuardianInfo storage guardianInfo = info[_guardian];
+        guardianInfo.exists = true;
+        guardians.push(_guardian);
+        guardianInfo.index = uint128(guardians.length - 1);
     }
 }

@@ -13,10 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
 import "../base/BaseModule.sol";
+import "../base/Configuration.sol";
 import "./ILockManager.sol";
 
 /**
@@ -30,58 +31,48 @@ import "./ILockManager.sol";
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract LockManager is ILockManager, BaseModule {
+
     /**
-     * @notice Lets a guardian lock a wallet.
+     * @inheritdoc ILockManager
      */
-    function lock() internal
+    function lock() external override
     onlyGuardian()
     onlyWhenUnlocked()
     {
-        setLock(block.timestamp + lockPeriod);
-        emit Locked(_wallet, uint64(block.timestamp + lockPeriod));
+        uint256 _lockPeriod = Configuration(registry).lockPeriod();
+        setLock(block.timestamp + _lockPeriod);
+        emit Locked(address(this), uint64(block.timestamp + _lockPeriod));
     }
 
     /**
-     * @notice Lets a guardian unlock a locked wallet.
+     * @inheritdoc ILockManager
      */
-    function unlock() internal
+    function unlock() external override
     onlyGuardian()
     onlyWhenLocked()
     {
-        require(locker == address(this), "LM: cannot unlock a wallet that was locked by another feature");
-        setLock(_wallet, 0);
-        emit Unlocked(_wallet);
+        require(walletLock.module == LockModule.LockManager, "LM: cannot unlock a wallet that was locked by another feature");
+        setLock(0);
+        emit Unlocked(address(this));
     }
 
     /**
-     * @notice Returns the release time of a wallet lock or 0 if the wallet is unlocked.
-     * @return _releaseAfter The epoch time at which the lock will release (in seconds).
+     * @inheritdoc ILockManager
      */
-    function getLock() public override view returns(uint64 _releaseAfter) {
-        if (lockRelease > block.timestamp) {
-            _releaseAfter = uint64(lockRelease);
+    function getLock() public override view returns(uint256 _releaseAfter) {
+        if (walletLock.releaseAfter > block.timestamp) {
+            return walletLock.releaseAfter;
         }
     }
 
     /**
-     * @notice Checks if a wallet is locked.
-     * @param _wallet The target wallet.
-     * @return _isLocked `true` if the wallet is locked otherwise `false`.
-     */
-    function isLocked(address _wallet) external view returns (bool _isLocked) {
-        return isLocked(_wallet);
-    }
-
-    /**
-     * @dev Lets an authorised module set the lock for a wallet.
-     * @param _wallet The target wallet.
-     * @param _locker The feature doing the lock.
+     * @dev Set the lock for a wallet.
      * @param _releaseAfter The epoch time at which the lock should automatically release.
      */
-    function setLock(address _locker, uint256 _releaseAfter) private {
-        lock = _releaseAfter;
-        if (_releaseAfter != 0 && _locker != locker) {
-            locker = _locker;
+    function setLock(uint256 _releaseAfter) private {
+        walletLock.releaseAfter = _releaseAfter;
+        if (_releaseAfter != 0 && walletLock.module != LockModule.LockManager) {
+            walletLock.module = LockModule.LockManager;
         }
     }
 }

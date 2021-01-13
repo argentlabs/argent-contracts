@@ -3,7 +3,7 @@ import "../lib/other/ERC20.sol";
 import "../lib/other/KyberNetwork.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 contract KyberNetworkTest is KyberNetwork {
 
     using SafeMath for uint256;

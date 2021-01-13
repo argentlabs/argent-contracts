@@ -16,21 +16,66 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
-import "./IRegistry.sol";
 import "./base/Owned.sol";
+import "./IRegistry.sol";
+import "../wallet/base/Configuration.sol";
+import "./IAugustusSwapper.sol";
 
 /**
  * @title Registry implementation
  * @notice Used by the Proxy delegate to resolve registered function signatures against implementation contracts
  * @author Elena Gesheva - <elena@argent.xyz>
  */
-contract Registry is IRegistry, Owned {
+contract Registry is IRegistry, Configuration, Owned {
+
+  // Set the all-wallets-wide configuration settings once.
+  constructor(
+        ITokenPriceRegistry _tokenPriceRegistry,
+        address _wethToken,
+        IComptroller _comptroller,
+        ICompoundRegistry _compoundRegistry,
+        address _ckAddress,
+        IDexRegistry _dexRegistry,
+        address _paraswap,
+        string memory _referrer,
+        uint256 _lockPeriod,
+        uint256 _recoveryPeriod,
+        uint256 _securityPeriod,
+        uint256 _securityWindow,
+        uint128 _defaultLimit
+    )
+    {
+        tokenPriceRegistry = _tokenPriceRegistry;
+        wethToken = _wethToken;
+
+        comptroller = _comptroller;
+        compoundRegistry = _compoundRegistry;
+        ckAddress = _ckAddress;
+
+        dexRegistry = _dexRegistry;
+        paraswapSwapper = _paraswap;
+        if(_paraswap != address(0)) {
+          paraswapProxy = IAugustusSwapper(_paraswap).getTokenTransferProxy();
+        }
+        referrer = _referrer;
+
+        lockPeriod = _lockPeriod;
+        // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
+        // where securityPeriod and securityWindow are the security parameters of adding/removing guardians
+        // and confirming large transfers.
+        require(_lockPeriod >= _recoveryPeriod, "RM: insecure security periods");
+        recoveryPeriod = _recoveryPeriod;
+        securityPeriod = _securityPeriod;
+        securityWindow = _securityWindow;
+        defaultLimit = _defaultLimit;
+    }
+
   mapping (bytes4 => address) public pointers;
 
-  function register(string memory descriptor, address implementation) external
+  function register(bytes4 sig, address implementation) external
   onlyOwner
   {
-    pointers[stringToSig(descriptor)] = implementation;
+    pointers[sig] = implementation;
   }
 
   function lookup(bytes4 sig) external override view returns(address) {

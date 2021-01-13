@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 pragma experimental ABIEncoderV2;
 
@@ -27,9 +27,12 @@ import "./IApprovedTransfer.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
+    /**
+    * @inheritdoc IApprovedTransfer
+    */
     function transferToken(
         address _token,
-        address _to,
+        address payable _to,
         uint256 _amount,
         bytes calldata _data
     )
@@ -40,6 +43,9 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
         resetDailySpent();
     }
 
+    /**
+    * @inheritdoc IApprovedTransfer
+    */
     function callContract(
         address _contract,
         uint256 _value,
@@ -53,6 +59,9 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
         resetDailySpent();
     }
 
+    /**
+    * @inheritdoc IApprovedTransfer
+    */
     function approveTokenAndCallContract(
         address _token,
         address _spender,
@@ -68,18 +77,23 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
         resetDailySpent();
     }
 
+    /**
+    * @inheritdoc IApprovedTransfer
+    */
     function changeLimit(uint256 _newLimit) external override
     onlyWhenUnlocked()
     {
-        uint128 targetLimit = LimitUtils.safe128(_newLimit);
-        current = targetLimit;
-        pending = targetLimit;
-        changeAfter = LimitUtils.safe64(block.timestamp);
+        uint128 targetLimit = Utils.safe128(_newLimit);
+        uint64 changeAfter = Utils.safe64(block.timestamp);
+        limit = Limit(targetLimit, targetLimit, changeAfter);
 
         resetDailySpent();
         emit LimitChanged(address(this), _newLimit, changeAfter);
     }
 
+    /**
+    * @inheritdoc IApprovedTransfer
+    */
     function approveWethAndCallContract(
         address _spender,
         uint256 _amount,
@@ -87,22 +101,19 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
         bytes calldata _data
     )
         external override
-        onlyWhenUnlocked(_wallet)
-        onlyAuthorisedContractCall(_wallet, _contract)
+        onlyWhenUnlocked()
+        onlyAuthorisedContractCall(_contract)
     {
-        doApproveWethAndCallContract(_wallet, _spender, _amount, _contract, _data);
+        doApproveWethAndCallContract(_spender, _amount, _contract, _data);
         resetDailySpent();
     }
 
     /**
     * @notice Helper method to Reset the daily consumption.
-    * @param _versionManager The Version Manager.
-    * @param _wallet The target wallet.
     */
     function resetDailySpent() private 
     onlyWhenUnlocked()
     {
-        alreadySpent = uint128(0);
-        periodEnd = uint64(0);
+        dailySpent = DailySpent(uint128(0), uint64(0));
     }
 }

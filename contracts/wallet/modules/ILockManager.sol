@@ -24,4 +24,20 @@ pragma solidity ^0.7.6;
 interface ILockManager {
     event Locked(address indexed wallet, uint64 releaseAfter);
     event Unlocked(address indexed wallet);
+
+    /**
+     * @notice Lets a guardian lock a wallet.
+     */
+    function lock() external;
+
+    /**
+     * @notice Lets a guardian unlock a locked wallet.
+     */
+    function unlock() external;
+
+    /**
+     * @notice Returns the release time of a wallet lock or 0 if the wallet is unlocked.
+     * @return _releaseAfter The epoch time at which the lock will release (in seconds).
+     */
+    function getLock() external view returns(uint256 _releaseAfter);
 }

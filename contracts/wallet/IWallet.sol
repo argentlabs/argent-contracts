@@ -15,6 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
+pragma experimental ABIEncoderV2;
 
 import "./modules/IApprovedTransfer.sol";
 import "./modules/ICompoundManager.sol";
@@ -23,7 +24,7 @@ import "./modules/ILockManager.sol";
 import "./modules/INftTransfer.sol";
 import "./modules/IRecoveryManager.sol";
 import "./modules/ITokenExchanger.sol";
-import "./modules/ITransferManager.sol";
+// import "./modules/ITransferManager.sol";
 
 /**
  * @title IWallet
@@ -37,8 +38,25 @@ interface IWallet is
   ILockManager,
   INftTransfer,
   IRecoveryManager,
-  ITokenExchanger,
-  ITransferManager {
+  ITokenExchanger
+  //TODO sort out the overlapping implementation of ITransferManager and IApprovedTransfer
+  {
+    /**
+     * @notice Checks if a wallet is locked.
+     * @return _isLocked `true` if the wallet is locked otherwise `false`.
+     */
+    function isLocked() external view returns (bool);
 
-  uint public version;
+    /**
+     * @notice Returns the number of guardians for a wallet.
+     * @return the number of guardians.
+     */
+    function guardianCount() external view returns (uint256);
+
+    /**
+     * @notice Checks if an account is a guardian for a wallet.
+     * @param _guardian The account.
+     * @return true if the account is a guardian for a wallet.
+     */
+    function isGuardian(address _guardian) external view returns (bool);
 }

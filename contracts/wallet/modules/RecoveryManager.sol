@@ -13,11 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
 import "../base/Utils.sol";
 import "../base/BaseModule.sol";
+import "../base/Configuration.sol";
 import "./IRecoveryManager.sol";
 
 /**
@@ -35,178 +36,105 @@ contract RecoveryManager is IRecoveryManager, BaseModule {
     bytes4 constant internal CANCEL_RECOVERY_PREFIX = bytes4(keccak256("cancelRecovery(address)"));
     bytes4 constant internal TRANSFER_OWNERSHIP_PREFIX = bytes4(keccak256("transferOwnership(address,address)"));
 
-    struct RecoveryConfig {
-        address recovery;
-        uint64 executeAfter;
-        uint32 guardianCount;
-    }
-
-    // Wallet specific storage
-    mapping (address => RecoveryConfig) internal recoveryConfigs;
-
-    // Recovery period
-    uint256 public recoveryPeriod;
-    // Lock period
-    uint256 public lockPeriod;
-    // Guardian Storage
-    IGuardianStorage public guardianStorage;
-
-    // *************** Events *************************** //
-
-    event RecoveryExecuted(address indexed wallet, address indexed _recovery, uint64 executeAfter);
-    event RecoveryFinalized(address indexed wallet, address indexed _recovery);
-    event RecoveryCanceled(address indexed wallet, address indexed _recovery);
-    event OwnershipTransfered(address indexed wallet, address indexed _newOwner);
-
     // *************** Modifiers ************************ //
 
     /**
      * @notice Throws if there is no ongoing recovery procedure.
      */
-    modifier onlyWhenRecovery(address _wallet) {
-        require(recoveryConfigs[_wallet].executeAfter > 0, "RM: there must be an ongoing recovery");
+    modifier onlyWhenRecovery() {
+        require(recoveryConfig.executeAfter > 0, "RM: there must be an ongoing recovery");
         _;
     }
 
     /**
      * @notice Throws if there is an ongoing recovery procedure.
      */
-    modifier notWhenRecovery(address _wallet) {
-        require(recoveryConfigs[_wallet].executeAfter == 0, "RM: there cannot be an ongoing recovery");
+    modifier notWhenRecovery() {
+        require(recoveryConfig.executeAfter == 0, "RM: there cannot be an ongoing recovery");
         _;
     }
 
-    // *************** Constructor ************************ //
-
-    constructor(
-        ILockStorage _lockStorage,
-        IGuardianStorage _guardianStorage,
-        IVersionManager _versionManager,
-        uint256 _recoveryPeriod,
-        uint256 _lockPeriod
-    )
-        BaseModule(_lockStorage, _versionManager, NAME)
-    {
-        // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
-        // where securityPeriod and securityWindow are the security parameters of adding/removing guardians
-        // and confirming large transfers.
-        require(_lockPeriod >= _recoveryPeriod, "RM: insecure security periods");
-        recoveryPeriod = _recoveryPeriod;
-        lockPeriod = _lockPeriod;
-        guardianStorage = _guardianStorage;
+    modifier validateNewOwner(address _newOwner) {
+        require(_newOwner != address(0), "RM: new owner address cannot be null");
+        require(!isGuardian(_newOwner), "RM: new owner address cannot be a guardian");
+        _;
     }
 
     // *************** External functions ************************ //
 
     /**
-     * @notice Lets the guardians start the execution of the recovery procedure.
-     * Once triggered the recovery is pending for the security period before it can be finalised.
-     * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2).
-     * @param _wallet The target wallet.
-     * @param _recovery The address to which ownership should be transferred.
+     * @inheritdoc IRecoveryManager
      */
-    function executeRecovery(address _wallet, address _recovery) external onlyWalletFeature(_wallet) notWhenRecovery(_wallet) {
-        validateNewOwner(_wallet, _recovery);
-        RecoveryConfig storage config = recoveryConfigs[_wallet];
-        config.recovery = _recovery;
-        config.executeAfter = uint64(block.timestamp + recoveryPeriod);
-        config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
-        setLock(_wallet, block.timestamp + lockPeriod);
-        emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
+    function executeRecovery(address _recovery) external override
+    //onlyWalletFeature()
+    notWhenRecovery()
+    validateNewOwner(_recovery)
+    {
+        recoveryConfig.recovery = _recovery;
+        recoveryConfig.executeAfter = uint64(block.timestamp + Configuration(registry).recoveryPeriod());
+        recoveryConfig.guardianCount = uint32(guardianCount());
+        setLock(block.timestamp + Configuration(registry).lockPeriod());
+        emit RecoveryExecuted(address(this), _recovery, recoveryConfig.executeAfter);
     }
 
     /**
-     * @notice Finalizes an ongoing recovery procedure if the security period is over.
-     * The method is public and callable by anyone to enable orchestration.
-     * @param _wallet The target wallet.
+     * @inheritdoc IRecoveryManager
      */
-    function finalizeRecovery(address _wallet) external onlyWhenRecovery(_wallet) {
-        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        require(uint64(block.timestamp) > config.executeAfter, "RM: the recovery period is not over yet");
-        address recoveryOwner = config.recovery;
-        delete recoveryConfigs[_wallet];
+    function finalizeRecovery() external override
+    onlyWhenRecovery() 
+    {
+        require(uint64(block.timestamp) > recoveryConfig.executeAfter, "RM: the recovery period is not over yet");
+        address recoveryOwner = recoveryConfig.recovery;
+        delete recoveryConfig;
 
-        versionManager.setOwner(_wallet, recoveryOwner);
-        setLock(_wallet, 0);
+        Owned(address(this)).changeOwner(recoveryOwner);
+        setLock(0);
 
-        emit RecoveryFinalized(_wallet, recoveryOwner);
+        emit RecoveryFinalized(address(this), recoveryOwner);
     }
 
     /**
-     * @notice Lets the owner cancel an ongoing recovery procedure.
-     * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2) - 1.
-     * @param _wallet The target wallet.
+     * @inheritdoc IRecoveryManager
      */
-    function cancelRecovery(address _wallet) external onlyWalletFeature(_wallet) onlyWhenRecovery(_wallet) {
-        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
-        address recoveryOwner = config.recovery;
-        delete recoveryConfigs[_wallet];
-        setLock(_wallet, 0);
+    function cancelRecovery() external override
+    //onlyWalletFeature()
+    onlyWhenRecovery()
+    {
+        address recoveryOwner = recoveryConfig.recovery;
+        delete recoveryConfig;
+        setLock(0);
 
-        emit RecoveryCanceled(_wallet, recoveryOwner);
+        emit RecoveryCanceled(address(this), recoveryOwner);
     }
 
     /**
-     * @notice Lets the owner transfer the wallet ownership. This is executed immediately.
-     * @param _wallet The target wallet.
-     * @param _newOwner The address to which ownership should be transferred.
+     * @inheritdoc IRecoveryManager
      */
-    function transferOwnership(address _wallet, address _newOwner) external onlyWalletFeature(_wallet) onlyWhenUnlocked(_wallet) {
-        validateNewOwner(_wallet, _newOwner);
-        versionManager.setOwner(_wallet, _newOwner);
+    function transferOwnership(address _newOwner) external override
+    //onlyWalletFeature()
+    onlyWhenUnlocked()
+    validateNewOwner(_newOwner)
+    {
+        Owned(address(this)).changeOwner(_newOwner);
 
-        emit OwnershipTransfered(_wallet, _newOwner);
+        emit OwnershipTransfered(address(this), _newOwner);
     }
 
     /**
-    * @notice Gets the details of the ongoing recovery procedure if any.
-    * @param _wallet The target wallet.
-    */
-    function getRecovery(address _wallet) external view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
-        RecoveryConfig storage config = recoveryConfigs[_wallet];
-        return (config.recovery, config.executeAfter, config.guardianCount);
+     * @inheritdoc IRecoveryManager
+     */
+    function getRecovery() external override view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
+        return (recoveryConfig.recovery, recoveryConfig.executeAfter, recoveryConfig.guardianCount);
     }
 
     /**
-     * @inheritdoc IFeature
+     * @dev Set the lock for a wallet.
+     * @param _releaseAfter The epoch time at which the lock should automatically release.
      */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) external view override returns (uint256, OwnerSignature) {
-        bytes4 methodId = Utils.functionPrefix(_data);
-        if (methodId == EXECUTE_RECOVERY_PREFIX) {
-            uint walletGuardians = guardianStorage.guardianCount(_wallet);
-            require(walletGuardians > 0, "RM: no guardians set on wallet");
-            uint numberOfSignaturesRequired = Utils.ceil(walletGuardians, 2);
-            return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
+    function setLock(uint256 _releaseAfter) private {
+        walletLock.releaseAfter = _releaseAfter;
+        if (_releaseAfter != 0 && walletLock.module != LockModule.RecoveryManager) {
+            walletLock.module = LockModule.RecoveryManager;
         }
-        if (methodId == FINALIZE_RECOVERY_PREFIX) {
-            return (0, OwnerSignature.Anyone);
-        }
-        if (methodId == CANCEL_RECOVERY_PREFIX) {
-            uint numberOfSignaturesRequired = Utils.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
-            return (numberOfSignaturesRequired, OwnerSignature.Optional);
-        }
-        if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
-            uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
-            uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
-            return (numberOfSignaturesRequired, OwnerSignature.Required);
-        }
-
-        revert("RM: unknown method");
     }
-
-    // *************** Internal Functions ********************* //
-
-    function validateNewOwner(address _wallet, address _newOwner) internal view {
-        require(_newOwner != address(0), "RM: new owner address cannot be null");
-        require(!guardianStorage.isGuardian(_wallet, _newOwner), "RM: new owner address cannot be a guardian");
-    }
-
-    function setLock(address _wallet, uint256 _releaseAfter) internal {
-        versionManager.invokeStorage(
-            _wallet,
-            address(lockStorage),
-            abi.encodeWithSelector(lockStorage.setLock.selector, _wallet, address(this), _releaseAfter)
-        );
-    }
-
 }

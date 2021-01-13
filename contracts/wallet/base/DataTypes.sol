@@ -22,12 +22,6 @@ pragma solidity ^0.7.6;
  * @author Elena Gesheva - <elena@argent.xyz>
  */
 contract DataTypes {
-
-    struct GuardianInfo {
-        bool exists;
-        uint128 index;
-    }
-
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
     // Mock token address for ETH
@@ -35,6 +29,44 @@ contract DataTypes {
     // large limit when the limit can be considered disabled
     uint128 constant internal LIMIT_DISABLED = uint128(-1);
 
-    bytes4 constant internal CONFIRM_ADDITION_PREFIX = bytes4(keccak256("confirmGuardianAddition(address,address)"));
-    bytes4 constant internal CONFIRM_REVOKATION_PREFIX = bytes4(keccak256("confirmGuardianRevokation(address,address)")); 
+
+    enum ActionType { Transfer }
+
+    enum LockModule { RecoveryManager, LockManager }
+
+    enum OwnerSignature { Required, Optional, Disallowed }
+
+    struct GuardianInfo {
+        bool exists;
+        uint128 index;
+    }
+
+    struct Lock {
+        // The type of lock placed, i.e. which module set the lock
+        LockModule module;
+        // The lock's release timestamp
+        uint256 releaseAfter;
+    }
+
+    struct Limit {
+        // the current limit
+        uint128 current;
+        // the pending limit if any
+        uint128 pending;
+        // when the pending limit becomes the current limit
+        uint64 changeAfter;
+    }
+
+    struct DailySpent {
+        // The amount already spent during the current period
+        uint128 alreadySpent;
+        // The end of the current period
+        uint64 periodEnd;
+    }
+
+    struct RecoveryConfig {
+        address recovery;
+        uint64 executeAfter;
+        uint32 guardianCount;
+    }
 }
