@@ -34,7 +34,12 @@ contract DataTypes {
 
     enum LockModule { RecoveryManager, LockManager }
 
-    enum OwnerSignature { Required, Optional, Disallowed }
+    enum OwnerSignature {
+        Anyone,             // Anyone
+        Required,           // Owner required
+        Optional,           // Owner and/or guardians
+        Disallowed          // guardians only
+    }
 
     struct GuardianInfo {
         bool exists;

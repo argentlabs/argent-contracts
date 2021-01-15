@@ -15,7 +15,7 @@ const DelegateProxy = artifacts.require("DelegateProxy");
 const ERC20 = artifacts.require("TestERC20");
 const WETH = artifacts.require("WETH9");
 
-contract("ApprovedTrasfer", (accounts) => {  
+contract("ApprovedTransfer", (accounts) => {  
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];
@@ -27,8 +27,8 @@ contract("ApprovedTrasfer", (accounts) => {
 
   let wallet;
   let registry;
-  let walletFactory;
   let relayerManager;
+  let approvedTransfer;
 
   let erc20;
   let weth;
@@ -37,7 +37,11 @@ contract("ApprovedTrasfer", (accounts) => {
 
   before(async () => {  
     weth = await WETH.new();
-    registry = await setupWalletVersion({ wethToken: weth.address });    
+    const modules = await setupWalletVersion({ wethToken: weth.address });
+    registry = modules.registry;
+    relayerManager = modules.relayerManager;
+    await manager.setRelayerManager(relayerManager);
+    approvedTransfer = modules.approvedTransfer;
   });
 
   beforeEach(async () => {
@@ -97,14 +101,6 @@ contract("ApprovedTrasfer", (accounts) => {
     assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     assert.equal((await contract.state()).toNumber(), newState, "the state of the external contract should have been changed");
   }
-
-  // it("should allow owner to transfer ETH", async () => {
-  //   wallet.send(5);
-  //   const balanceBefore = await utils.getBalance(recipient);
-  //   await wallet.transferToken(utils.ETH_TOKEN, recipient, 5);
-  //   const balanceAfter = await utils.getBalance(recipient);
-  //   expect(balanceBefore.addn(5)).to.be.eq.BN(balanceAfter);
-  // });
 
   describe("Transfer", () => {
     async function expectFailingTransferToken(_token, _signers, _reason) {
@@ -282,8 +278,9 @@ contract("ApprovedTrasfer", (accounts) => {
           const txReceipt = await manager.relay(approvedTransfer, "approveTokenAndCallContract",
             [wallet.address, erc20.address, wallet.address, amountToApprove, target.address, invalidData],
             wallet, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
-          const { success } = parseRelayReceipt(txReceipt);
+          const { success, error } = parseRelayReceipt(txReceipt);
           assert.isFalse(success);
+          assert.equal(error, "BT: Forbidden contract");
         }
 
         it("should revert when target contract is the wallet", async () => {

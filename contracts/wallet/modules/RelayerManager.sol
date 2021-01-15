@@ -14,31 +14,24 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.6;
 pragma experimental ABIEncoderV2;
 
-import "./common/Utils.sol";
-import "./ITokenPriceRegistry.sol";
-import "../wallet/modules/IGuardianManager.sol";
-import "../wallet/IWallet.sol";
+import "../base/Utils.sol";
+import "../base/BaseModule.sol";
+import "../base/Configuration.sol";
+import "./IRelayerManager.sol";
+import "./IGuardianManager.sol";
 
 /**
  * @title Relayer
  * @notice Contract to execute transactions signed by ETH-less accounts and sent by a relayer back end.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
-contract Relayer {
+contract RelayerManager is IRelayerManager, BaseModule {
 
     uint256 constant internal BLOCKBOUND = 10000;
-
     using SafeMath for uint256;
-
-    mapping (address => RelayerConfig) public relayer;
-
-    struct RelayerConfig {
-        uint256 nonce;
-        mapping (bytes32 => bool) executedTx;
-    }
 
     // Used to avoid stack too deep error
     struct StackExtension {
@@ -49,47 +42,47 @@ contract Relayer {
         bytes returnData;
     }
 
-    event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
-    event Refund(address indexed wallet, address indexed refundAddress, address refundToken, uint256 refundAmount);
-
     /* ***************** External methods ************************* */
+    /**
+    * @inheritdoc IRelayerManager
+    */
+    function getNonce() external override pure returns (uint256 nonce) {
+        return nonce;
+    }
 
     /**
-    * @notice Executes a relayed transaction.
-    * @param _wallet The target wallet.
-    * @param _feature The target feature.
-    * @param _data The data for the relayed transaction
-    * @param _nonce The nonce used to prevent replay attacks.
-    * @param _signatures The signatures as a concatenated byte array.
-    * @param _gasPrice The gas price to use for the gas refund.
-    * @param _gasLimit The gas limit to use for the gas refund.
-    * @param _refundToken The token to use for the gas refund.
-    * @param _refundAddress The address refunded to prevent front-running.
+    * @inheritdoc IRelayerManager
+    */
+    function isExecutedTx(bytes32 _signHash) external override view returns (bool executed) {
+        return executedTx[_signHash];
+    }
+
+    /**
+    * @inheritdoc IRelayerManager
     */
     function execute(
-        address _wallet,
-        address _feature,
+        address _module,
         bytes calldata _data,
         uint256 _nonce,
         bytes calldata _signatures,
         uint256 _gasPrice,
         uint256 _gasLimit,
         address _refundToken,
-        address _refundAddress
+        address payable _refundAddress
     )
-        external
+        external override
         returns (bool)
     {
         uint startGas = gasleft();
         require(startGas >= _gasLimit, "RM: not enough gas provided");
-        require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
+        // require(verifyData(_data), "RM: Target of _data != _wallet");
         StackExtension memory stack;
-        (stack.requiredSignatures, stack.ownerSignatureRequirement) = IFeature(_feature).getRequiredSignatures(_wallet, _data);
+        (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures(_module, _data);
         require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
         require(stack.requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         stack.signHash = getSignHash(
             address(this),
-            _feature,
+            address(this),
             0,
             _data,
             _nonce,
@@ -98,18 +91,16 @@ contract Relayer {
             _refundToken,
             _refundAddress);
         require(checkAndUpdateUniqueness(
-            _wallet,
             _nonce,
             stack.signHash,
             stack.requiredSignatures,
             stack.ownerSignatureRequirement), "RM: Duplicate request");
-        require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
+        require(validateSignatures(stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
 
-        (stack.success, stack.returnData) = _wallet.call(_data);
+        (stack.success, stack.returnData) = address(this).call(_data);
         // only refund when approved by owner and positive gas price
         if (_gasPrice > 0 && stack.ownerSignatureRequirement == OwnerSignature.Required) {
             refund(
-                _wallet,
                 startGas,
                 _gasPrice,
                 _gasLimit,
@@ -117,25 +108,8 @@ contract Relayer {
                 _refundAddress,
                 stack.requiredSignatures);
         }
-        emit TransactionExecuted(_wallet, stack.success, stack.returnData, stack.signHash);
+        emit TransactionExecuted(address(this), stack.success, stack.returnData, stack.signHash);
         return stack.success;
-    }
-
-    /**
-    * @notice Gets the current nonce for a wallet.
-    * @param _wallet The target wallet.
-    */
-    function getNonce(address _wallet) external view returns (uint256 nonce) {
-        return relayer[_wallet].nonce;
-    }
-
-    /**
-    * @notice Checks if a transaction identified by its sign hash has already been executed.
-    * @param _wallet The target wallet.
-    * @param _signHash The sign hash of the transaction.
-    */
-    function isExecutedTx(address _wallet, bytes32 _signHash) external view returns (bool executed) {
-        return relayer[_wallet].executedTx[_signHash];
     }
 
     /* ***************** Internal & Private methods ************************* */
@@ -190,17 +164,16 @@ contract Relayer {
     * @notice Checks that the wallet address provided as the first parameter of _data matches _wallet
     * @return false if the addresses are different.
     */
-    function verifyData(address _wallet, bytes calldata _data) internal pure returns (bool) {
-        require(_data.length >= 36, "BM: Invalid dataWallet");
+    function verifyData(bytes calldata _data) internal view returns (bool) {
+        require(_data.length >= 36, "RM: Invalid dataWallet");
         address dataWallet = abi.decode(_data[4:], (address));
-        return dataWallet == _wallet;
+        return dataWallet == address(this);
     }
 
     /**
     * @notice Checks if the relayed transaction is unique. If yes the state is updated.
     * For actions requiring 1 signature by the owner we use the incremental nonce.
     * For all other actions we check/store the signHash in a mapping.
-    * @param _wallet The target wallet.
     * @param _nonce The nonce.
     * @param _signHash The signed hash of the transaction.
     * @param requiredSignatures The number of signatures required.
@@ -208,7 +181,6 @@ contract Relayer {
     * @return true if the transaction is unique.
     */
     function checkAndUpdateUniqueness(
-        address _wallet,
         uint256 _nonce,
         bytes32 _signHash,
         uint256 requiredSignatures,
@@ -219,21 +191,21 @@ contract Relayer {
     {
         if (requiredSignatures == 1 && ownerSignatureRequirement == OwnerSignature.Required) {
             // use the incremental nonce
-            if (_nonce <= relayer[_wallet].nonce) {
+            if (_nonce <= nonce) {
                 return false;
             }
             uint256 nonceBlock = (_nonce & 0xffffffffffffffffffffffffffffffff00000000000000000000000000000000) >> 128;
             if (nonceBlock > block.number + BLOCKBOUND) {
                 return false;
             }
-            relayer[_wallet].nonce = _nonce;
+            nonce = _nonce;
             return true;
         } else {
             // use the txHash map
-            if (relayer[_wallet].executedTx[_signHash] == true) {
+            if (executedTx[_signHash] == true) {
                 return false;
             }
-            relayer[_wallet].executedTx[_signHash] = true;
+            executedTx[_signHash] = true;
             return true;
         }
     }
@@ -241,14 +213,12 @@ contract Relayer {
     /**
     * @notice Validates the signatures provided with a relayed transaction.
     * The method MUST throw if one or more signatures are not valid.
-    * @param _wallet The target wallet.
     * @param _signHash The signed hash representing the relayed transaction.
     * @param _signatures The signatures as a concatenated byte array.
     * @param _option An enum indicating whether the owner is required, optional or disallowed.
     * @return A boolean indicating whether the signatures are valid.
     */
     function validateSignatures(
-        address _wallet,
         bytes32 _signHash,
         bytes memory _signatures,
         OwnerSignature _option
@@ -261,11 +231,6 @@ contract Relayer {
             return true;
         }
         address lastSigner = address(0);
-        address[] memory guardians;
-        if (_option != OwnerSignature.Required || _signatures.length > 65) {
-            guardians = guardianStorage.getGuardians(_wallet); // guardians are only read if they may be needed
-        }
-        bool isGuardian;
 
         for (uint256 i = 0; i < _signatures.length / 65; i++) {
             address signer = Utils.recoverSigner(_signHash, _signatures, i);
@@ -273,13 +238,13 @@ contract Relayer {
             if (i == 0) {
                 if (_option == OwnerSignature.Required) {
                     // First signer must be owner
-                    if (isOwner(_wallet, signer)) {
+                    if (signer == owner) {
                         continue;
                     }
                     return false;
                 } else if (_option == OwnerSignature.Optional) {
                     // First signer can be owner
-                    if (isOwner(_wallet, signer)) {
+                    if (signer == owner) {
                         continue;
                     }
                 }
@@ -288,7 +253,7 @@ contract Relayer {
                 return false; // Signers must be different
             }
             lastSigner = signer;
-            (isGuardian, guardians) = GuardianUtils.isGuardianOrGuardianSigner(guardians, signer);
+            bool isGuardian = IGuardianManager(address(this)).isGuardianOrGuardianSigner(signer);
             if (!isGuardian) {
                 return false;
             }
@@ -298,7 +263,6 @@ contract Relayer {
 
     /**
     * @notice Refunds the gas used to the Relayer.
-    * @param _wallet The target wallet.
     * @param _startGas The gas provided at the start of the execution.
     * @param _gasPrice The gas price for the refund.
     * @param _gasLimit The gas limit for the refund.
@@ -307,17 +271,16 @@ contract Relayer {
     * @param _requiredSignatures The number of signatures required.
     */
     function refund(
-        address _wallet,
         uint _startGas,
         uint _gasPrice,
         uint _gasLimit,
         address _refundToken,
-        address _refundAddress,
+        address payable _refundAddress,
         uint256 _requiredSignatures
     )
         internal
     {
-        address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
+        address payable refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
         uint256 refundAmount;
         // skip daily limit when approved by guardians (and signed by owner)
         if (_requiredSignatures > 1) {
@@ -326,21 +289,20 @@ contract Relayer {
         } else {
             uint256 gasConsumed = _startGas.sub(gasleft()).add(40000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
-            uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : LimitUtils.getEtherValue(tokenPriceRegistry, refundAmount, _refundToken);
-            require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, ethAmount), "RM: refund is above daily limit");
+            uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : getEtherValue(refundAmount, _refundToken);
+            // TODO require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, ethAmount), "RM: refund is above daily limit");
         }
         // refund in ETH or ERC20
         if (_refundToken == ETH_TOKEN) {
-            invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
+            refundAddress.transfer(refundAmount);
         } else {
-            bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
-		    bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
-            // Check token refund is successful, when `transfer` returns a success bool result
-            if (transferSuccessBytes.length > 0) {
-                require(abi.decode(transferSuccessBytes, (bool)), "RM: Refund transfer failed");
-            }
+		    ERC20(_refundToken).transfer(refundAddress, refundAmount);
+            // TODO Check token refund is successful, when `transfer` returns a success bool result
+            // if (transferSuccessBytes.length > 0) {
+            //     require(abi.decode(transferSuccessBytes, (bool)), "RM: Refund transfer failed");
+            // }
         }
-        emit Refund(_wallet, refundAddress, _refundToken, refundAmount);
+        emit Refund(address(this), refundAddress, _refundToken, refundAmount);
     }
 
    /**
@@ -350,5 +312,19 @@ contract Relayer {
     function getChainId() private pure returns (uint256 chainId) {
         // solhint-disable-next-line no-inline-assembly
         assembly { chainId := chainid() }
+    }
+
+    function getEtherValue(uint256 _amount, address _token) internal view returns (uint256) {
+        ITokenPriceRegistry tokenPriceRegistry = Configuration(registry).tokenPriceRegistry();
+
+        uint256 price = tokenPriceRegistry.getTokenPrice(_token);
+        uint256 etherValue = price.mul(_amount).div(10**18);
+        return etherValue;
+    }
+
+    // Todo incorporate the remaining required signatures implementations 
+    // below only caters for TransferManager signatures requirement
+    function getRequiredSignatures(address, bytes calldata) public view returns (uint256, OwnerSignature) {
+        return (1, OwnerSignature.Required);
     }
 }

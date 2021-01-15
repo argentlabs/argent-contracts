@@ -57,4 +57,9 @@ contract WalletStorage is DataTypes, Owned {
 
     // Lock used by MakerV2Loan.nonReentrant()
     bool private _notEntered = true;
+
+    // The wallet nonce
+    uint256 public nonce;
+    // Maps the sign hash of the transaction to a boolean indicating whether it's been executed by the relayer
+    mapping (bytes32 => bool) public executedTx;
 }

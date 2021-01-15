@@ -17,14 +17,16 @@
 pragma solidity ^0.7.6;
 pragma experimental ABIEncoderV2;
 
-import "./modules/IApprovedTransfer.sol";
+//import "./modules/IApprovedTransfer.sol";
 import "./modules/ICompoundManager.sol";
 import "./modules/IGuardianManager.sol";
 import "./modules/ILockManager.sol";
 import "./modules/INftTransfer.sol";
 import "./modules/IRecoveryManager.sol";
+import "./modules/IRelayerManager.sol";
 import "./modules/ITokenExchanger.sol";
-// import "./modules/ITransferManager.sol";
+import "./modules/ITransferManager.sol";
+import "./modules/IBaseTransfer.sol";
 
 /**
  * @title IWallet
@@ -32,13 +34,16 @@ import "./modules/ITokenExchanger.sol";
  * @author Elena Gesheva - <elena@argent.xyz>
  */
 interface IWallet is
-  IApprovedTransfer,
+  //IApprovedTransfer,
   ICompoundManager,
   IGuardianManager,
   ILockManager,
   INftTransfer,
   IRecoveryManager,
-  ITokenExchanger
+  IRelayerManager,
+  ITokenExchanger,
+  ITransferManager,
+  IBaseTransfer
   //TODO sort out the overlapping implementation of ITransferManager and IApprovedTransfer
   {
     /**

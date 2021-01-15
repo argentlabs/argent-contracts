@@ -1,5 +1,6 @@
 const ethers = require("ethers");
 
+const IWallet = artifacts.require("IWallet");
 const Registry = artifacts.require("Registry");
 const ApprovedTransfer = artifacts.require("ApprovedTransfer");
 const CompoundManager = artifacts.require("CompoundManager");
@@ -7,8 +8,9 @@ const GuardianManager = artifacts.require("GuardianManager");
 const LockManager = artifacts.require("LockManager");
 const NftTransfer = artifacts.require("NftTransfer");
 const RecoveryManager = artifacts.require("RecoveryManager");
+const RelayerManager = artifacts.require("RelayerManager");
 const TokenExchanger = artifacts.require("TokenExchanger");
-//const TransferManager = artifacts.require("TransferManager");
+const TransferManager = artifacts.require("TransferManager");
 
 const deployManager = require("../utils/deploy-manager.js");
 
@@ -44,37 +46,40 @@ module.exports = {
       config.settings.defaultLimit);
 
     // Setup the wallet modules
-    const approvedTransfer = await ApprovedTransfer.new();
+    //const approvedTransfer = await ApprovedTransfer.new();
     const compoundManager = await CompoundManager.new();
     const guardianManager = await GuardianManager.new();
     const lockManager = await LockManager.new();
     const nftTransfer = await NftTransfer.new();
     const recoveryManager = await RecoveryManager.new();
+    const relayerManager = await RelayerManager.new();
     const tokenExchanger = await TokenExchanger.new();
-    // const transferManager = await TransferManager.new();
+    const transferManager = await TransferManager.new();
 
     // IWallet inherits interfaces implemented in modules below
     const modules = [
-      approvedTransfer,
+      //approvedTransfer,
       compoundManager,
       guardianManager,
       lockManager,
       nftTransfer,
       recoveryManager,
+      relayerManager,
       tokenExchanger,
-      // transferManager,
+      transferManager,
     ];
 
     modules.forEach((module) => {
       const functions = module.abi.filter((functionDefinition) => functionDefinition.type === "function");
-    
+      
+      // Filter out only IWallet functions
       functions.forEach(async (functionDefinition) => {
-        console.log("name", functionDefinition.name)
+        //console.log("name", functionDefinition.name)
         const signature = web3.eth.abi.encodeFunctionSignature(functionDefinition);
         await registry.register(signature, module.address);
       });
     });
 
-    return registry;
+    return { registry, relayerManager, transferManager };
   }
 }

@@ -71,4 +71,11 @@ interface IGuardianManager {
      * @return _guardians the active guardians for a wallet.
      */
     function getGuardians() external view returns (address[] memory);
+
+    /**
+    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian.
+    * @param _guardian the address to test
+    * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
+    */
+    function isGuardianOrGuardianSigner(address _guardian) external view returns (bool _isGuardian);
 }

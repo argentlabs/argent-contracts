@@ -63,7 +63,7 @@ contract Registry is IRegistry, Configuration, Owned {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
         // where securityPeriod and securityWindow are the security parameters of adding/removing guardians
         // and confirming large transfers.
-        require(_lockPeriod >= _recoveryPeriod, "RM: insecure security periods");
+        require(_lockPeriod >= _recoveryPeriod, "R: insecure security periods");
         recoveryPeriod = _recoveryPeriod;
         securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;

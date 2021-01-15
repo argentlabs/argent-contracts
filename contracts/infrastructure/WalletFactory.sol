@@ -155,7 +155,7 @@ contract WalletFactory is Managed {
      * @param _guardian The guardian address
      * @param _version The version of feature bundle
      */
-    function validateInputs(address _owner, address _guardian, uint256 _version) internal view {
+    function validateInputs(address _owner, address _guardian, uint256 _version) internal pure {
         require(_owner != address(0), "WF: owner cannot be null");
         require(_guardian != (address(0)), "WF: guardian cannot be null");
         require(_version > 0, "WF: invalid _version");

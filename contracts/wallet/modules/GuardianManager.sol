@@ -152,6 +152,13 @@ contract GuardianManager is IGuardianManager, BaseModule {
     }
 
     /**
+    * @inheritdoc IGuardianManager
+    */
+    function isGuardianOrGuardianSigner(address _guardian) external override view returns (bool _isGuardian) {
+        (_isGuardian, ) = isGuardianOrGuardianSigner(getGuardians(), _guardian);
+    }
+
+    /**
     * @dev Checks if an address is the owner of a guardian contract.
     * The method does not revert if the call to the owner() method consumes more then 5000 gas.
     * @param _guardian The guardian contract
@@ -173,15 +180,6 @@ contract GuardianManager is IGuardianManager, BaseModule {
     }
 
     /**
-    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian.
-    * @param _guardian the address to test
-    * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
-    */
-    function isGuardianOrGuardianSigner(address _guardian) external view returns (bool _isGuardian) {
-        (_isGuardian, ) = isGuardianOrGuardianSigner(getGuardians(), _guardian);
-    }
-
-        /**
     * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian
     * given a list of guardians.
     * @param _guardians the list of guardians

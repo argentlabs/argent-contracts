@@ -5,30 +5,26 @@ const { ETH_TOKEN } = require("./utilities.js");
 const utils = require("./utilities.js");
 
 const ITokenPriceRegistry = artifacts.require("ITokenPriceRegistry");
-const IGuardianStorage = artifacts.require("IGuardianStorage");
-const IFeature = artifacts.require("IFeature");
+const IWallet = artifacts.require("IWallet");
 
 class RelayManager {
   async setRelayerManager(relayerManager) {
     this.relayerManager = relayerManager;
-
-    const guardianStorageAddress = await relayerManager.guardianStorage();
-    this.guardianStorage = await IGuardianStorage.at(guardianStorageAddress);
   }
 
   // Relays without refund by default, unless the gasPrice is explicitely set to be >0
-  async relay(_feature, _method, _params, _wallet, _signers,
+  async relay(_module, _method, _params, _wallet, _signers,
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero) {
     const relayerAccount = await utils.getAccount(9);
     const nonce = await utils.getNonceForRelay();
     const chainId = await utils.getChainId();
-    const methodData = _feature.contract.methods[_method](..._params).encodeABI();
+    const methodData = _module.contract.methods[_method](..._params).encodeABI();
 
-    const gasLimit = await this.getGasLimitRefund(_feature, _method, _params, _wallet, _signers, _gasPrice);
+    const gasLimit = await this.getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice);
     // Uncomment when debugging gas limits
-    // await this.debugGasLimits(_feature, _method, _params, _wallet, _signers);
+    // await this.debugGasLimits(_module, _method, _params, _wallet, _signers);
 
     // When the refund is in token (not ETH), calculate the amount needed for refund
     let gasPrice = _gasPrice;
@@ -48,8 +44,8 @@ class RelayManager {
 
     const signatures = await utils.signOffchain(
       _signers,
-      this.relayerManager.address,
-      _feature.address,
+      _wallet.address,
+      _wallet.address,
       0,
       methodData,
       chainId,
@@ -61,8 +57,7 @@ class RelayManager {
     );
 
     const executeData = this.relayerManager.contract.methods.execute(
-      _wallet.address,
-      _feature.address,
+      _module.address,
       methodData,
       nonce,
       signatures,
@@ -85,9 +80,8 @@ class RelayManager {
     */
     const gas = gasLimit + 21000 + nonZeros * 16 + zeros * 4 + 50000;
 
-    const tx = await this.relayerManager.execute(
-      _wallet.address,
-      _feature.address,
+    const tx = await _wallet.execute(
+      _module.address,
       methodData,
       nonce,
       signatures,
@@ -100,7 +94,7 @@ class RelayManager {
 
     // console.log("gasLimit", gasLimit);
     // console.log("gas sent", gas);
-    // console.log("gas used", tx.receipt.gasUsed);
+    console.log("gas used", tx.receipt.gasUsed);
     // console.log("ratio", gasLimit / tx.receipt.gasUsed);
 
     return tx.receipt;
@@ -118,9 +112,9 @@ class RelayManager {
 
     Ignoring multiplication and comparison as that is <10 gas per operation
   */
-  async getGasLimitRefund(_feature, _method, _params, _wallet, _signers, _gasPrice) {
+  async getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice) {
     let requiredSigsGas = 0;
-    const { contractName } = _feature.constructor;
+    const { contractName } = _module.constructor;
     if (contractName === "ApprovedTransfer" || contractName === "RecoveryManager") {
       requiredSigsGas = 4800;
     } else if (contractName === "GuardianManager") {
@@ -140,11 +134,11 @@ class RelayManager {
 
     let gasEstimateFeatureCall = 0;
     try {
-      gasEstimateFeatureCall = await _feature.contract.methods[_method](..._params).estimateGas({ from: this.relayerManager.address });
+      gasEstimateFeatureCall = await _module.contract.methods[_method](..._params).estimateGas({ from: this.relayerManager.address });
       gasEstimateFeatureCall -= 21000;
     } catch (err) { // eslint-disable-line no-empty
     } finally {
-      // When we can't estimate the inner feature call correctly, set this to some large number
+      // When we can't estimate the inner module call correctly, set this to some large number
       // This only happens for the following tests atm:
       // approvedTransfer should revert when target contract is an authorised module
       // simpleUpgrader should not upgrade to 0 module (relayed tx)
@@ -155,16 +149,16 @@ class RelayManager {
     }
 
     let refundGas = 0;
-    const methodData = _feature.contract.methods[_method](..._params).encodeABI();
-    const requiredSignatures = await _feature.getRequiredSignatures(_wallet.address, methodData);
+    const methodData = _module.contract.methods[_method](..._params).encodeABI();
+    // const requiredSignatures = await _module.getRequiredSignatures(_wallet.address, methodData);
 
-    // Relayer only refund when gasPrice > 0 and the owner is signing
-    if (_gasPrice > 0 && requiredSignatures[1].toNumber() === 1) {
-      if (_signers.length > 1) {
-        refundGas = 30000;
-      } else {
-        refundGas = 40000;
-      }
+    // // Relayer only refund when gasPrice > 0 and the owner is signing
+    // if (_gasPrice > 0 && requiredSignatures[1].toNumber() === 1) {
+    //   if (_signers.length > 1) {
+    //     refundGas = 30000;
+    //   } else {
+         refundGas = 40000;
+    //   }
 
       // We can achieve better overall estimate if instead of adding a 50K buffer in gas calculation for relayer.execute
       // we add token transfer cost selectively for token refunds.
@@ -172,7 +166,7 @@ class RelayManager {
       // if (_refundToken !== ETH_TOKEN) {
       //   refundGas += 30000;
       // }
-    }
+    // }
 
     // gasLimit = 5200 + [0,1000,4800] + 2052 + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + [40000,30000]
     const gasLimit = 7252 + requiredSigsGas + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;
@@ -180,12 +174,12 @@ class RelayManager {
     return gasLimit;
   }
 
-  async debugGasLimits(_feature, _method, _params, _wallet, _signers) {
+  async debugGasLimits(_module, _method, _params, _wallet, _signers) {
     let requiredSigsGas = 0;
     // Get the owner signature requirements
-    const feature = await IFeature.at(_feature.address);
-    const methodData = _feature.contract.methods[_method](..._params).encodeABI();
-    requiredSigsGas = await feature.getRequiredSignatures.estimateGas(_wallet.address, methodData);
+    const module = await IModule.at(_module.address);
+    const methodData = _module.contract.methods[_method](..._params).encodeABI();
+    requiredSigsGas = await module.getRequiredSignatures.estimateGas(_wallet.address, methodData);
     requiredSigsGas -= 21000;
 
     let ownerSigner = 0;
@@ -195,7 +189,7 @@ class RelayManager {
 
     for (let index = 0; index < _signers.length; index += 1) {
       const signer = _signers[index];
-      const isGuardian = await this.guardianStorage.isGuardian(_wallet.address, signer);
+      const isGuardian = await IWallet(_wallet.address).isGuardian(signer);
       if (signer === walletOwner) {
         ownerSigner += 1;
       } else if (isGuardian) {

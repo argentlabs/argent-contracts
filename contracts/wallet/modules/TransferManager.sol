@@ -174,11 +174,11 @@ contract TransferManager is ITransferManager, BaseTransfer {
     {
         bytes32 id = keccak256(abi.encodePacked(ActionType.Transfer, _token, _to, _amount, _data, _block));
         uint executeAfter = pendingActions[id];
-        require(executeAfter > 0, "TT: unknown pending transfer");
+        require(executeAfter > 0, "TM: unknown pending transfer");
         uint securityWindow = Configuration(registry).securityWindow();
         uint executeBefore = executeAfter.add(securityWindow);
 
-        require(executeAfter <= block.timestamp && block.timestamp <= executeBefore, "TT: transfer outside of the execution window");
+        require(executeAfter <= block.timestamp && block.timestamp <= executeBefore, "TM: transfer outside of the execution window");
         delete pendingActions[id];
         doTransfer(_token, _to, _amount, _data);
         emit PendingTransferExecuted(address(this), id);
@@ -192,7 +192,7 @@ contract TransferManager is ITransferManager, BaseTransfer {
     onlyWalletOwner()
     onlyWhenUnlocked()
     {
-        require(pendingActions[_id] > 0, "TT: unknown pending action");
+        require(pendingActions[_id] > 0, "TM: unknown pending action");
         delete pendingActions[_id];
         emit PendingTransferCanceled(address(this), _id);
     }
@@ -205,7 +205,7 @@ contract TransferManager is ITransferManager, BaseTransfer {
     onlyWalletOwner()
     onlyWhenUnlocked()
     {
-        require(!isWhitelisted(_target), "TT: target already whitelisted");
+        require(!isWhitelisted(_target), "TM: target already whitelisted");
 
         uint256 securityPeriod = Configuration(registry).securityPeriod();
         uint256 whitelistAfter = block.timestamp.add(securityPeriod);
@@ -264,7 +264,7 @@ contract TransferManager is ITransferManager, BaseTransfer {
         uint256 securityPeriod = Configuration(registry).securityPeriod();
         Limit memory newLimit;
         newLimit = Limit(limit.current, Utils.safe128(LIMIT_DISABLED), Utils.safe64(block.timestamp.add(securityPeriod)));
-
+        limit = newLimit;
         emit DailyLimitDisabled(address(this), securityPeriod);
     }
 
@@ -275,6 +275,12 @@ contract TransferManager is ITransferManager, BaseTransfer {
         if (limit.changeAfter > 0 && limit.changeAfter < block.timestamp) {
             return limit.pending;
         }
+
+        if (limit.current == 0) {
+            uint256 defaultLimit = Configuration(registry).defaultLimit();
+            return defaultLimit;
+        }
+
         return limit.current;
     }
 
@@ -306,6 +312,13 @@ contract TransferManager is ITransferManager, BaseTransfer {
         } else {
             return (0, dailySpent.periodEnd);
         }
+    }
+
+    /**
+     * @inheritdoc ITransferManager
+     */
+    function getDailySpent() external override view returns (DataTypes.DailySpent memory _dailySpent) {
+        return dailySpent;
     }
 
     // *************** Internal Functions ********************* //

@@ -17,6 +17,7 @@
 pragma solidity ^0.7.6;
 
 import "./BaseModule.sol";
+import "../modules/IBaseTransfer.sol";
 
 interface IWETH {
     function deposit() external payable;
@@ -28,21 +29,7 @@ interface IWETH {
  * @notice Contains common methods to transfer tokens or call third-party contracts.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-abstract contract BaseTransfer is BaseModule {
- 
-    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
-    event Approved(address indexed wallet, address indexed token, uint256 amount, address spender);
-    event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
-    event ApprovedAndCalledContract(
-        address indexed wallet,
-        address indexed to,
-        address spender,
-        address indexed token,
-        uint256 amountApproved,
-        uint256 amountSpent,
-        bytes data
-    );
-    event LimitChanged(address indexed wallet, uint indexed newLimit, uint64 indexed startAfter);
+abstract contract BaseTransfer is IBaseTransfer, BaseModule {
 
     // *************** Internal Functions ********************* //
     /**

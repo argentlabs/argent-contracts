@@ -15,7 +15,9 @@
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
+pragma experimental ABIEncoderV2;
 
+import "../base/DataTypes.sol";
 import "../../infrastructure/ITokenPriceRegistry.sol";
 
 /**
@@ -181,4 +183,6 @@ interface ITransferManager {
     * @return _periodEnd The end of the daily period.
     */
     function getDailyUnspent() external view returns (uint256 _unspent, uint64 _periodEnd);
+
+    function getDailySpent() external view returns (DataTypes.DailySpent memory _dailySpent);
 }
