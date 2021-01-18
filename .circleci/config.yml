@@ -57,9 +57,6 @@ jobs:
       - <<: *step_pull_solc_docker
       - <<: *step_setup_global_packages
       - run:
-          name: "Lint JavaScript"
-          command: npm run lint:js
-      - run:
           name: "Lint Solidity contracts"
           command: npm run lint:contracts
       - run:
@@ -77,10 +74,6 @@ jobs:
       - run:
           name: "Provision lib artefacts"
           command: npm run provision:lib:artefacts
-      - run:
-          name: "Test deployment scripts"
-          command: npm run ganache >/dev/null 2>&1 & npm run test:deployment
-          no_output_timeout: 60m
       - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
