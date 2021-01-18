@@ -29,7 +29,6 @@ contract DataTypes {
     // large limit when the limit can be considered disabled
     uint128 constant internal LIMIT_DISABLED = uint128(-1);
 
-
     enum ActionType { Transfer }
 
     enum LockModule { RecoveryManager, LockManager }

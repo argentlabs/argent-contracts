@@ -2,20 +2,12 @@
 
 const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
-const { AddressZero } = require("ethers").constants;
-
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
 const { expect } = chai;
 chai.use(bnChai(BN));
-
-const TruffleContract = require("@truffle/contract");
-
-const BaseWalletContract = require("../build-legacy/v1.3.0/BaseWallet.json");
-
-const OldWallet = TruffleContract(BaseWalletContract);
 
 // Paraswap
 const AugustusSwapper = artifacts.require("AugustusSwapper");
@@ -34,22 +26,14 @@ const UniswapV2Router01 = artifacts.require("UniswapV2Router01");
 const WETH = artifacts.require("WETH9");
 
 // Argent
-const ModuleRegistry = artifacts.require("ModuleRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
-const Proxy = artifacts.require("Proxy");
-const BaseWallet = artifacts.require("BaseWallet");
-const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
-const TokenExchanger = artifacts.require("TokenExchanger");
-const RelayerManager = artifacts.require("RelayerManager");
 const ERC20 = artifacts.require("TestERC20");
-const TransferStorage = artifacts.require("TransferStorage");
-const LimitStorage = artifacts.require("LimitStorage");
-const TransferManager = artifacts.require("TransferManager");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
-const VersionManager = artifacts.require("VersionManager");
+const IWallet = artifacts.require("IWallet");
+const DelegateProxy = artifacts.require("DelegateProxy");
 
 // Utils
+const { setupWalletVersion } = require("../utils/wallet_definition.js");
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
 const { ETH_TOKEN } = require("../utils/utilities.js");
@@ -66,13 +50,9 @@ contract("TokenExchanger", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
 
-  let lockStorage;
-  let guardianStorage;
   let wallet;
-  let walletImplementation;
-  let exchanger;
+  let registry;
   let dexRegistry;
-  let transferManager;
   let relayerManager;
   let kyberNetwork;
   let kyberAdapter;
@@ -82,31 +62,10 @@ contract("TokenExchanger", (accounts) => {
   let tokenB;
   let paraswap;
   let tokenPriceRegistry;
-  let versionManager;
 
   before(async () => {
-    OldWallet.defaults({ from: accounts[0] });
-    OldWallet.setProvider(web3.currentProvider);
-
-    const registry = await ModuleRegistry.new();
+    tokenPriceRegistry = await TokenPriceRegistry.new();
     dexRegistry = await DexRegistry.new();
-    guardianStorage = await GuardianStorage.new();
-    lockStorage = await LockStorage.new();
-    versionManager = await VersionManager.new(
-      registry.address,
-      lockStorage.address,
-      guardianStorage.address,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero);
-
-    relayerManager = await RelayerManager.new(
-      lockStorage.address,
-      guardianStorage.address,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero,
-      versionManager.address,
-    );
-    await manager.setRelayerManager(relayerManager);
 
     // Deploy test tokens
     tokenA = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
@@ -121,7 +80,7 @@ contract("TokenExchanger", (accounts) => {
     await kyberNetwork.send(web3.utils.toWei("10").toString());
 
     // Deploy and fund UniswapV2
-    const uniswapFactory = await UniswapV2Factory.new(AddressZero);
+    const uniswapFactory = await UniswapV2Factory.new(ethers.constants.AddressZero);
     const weth = await WETH.new();
     uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
     await tokenA.approve(uniswapRouter.address, web3.utils.toWei("300"));
@@ -154,51 +113,26 @@ contract("TokenExchanger", (accounts) => {
     await whitelist.addWhitelisted(kyberAdapter.address);
     await whitelist.addWhitelisted(uniswapV2Adapter.address);
 
-    // Deploy exchanger module
-    tokenPriceRegistry = await TokenPriceRegistry.new();
     await tokenPriceRegistry.setTradableForTokenList([tokenA.address, tokenB.address], [true, true]);
     await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
-    exchanger = await TokenExchanger.new(
-      lockStorage.address,
-      tokenPriceRegistry.address,
-      versionManager.address,
-      dexRegistry.address,
-      paraswap.address,
-      "argent",
-    );
 
-    // Deploy TransferManager module
-    const transferStorage = await TransferStorage.new();
-    const limitStorage = await LimitStorage.new();
-    transferManager = await TransferManager.new(
-      lockStorage.address,
-      transferStorage.address,
-      limitStorage.address,
-      tokenPriceRegistry.address,
-      versionManager.address,
-      3600,
-      3600,
-      10000,
-      AddressZero,
-      AddressZero,
-    );
-
-    // Deploy wallet implementation
-    walletImplementation = await BaseWallet.new();
-
-    await versionManager.addVersion([
-      exchanger.address,
-      transferManager.address,
-      relayerManager.address,
-    ], []);
+    // Wire all modules in wallet version
+    const modules = await setupWalletVersion({
+      tokenPriceRegistry: tokenPriceRegistry.address,
+      wethToken: weth.address,
+      dexRegistry: dexRegistry.address,
+      paraswap: paraswap.address 
+    });
+    registry = modules.registry;
+    relayerManager = modules.relayerManager;
+    await manager.setRelayerManager(relayerManager);
   });
 
   beforeEach(async () => {
     // create wallet
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [versionManager.address]);
-    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
+    const proxy = await DelegateProxy.new({ from: owner });
+    await proxy.setRegistry(registry.address, { from: owner });
+    wallet = await IWallet.at(proxy.address);
 
     // fund wallet
     await wallet.send(web3.utils.toWei("0.1"));
@@ -244,31 +178,21 @@ contract("TokenExchanger", (accounts) => {
     return routes;
   }
 
-  function buildPathes({
-    fromToken, toToken, srcAmount, destAmount,
-  }) {
-    const routes = getRoutes({
-      fromToken, toToken, srcAmount, destAmount,
-    });
+  function buildPathes({ fromToken, toToken, srcAmount, destAmount }) {
+    const routes = getRoutes({ fromToken, toToken, srcAmount, destAmount });
     const exchanges = { kyber: kyberAdapter.address, uniswapv2: uniswapV2Adapter.address };
     const targetExchanges = { kyber: kyberNetwork.address, uniswapv2: uniswapRouter.address };
     return makePathes(fromToken, toToken, routes, exchanges, targetExchanges, false);
   }
 
-  function buildRoutes({
-    fromToken, toToken, srcAmount, destAmount,
-  }) {
-    const routes = getRoutes({
-      fromToken, toToken, srcAmount, destAmount,
-    });
+  function buildRoutes({ fromToken, toToken, srcAmount, destAmount }) {
+    const routes = getRoutes({ fromToken, toToken, srcAmount, destAmount });
     const exchanges = { kyber: kyberAdapter.address, uniswapv2: uniswapV2Adapter.address };
     const targetExchanges = { kyber: kyberNetwork.address, uniswapv2: uniswapRouter.address };
     return makeRoutes(fromToken, toToken, routes, exchanges, targetExchanges);
   }
 
-  function getParams({
-    method, fromToken, toToken, fixedAmount, variableAmount, expectedDestAmount = "123", _wallet = wallet,
-  }) {
+  function getParams({ method, fromToken, toToken, fixedAmount, variableAmount, expectedDestAmount = "123" }) {
     let routes;
     let srcAmount;
     let destAmount;
@@ -287,15 +211,13 @@ contract("TokenExchanger", (accounts) => {
     } else {
       throw new Error("Unsupported method:", method);
     }
-    const params = [_wallet.address, fromToken, toToken, srcAmount.toString(), destAmount.toString(), expectedDestAmount, routes, 0];
+    const params = [fromToken, toToken, srcAmount.toString(), destAmount.toString(), expectedDestAmount, routes, 0];
     return params;
   }
 
-  async function testTrade({
-    method, fromToken, toToken, relayed = true, _wallet = wallet,
-  }) {
-    const beforeFrom = await getBalance(fromToken, _wallet);
-    const beforeTo = await getBalance(toToken, _wallet);
+  async function testTrade({ method, fromToken, toToken, relayed = true }) {
+    const beforeFrom = await getBalance(fromToken, wallet);
+    const beforeTo = await getBalance(toToken, wallet);
     const fixedAmount = web3.utils.toWei("0.01");
     const variableAmount = method === "sell" ? 1 : beforeFrom;
 
@@ -307,26 +229,25 @@ contract("TokenExchanger", (accounts) => {
       fromToken,
       toToken,
       fixedAmount, // srcAmount for sell; destAmount for buy
-      variableAmount, // destAmount for sell; srcAmount for buy
-      _wallet
+      variableAmount // destAmount for sell; srcAmount for buy
     });
 
     let txR;
     if (relayed) {
-      txR = await manager.relay(exchanger, method, params, _wallet, [owner]);
-      const event = await utils.getEvent(txR, relayerManager, "TransactionExecuted");
+      txR = await manager.relay(wallet, method, params, [owner]);
+      const event = await utils.getEvent(txR, wallet, "TransactionExecuted");
       assert.isTrue(event.args.success, "Relayed tx should succeed");
     } else {
-      const calldata = await exchanger.contract.methods[method](...params).encodeABI();
-      const tx = await exchanger.sendTransaction({ data: calldata, gasLimit: 2000000, from: owner });
+      const calldata = await wallet.contract.methods[method](...params).encodeABI();
+      const tx = await wallet.sendTransaction({ data: calldata, gasLimit: 2000000, from: owner });
       txR = tx.receipt;
     }
 
-    const event = await utils.getEvent(txR, exchanger, "TokenExchanged");
+    const event = await utils.getEvent(txR, wallet, "TokenExchanged");
     const { destAmount } = event.args;
 
-    const afterFrom = await getBalance(fromToken, _wallet);
-    const afterTo = await getBalance(toToken, _wallet);
+    const afterFrom = await getBalance(fromToken, wallet);
+    const afterTo = await getBalance(toToken, wallet);
 
     if (method === "sell") {
       // should send the exact amount of fromToken
@@ -348,34 +269,22 @@ contract("TokenExchanger", (accounts) => {
 
   function testsForMethod(method) {
     it("trades ETH to ERC20 (blockchain tx)", async () => {
-      await testTrade({
-        method, fromToken: ETH_TOKEN, toToken: tokenA.address, relayed: false,
-      });
+      await testTrade({ method, fromToken: ETH_TOKEN, toToken: tokenA.address, relayed: false });
     });
     it("trades ETH to ERC20 (relayed tx)", async () => {
-      await testTrade({
-        method, fromToken: ETH_TOKEN, toToken: tokenA.address, relayed: true,
-      });
+      await testTrade({ method, fromToken: ETH_TOKEN, toToken: tokenA.address, relayed: true });
     });
     it("trades ERC20 to ETH (blockchain tx)", async () => {
-      await testTrade({
-        method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: false,
-      });
+      await testTrade({ method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: false });
     });
     it("trades ERC20 to ETH (relayed tx)", async () => {
-      await testTrade({
-        method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: true,
-      });
+      await testTrade({ method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: true });
     });
     it("trades ERC20 to ERC20 (blockchain tx)", async () => {
-      await testTrade({
-        method, fromToken: tokenA.address, toToken: tokenB.address, relayed: false,
-      });
+      await testTrade({ method, fromToken: tokenA.address, toToken: tokenB.address, relayed: false });
     });
     it("trades ERC20 to ERC20 (relayed tx)", async () => {
-      await testTrade({
-        method, fromToken: tokenA.address, toToken: tokenB.address, relayed: true,
-      });
+      await testTrade({ method, fromToken: tokenA.address, toToken: tokenB.address, relayed: true });
     });
 
     it("can exclude non tradable tokens", async () => {
@@ -391,7 +300,7 @@ contract("TokenExchanger", (accounts) => {
         variableAmount,
       });
       await tokenPriceRegistry.setTradableForTokenList([toToken], [false]);
-      await truffleAssert.reverts(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
+      await truffleAssert.reverts(wallet[method](...params, { gasLimit: 2000000, from: owner }), "TE: Token not tradable");
       await tokenPriceRegistry.setTradableForTokenList([toToken], [true]);
     });
 
@@ -409,37 +318,16 @@ contract("TokenExchanger", (accounts) => {
         fixedAmount,
         variableAmount,
       });
-      await truffleAssert.reverts(exchanger[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
+      await truffleAssert.reverts(wallet[method](...params, { gasLimit: 2000000, from: owner }), "DR: Unauthorised DEX");
       // reset whitelist
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });
 
-    it(`lets old wallets call ${method} successfully`, async () => {
-      // create wallet
-      const oldWalletImplementation = await OldWallet.new();
-      const proxy = await Proxy.new(oldWalletImplementation.address);
-      const oldWallet = await OldWallet.at(proxy.address);
-      await oldWallet.init(owner, [versionManager.address]);
-      await versionManager.upgradeWallet(oldWallet.address, await versionManager.lastVersion(), { from: owner });
-      // fund wallet
-      await oldWallet.send(web3.utils.toWei("0.1"));
-      // call sell/buy
-      await testTrade({
-        method,
-        fromToken: ETH_TOKEN,
-        toToken: tokenA.address,
-        _wallet: oldWallet,
-        relayed: false,
-      });
-    });
-
     const testTradeWithPreExistingAllowance = async (allowance) => {
       const spender = await paraswap.getTokenTransferProxy();
-      await transferManager.approveToken(wallet.address, tokenA.address, spender, allowance, { from: owner });
+      await wallet.approveToken(tokenA.address, spender, allowance, { from: owner });
       // call sell
-      await testTrade({
-        method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: false,
-      });
+      await testTrade({ method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: false });
       // check that the pre-existing allowance is restored
       const newAllowance = await tokenA.allowance(wallet.address, spender);
       expect(newAllowance).to.eq.BN(allowance);

@@ -40,7 +40,6 @@ interface IRelayerManager {
 
     /**
     * @notice Executes a relayed transaction.
-    * @param _module The target module.
     * @param _data The data for the relayed transaction
     * @param _nonce The nonce used to prevent replay attacks.
     * @param _signatures The signatures as a concatenated byte array.
@@ -50,7 +49,6 @@ interface IRelayerManager {
     * @param _refundAddress The address refunded to prevent front-running.
     */
     function execute(
-        address _module,
         bytes calldata _data,
         uint256 _nonce,
         bytes calldata _signatures,

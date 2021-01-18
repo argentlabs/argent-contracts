@@ -46,8 +46,8 @@ contract BaseModule is WalletStorage {
     /**
      * @notice Throws if the sender is not the owner of the target wallet.
      */
-    modifier onlyWalletOwner() {
-        require(owner == msg.sender, "BM: must be wallet owner");
+    modifier onlyWalletOwner() { // TODO: Better name this, maybe onlyWalletOwnerOrSelf
+        require(owner == msg.sender || msg.sender == address(this), "BM: must be wallet owner");
         _;
     }
 

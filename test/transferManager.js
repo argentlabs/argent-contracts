@@ -9,13 +9,9 @@ const bnChai = require("bn-chai");
 const { expect } = chai;
 chai.use(bnChai(BN));
 
-const TruffleContract = require("@truffle/contract");
-
 const IWallet = artifacts.require("IWallet");
 const DelegateProxy = artifacts.require("DelegateProxy");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
-const RelayerManager = artifacts.require("RelayerManager");
-const TransferManager = artifacts.require("TransferManager");
 
 const ERC20 = artifacts.require("TestERC20");
 const WETH = artifacts.require("WETH9");
@@ -46,22 +42,18 @@ contract("TransferManager", (accounts) => {
   let registry;
   let wallet;
   let tokenPriceRegistry;
-  let transferManager;
   let erc20;
   let weth;
   let relayerManager;
-  let versionManager;
 
   before(async () => {
     weth = await WETH.new();
-
     tokenPriceRegistry = await TokenPriceRegistry.new();
     await tokenPriceRegistry.addManager(infrastructure);
 
     const modules = await setupWalletVersion({ wethToken: weth.address, tokenPriceRegistry: tokenPriceRegistry.address });
     registry = modules.registry;
     relayerManager = modules.relayerManager;
-    transferManager = modules.transferManager;
 
     await manager.setRelayerManager(relayerManager);
   });
@@ -173,7 +165,7 @@ contract("TransferManager", (accounts) => {
     });
 
     it("should change the limit via relayed transaction", async () => {
-      await manager.relay(transferManager, "changeLimit", [4000000], wallet, [owner]);
+      await manager.relay(wallet, "changeLimit", [4000000], [owner]);
       await utils.increaseTime(SECURITY_PERIOD + 1);
       const limit = await wallet.getCurrentLimit();
       expect(limit).to.eq.BN(4000000);
@@ -190,7 +182,7 @@ contract("TransferManager", (accounts) => {
     it("should be able to disable the limit", async () => {
       const tx = await wallet.disableLimit({ from: owner });
       const txReceipt = tx.receipt;
-      await utils.hasEvent(txReceipt, transferManager, "DailyLimitDisabled");
+      await utils.hasEvent(txReceipt, wallet, "DailyLimitDisabled");
       let limitDisabled = await wallet.isLimitDisabled();
       assert.isFalse(limitDisabled);
       await utils.increaseTime(SECURITY_PERIOD + 1);
@@ -236,13 +228,13 @@ contract("TransferManager", (accounts) => {
       const params = [token === ETH_TOKEN ? ETH_TOKEN : token.address, to, amount, ZERO_BYTES32];
       let txReceipt;
       if (relayed) {
-        txReceipt = await manager.relay(transferManager, "transferToken", params, wallet, [signer]);
+        txReceipt = await manager.relay(wallet, "transferToken", params, [signer]);
       } else {
         const tx = await wallet.transferToken(...params, { from: signer });
         txReceipt = tx.receipt;
       }
-      console.log(txReceipt.gasUsed)
-      await utils.hasEvent(txReceipt, IWallet, "Transfer");
+
+      await utils.hasEvent(txReceipt, wallet, "Transfer");
       const fundsAfter = (token === ETH_TOKEN ? await utils.getBalance(to) : await token.balanceOf(to));
       const unspentAfter = await wallet.getDailyUnspent();
       expect(fundsAfter.sub(fundsBefore)).to.eq.BN(amount);
@@ -260,7 +252,7 @@ contract("TransferManager", (accounts) => {
 
       let txReceipt; let tx;
       if (relayed) {
-        txReceipt = await manager.relay(transferManager, "transferToken", params, wallet, [owner]);
+        txReceipt = await manager.relay(wallet, "transferToken", params, [owner]);
       } else {
         tx = await wallet.transferToken(...params, { from: owner });
         txReceipt = tx.receipt;
@@ -367,7 +359,7 @@ contract("TransferManager", (accounts) => {
 
       it("should not execute a pending ETH transfer before the confirmation window (relayed)", async () => {
         const params = [ETH_TOKEN, recipient, ETH_LIMIT.muln(2).toString(), ZERO_BYTES32];
-        const txReceipt = await manager.relay(transferManager, "transferToken", params, wallet, [owner]);
+        const txReceipt = await manager.relay(wallet, "transferToken", params, [owner]);
 
         await truffleAssert.reverts(
           wallet.executePendingTransfer(ETH_TOKEN, recipient, ETH_LIMIT.muln(2).toString(), ZERO_BYTES32, txReceipt.blockNumber),
@@ -375,18 +367,19 @@ contract("TransferManager", (accounts) => {
       });
 
       it("should not execute a pending ETH transfer after the confirmation window", async () => {
-        const params = [ETH_TOKEN, recipient, ETH_LIMIT.muln(2).toString(), ZERO_BYTES32];
+        const amount = ETH_LIMIT.muln(2).toString();
+        const params = [ETH_TOKEN, recipient, amount, ZERO_BYTES32];
         const tx = await wallet.transferToken(...params, { from: owner });
 
         await utils.increaseTime(SECURITY_WINDOW + 10);
         await truffleAssert.reverts(
-          wallet.executePendingTransfer(ETH_TOKEN, recipient, ETH_LIMIT.muln(2).toString(), ZERO_BYTES32, tx.receipt.blockNumber),
+          wallet.executePendingTransfer(ETH_TOKEN, recipient, amount, ZERO_BYTES32, tx.receipt.blockNumber),
           "TM: transfer outside of the execution window");
       });
 
       it("should not execute a pending ETH transfer after the confirmation window (relayed)", async () => {
         const params = [ETH_TOKEN, recipient, ETH_LIMIT.muln(2).toString(), ZERO_BYTES32];
-        const txReceipt = await manager.relay(transferManager, "transferToken", params, wallet, [owner]);
+        const txReceipt = await manager.relay(wallet, "transferToken", params, [owner]);
 
         await utils.increaseTime(SECURITY_WINDOW + 10);
         await truffleAssert.reverts(
@@ -438,7 +431,7 @@ contract("TransferManager", (accounts) => {
       const params = [erc20.address, spender, amount];
       let txReceipt;
       if (relayed) {
-        txReceipt = await manager.relay(transferManager, "approveToken", params, wallet, [signer]);
+        txReceipt = await manager.relay(wallet, "approveToken", params, [signer]);
       } else {
         const tx = await wallet.approveToken(...params, { from: signer });
         txReceipt = tx.receipt;
@@ -507,7 +500,7 @@ contract("TransferManager", (accounts) => {
       const params = [contract.address, value, dataToTransfer];
       let txReceipt;
       if (relayed) {
-        txReceipt = await manager.relay(transferManager, "callContract", params, wallet, [owner]);
+        txReceipt = await manager.relay(wallet, "callContract", params, [owner]);
       } else {
         const tx = await wallet.callContract(...params, { from: owner });
         txReceipt = tx.receipt;
@@ -526,12 +519,6 @@ contract("TransferManager", (accounts) => {
     it("should not be able to call the wallet itselt", async () => {
       const dataToTransfer = contract.contract.methods.setState(4).encodeABI();
       const params = [wallet.address, 10, dataToTransfer];
-      await truffleAssert.reverts(wallet.callContract(...params, { from: owner }), "BT: Forbidden contract");
-    });
-
-    it("should not be able to call a feature of the wallet", async () => {
-      const dataToTransfer = contract.contract.methods.setState(4).encodeABI();
-      const params = [transferManager.address, 10, dataToTransfer];
       await truffleAssert.reverts(wallet.callContract(...params, { from: owner }), "BT: Forbidden contract");
     });
 
@@ -586,12 +573,12 @@ contract("TransferManager", (accounts) => {
       const method = wrapEth ? "approveWethAndCallContract" : "approveTokenAndCallContract";
       let txReceipt;
       if (relayed) {
-        txReceipt = await manager.relay(transferManager, method, params, wallet, [owner]);
+        txReceipt = await manager.relay(wallet, method, params, [owner]);
       } else {
         const tx = await wallet[method](...params, { from: owner });
         txReceipt = tx.receipt;
       }
-      await utils.hasEvent(txReceipt, transferManager, "ApprovedAndCalledContract");
+      await utils.hasEvent(txReceipt, wallet, "ApprovedAndCalledContract");
       const unspentAfter = await wallet.getDailyUnspent();
       const amountInEth = wrapEth ? new BN(amount) : await getEtherValue(amount, erc20.address);
 
@@ -740,7 +727,7 @@ contract("TransferManager", (accounts) => {
     it("should delegate isValidSignature static calls to the TransferManager", async () => {
       const ERC1271_ISVALIDSIGNATURE_BYTES32 = utils.sha3("isValidSignature(bytes32,bytes)").slice(0, 10);
       const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);
-      assert.equal(isValidSignatureDelegate, versionManager.address);
+      assert.equal(isValidSignatureDelegate, wallet.address);
 
       const msg = "0x1234";
       const messageHash = web3.eth.accounts.hashMessage(msg);

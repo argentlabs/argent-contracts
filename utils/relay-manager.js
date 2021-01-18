@@ -13,16 +13,17 @@ class RelayManager {
   }
 
   // Relays without refund by default, unless the gasPrice is explicitely set to be >0
-  async relay(_module, _method, _params, _wallet, _signers,
+  async relay(_wallet, _method, _params, _signers,
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero) {
     const relayerAccount = await utils.getAccount(9);
     const nonce = await utils.getNonceForRelay();
     const chainId = await utils.getChainId();
-    const methodData = _module.contract.methods[_method](..._params).encodeABI();
 
-    const gasLimit = await this.getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice);
+    const methodData = _wallet.contract.methods[_method](..._params).encodeABI();
+
+    const gasLimit = await this.getGasLimitRefund(_wallet, _method, _params, _signers, _gasPrice);
     // Uncomment when debugging gas limits
     // await this.debugGasLimits(_module, _method, _params, _wallet, _signers);
 
@@ -57,7 +58,6 @@ class RelayManager {
     );
 
     const executeData = this.relayerManager.contract.methods.execute(
-      _module.address,
       methodData,
       nonce,
       signatures,
@@ -81,7 +81,6 @@ class RelayManager {
     const gas = gasLimit + 21000 + nonZeros * 16 + zeros * 4 + 50000;
 
     const tx = await _wallet.execute(
-      _module.address,
       methodData,
       nonce,
       signatures,
@@ -112,14 +111,15 @@ class RelayManager {
 
     Ignoring multiplication and comparison as that is <10 gas per operation
   */
-  async getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice) {
+  async getGasLimitRefund(_wallet, _method, _params, _signers, _gasPrice) {
     let requiredSigsGas = 0;
-    const { contractName } = _module.constructor;
-    if (contractName === "ApprovedTransfer" || contractName === "RecoveryManager") {
-      requiredSigsGas = 4800;
-    } else if (contractName === "GuardianManager") {
-      requiredSigsGas = 1000;
-    }
+    // TODO
+    // const { contractName } = _module.constructor;
+    // if (contractName === "ApprovedTransfer" || contractName === "RecoveryManager") {
+    //   requiredSigsGas = 4800;
+    // } else if (contractName === "GuardianManager") {
+    //   requiredSigsGas = 1000;
+    // }
 
     // Estimate cost of checkAndUpdateUniqueness call
     let nonceCheckGas = 0;
@@ -134,7 +134,7 @@ class RelayManager {
 
     let gasEstimateFeatureCall = 0;
     try {
-      gasEstimateFeatureCall = await _module.contract.methods[_method](..._params).estimateGas({ from: this.relayerManager.address });
+      gasEstimateFeatureCall = await _wallet.methods[_method](..._params).estimateGas({ from: this.relayerManager.address });
       gasEstimateFeatureCall -= 21000;
     } catch (err) { // eslint-disable-line no-empty
     } finally {
@@ -149,7 +149,7 @@ class RelayManager {
     }
 
     let refundGas = 0;
-    const methodData = _module.contract.methods[_method](..._params).encodeABI();
+    const methodData = _wallet.contract.methods[_method](..._params).encodeABI();
     // const requiredSignatures = await _module.getRequiredSignatures(_wallet.address, methodData);
 
     // // Relayer only refund when gasPrice > 0 and the owner is signing

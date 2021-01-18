@@ -2,6 +2,8 @@ const readline = require("readline");
 const ethers = require("ethers");
 const BN = require("bn.js");
 const chai = require("chai");
+const truffleAssert = require("truffle-assertions");
+const { solidityKeccak256 } = require("ethers/lib/utils");
 
 const { expect } = chai;
 const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
@@ -111,8 +113,10 @@ module.exports = {
   },
 
   async hasEvent(txReceipt, emitter, eventName) {
-    const event = await this.getEvent(txReceipt, emitter, eventName);
-    //return expect(event, "Event does not exist in recept").to.exist;
+    const internalTx = await truffleAssert.createTransactionResult(emitter, txReceipt.transactionHash);
+    truffleAssert.eventEmitted(internalTx, eventName, event => {
+      return expect(event, "Event does not exist in recept").to.exist;
+    });
   },
 
   async getEvent(txReceipt, emitter, eventName) {

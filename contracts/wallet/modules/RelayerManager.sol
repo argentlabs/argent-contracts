@@ -61,7 +61,6 @@ contract RelayerManager is IRelayerManager, BaseModule {
     * @inheritdoc IRelayerManager
     */
     function execute(
-        address _module,
         bytes calldata _data,
         uint256 _nonce,
         bytes calldata _signatures,
@@ -77,7 +76,7 @@ contract RelayerManager is IRelayerManager, BaseModule {
         require(startGas >= _gasLimit, "RM: not enough gas provided");
         // require(verifyData(_data), "RM: Target of _data != _wallet");
         StackExtension memory stack;
-        (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures(_module, _data);
+        (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures();
         require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
         require(stack.requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         stack.signHash = getSignHash(
@@ -97,7 +96,16 @@ contract RelayerManager is IRelayerManager, BaseModule {
             stack.ownerSignatureRequirement), "RM: Duplicate request");
         require(validateSignatures(stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
 
+        // Call wallet (itself) with the data
         (stack.success, stack.returnData) = address(this).call(_data);
+        if (!stack.success) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
+            }
+        }
+
         // only refund when approved by owner and positive gas price
         if (_gasPrice > 0 && stack.ownerSignatureRequirement == OwnerSignature.Required) {
             refund(
@@ -324,7 +332,7 @@ contract RelayerManager is IRelayerManager, BaseModule {
 
     // Todo incorporate the remaining required signatures implementations 
     // below only caters for TransferManager signatures requirement
-    function getRequiredSignatures(address, bytes calldata) public view returns (uint256, OwnerSignature) {
+    function getRequiredSignatures() public view returns (uint256, OwnerSignature) {
         return (1, OwnerSignature.Required);
     }
 }
