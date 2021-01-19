@@ -13,7 +13,6 @@ if [ $NOCOMPILE != "--no-compile" ]; then
     rm -rf build
     npm run compile:lib
     npm run compile
-    npm run compile:legacy
     npm run provision:lib:artefacts
     FILE=$NOCOMPILE
 else

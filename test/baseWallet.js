@@ -1,13 +1,6 @@
 /* global artifacts */
 const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
-const TruffleContract = require("@truffle/contract");
-
-const OldWalletV13Contract = require("../build-legacy/v1.3.0/BaseWallet");
-const OldWalletV16Contract = require("../build-legacy/v1.6.0/BaseWallet");
-
-const OldWalletV13 = TruffleContract(OldWalletV13Contract);
-const OldWalletV16 = TruffleContract(OldWalletV16Contract);
 
 const { getBalance } = require("../utils/utilities.js");
 
@@ -41,11 +34,6 @@ contract.skip("BaseWallet", (accounts) => {
   }
 
   before(async () => {
-    OldWalletV13.defaults({ from: accounts[0] });
-    OldWalletV13.setProvider(web3.currentProvider);
-    OldWalletV16.defaults({ from: accounts[0] });
-    OldWalletV16.setProvider(web3.currentProvider);
-
     registry = await Registry.new();
     guardianStorage = await GuardianStorage.new();
     lockStorage = await LockStorage.new();
@@ -59,46 +47,6 @@ contract.skip("BaseWallet", (accounts) => {
   beforeEach(async () => {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
-  });
-
-  describe("Registering modules", () => {
-    it("should register a module with the correct info", async () => {
-      const name = ethers.utils.formatBytes32String("module1");
-      await registry.registerModule(module1.address, name);
-      const isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module1.address).call();
-      assert.isTrue(isRegistered, "module should be registered");
-      const info = await registry.moduleInfo(module1.address);
-      assert.equal(name, info, "name should be correct");
-    });
-
-    it("should deregister a module", async () => {
-      const name = ethers.utils.formatBytes32String("module2");
-      await registry.registerModule(module2.address, name);
-      let isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module2.address).call();
-      assert.isTrue(isRegistered, "module should be registered");
-      await registry.deregisterModule(module2.address);
-      isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module2.address).call();
-      assert.isFalse(isRegistered, "module should be deregistered");
-    });
-
-    it("should register an upgrader with the correct info", async () => {
-      const name = ethers.utils.formatBytes32String("upgrader1");
-      await registry.registerUpgrader(module1.address, name);
-      const isRegistered = await registry.isRegisteredUpgrader(module1.address);
-      assert.isTrue(isRegistered, "module should be registered");
-      const info = await registry.upgraderInfo(module1.address);
-      assert.equal(name, info, "name should be correct");
-    });
-
-    it("should deregister an upgrader", async () => {
-      const name = ethers.utils.formatBytes32String("upgrader2");
-      await registry.registerUpgrader(module2.address, name);
-      let isRegistered = await registry.isRegisteredUpgrader(module2.address);
-      assert.isTrue(isRegistered, "upgrader should be registered");
-      await registry.deregisterUpgrader(module2.address);
-      isRegistered = await registry.isRegisteredUpgrader(module2.address);
-      assert.isFalse(isRegistered, "upgrader should be deregistered");
-    });
   });
 
   describe("Initialize Wallets", () => {
@@ -202,28 +150,6 @@ contract.skip("BaseWallet", (accounts) => {
         const walletAsModule = await TestFeature.at(wallet.address);
         await truffleAssert.reverts(walletAsModule.getBoolean(), "BW: must be an authorised module for static call");
       });
-    });
-  });
-
-  describe("Old BaseWallet V1.3", () => {
-    it("should work with new modules", async () => {
-      const oldWallet = await OldWalletV13.new();
-      await oldWallet.init(owner, [module1.address]);
-      await module1.upgradeWallet(oldWallet.address, await module1.lastVersion(), { from: owner });
-      await feature1.callDapp(oldWallet.address);
-      await feature1.callDapp2(oldWallet.address, 2, false);
-      await truffleAssert.reverts(feature1.fail(oldWallet.address, "just because"));
-    });
-  });
-
-  describe("Old BaseWallet V1.6", () => {
-    it("should work with new modules", async () => {
-      const oldWallet = await OldWalletV16.new();
-      await oldWallet.init(owner, [module1.address]);
-      await module1.upgradeWallet(oldWallet.address, await module1.lastVersion(), { from: owner });
-      await feature1.callDapp(oldWallet.address);
-      await feature1.callDapp2(oldWallet.address, 2, true);
-      await truffleAssert.reverts(feature1.fail(oldWallet.address, "just because"));
     });
   });
 });

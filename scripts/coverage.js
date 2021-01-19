@@ -29,9 +29,7 @@ async function coverage(){
       "truffle-config-lib.js",
       "truffle-config-infrastructure-0.5.js",
       "truffle-config-infrastructure.js",
-      "truffle-config-modules.js",
       "truffle-config-wallet.js",
-      //"truffle-config-contracts-legacy-1.6.js", // (Takes forever?)
       "truffle-config-contracts-test.js"
     ]
 
