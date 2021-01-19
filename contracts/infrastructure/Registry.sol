@@ -19,6 +19,7 @@ pragma solidity ^0.7.6;
 import "./base/Owned.sol";
 import "./IRegistry.sol";
 import "../wallet/base/Configuration.sol";
+import "../wallet/base/DataTypes.sol";
 import "./IAugustusSwapper.sol";
 
 /**
@@ -72,13 +73,19 @@ contract Registry is IRegistry, Configuration, Owned {
 
   mapping (bytes4 => address) public pointers;
 
-  function register(bytes4 sig, address implementation) external
+  function register(
+    bytes4 sig,
+    address implementation,
+    DataTypes.OwnerSignature ownerSigRequirement,
+    DataTypes.GuardianSignature guardianSigRequirement) 
+  external
   onlyOwner
   {
     pointers[sig] = implementation;
+    relaySignatures[sig] = DataTypes.RelaySignatures(ownerSigRequirement, guardianSigRequirement);
   }
 
-  function lookup(bytes4 sig) external override view returns(address) {
+  function getImplementation(bytes4 sig) external override view returns(address) {
     return pointers[sig];
   }
 

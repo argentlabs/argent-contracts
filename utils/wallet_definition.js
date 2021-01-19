@@ -46,7 +46,7 @@ module.exports = {
       config.settings.defaultLimit);
 
     // Setup the wallet modules
-    //const approvedTransfer = await ApprovedTransfer.new();
+    const approvedTransfer = await ApprovedTransfer.new();
     const compoundManager = await CompoundManager.new();
     const guardianManager = await GuardianManager.new();
     const lockManager = await LockManager.new();
@@ -69,14 +69,78 @@ module.exports = {
       transferManager,
     ];
 
+    // Build a set of function which require no signatures for relaying
+    const CONFIRM_ADDITION = web3.eth.abi.encodeFunctionSignature("confirmGuardianAddition(address)");
+    const CONFIRM_REVOKATION = web3.eth.abi.encodeFunctionSignature("confirmGuardianRevokation(address)");    
+    const FINALIZE_RECOVERY = web3.eth.abi.encodeFunctionSignature("finalizeRecovery()");
+    const functionsNoSignature = [CONFIRM_ADDITION, CONFIRM_REVOKATION, FINALIZE_RECOVERY];
+
+    const EXECUTE_RECOVERY = web3.eth.abi.encodeFunctionSignature("executeRecovery(address)");
+    const CANCEL_RECOVERY = web3.eth.abi.encodeFunctionSignature("cancelRecovery()");
+    const TRANSFER_OWNERSHIP = web3.eth.abi.encodeFunctionSignature("transferOwnership(address)");
+
+    // TODO add maker component registration and upgrade logic
+
+    const walletFunctions = IWallet.abi.filter((functionDefinition) => functionDefinition.type === "function");
+    const walletFunctionSigs = walletFunctions.map(fn => web3.eth.abi.encodeFunctionSignature(fn));
+
     modules.forEach((module) => {
       const functions = module.abi.filter((functionDefinition) => functionDefinition.type === "function");
-      
+
+      let ownerSignatureRequirement;
+      let guardianSignatureRequirement;
+
       // Filter out only IWallet functions
       functions.forEach(async (functionDefinition) => {
-        //console.log("name", functionDefinition.name)
         const signature = web3.eth.abi.encodeFunctionSignature(functionDefinition);
-        await registry.register(signature, module.address);
+        // Register the function if it's part of the IWallet interface
+        if (walletFunctionSigs.includes(signature)) {
+
+        console.log("functionDefinition", functionDefinition.name)
+          // If the function is one which requires no signatures, set it
+          if (functionsNoSignature.includes(signature) || functionDefinition.stateMutability == "view" || functionDefinition.stateMutability == "pure") {
+            ownerSignatureRequirement = 0; // OwnerSignature.None
+            guardianSignatureRequirement = 0; // GuardianSignature.None
+          } else if (signature == EXECUTE_RECOVERY) {
+            ownerSignatureRequirement = 3; // OwnerSignature.Disallowed
+            guardianSignatureRequirement = 2; // GuardianSignature.Majority
+          } else if (signature == CANCEL_RECOVERY) {
+            ownerSignatureRequirement = 2; // OwnerSignature.Optional
+            guardianSignatureRequirement = 3; // GuardianSignature.MajorityIncOwner
+          } else if (signature == TRANSFER_OWNERSHIP) {
+            ownerSignatureRequirement = 1; //OwnerSignature.Required
+            guardianSignatureRequirement = 2; // GuardianSignature.Majority
+          } else {
+            switch (module.constructor.contractName) {
+              case "ApprovedTransfer":
+                ownerSignatureRequirement = 1; // OwnerSignature.Required
+                guardianSignatureRequirement = 2; // GuardianSignature.Majority
+                break;
+      
+              case "LockManager":
+                ownerSignatureRequirement = 3; // OwnerSignature.Disallowed
+                guardianSignatureRequirement = 1; // GuardianSignature.One
+                break;
+              
+              case "CompoundManager":
+              case "GuardianManager":
+              case "NftTransfer":
+              case "TokenExchanger":
+              case "TransferManager":
+                ownerSignatureRequirement = 1; // OwnerSignature.Required
+                guardianSignatureRequirement = 0; // GuardianSignature.None
+                break;
+        
+              default:
+                // We exclude recovery manager here as it has different signature requirements per function
+                break;
+            }
+          }
+  
+          console.log(ownerSignatureRequirement)
+          console.log(guardianSignatureRequirement)
+          await registry.register(signature, module.address, ownerSignatureRequirement, guardianSignatureRequirement);  
+        }
       });
     });
 

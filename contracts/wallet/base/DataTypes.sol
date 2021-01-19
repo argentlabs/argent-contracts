@@ -34,10 +34,22 @@ contract DataTypes {
     enum LockModule { RecoveryManager, LockManager }
 
     enum OwnerSignature {
-        Anyone,             // Anyone
-        Required,           // Owner required
-        Optional,           // Owner and/or guardians
-        Disallowed          // guardians only
+        None,              // Anyone
+        Required,          // Owner required
+        Optional,          // Owner and/or guardians
+        Disallowed         // guardians only
+    }
+
+    enum GuardianSignature {
+        None,              // Anyone
+        One,               // Exactly one guardian
+        Majority,          // ceil(gs/2)
+        MajorityIncOwner   // ceil(gs+1/2)
+    }
+
+    struct RelaySignatures {
+        OwnerSignature ownerSignatureRequirement;
+        GuardianSignature guardianSignatureRequirement;
     }
 
     struct GuardianInfo {

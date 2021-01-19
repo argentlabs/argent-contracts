@@ -31,7 +31,7 @@ contract DelegateProxy is Owned {
     event Received(uint indexed value, address indexed sender, bytes data);
 
     fallback() external payable { // solhint-disable-line no-complex-fallback
-        address destination = IRegistry(registry).lookup(msg.sig);
+        address destination = IRegistry(registry).getImplementation(msg.sig);
 
         // solhint-disable-next-line no-inline-assembly
         assembly {

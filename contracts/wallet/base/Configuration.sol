@@ -16,6 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
+import "./DataTypes.sol";
 import "../../infrastructure/ICompoundRegistry.sol";
 import "../../infrastructure/IComptroller.sol";
 import "../../infrastructure/IDexRegistry.sol";
@@ -27,6 +28,8 @@ import "../../infrastructure/ITokenPriceRegistry.sol";
  * @author Elena Gesheva - <elena@argent.xyz>
  */
 contract Configuration {
+    mapping (bytes4 => DataTypes.RelaySignatures) public relaySignatures;
+
     // The token price registry
     ITokenPriceRegistry public tokenPriceRegistry;
 

@@ -76,8 +76,8 @@ contract RelayerManager is IRelayerManager, BaseModule {
         require(startGas >= _gasLimit, "RM: not enough gas provided");
         // require(verifyData(_data), "RM: Target of _data != _wallet");
         StackExtension memory stack;
-        (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures();
-        require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
+        (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures(_data);
+        require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.None, "RM: Wrong signature requirement");
         require(stack.requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         stack.signHash = getSignHash(
             address(this),
@@ -223,7 +223,7 @@ contract RelayerManager is IRelayerManager, BaseModule {
     * The method MUST throw if one or more signatures are not valid.
     * @param _signHash The signed hash representing the relayed transaction.
     * @param _signatures The signatures as a concatenated byte array.
-    * @param _option An enum indicating whether the owner is required, optional or disallowed.
+    * @param _option An enum indicating whether the owner is required, optional or not allowed.
     * @return A boolean indicating whether the signatures are valid.
     */
     function validateSignatures(
@@ -330,9 +330,35 @@ contract RelayerManager is IRelayerManager, BaseModule {
         return etherValue;
     }
 
-    // Todo incorporate the remaining required signatures implementations 
-    // below only caters for TransferManager signatures requirement
-    function getRequiredSignatures() public view returns (uint256, OwnerSignature) {
-        return (1, OwnerSignature.Required);
+    /**
+    * @notice Gets the number of valid signatures that must be provided to execute a
+    * specific relayed transaction.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(bytes calldata _data) public view returns (uint256, OwnerSignature) {
+        bytes4 methodId = Utils.functionPrefix(_data);
+        (OwnerSignature ownerSigRequirement, GuardianSignature guardianSigRequirement) =
+        Configuration(registry).relaySignatures(methodId);
+
+        uint256 requiredSignatures;
+        if(ownerSigRequirement == OwnerSignature.Required) {
+            requiredSignatures = 1;
+        }
+
+        // Add majority of guardians when required (ApprovedTransfer)
+        if (guardianSigRequirement == GuardianSignature.Majority) {
+            uint majorityGuardians = Utils.ceil(guardianCount(), 2);
+            require(majorityGuardians > 0, "AT: no guardians set on wallet");
+            requiredSignatures += majorityGuardians;
+        }
+
+        // Add majority of guardians when required (ApprovedTransfer)
+        if (guardianSigRequirement == GuardianSignature.MajorityIncOwner) {
+            uint majorityGuardiansIncOwner = Utils.ceil(guardianCount() + 1, 2);
+            requiredSignatures += majorityGuardiansIncOwner;
+        }
+
+        return (requiredSignatures, ownerSigRequirement);
     }
 }

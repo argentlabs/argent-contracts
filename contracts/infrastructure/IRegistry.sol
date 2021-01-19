@@ -22,5 +22,5 @@ pragma solidity ^0.7.6;
  * @author Elena Gesheva - <elena@argent.xyz>
  */
 interface IRegistry {
-  function lookup(bytes4 sig) external view returns(address);
+  function getImplementation(bytes4 sig) external view returns(address);
 }
