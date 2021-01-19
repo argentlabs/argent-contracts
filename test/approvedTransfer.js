@@ -1,4 +1,5 @@
 /* global artifacts */
+const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
@@ -13,9 +14,12 @@ const RelayManager = require("../utils/relay-manager");
 const IWallet = artifacts.require("IWallet");
 const DelegateProxy = artifacts.require("DelegateProxy");
 const ERC20 = artifacts.require("TestERC20");
+const TestContract = artifacts.require("TestContract");
 const WETH = artifacts.require("WETH9");
 
-contract.skip("ApprovedTransfer", (accounts) => {  
+const SECURITY_WINDOW = 240;
+
+contract("ApprovedTransfer", (accounts) => {
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];
@@ -55,47 +59,40 @@ contract.skip("ApprovedTransfer", (accounts) => {
   });
 
   async function addGuardians(guardians) {
-    // guardians can be BaseWallet or ContractWrapper objects
+    // guardians can be IWallet or ContractWrapper objects
     for (const guardian of guardians) {
       await wallet.addGuardian(guardian, { from: owner });
     }
 
-    await utils.increaseTime(30);
+    await utils.increaseTime(SECURITY_WINDOW + 1);
     for (let i = 1; i < guardians.length; i += 1) {
       await wallet.confirmGuardianAddition(guardians[i]);
     }
-    const count = (await wallet.guardianCount()).toNumber();
-    assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
   }
 
   async function createSmartContractGuardians(guardians) {
     const wallets = [];
     for (const guardian of guardians) {
-      const proxy = await Proxy.new(walletImplementation.address);
-      const guardianWallet = await BaseWallet.at(proxy.address);
-
-      await guardianWallet.init(guardian, [versionManager.address]);
-      await versionManager.upgradeWallet(guardianWallet.address, await versionManager.lastVersion(), { from: guardian });
+      const proxy = await DelegateProxy.new({ from: guardian });
+      await proxy.setRegistry(registry.address, { from: guardian });
+      const guardianWallet = await IWallet.at(proxy.address);
       wallets.push(guardianWallet.address);
     }
     return wallets;
   }
 
-  async function transferToken(_token, _signers) {
-    const to = recipient;
-
+  async function transferTokenApproved(_token, _signers) {
     const before = _token === utils.ETH_TOKEN ? await utils.getBalance(recipient) : await erc20.balanceOf(recipient);
-    await manager.relay(wallet, "transferToken",
-      [_token, recipient, amountToTransfer, ethers.constants.HashZero], _signers);
+    await manager.relay(wallet, "transferTokenApproved", [_token, recipient, amountToTransfer, ethers.constants.HashZero], _signers);
     const after = _token === utils.ETH_TOKEN ? await utils.getBalance(recipient) : await erc20.balanceOf(recipient);
     expect(after.sub(before)).to.eq.BN(amountToTransfer);
   }
 
-  async function callContract(_signers) {
+  async function callContractApproved(_signers) {
     const before = await utils.getBalance(contract.address);
     const newState = parseInt((await contract.state()).toString(), 10) + 1;
     const dataToTransfer = contract.contract.methods.setState([newState]).encodeABI();
-    await manager.relay(wallet, "callContract",
+    await manager.relay(wallet, "callContractApproved",
       [contract.address, amountToTransfer, dataToTransfer], _signers);
     const after = await utils.getBalance(contract.address);
     assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
@@ -107,7 +104,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
       await truffleAssert.reverts(
         manager.relay(
           wallet,
-          "transferToken",
+          "transferTokenApproved",
           [_token, recipient, amountToTransfer, ethers.constants.HashZero],
           _signers,
         ), _reason,
@@ -123,14 +120,14 @@ contract.skip("ApprovedTransfer", (accounts) => {
         beforeEach(async () => {
           await addGuardians([guardian1]);
         });
-        it.only("should transfer ETH with 1 confirmation for 1 guardian", async () => {
-          await transferToken(utils.ETH_TOKEN, [owner, guardian1]);
+        it("should transfer ETH with 1 confirmation for 1 guardian", async () => {
+          await transferTokenApproved(utils.ETH_TOKEN, [owner, guardian1]);
         });
         it("should fail to transfer ETH when signer is not a guardian", async () => {
           await expectFailingTransferToken(utils.ETH_TOKEN, [owner, guardian2], "RM: Invalid signatures");
         });
         it("should transfer ERC20 with 1 confirmation for 1 guardian", async () => {
-          await transferToken(erc20.address, [owner, guardian1]);
+          await transferTokenApproved(erc20.address, [owner, guardian1]);
         });
       });
 
@@ -139,7 +136,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
           await addGuardians([guardian1, guardian2]);
         });
         it("should transfer ETH with 1 confirmation for 2 guardians", async () => {
-          await transferToken(utils.ETH_TOKEN, [owner, guardian1]);
+          await transferTokenApproved(utils.ETH_TOKEN, [owner, guardian1]);
         });
       });
 
@@ -151,13 +148,13 @@ contract.skip("ApprovedTransfer", (accounts) => {
           await expectFailingTransferToken(utils.ETH_TOKEN, [owner, guardian1], "RM: Wrong number of signatures");
         });
         it("should transfer ETH with 2 confirmations for 3 guardians", async () => {
-          await transferToken(utils.ETH_TOKEN, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+          await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
         });
         it("should fail to transfer ERC20 with 1 confirmation for 3 guardians", async () => {
           await expectFailingTransferToken(erc20.address, [owner, guardian1], "RM: Wrong number of signatures");
         });
         it("should transfer ERC20 with 2 confirmations for 3 guardians", async () => {
-          await transferToken(erc20.address, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+          await transferTokenApproved(erc20.address, [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
         });
       });
     });
@@ -168,10 +165,10 @@ contract.skip("ApprovedTransfer", (accounts) => {
           await addGuardians(await createSmartContractGuardians([guardian1]));
         });
         it("should transfer ETH with 1 confirmation for 1 guardian", async () => {
-          await transferToken(utils.ETH_TOKEN, [owner, guardian1]);
+          await transferTokenApproved(utils.ETH_TOKEN, [owner, guardian1]);
         });
         it("should transfer ERC20 with 1 confirmation for 1 guardian", async () => {
-          await transferToken(erc20.address, [owner, guardian1]);
+          await transferTokenApproved(erc20.address, [owner, guardian1]);
         });
       });
 
@@ -180,7 +177,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
           await addGuardians(await createSmartContractGuardians([guardian1, guardian2]));
         });
         it("should transfer ETH with 1 confirmation for 2 guardians", async () => {
-          await transferToken(utils.ETH_TOKEN, [owner, guardian1]);
+          await transferTokenApproved(utils.ETH_TOKEN, [owner, guardian1]);
         });
       });
 
@@ -192,13 +189,13 @@ contract.skip("ApprovedTransfer", (accounts) => {
           await expectFailingTransferToken(utils.ETH_TOKEN, [owner, guardian1], "RM: Wrong number of signatures");
         });
         it("should transfer ETH with 2 confirmations for 3 guardians", async () => {
-          await transferToken(utils.ETH_TOKEN, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+          await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
         });
         it("should not transfer ERC20 with 1 confirmations for 3 guardians", async () => {
           await expectFailingTransferToken(erc20.address, [owner, guardian1], "RM: Wrong number of signatures");
         });
         it("should transfer ERC20 with 2 confirmations for 3 guardians", async () => {
-          await transferToken(erc20.address, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+          await transferTokenApproved(erc20.address, [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
         });
       });
     });
@@ -206,15 +203,15 @@ contract.skip("ApprovedTransfer", (accounts) => {
     describe("Approved by EOA and smart-contract guardians", () => {
       it("should transfer ETH with 1 EOA guardian and 2 smart-contract guardians", async () => {
         await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
-        await transferToken(utils.ETH_TOKEN, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
-        await transferToken(utils.ETH_TOKEN, [owner, ...sortWalletByAddress([guardian1, guardian3])]);
-        await transferToken(utils.ETH_TOKEN, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
+        await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
+        await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian3])]);
+        await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian2, guardian3])]);
       });
       it("should transfer ETH with 2 EOA guardians and 1 smart-contract guardian", async () => {
         await addGuardians([guardian1, guardian2, ...await createSmartContractGuardians([guardian3])]);
-        await transferToken(utils.ETH_TOKEN, [owner, ...sortWalletByAddress([guardian1, guardian2])]);
-        await transferToken(utils.ETH_TOKEN, [owner, ...sortWalletByAddress([guardian1, guardian3])]);
-        await transferToken(utils.ETH_TOKEN, [owner, ...sortWalletByAddress([guardian2, guardian3])]);
+        await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
+        await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian3])]);
+        await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian2, guardian3])]);
       });
     });
   });
@@ -227,7 +224,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
       await truffleAssert.reverts(
         manager.relay(
           wallet,
-          "callContract",
+          "callContractApproved",
           [contract.address, amountToTransfer, dataToTransfer],
           [owner],
         ),
@@ -243,15 +240,15 @@ contract.skip("ApprovedTransfer", (accounts) => {
       });
 
       it("should call a contract and transfer ETH with 1 EOA guardian and 2 smart-contract guardians", async () => {
-        await callContract([owner, ...sortWalletByAddress([guardian1, guardian2])]);
-        await callContract([owner, ...sortWalletByAddress([guardian1, guardian3])]);
-        await callContract([owner, ...sortWalletByAddress([guardian2, guardian3])]);
+        await callContractApproved([owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
+        await callContractApproved([owner, ...utils.sortWalletByAddress([guardian1, guardian3])]);
+        await callContractApproved([owner, ...utils.sortWalletByAddress([guardian2, guardian3])]);
       });
 
       it("should not be able to call the wallet itself", async () => {
-        const txReceipt = await manager.relay(wallet, "callContract",
-          [amountToTransfer, ethers.constants.HashZero],
-          [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+        const txReceipt = await manager.relay(wallet, "callContractApproved",
+          [wallet.address, amountToTransfer, ethers.constants.HashZero],
+          [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
         const { success, error } = parseRelayReceipt(txReceipt);
         assert.isFalse(success);
         assert.equal(error, "BT: Forbidden contract");
@@ -272,9 +269,9 @@ contract.skip("ApprovedTransfer", (accounts) => {
       describe("Invalid Target", () => {
         async function expectFailingApproveTokenAndCallContract(target) {
           const invalidData = contract.contract.methods.setStateAndPayToken(2, erc20.address, amountToApprove).encodeABI();
-          const txReceipt = await manager.relay(wallet, "approveTokenAndCallContract",
+          const txReceipt = await manager.relay(wallet, "approveTokenAndCallContractApproved",
             [erc20.address, wallet.address, amountToApprove, target.address, invalidData],
-            [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+            [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
           const { success, error } = parseRelayReceipt(txReceipt);
           assert.isFalse(success);
           assert.equal(error, "BT: Forbidden contract");
@@ -290,7 +287,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
       });
 
       describe("Valid Target", () => {
-        async function approveTokenAndCallContract(_signers, _consumerAddress = contract.address, _wrapEth = false) {
+        async function approveTokenAndCallContractApproved(_signers, _consumerAddress = contract.address, _wrapEth = false) {
           const newState = parseInt((await contract.state()).toString(), 10) + 1;
           const token = _wrapEth ? weth : erc20;
           const fun = _consumerAddress === contract.address ? "setStateAndPayToken" : "setStateAndPayTokenWithConsumer";
@@ -298,7 +295,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
           const before = await token.balanceOf(contract.address);
           const params = (_wrapEth ? [] : [erc20.address])
             .concat([_consumerAddress, amountToApprove, contract.address, data]);
-          const method = _wrapEth ? "approveWethAndCallContract" : "approveTokenAndCallContract";
+          const method = _wrapEth ? "approveWethAndCallContractApproved" : "approveTokenAndCallContractApproved";
           await manager.relay(
             wallet,
             method,
@@ -311,22 +308,22 @@ contract.skip("ApprovedTransfer", (accounts) => {
         }
 
         it("should approve token for a spender then call a contract with 3 guardians, spender = contract", async () => {
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian2])]);
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian3])]);
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian2, guardian3])]);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian1, guardian3])]);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian2, guardian3])]);
         });
 
         it("should approve WETH for a spender then call a contract with 3 guardians, spender = contract", async () => {
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian2])], contract.address, true);
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian3])], contract.address, true);
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian2, guardian3])], contract.address, true);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian1, guardian2])], contract.address, true);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian1, guardian3])], contract.address, true);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian2, guardian3])], contract.address, true);
         });
 
         it("should approve token for a spender then call a contract with 3 guardians, spender != contract", async () => {
           const consumer = await contract.tokenConsumer();
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian2])], consumer);
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian1, guardian3])], consumer);
-          await approveTokenAndCallContract([owner, ...sortWalletByAddress([guardian2, guardian3])], consumer);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian1, guardian2])], consumer);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian1, guardian3])], consumer);
+          await approveTokenAndCallContractApproved([owner, ...utils.sortWalletByAddress([guardian2, guardian3])], consumer);
         });
 
         it("should restore the original approved amount", async () => {
@@ -335,9 +332,9 @@ contract.skip("ApprovedTransfer", (accounts) => {
           const balanceBefore = await erc20.balanceOf(contract.address);
 
           const dataToTransfer = contract.contract.methods.setStateAndPayTokenWithConsumer(2, erc20.address, amountToApprove).encodeABI();
-          await manager.relay(wallet, "approveTokenAndCallContract",
+          await manager.relay(wallet, "approveTokenAndCallContractApproved",
             [erc20.address, consumer, amountToApprove, contract.address, dataToTransfer],
-            [owner, ...sortWalletByAddress([guardian1, guardian2])]);
+            [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
 
           const balanceAfter = await erc20.balanceOf(contract.address);
           assert.equal(balanceAfter.sub(balanceBefore).toNumber(), amountToApprove, "should have approved and transfered the token amount");
@@ -359,7 +356,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
     it("should change the limit immediately", async () => {
       let limit = await wallet.getLimit();
       assert.equal(limit.toNumber(), 1000000, "limit should be 1000000");
-      await manager.relay(wallet, "changeLimit", [4000000], [owner, guardian1]);
+      await manager.relay(wallet, "changeLimitApproved", [4000000], [owner, guardian1]);
       limit = await wallet.getLimit();
       assert.equal(limit.toNumber(), 4000000, "limit should be changed immediately");
     });
@@ -375,7 +372,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
     it("should reset the daily consumption after a transfer", async () => {
       let dailySpent = await wallet.getDailySpent();
       assert.equal(dailySpent.toNumber(), 500, "dailySpent should be 500");
-      await transferToken(utils.ETH_TOKEN, [owner, guardian1]);
+      await transferTokenApproved(utils.ETH_TOKEN, [owner, guardian1]);
       dailySpent = await wallet.getDailySpent();
       assert.equal(dailySpent.toNumber(), 0, "dailySpent should be 0");
     });
@@ -383,7 +380,7 @@ contract.skip("ApprovedTransfer", (accounts) => {
     it("should reset the daily consumption after a call contract", async () => {
       let dailySpent = await wallet.getDailySpent();
       assert.equal(dailySpent.toNumber(), 500, "dailySpent should be 500");
-      await callContract([owner, guardian1]);
+      await callContractApproved([owner, guardian1]);
       dailySpent = await wallet.getDailySpent();
       assert.equal(dailySpent.toNumber(), 0, "dailySpent should be 0");
     });

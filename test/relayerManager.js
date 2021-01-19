@@ -257,7 +257,7 @@ contract("RelayerManager", (accounts) => {
       await wallet.addGuardian(guardian, { from: owner });
       // call approvedTransfer
       const params = [ETH_TOKEN, recipient, 1000, ethers.constants.HashZero];
-      await manager.relay(wallet, "transferToken", params, [owner, guardian]);
+      await manager.relay(wallet, "transferTokenApproved", params, [owner, guardian]);
 
       dailySpent = await wallet.getDailySpent();
       // daily spent should be reset

@@ -17,7 +17,7 @@
 pragma solidity ^0.7.6;
 pragma experimental ABIEncoderV2;
 
-//import "./modules/IApprovedTransfer.sol";
+import "./modules/IApprovedTransfer.sol";
 import "./modules/ICompoundManager.sol";
 import "./modules/IGuardianManager.sol";
 import "./modules/ILockManager.sol";
@@ -34,7 +34,7 @@ import "./modules/IBaseTransfer.sol";
  * @author Elena Gesheva - <elena@argent.xyz>
  */
 interface IWallet is
-  //IApprovedTransfer,
+  IApprovedTransfer,
   ICompoundManager,
   IGuardianManager,
   ILockManager,
@@ -44,7 +44,6 @@ interface IWallet is
   ITokenExchanger,
   ITransferManager,
   IBaseTransfer
-  //TODO sort out the overlapping implementation of ITransferManager and IApprovedTransfer
   {
     /**
      * @notice Checks if a wallet is locked.
@@ -64,4 +63,11 @@ interface IWallet is
      * @return true if the account is a guardian for a wallet.
      */
     function isGuardian(address _guardian) external view returns (bool);
+
+    /**
+    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian.
+    * @param _guardian the address to test
+    * @return `true` if the address is a guardian for the wallet otherwise `false`.
+    */
+    function isGuardianOrGuardianSigner(address _guardian) external view returns (bool);
 }

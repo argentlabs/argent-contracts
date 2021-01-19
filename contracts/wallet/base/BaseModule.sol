@@ -16,9 +16,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
+import "./Utils.sol";
+import "./WalletStorage.sol";
 import "../../../lib/other/ERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./WalletStorage.sol";
 
 /**
  * @title BaseModule
@@ -82,5 +83,53 @@ contract BaseModule is WalletStorage {
      */
     function isGuardian(address _guardian) public view returns (bool) {
         return info[_guardian].exists;
+    }
+
+    /**
+    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian.
+    * @param _guardian the address to test
+    * @return `true` if the address is a guardian for the wallet otherwise `false`.
+    */
+    function isGuardianOrGuardianSigner(address _guardian) public view returns (bool) {
+        if (guardians.length == 0 || _guardian == address(0)) {
+            return false;
+        }
+        bool isFound = false;
+        for (uint256 i = 0; i < guardians.length; i++) {
+            if (!isFound) {
+                // check if _guardian is an account guardian
+                if (_guardian == guardians[i]) {
+                    isFound = true;
+                    continue;
+                }
+                // check if _guardian is the owner of a smart contract guardian
+                if (Utils.isContract(guardians[i]) && isGuardianOwner(guardians[i], _guardian)) {
+                    isFound = true;
+                    continue;
+                }
+            }
+        }
+        return isFound;
+    }
+
+    /**
+    * @dev Checks if an address is the owner of a guardian contract.
+    * The method does not revert if the call to the owner() method consumes more then 5000 gas.
+    * @param _guardian The guardian contract
+    * @param _owner The owner to verify.
+    */
+    function isGuardianOwner(address _guardian, address _owner) internal view returns (bool) {
+        address owner = address(0);
+        bytes4 sig = bytes4(keccak256("owner()"));
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr,sig)
+            let result := staticcall(5000, _guardian, ptr, 0x20, ptr, 0x20)
+            if eq(result, 1) {
+                owner := mload(ptr)
+            }
+        }
+        return owner == _owner;
     }
 }

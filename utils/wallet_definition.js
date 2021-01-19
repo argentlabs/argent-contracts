@@ -58,7 +58,7 @@ module.exports = {
 
     // IWallet inherits interfaces implemented in modules below
     const modules = [
-      //approvedTransfer,
+      approvedTransfer,
       compoundManager,
       guardianManager,
       lockManager,
@@ -95,8 +95,6 @@ module.exports = {
         const signature = web3.eth.abi.encodeFunctionSignature(functionDefinition);
         // Register the function if it's part of the IWallet interface
         if (walletFunctionSigs.includes(signature)) {
-
-        console.log("functionDefinition", functionDefinition.name)
           // If the function is one which requires no signatures, set it
           if (functionsNoSignature.includes(signature) || functionDefinition.stateMutability == "view" || functionDefinition.stateMutability == "pure") {
             ownerSignatureRequirement = 0; // OwnerSignature.None
@@ -136,9 +134,7 @@ module.exports = {
                 break;
             }
           }
-  
-          console.log(ownerSignatureRequirement)
-          console.log(guardianSignatureRequirement)
+
           await registry.register(signature, module.address, ownerSignatureRequirement, guardianSignatureRequirement);  
         }
       });

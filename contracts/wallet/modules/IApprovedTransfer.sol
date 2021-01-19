@@ -29,7 +29,7 @@ interface IApprovedTransfer {
     * @param _amount The amount of token to transfer
     * @param _data  The data for the transaction (only for ETH transfers)
     */
-  function transferToken(address _token, address payable _to, uint256 _amount, bytes calldata _data) external;
+  function transferTokenApproved(address _token, address payable _to, uint256 _amount, bytes calldata _data) external;
   
   /**
     * @notice Call a contract.
@@ -37,7 +37,7 @@ interface IApprovedTransfer {
     * @param _value The amount of ETH to transfer as part of call
     * @param _data The encoded method data
     */
-    function callContract(address _contract, uint256 _value, bytes calldata _data) external;
+    function callContractApproved(address _contract, uint256 _value, bytes calldata _data) external;
 
     /**
     * @notice Lets the owner do an ERC20 approve followed by a call to a contract.
@@ -49,7 +49,7 @@ interface IApprovedTransfer {
     * @param _contract The contract to call.
     * @param _data The encoded method data
     */
-    function approveTokenAndCallContract(
+    function approveTokenAndCallContractApproved(
         address _token,
         address _spender,
         uint256 _amount,
@@ -61,7 +61,7 @@ interface IApprovedTransfer {
      * @notice Changes the daily limit. The change is immediate.
      * @param _newLimit The new limit.
      */
-    function changeLimit(uint256 _newLimit) external;
+    function changeLimitApproved(uint256 _newLimit) external;
 
         /**
     * @notice lets the owner wrap ETH into WETH, approve the WETH and call a contract.
@@ -72,5 +72,5 @@ interface IApprovedTransfer {
     * @param _contract The contract to call.
     * @param _data The encoded method data
     */
-    function approveWethAndCallContract(address _spender, uint256 _amount, address _contract, bytes calldata _data) external;
+    function approveWethAndCallContractApproved(address _spender, uint256 _amount, address _contract, bytes calldata _data) external;
 }

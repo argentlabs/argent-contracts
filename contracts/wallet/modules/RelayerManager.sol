@@ -261,7 +261,7 @@ contract RelayerManager is IRelayerManager, BaseModule {
                 return false; // Signers must be different
             }
             lastSigner = signer;
-            bool isGuardian = IGuardianManager(address(this)).isGuardianOrGuardianSigner(signer);
+            bool isGuardian = isGuardianOrGuardianSigner(signer);
             if (!isGuardian) {
                 return false;
             }
@@ -346,14 +346,14 @@ contract RelayerManager is IRelayerManager, BaseModule {
             requiredSignatures = 1;
         }
 
-        // Add majority of guardians when required (ApprovedTransfer)
+        // Add majority of guardians when required
         if (guardianSigRequirement == GuardianSignature.Majority) {
             uint majorityGuardians = Utils.ceil(guardianCount(), 2);
             require(majorityGuardians > 0, "AT: no guardians set on wallet");
             requiredSignatures += majorityGuardians;
         }
 
-        // Add majority of guardians when required (ApprovedTransfer)
+        // Add majority of guardians including owner when required
         if (guardianSigRequirement == GuardianSignature.MajorityIncOwner) {
             uint majorityGuardiansIncOwner = Utils.ceil(guardianCount() + 1, 2);
             requiredSignatures += majorityGuardiansIncOwner;

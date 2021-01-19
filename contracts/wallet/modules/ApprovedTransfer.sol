@@ -30,7 +30,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
     /**
     * @inheritdoc IApprovedTransfer
     */
-    function transferToken(
+    function transferTokenApproved(
         address _token,
         address payable _to,
         uint256 _amount,
@@ -46,7 +46,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
     /**
     * @inheritdoc IApprovedTransfer
     */
-    function callContract(
+    function callContractApproved(
         address _contract,
         uint256 _value,
         bytes calldata _data
@@ -62,7 +62,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
     /**
     * @inheritdoc IApprovedTransfer
     */
-    function approveTokenAndCallContract(
+    function approveTokenAndCallContractApproved(
         address _token,
         address _spender,
         uint256 _amount,
@@ -80,7 +80,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
     /**
     * @inheritdoc IApprovedTransfer
     */
-    function changeLimit(uint256 _newLimit) external override
+    function changeLimitApproved(uint256 _newLimit) external override
     onlyWhenUnlocked()
     {
         uint128 targetLimit = Utils.safe128(_newLimit);
@@ -94,7 +94,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
     /**
     * @inheritdoc IApprovedTransfer
     */
-    function approveWethAndCallContract(
+    function approveWethAndCallContractApproved(
         address _spender,
         uint256 _amount,
         address _contract,
