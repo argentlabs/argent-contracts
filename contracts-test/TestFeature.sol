@@ -59,10 +59,11 @@ contract TestFeature is BaseFeature {
      * @inheritdoc IFeature
      */
     function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {
-        _sigs = new bytes4[](3);
+        _sigs = new bytes4[](4);
         _sigs[0] = bytes4(keccak256("getBoolean()"));
         _sigs[1] = bytes4(keccak256("getUint()"));
         _sigs[2] = bytes4(keccak256("getAddress(address)"));
+        _sigs[3] = bytes4(keccak256("badStaticCall()"));
     }
 
     function getBoolean() public view returns (bool) {
@@ -75,6 +76,10 @@ contract TestFeature is BaseFeature {
 
     function getAddress(address _addr) public pure returns (address) {
         return _addr;
+    }
+
+    function badStaticCall() external {
+        uintVal = 123456;
     }
 
     function callDapp(address _wallet)

@@ -8,23 +8,21 @@
 // ./execute_script.sh update_compound_registry.js <network> --remove --token <token address>
 //
 // where:
-//    - network = [ganache, test, staging, prod]
+//    - network = [development, test, staging, prod]
 // ////////////////////////////////////////////////////////////////////
 
-const CompoundRegistry = require("../build/CompoundRegistry");
-const MultiSig = require("../build/MultiSigWallet");
+/* global artifacts */
+const CompoundRegistry = artifacts.require("CompoundRegistry");
+const MultiSig = artifacts.require("MultiSigWallet");
 
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
   let add;
 
   // Read Command Line Arguments
-  let idx = process.argv.indexOf("--network");
-  const network = process.argv[idx + 1];
-
-  idx = process.argv.indexOf("--add");
+  let idx = process.argv.indexOf("--add");
   if (idx > 0) {
     add = true;
   } else {
@@ -43,17 +41,14 @@ async function main() {
   idx = process.argv.indexOf("--ctoken");
   const ctoken = process.argv[idx + 1];
 
-  // Setup deployer
-  const manager = new DeployManager(network);
-  await manager.setup();
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const deploymentWallet = deployer.signer;
+  const { configurator } = await deployManager.getProps();
   const { config } = configurator;
+  const accounts = await web3.eth.getAccounts();
+  const deploymentAccount = accounts[0];
 
-  const CompoundRegistryWrapper = await deployer.wrapDeployedContract(CompoundRegistry, config.contracts.CompoundRegistry);
-  const MultiSigWrapper = await deployer.wrapDeployedContract(MultiSig, config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentWallet, config.multisig.autosign);
+  const CompoundRegistryWrapper = await CompoundRegistry.at(config.contracts.CompoundRegistry);
+  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   if (add) {
     console.log(`Adding token ${token} to Compound`);

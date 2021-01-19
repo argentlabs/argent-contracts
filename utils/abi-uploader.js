@@ -12,31 +12,31 @@ class ABIUploaderS3 {
   }
 
   async upload(contractWrapper, folder) {
-    const { contractName } = contractWrapper._contract;
-    const filename = contractWrapper.contractAddress;
+    const { contractName } = contractWrapper.contract;
+    const filename = contractWrapper.address;
 
     console.log(`Uploading ${contractName} ABI to AWS...`);
 
     await s3.putObject({
-      Body: JSON.stringify(contractWrapper._contract.abi),
+      Body: JSON.stringify(contractWrapper.abi),
       Bucket: this._bucket,
       Key: `${S3_BUCKET_FOLDER_ABI}/${folder}/${contractName}/${filename}.json`,
     }).promise();
 
     await s3.putObject({
-      Body: JSON.stringify(contractWrapper._contract.abi),
+      Body: JSON.stringify(contractWrapper.abi),
       Bucket: this._bucket,
       Key: `${S3_BUCKET_FOLDER_ABI}/ALL/${filename}.json`,
     }).promise();
 
     await s3.putObject({
-      Body: JSON.stringify(contractWrapper._contract),
+      Body: JSON.stringify(contractWrapper.contract),
       Bucket: this._bucket,
       Key: `${S3_BUCKET_FOLDER_BUILD}/${folder}/${contractName}/${filename}.json`,
     }).promise();
 
     await s3.putObject({
-      Body: JSON.stringify(contractWrapper._contract),
+      Body: JSON.stringify(contractWrapper.contract),
       Bucket: this._bucket,
       Key: `${S3_BUCKET_FOLDER_BUILD}/ALL/${filename}.json`,
     }).promise();

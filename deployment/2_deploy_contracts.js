@@ -1,47 +1,35 @@
-const GuardianStorage = require("../build/GuardianStorage");
-const TransferStorage = require("../build/TransferStorage");
-const LockStorage = require("../build/LockStorage");
-const LimitStorage = require("../build/LimitStorage");
+/* global artifacts */
+global.web3 = web3;
 
-const BaseWallet = require("../build/BaseWallet");
-const ModuleRegistry = require("../build/ModuleRegistry");
-const CompoundRegistry = require("../build/CompoundRegistry");
-const MultiSig = require("../build/MultiSigWallet");
-const ENS = require("../build/ENSRegistryWithFallback");
-const ENSManager = require("../build/ArgentENSManager");
-const ENSResolver = require("../build/ArgentENSResolver");
-const WalletFactory = require("../build/WalletFactory");
+const GuardianStorage = artifacts.require("GuardianStorage");
+const TransferStorage = artifacts.require("TransferStorage");
+const LockStorage = artifacts.require("LockStorage");
+const LimitStorage = artifacts.require("LimitStorage");
 
-const TokenPriceRegistry = require("../build/TokenPriceRegistry");
-const DexRegistry = require("../build/DexRegistry");
+const BaseWallet = artifacts.require("BaseWallet");
+const ModuleRegistry = artifacts.require("ModuleRegistry");
+const CompoundRegistry = artifacts.require("CompoundRegistry");
+const MultiSig = artifacts.require("MultiSigWallet");
+const ENS = artifacts.require("ENSRegistryWithFallback");
+const ENSManager = artifacts.require("ArgentENSManager");
+const ENSResolver = artifacts.require("ArgentENSResolver");
+const WalletFactory = artifacts.require("WalletFactory");
 
-const MakerRegistry = require("../build/MakerRegistry");
-const ScdMcdMigration = require("../build/ScdMcdMigration");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const DexRegistry = artifacts.require("DexRegistry");
+
+const MakerRegistry = artifacts.require("MakerRegistry");
+const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 
 const utils = require("../utils/utilities.js");
-
-const DeployManager = require("../utils/deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-const deploy = async (network) => {
-  // //////////////////////////////////
-  // Setup
-  // //////////////////////////////////
-
-  const manager = new DeployManager(network);
-  await manager.setup();
-
-  const { configurator } = manager;
-  const { deployer } = manager;
-  const { abiUploader } = manager;
-  const { gasPrice } = deployer.defaultOverrides;
-
+async function main() {
+  const { deploymentAccount, configurator, abiUploader } = await deployManager.getProps();
   const newConfig = configurator.config;
   const prevConfig = configurator.copyConfig();
-  console.log("Previous Config:", prevConfig);
 
-  const deploymentWallet = deployer.signer;
-  const deploymentAccount = await deploymentWallet.getAddress();
   const walletRootEns = prevConfig.ENS.domain;
 
   // //////////////////////////////////
@@ -49,74 +37,73 @@ const deploy = async (network) => {
   // //////////////////////////////////
 
   // Deploy the Guardian Storage
-  const GuardianStorageWrapper = await deployer.deploy(GuardianStorage);
+  const GuardianStorageWrapper = await GuardianStorage.new();
   // Deploy the Transfer Storage
-  const TransferStorageWrapper = await deployer.deploy(TransferStorage);
+  const TransferStorageWrapper = await TransferStorage.new();
   // Deploy the new LockStorage
-  const LockStorageWrapper = await deployer.deploy(LockStorage);
+  const LockStorageWrapper = await LockStorage.new();
   // Deploy the new LimitStorage
-  const LimitStorageWrapper = await deployer.deploy(LimitStorage);
+  const LimitStorageWrapper = await LimitStorage.new();
 
   // //////////////////////////////////
   // Deploy infrastructure contracts
   // //////////////////////////////////
 
   // Deploy the Base Wallet Library
-  const BaseWalletWrapper = await deployer.deploy(BaseWallet);
+  const BaseWalletWrapper = await BaseWallet.new();
   // Deploy the MultiSig
-  const MultiSigWrapper = await deployer.deploy(MultiSig, {}, newConfig.multisig.threshold, newConfig.multisig.owners);
+  const MultiSigWrapper = await MultiSig.new(newConfig.multisig.threshold, newConfig.multisig.owners);
 
   // Deploy the new TokenPriceRegistry
-  const TokenPriceRegistryWrapper = await deployer.deploy(TokenPriceRegistry);
+  const TokenPriceRegistryWrapper = await TokenPriceRegistry.new();
   // Deploy the DexRegistry
-  const DexRegistryWrapper = await deployer.deploy(DexRegistry);
+  const DexRegistryWrapper = await DexRegistry.new();
 
   // Deploy Module Registry
-  const ModuleRegistryWrapper = await deployer.deploy(ModuleRegistry);
+  const ModuleRegistryWrapper = await ModuleRegistry.new();
   // Deploy Compound Registry
-  const CompoundRegistryWrapper = await deployer.deploy(CompoundRegistry);
+  const CompoundRegistryWrapper = await CompoundRegistry.new();
   // Deploy the ENS Resolver
-  const ENSResolverWrapper = await deployer.deploy(ENSResolver);
+  const ENSResolverWrapper = await ENSResolver.new();
   // Deploy the ENS Manager
-  const ENSManagerWrapper = await deployer.deploy(ENSManager, {},
-    walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.contractAddress);
+  const ENSManagerWrapper = await ENSManager.new(
+    walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.address);
   // Deploy the Wallet Factory
-  const WalletFactoryWrapper = await deployer.deploy(WalletFactory, {},
-    ModuleRegistryWrapper.contractAddress, BaseWalletWrapper.contractAddress, GuardianStorageWrapper.contractAddress);
+  const WalletFactoryWrapper = await WalletFactory.new(
+    ModuleRegistryWrapper.address, BaseWalletWrapper.address, GuardianStorageWrapper.address);
 
   // Deploy and configure Maker Registry
-  const ScdMcdMigrationWrapper = await deployer.wrapDeployedContract(ScdMcdMigration, newConfig.defi.maker.migration);
+  const ScdMcdMigrationWrapper = await ScdMcdMigration.at(newConfig.defi.maker.migration);
   const vatAddress = await ScdMcdMigrationWrapper.vat();
-  const MakerRegistryWrapper = await deployer.deploy(MakerRegistry, {}, vatAddress);
+  const MakerRegistryWrapper = await MakerRegistry.new(vatAddress);
   const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
-  const addCollateralTransaction = await MakerRegistryWrapper.contract.addCollateral(wethJoinAddress, { gasPrice });
-  await MakerRegistryWrapper.verboseWaitForTransaction(addCollateralTransaction, `Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
-  const changeMakerRegistryOwnerTx = await MakerRegistryWrapper.contract.changeOwner(newConfig.contracts.MultiSigWallet, { gasPrice });
-  await MakerRegistryWrapper.verboseWaitForTransaction(changeMakerRegistryOwnerTx, "Set the MultiSig as the owner of the MakerRegistry");
+  console.log(`Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
+  await MakerRegistryWrapper.addCollateral(wethJoinAddress);
+  console.log("Set the MultiSig as the owner of the MakerRegistry");
+  await MakerRegistryWrapper.changeOwner(newConfig.contracts.MultiSigWallet);
 
   // /////////////////////////////////////////////////
   // Making ENSManager owner of the root wallet ENS
   // /////////////////////////////////////////////////
 
-  const ENSRegistryWrapper = deployer.wrapDeployedContract(ENS, newConfig.ENS.ensRegistry);
+  const ENSRegistryWrapper = await ENS.at(newConfig.ENS.ensRegistry);
 
   // Get the address of the previous owner of the root wallet ENS (e.g. argent.xyz)
-  const previousWalletEnsOwner = await ENSRegistryWrapper.contract.owner(utils.namehash(walletRootEns));
+  const previousWalletEnsOwner = await ENSRegistryWrapper.owner(utils.namehash(walletRootEns));
 
   if (previousWalletEnsOwner.toLowerCase() === deploymentAccount.toLowerCase()) {
     // newly registered name -> change its owner from deploymentAccount to ENSManager address
-    const setOwnerTransaction = await ENSRegistryWrapper.contract.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.contractAddress,
-      { gasPrice });
-    await ENSRegistryWrapper.verboseWaitForTransaction(setOwnerTransaction, "Replace deployment account by ENSManager as new owner of walletENS");
+    console.log("Replace deployment account by ENSManager as new owner of walletENS");
+    await ENSRegistryWrapper.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.address);
   } else if (previousWalletEnsOwner.toLowerCase() === prevConfig.contracts.ENSManager.toLowerCase()) {
     // change the owner from the previous ENSManager.address to the new one
     console.log("change the owner from the previous ENSManager to the new one");
-    const previousMultiSigWrapper = deployer.wrapDeployedContract(MultiSig, prevConfig.contracts.MultiSigWallet);
-    const previousENSManagerWrapper = deployer.wrapDeployedContract(ENSManager, prevConfig.contracts.ENSManager);
+    const previousMultiSigWrapper = await MultiSig.at(prevConfig.contracts.MultiSigWallet);
+    const previousENSManagerWrapper = await ENSManager.at(prevConfig.contracts.ENSManager);
 
-    const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentWallet, prevConfig.multisig.autosign, { gasPrice });
+    const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentAccount, prevConfig.multisig.autosign);
     console.log(`Owner of ${walletRootEns} changed from old ENSManager to new ENSManager...`);
-    await multisigExecutor.executeCall(previousENSManagerWrapper, "changeRootnodeOwner", [ENSManagerWrapper.contractAddress]);
+    await multisigExecutor.executeCall(previousENSManagerWrapper, "changeRootnodeOwner", [ENSManagerWrapper.address]);
   } else {
     throw new Error(`Ownership of ${walletRootEns} not changed`);
   }
@@ -127,31 +114,30 @@ const deploy = async (network) => {
 
   for (const underlying in newConfig.defi.compound.markets) {
     const cToken = newConfig.defi.compound.markets[underlying];
-    const addUnderlyingTransaction = await CompoundRegistryWrapper.contract.addCToken(underlying, cToken, { gasPrice });
-    await CompoundRegistryWrapper.verboseWaitForTransaction(addUnderlyingTransaction,
-      `Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
+    console.log(`Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
+    await CompoundRegistryWrapper.addCToken(underlying, cToken);
   }
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
   configurator.updateModuleAddresses({
-    GuardianStorage: GuardianStorageWrapper.contractAddress,
-    TransferStorage: TransferStorageWrapper.contractAddress,
-    LockStorage: LockStorageWrapper.contractAddress,
-    LimitStorage: LimitStorageWrapper.contractAddress,
-    TokenPriceRegistry: TokenPriceRegistryWrapper.contractAddress,
+    GuardianStorage: GuardianStorageWrapper.address,
+    TransferStorage: TransferStorageWrapper.address,
+    LockStorage: LockStorageWrapper.address,
+    LimitStorage: LimitStorageWrapper.address,
+    TokenPriceRegistry: TokenPriceRegistryWrapper.address,
   });
 
   configurator.updateInfrastructureAddresses({
-    MultiSigWallet: MultiSigWrapper.contractAddress,
-    WalletFactory: WalletFactoryWrapper.contractAddress,
-    ENSResolver: ENSResolverWrapper.contractAddress,
-    ENSManager: ENSManagerWrapper.contractAddress,
-    ModuleRegistry: ModuleRegistryWrapper.contractAddress,
-    CompoundRegistry: CompoundRegistryWrapper.contractAddress,
-    DexRegistry: DexRegistryWrapper.contractAddress,
-    BaseWallet: BaseWalletWrapper.contractAddress,
+    MultiSigWallet: MultiSigWrapper.address,
+    WalletFactory: WalletFactoryWrapper.address,
+    ENSResolver: ENSResolverWrapper.address,
+    ENSManager: ENSManagerWrapper.address,
+    ModuleRegistry: ModuleRegistryWrapper.address,
+    CompoundRegistry: CompoundRegistryWrapper.address,
+    DexRegistry: DexRegistryWrapper.address,
+    BaseWallet: BaseWalletWrapper.address,
   });
   await configurator.save();
 
@@ -170,8 +156,11 @@ const deploy = async (network) => {
     abiUploader.upload(DexRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);
-};
 
-module.exports = {
-  deploy,
+  console.log("## completed deployment script 2 ##");
+}
+
+// For truffle exec
+module.exports = function (callback) {
+  main().then(() => callback()).catch((err) => callback(err));
 };

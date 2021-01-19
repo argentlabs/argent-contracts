@@ -17,11 +17,11 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../common/BaseFeature.sol";
-import "../../../lib/other/ERC20.sol";
-import "../../../lib/paraswap/IAugustusSwapper.sol";
-import "../../infrastructure/ITokenPriceRegistry.sol";
-import "../../infrastructure/IDexRegistry.sol";
+import "./common/BaseFeature.sol";
+import "../../lib/other/ERC20.sol";
+import "../../lib/paraswap/IAugustusSwapper.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
+import "../infrastructure/IDexRegistry.sol";
 
 /**
  * @title TokenExchanger

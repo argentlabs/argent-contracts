@@ -1,50 +1,41 @@
 const ethers = require("ethers");
 const inquirer = require("inquirer");
-
 const utils = require("./utilities.js");
 
 class MultisigExecutor {
-  constructor(multisigWrapper, ownerWallet, autoSign = true, overrides = {}) {
+  constructor(multisigWrapper, ownerAccount, autoSign = true) {
     this._multisigWrapper = multisigWrapper;
-    this._ownerWallet = ownerWallet;
+    this._multisigWrapper.constructor.defaults({ gasLimit: 1000000 });
+    this._ownerAccount = ownerAccount;
     this._autoSign = autoSign;
-    this._overrides = { gasLimit: 1000000, ...overrides };
   }
 
   async executeCall(contractWrapper, method, params) {
-    const { contractAddress } = contractWrapper;
-
     // Encode the method call with its parameters
-    const data = contractWrapper.contract.interface.functions[method].encode(params);
+    const data = contractWrapper.contract.methods[method](...params).encodeABI();
 
     // Get the nonce
-    const nonce = (await this._multisigWrapper.contract.nonce()).toNumber();
+    const nonce = (await this._multisigWrapper.nonce()).toNumber();
 
     // Get the sign Hash
-    const signHash = MultisigExecutor.signHash(this._multisigWrapper.contractAddress, contractAddress, 0, data, nonce);
+    const signHash = MultisigExecutor.signHash(this._multisigWrapper.address, contractWrapper.address, 0, data, nonce);
 
     if (this._autoSign === true) {
       // Get the off chain signature
-      const signHashBuffer = Buffer.from(signHash.slice(2), "hex");
-      let signature = await this._ownerWallet.signMessage(signHashBuffer);
-
-      // to make sure signature ends with 27/28
-      const split = ethers.utils.splitSignature(signature);
-      signature = ethers.utils.joinSignature(split);
+      const signature = await utils.signMessage(signHash, this._ownerAccount);
 
       // Call "execute" on the Multisig wallet with data and signatures
-      const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signature, this._overrides);
-      const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
+      const executeTransaction = await this._multisigWrapper.execute(contractWrapper.address, 0, data, signature);
 
-      return result;
+      return executeTransaction.receipt;
     }
     // Get the threshold
-    const threshold = (await this._multisigWrapper.contract.threshold()).toNumber();
+    const threshold = (await this._multisigWrapper.threshold()).toNumber();
 
     console.log("******* MultisigExecutor *******");
-    console.log(`Signing data for transaction to ${contractWrapper._contract.contractName} located at ${contractAddress}:`);
-    console.log(`multisig: ${this._multisigWrapper.contractAddress}`);
-    console.log(`to:       ${contractAddress}`);
+    console.log(`Signing data for transaction to ${contractWrapper.constructor.contractName} located at ${contractWrapper.address}:`);
+    console.log(`multisig: ${this._multisigWrapper.address}`);
+    console.log(`to:       ${contractWrapper.address}`);
     console.log("value:    0");
     console.log(`data:     ${data}`);
     console.log(`nonce:    ${nonce}`);
@@ -69,7 +60,7 @@ class MultisigExecutor {
 
     const signatures = `0x${sortedSignatures.map((s) => s.sig.slice(2)).join("")}`;
 
-    const estimateGas = await this._multisigWrapper.contract.estimate.execute(contractAddress, 0, data, signatures, this._overrides);
+    const estimateGas = await this._multisigWrapper.execute.estimateGas(contractWrapper.address, 0, data, signatures);
 
     const { gasPriceGwei, gasLimit } = await inquirer.prompt([{
       type: "number",
@@ -80,20 +71,18 @@ class MultisigExecutor {
       type: "number",
       name: "gasPriceGwei",
       message: "Gas Price (gwei)",
-      default: this._overrides.gasPrice.div(1e9).toString(),
+      default: 50,
     }]);
 
-    const overrides = {
-      ...this._overrides,
-      gasLimit: ethers.BigNumber.from(gasLimit),
-      gasPrice: ethers.utils.parseUnits(String(gasPriceGwei), "gwei"),
+    const options = {
+      gas: parseInt(gasLimit, 10),
+      gasPrice: web3.utils.toWei(String(gasPriceGwei), "gwei"),
     };
 
-    // Call "execute" on the Multisig wallet with data and signatures
-    const executeTransaction = await this._multisigWrapper.contract.execute(contractAddress, 0, data, signatures, overrides);
-    const result = await this._multisigWrapper.verboseWaitForTransaction(executeTransaction, "Multisig Execute Transaction");
+    // // Call "execute" on the Multisig wallet with data and signatures
+    const executeTransaction = await this._multisigWrapper.execute(contractWrapper.address, 0, data, signatures, options);
 
-    return result;
+    return executeTransaction.receipt;
   }
 
   static signHash(walletAddr, destinationAddr, value, data, nonce) {
@@ -107,7 +96,7 @@ class MultisigExecutor {
       ethers.utils.hexZeroPad(ethers.utils.hexlify(nonce), 32),
     ].map((hex) => hex.slice(2)).join("")}`;
 
-    return utils.sha3(input);
+    return ethers.utils.keccak256(input);
   }
 }
 
