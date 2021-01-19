@@ -9,19 +9,9 @@ const OldWalletV16Contract = require("../build-legacy/v1.6.0/BaseWallet");
 const OldWalletV13 = TruffleContract(OldWalletV13Contract);
 const OldWalletV16 = TruffleContract(OldWalletV16Contract);
 
-const Proxy = artifacts.require("Proxy");
-const BaseWallet = artifacts.require("BaseWallet");
-
-const VersionManager = artifacts.require("VersionManager");
-const Registry = artifacts.require("ModuleRegistry");
-const SimpleUpgrader = artifacts.require("SimpleUpgrader");
-const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
-const TestFeature = artifacts.require("TestFeature");
-
 const { getBalance } = require("../utils/utilities.js");
 
-contract("BaseWallet", (accounts) => {
+contract.skip("BaseWallet", (accounts) => {
   const owner = accounts[1];
   const nonowner = accounts[2];
 

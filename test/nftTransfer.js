@@ -3,14 +3,7 @@ const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
 const utils = require("../utils/utilities.js");
 
-const Proxy = artifacts.require("Proxy");
-const BaseWallet = artifacts.require("BaseWallet");
-const Registry = artifacts.require("ModuleRegistry");
-const VersionManager = artifacts.require("VersionManager");
 const RelayerManager = artifacts.require("RelayerManager");
-const LockStorage = artifacts.require("LockStorage");
-const GuardianStorage = artifacts.require("GuardianStorage");
-const NftTransfer = artifacts.require("NftTransfer");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const ERC721 = artifacts.require("TestERC721");
 const CK = artifacts.require("CryptoKittyTest");

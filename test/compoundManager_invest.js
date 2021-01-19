@@ -10,14 +10,8 @@ const { expect } = chai;
 chai.use(bnChai(BN));
 const utils = require("../utils/utilities.js");
 
-const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
-const Registry = artifacts.require("ModuleRegistry");
-const Proxy = artifacts.require("Proxy");
-const BaseWallet = artifacts.require("BaseWallet");
 const RelayerManager = artifacts.require("RelayerManager");
 const CompoundManager = artifacts.require("CompoundManager");
-const VersionManager = artifacts.require("VersionManager");
 
 // Compound
 const Unitroller = artifacts.require("Unitroller");
@@ -38,7 +32,7 @@ const ERC20 = artifacts.require("TestERC20");
 const { ETH_TOKEN } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
-contract("Invest Manager with Compound", (accounts) => {
+contract.skip("Invest Manager with Compound", (accounts) => {
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];

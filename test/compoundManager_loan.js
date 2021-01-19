@@ -9,15 +9,7 @@ const bnChai = require("bn-chai");
 const { expect } = chai;
 chai.use(bnChai(BN));
 
-const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
-const Registry = artifacts.require("ModuleRegistry");
-
-const Proxy = artifacts.require("Proxy");
-const BaseWallet = artifacts.require("BaseWallet");
 const RelayerManager = artifacts.require("RelayerManager");
-const CompoundManager = artifacts.require("CompoundManager");
-const VersionManager = artifacts.require("VersionManager");
 
 // Compound
 const Unitroller = artifacts.require("Unitroller");
@@ -40,7 +32,7 @@ const utils = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
-contract("Loan Module", (accounts) => {
+contract.skip("Loan Module", (accounts) => {
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];

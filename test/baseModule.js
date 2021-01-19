@@ -1,15 +1,10 @@
 /* global artifacts */
 const ethers = require("ethers");
 
-const Registry = artifacts.require("ModuleRegistry");
-const GuardianStorage = artifacts.require("GuardianStorage");
-const VersionManager = artifacts.require("VersionManager");
-const RelayerManager = artifacts.require("RelayerManager");
-const LockStorage = artifacts.require("LockStorage");
 const ERC20 = artifacts.require("TestERC20");
 const NonCompliantERC20 = artifacts.require("NonCompliantERC20");
 
-contract("BaseModule", (accounts) => {
+contract.skip("BaseModule", (accounts) => {
   const owner = accounts[1];
 
   let registry;

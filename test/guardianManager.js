@@ -3,13 +3,7 @@ const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
 
 const GuardianManager = artifacts.require("GuardianManager");
-const LockStorage = artifacts.require("LockStorage");
-const GuardianStorage = artifacts.require("GuardianStorage");
-const Proxy = artifacts.require("Proxy");
-const BaseWallet = artifacts.require("BaseWallet");
 const RelayerManager = artifacts.require("RelayerManager");
-const VersionManager = artifacts.require("VersionManager");
-const Registry = artifacts.require("ModuleRegistry");
 const DumbContract = artifacts.require("TestContract");
 const NonCompliantGuardian = artifacts.require("NonCompliantGuardian");
 

@@ -7,7 +7,7 @@ const TestRegistry = artifacts.require("TestRegistry");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const utilities = require("../utils/utilities.js");
 
-contract("MultiSigWallet", (accounts) => {
+contract.skip("MultiSigWallet", (accounts) => {
   const owner = accounts[0];
   const owner1 = accounts[1];
   const owner2 = accounts[2];

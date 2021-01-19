@@ -2,11 +2,7 @@
 const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
 
-const BaseWallet = artifacts.require("BaseWallet");
-const VersionManager = artifacts.require("VersionManager");
-const ModuleRegistry = artifacts.require("ModuleRegistry");
 const Factory = artifacts.require("WalletFactory");
-const GuardianStorage = artifacts.require("GuardianStorage");
 
 const utils = require("../utils/utilities.js");
 

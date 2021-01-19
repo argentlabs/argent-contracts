@@ -18,24 +18,16 @@ const { AddressZero } = ethers.constants;
 const RelayManager = require("../utils/relay-manager");
 
 const GemJoin = artifacts.require("GemJoin");
-const Registry = artifacts.require("ModuleRegistry");
-const MakerV2Manager = artifacts.require("MakerV2Manager");
-const UpgradedMakerV2Manager = artifacts.require("TestUpgradedMakerV2Manager");
+//const MakerV2Manager = artifacts.require("MakerV2Manager");
+//const UpgradedMakerV2Manager = artifacts.require("TestUpgradedMakerV2Manager");
 const MakerRegistry = artifacts.require("MakerRegistry");
-const Proxy = artifacts.require("Proxy");
-const BaseWallet = artifacts.require("BaseWallet");
-const FakeWallet = artifacts.require("FakeWallet");
-const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
-const TransferStorage = artifacts.require("TransferStorage");
-const LimitStorage = artifacts.require("LimitStorage");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
-const TransferManager = artifacts.require("TransferManager");
-const RelayerManager = artifacts.require("RelayerManager");
-const VersionManager = artifacts.require("VersionManager");
-const BadFeature = artifacts.require("TestFeature");
 
-contract("MakerV2Loan", (accounts) => {
+//const FakeWallet = artifacts.require("FakeWallet");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const RelayerManager = artifacts.require("RelayerManager");
+//const BadFeature = artifacts.require("TestFeature");
+
+contract.skip("MakerV2Loan", (accounts) => {
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];

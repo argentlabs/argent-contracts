@@ -11,6 +11,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
+const { setupWalletVersion } = require("../utils/wallet_definition.js");
 
 contract("TokenPriceRegistry", (accounts) => {
   const owner = accounts[0];

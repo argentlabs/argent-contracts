@@ -11,17 +11,11 @@ chai.use(bnChai(BN));
 const { deployMaker, deployUniswap, WAD, ETH_PER_DAI, ETH_PER_MKR } = require("../utils/defi-deployer");
 const RelayManager = require("../utils/relay-manager");
 
-const Registry = artifacts.require("ModuleRegistry");
-const MakerV2Manager = artifacts.require("MakerV2Manager");
-const Proxy = artifacts.require("Proxy");
-const BaseWallet = artifacts.require("BaseWallet");
-const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
+//const MakerV2Manager = artifacts.require("MakerV2Manager");
 const MakerRegistry = artifacts.require("MakerRegistry");
 const RelayerManager = artifacts.require("RelayerManager");
-const VersionManager = artifacts.require("VersionManager");
 
-contract("MakerV2Invest", (accounts) => {
+contract.skip("MakerV2Invest", (accounts) => {
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];
