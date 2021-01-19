@@ -10,7 +10,7 @@ const { setupWalletVersion } = require("../utils/wallet_definition.js");
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 
-contract("RecoveryManager", (accounts) => {
+contract.skip("RecoveryManager", (accounts) => {
   const manager = new RelayManager();
 
   const owner = accounts[1];

@@ -20,7 +20,7 @@ const ERC20 = artifacts.require("TestERC20");
 const RelayManager = require("../utils/relay-manager");
 const { setupWalletVersion } = require("../utils/wallet_definition.js");
 
-contract("RelayerManager", (accounts) => {
+contract.skip("RelayerManager", (accounts) => {
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];

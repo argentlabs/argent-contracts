@@ -53,6 +53,14 @@ contract BaseModule is WalletStorage {
     }
 
     /**
+     * @notice Throws if the sender is not an authorised feature of the target wallet.
+     */
+    modifier onlyWallet() {
+        require(msg.sender == address(this), "BM: caller must be the wallet itself");
+        _;
+    }
+
+    /**
      * @notice Throws if the caller is not a guardian for the wallet.
      */
     modifier onlyGuardian() {

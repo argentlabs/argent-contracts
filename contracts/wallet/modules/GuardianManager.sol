@@ -31,9 +31,6 @@ import "./IGuardianManager.sol";
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract GuardianManager is IGuardianManager, BaseModule {
-    bytes4 constant internal CONFIRM_ADDITION_PREFIX = bytes4(keccak256("confirmGuardianAddition(address,address)"));
-    bytes4 constant internal CONFIRM_REVOKATION_PREFIX = bytes4(keccak256("confirmGuardianRevokation(address,address)")); 
-
     /**
     * @inheritdoc IGuardianManager
     */
@@ -97,7 +94,7 @@ contract GuardianManager is IGuardianManager, BaseModule {
 
         uint256 _securityPeriod = Configuration(registry).securityPeriod();
         require(
-            pending[id] == 0 || block.timestamp > pending[id] + Configuration(registry).securityWindow(),
+            pending[id] == 0 || block.timestamp > (pending[id] + Configuration(registry).securityWindow()),
             "GM: revokation of target as guardian is already pending"); // TODO need to allow if confirmation window passed
         pending[id] = block.timestamp + _securityPeriod;
         emit GuardianRevokationRequested(address(this), _guardian, block.timestamp + _securityPeriod);
@@ -111,7 +108,7 @@ contract GuardianManager is IGuardianManager, BaseModule {
 
         require(pending[id] > 0, "GM: no pending guardian revokation for target");
         require(pending[id] < block.timestamp, "GM: Too early to confirm guardian revokation");
-        require(block.timestamp < pending[id] + Configuration(registry).securityWindow(), "GM: Too late to confirm guardian revokation");
+        require(block.timestamp < (pending[id] + Configuration(registry).securityWindow()), "GM: Too late to confirm guardian revokation");
 
         address lastGuardian = guardians[guardians.length - 1];
         if (_guardian != lastGuardian) {
@@ -131,7 +128,7 @@ contract GuardianManager is IGuardianManager, BaseModule {
     */
     function cancelGuardianRevokation(address _guardian) external override
     onlyWalletOwner()
-    onlyWhenUnlocked() 
+    onlyWhenUnlocked()
     {
         bytes32 id = keccak256(abi.encodePacked(_guardian, "revokation"));
 
@@ -144,10 +141,6 @@ contract GuardianManager is IGuardianManager, BaseModule {
     * @inheritdoc IGuardianManager
     */
     function getGuardians() public view override returns (address[] memory) {
-        address[] memory guardians = new address[](guardians.length);
-        for (uint256 i = 0; i < guardians.length; i++) {
-            guardians[i] = guardians[i];
-        }
         return guardians;
     }
 

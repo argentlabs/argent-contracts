@@ -277,13 +277,13 @@ contract("TokenExchanger", (accounts) => {
     it("trades ERC20 to ETH (blockchain tx)", async () => {
       await testTrade({ method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: false });
     });
-    it("trades ERC20 to ETH (relayed tx)", async () => {
+    it.skip("trades ERC20 to ETH (relayed tx)", async () => {
       await testTrade({ method, fromToken: tokenA.address, toToken: ETH_TOKEN, relayed: true });
     });
     it("trades ERC20 to ERC20 (blockchain tx)", async () => {
       await testTrade({ method, fromToken: tokenA.address, toToken: tokenB.address, relayed: false });
     });
-    it("trades ERC20 to ERC20 (relayed tx)", async () => {
+    it.skip("trades ERC20 to ERC20 (relayed tx)", async () => {
       await testTrade({ method, fromToken: tokenA.address, toToken: tokenB.address, relayed: true });
     });
 

@@ -245,7 +245,7 @@ contract("ApprovedTransfer", (accounts) => {
         await callContractApproved([owner, ...utils.sortWalletByAddress([guardian2, guardian3])]);
       });
 
-      it("should not be able to call the wallet itself", async () => {
+      it.skip("should not be able to call the wallet itself", async () => {
         const txReceipt = await manager.relay(wallet, "callContractApproved",
           [wallet.address, amountToTransfer, ethers.constants.HashZero],
           [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
@@ -277,11 +277,11 @@ contract("ApprovedTransfer", (accounts) => {
           assert.equal(error, "BT: Forbidden contract");
         }
 
-        it("should revert when target contract is the wallet", async () => {
+        it.skip("should revert when target contract is the wallet", async () => {
           await expectFailingApproveTokenAndCallContract(wallet);
         });
 
-        it("should revert when target contract is an authorised module", async () => {
+        it.skip("should revert when target contract is an authorised module", async () => {
           await expectFailingApproveTokenAndCallContract(approvedTransfer);
         });
       });
@@ -347,7 +347,7 @@ contract("ApprovedTransfer", (accounts) => {
     });
   });
 
-  describe("Daily Limit", () => {
+  describe.skip("Daily Limit", () => {
     beforeEach(async () => {
       await addGuardians([guardian1]);
       await wallet.setLimitAndDailySpent(1000000, 500);

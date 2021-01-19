@@ -30,12 +30,6 @@ import "./IRecoveryManager.sol";
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract RecoveryManager is IRecoveryManager, BaseModule {
-
-    bytes4 constant internal EXECUTE_RECOVERY_PREFIX = bytes4(keccak256("executeRecovery(address,address)"));
-    bytes4 constant internal FINALIZE_RECOVERY_PREFIX = bytes4(keccak256("finalizeRecovery(address)"));
-    bytes4 constant internal CANCEL_RECOVERY_PREFIX = bytes4(keccak256("cancelRecovery(address)"));
-    bytes4 constant internal TRANSFER_OWNERSHIP_PREFIX = bytes4(keccak256("transferOwnership(address,address)"));
-
     // *************** Modifiers ************************ //
 
     /**
@@ -66,7 +60,7 @@ contract RecoveryManager is IRecoveryManager, BaseModule {
      * @inheritdoc IRecoveryManager
      */
     function executeRecovery(address _recovery) external override
-    //onlyWalletFeature()
+    onlyWallet()
     notWhenRecovery()
     validateNewOwner(_recovery)
     {
@@ -97,7 +91,7 @@ contract RecoveryManager is IRecoveryManager, BaseModule {
      * @inheritdoc IRecoveryManager
      */
     function cancelRecovery() external override
-    //onlyWalletFeature()
+    onlyWallet()
     onlyWhenRecovery()
     {
         address recoveryOwner = recoveryConfig.recovery;
@@ -111,7 +105,7 @@ contract RecoveryManager is IRecoveryManager, BaseModule {
      * @inheritdoc IRecoveryManager
      */
     function transferOwnership(address _newOwner) external override
-    //onlyWalletFeature()
+    onlyWallet()
     onlyWhenUnlocked()
     validateNewOwner(_newOwner)
     {

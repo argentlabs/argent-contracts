@@ -37,6 +37,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
         bytes calldata _data
     )
         external override
+        onlyWallet()
         onlyWhenUnlocked()
     {
         doTransfer(_token, _to, _amount, _data);
@@ -52,6 +53,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
         bytes calldata _data
     )
         external override
+        onlyWallet()
         onlyWhenUnlocked()
         onlyAuthorisedContractCall(_contract)
     {
@@ -70,6 +72,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
         bytes calldata _data
     )
         external override
+        onlyWallet()
         onlyWhenUnlocked()
         onlyAuthorisedContractCall(_contract)
     {
@@ -81,6 +84,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
     * @inheritdoc IApprovedTransfer
     */
     function changeLimitApproved(uint256 _newLimit) external override
+    onlyWallet()
     onlyWhenUnlocked()
     {
         uint128 targetLimit = Utils.safe128(_newLimit);
@@ -101,6 +105,7 @@ contract ApprovedTransfer is IApprovedTransfer, BaseTransfer {
         bytes calldata _data
     )
         external override
+        onlyWallet()
         onlyWhenUnlocked()
         onlyAuthorisedContractCall(_contract)
     {
