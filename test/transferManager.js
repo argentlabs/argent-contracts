@@ -423,6 +423,26 @@ contract("TransferManager", (accounts) => {
         await doDirectTransfer({ token: erc20, to: recipient, amount: ETH_LIMIT.muln(2).toString() });
       });
     });
+
+    describe("Transfer with refund", () => {
+      it("should refund in ETH", async () => {
+        await wallet.send("100000000000000");
+        const wBalanceStart = await utils.getBalance(wallet.address);
+        const rBalanceStart = await utils.getBalance(recipient);
+        const params = [ETH_TOKEN, recipient, 10000, ZERO_BYTES32];
+        // The first transaction incurs extra cost for setting the nonce first
+        // therefore we test 2 transfers for gas cost accuracy
+        await manager.relay(wallet, "transferToken", params, [owner], 10000, ETH_TOKEN, recipient);
+        await manager.relay(wallet, "transferToken", params, [owner], 10000, ETH_TOKEN, recipient);
+        const wBalanceEnd = await utils.getBalance(wallet.address);
+        const rBalanceEnd = await utils.getBalance(recipient);
+        const refund = wBalanceStart.sub(wBalanceEnd);
+        // should have refunded ETH
+        expect(refund).to.be.gt.BN(0);
+        // should have refunded the recipient
+        expect(refund).to.eq.BN(rBalanceEnd.sub(rBalanceStart));
+      });
+    });
   });
 
   describe("Token Approvals", () => {
