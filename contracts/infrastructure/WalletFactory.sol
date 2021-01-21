@@ -61,7 +61,7 @@ contract WalletFactory is Managed {
         DelegateProxy proxy = new DelegateProxy();
         configureWallet(address(proxy), _owner, _guardian, latestVersion);
     }
-     
+
     /**
      * @notice Lets the manager create a wallet for an owner account at a specific address.
      * The wallet is initialised with the version manager module, the version number and a first guardian.

@@ -68,6 +68,12 @@ contract BaseModule is WalletStorage {
         _;
     }
 
+    function upgrade(address _registry) public 
+    onlyWalletOwner()
+    {
+        registry = Configuration(_registry);
+    }
+
     /**
      * @notice Checks if a wallet is locked.
      * @return _isLocked `true` if the wallet is locked otherwise `false`.

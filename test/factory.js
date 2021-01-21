@@ -1,4 +1,5 @@
 /* global artifacts */
+const { assert } = require("chai");
 const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
 
@@ -18,7 +19,7 @@ contract("WalletFactory", (accounts) => {
 
   let factory;
 
-  before(async () => {
+  beforeEach(async () => {
     const modules = await setupWalletVersion({ });
     registry = modules.registry;
 
@@ -48,6 +49,14 @@ contract("WalletFactory", (accounts) => {
       const wallet = await IWallet.at(walletAddr);
       const success = await wallet.isGuardian(guardian);
       assert.equal(success, true, "should have the correct guardian");
+    });
+
+    it("should create with the correct version", async () => {
+      // we create the wallet
+      const tx = await factory.createWallet(owner, guardian);
+      const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
+      const version = event.args.version;
+      assert.equal(version, 1, "should have the correct version");
     });
 
     it("should fail to create when the guardian is empty", async () => {
@@ -111,6 +120,14 @@ contract("WalletFactory", (accounts) => {
       assert.equal(success, true, "should have the correct guardian");
     });
 
+    it("should create with the correct version", async () => {
+      const salt = utils.generateSaltValue();
+      const tx = await factory.createCounterfactualWallet(owner, guardian, salt, 1);
+      const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
+      const version = event.args.version;
+      assert.equal(version, 1, "should have the correct version");
+    });
+
     it("should fail to create a wallet at an existing address", async () => {
       const salt = utils.generateSaltValue();
       // we get the future address
@@ -154,5 +171,46 @@ contract("WalletFactory", (accounts) => {
         "WF: guardian cannot be null",
       );
     });
+  });
+
+  describe("Wallet versioning and upgrades", () => {
+    it("should be able to add a new wallet implementation version", async () => {
+      const versionBefore = await factory.latestVersion();
+      assert.equal(versionBefore, 1);
+
+      const modulesNew = await setupWalletVersion({ });
+      const registryNew = modulesNew.registry;
+      await factory.addVersion(registryNew.address);
+      const versionAfter = await factory.latestVersion();
+      assert.equal(versionAfter, 2);
+    });
+
+    it("should be able to upgrade a wallet", async () => {
+      // Create a wallet
+      await factory.createWallet(owner, guardian);
+      const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
+      const walletAddr = event.args.wallet;
+      const wallet = await IWallet.at(walletAddr);
+
+      // Test the wallet is configured on version 1
+      const registry1 = await wallet.registry();
+      const registryFactory1 = await factory.registries(1);
+      assert.equal(registry1, registryFactory1);
+
+      // Add a new version
+      const modulesNew = await setupWalletVersion({ });
+      const registryNew = modulesNew.registry;
+      await factory.addVersion(registryNew.address);
+
+      // Upgrade wallet
+      await wallet.upgrade(registryNew.address, { from: owner });
+
+      // Test the wallet is configured on version 2
+      const registry2 = await wallet.registry();
+      const registryFactory2 = await factory.registries(2);
+      assert.equal(registry2, registryFactory2);
+    });
+
+    it("should not be able to downgrade a wallet", async () => {});
   });
 });

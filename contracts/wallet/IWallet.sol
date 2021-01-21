@@ -45,7 +45,12 @@ interface IWallet is
   ITransferManager,
   IBaseTransfer
   {
+
     function owner() external view returns (address);
+
+    function registry() external view returns (address);
+
+    function upgrade(address registry) external;
 
     /**
      * @notice Checks if a wallet is locked.
