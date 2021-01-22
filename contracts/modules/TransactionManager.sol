@@ -36,7 +36,7 @@ contract TransactionManager is RelayerManager {
     bytes4 constant internal TRANSFER_SESSION_PREFIX = bytes4(keccak256("transferTokenWithSession(address,address,uint64,address,address,uint256,bytes)"));
     bytes4 constant internal TRANSFER_WHITELIST_PREFIX = bytes4(keccak256("transferTokenWithWithelist(address,address,address,uint256,bytes)"));
     bytes4 constant internal MULTICALL_WHITELIST_PREFIX = bytes4(keccak256("multiCallWithWhitelist(address,bytes[],bool[])"));
-    bytes4 constant internal MULTICALL_SESSION_PREFIX = bytes4(keccak256("multiCallWithSession(address,address,address,uint256,bytes)"));
+    bytes4 constant internal MULTICALL_SESSION_PREFIX = bytes4(keccak256("multiCallWithSession(address,address,uint64,bytes[])"));
 
     bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
@@ -92,7 +92,7 @@ contract TransactionManager is RelayerManager {
         if (methodId == TRANSFER_WHITELIST_PREFIX || methodId == MULTICALL_WHITELIST_PREFIX || methodId == ADD_MODULE_PREFIX) {
             return (1, OwnerSignature.Required);
         } 
-        if (methodId == TRANSFER_SESSION_PREFIX) {
+        if (methodId == MULTICALL_SESSION_PREFIX) {
             return (1, OwnerSignature.Session);
         } 
         revert("TM: unknown method");
@@ -152,6 +152,8 @@ contract TransactionManager is RelayerManager {
 
     function multiCallWithSession(
         address _wallet,
+        address _sessionKey,
+        uint64 _expires,
         bytes[] calldata _transactions
     )
         external
@@ -219,7 +221,7 @@ contract TransactionManager is RelayerManager {
     // *************** Internal Functions ********************* //
 
     function recoverSpender(address _wallet, bytes memory _data) internal pure returns (address) {
-        (bytes32 sig, address first, address second) = abi.decode(abi.encodePacked(bytes28(0), _data), (bytes32, address, address));
+        (address first, address second) = abi.decode(_data[4:], (address, address));
         if (first == _wallet) {
             return second;
         }

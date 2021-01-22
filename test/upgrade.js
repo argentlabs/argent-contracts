@@ -65,24 +65,24 @@ contract("TransactionManager", (accounts) => {
             lockStorage.address,
             guardianStorage.address,
             transferStorage.address,
-            SECURITY_PERIOD,
-            weth.address);
+            ZERO_ADDRESS,
+            SECURITY_PERIOD);
 
         transactionManager2 = await TransactionManager.new(
             registry.address,
             lockStorage.address,
             guardianStorage.address,
             transferStorage.address,
-            SECURITY_PERIOD + 1,
-            weth.address);
+            ZERO_ADDRESS,
+            SECURITY_PERIOD);
 
         transactionManager3 = await TransactionManager.new(
             registry.address,
             lockStorage.address,
             guardianStorage.address,
             transferStorage.address,
-            SECURITY_PERIOD + 1,
-            weth.address);
+            ZERO_ADDRESS,
+            SECURITY_PERIOD);
 
         upgrader1 = await Upgrader.new(
             registry.address,
@@ -107,6 +107,13 @@ contract("TransactionManager", (accounts) => {
         await manager.setRelayerManager(transactionManager);    
     });
 
+    async function encodeTransaction(to, value, data) {
+        return web3.eth.abi.encodeParameters(
+          ['address', 'uint256', 'bytes'],
+          [to, value, data]
+        );
+      }
+
     beforeEach(async () => {
         const proxy = await Proxy.new(walletImplementation.address);
         wallet = await BaseWallet.at(proxy.address);
@@ -118,15 +125,17 @@ contract("TransactionManager", (accounts) => {
     describe("upgrader modules", () => {
 
         beforeEach(async () => {
-            // set the nonce to 1
+            // add to whitelist
             await transactionManager.addToWhitelist(wallet.address, recipient, { from: owner });
             await utils.increaseTime(3);
             isTrusted = await transactionManager.isWhitelisted(wallet.address, recipient);
             assert.isTrue(isTrusted, "should be trusted after the security period");
+            // set the relayer nonce to > 0
+            let transaction = await encodeTransaction(recipient, 1, ZERO_BYTES32);
             let txReceipt = await manager.relay(
                 transactionManager,
-                "transferTokenWithWithelist",
-                [wallet.address, ETH_TOKEN, recipient, 10, ZERO_BYTES32],
+                "multiCallWithWhitelist",
+                [wallet.address, [transaction], [false]],
                 wallet,
                 [owner]);
             success = await utils.parseRelayReceipt(txReceipt).success;

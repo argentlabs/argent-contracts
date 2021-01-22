@@ -398,7 +398,7 @@ abstract contract RelayerManager is BaseModule {
         require(_data.length >= 100, "RM: Invalid session parameters");
         (address wallet, address sessionKey, uint64 expires) = abi.decode(_data[4:], (address, address, uint64));
         if (sessionKey != address(0)) {
-            sessions[wallet] = Session(sessionKey, expires);
+            //sessions[wallet] = Session(sessionKey, expires);
             emit SessionCreated(wallet, sessionKey, expires);
             return true;
         }
