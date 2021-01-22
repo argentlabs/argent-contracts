@@ -6,7 +6,7 @@ const utils = require("./utilities.js");
 
 const ITokenPriceRegistry = artifacts.require("ITokenPriceRegistry");
 const IGuardianStorage = artifacts.require("IGuardianStorage");
-const IFeature = artifacts.require("IFeature");
+//const IFeature = artifacts.require("IFeature");
 
 class RelayManager {
   async setRelayerManager(relayerManager) {
@@ -183,40 +183,40 @@ class RelayManager {
     return gasLimit;
   }
 
-  async debugGasLimits(_feature, _method, _params, _wallet, _signers) {
-    let requiredSigsGas = 0;
-    // Get the owner signature requirements
-    const feature = await IFeature.at(_feature.address);
-    const methodData = _feature.contract.methods[_method](..._params).encodeABI();
-    requiredSigsGas = await feature.getRequiredSignatures.estimateGas(_wallet.address, methodData);
-    requiredSigsGas -= 21000;
+  // async debugGasLimits(_feature, _method, _params, _wallet, _signers) {
+  //   let requiredSigsGas = 0;
+  //   // Get the owner signature requirements
+  //   const feature = await IFeature.at(_feature.address);
+  //   const methodData = _feature.contract.methods[_method](..._params).encodeABI();
+  //   requiredSigsGas = await feature.getRequiredSignatures.estimateGas(_wallet.address, methodData);
+  //   requiredSigsGas -= 21000;
 
-    let ownerSigner = 0;
-    let eoaSigners = 0;
-    let contractSigners = 0;
-    const walletOwner = await _wallet.owner();
+  //   let ownerSigner = 0;
+  //   let eoaSigners = 0;
+  //   let contractSigners = 0;
+  //   const walletOwner = await _wallet.owner();
 
-    for (let index = 0; index < _signers.length; index += 1) {
-      const signer = _signers[index];
-      const isGuardian = await this.guardianStorage.isGuardian(_wallet.address, signer);
-      if (signer === walletOwner) {
-        ownerSigner += 1;
-      } else if (isGuardian) {
-        eoaSigners += 1;
-      } else {
-        // For simplicity, assume if it's not the owner or an EOA guardian then it's a smart contract guardian.
-        contractSigners += 1;
-      }
-    }
+  //   for (let index = 0; index < _signers.length; index += 1) {
+  //     const signer = _signers[index];
+  //     const isGuardian = await this.guardianStorage.isGuardian(_wallet.address, signer);
+  //     if (signer === walletOwner) {
+  //       ownerSigner += 1;
+  //     } else if (isGuardian) {
+  //       eoaSigners += 1;
+  //     } else {
+  //       // For simplicity, assume if it's not the owner or an EOA guardian then it's a smart contract guardian.
+  //       contractSigners += 1;
+  //     }
+  //   }
 
-    console.log("method", _method);
-    console.log("number of signers", _signers.length);
-    console.log("ownerSigner", ownerSigner);
-    console.log("eoaSigners", eoaSigners);
-    console.log("contractSigners", contractSigners);
+  //   console.log("method", _method);
+  //   console.log("number of signers", _signers.length);
+  //   console.log("ownerSigner", ownerSigner);
+  //   console.log("eoaSigners", eoaSigners);
+  //   console.log("contractSigners", contractSigners);
 
-    console.log("requiredSigsGas", requiredSigsGas);
-  }
+  //   console.log("requiredSigsGas", requiredSigsGas);
+  // }
 }
 
 module.exports = RelayManager;

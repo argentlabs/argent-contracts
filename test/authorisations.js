@@ -38,6 +38,7 @@ contract("TransactionManager", (accounts) => {
     const infrastructure = accounts[0];
     const owner = accounts[1];
     const recipient = accounts[4];
+    const nonceInitilaiser = accounts[4];
   
     let registry;
     let lockStorage;
@@ -92,6 +93,22 @@ contract("TransactionManager", (accounts) => {
 
         await authoriser.addAuthorisation(contract.address, filter.address);
         await authoriser.addAuthorisation(recipient, ZERO_ADDRESS);
+
+        // add to whitelist
+        await transactionManager.addToWhitelist(wallet.address, nonceInitilaiser, { from: owner });
+        await utils.increaseTime(3);
+        isTrusted = await transactionManager.isWhitelisted(wallet.address, nonceInitilaiser);
+        assert.isTrue(isTrusted, "should be trusted after the security period");
+        // set the relayer nonce to > 0
+        let transaction = await encodeTransaction(nonceInitilaiser, 1, ZERO_BYTES32);
+        let txReceipt = await manager.relay(
+            transactionManager,
+            "multiCallWithWhitelist",
+            [wallet.address, [transaction], [false]],
+            wallet,
+            [owner]);
+        success = await utils.parseRelayReceipt(txReceipt).success;
+        assert.isTrue(success, "transfer failed");
     });
 
     async function encodeTransaction(to, value, data) {
@@ -102,7 +119,7 @@ contract("TransactionManager", (accounts) => {
       }
 
     describe("call authorised contract", () => {
-
+        
         it("should send ETH to authorised address", async () => {
             let transaction = await encodeTransaction(recipient, 100, ZERO_BYTES32);
 

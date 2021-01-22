@@ -85,6 +85,14 @@ abstract contract BaseModule is IModule {
         _;
     }
 
+    /**
+     * @dev Throws if the sender is not the target wallet of the call.
+     */
+    modifier onlyWallet(address _wallet) {
+        require(msg.sender == _wallet, "BM: caller must be wallet");
+        _;
+    }
+
     constructor(
         IModuleRegistry _registry,
         ILockStorage _lockStorage,
@@ -95,7 +103,7 @@ abstract contract BaseModule is IModule {
         emit FeatureCreated(_name);
     }
 
-    function init(address _wallet) external override {
+    function init(address _wallet) external virtual override {
         // do something
     }
 

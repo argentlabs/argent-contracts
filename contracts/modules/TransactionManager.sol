@@ -38,6 +38,8 @@ contract TransactionManager is RelayerManager {
     bytes4 constant internal MULTICALL_WHITELIST_PREFIX = bytes4(keccak256("multiCallWithWhitelist(address,bytes[],bool[])"));
     bytes4 constant internal MULTICALL_SESSION_PREFIX = bytes4(keccak256("multiCallWithSession(address,address,address,uint256,bytes)"));
 
+    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
+    bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
     // The Token storage
     ITransferStorage public whitelistStorage;
@@ -75,6 +77,12 @@ contract TransactionManager is RelayerManager {
     }
 
     // *************** External functions ************************ //
+
+    function init(address _wallet) external override onlyWallet(_wallet) {
+        // setup static calls
+        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
+        IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
+    }
 
     /**
      * @inheritdoc RelayerManager
