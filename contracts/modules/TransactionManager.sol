@@ -188,6 +188,7 @@ contract TransactionManager is RelayerManager {
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
         if (_transaction.isSpenderInData) {
+            require(_transaction.value == 0, "TM: unsecure call with spender in data");
             // transfer(to, value), transferFrom(from, to, value),
             (bytes32 sig, address first, address second) = abi.decode(abi.encodePacked(bytes28(0),_transaction.data), (bytes32, address, address));
             return first == _wallet ? second : first;
