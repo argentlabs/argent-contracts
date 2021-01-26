@@ -79,7 +79,7 @@ contract("TransactionManager", (accounts) => {
         await wallet.send(new BN("1000000000000000000"));
     });
 
-    async function encodeTransaction(to, value, data, isSpenderInData) {
+    async function encodeTransaction(to, value, data, isSpenderInData = false) {
         return {to, value, data, isSpenderInData};
     }
 
