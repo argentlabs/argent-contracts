@@ -25,7 +25,7 @@ import "../../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RelayerManager
- * @notice Feature to execute transactions signed by ETH-less accounts and sent by a relayer.
+ * @notice Module to execute transactions signed by ETH-less accounts and sent by a relayer.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
 abstract contract RelayerManager is BaseModule {
@@ -122,7 +122,7 @@ abstract contract RelayerManager is BaseModule {
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
         StackExtension memory stack;
         (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures(_wallet, _data);
-        if (stack.ownerSignatureRequirement == OwnerSignature.Session && startSession(_data)) {
+        if (stack.ownerSignatureRequirement == OwnerSignature.Session && startSession(_wallet, _data)) {
             (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignaturesToStartSession(_wallet);
         }
         require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
@@ -390,16 +390,17 @@ abstract contract RelayerManager is BaseModule {
     }
 
     function isActiveSession(address _wallet) public view returns (bool) {
-        uint64 expires = sessions[_wallet].expires;
-        return expires >= block.timestamp;
+        return sessions[_wallet].expires >= block.timestamp;
     }
 
-    function startSession(bytes calldata _data) internal returns (bool) {
-        require(_data.length >= 100, "RM: Invalid session parameters");
-        (address wallet, address sessionKey, uint64 expires) = abi.decode(_data[4:], (address, address, uint64));
-        if (sessionKey != address(0)) {
-            //sessions[wallet] = Session(sessionKey, expires);
-            emit SessionCreated(wallet, sessionKey, expires);
+    function startSession(address _wallet, bytes calldata _data) internal returns (bool) {
+        require(_data.length >= 68, "RM: Invalid session parameters");
+        (address key, uint64 expires) = abi.decode(_data[36:], (address, uint64));
+        if (key != address(0)) {
+            if (expires > 0) {
+                sessions[_wallet] = Session(key, expires);
+                emit SessionCreated(_wallet, key, expires);
+            }
             return true;
         }
         return false;

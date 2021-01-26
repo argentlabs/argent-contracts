@@ -20,8 +20,6 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const TransactionManager = artifacts.require("TransactionManager");
 
 const ERC20 = artifacts.require("TestERC20");
-const WETH = artifacts.require("WETH9");
-const TestContract = artifacts.require("TestContract");
 
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN } = require("../utils/utilities.js");
@@ -38,6 +36,7 @@ contract("TransactionManager", (accounts) => {
     const infrastructure = accounts[0];
     const owner = accounts[1];
     const recipient = accounts[4];
+    const nonceInitialiser = accounts[5];
   
     let registry;
     let lockStorage;
@@ -47,10 +46,8 @@ contract("TransactionManager", (accounts) => {
     let wallet;
     let walletImplementation;
     let erc20;
-    let weth;
 
     before(async () => {
-        weth = await WETH.new();
         registry = await Registry.new();
 
         lockStorage = await LockStorage.new();
@@ -78,45 +75,52 @@ contract("TransactionManager", (accounts) => {
         await wallet.init(owner, [transactionManager.address]);
     
         const decimals = 12; // number of decimal for TOKN contract
-        const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
-    
         erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
         await wallet.send(new BN("1000000000000000000"));
     });
 
-    async function encodeTransaction(to, value, data) {
-        return web3.eth.abi.encodeParameters(
-          ['address', 'uint256', 'bytes'],
-          [to, value, data]
-        );
-      }
+    async function encodeTransaction(to, value, data, isSpenderInData) {
+        return {to, value, data, isSpenderInData};
+    }
+
+    async function whitelist(target) {
+        await transactionManager.addToWhitelist(wallet.address, target, { from: owner });
+        await utils.increaseTime(3);
+        isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
+        assert.isTrue(isTrusted, "should be trusted after the security period");
+    }
+
+    async function initNonce() {
+        // add to whitelist
+        await whitelist(nonceInitialiser);
+        // set the relayer nonce to > 0
+        let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+        let txReceipt = await manager.relay(
+            transactionManager,
+            "multiCall",
+            [wallet.address, [transaction]],
+            wallet,
+            [owner]);
+        success = await utils.parseRelayReceipt(txReceipt).success;
+        assert.isTrue(success, "transfer failed");
+        const nonce = await transactionManager.getNonce(wallet.address);
+        assert.isTrue(nonce.gt(0), "nonce init failed");
+    }
 
     describe("transfer ETH", () => {
         beforeEach(async () => {
-            // add to whitelist
-            await transactionManager.addToWhitelist(wallet.address, recipient, { from: owner });
-            await utils.increaseTime(3);
-            isTrusted = await transactionManager.isWhitelisted(wallet.address, recipient);
-            assert.isTrue(isTrusted, "should be trusted after the security period");
-            // set the relayer nonce to > 0
-            let transaction = await encodeTransaction(recipient, 1, ZERO_BYTES32);
-            let txReceipt = await manager.relay(
-                transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [false]],
-                wallet,
-                [owner]);
-            success = await utils.parseRelayReceipt(txReceipt).success;
-            assert.isTrue(success, "transfer failed");
+            await initNonce();
         });
 
         it("should send ETH to a whitelisted address", async () => {
-            let transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+            await whitelist(recipient);
+            
+            let transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32, false);
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [false]],
+                "multiCall",
+                [wallet.address, [transaction]],
                 wallet,
                 [owner],
                 1,
@@ -124,16 +128,19 @@ contract("TransactionManager", (accounts) => {
                 recipient);
             success = await utils.parseRelayReceipt(txReceipt).success;
             assert.isTrue(success, "transfer failed");
+            console.log("Gas for ETH transfer: " + txReceipt.gasUsed);
         });
 
         it("should send ERC20 to a whitelisted address", async () => {
+            await whitelist(recipient);
+
             let data = erc20.contract.methods.transfer(recipient, 100).encodeABI();
-            let transaction = await encodeTransaction(erc20.address, 0, data);
+            let transaction = await encodeTransaction(erc20.address, 0, data, true);
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [true]],
+                "multiCall",
+                [wallet.address, [transaction]],
                 wallet,
                 [owner],
                 1,
@@ -146,13 +153,15 @@ contract("TransactionManager", (accounts) => {
         });
 
         it("should approve ERC20 for a whitelisted address", async () => {
+            await whitelist(recipient);
+
             let data = erc20.contract.methods.approve(recipient, 100).encodeABI();
-            let transaction = await encodeTransaction(erc20.address, 0, data);
+            let transaction = await encodeTransaction(erc20.address, 0, data, true);
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [true]],
+                "multiCall",
+                [wallet.address, [transaction]],
                 wallet,
                 [owner],
                 1,

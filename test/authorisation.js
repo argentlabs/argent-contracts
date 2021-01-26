@@ -38,7 +38,7 @@ contract("TransactionManager", (accounts) => {
     const infrastructure = accounts[0];
     const owner = accounts[1];
     const recipient = accounts[4];
-    const nonceInitilaiser = accounts[4];
+    const nonceInitialiser = accounts[4];
   
     let registry;
     let lockStorage;
@@ -83,50 +83,54 @@ contract("TransactionManager", (accounts) => {
         await wallet.init(owner, [transactionManager.address]);
     
         const decimals = 12; // number of decimal for TOKN contract
-        const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
     
         erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
         await wallet.send(new BN("1000000000000000000"));
 
         contract = await TestContract.new();
         assert.equal(await contract.state(), 0, "initial contract state should be 0");
+    });
 
-        await authoriser.addAuthorisation(contract.address, filter.address);
-        await authoriser.addAuthorisation(recipient, ZERO_ADDRESS);
+    async function encodeTransaction(to, value, data, isSpenderInData) {
+        return {to, value, data, isSpenderInData};
+    }
 
-        // add to whitelist
-        await transactionManager.addToWhitelist(wallet.address, nonceInitilaiser, { from: owner });
+    async function whitelist(target) {
+        await transactionManager.addToWhitelist(wallet.address, target, { from: owner });
         await utils.increaseTime(3);
-        isTrusted = await transactionManager.isWhitelisted(wallet.address, nonceInitilaiser);
+        isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
         assert.isTrue(isTrusted, "should be trusted after the security period");
+    }
+
+    async function initNonce() {
+        // add to whitelist
+        await whitelist(nonceInitialiser);
         // set the relayer nonce to > 0
-        let transaction = await encodeTransaction(nonceInitilaiser, 1, ZERO_BYTES32);
+        let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
         let txReceipt = await manager.relay(
             transactionManager,
-            "multiCallWithWhitelist",
-            [wallet.address, [transaction], [false]],
+            "multiCall",
+            [wallet.address, [transaction]],
             wallet,
             [owner]);
         success = await utils.parseRelayReceipt(txReceipt).success;
         assert.isTrue(success, "transfer failed");
-    });
-
-    async function encodeTransaction(to, value, data) {
-        return web3.eth.abi.encodeParameters(
-          ['address', 'uint256', 'bytes'],
-          [to, value, data]
-        );
-      }
+    }
 
     describe("call authorised contract", () => {
+        beforeEach(async () => {
+            initNonce();
+            await authoriser.addAuthorisation(contract.address, filter.address);
+            await authoriser.addAuthorisation(recipient, ZERO_ADDRESS);
+        });
         
         it("should send ETH to authorised address", async () => {
-            let transaction = await encodeTransaction(recipient, 100, ZERO_BYTES32);
+            let transaction = await encodeTransaction(recipient, 100, ZERO_BYTES32, false);
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [false]],
+                "multiCall",
+                [wallet.address, [transaction]],
                 wallet,
                 [owner],
                 10,
@@ -138,12 +142,12 @@ contract("TransactionManager", (accounts) => {
 
         it("should call authorised contract when filter pass", async () => {
             const data = contract.contract.methods.setState(4).encodeABI();
-            let transaction = await encodeTransaction(contract.address, 0, data);
+            let transaction = await encodeTransaction(contract.address, 0, data, false);
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [false]],
+                "multiCall",
+                [wallet.address, [transaction]],
                 wallet,
                 [owner],
                 10,
@@ -156,12 +160,12 @@ contract("TransactionManager", (accounts) => {
 
         it("should block call to authorised contract when filter doesn't pass", async () => {
             const data = contract.contract.methods.setState(5).encodeABI();
-            let transaction = await encodeTransaction(contract.address, 0, data);
+            let transaction = await encodeTransaction(contract.address, 0, data, false);
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [false]],
+                "multiCall",
+                [wallet.address, [transaction]],
                 wallet,
                 [owner],
                 10,
@@ -169,27 +173,32 @@ contract("TransactionManager", (accounts) => {
                 recipient);
             let { success, error } = await utils.parseRelayReceipt(txReceipt);
             assert.isFalse(success, "call should have failed");
-            assert.equal(error, "TM: transaction not authorised");
+            assert.equal(error, "TM: call not authorised");
         });
     });
 
     describe("approve token and call authorised contract", () => {
+        beforeEach(async () => {
+            await initNonce();
+            await authoriser.addAuthorisation(contract.address, filter.address);
+            await authoriser.addAuthorisation(recipient, ZERO_ADDRESS);
+        });
 
         it("should call authorised contract when filter pass", async () => {
             const transactions = [];
 
             let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
-            let transaction = await encodeTransaction(erc20.address, 0, data);
+            let transaction = await encodeTransaction(erc20.address, 0, data, true);
             transactions.push(transaction);
 
             data = contract.contract.methods.setStateAndPayToken(4, erc20.address, 100).encodeABI();
-            transaction = await encodeTransaction(contract.address, 0, data);
+            transaction = await encodeTransaction(contract.address, 0, data, false);
             transactions.push(transaction);
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, transactions, [true, false]],
+                "multiCall",
+                [wallet.address, transactions],
                 wallet,
                 [owner],
                 10,
@@ -204,17 +213,17 @@ contract("TransactionManager", (accounts) => {
             const transactions = [];
 
             let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
-            let transaction = await encodeTransaction(erc20.address, 0, data);
+            let transaction = await encodeTransaction(erc20.address, 0, data, true);
             transactions.push(transaction);
 
             data = contract.contract.methods.setStateAndPayToken(5, erc20.address, 100).encodeABI();
-            transaction = await encodeTransaction(contract.address, 0, data);
+            transaction = await encodeTransaction(contract.address, 0, data, false);
             transactions.push(transaction);
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, transactions, [true, false]],
+                "multiCall",
+                [wallet.address, transactions],
                 wallet,
                 [owner],
                 10,
@@ -222,7 +231,7 @@ contract("TransactionManager", (accounts) => {
                 recipient);
             let { success, error } = await utils.parseRelayReceipt(txReceipt);
             assert.isFalse(success, "call should have failed");
-            assert.equal(error, "TM: transaction not authorised");
+            assert.equal(error, "TM: call not authorised");
         });
     });
 });

@@ -25,20 +25,15 @@ import "../infrastructure/storage/ITransferStorage.sol";
 import "../../lib/other/ERC20.sol";
 
 /**
- * @title ApprovedTransfer
- * @notice Feature to transfer tokens (ETH or ERC20) or call third-party contracts with the approval of guardians.
+ * @title TransactionManager
+ * @notice Module to execute transactions to e.g. transfer tokens (ETH or ERC20) or call third-party contracts.
  * @author Julien Niset - <julien@argent.xyz>
  */
 contract TransactionManager is RelayerManager {
 
     bytes32 constant NAME = "TransactionManager";
 
-    bytes4 constant internal TRANSFER_SESSION_PREFIX = bytes4(keccak256("transferTokenWithSession(address,address,uint64,address,address,uint256,bytes)"));
-    bytes4 constant internal TRANSFER_WHITELIST_PREFIX = bytes4(keccak256("transferTokenWithWithelist(address,address,address,uint256,bytes)"));
-    bytes4 constant internal MULTICALL_WHITELIST_PREFIX = bytes4(keccak256("multiCallWithWhitelist(address,bytes[],bool[])"));
-    bytes4 constant internal MULTICALL_SESSION_PREFIX = bytes4(keccak256("multiCallWithSession(address,address,uint64,bytes[])"));
-
-    bytes4 private constant ERC1271_ISVALIDSIGNATURE_BYTES32 = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
+    bytes4 private constant ERC1271_ISVALIDSIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
     // The Token storage
@@ -47,6 +42,13 @@ contract TransactionManager is RelayerManager {
     IAuthoriser public authoriser;
     // The security period
     uint256 public securityPeriod;
+
+    struct Call {
+        address to;
+        uint256 value;
+        bytes data;
+        bool isSpenderInData;
+    }
 
     // *************** Events *************************** //
 
@@ -80,7 +82,7 @@ contract TransactionManager is RelayerManager {
 
     function init(address _wallet) external override onlyWallet(_wallet) {
         // setup static calls
-        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE_BYTES32);
+        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE);
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
@@ -89,72 +91,37 @@ contract TransactionManager is RelayerManager {
      */
     function getRequiredSignatures(address, bytes calldata _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
-        if (methodId == TRANSFER_WHITELIST_PREFIX || methodId == MULTICALL_WHITELIST_PREFIX || methodId == ADD_MODULE_PREFIX) {
+        if (methodId == TransactionManager.multiCall.selector || methodId == BaseModule.addModule.selector) {
             return (1, OwnerSignature.Required);
         } 
-        if (methodId == MULTICALL_SESSION_PREFIX) {
+        if (methodId == TransactionManager.multiCallWithSession.selector) {
             return (1, OwnerSignature.Session);
         } 
         revert("TM: unknown method");
     }
 
-    // /**
-    // * @notice Lets the owner transfer tokens (ETH or ERC20) from a wallet.
-    // * @param _wallet The target wallet.
-    // * @param _token The address of the token to transfer.
-    // * @param _to The destination address
-    // * @param _amount The amoutn of token to transfer
-    // * @param _data The data for the transaction
-    // */
-    // function transferTokenWithWithelist(
-    //     address _wallet,
-    //     address _token,
-    //     address _to,
-    //     uint256 _amount,
-    //     bytes calldata _data
-    // )
-    //     external
-    //     onlyWalletOwnerOrSelf(_wallet)
-    //     onlyWhenUnlocked(_wallet)
-    // {
-    //     require(isWhitelisted(_wallet, _to), "TMV2: not whitelisted");
-    //     doTransfer(_wallet, _token, _to, _amount, _data);
-    // }
-
-    function multiCallWithWhitelist(
+    function multiCall(
         address _wallet,
-        bytes[] calldata _transactions,
-        bool[] calldata _isSpenderInData
+        Call[] calldata _transactions
     )
         external
         onlySelf()
         onlyWhenUnlocked(_wallet)
         returns (bytes[] memory)
     {
-        require(_transactions.length == _isSpenderInData.length, "TM: invalid multiCall parameters");
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
-            (address _to, uint256 _value, bytes memory _data) = abi.decode(_transactions[i], (address, uint256, bytes));
-            address spender = _isSpenderInData[i] ? recoverSpender(_wallet, _data) : _to;
-            require(isWhitelisted(_wallet, spender) || isAuthorised(_to, spender, _data), "TM: transaction not authorised");
-            results[i] = invokeWallet(_wallet, _to, _value, _data);
+            address spender = recoverSpender(_wallet, _transactions[i]);
+            require(isWhitelisted(_wallet, spender) || isAuthorised(spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
+            results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
     }
 
-    function isAuthorised(address _contract, address _spender, bytes memory _data) internal returns (bool) {
-        if (_contract == _spender) { 
-            return authoriser.authorise(_contract, _data); // do we need to block calls to the wallet or modules?
-        } else {
-            return authoriser.authorise(_spender, "");
-        }
-    }
-
     function multiCallWithSession(
         address _wallet,
-        address _sessionKey,
-        uint64 _expires,
-        bytes[] calldata _transactions
+        Session calldata,
+        Call[] calldata _transactions
     )
         external
         onlySelf()
@@ -163,8 +130,7 @@ contract TransactionManager is RelayerManager {
     {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
-            (address _to, uint256 _value, bytes memory _data) = abi.decode(_transactions[i], (address, uint256, bytes));
-            results[i] = invokeWallet(_wallet, _to, _value, _data);
+            results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
     }
@@ -220,12 +186,21 @@ contract TransactionManager is RelayerManager {
 
     // *************** Internal Functions ********************* //
 
-    function recoverSpender(address _wallet, bytes memory _data) internal pure returns (address) {
-        (address first, address second) = abi.decode(_data[4:], (address, address));
-        if (first == _wallet) {
-            return second;
+    function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
+        if (_transaction.isSpenderInData) {
+            // transfer(to, value), transferFrom(from, to, value),
+            (bytes32 sig, address first, address second) = abi.decode(abi.encodePacked(bytes28(0),_transaction.data), (bytes32, address, address));
+            return first == _wallet ? second : first;
+        }   
+        return _transaction.to;
+    }
+
+    function isAuthorised(address _spender, address _to, bytes memory _data) internal view returns (bool) {
+        if (_to == _spender) { 
+            return authoriser.authorise(_to, _data); // do we need to block calls to the wallet or modules?
+        } else {
+            return authoriser.authorise(_spender, "");
         }
-        return first;
     }
 
     function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {

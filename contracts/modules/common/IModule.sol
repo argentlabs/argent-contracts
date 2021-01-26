@@ -17,8 +17,8 @@
 pragma solidity >=0.5.4 <0.7.0;
 
 /**
- * @title IFeature
- * @notice Interface for a Feature.
+ * @title IModule
+ * @notice Interface for a Module.
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
 interface IModule {
@@ -31,7 +31,7 @@ interface IModule {
     function addModule(address _wallet, address _module) external;
 
     /**
-     * @notice Inits a Feature for a wallet by e.g. setting some wallet specific parameters in storage.
+     * @notice Inits a Module for a wallet by e.g. setting some wallet specific parameters in storage.
      * @param _wallet The wallet.
      */
     function init(address _wallet) external;

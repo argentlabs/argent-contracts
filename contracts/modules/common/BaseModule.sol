@@ -28,7 +28,7 @@ import "../../../lib/other/ERC20.sol";
  * @notice Base Module contract that contains methods common to all Modules.
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
-abstract contract BaseModule is IModule {
+contract BaseModule is IModule {
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";

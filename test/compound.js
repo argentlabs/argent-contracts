@@ -55,6 +55,7 @@ contract("TransactionManager", (accounts) => {
     const liquidityProvider = accounts[2];
     const borrower = accounts[3];
     const recipient = accounts[4];
+    const nonceInitialiser = accounts[5];
   
     let wallet;
     let walletImplementation;
@@ -164,13 +165,33 @@ contract("TransactionManager", (accounts) => {
         await token.transfer(wallet.address, new BN("1000000000000000000"));
     });
 
-    async function encodeTransaction(to, value, data) {
-        return web3.eth.abi.encodeParameters(
-          ['address', 'uint256', 'bytes'],
-          [to, value, data]
-        );
-      }
+    async function encodeTransaction(to, value, data, isSpenderInData) {
+        return {to, value, data, isSpenderInData};
+    }
 
+    async function whitelist(target) {
+        await transactionManager.addToWhitelist(wallet.address, target, { from: owner });
+        await utils.increaseTime(3);
+        isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
+        assert.isTrue(isTrusted, "should be trusted after the security period");
+    }
+
+    async function initNonce() {
+        // add to whitelist
+        await whitelist(nonceInitialiser);
+        // set the relayer nonce to > 0
+        let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+        let txReceipt = await manager.relay(
+            transactionManager,
+            "multiCall",
+            [wallet.address, [transaction]],
+            wallet,
+            [owner]);
+        success = await utils.parseRelayReceipt(txReceipt).success;
+        assert.isTrue(success, "transfer failed");
+        const nonce = await transactionManager.getNonce(wallet.address);
+        assert.isTrue(nonce.gt(0), "nonce init failed");
+    }
     describe("Environment", () => {
         it("should deploy the environment correctly", async () => {
             const getCToken = await compoundRegistry.getCToken(token.address);
@@ -187,6 +208,7 @@ contract("TransactionManager", (accounts) => {
     });
 
     describe("Investment", () => {
+
         async function accrueInterests(days, investInEth) {
             let tx;
             // generate borrows to create interests
@@ -212,7 +234,6 @@ contract("TransactionManager", (accounts) => {
             let ctoken;
             let investInEth;
             let transactions = [];
-            let istoken = [];
 
             if (tokenAddress === ETH_TOKEN) {
                 ctoken = cEther;
@@ -221,26 +242,23 @@ contract("TransactionManager", (accounts) => {
                 let data = cEther.contract.methods.mint().encodeABI();
                 let transaction = await encodeTransaction(cEther.address, amount, data);
                 transactions.push(transaction); 
-                istoken.push(false);
             } else {
                 ctoken = cToken;
                 investInEth = false;
 
                 let data = token.contract.methods.approve(cToken.address, amount).encodeABI();
-                let transaction = await encodeTransaction(token.address, 0, data);
+                let transaction = await encodeTransaction(token.address, 0, data, true);
                 transactions.push(transaction); 
-                istoken.push(true);
 
                 data = cToken.contract.methods.mint(amount).encodeABI();
                 transaction = await encodeTransaction(cToken.address, 0, data);
                 transactions.push(transaction); 
-                istoken.push(false);
             }
 
             let txReceipt = await manager.relay(
                 transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, transactions, istoken],
+                "multiCall",
+                [wallet.address, transactions],
                 wallet,
                 [owner],
                 1,
@@ -258,25 +276,11 @@ contract("TransactionManager", (accounts) => {
           }
 
         beforeEach(async () => {
-            // add to whitelist
-            await transactionManager.addToWhitelist(wallet.address, recipient, { from: owner });
-            await utils.increaseTime(3);
-            isTrusted = await transactionManager.isWhitelisted(wallet.address, recipient);
-            assert.isTrue(isTrusted, "should be trusted after the security period");
-            // set the relayer nonce to > 0
-            let transaction = await encodeTransaction(recipient, 1, ZERO_BYTES32);
-            let txReceipt = await manager.relay(
-                transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [false]],
-                wallet,
-                [owner]);
-            success = await utils.parseRelayReceipt(txReceipt).success;
-            assert.isTrue(success, "transfer failed");
+            await initNonce();
         });
 
         it("should invest ETH", async () => {
-            await addInvestment(ETH_TOKEN, web3.utils.toWei("100"), 365);
+            await addInvestment(ETH_TOKEN, web3.utils.toWei("1"), 365);
             
         });
 

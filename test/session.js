@@ -21,7 +21,6 @@ const TransactionManager = artifacts.require("TransactionManager");
 const SecurityManager = artifacts.require("SecurityManager");
 
 const ERC20 = artifacts.require("TestERC20");
-const WETH = artifacts.require("WETH9");
 const TestContract = artifacts.require("TestContract");
 
 const utils = require("../utils/utilities.js");
@@ -58,7 +57,6 @@ contract("TransactionManager", (accounts) => {
     let weth;
 
     before(async () => {
-        weth = await WETH.new();
         registry = await Registry.new();
 
         lockStorage = await LockStorage.new();
@@ -96,18 +94,37 @@ contract("TransactionManager", (accounts) => {
         await wallet.init(owner, [transactionManager.address, securityManager.address]);
     
         const decimals = 12; // number of decimal for TOKN contract
-        const tokenRate = new BN(10).pow(new BN(19)).muln(51); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
-    
         erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
         await wallet.send(new BN("1000000000000000000"));
     });
 
-    async function encodeTransaction(to, value, data) {
-        return web3.eth.abi.encodeParameters(
-          ['address', 'uint256', 'bytes'],
-          [to, value, data]
-        );
-      }
+    async function encodeTransaction(to, value, data, isSpenderInData = false) {
+        return {to, value, data, isSpenderInData};
+    }
+
+    async function whitelist(target) {
+        await transactionManager.addToWhitelist(wallet.address, target, { from: owner });
+        await utils.increaseTime(3);
+        isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
+        assert.isTrue(isTrusted, "should be trusted after the security period");
+    }
+
+    async function initNonce() {
+        // add to whitelist
+        await whitelist(nonceInitialiser);
+        // set the relayer nonce to > 0
+        let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32);
+        let txReceipt = await manager.relay(
+            transactionManager,
+            "multiCall",
+            [wallet.address, [transaction]],
+            wallet,
+            [owner]);
+        success = await utils.parseRelayReceipt(txReceipt).success;
+        assert.isTrue(success, "transfer failed");
+        const nonce = await transactionManager.getNonce(wallet.address);
+        assert.isTrue(nonce.gt(0), "nonce init failed");
+    }
 
       async function addGuardians(guardians) {
         // guardians can be BaseWallet or ContractWrapper objects
@@ -125,33 +142,18 @@ contract("TransactionManager", (accounts) => {
 
     describe("transfer ETH with session", () => {
         beforeEach(async () => {
-            // add to whitelist
-            await transactionManager.addToWhitelist(wallet.address, nonceInitialiser, { from: owner });
-            await utils.increaseTime(3);
-            isTrusted = await transactionManager.isWhitelisted(wallet.address, nonceInitialiser);
-            assert.isTrue(isTrusted, "should be trusted after the security period");
-            // set the relayer nonce to > 0
-            let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32);
-            let txReceipt = await manager.relay(
-                transactionManager,
-                "multiCallWithWhitelist",
-                [wallet.address, [transaction], [false]],
-                wallet,
-                [owner]);
-            success = await utils.parseRelayReceipt(txReceipt).success;
-            assert.isTrue(success, "transfer failed");
-
+            await initNonce();
             await addGuardians([guardian1]);
         });
 
-        it("should send ETH and create session", async () => {
-            const expires = 0;
+        it("should send ETH with guardians", async () => {
             let transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+            let session = {key: sessionKey, expires: 0};
 
             let txReceipt = await manager.relay(
                 transactionManager,
                 "multiCallWithSession",
-                [wallet.address, sessionKey, expires, [transaction]],
+                [wallet.address, session, [transaction]],
                 wallet,
                 [owner, guardian1],
                 1,
@@ -159,6 +161,53 @@ contract("TransactionManager", (accounts) => {
                 recipient);
             success = await utils.parseRelayReceipt(txReceipt).success;
             assert.isTrue(success, "transfer failed");
+            console.log("Gas for ETH transfer with 1 guardian: " + txReceipt.gasUsed);
+        });
+
+        it("should send ETH and create session", async () => {
+            let transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+            let session = {key: sessionKey, expires: 1000000};
+
+            let txReceipt = await manager.relay(
+                transactionManager,
+                "multiCallWithSession",
+                [wallet.address, session, [transaction]],
+                wallet,
+                [owner, guardian1],
+                1,
+                ETH_TOKEN,
+                recipient);
+            success = await utils.parseRelayReceipt(txReceipt).success;
+            assert.isTrue(success, "transfer failed");
+            console.log("Gas for ETH transfer and create session: " + txReceipt.gasUsed);
+        });
+
+        it("should send ETH with session key", async () => {
+            let expires = (await utils.getTimestamp()) + 10000;
+            let transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+            let session = {key: sessionKey, expires};
+
+            let txReceipt = await manager.relay(
+                transactionManager,
+                "multiCallWithSession",
+                [wallet.address, session, [transaction]],
+                wallet,
+                [owner, guardian1]);
+            success = await utils.parseRelayReceipt(txReceipt).success;
+            assert.isTrue(success, "transfer failed");
+
+            txReceipt = await manager.relay(
+                transactionManager,
+                "multiCallWithSession",
+                [wallet.address, {key: ZERO_ADDRESS, expires: 0}, [transaction]],
+                wallet,
+                [sessionKey],
+                1,
+                ETH_TOKEN,
+                recipient);
+            success = await utils.parseRelayReceipt(txReceipt).success;
+            assert.isTrue(success, "transfer failed");
+            console.log("Gas for ETH transfer with session: " + txReceipt.gasUsed);
         });
     });
 });

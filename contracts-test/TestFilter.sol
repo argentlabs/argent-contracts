@@ -1,6 +1,6 @@
 pragma solidity ^0.6.12;
 
-import "./IFilter.sol";
+import "../contracts/modules/dapp/IFilter.sol";
 
 contract TestFilter is IFilter {
     function validate(bytes calldata _data) external override view returns (bool) {
