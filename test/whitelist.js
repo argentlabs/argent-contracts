@@ -18,6 +18,8 @@ const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransactionManager = artifacts.require("TransactionManager");
+const ERC721 = artifacts.require("TestERC721");
+const CK = artifacts.require("CryptoKittyTest");
 
 const ERC20 = artifacts.require("TestERC20");
 
@@ -130,6 +132,12 @@ contract("TransactionManager", (accounts) => {
             assert.isTrue(success, "transfer failed");
             console.log("Gas for ETH transfer: " + txReceipt.gasUsed);
         });
+    });
+
+    describe("transfer/Approve ERC20", () => {
+        beforeEach(async () => {
+            await initNonce();
+        });
 
         it("should send ERC20 to a whitelisted address", async () => {
             await whitelist(recipient);
@@ -150,6 +158,7 @@ contract("TransactionManager", (accounts) => {
             assert.isTrue(success, "transfer failed");
             let balance = await erc20.balanceOf(recipient);
             assert.equal(balance, 100, "should have received tokens");
+            console.log("Gas for EC20 transfer: " + txReceipt.gasUsed);
         });
 
         it("should approve ERC20 for a whitelisted address", async () => {
@@ -171,6 +180,39 @@ contract("TransactionManager", (accounts) => {
             assert.isTrue(success, "transfer failed");
             let balance = await erc20.allowance(wallet.address, recipient);
             assert.equal(balance, 100, "should have been approved tokens");
+            console.log("Gas for EC20 approve: " + txReceipt.gasUsed);
+        });
+    });
+
+    describe("transfer ERC721", () => {
+        let erc721;
+        let tokenId = 7;
+
+        beforeEach(async () => {
+            await initNonce();
+
+            erc721 = await ERC721.new();
+            await erc721.mint(wallet.address, tokenId);
+        });
+
+        it("should send an ERC721 to a whitelisted address", async () => {
+            await whitelist(recipient);
+            
+            let data = erc721.contract.methods.safeTransferFrom(wallet.address, recipient, tokenId).encodeABI();
+            let transaction = await encodeTransaction(erc721.address, 0, data, true);
+
+            let txReceipt = await manager.relay(
+                transactionManager,
+                "multiCall",
+                [wallet.address, [transaction]],
+                wallet,
+                [owner],
+                1,
+                ETH_TOKEN,
+                recipient);
+            success = await utils.parseRelayReceipt(txReceipt).success;
+            assert.isTrue(success, "transfer failed");
+            console.log("Gas for ERC721 transfer: " + txReceipt.gasUsed);
         });
     });
 });

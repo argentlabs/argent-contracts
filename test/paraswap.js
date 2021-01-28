@@ -34,8 +34,9 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransactionManager = artifacts.require("TransactionManager");
 const Authoriser = artifacts.require("DappAuthoriser");
-const Filter = artifacts.require("TestFilter");
+const Filter = artifacts.require("ParaswapFilter");
 const ERC20 = artifacts.require("TestERC20");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
@@ -79,6 +80,7 @@ contract("TransactionManager", (accounts) => {
     let tokenB;
     let paraswap;
     let paraswapProxy;
+    let tokenPriceRegistry;
 
     before(async () => {
 
@@ -131,8 +133,10 @@ contract("TransactionManager", (accounts) => {
 
         // deploy Argent
         registry = await Registry.new();
+
+        tokenPriceRegistry = await TokenPriceRegistry.new();
+        await tokenPriceRegistry.setTradableForTokenList([tokenA.address], [true]);
         
-        filter = await Filter.new();
         authoriser = await Authoriser.new();
 
         lockStorage = await LockStorage.new();
@@ -152,6 +156,10 @@ contract("TransactionManager", (accounts) => {
         walletImplementation = await BaseWallet.new();
     
         await manager.setRelayerManager(transactionManager);    
+
+        filter = await Filter.new(tokenPriceRegistry.address);
+        await authoriser.addAuthorisation(paraswap.address, filter.address);
+        await authoriser.addAuthorisation(paraswapProxy, ZERO_ADDRESS);
     });
 
     beforeEach(async () => {
@@ -341,27 +349,60 @@ contract("TransactionManager", (accounts) => {
 
     describe("multi swap", () => {
         beforeEach(async () => {
-            initNonce();
-            await authoriser.addAuthorisation(paraswap.address, ZERO_ADDRESS);
-            await authoriser.addAuthorisation(paraswapProxy, ZERO_ADDRESS);
+            await initNonce();
         });
         
-        it("should sell ETH for token", async () => {
+        it("should sell ETH for token A", async () => {
             await testTrade({
                 method: "sell", fromToken: ETH_TOKEN, toToken: tokenA.address,
             });
         });
 
-        it("should sell token for ETH", async () => {
-            await testTrade({
-                method: "sell", fromToken: tokenA.address, toToken: ETH_TOKEN,
-            });
-        });
+        // it("should sell token A for ETH", async () => {
+        //     await testTrade({
+        //         method: "sell", fromToken: tokenA.address, toToken: ETH_TOKEN,
+        //     });
+        // });
 
-        it("should sell tokenA for tokenB", async () => {
-            await testTrade({
-                method: "sell", fromToken: tokenB.address, toToken: tokenA.address,
-            });
-        });
+        // it("should sell tokenB for tokenA", async () => {
+        //     await testTrade({
+        //         method: "sell", fromToken: tokenB.address, toToken: tokenA.address,
+        //     });
+        // });
+
+        // it("should block selling ETH for tokenB", async () => {
+
+        //     const srcAmount = web3.utils.toWei("0.01");
+        //     const destAmount = 1;
+
+        //     const path = buildPathes({
+        //         fromToken: ETH_TOKEN, toToken: tokenB.address, srcAmount, destAmount,
+        //       });
+
+        //     const data = paraswap.contract.methods.multiSwap(
+        //         ETH_TOKEN,
+        //         tokenB.address,
+        //         srcAmount,
+        //         destAmount,
+        //         0,
+        //         path,
+        //         0,
+        //         ZERO_ADDRESS,
+        //         0,
+        //         "abc",
+        //     ).encodeABI();
+            
+        //     const transaction = await encodeTransaction(paraswap.address, srcAmount, data);
+
+        //     const txReceipt = await manager.relay(
+        //         transactionManager,
+        //         "multiCall",
+        //         [wallet.address, [transaction]],
+        //         wallet,
+        //         [owner]);
+        //     const { success, error } = await utils.parseRelayReceipt(txReceipt);
+        //     assert.isFalse(success, "call should have failed");
+        //     assert.equal(error, "TM: call not authorised");
+        // });
     });
 });

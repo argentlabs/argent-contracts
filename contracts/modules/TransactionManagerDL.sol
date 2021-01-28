@@ -17,19 +17,23 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./common/Utils.sol";
 import "./common/RelayerManager.sol";
 import "./dapp/IAuthoriser.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
 import "../../lib/other/ERC20.sol";
+import "../infrastructure/ITokenPriceRegistry.sol";
 
 /**
  * @title TransactionManager
  * @notice Module to execute transactions to e.g. transfer tokens (ETH or ERC20) or call third-party contracts.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransactionManager is RelayerManager {
+contract TransactionManagerDL is RelayerManager {
+
+    using SafeMath for uint256;
 
     bytes32 constant NAME = "TransactionManager";
 
@@ -38,10 +42,15 @@ contract TransactionManager is RelayerManager {
 
     // The Token storage
     ITransferStorage public whitelistStorage;
+    // The limit storage
+    ILimitStorage public limitStorage;
     // The Dapp authoriser
     IAuthoriser public authoriser;
     // The security period
     uint256 public securityPeriod;
+
+    // The token price registry
+    ITokenPriceRegistry public priceRegistry;
 
     struct Call {
         address to;
@@ -66,6 +75,7 @@ contract TransactionManager is RelayerManager {
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ITransferStorage _whitelistStorage,
+        ILimitStorage _limitStorage,
         IAuthoriser _authoriser,
         uint256 _securityPeriod
     )
@@ -76,6 +86,7 @@ contract TransactionManager is RelayerManager {
         whitelistStorage = _whitelistStorage;
         authoriser = _authoriser;
         securityPeriod = _securityPeriod;
+        limitStorage = _limitStorage;
     }
 
     // *************** External functions ************************ //
@@ -91,10 +102,14 @@ contract TransactionManager is RelayerManager {
      */
     function getRequiredSignatures(address, bytes calldata _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
-        if (methodId == TransactionManager.multiCall.selector || methodId == BaseModule.addModule.selector) {
+        if (methodId == TransactionManagerDL.multiCall.selector ||
+            methodId == TransactionManagerDL.multiCallWithDailyLimit.selector ||
+            methodId == TransactionManagerDL.changeLimit.selector ||
+            methodId == BaseModule.addModule.selector) 
+        {
             return (1, OwnerSignature.Required);
         } 
-        if (methodId == TransactionManager.multiCallWithSession.selector) {
+        if (methodId == TransactionManagerDL.multiCallWithSession.selector) {
             return (1, OwnerSignature.Session);
         } 
         revert("TM: unknown method");
@@ -130,6 +145,35 @@ contract TransactionManager is RelayerManager {
     {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
+            results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
+        }
+        return results;
+    }
+
+    function multiCallWithDailyLimit(
+        address _wallet,
+        Call[] calldata _transactions
+    )
+        external
+        onlySelf()
+        onlyWhenUnlocked(_wallet)
+        returns (bytes[] memory)
+    {
+        bytes[] memory results = new bytes[](_transactions.length);
+        for(uint i = 0; i < _transactions.length; i++) {
+            if (_transactions[i].value != 0) {
+                checkAndUpdateDailySpent(_wallet, _transactions[i].value);
+            } else {
+                bytes4 sig = abi.decode(_transactions[i].data[:4], (bytes4));
+                if (sig == ERC20.transfer.selector || sig == ERC20.approve.selector) {
+                    uint256 amount = abi.decode(_transactions[i].data[36:], (uint256));
+                    uint256 price = priceRegistry.getTokenPrice(_transactions[i].to);
+                    uint256 etherValue = price.mul(amount).div(10**18);
+                    if (etherValue != 0) {
+                        checkAndUpdateDailySpent(_wallet, etherValue);
+                    }
+                }
+            }
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
@@ -184,6 +228,36 @@ contract TransactionManager is RelayerManager {
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
 
+    function changeLimit(
+        address _wallet,
+        uint256 _targetLimit
+    )
+        external
+        onlyWalletOwnerOrSelf(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
+        uint256 currentLimit = currentLimit(limit);
+        if (_targetLimit <= currentLimit) {
+            uint128 targetLimit = Utils.safe128(_targetLimit);
+            limitStorage.setLimit(
+                _wallet,
+                ILimitStorage.Limit(targetLimit, targetLimit, Utils.safe64(block.timestamp))
+            );
+        } else {
+            limitStorage.setLimit(
+                _wallet,
+                ILimitStorage.Limit(Utils.safe128(currentLimit), Utils.safe128(_targetLimit), Utils.safe64(block.timestamp.add(securityPeriod)))
+            );
+        }
+        // emit event
+    }
+
+    function getCurrentLimit(address _wallet) external view returns (uint256 _currentLimit) {
+        ILimitStorage.Limit memory limit = limitStorage.getLimit(_wallet);
+        return currentLimit(limit);
+    }
+
     // *************** Internal Functions ********************* //
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
@@ -206,5 +280,39 @@ contract TransactionManager is RelayerManager {
 
     function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {
         whitelistStorage.setWhitelist(_wallet, _target, _whitelistAfter);
+    }
+
+    function checkAndUpdateDailySpent(
+        address _wallet,
+        uint256 _amount
+    )
+        internal
+    {
+        (ILimitStorage.Limit memory limit, ILimitStorage.DailySpent memory dailySpent) = limitStorage.getLimitAndDailySpent(_wallet);
+        uint256 currentLimit = currentLimit(limit);
+        if (currentLimit != 0) {
+            if (dailySpent.periodEnd <= block.timestamp && _amount <= currentLimit) {
+                limitStorage.setDailySpent(
+                    _wallet,
+                    ILimitStorage.DailySpent(Utils.safe128(_amount), Utils.safe64(block.timestamp + 24 hours))
+                );
+                return;
+            }
+            if (dailySpent.periodEnd > block.timestamp && _amount.add(dailySpent.alreadySpent) <= currentLimit) {
+                limitStorage.setDailySpent(
+                    _wallet,
+                    ILimitStorage.DailySpent(Utils.safe128(_amount.add(dailySpent.alreadySpent)), Utils.safe64(dailySpent.periodEnd))
+                );
+                return;
+            }
+        }
+        revert("TM: above daily limit");
+    }
+
+    function currentLimit(ILimitStorage.Limit memory _limit) internal view returns (uint256) {
+        if (_limit.changeAfter > 0 && _limit.changeAfter < block.timestamp) {
+            return _limit.pending;
+        }
+        return _limit.current;
     }
 }

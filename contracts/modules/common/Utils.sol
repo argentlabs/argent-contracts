@@ -77,4 +77,14 @@ library Utils {
         }
         return b;
     }
+
+    function safe128(uint256 _num) internal pure returns (uint128) {
+        require(_num < 2**128, "LU: more then 128 bits");
+        return uint128(_num);
+    }
+
+    function safe64(uint256 _num) internal pure returns (uint64) {
+        require(_num < 2**64, "LU: more then 64 bits");
+        return uint64(_num);
+    }
 }
