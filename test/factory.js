@@ -16,8 +16,7 @@ const Factory = artifacts.require("WalletFactory");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
-const SecurityManager = artifacts.require("SecurityManager");
-const TransactionManager = artifacts.require("TransactionManager");
+const TransactionManager = artifacts.require("ArgentModule");
 
 const utils = require("../utils/utilities.js");
 
@@ -25,8 +24,8 @@ const ZERO_ADDRESS = ethers.constants.AddressZero;
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
-const LOCK_PERIOD = 2;
-const RECOVERY_PERIOD = 2;
+const LOCK_PERIOD = 4;
+const RECOVERY_PERIOD = 4;
 
 contract("WalletFactory", (accounts) => {
   const infrastructure = accounts[0];
@@ -61,21 +60,14 @@ contract("WalletFactory", (accounts) => {
       guardianStorage.address,
       transferStorage.address,
       ZERO_ADDRESS,
-      SECURITY_PERIOD);
-
-    securityManager = await SecurityManager.new(
-      registry.address,
-      lockStorage.address,
-      guardianStorage.address,
-      RECOVERY_PERIOD,
-      LOCK_PERIOD,
       SECURITY_PERIOD,
-      SECURITY_WINDOW);
+      SECURITY_WINDOW,
+      LOCK_PERIOD,
+      RECOVERY_PERIOD);
 
-    await registry.registerModule(transactionManager.address, ethers.utils.formatBytes32String("TransactionManager"));
-    await registry.registerModule(securityManager.address, ethers.utils.formatBytes32String("SecurityManager"));
+    //await registry.registerModule(transactionManager.address, ethers.utils.formatBytes32String("TransactionManager"));
 
-    modules = [transactionManager.address, securityManager.address];
+    modules = [transactionManager.address];
   });
 
   async function signRefund(amount, token, signer) {
@@ -416,6 +408,18 @@ contract("WalletFactory", (accounts) => {
       isManager = await factory.managers(other);
       assert.isTrue(isManager);
     });
+      // const salt = utils.generateSaltValue();
+      // // we get the future address
+      // const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
+      // // we create the wallet
+      // const tx = await factory.createCounterfactualWallet(
+      //   owner, modules, guardian, salt,
+      // );
+      // const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
+      // const walletAddr = event.args.wallet;
+      // // we test that the wallet is at the correct address
+      // assert.equal(futureAddr, walletAddr, "should have the correct address");
+    }); return;
 
     it("should create with the correct owner", async () => {
       const salt = utils.generateSaltValue();
@@ -450,11 +454,9 @@ contract("WalletFactory", (accounts) => {
       // we test that the wallet has the correct modules
       const wallet = await BaseWallet.at(walletAddr);
       let count =  await wallet.modules();
-      assert.equal(count, 2, "2 modules should be authorised");
+      assert.equal(count, 1, "1 modules should be authorised");
       let isAuthorised = await wallet.authorised(modules[0]);
       assert.equal(isAuthorised, true, "first module should be authorised");
-      isAuthorised = await wallet.authorised(modules[1]);
-      assert.equal(isAuthorised, true, "second module should be authorised");
     });
 
     it("should create with the correct guardian", async () => {

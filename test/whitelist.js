@@ -17,7 +17,7 @@ const Registry = artifacts.require("ModuleRegistry");
 const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
-const TransactionManager = artifacts.require("TransactionManager");
+const TransactionManager = artifacts.require("ArgentModule");
 const ERC721 = artifacts.require("TestERC721");
 const CK = artifacts.require("CryptoKittyTest");
 
@@ -28,6 +28,9 @@ const { ETH_TOKEN } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
+const SECURITY_WINDOW = 2;
+const LOCK_PERIOD = 4;
+const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 const { assert } = require("chai");
@@ -62,7 +65,10 @@ contract("TransactionManager", (accounts) => {
             guardianStorage.address,
             transferStorage.address,
             ZERO_ADDRESS,
-            SECURITY_PERIOD);
+            SECURITY_PERIOD,
+            SECURITY_WINDOW,
+            LOCK_PERIOD,
+            RECOVERY_PERIOD);
       
         await registry.registerModule(transactionManager.address, ethers.utils.formatBytes32String("TransactionManager"));
     

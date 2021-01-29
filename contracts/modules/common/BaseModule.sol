@@ -20,6 +20,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../wallet/IWallet.sol";
 import "../../infrastructure/IModuleRegistry.sol";
 import "../../infrastructure/storage/ILockStorage.sol";
+import "../../infrastructure/storage/IGuardianStorage.sol";
 import "./IModule.sol";
 import "../../../lib/other/ERC20.sol";
 
@@ -29,6 +30,8 @@ import "../../../lib/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
 contract BaseModule is IModule {
+
+    using SafeMath for uint256;
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
@@ -42,14 +45,22 @@ contract BaseModule is IModule {
     IModuleRegistry private registry;
     // The address of the Lock storage
     ILockStorage internal lockStorage;
+    // The Guardian storage
+    IGuardianStorage public guardianStorage;
 
-    event FeatureCreated(bytes32 name);
+    // The security period
+    uint256 public securityPeriod;
+
+    struct Session {
+        address key;
+        uint64 expires;
+    }
 
     /**
      * @notice Throws if the wallet is not locked.
      */
     modifier onlyWhenLocked(address _wallet) {
-        require(lockStorage.isLocked(_wallet), "LM: wallet must be locked");
+        require(_isLocked(_wallet), "LM: wallet must be locked");
         _;
     }
 
@@ -57,7 +68,7 @@ contract BaseModule is IModule {
      * @notice Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(address _wallet) {
-        require(!lockStorage.isLocked(_wallet), "BF: wallet locked");
+        require(!_isLocked(_wallet), "BF: wallet locked");
         _;
     }
 
@@ -65,7 +76,7 @@ contract BaseModule is IModule {
      * @notice Throws if the sender is not the module itself.
      */
     modifier onlySelf() {
-        require(msg.sender == address(this), "BM: must be module");
+        require(_isSelf(msg.sender), "BM: must be module");
         _;
     }
 
@@ -73,7 +84,7 @@ contract BaseModule is IModule {
      * @notice Throws if the sender is not the owner of the target wallet.
      */
     modifier onlyWalletOwner(address _wallet) {
-        require(isOwner(_wallet, msg.sender), "BM: must be wallet owner");
+        require(_isOwner(_wallet, msg.sender), "BM: must be wallet owner");
         _;
     }
 
@@ -81,7 +92,7 @@ contract BaseModule is IModule {
      * @notice Throws if the sender is not an authorised feature of the target wallet.
      */
     modifier onlyWalletOwnerOrSelf(address _wallet) {
-        require(msg.sender == address(this) || isOwner(_wallet, msg.sender), "BM: must be a wallet owner or self");
+        require(_isSelf(msg.sender) || _isOwner(_wallet, msg.sender), "BM: must be a wallet owner or self");
         _;
     }
 
@@ -96,11 +107,14 @@ contract BaseModule is IModule {
     constructor(
         IModuleRegistry _registry,
         ILockStorage _lockStorage,
+        IGuardianStorage _guardianStorage,
+        uint256 _securityPeriod,
         bytes32 _name
     ) public {
         registry = _registry;
         lockStorage = _lockStorage;
-        emit FeatureCreated(_name);
+        guardianStorage = _guardianStorage;
+        securityPeriod = _securityPeriod;
     }
 
     function init(address _wallet) external virtual override {
@@ -130,13 +144,29 @@ contract BaseModule is IModule {
         return dataWallet == _wallet;
     }
     
-     /**
+    /**
      * @notice Helper method to check if an address is the owner of a target wallet.
      * @param _wallet The target wallet.
      * @param _addr The address.
      */
-    function isOwner(address _wallet, address _addr) internal view returns (bool) {
+    function _isOwner(address _wallet, address _addr) internal view returns (bool) {
         return IWallet(_wallet).owner() == _addr;
+    }
+
+    /**
+     * @notice Helper method to check if a wallet is locked.
+     * @param _wallet The target wallet.
+     */
+    function _isLocked(address _wallet) internal view returns (bool) {
+        return lockStorage.isLocked(_wallet);
+    }
+
+    /**
+     * @notice Helper method to check if an address is the module itself.
+     * @param _addr The target address.
+     */
+    function _isSelf(address _addr) internal view returns (bool) {
+        return _addr == address(this);
     }
 
     /**

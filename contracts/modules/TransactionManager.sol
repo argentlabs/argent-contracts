@@ -18,9 +18,8 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
-import "./common/RelayerManager.sol";
+import "./common/BaseModule.sol";
 import "./dapp/IAuthoriser.sol";
-import "../infrastructure/storage/IGuardianStorage.sol";
 import "../infrastructure/storage/ITransferStorage.sol";
 import "../../lib/other/ERC20.sol";
 
@@ -29,9 +28,7 @@ import "../../lib/other/ERC20.sol";
  * @notice Module to execute transactions to e.g. transfer tokens (ETH or ERC20) or call third-party contracts.
  * @author Julien Niset - <julien@argent.xyz>
  */
-contract TransactionManager is RelayerManager {
-
-    bytes32 constant NAME = "TransactionManager";
+abstract contract TransactionManager is BaseModule {
 
     bytes4 private constant ERC1271_ISVALIDSIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
@@ -40,8 +37,6 @@ contract TransactionManager is RelayerManager {
     ITransferStorage public whitelistStorage;
     // The Dapp authoriser
     IAuthoriser public authoriser;
-    // The security period
-    uint256 public securityPeriod;
 
     struct Call {
         address to;
@@ -62,43 +57,16 @@ contract TransactionManager is RelayerManager {
     // *************** Constructor ************************ //
 
     constructor(
-        IModuleRegistry _registry,
-        ILockStorage _lockStorage,
-        IGuardianStorage _guardianStorage,
         ITransferStorage _whitelistStorage,
-        IAuthoriser _authoriser,
-        uint256 _securityPeriod
+        IAuthoriser _authoriser
     )
-        BaseModule(_registry, _lockStorage, NAME)
-        RelayerManager(_guardianStorage)
         public
     {
         whitelistStorage = _whitelistStorage;
         authoriser = _authoriser;
-        securityPeriod = _securityPeriod;
     }
 
     // *************** External functions ************************ //
-
-    function init(address _wallet) external override onlyWallet(_wallet) {
-        // setup static calls
-        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE);
-        IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
-    }
-
-    /**
-     * @inheritdoc RelayerManager
-     */
-    function getRequiredSignatures(address, bytes calldata _data) public view override returns (uint256, OwnerSignature) {
-        bytes4 methodId = Utils.functionPrefix(_data);
-        if (methodId == TransactionManager.multiCall.selector || methodId == BaseModule.addModule.selector) {
-            return (1, OwnerSignature.Required);
-        } 
-        if (methodId == TransactionManager.multiCallWithSession.selector) {
-            return (1, OwnerSignature.Session);
-        } 
-        revert("TM: unknown method");
-    }
 
     function multiCall(
         address _wallet,
@@ -184,7 +152,54 @@ contract TransactionManager is RelayerManager {
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
 
+    /** ******************* Callbacks ************************** */
+
+    /**
+    * @notice Implementation of EIP 1271.
+    * Should return whether the signature provided is valid for the provided data.
+    * @param _msgHash Hash of a message signed on the behalf of address(this)
+    * @param _signature Signature byte array associated with _msgHash
+    */
+    function isValidSignature(
+        bytes32 _msgHash,
+        bytes memory _signature
+    ) 
+        external
+        view
+        returns (bytes4)
+    {
+        require(_signature.length == 65, "TM: invalid signature length");
+        address signer = Utils.recoverSigner(_msgHash, _signature, 0);
+        require(_isOwner(msg.sender, signer), "TM: Invalid signer");
+        return ERC1271_ISVALIDSIGNATURE;
+    }
+
+    /**
+     * @notice Implementation of ERC721
+     * @notice An ERC721 smart contract calls this function on the recipient contract
+     * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received
+     * will be forwarded to the method onERC721Received of the present module.
+     * @return bytes4 `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
+     */
+    function onERC721Received(
+        address /* operator */,
+        address /* from */,
+        uint256 /* tokenId */,
+        bytes calldata /* data*/
+    )
+        external
+        returns (bytes4)
+    {
+        return ERC721_RECEIVED;
+    }
+
     // *************** Internal Functions ********************* //
+
+    function _init(address _wallet) internal {
+        // setup static calls
+        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE);
+        IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
+    }
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
         if (_transaction.isSpenderInData) {

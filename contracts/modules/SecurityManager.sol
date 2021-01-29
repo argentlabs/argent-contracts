@@ -17,9 +17,9 @@
 pragma solidity ^0.6.12;
 
 import "./common/Utils.sol";
-import "./common/RelayerManager.sol";
+import "./common/GuardianUtils.sol";
+import "./common/BaseModule.sol";
 import "../wallet/IWallet.sol";
-import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RecoveryManager
@@ -29,9 +29,7 @@ import "../infrastructure/storage/IGuardianStorage.sol";
  * @author Julien Niset - <julien@argent.xyz>
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
-contract SecurityManager is RelayerManager {
-
-    bytes32 constant NAME = "SecurityManager";
+abstract contract SecurityManager is BaseModule {
 
     bytes4 constant internal EXECUTE_RECOVERY_PREFIX = bytes4(keccak256("executeRecovery(address,address)"));
     bytes4 constant internal FINALIZE_RECOVERY_PREFIX = bytes4(keccak256("finalizeRecovery(address)"));
@@ -66,8 +64,6 @@ contract SecurityManager is RelayerManager {
     uint256 public recoveryPeriod;
     // Lock period
     uint256 public lockPeriod;
-    // The security period
-    uint256 public securityPeriod;
     // The security window
     uint256 public securityWindow;
 
@@ -108,76 +104,30 @@ contract SecurityManager is RelayerManager {
      * @notice Throws if the caller is not a guardian for the wallet.
      */
     modifier onlyGuardianOrSelf(address _wallet) {
-        bool isGuardian = guardianStorage.isGuardian(_wallet, msg.sender);
-        require(msg.sender == address(this)|| isGuardian, "SM: must be guardian or feature");
+        require(_isSelf(msg.sender) || isGuardian(_wallet, msg.sender), "SM: must be guardian or feature");
         _;
     }
 
     // *************** Constructor ************************ //
 
     constructor(
-        IModuleRegistry _registry,
-        ILockStorage _lockStorage,
-        IGuardianStorage _guardianStorage,
         uint256 _recoveryPeriod,
         uint256 _lockPeriod,
-        uint256 _securityPeriod,
         uint256 _securityWindow
     )
-        BaseModule(_registry, _lockStorage, NAME)
-        RelayerManager(_guardianStorage)
         public
     {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
         // where securityPeriod and securityWindow are the security parameters of adding/removing guardians
         // and confirming large transfers.
         require(_lockPeriod >= _recoveryPeriod, "SM: insecure security periods");
+        require(_recoveryPeriod >= securityPeriod + _securityWindow, "SM: insecure security periods");
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
-        securityPeriod = _securityPeriod;
         securityWindow = _securityWindow;
     }
 
     // *************** External functions ************************ //
-
-    /**
-     * @inheritdoc RelayerManager
-     */
-    function getRequiredSignatures(address _wallet, bytes calldata _data) public view override returns (uint256, OwnerSignature) {
-        bytes4 methodId = Utils.functionPrefix(_data);
-        if (methodId == EXECUTE_RECOVERY_PREFIX) {
-            uint walletGuardians = guardianStorage.guardianCount(_wallet);
-            require(walletGuardians > 0, "SM: no guardians set on wallet");
-            uint numberOfSignaturesRequired = Utils.ceil(walletGuardians, 2);
-            return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
-        }
-        if (methodId == CANCEL_RECOVERY_PREFIX) {
-            uint numberOfSignaturesRequired = Utils.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
-            return (numberOfSignaturesRequired, OwnerSignature.Optional);
-        }
-        if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
-            uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
-            uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
-            return (numberOfSignaturesRequired, OwnerSignature.Required);
-        }
-        if (methodId == LOCK_PREFIX || methodId == UNLOCK_PREFIX) {
-            return (1, OwnerSignature.Disallowed);
-        }
-        if (methodId == ADD_GUARDIAN_PREFIX ||
-            methodId == REVOKE_GUARDIAN_PREFIX ||
-            methodId == CANCEL_GUARDIAN_ADDITION_PREFIX ||
-            methodId == CANCEL_GUARDIAN_REVOKATION_PREFIX) 
-        {
-            return (1, OwnerSignature.Required);
-        }
-        if (methodId == FINALIZE_RECOVERY_PREFIX ||
-            methodId == CONFIRM_GUARDIAN_ADDITION_PREFIX ||
-            methodId == CONFIRM_GUARDIAN_REVOKATION_PREFIX)
-        {
-            return (0, OwnerSignature.Anyone);
-        }
-        revert("SM: unknown method");
-    }
 
     // *************** Recovery functions ************************ //
 
@@ -303,7 +253,7 @@ contract SecurityManager is RelayerManager {
      * @param _guardian The guardian to add.
      */
     function addGuardian(address _wallet, address _guardian) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
-        require(!isOwner(_wallet, _guardian), "SM: target guardian cannot be owner");
+        require(!_isOwner(_wallet, _guardian), "SM: target guardian cannot be owner");
         require(!isGuardian(_wallet, _guardian), "SM: target is already a guardian");
         // Guardians must either be an EOA or a contract with an owner()
         // method that returns an address with a 5000 gas stipend.
@@ -408,7 +358,7 @@ contract SecurityManager is RelayerManager {
      * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
      */
     function isGuardian(address _wallet, address _guardian) public view returns (bool _isGuardian) {
-        _isGuardian = guardianStorage.isGuardian(_wallet, _guardian);
+        return guardianStorage.isGuardian(_wallet, _guardian);
     }
 
     /**
@@ -443,7 +393,7 @@ contract SecurityManager is RelayerManager {
 
     function validateNewOwner(address _wallet, address _newOwner) internal view {
         require(_newOwner != address(0), "SM: new owner address cannot be null");
-        require(!guardianStorage.isGuardian(_wallet, _newOwner), "SM: new owner address cannot be a guardian");
+        require(!isGuardian(_wallet, _newOwner), "SM: new owner address cannot be a guardian");
     }
 
     function setLock(address _wallet, uint256 _releaseAfter) internal {

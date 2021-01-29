@@ -17,11 +17,11 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./Utils.sol";
-import "./GuardianUtils.sol";
-import "./BaseModule.sol";
-import "../../infrastructure/storage/ILimitStorage.sol";
-import "../../infrastructure/storage/IGuardianStorage.sol";
+import "./common/Utils.sol";
+import "./common/GuardianUtils.sol";
+import "./common/BaseModule.sol";
+import "../infrastructure/storage/ILimitStorage.sol";
+import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RelayerManager
@@ -32,21 +32,16 @@ abstract contract RelayerManager is BaseModule {
 
     uint256 constant internal BLOCKBOUND = 10000;
 
-    using SafeMath for uint256;
-
     mapping (address => RelayerConfig) public relayer;
 
     mapping (address => Session) public sessions;
-
-    // The Guardian storage
-    IGuardianStorage public guardianStorage;
 
     enum OwnerSignature {
         Anyone,             // Anyone
         Required,           // Owner required
         Optional,           // Owner and/or guardians
-        Disallowed,          // guardians only
-        Session
+        Disallowed,         // guardians only
+        Session             // session key 
     }
 
     struct RelayerConfig {
@@ -63,24 +58,11 @@ abstract contract RelayerManager is BaseModule {
         bytes returnData;
     }
 
-    struct Session {
-        address key;
-        uint64 expires;
-    }
-
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
     event Refund(address indexed wallet, address indexed refundAddress, address refundToken, uint256 refundAmount);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
 
     /* ***************** External methods ************************* */
-
-    constructor(
-        IGuardianStorage _guardianStorage
-    )
-        public
-    {
-        guardianStorage = _guardianStorage;
-    }
 
     /**
     * @notice Gets the number of valid signatures that must be provided to execute a
@@ -304,13 +286,13 @@ abstract contract RelayerManager is BaseModule {
             if (i == 0) {
                 if (_option == OwnerSignature.Required) {
                     // First signer must be owner
-                    if (isOwner(_wallet, signer)) {
+                    if (_isOwner(_wallet, signer)) {
                         continue;
                     }
                     return false;
                 } else if (_option == OwnerSignature.Optional) {
                     // First signer can be owner
-                    if (isOwner(_wallet, signer)) {
+                    if (_isOwner(_wallet, signer)) {
                         continue;
                     }
                 }
@@ -349,27 +331,28 @@ abstract contract RelayerManager is BaseModule {
     )
         internal
     {
-        if (_gasPrice == 0 || (_option != OwnerSignature.Required && _option != OwnerSignature.Session)) {
-            return;
-        }
-
-        address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
-        uint256 refundAmount;
-        // we assume no more daily limit
-        uint256 gasConsumed = _startGas.sub(gasleft()).add(30000);
-        refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
-        // refund in ETH or ERC20
-        if (_refundToken == ETH_TOKEN) {
-            invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
-        } else {
-            bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
-		    bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
-            // Check token refund is successful, when `transfer` returns a success bool result
-            if (transferSuccessBytes.length > 0) {
-                require(abi.decode(transferSuccessBytes, (bool)), "RM: Refund transfer failed");
+        if (_gasPrice > 0 && (_option == OwnerSignature.Required || _option == OwnerSignature.Session)) {
+            address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
+            if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
+                // check whitelist
             }
+            uint256 refundAmount;
+            if (_refundToken == ETH_TOKEN) {
+                uint256 gasConsumed = _startGas.sub(gasleft()).add(30000);
+                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
+                invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
+            } else {
+                uint256 gasConsumed = _startGas.sub(gasleft()).add(35000);
+                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
+                bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
+                bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
+                // Check token refund is successful, when `transfer` returns a success bool result
+                if (transferSuccessBytes.length > 0) {
+                    require(abi.decode(transferSuccessBytes, (bool)), "RM: Refund transfer failed");
+                }
+            }
+            emit Refund(_wallet, refundAddress, _refundToken, refundAmount);    
         }
-        emit Refund(_wallet, refundAddress, _refundToken, refundAmount);
     }
 
    /**
