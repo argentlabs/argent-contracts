@@ -49,6 +49,7 @@ contract("TokenExchanger", (accounts) => {
   const manager = new RelayManager();
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const guardian = accounts[2];
 
   let wallet;
   let registry;
@@ -130,8 +131,7 @@ contract("TokenExchanger", (accounts) => {
 
   beforeEach(async () => {
     // create wallet
-    const proxy = await DelegateProxy.new({ from: owner });
-    await proxy.setRegistry(registry.address, { from: owner });
+    const proxy = await DelegateProxy.new(registry.address, owner, guardian);
     wallet = await IWallet.at(proxy.address);
 
     // fund wallet
@@ -347,4 +347,39 @@ contract("TokenExchanger", (accounts) => {
 
   describe("Sell", () => testsForMethod("sell"));
   describe("Buy", () => testsForMethod("buy"));
+
+  describe("Relayed trades with refunds", () => {
+    it("should be able to swap ETH for ERC20 (relayed tx)", async () => {
+      await wallet.send("100000000000000");
+      const beforeFrom = await utils.getBalance(wallet.address);
+      const beforeTo = await tokenB.balanceOf(wallet.address);
+      const srcAmount = web3.utils.toWei("0.01"); // _srcAmount
+      const destAmount = 1; //_minDestAmount
+
+      // wallet should have enough of tokenA tokens
+      expect(beforeFrom).to.be.gte.BN(srcAmount);
+
+      const paths = buildPathes({ fromToken: ETH_TOKEN, toToken: tokenA.address, srcAmount, destAmount });
+      const params = [ETH_TOKEN, tokenA.address, srcAmount, destAmount, 123, paths, 0];
+
+      const txR = await manager.relay(wallet, "sell", params, [owner], 10000, ETH_TOKEN, accounts[9]);
+      // console.log(txR.gasUsed);
+
+      let event = await utils.getEvent(txR, wallet, "TransactionExecuted");
+      assert.isTrue(event.args.success, "Relayed tx should succeed");
+
+      event = await utils.getEvent(txR, wallet, "TokenExchanged");
+      const destAmountResult = event.args.destAmount;
+
+      const afterFrom = await utils.getBalance(wallet.address);
+      const afterTo = await tokenA.balanceOf(wallet.address);
+
+      // should send the exact amount of fromToken
+      expect(beforeFrom.sub(afterFrom)).to.be.gt.BN(srcAmount); // Wallet should have less the sent amount plus refund
+      // should receive some toToken
+      expect(afterTo).to.be.gt.BN(beforeTo);
+      // should receive more toToken than minimum specified
+      expect(destAmountResult).to.be.gte.BN(destAmount);
+    });
+  });
 });

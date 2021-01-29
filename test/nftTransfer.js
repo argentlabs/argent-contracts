@@ -14,17 +14,19 @@ const ERC20Approver = artifacts.require("ERC20Approver");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 
 const RelayManager = require("../utils/relay-manager");
+const { ETH_TOKEN } = require("../utils/utilities.js");
+const { setupWalletVersion } = require("../utils/wallet_definition.js");
 
-contract.skip("NftTransfer", (accounts) => {
+contract("NftTransfer", (accounts) => {
   const manager = new RelayManager();
 
   const infrastructure = accounts[0];
   const owner1 = accounts[1];
   const owner2 = accounts[2];
   const eoaRecipient = accounts[3];
+  const guardian = accounts[4];
   const tokenId = 1;
 
-  let nftFeature;
   let registry;
   let relayerManager;
   let wallet1;
@@ -50,13 +52,11 @@ contract.skip("NftTransfer", (accounts) => {
   });
 
   beforeEach(async () => {
-    const proxy1 = await DelegateProxy.new({ from: owner1 });
-    await proxy1.setRegistry(registry.address, { from: owner1 });
+    const proxy1 = await DelegateProxy.new(registry.address, owner1, guardian);
     wallet1 = await IWallet.at(proxy1.address);
 
-    const proxy2 = await DelegateProxy.new({ from: owner2 });
-    await proxy2.setRegistry(registry.address, { from: owner2 });
-    wallet1 = await IWallet.at(proxy2.address);
+    const proxy2 = await DelegateProxy.new(registry.address, owner2, guardian);
+    wallet2 = await IWallet.at(proxy2.address);
 
     erc721 = await ERC721.new();
     await erc721.mint(wallet1.address, tokenId);
@@ -82,20 +82,37 @@ contract.skip("NftTransfer", (accounts) => {
     }
 
     describe("transfer to EOA account", () => {
-      it("should allow unsafe NFT transfer from wallet1 to an EOA account", async () => {
+      it("should allow unsafe NFT transfer to an EOA account", async () => {
         await testNftTransfer({ safe: false, relayed: false, recipientAddress: eoaRecipient });
       });
 
-      it("should allow safe NFT transfer from wallet1 to an EOA account", async () => {
+      it("should allow safe NFT transfer to an EOA account", async () => {
         await testNftTransfer({ safe: true, relayed: false, recipientAddress: eoaRecipient });
       });
 
-      it("should allow unsafe NFT transfer from wallet1 to an EOA account (relayed)", async () => {
+      it("should allow unsafe NFT transfer to an EOA account (relayed)", async () => {
         await testNftTransfer({ safe: false, relayed: true, recipientAddress: eoaRecipient });
       });
 
-      it("should allow safe NFT transfer from wallet1 to an EOA account (relayed)", async () => {
+      it("should allow safe NFT transfer to an EOA account (relayed)", async () => {
         await testNftTransfer({ safe: true, relayed: true, recipientAddress: eoaRecipient });
+      });
+
+      it("should allow unsafe NFT transfer to an EOA account (relayed) with ETH refund", async () => {
+        await wallet1.send("100000000000000");
+        const beforeWallet1 = await erc721.balanceOf(wallet1.address);
+        const beforeRecipient = await erc721.balanceOf(eoaRecipient);
+        
+        const params = [erc721.address, eoaRecipient, tokenId, false, ZERO_BYTES32];
+        const txReceipt = await manager.relay(wallet1, "transferNFT", params, [owner1], 10000, ETH_TOKEN, accounts[9]);
+        // console.log(txReceipt.gasUsed);
+        const { success } = utils.parseRelayReceipt(txReceipt);
+        assert.isTrue(success);
+
+        const afterWallet1 = await erc721.balanceOf(wallet1.address);
+        const afterRecipient = await erc721.balanceOf(eoaRecipient);
+        assert.equal(beforeWallet1.sub(afterWallet1).toNumber(), 1);
+        assert.equal(afterRecipient.sub(beforeRecipient).toNumber(), 1);
       });
     });
 

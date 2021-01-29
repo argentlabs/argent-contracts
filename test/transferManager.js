@@ -59,8 +59,7 @@ contract("TransferManager", (accounts) => {
   });
 
   beforeEach(async () => {
-    const proxy = await DelegateProxy.new({ from: owner });
-    await proxy.setRegistry(registry.address, { from: owner });
+    const proxy = await DelegateProxy.new(registry.address, owner, accounts[9]);
     wallet = await IWallet.at(proxy.address);
 
     const decimals = 12; // number of decimal for TOKN contract
@@ -425,22 +424,62 @@ contract("TransferManager", (accounts) => {
     });
 
     describe("Transfer with refund", () => {
-      it("should refund in ETH", async () => {
+      it("transfer to a whitelisted address with refund in ETH", async () => {
         await wallet.send("100000000000000");
-        const wBalanceStart = await utils.getBalance(wallet.address);
-        const rBalanceStart = await utils.getBalance(recipient);
-        const params = [ETH_TOKEN, recipient, 10000, ZERO_BYTES32];
+        const params = [ETH_TOKEN, nonowner, 10000, ZERO_BYTES32];
+        await wallet.addToWhitelist(nonowner, { from: owner });
+        await utils.increaseTime(SECURITY_PERIOD + 1);
+        const isTrusted = await wallet.isWhitelisted(nonowner);
+        assert.isTrue(isTrusted, "should be trusted after the security period");
+      
         // The first transaction incurs extra cost for setting the nonce first
         // therefore we test 2 transfers for gas cost accuracy
         await manager.relay(wallet, "transferToken", params, [owner], 10000, ETH_TOKEN, recipient);
-        await manager.relay(wallet, "transferToken", params, [owner], 10000, ETH_TOKEN, recipient);
+        
+        const wBalanceStart = await utils.getBalance(wallet.address);
+        const rBalanceStart = await utils.getBalance(recipient);
+        const sBalanceStart = await utils.getBalance(nonowner);
+        
+        const receipt = await manager.relay(wallet, "transferToken", params, [owner], 10000, ETH_TOKEN, recipient);
+        // console.log(receipt.gasUsed);
+        
         const wBalanceEnd = await utils.getBalance(wallet.address);
         const rBalanceEnd = await utils.getBalance(recipient);
-        const refund = wBalanceStart.sub(wBalanceEnd);
-        // should have refunded ETH
-        expect(refund).to.be.gt.BN(0);
-        // should have refunded the recipient
-        expect(refund).to.eq.BN(rBalanceEnd.sub(rBalanceStart));
+        const sBalanceEnd = await utils.getBalance(nonowner);
+        const refundAndTransfer = wBalanceStart.sub(wBalanceEnd);
+        // The recipient refund
+        const refund = rBalanceEnd.sub(rBalanceStart);
+        // should have transferred out ETH and refund
+        expect(refundAndTransfer).to.eq.BN(refund.addn(10000));
+        // should have received the ETH
+        expect(sBalanceEnd.sub(sBalanceStart)).to.eq.BN(10000);
+      });
+
+      it("transfer to a non-whitelisted address with refund in ETH", async () => {
+        await wallet.send("100000000000000");
+        const params = [ETH_TOKEN, nonowner, 10000, ZERO_BYTES32];
+      
+        // The first transaction incurs extra cost for setting the nonce first
+        // therefore we test 2 transfers for gas cost accuracy
+        await manager.relay(wallet, "transferToken", params, [owner], 10000, ETH_TOKEN, recipient);
+        
+        const wBalanceStart = await utils.getBalance(wallet.address);
+        const rBalanceStart = await utils.getBalance(recipient);
+        const sBalanceStart = await utils.getBalance(nonowner);
+        
+        const receipt = await manager.relay(wallet, "transferToken", params, [owner], 10000, ETH_TOKEN, recipient);
+        // console.log(receipt.gasUsed);
+        
+        const wBalanceEnd = await utils.getBalance(wallet.address);
+        const rBalanceEnd = await utils.getBalance(recipient);
+        const sBalanceEnd = await utils.getBalance(nonowner);
+        const refundAndTransfer = wBalanceStart.sub(wBalanceEnd);
+        // The recipient refund
+        const refund = rBalanceEnd.sub(rBalanceStart);
+        // should have transferred out ETH and refund
+        expect(refundAndTransfer).to.eq.BN(refund.addn(10000));
+        // should have received the ETH
+        expect(sBalanceEnd.sub(sBalanceStart)).to.eq.BN(10000);
       });
     });
   });

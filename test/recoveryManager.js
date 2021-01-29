@@ -3,6 +3,9 @@ const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const BN = require("bn.js");
 
+const IWallet = artifacts.require("IWallet");
+const DelegateProxy = artifacts.require("DelegateProxy");
+
 const RelayManager = require("../utils/relay-manager");
 const utils = require("../utils/utilities.js");
 const { setupWalletVersion } = require("../utils/wallet_definition.js");
@@ -10,7 +13,7 @@ const { setupWalletVersion } = require("../utils/wallet_definition.js");
 const WRONG_SIGNATURE_NUMBER_REVERT_MSG = "RM: Wrong number of signatures";
 const INVALID_SIGNATURES_REVERT_MSG = "RM: Invalid signatures";
 
-contract.skip("RecoveryManager", (accounts) => {
+contract("RecoveryManager", (accounts) => {
   const manager = new RelayManager();
 
   const owner = accounts[1];
@@ -21,12 +24,13 @@ contract.skip("RecoveryManager", (accounts) => {
   const nonowner = accounts[6];
   const nonowner2 = accounts[9];
 
-  let recoveryPeriod;
+  const SECURITY_WINDOW = 240 + 1;
+  const RECOVERY_PERIOD = 480 + 1;
   let wallet;
   let relayerManager;
 
   before(async () => {
-    const modules = await setupWalletVersion({ tokenPriceRegistry: tokenPriceRegistry.address });
+    const modules = await setupWalletVersion({ });
     registry = modules.registry;
     relayerManager = modules.relayerManager;
 
@@ -34,8 +38,7 @@ contract.skip("RecoveryManager", (accounts) => {
   });
 
   beforeEach(async () => {
-    const proxy = await DelegateProxy.new({ from: owner });
-    await proxy.setRegistry(registry.address, { from: owner });
+    const proxy = await DelegateProxy.new(registry.address, owner, guardian1);
     wallet = await IWallet.at(proxy.address);
   });
 
@@ -45,20 +48,17 @@ contract.skip("RecoveryManager", (accounts) => {
       await wallet.addGuardian(guardian, { from: owner });
     }
 
-    await utils.increaseTime(30);
+    await utils.increaseTime(SECURITY_WINDOW);
     for (let i = 1; i < guardians.length; i += 1) {
       await wallet.confirmGuardianAddition(guardians[i]);
     }
-    const count = (await wallet.guardianCount()).toNumber();
-    assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
   }
 
   async function createSmartContractGuardians(guardians) {
     const wallets = [];
     let guardian;
     for (guardian of guardians) {
-      const proxy = await DelegateProxy.new({ from: guardian });
-      await proxy.setRegistry(registry.address, { from: guardian });
+      const proxy = await DelegateProxy.new(registry.address, guardian, accounts[8]);
       const guardianWallet = await IWallet.at(proxy.address);
 
       wallets.push(guardianWallet.address);
@@ -76,7 +76,7 @@ contract.skip("RecoveryManager", (accounts) => {
 
       const recoveryConfig = await wallet.getRecovery();
       assert.equal(recoveryConfig._address, newowner);
-      assert.closeTo(recoveryConfig._executeAfter.toNumber(), recoveryPeriod.add(new BN(timestamp)).toNumber(), 1);
+      assert.closeTo(recoveryConfig._executeAfter.toNumber(), RECOVERY_PERIOD.add(new BN(timestamp)).toNumber(), 1);
       assert.equal(recoveryConfig._guardianCount, guardians.length);
     });
 
@@ -123,38 +123,12 @@ contract.skip("RecoveryManager", (accounts) => {
     });
   }
 
-  function testFinalizeRecovery() {
-    it("should let anyone finalize the recovery procedure after the recovery period", async () => {
-      await utils.increaseTime(40); // moving time to after the end of the recovery period
-      await manager.relay(wallet, "finalizeRecovery", [], []);
-      const isLocked = await wallet.isLocked();
-      assert.isFalse(isLocked, "should no longer be locked after finalization of recovery");
-      const walletOwner = await wallet.owner();
-      assert.equal(walletOwner, newowner, "wallet owner should have been changed");
-
-      const recoveryConfig = await wallet.getRecovery();
-      assert.equal(recoveryConfig._address, ethers.constants.AddressZero);
-      assert.equal(recoveryConfig._executeAfter.toNumber(), 0);
-      assert.equal(recoveryConfig._guardianCount, 0);
-    });
-
-    it("should not let anyone finalize the recovery procedure before the end of the recovery period", async () => {
-      const txReceipt = await manager.relay(wallet, "finalizeRecovery", [], []);
-      const { success, error } = utils.parseRelayReceipt(txReceipt);
-      assert.isFalse(success);
-      assert.equal(error, "RM: the recovery period is not over yet");
-
-      const isLocked = await wallet.isLocked();
-      assert.isTrue(isLocked, "should still be locked");
-    });
-  }
-
   function testCancelRecovery() {
     it("should let 2 guardians cancel the recovery procedure", async () => {
       await manager.relay(wallet, "cancelRecovery", [], utils.sortWalletByAddress([guardian1, guardian2]));
       const isLocked = await wallet.isLocked();
       assert.isFalse(isLocked, "should no longer be locked by recovery");
-      await utils.increaseTime(40); // moving time to after the end of the recovery period
+      await utils.increaseTime(RECOVERY_PERIOD); // moving time to after the end of the recovery period
       const txReceipt = await manager.relay(wallet, "finalizeRecovery", [], []);
       const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success);
@@ -172,7 +146,7 @@ contract.skip("RecoveryManager", (accounts) => {
       await manager.relay(wallet, "cancelRecovery", [], [owner, guardian1]);
       const isLocked = await wallet.isLocked();
       assert.isFalse(isLocked, "should no longer be locked by recovery");
-      await utils.increaseTime(40); // moving time to after the end of the recovery period
+      await utils.increaseTime(RECOVERY_PERIOD); // moving time to after the end of the recovery period
       const txReceipt = await manager.relay(wallet, "finalizeRecovery", [], []);
       const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success, "finalization should have failed");
@@ -299,7 +273,7 @@ contract.skip("RecoveryManager", (accounts) => {
 
     describe("EOA Guardians: G = 2", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2]);
+        await addGuardians([guardian2]);
       });
 
       testExecuteRecovery([guardian1, guardian2]);
@@ -307,7 +281,7 @@ contract.skip("RecoveryManager", (accounts) => {
 
     describe("EOA Guardians: G = 3", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2, guardian3]);
+        await addGuardians([guardian2, guardian3]);
       });
 
       testExecuteRecovery([guardian1, guardian2, guardian3]);
@@ -414,28 +388,41 @@ contract.skip("RecoveryManager", (accounts) => {
 
   describe("Finalize Recovery", () => {
     beforeEach(async () => {
-      await addGuardians([guardian1, guardian2, guardian3]);
-      await manager.relay(
-        wallet,
-        "executeRecovery",
-        [newowner],
-        utils.sortWalletByAddress([guardian1, guardian2]),
-      );
+      const receipt = await manager.relay(wallet, "executeRecovery", [newowner], [guardian1]);
+      console.log("executeRecovery", receipt.gasUsed);
     });
 
-    testFinalizeRecovery();
+    it("should let anyone finalize the recovery procedure after the recovery period", async () => {
+      await utils.increaseTime(RECOVERY_PERIOD); // moving time to after the end of the recovery period
+      const tx = await wallet.finalizeRecovery();
+      // console.log("finalizeRecovery", tx.receipt.gasUsed);
+      const isLocked = await wallet.isLocked();
+      assert.isFalse(isLocked, "should no longer be locked after finalization of recovery");
+      const walletOwner = await wallet.owner();
+      assert.equal(walletOwner, newowner, "wallet owner should have been changed");
+
+      const recoveryConfig = await wallet.getRecovery();
+      assert.equal(recoveryConfig._address, ethers.constants.AddressZero);
+      assert.equal(recoveryConfig._executeAfter.toNumber(), 0);
+      assert.equal(recoveryConfig._guardianCount, 0);
+    });
+
+    it("should not let anyone finalize the recovery procedure before the end of the recovery period", async () => {
+      const txReceipt = await manager.relay(wallet, "finalizeRecovery", [], []);
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "RM: the recovery period is not over yet");
+
+      const isLocked = await wallet.isLocked();
+      assert.isTrue(isLocked, "should still be locked");
+    });
   });
 
   describe("Cancel Recovery with 3 guardians", () => {
     describe("EOA Guardians", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2, guardian3]);
-        await manager.relay(
-          wallet,
-          "executeRecovery",
-          [newowner],
-          utils.sortWalletByAddress([guardian1, guardian2]),
-        );
+        await addGuardians([guardian2, guardian3]);
+        await manager.relay(wallet, "executeRecovery", [newowner], utils.sortWalletByAddress([guardian1, guardian2]));
       });
 
       testCancelRecovery();
@@ -444,12 +431,7 @@ contract.skip("RecoveryManager", (accounts) => {
       beforeEach(async () => {
         const scGuardians = await createSmartContractGuardians([guardian1, guardian2, guardian3]);
         await addGuardians(scGuardians);
-        await manager.relay(
-          wallet,
-          "executeRecovery",
-          [newowner],
-          utils.sortWalletByAddress([guardian1, guardian2]),
-        );
+        await manager.relay(wallet, "executeRecovery", [newowner], utils.sortWalletByAddress([guardian1, guardian2]));
       });
 
       testCancelRecovery();
@@ -541,16 +523,12 @@ contract.skip("RecoveryManager", (accounts) => {
     });
 
     describe("Guardians: G = 1", () => {
-      beforeEach(async () => {
-        await addGuardians([guardian1]);
-      });
-
       testOwnershipTransfer([guardian1]);
     });
 
     describe("Guardians: G = 2", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2]);
+        await addGuardians([guardian2]);
       });
 
       testOwnershipTransfer([guardian1, guardian2]);
@@ -558,7 +536,7 @@ contract.skip("RecoveryManager", (accounts) => {
 
     describe("Guardians: G = 3", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2, guardian3]);
+        await addGuardians([guardian2, guardian3]);
       });
 
       testOwnershipTransfer([guardian1, guardian2, guardian3]);
