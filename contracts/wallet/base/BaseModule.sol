@@ -71,7 +71,7 @@ contract BaseModule is WalletStorage {
     function upgrade(address _registry) public 
     onlyWalletOwner()
     {
-        registry = Configuration(_registry);
+        registry = _registry;
     }
 
     /**
@@ -83,20 +83,12 @@ contract BaseModule is WalletStorage {
     }
 
     /**
-     * @notice Returns the number of guardians for a wallet.
-     * @return the number of guardians.
-     */
-    function guardianCount() public view returns (uint256) {
-        return guardians.length;
-    }
-
-    /**
      * @notice Checks if an account is a guardian for a wallet.
      * @param _guardian The account.
      * @return true if the account is a guardian for a wallet.
      */
     function isGuardian(address _guardian) public view returns (bool) {
-        return info[_guardian].exists;
+        return guardians[_guardian];
     }
 
     /**
@@ -105,24 +97,20 @@ contract BaseModule is WalletStorage {
     * @return `true` if the address is a guardian for the wallet otherwise `false`.
     */
     function isGuardianOrGuardianSigner(address _guardian) public view returns (bool) {
-        if (guardians.length == 0 || _guardian == address(0)) {
+        if (guardiansCount == 0 || _guardian == address(0)) {
             return false;
         }
-        bool isFound = false;
-        for (uint256 i = 0; i < guardians.length; i++) {
-            if (!isFound) {
-                // check if _guardian is an account guardian
-                if (_guardian == guardians[i]) {
-                    isFound = true;
-                    continue;
-                }
-                // check if _guardian is the owner of a smart contract guardian
-                if (Utils.isContract(guardians[i]) && isGuardianOwner(guardians[i], _guardian)) {
-                    isFound = true;
-                    continue;
-                }
+
+        // check if _guardian is an account guardian
+        bool isFound = guardians[_guardian];
+
+        // check if _guardian is the owner of a smart contract guardian
+        if (!isFound) {
+            if (Utils.isContract(_guardian) && isGuardianOwner(_guardian, _guardian)) { // TODO have to think of a better way to confirm this
+                isFound = true;
             }
         }
+
         return isFound;
     }
 

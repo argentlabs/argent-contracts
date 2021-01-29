@@ -49,20 +49,19 @@ interface IWallet is
     function owner() external view returns (address);
 
     function registry() external view returns (address);
+    /**
+     * @notice Returns the number of guardians for a wallet.
+     * @return the number of guardians.
+     */
+    function guardiansCount() external view returns (uint256);
 
-    function upgrade(address registry) external;
+    function upgrade(address _registry) external;
 
     /**
      * @notice Checks if a wallet is locked.
      * @return _isLocked `true` if the wallet is locked otherwise `false`.
      */
     function isLocked() external view returns (bool);
-
-    /**
-     * @notice Returns the number of guardians for a wallet.
-     * @return the number of guardians.
-     */
-    function guardianCount() external view returns (uint256);
 
     /**
      * @notice Checks if an account is a guardian for a wallet.

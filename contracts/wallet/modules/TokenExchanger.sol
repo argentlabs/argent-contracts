@@ -165,6 +165,8 @@ contract TokenExchanger is ITokenExchanger, BaseModule {
         uint sellValue = (_srcToken == ETH_TOKEN) ? _srcAmount : 0;
 
         address paraswapSwapper = Configuration(registry).paraswapSwapper();
+        string memory referrer = Configuration(registry).referrer();
+
         uint256 estimatedDestAmount = IAugustusSwapper(paraswapSwapper).multiSwap{value:sellValue}(
             IERC20(_srcToken),
             IERC20(_destToken),
@@ -175,7 +177,7 @@ contract TokenExchanger is ITokenExchanger, BaseModule {
             _mintPrice,
             address(0),
             0,
-            Configuration(registry).referrer());
+            referrer);
         // TODO if estimatedDestAmount is not decoded use _minDestAmount
 
         emit TokenExchanged(address(this), _srcToken, _srcAmount, _destToken, estimatedDestAmount);
@@ -193,7 +195,7 @@ contract TokenExchanger is ITokenExchanger, BaseModule {
         internal
     {
         // Perform the trade
-        uint sellValue = (_srcToken == ETH_TOKEN) ? _maxSrcAmount : 0;
+        uint sellValue = (_srcToken == ETH_TOKEN) ? _destAmount : 0;
 
         address paraswapSwapper = Configuration(registry).paraswapSwapper();
         uint256 estimatedDestAmount = IAugustusSwapper(paraswapSwapper).buy{value:sellValue}(

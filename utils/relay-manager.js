@@ -93,7 +93,7 @@ class RelayManager {
 
     // console.log("gasLimit", gasLimit);
     // console.log("gas sent", gas);
-    console.log("gas used", tx.receipt.gasUsed);
+    // console.log("gas used", tx.receipt.gasUsed);
     // console.log("ratio", gasLimit / tx.receipt.gasUsed);
 
     return tx.receipt;
@@ -134,9 +134,10 @@ class RelayManager {
 
     let gasEstimateFeatureCall = 0;
     try {
-      gasEstimateFeatureCall = await _wallet.methods[_method](..._params).estimateGas({ from: this.relayerManager.address });
+      gasEstimateFeatureCall = await _wallet.contract.methods[_method](..._params).estimateGas({ from: _wallet.address });
       gasEstimateFeatureCall -= 21000;
-    } catch (err) { // eslint-disable-line no-empty
+    } catch (err) {
+      console.log(err);
     } finally {
       // When we can't estimate the inner module call correctly, set this to some large number
       // This only happens for the following tests atm:
@@ -150,15 +151,15 @@ class RelayManager {
 
     let refundGas = 0;
     const methodData = _wallet.contract.methods[_method](..._params).encodeABI();
-    // const requiredSignatures = await _module.getRequiredSignatures(_wallet.address, methodData);
+    const requiredSignatures = await _wallet.getRequiredSignatures(methodData);
 
-    // // Relayer only refund when gasPrice > 0 and the owner is signing
-    // if (_gasPrice > 0 && requiredSignatures[1].toNumber() === 1) {
-    //   if (_signers.length > 1) {
-    //     refundGas = 30000;
-    //   } else {
+    // Relayer only refund when gasPrice > 0 and the owner is signing
+    if (_gasPrice > 0 && requiredSignatures[1].toNumber() === 1) {
+      if (_signers.length > 1) {
+        refundGas = 30000;
+      } else {
          refundGas = 40000;
-    //   }
+      }
 
       // We can achieve better overall estimate if instead of adding a 50K buffer in gas calculation for relayer.execute
       // we add token transfer cost selectively for token refunds.
@@ -166,7 +167,7 @@ class RelayManager {
       // if (_refundToken !== ETH_TOKEN) {
       //   refundGas += 30000;
       // }
-    // }
+    }
 
     // gasLimit = 5200 + [0,1000,4800] + 2052 + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + [40000,30000]
     const gasLimit = 7252 + requiredSigsGas + nonceCheckGas + (10000 * _signers.length) + gasEstimateFeatureCall + refundGas;

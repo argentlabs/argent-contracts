@@ -47,9 +47,8 @@ contract GuardianManager is IGuardianManager, BaseModule {
         require(success, "GM: guardian must be EOA or implement owner()");
         uint256 _securityPeriod = Configuration(registry).securityPeriod();
 
-        if (guardianCount() == 0) {
+        if (guardiansCount == 0) {
             _addGuardian(_guardian);
-            emit GuardianAdded(address(this), _guardian);
         } else {
             bytes32 id = keccak256(abi.encodePacked(_guardian, "addition"));
             require(
@@ -69,8 +68,8 @@ contract GuardianManager is IGuardianManager, BaseModule {
         require(pending[id] > 0, "GM: no pending addition as guardian for target");
         require(pending[id] < block.timestamp, "GM: Too early to confirm guardian addition");
         require(block.timestamp < pending[id] + Configuration(registry).securityWindow(), "GM: Too late to confirm guardian addition");
+        
         _addGuardian(_guardian);
-        emit GuardianAdded(address(this), _guardian);
         delete pending[id];
     }
 
@@ -110,14 +109,7 @@ contract GuardianManager is IGuardianManager, BaseModule {
         require(pending[id] < block.timestamp, "GM: Too early to confirm guardian revokation");
         require(block.timestamp < (pending[id] + Configuration(registry).securityWindow()), "GM: Too late to confirm guardian revokation");
 
-        address lastGuardian = guardians[guardians.length - 1];
-        if (_guardian != lastGuardian) {
-            uint128 targetIndex = info[_guardian].index;
-            guardians[targetIndex] = lastGuardian;
-            info[lastGuardian].index = targetIndex;
-        }
-        guardians.pop();
-        delete info[_guardian];
+        guardians[_guardian] = false;
 
         emit GuardianRevoked(address(this), _guardian);
         delete pending[id];
@@ -137,17 +129,10 @@ contract GuardianManager is IGuardianManager, BaseModule {
         emit GuardianRevokationCancelled(address(this), _guardian);
     }
 
-    /**
-    * @inheritdoc IGuardianManager
-    */
-    function getGuardians() public view override returns (address[] memory) {
-        return guardians;
-    }
-
     function _addGuardian(address _guardian) private {
-        GuardianInfo storage guardianInfo = info[_guardian];
-        guardianInfo.exists = true;
-        guardians.push(_guardian);
-        guardianInfo.index = uint128(guardians.length - 1);
+        guardians[_guardian] = true;
+        guardiansCount += 1;
+    
+        emit GuardianAdded(address(this), _guardian);
     }
 }

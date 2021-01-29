@@ -20,7 +20,6 @@ import "./base/Owned.sol";
 import "./IRegistry.sol";
 import "../wallet/base/Configuration.sol";
 import "../wallet/base/DataTypes.sol";
-import "./IAugustusSwapper.sol";
 
 /**
  * @title Registry implementation

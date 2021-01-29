@@ -49,8 +49,7 @@ contract.skip("RelayerManager", (accounts) => {
   });
 
   beforeEach(async () => {
-    const proxy = await DelegateProxy.new({ from: owner });
-    await proxy.setRegistry(registry.address, { from: owner });
+    const proxy = await DelegateProxy.new(registry.address, owner, guardian);
     wallet = await IWallet.at(proxy.address);
 
     testFeature = await TestFeature.new(lockStorage.address, versionManager.address, 0);
@@ -253,8 +252,6 @@ contract.skip("RelayerManager", (accounts) => {
       // initial daily spent should be 10
       expect(dailySpent).to.eq.BN(10);
       const rBalanceStart = await utils.getBalance(recipient);
-      // add a guardian
-      await wallet.addGuardian(guardian, { from: owner });
       // call approvedTransfer
       const params = [ETH_TOKEN, recipient, 1000, ethers.constants.HashZero];
       await manager.relay(wallet, "transferTokenApproved", params, [owner, guardian]);

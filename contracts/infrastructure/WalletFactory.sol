@@ -19,6 +19,7 @@ pragma solidity ^0.7.6;
 import "./base/Managed.sol";
 import "../wallet/DelegateProxy.sol";
 import "../wallet/modules/IGuardianManager.sol";
+import "../wallet/modules/IRecoveryManager.sol";
 
 /**
  * @title WalletFactory
@@ -33,7 +34,7 @@ contract WalletFactory is Managed {
     mapping (uint256 => address) public registries;
 
     event WalletVersionAdded(uint indexed version, address indexed registry);
-    event WalletCreated(address indexed wallet, uint indexed version, address indexed owner, address guardian);
+    event WalletCreated(address indexed wallet, uint256 indexed version, address indexed owner, address guardian);
 
     /**
      * @notice Lets the owner add a new wallet version, i.e. a new registry of functions in modules.
@@ -58,8 +59,8 @@ contract WalletFactory is Managed {
     onlyManager
     {
         validateInputs(_owner, _guardian, latestVersion);
-        DelegateProxy proxy = new DelegateProxy();
-        configureWallet(address(proxy), _owner, _guardian, latestVersion);
+        DelegateProxy proxy = new DelegateProxy(registries[latestVersion], _owner, _guardian);
+        emit WalletCreated(address(proxy), latestVersion, _owner, _guardian);
     }
 
     /**
@@ -83,8 +84,8 @@ contract WalletFactory is Managed {
     {
         validateInputs(_owner, _guardian, _version);
         bytes32 newsalt = newSalt(_salt, _owner, _guardian, _version);
-        DelegateProxy proxy = new DelegateProxy{salt: newsalt}();
-        configureWallet(address(proxy), _owner, _guardian, _version);
+        DelegateProxy proxy = new DelegateProxy{salt: newsalt}(registries[_version], _owner, _guardian);
+        emit WalletCreated(address(proxy), _version, _owner, _guardian);
         return address(proxy);
     }
 
@@ -107,36 +108,14 @@ contract WalletFactory is Managed {
         returns (address _wallet)
     {
         validateInputs(_owner, _guardian, _version);
-        bytes32 newsalt = newSalt(_salt, _owner, _guardian, _version);
-        bytes memory code = abi.encodePacked(type(DelegateProxy).creationCode);
+        bytes32 newsalt = newSalt(_salt, _owner, _guardian, _version); // TODO remove generating salt with arguments that are already in constructor
+        bytes memory code = abi.encodePacked(type(DelegateProxy).creationCode, registries[_version], _owner, _guardian);
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _wallet = address(uint160(uint256(hash)));
     }
 
 
     // *************** Internal Functions ********************* //
-
-    /**
-     * @notice Helper method to configure a wallet for a set of input parameters.
-     * @param _wallet The target wallet
-     * @param _owner The account address.
-     * @param _guardian The guardian address.
-     * @param _version The version of the feature bundle.
-     */
-    function configureWallet(
-        address payable _wallet,
-        address _owner,
-        address _guardian,
-        uint256 _version
-    )
-        internal
-    {
-        DelegateProxy(_wallet).setRegistry(registries[_version]);
-        IGuardianManager(_wallet).addGuardian(_guardian);
-        Owned(_wallet).changeOwner(_owner);
- 
-        emit WalletCreated(_wallet, _version, _owner, _guardian);
-    }
 
     /**
      * @notice Generates a new salt based on a provided salt, an owner, a list of modules and an optional guardian.

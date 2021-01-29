@@ -35,18 +35,13 @@ contract.skip("LockManager", (accounts) => {
   });
 
   beforeEach(async () => {
-    const proxy = await DelegateProxy.new({ from: owner });
-    await proxy.setRegistry(registry.address, { from: owner });
+    const proxy = await DelegateProxy.new(registry.address, owner, guardian1);
     wallet = await IWallet.at(proxy.address);
   });
 
   describe("(Un)Lock by EOA guardians", () => {
     beforeEach(async () => {
       await wallet.addGuardian(guardian1, { from: owner });
-      const count = await wallet.guardianCount();
-      expect(count).to.be.eq.BN(1);
-      const isGuardian = await wallet.isGuardian(guardian1);
-      assert.isTrue(isGuardian);
       const isLocked = await wallet.isLocked();
       assert.isFalse(isLocked);
     });
@@ -94,15 +89,10 @@ contract.skip("LockManager", (accounts) => {
 
   describe("(Un)Lock by Smart Contract guardians", () => {
     beforeEach(async () => {
-      const proxy = await DelegateProxy.new({ from: guardian1 });
-      await proxy.setRegistry(registry.address, { from: guardian1 });
+      const proxy = await DelegateProxy.new(registry.address, guardian1, accounts[9]);
       const guardianWallet = await IWallet.at(proxy.address);
 
       await wallet.addGuardian(guardianWallet.address, { from: owner });
-      const count = await wallet.guardianCount();
-      expect(count).to.be.eq.BN(1);
-      const isGuardian = await wallet.isGuardian(guardianWallet.address);
-      assert.isTrue(isGuardian, "guardian1 should be a guardian of the wallet");
       const isLocked = await wallet.isLocked();
       assert.isFalse(isLocked, "should be unlocked by default");
     });

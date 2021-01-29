@@ -16,7 +16,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
-import "../../infrastructure/base/Owned.sol";
 import "./Configuration.sol";
 import "./DataTypes.sol";
 
@@ -25,14 +24,11 @@ import "./DataTypes.sol";
  * @notice Storage properties for a wallet are consolidated here for clarity.
  * @author Elena Gesheva - <elena@argent.xyz>
  */
-contract WalletStorage is DataTypes, Owned {
-    // address public owner; from Owned - storage slot 0
-    Configuration public registry; // from DelegateProxy - storage slot 1
-
-    // the list of guardians
-    address[] public guardians;
-    // the info about guardians
-    mapping (address => GuardianInfo) public info;
+contract WalletStorage is DataTypes {
+    address public registry; // from DelegateProxy - storage slot 0
+    address public owner; // from DelegateProxy - storage slot 1
+    uint256 public guardiansCount;  // from DelegateProxy - storage slot 2
+    mapping (address => bool) public guardians;  // from DelegateProxy - storage slot 3
 
     Limit public limit;
 

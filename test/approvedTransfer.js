@@ -49,8 +49,7 @@ contract("ApprovedTransfer", (accounts) => {
   });
 
   beforeEach(async () => {
-    const proxy = await DelegateProxy.new({ from: owner });
-    await proxy.setRegistry(registry.address, { from: owner });
+    const proxy = await DelegateProxy.new(registry.address, owner, guardian1);
     wallet = await IWallet.at(proxy.address);
 
     const decimals = 12; // number of decimal for TOKN contract
@@ -73,8 +72,7 @@ contract("ApprovedTransfer", (accounts) => {
   async function createSmartContractGuardians(guardians) {
     const wallets = [];
     for (const guardian of guardians) {
-      const proxy = await DelegateProxy.new({ from: guardian });
-      await proxy.setRegistry(registry.address, { from: guardian });
+      const proxy = await DelegateProxy.new(registry.address, guardian, accounts[9]);
       const guardianWallet = await IWallet.at(proxy.address);
       wallets.push(guardianWallet.address);
     }
@@ -92,9 +90,9 @@ contract("ApprovedTransfer", (accounts) => {
     const before = await utils.getBalance(contract.address);
     const newState = parseInt((await contract.state()).toString(), 10) + 1;
     const dataToTransfer = contract.contract.methods.setState([newState]).encodeABI();
-    await manager.relay(wallet, "callContractApproved",
-      [contract.address, amountToTransfer, dataToTransfer], _signers);
+    await manager.relay(wallet, "callContractApproved", [contract.address, amountToTransfer, dataToTransfer], _signers);
     const after = await utils.getBalance(contract.address);
+
     assert.equal(after.sub(before).toNumber(), amountToTransfer, "should have transfered the ETH amount");
     assert.equal((await contract.state()).toNumber(), newState, "the state of the external contract should have been changed");
   }
@@ -111,15 +109,8 @@ contract("ApprovedTransfer", (accounts) => {
       );
     }
 
-    it("should fail to transfer ETH on a wallet with no guardian", async () => {
-      await expectFailingTransferToken(utils.ETH_TOKEN, [owner], "AT: no guardians set on wallet");
-    });
-
     describe("Approved by EOA guardians", () => {
       describe("1 guardian", () => {
-        beforeEach(async () => {
-          await addGuardians([guardian1]);
-        });
         it("should transfer ETH with 1 confirmation for 1 guardian", async () => {
           await transferTokenApproved(utils.ETH_TOKEN, [owner, guardian1]);
         });
@@ -133,7 +124,7 @@ contract("ApprovedTransfer", (accounts) => {
 
       describe("2 guardians", () => {
         beforeEach(async () => {
-          await addGuardians([guardian1, guardian2]);
+          await addGuardians([guardian2]);
         });
         it("should transfer ETH with 1 confirmation for 2 guardians", async () => {
           await transferTokenApproved(utils.ETH_TOKEN, [owner, guardian1]);
@@ -142,7 +133,7 @@ contract("ApprovedTransfer", (accounts) => {
 
       describe("3 guardians", () => {
         beforeEach(async () => {
-          await addGuardians([guardian1, guardian2, guardian3]);
+          await addGuardians([guardian2, guardian3]);
         });
         it("should not transfer ETH with 1 confirmation for 3 guardians", async () => {
           await expectFailingTransferToken(utils.ETH_TOKEN, [owner, guardian1], "RM: Wrong number of signatures");
@@ -202,13 +193,13 @@ contract("ApprovedTransfer", (accounts) => {
 
     describe("Approved by EOA and smart-contract guardians", () => {
       it("should transfer ETH with 1 EOA guardian and 2 smart-contract guardians", async () => {
-        await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
+        await addGuardians([...(await createSmartContractGuardians([guardian2, guardian3]))]);
         await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
         await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian3])]);
         await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian2, guardian3])]);
       });
       it("should transfer ETH with 2 EOA guardians and 1 smart-contract guardian", async () => {
-        await addGuardians([guardian1, guardian2, ...await createSmartContractGuardians([guardian3])]);
+        await addGuardians([guardian2, ...await createSmartContractGuardians([guardian3])]);
         await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian2])]);
         await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian1, guardian3])]);
         await transferTokenApproved(utils.ETH_TOKEN, [owner, ...utils.sortWalletByAddress([guardian2, guardian3])]);
@@ -236,7 +227,7 @@ contract("ApprovedTransfer", (accounts) => {
       beforeEach(async () => {
         contract = await TestContract.new();
         assert.equal(await contract.state(), 0, "initial contract state should be 0");
-        await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
+        await addGuardians([...(await createSmartContractGuardians([guardian2, guardian3]))]);
       });
 
       it("should call a contract and transfer ETH with 1 EOA guardian and 2 smart-contract guardians", async () => {
@@ -263,7 +254,7 @@ contract("ApprovedTransfer", (accounts) => {
       beforeEach(async () => {
         contract = await TestContract.new();
         assert.equal(await contract.state(), 0, "initial contract state should be 0");
-        await addGuardians([guardian1, ...(await createSmartContractGuardians([guardian2, guardian3]))]);
+        await addGuardians([...(await createSmartContractGuardians([guardian2, guardian3]))]);
       });
 
       describe("Invalid Target", () => {
@@ -349,7 +340,6 @@ contract("ApprovedTransfer", (accounts) => {
 
   describe.skip("Daily Limit", () => {
     beforeEach(async () => {
-      await addGuardians([guardian1]);
       await wallet.setLimitAndDailySpent(1000000, 500);
     });
 

@@ -65,10 +65,4 @@ interface IGuardianManager {
      * @param _guardian The guardian.
      */
     function cancelGuardianRevokation(address _guardian) external;
-
-    /**
-     * @notice Get the active guardians for a wallet.
-     * @return _guardians the active guardians for a wallet.
-     */
-    function getGuardians() external view returns (address[] memory);
 }

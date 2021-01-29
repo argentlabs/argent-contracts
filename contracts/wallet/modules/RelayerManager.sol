@@ -298,7 +298,8 @@ contract RelayerManager is IRelayerManager, BaseModule {
             uint256 gasConsumed = _startGas.sub(gasleft()).add(40000);
             refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
             uint256 ethAmount = (_refundToken == ETH_TOKEN) ? refundAmount : getEtherValue(refundAmount, _refundToken);
-            // TODO require(LimitUtils.checkAndUpdateDailySpent(limitStorage, versionManager, _wallet, ethAmount), "RM: refund is above daily limit");
+            // TODO decide whether we keep the daily limit logic here
+            // require(checkAndUpdateDailySpent(ethAmount), "RM: refund is above daily limit");
         }
         // refund in ETH or ERC20
         if (_refundToken == ETH_TOKEN) {
@@ -330,13 +331,7 @@ contract RelayerManager is IRelayerManager, BaseModule {
         return etherValue;
     }
 
-    /**
-    * @notice Gets the number of valid signatures that must be provided to execute a
-    * specific relayed transaction.
-    * @param _data The data of the relayed transaction.
-    * @return The number of required signatures and the wallet owner signature requirement.
-    */
-    function getRequiredSignatures(bytes calldata _data) public view returns (uint256, OwnerSignature) {
+    function getRequiredSignatures(bytes calldata _data) public override view returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
         (OwnerSignature ownerSigRequirement, GuardianSignature guardianSigRequirement) =
         Configuration(registry).relaySignatures(methodId);
@@ -348,14 +343,14 @@ contract RelayerManager is IRelayerManager, BaseModule {
 
         // Add majority of guardians when required
         if (guardianSigRequirement == GuardianSignature.Majority) {
-            uint majorityGuardians = Utils.ceil(guardianCount(), 2);
+            uint majorityGuardians = Utils.ceil(guardiansCount, 2);
             require(majorityGuardians > 0, "AT: no guardians set on wallet");
             requiredSignatures += majorityGuardians;
         }
 
         // Add majority of guardians including owner when required
         if (guardianSigRequirement == GuardianSignature.MajorityIncOwner) {
-            uint majorityGuardiansIncOwner = Utils.ceil(guardianCount() + 1, 2);
+            uint majorityGuardiansIncOwner = Utils.ceil(guardiansCount + 1, 2);
             requiredSignatures += majorityGuardiansIncOwner;
         }
 

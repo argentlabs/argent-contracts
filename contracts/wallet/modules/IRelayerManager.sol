@@ -16,6 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.7.6;
 
+import "../base/DataTypes.sol";
 import "../../infrastructure/ITokenPriceRegistry.sol";
 
 /**
@@ -59,4 +60,12 @@ interface IRelayerManager {
     )
         external
         returns (bool);
+
+    /**
+    * @notice Gets the number of valid signatures that must be provided to execute a
+    * specific relayed transaction.
+    * @param _data The data of the relayed transaction.
+    * @return The number of required signatures and the wallet owner signature requirement.
+    */
+    function getRequiredSignatures(bytes calldata _data) external view returns (uint256, DataTypes.OwnerSignature);
 }

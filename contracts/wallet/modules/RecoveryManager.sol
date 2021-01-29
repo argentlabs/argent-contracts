@@ -66,7 +66,7 @@ contract RecoveryManager is IRecoveryManager, BaseModule {
     {
         recoveryConfig.recovery = _recovery;
         recoveryConfig.executeAfter = uint64(block.timestamp + Configuration(registry).recoveryPeriod());
-        recoveryConfig.guardianCount = uint32(guardianCount());
+        recoveryConfig.guardianCount = uint32(guardiansCount);
         setLock(block.timestamp + Configuration(registry).lockPeriod());
         emit RecoveryExecuted(address(this), _recovery, recoveryConfig.executeAfter);
     }
@@ -81,7 +81,7 @@ contract RecoveryManager is IRecoveryManager, BaseModule {
         address recoveryOwner = recoveryConfig.recovery;
         delete recoveryConfig;
 
-        Owned(address(this)).changeOwner(recoveryOwner);
+        owner = recoveryOwner;
         setLock(0);
 
         emit RecoveryFinalized(address(this), recoveryOwner);
@@ -109,7 +109,7 @@ contract RecoveryManager is IRecoveryManager, BaseModule {
     onlyWhenUnlocked()
     validateNewOwner(_newOwner)
     {
-        Owned(address(this)).changeOwner(_newOwner);
+        owner = _newOwner;
 
         emit OwnershipTransfered(address(this), _newOwner);
     }

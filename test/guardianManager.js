@@ -34,8 +34,7 @@ contract("GuardianManager", (accounts) => {
   });
 
   beforeEach(async () => {
-    const proxy = await DelegateProxy.new({ from: owner });
-    await proxy.setRegistry(registry.address, { from: owner });
+    const proxy = await DelegateProxy.new(registry.address, owner, guardian1);
     wallet = await IWallet.at(proxy.address);
   });
 
@@ -43,26 +42,22 @@ contract("GuardianManager", (accounts) => {
     describe("EOA Guardians", () => {
       it("should let the owner add EOA Guardians (blockchain transaction)", async () => {
         await wallet.addGuardian(guardian1, { from: owner });
-        let count = (await wallet.guardianCount()).toNumber();
+        let count = (await wallet.guardiansCount()).toNumber();
         let active = await wallet.isGuardian(guardian1);
         assert.isTrue(active, "first guardian should be active");
         assert.equal(count, 1, "1 guardian should be active");
 
         await wallet.addGuardian(guardian2, { from: owner });
-        count = (await wallet.guardianCount()).toNumber();
+        count = (await wallet.guardiansCount()).toNumber();
         active = await wallet.isGuardian(guardian2);
         assert.isFalse(active, "second guardian should not yet be active");
         assert.equal(count, 1, "second guardian should be pending during security period");
 
         await utilities.increaseTime(SECURITY_WINDOW + 1);
         await wallet.confirmGuardianAddition(guardian2);
-        count = (await wallet.guardianCount()).toNumber();
+        count = (await wallet.guardiansCount()).toNumber();
         active = await wallet.isGuardian(guardian2);
-        const guardians = await wallet.getGuardians();
         assert.isTrue(active, "second guardian should be active");
-        assert.equal(count, 2, "2 guardians should be active after security period");
-        assert.equal(guardian1, guardians[0], "should return first guardian address");
-        assert.equal(guardian2, guardians[1], "should return second guardian address");
       });
 
       it("should not let the owner add EOA Guardians after two security periods (blockchain transaction)", async () => {
@@ -72,7 +67,7 @@ contract("GuardianManager", (accounts) => {
         await utilities.increaseTime(SECURITY_WINDOW * 2);
         await truffleAssert.reverts(wallet.confirmGuardianAddition(guardian2), "GM: Too late to confirm guardian addition");
 
-        const count = (await wallet.guardianCount()).toNumber();
+        const count = (await wallet.guardiansCount()).toNumber();
         const active = await wallet.isGuardian(guardian2);
         assert.isFalse(active, "second guardian should not be active (addition confirmation was too late)");
         assert.equal(count, 1, "1 guardian should be active after two security periods (addition confirmation was too late)");
@@ -96,14 +91,14 @@ contract("GuardianManager", (accounts) => {
 
         // second time
         await wallet.addGuardian(guardian2, { from: owner });
-        let count = (await wallet.guardianCount()).toNumber();
+        let count = (await wallet.guardiansCount()).toNumber();
         let active = await wallet.isGuardian(guardian2);
         assert.isFalse(active, "second guardian should not yet be active");
         assert.equal(count, 1, "second guardian should be pending during security period");
 
         await utilities.increaseTime(SECURITY_WINDOW + 1);
         await wallet.confirmGuardianAddition(guardian2);
-        count = (await wallet.guardianCount()).toNumber();
+        count = (await wallet.guardiansCount()).toNumber();
         active = await wallet.isGuardian(guardian2);
         assert.isTrue(active, "second guardian should be active");
         assert.equal(count, 2, "2 guardians should be active after security period");
@@ -131,7 +126,7 @@ contract("GuardianManager", (accounts) => {
 
       it("should let the owner add an EOA guardian (relayed transaction)", async () => {
         await manager.relay(wallet, "addGuardian", [guardian1], [owner]);
-        const count = (await wallet.guardianCount()).toNumber();
+        const count = (await wallet.guardiansCount()).toNumber();
         const active = await wallet.isGuardian(guardian1);
         assert.isTrue(active, "first guardian should be active");
         assert.equal(count, 1, "1 guardian should be active");
@@ -147,7 +142,7 @@ contract("GuardianManager", (accounts) => {
             await utilities.increaseTime(SECURITY_WINDOW + 1);
             await wallet.confirmGuardianAddition(guardians[i - 1]);
           }
-          count = (await wallet.guardianCount()).toNumber();
+          count = (await wallet.guardiansCount()).toNumber();
           active = await wallet.isGuardian(guardians[i - 1]);
           assert.equal(count, i, `guardian ${i} should be added`);
           assert.isTrue(active, `guardian ${i} should be active`);
@@ -164,7 +159,7 @@ contract("GuardianManager", (accounts) => {
             await utilities.increaseTime(SECURITY_WINDOW + 1);
             await manager.relay(wallet, "confirmGuardianAddition", [guardians[i - 1]], []);
           }
-          count = (await wallet.guardianCount()).toNumber();
+          count = (await wallet.guardiansCount()).toNumber();
           active = await wallet.isGuardian(guardians[i - 1]);
           assert.equal(count, i, `guardian ${i} should be added`);
           assert.isTrue(active, `guardian ${i} should be active`);
@@ -178,12 +173,10 @@ contract("GuardianManager", (accounts) => {
       let dumbContract;
 
       beforeEach(async () => {
-        const proxy = await DelegateProxy.new({ from: guardian1 });
-        await proxy.setRegistry(registry.address, { from: guardian1 });
+        const proxy = await DelegateProxy.new(registry.address, guardian1, accounts[9]);
         guardianWallet1 = await IWallet.at(proxy.address);
 
-        const proxy2 = await DelegateProxy.new({ from: guardian2 });
-        await proxy2.setRegistry(registry.address, { from: guardian2 });
+        const proxy2 = await DelegateProxy.new(registry.address, guardian2, accounts[9]);
         guardianWallet2 = await IWallet.at(proxy2.address);
 
         dumbContract = await DumbContract.new();
@@ -191,7 +184,7 @@ contract("GuardianManager", (accounts) => {
 
       it("should let the owner add Smart Contract Guardians (blockchain transaction)", async () => {
         await wallet.addGuardian(guardianWallet1.address, { from: owner });
-        let count = (await wallet.guardianCount()).toNumber();
+        let count = (await wallet.guardiansCount()).toNumber();
         let active = await wallet.isGuardianOrGuardianSigner(guardian1);
         assert.isTrue(active, "first guardian owner should be recognized as guardian");
         active = await wallet.isGuardian(guardianWallet1.address);
@@ -199,7 +192,7 @@ contract("GuardianManager", (accounts) => {
         assert.equal(count, 1, "1 guardian should be active");
 
         await wallet.addGuardian(guardianWallet2.address, { from: owner });
-        count = (await wallet.guardianCount()).toNumber();
+        count = (await wallet.guardiansCount()).toNumber();
         active = await wallet.isGuardianOrGuardianSigner(guardian2);
         assert.isFalse(active, "second guardian owner should not yet be active");
         active = await wallet.isGuardian(guardianWallet2.address);
@@ -208,7 +201,7 @@ contract("GuardianManager", (accounts) => {
 
         await utilities.increaseTime(SECURITY_WINDOW + 1);
         await wallet.confirmGuardianAddition(guardianWallet2.address);
-        count = (await wallet.guardianCount()).toNumber();
+        count = (await wallet.guardiansCount()).toNumber();
         assert.equal(count, 2, "2 guardians should be active after security period");
         active = await wallet.isGuardianOrGuardianSigner(guardian2);
         assert.isTrue(active, "second guardian owner should be active");
@@ -218,7 +211,7 @@ contract("GuardianManager", (accounts) => {
 
       it("should let the owner add a Smart Contract guardian (relayed transaction)", async () => {
         await manager.relay(wallet, "addGuardian", [guardianWallet1.address], [owner]);
-        const count = (await wallet.guardianCount()).toNumber();
+        const count = (await wallet.guardiansCount()).toNumber();
         let active = await wallet.isGuardian(guardianWallet1.address);
         assert.isTrue(active, "first guardian should be active");
         active = await wallet.isGuardianOrGuardianSigner(guardian1);
@@ -246,20 +239,20 @@ contract("GuardianManager", (accounts) => {
       await wallet.addGuardian(guardian2, { from: owner });
       await utilities.increaseTime(SECURITY_WINDOW + 1);
       await wallet.confirmGuardianAddition(guardian2);
-      const count = (await wallet.guardianCount()).toNumber();
+      const count = (await wallet.guardiansCount()).toNumber();
       assert.equal(count, 2, "2 guardians should be added");
     });
 
     it("should revoke a guardian (blockchain transaction)", async () => {
       await wallet.revokeGuardian(guardian1, { from: owner });
-      let count = (await wallet.guardianCount()).toNumber();
+      let count = (await wallet.guardiansCount()).toNumber();
       let active = await wallet.isGuardian(guardian1);
       assert.isTrue(active, "the revoked guardian should still be active during the security period");
       assert.equal(count, 2, "the revoked guardian should go through a security period");
 
       await utilities.increaseTime(SECURITY_WINDOW + 1);
       await wallet.confirmGuardianRevokation(guardian1);
-      count = (await wallet.guardianCount()).toNumber();
+      count = (await wallet.guardiansCount()).toNumber();
       active = await wallet.isGuardian(guardian1);
       assert.isFalse(active, "the revoked guardian should no longer be active after the security period");
       assert.equal(count, 1, "the revoked guardian should be removed after the security period");
@@ -300,14 +293,14 @@ contract("GuardianManager", (accounts) => {
 
       // second time
       await wallet.revokeGuardian(guardian1, { from: owner });
-      let count = (await wallet.guardianCount()).toNumber();
+      let count = (await wallet.guardiansCount()).toNumber();
       let active = await wallet.isGuardian(guardian1);
       assert.isTrue(active, "the revoked guardian should still be active during the security period");
       assert.equal(count, 2, "the revoked guardian should go through a security period");
 
       await utilities.increaseTime(SECURITY_WINDOW + 1);
       await wallet.confirmGuardianRevokation(guardian1);
-      count = (await wallet.guardianCount()).toNumber();
+      count = (await wallet.guardiansCount()).toNumber();
       active = await wallet.isGuardian(guardian1);
       assert.isFalse(active, "the revoked guardian should no longer be active after the security period");
       assert.equal(count, 1, "the revoked guardian should be removed after the security period");
@@ -317,13 +310,13 @@ contract("GuardianManager", (accounts) => {
       await wallet.revokeGuardian(guardian1, { from: owner });
       await utilities.increaseTime(SECURITY_WINDOW + 1);
       await wallet.confirmGuardianRevokation(guardian1);
-      let count = (await wallet.guardianCount()).toNumber();
+      let count = (await wallet.guardiansCount()).toNumber();
       assert.equal(count, 1, "there should be 1 guardian left");
 
       await wallet.addGuardian(guardian3, { from: owner });
       await utilities.increaseTime(SECURITY_WINDOW + 1);
       await wallet.confirmGuardianAddition(guardian3);
-      count = (await wallet.guardianCount()).toNumber();
+      count = (await wallet.guardiansCount()).toNumber();
       assert.equal(count, 2, "there should be 2 guardians again");
     });
 
@@ -331,14 +324,14 @@ contract("GuardianManager", (accounts) => {
       await wallet.addGuardian(guardian3, { from: owner });
       await utilities.increaseTime(SECURITY_WINDOW + 1);
       await wallet.confirmGuardianAddition(guardian3);
-      let count = await wallet.guardianCount();
+      let count = await wallet.guardiansCount();
       assert.equal(count.toNumber(), 3, "there should be 3 guardians");
 
       const guardians = await wallet.getGuardians();
       await wallet.revokeGuardian(guardians[2], { from: owner });
       await utilities.increaseTime(SECURITY_WINDOW + 1);
       await wallet.confirmGuardianRevokation(guardians[2]);
-      count = await wallet.guardianCount();
+      count = await wallet.guardiansCount();
       assert.equal(count.toNumber(), 2, "there should be 2 guardians left");
     });
   });
@@ -346,7 +339,7 @@ contract("GuardianManager", (accounts) => {
   describe("Cancelling Pending Guardians", () => {
     beforeEach(async () => {
       await wallet.addGuardian(guardian1, { from: owner });
-      const count = (await wallet.guardianCount()).toNumber();
+      const count = (await wallet.guardiansCount()).toNumber();
       assert.equal(count, 1, "1 guardian should be added");
     });
 

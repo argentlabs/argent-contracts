@@ -17,26 +17,36 @@
 pragma solidity ^0.7.6;
 
 import "../infrastructure/IRegistry.sol";
-import "../infrastructure/base/Owned.sol";
 
 /**
  * @title DelegateProxy
  * @notice Proxy that delegates all calls to a registered set of upgradable implementation contracts
  * @author Elena Gesheva - <elena@argent.xyz>
  */
-contract DelegateProxy is Owned {
+contract DelegateProxy {
 
     address public registry;
+    address public owner;
+    uint256 public guardiansCount;
+    mapping (address => bool) public guardians;
 
     event Received(uint indexed value, address indexed sender, bytes data);
 
+    constructor(address _registry, address _owner, address _guardian) {
+        registry = _registry;
+        owner = _owner;
+        guardians[_guardian] = true;
+        guardiansCount += 1;
+    }
+
     fallback() external payable { // solhint-disable-line no-complex-fallback
-        address destination = IRegistry(registry).getImplementation(msg.sig);
+        address implementation = IRegistry(registry).getImplementation(msg.sig);
+        require(implementation != address(0), "DP: Function not registered");
 
         // solhint-disable-next-line no-inline-assembly
         assembly {
             calldatacopy(0, 0, calldatasize())
-            let result := delegatecall(gas(), destination, 0, calldatasize(), 0, 0)
+            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
             returndatacopy(0, 0, returndatasize())
             switch result
             case 1 { return (0, returndatasize()) }
@@ -49,8 +59,8 @@ contract DelegateProxy is Owned {
     }
 
     function setRegistry(address _registry) public
-    onlyOwner
     {
-      registry = _registry;
+        require (msg.sender == owner, "DP: Must be owner");
+        registry = _registry;
     }
 }

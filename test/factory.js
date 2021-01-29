@@ -19,7 +19,7 @@ contract("WalletFactory", (accounts) => {
 
   let factory;
 
-  beforeEach(async () => {
+  before(async () => {
     const modules = await setupWalletVersion({ });
     registry = modules.registry;
 
@@ -32,6 +32,7 @@ contract("WalletFactory", (accounts) => {
     it("should create with the correct owner", async () => {
       // we create the wallet
       const tx = await factory.createWallet(owner, guardian);
+      // console.log(tx.receipt.gasUsed)
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
       // we test that the wallet has the correct owner
@@ -90,14 +91,10 @@ contract("WalletFactory", (accounts) => {
 
     it("should create with the correct owner", async () => {
       const salt = utils.generateSaltValue();
-      // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, guardian, salt, 1);
       // we create the wallet
       const tx = await factory.createCounterfactualWallet(owner, guardian, salt, 1);
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
-      // we test that the wallet is at the correct address
-      assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct owner
       const wallet = await IWallet.at(walletAddr);
       const walletOwner = await wallet.owner();
@@ -106,14 +103,10 @@ contract("WalletFactory", (accounts) => {
 
     it("should create with the correct guardian", async () => {
       const salt = utils.generateSaltValue();
-      // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, guardian, salt, 1);
       // we create the wallet
       const tx = await factory.createCounterfactualWallet(owner, guardian, salt, 1);
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
-      // we test that the wallet is at the correct address
-      assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct guardian
       const wallet = await IWallet.at(walletAddr);
       const success = await wallet.isGuardian(guardian);
@@ -130,13 +123,8 @@ contract("WalletFactory", (accounts) => {
 
     it("should fail to create a wallet at an existing address", async () => {
       const salt = utils.generateSaltValue();
-      // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, guardian, salt, 1);
       // we create the first wallet
-      const tx = await factory.createCounterfactualWallet(owner, guardian, salt, 1);
-      const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
-      // we test that the wallet is at the correct address
-      assert.equal(futureAddr, event.args.wallet, "should have the correct address");
+      await factory.createCounterfactualWallet(owner, guardian, salt, 1);
       // we create the second wallet
       await truffleAssert.reverts(factory.createCounterfactualWallet(owner, guardian, salt, 1));
     });
@@ -149,7 +137,7 @@ contract("WalletFactory", (accounts) => {
       );
     });
 
-    it.skip("should emit and event when the balance is non zero at creation", async () => {
+    it("should emit and event when the balance is non zero at creation", async () => {
       const salt = utils.generateSaltValue();
       const amount = 10000000000000;
       // we get the future address
@@ -187,14 +175,15 @@ contract("WalletFactory", (accounts) => {
 
     it("should be able to upgrade a wallet", async () => {
       // Create a wallet
-      await factory.createWallet(owner, guardian);
+      const tx = await factory.createWallet(owner, guardian);
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
       const wallet = await IWallet.at(walletAddr);
 
-      // Test the wallet is configured on version 1
+      // Test the wallet is configured on correct version
+      let latestVersion = await factory.latestVersion();
       const registry1 = await wallet.registry();
-      const registryFactory1 = await factory.registries(1);
+      const registryFactory1 = await factory.registries(latestVersion);
       assert.equal(registry1, registryFactory1);
 
       // Add a new version
@@ -203,11 +192,13 @@ contract("WalletFactory", (accounts) => {
       await factory.addVersion(registryNew.address);
 
       // Upgrade wallet
-      await wallet.upgrade(registryNew.address, { from: owner });
+      const tx1 = await wallet.upgrade(registryNew.address, { from: owner });
+      // console.log(tx1.receipt.gasUsed)
 
-      // Test the wallet is configured on version 2
+      // Test the wallet is configured on latest version
+      latestVersion = await factory.latestVersion();
       const registry2 = await wallet.registry();
-      const registryFactory2 = await factory.registries(2);
+      const registryFactory2 = await factory.registries(latestVersion);
       assert.equal(registry2, registryFactory2);
     });
 
