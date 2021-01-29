@@ -2,7 +2,7 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./IFilter.sol";
-import "../../infrastructure/ITokenPriceRegistry.sol";
+import "../ITokenPriceRegistry.sol";
 
 interface IParaswap {
 

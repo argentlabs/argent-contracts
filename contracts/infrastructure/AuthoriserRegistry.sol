@@ -1,10 +1,10 @@
 pragma solidity ^0.6.12;
 
 import "./IAuthoriser.sol";
-import "./IFilter.sol";
-import "../../infrastructure/base/Owned.sol";
+import "./dapp/IFilter.sol";
+import "./base/Owned.sol";
 
-contract DappAuthoriser is IAuthoriser, Owned {
+contract AuthoriserRegistry is IAuthoriser, Owned {
 
     struct Authorisation {
         bool isActive;
@@ -13,7 +13,7 @@ contract DappAuthoriser is IAuthoriser, Owned {
 
     mapping (address => Authorisation) public authorisations;
 
-    function authorise(address _contract, bytes calldata _data) external view override returns (bool) {
+    function authorise(address _wallet, address _contract, bytes calldata _data) external view override returns (bool) {
         Authorisation memory authorisation = authorisations[_contract];
         if (authorisation.isActive) {
             return _data.length == 0 || authorisation.filter == address(0) || IFilter(authorisation.filter).validate(_data);

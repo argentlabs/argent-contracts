@@ -32,7 +32,7 @@ abstract contract RelayerManager is BaseModule {
 
     uint256 constant internal BLOCKBOUND = 10000;
 
-    mapping (address => RelayerConfig) public relayer;
+    mapping (address => RelayerConfig) internal relayer;
 
     mapping (address => Session) public sessions;
 
@@ -334,7 +334,10 @@ abstract contract RelayerManager is BaseModule {
         if (_gasPrice > 0 && (_option == OwnerSignature.Required || _option == OwnerSignature.Session)) {
             address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
             if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
-                // check whitelist
+                    if (!authoriser.authorise(_wallet, refundAddress, EMPTY_BYTES)) {
+                        uint whitelistAfter = userWhitelist.getWhitelist(_wallet, refundAddress);
+                        require(whitelistAfter > 0 && whitelistAfter < block.timestamp, "RM: refund not authorised");
+                    }
             }
             uint256 refundAmount;
             if (_refundToken == ETH_TOKEN) {

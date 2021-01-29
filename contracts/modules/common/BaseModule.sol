@@ -21,6 +21,8 @@ import "../../wallet/IWallet.sol";
 import "../../infrastructure/IModuleRegistry.sol";
 import "../../infrastructure/storage/ILockStorage.sol";
 import "../../infrastructure/storage/IGuardianStorage.sol";
+import "../../infrastructure/IAuthoriser.sol";
+import "../../infrastructure/storage/ITransferStorage.sol";
 import "./IModule.sol";
 import "../../../lib/other/ERC20.sol";
 
@@ -42,14 +44,18 @@ contract BaseModule is IModule {
 
 
     // The Module Registry
-    IModuleRegistry private registry;
+    IModuleRegistry internal registry;
     // The address of the Lock storage
     ILockStorage internal lockStorage;
     // The Guardian storage
-    IGuardianStorage public guardianStorage;
+    IGuardianStorage internal guardianStorage;
+    // The Guardian storage
+    ITransferStorage internal userWhitelist;
+    // The Guardian storage
+    IAuthoriser internal authoriser;
 
     // The security period
-    uint256 public securityPeriod;
+    uint256 internal securityPeriod;
 
     struct Session {
         address key;
@@ -108,6 +114,8 @@ contract BaseModule is IModule {
         IModuleRegistry _registry,
         ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
+        ITransferStorage _userWhitelist,
+        IAuthoriser _authoriser,
         uint256 _securityPeriod,
         bytes32 _name
     ) public {
@@ -115,6 +123,8 @@ contract BaseModule is IModule {
         lockStorage = _lockStorage;
         guardianStorage = _guardianStorage;
         securityPeriod = _securityPeriod;
+        userWhitelist = _userWhitelist;
+        authoriser = _authoriser;
     }
 
     function init(address _wallet) external virtual override {

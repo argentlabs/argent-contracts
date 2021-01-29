@@ -19,8 +19,6 @@ pragma experimental ABIEncoderV2;
 
 import "./common/Utils.sol";
 import "./common/BaseModule.sol";
-import "./dapp/IAuthoriser.sol";
-import "../infrastructure/storage/ITransferStorage.sol";
 import "../../lib/other/ERC20.sol";
 
 /**
@@ -32,11 +30,6 @@ abstract contract TransactionManager is BaseModule {
 
     bytes4 private constant ERC1271_ISVALIDSIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
-
-    // The Token storage
-    ITransferStorage public whitelistStorage;
-    // The Dapp authoriser
-    IAuthoriser public authoriser;
 
     struct Call {
         address to;
@@ -52,20 +45,6 @@ abstract contract TransactionManager is BaseModule {
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
 
-    // *************** Modifiers *************************** //
-
-    // *************** Constructor ************************ //
-
-    constructor(
-        ITransferStorage _whitelistStorage,
-        IAuthoriser _authoriser
-    )
-        public
-    {
-        whitelistStorage = _whitelistStorage;
-        authoriser = _authoriser;
-    }
-
     // *************** External functions ************************ //
 
     function multiCall(
@@ -80,7 +59,7 @@ abstract contract TransactionManager is BaseModule {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
             address spender = recoverSpender(_wallet, _transactions[i]);
-            require(isWhitelisted(_wallet, spender) || isAuthorised(spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
+            require(isWhitelisted(_wallet, spender) || isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
@@ -147,7 +126,7 @@ abstract contract TransactionManager is BaseModule {
     * @return _isWhitelisted true if the address is whitelisted.
     */
     function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
-        uint whitelistAfter = whitelistStorage.getWhitelist(_wallet, _target);
+        uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
         
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
@@ -211,15 +190,15 @@ abstract contract TransactionManager is BaseModule {
         return _transaction.to;
     }
 
-    function isAuthorised(address _spender, address _to, bytes memory _data) internal view returns (bool) {
+    function isAuthorised(address _wallet, address _spender, address _to, bytes memory _data) internal view returns (bool) {
         if (_to == _spender) { 
-            return authoriser.authorise(_to, _data); // do we need to block calls to the wallet or modules?
+            return authoriser.authorise(_wallet, _to, _data); // do we need to block calls to the wallet or modules?
         } else {
-            return authoriser.authorise(_spender, "");
+            return authoriser.authorise(_wallet, _spender, "");
         }
     }
 
     function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {
-        whitelistStorage.setWhitelist(_wallet, _target, _whitelistAfter);
+        userWhitelist.setWhitelist(_wallet, _target, _whitelistAfter);
     }
 }

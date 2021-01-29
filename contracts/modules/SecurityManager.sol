@@ -61,11 +61,11 @@ abstract contract SecurityManager is BaseModule {
     mapping (address => GuardianManagerConfig) internal guardianConfigs;
 
     // Recovery period
-    uint256 public recoveryPeriod;
+    uint256 internal recoveryPeriod;
     // Lock period
-    uint256 public lockPeriod;
+    uint256 internal lockPeriod;
     // The security window
-    uint256 public securityWindow;
+    uint256 internal securityWindow;
 
     // *************** Events *************************** //
 
