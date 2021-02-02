@@ -31,18 +31,18 @@ import "../wallet/IWallet.sol";
  */
 abstract contract SecurityManager is BaseModule {
 
-    bytes4 constant internal EXECUTE_RECOVERY_PREFIX = bytes4(keccak256("executeRecovery(address,address)"));
-    bytes4 constant internal FINALIZE_RECOVERY_PREFIX = bytes4(keccak256("finalizeRecovery(address)"));
-    bytes4 constant internal CANCEL_RECOVERY_PREFIX = bytes4(keccak256("cancelRecovery(address)"));
-    bytes4 constant internal TRANSFER_OWNERSHIP_PREFIX = bytes4(keccak256("transferOwnership(address,address)"));
-    bytes4 constant internal LOCK_PREFIX = bytes4(keccak256("lock(address)"));
-    bytes4 constant internal UNLOCK_PREFIX = bytes4(keccak256("unlock(address)"));
-    bytes4 constant internal ADD_GUARDIAN_PREFIX = bytes4(keccak256("addGuardian(address,address)"));
-    bytes4 constant internal CANCEL_GUARDIAN_ADDITION_PREFIX = bytes4(keccak256("cancelGuardianAddition(address,address)"));
-    bytes4 constant internal REVOKE_GUARDIAN_PREFIX = bytes4(keccak256("revokeGuardian(address,address)"));
-    bytes4 constant internal CANCEL_GUARDIAN_REVOKATION_PREFIX = bytes4(keccak256("cancelGuardianRevokation(address,address)"));
-    bytes4 constant internal CONFIRM_GUARDIAN_ADDITION_PREFIX = bytes4(keccak256("confirmGuardianAddition(address,address)"));
-    bytes4 constant internal CONFIRM_GUARDIAN_REVOKATION_PREFIX = bytes4(keccak256("confirmGuardianRevokation(address,address)"));
+    // bytes4 constant internal EXECUTE_RECOVERY_PREFIX = bytes4(keccak256("executeRecovery(address,address)"));
+    // bytes4 constant internal FINALIZE_RECOVERY_PREFIX = bytes4(keccak256("finalizeRecovery(address)"));
+    // bytes4 constant internal CANCEL_RECOVERY_PREFIX = bytes4(keccak256("cancelRecovery(address)"));
+    // bytes4 constant internal TRANSFER_OWNERSHIP_PREFIX = bytes4(keccak256("transferOwnership(address,address)"));
+    // bytes4 constant internal LOCK_PREFIX = bytes4(keccak256("lock(address)"));
+    // bytes4 constant internal UNLOCK_PREFIX = bytes4(keccak256("unlock(address)"));
+    // bytes4 constant internal ADD_GUARDIAN_PREFIX = bytes4(keccak256("addGuardian(address,address)"));
+    // bytes4 constant internal CANCEL_GUARDIAN_ADDITION_PREFIX = bytes4(keccak256("cancelGuardianAddition(address,address)"));
+    // bytes4 constant internal REVOKE_GUARDIAN_PREFIX = bytes4(keccak256("revokeGuardian(address,address)"));
+    // bytes4 constant internal CANCEL_GUARDIAN_REVOKATION_PREFIX = bytes4(keccak256("cancelGuardianRevokation(address,address)"));
+    // bytes4 constant internal CONFIRM_GUARDIAN_ADDITION_PREFIX = bytes4(keccak256("confirmGuardianAddition(address,address)"));
+    // bytes4 constant internal CONFIRM_GUARDIAN_REVOKATION_PREFIX = bytes4(keccak256("confirmGuardianRevokation(address,address)"));
 
     struct RecoveryConfig {
         address recovery;
@@ -140,12 +140,10 @@ abstract contract SecurityManager is BaseModule {
      */
     function executeRecovery(address _wallet, address _recovery) external onlySelf() notWhenRecovery(_wallet) {
         validateNewOwner(_wallet, _recovery);
-        RecoveryConfig storage config = recoveryConfigs[_wallet];
-        config.recovery = _recovery;
-        config.executeAfter = uint64(block.timestamp + recoveryPeriod);
-        config.guardianCount = uint32(guardianStorage.guardianCount(_wallet));
-        setLock(_wallet, block.timestamp + lockPeriod);
-        emit RecoveryExecuted(_wallet, _recovery, config.executeAfter);
+        uint64 executeAfter = uint64(block.timestamp + recoveryPeriod);
+        recoveryConfigs[_wallet] = RecoveryConfig(_recovery, executeAfter, uint32(guardianStorage.guardianCount(_wallet)));
+        _setLock(_wallet, block.timestamp + lockPeriod, SecurityManager.executeRecovery.selector);
+        emit RecoveryExecuted(_wallet, _recovery, executeAfter);
     }
 
     /**
@@ -154,13 +152,13 @@ abstract contract SecurityManager is BaseModule {
      * @param _wallet The target wallet.
      */
     function finalizeRecovery(address _wallet) external onlyWhenRecovery(_wallet) {
-        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
+        RecoveryConfig storage config = recoveryConfigs[_wallet];
         require(uint64(block.timestamp) > config.executeAfter, "SM: the recovery period is not over yet");
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
 
         IWallet(_wallet).setOwner(recoveryOwner);
-        setLock(_wallet, 0);
+        _setLock(_wallet, 0, bytes4(0));
 
         emit RecoveryFinalized(_wallet, recoveryOwner);
     }
@@ -171,10 +169,10 @@ abstract contract SecurityManager is BaseModule {
      * @param _wallet The target wallet.
      */
     function cancelRecovery(address _wallet) external onlySelf() onlyWhenRecovery(_wallet) {
-        RecoveryConfig storage config = recoveryConfigs[address(_wallet)];
+        RecoveryConfig storage config = recoveryConfigs[_wallet];
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
-        setLock(_wallet, 0);
+        _setLock(_wallet, 0, bytes4(0));
 
         emit RecoveryCanceled(_wallet, recoveryOwner);
     }
@@ -207,7 +205,7 @@ abstract contract SecurityManager is BaseModule {
      * @param _wallet The target wallet.
      */
     function lock(address _wallet) external onlyGuardianOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
-        setLock(_wallet, block.timestamp + lockPeriod);
+        _setLock(_wallet, block.timestamp + lockPeriod, SecurityManager.lock.selector);
         emit Locked(_wallet, uint64(block.timestamp + lockPeriod));
     }
 
@@ -216,9 +214,8 @@ abstract contract SecurityManager is BaseModule {
      * @param _wallet The target wallet.
      */
     function unlock(address _wallet) external onlyGuardianOrSelf(_wallet) onlyWhenLocked(_wallet) {
-        address locker = lockStorage.getLocker(_wallet);
-        require(locker == address(this), "SM: cannot unlock a wallet that was locked by another feature");
-        setLock(_wallet, 0);
+        require(locks[_wallet].locker == SecurityManager.lock.selector, "SM: cannot unlock");
+        _setLock(_wallet, 0, bytes4(0));
         emit Unlocked(_wallet);
     }
 
@@ -228,10 +225,7 @@ abstract contract SecurityManager is BaseModule {
      * @return _releaseAfter The epoch time at which the lock will release (in seconds).
      */
     function getLock(address _wallet) external view returns(uint64 _releaseAfter) {
-        uint256 lockEnd = lockStorage.getLock(_wallet);
-        if (lockEnd > block.timestamp) {
-            _releaseAfter = uint64(lockEnd);
-        }
+        return _isLocked(_wallet) ? locks[_wallet].release : 0;
     }
 
     /**
@@ -239,8 +233,8 @@ abstract contract SecurityManager is BaseModule {
      * @param _wallet The target wallet.
      * @return _isLocked `true` if the wallet is locked otherwise `false`.
      */
-    function isLocked(address _wallet) external view returns (bool _isLocked) {
-        return lockStorage.isLocked(_wallet);
+    function isLocked(address _wallet) external view returns (bool) {
+        return _isLocked(_wallet);
     }
 
     // *************** Guardian functions ************************ //
@@ -396,7 +390,7 @@ abstract contract SecurityManager is BaseModule {
         require(!isGuardian(_wallet, _newOwner), "SM: new owner address cannot be a guardian");
     }
 
-    function setLock(address _wallet, uint256 _releaseAfter) internal {
-        lockStorage.setLock(_wallet, address(this), _releaseAfter);
+    function _setLock(address _wallet, uint256 _releaseAfter, bytes4 _locker) internal {
+        locks[_wallet] = Lock(Utils.safe64(_releaseAfter), _locker);
     }
 }

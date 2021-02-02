@@ -40,7 +40,7 @@ contract BaseModule is IModule {
     // Mock token address for ETH
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
+    //bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
 
 
     // The Module Registry
@@ -48,7 +48,7 @@ contract BaseModule is IModule {
     // The address of the Lock storage
     ILockStorage internal lockStorage;
     // The Guardian storage
-    IGuardianStorage internal guardianStorage;
+    IGuardianStorage public guardianStorage;
     // The Guardian storage
     ITransferStorage internal userWhitelist;
     // The Guardian storage
@@ -56,6 +56,16 @@ contract BaseModule is IModule {
 
     // The security period
     uint256 internal securityPeriod;
+
+    struct Lock {
+        // the lock's release timestamp
+        uint64 release;
+        // the signature of the method that set the last lock
+        bytes4 locker;
+    }
+    
+    // wallet specific storage
+    mapping (address => Lock) internal locks;
 
     struct Session {
         address key;
@@ -168,7 +178,7 @@ contract BaseModule is IModule {
      * @param _wallet The target wallet.
      */
     function _isLocked(address _wallet) internal view returns (bool) {
-        return lockStorage.isLocked(_wallet);
+        return locks[_wallet].release > uint64(block.timestamp);
     }
 
     /**

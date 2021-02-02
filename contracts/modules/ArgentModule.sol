@@ -56,34 +56,39 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         if (methodId == TransactionManager.multiCallWithSession.selector) {
             return (1, OwnerSignature.Session);
         } 
-        if (methodId == EXECUTE_RECOVERY_PREFIX) {
+        if (methodId == TransactionManager.addToWhitelist.selector ||
+            methodId == TransactionManager.removeFromWhitelist.selector) 
+        {
+            return (1, OwnerSignature.Required);
+        }
+        if (methodId == SecurityManager.executeRecovery.selector) {
             uint walletGuardians = guardianStorage.guardianCount(_wallet);
             require(walletGuardians > 0, "SM: no guardians set on wallet");
             uint numberOfSignaturesRequired = Utils.ceil(walletGuardians, 2);
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
-        if (methodId == CANCEL_RECOVERY_PREFIX) {
+        if (methodId == SecurityManager.cancelRecovery.selector) {
             uint numberOfSignaturesRequired = Utils.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
             return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
-        if (methodId == TRANSFER_OWNERSHIP_PREFIX) {
+        if (methodId == SecurityManager.transferOwnership.selector) {
             uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
             uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
             return (numberOfSignaturesRequired, OwnerSignature.Required);
         }
-        if (methodId == LOCK_PREFIX || methodId == UNLOCK_PREFIX) {
+        if (methodId == SecurityManager.lock.selector || methodId == SecurityManager.unlock.selector) {
             return (1, OwnerSignature.Disallowed);
         }
-        if (methodId == ADD_GUARDIAN_PREFIX ||
-            methodId == REVOKE_GUARDIAN_PREFIX ||
-            methodId == CANCEL_GUARDIAN_ADDITION_PREFIX ||
-            methodId == CANCEL_GUARDIAN_REVOKATION_PREFIX) 
+        if (methodId == SecurityManager.addGuardian.selector ||
+            methodId == SecurityManager.revokeGuardian.selector ||
+            methodId == SecurityManager.cancelGuardianAddition.selector ||
+            methodId == SecurityManager.confirmGuardianRevokation.selector) 
         {
             return (1, OwnerSignature.Required);
         }
-        if (methodId == FINALIZE_RECOVERY_PREFIX ||
-            methodId == CONFIRM_GUARDIAN_ADDITION_PREFIX ||
-            methodId == CONFIRM_GUARDIAN_REVOKATION_PREFIX)
+        if (methodId == SecurityManager.finalizeRecovery.selector ||
+            methodId == SecurityManager.confirmGuardianAddition.selector ||
+            methodId == SecurityManager.confirmGuardianRevokation.selector)
         {
             return (0, OwnerSignature.Anyone);
         }
