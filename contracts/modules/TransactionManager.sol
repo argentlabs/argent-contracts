@@ -44,6 +44,7 @@ abstract contract TransactionManager is BaseModule {
     event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
+    event Log(bool ss);
 
     // *************** External functions ************************ //
 
@@ -190,8 +191,8 @@ abstract contract TransactionManager is BaseModule {
         return _transaction.to;
     }
 
-    function isAuthorised(address _wallet, address _spender, address _to, bytes memory _data) internal view returns (bool) {
-        if (_to == _spender) { 
+    function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) internal view returns (bool) {
+        if (_to == _spender) {
             return authoriser.authorise(_wallet, _to, _data); // do we need to block calls to the wallet or modules?
         } else {
             return authoriser.authorise(_wallet, _spender, "");

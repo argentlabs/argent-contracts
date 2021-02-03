@@ -15,11 +15,9 @@ const Registry = artifacts.require("ModuleRegistry");
 const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
-const TransactionManager = artifacts.require("TransactionManager");
-const Authoriser = artifacts.require("DappAuthoriser");
-
+const ArgentModule = artifacts.require("ArgentModule");
+const Authoriser = artifacts.require("AuthoriserRegistry");
 const ERC20 = artifacts.require("TestERC20");
-const WETH = artifacts.require("WETH9");
 const TestContract = artifacts.require("TestContract");
 const Filter = artifacts.require("TestFilter");
 
@@ -28,6 +26,9 @@ const { ETH_TOKEN } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
+const SECURITY_WINDOW = 2;
+const LOCK_PERIOD = 4;
+const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 const { assert } = require("chai");
@@ -39,12 +40,13 @@ contract("TransactionManager", (accounts) => {
     const owner = accounts[1];
     const recipient = accounts[4];
     const nonceInitialiser = accounts[4];
+    const relayer = accounts[9];
   
     let registry;
     let lockStorage;
     let transferStorage;
     let guardianStorage;
-    let transactionManager;
+    let module;
     let wallet;
     let walletImplementation;
     let erc20;
@@ -54,33 +56,38 @@ contract("TransactionManager", (accounts) => {
 
     before(async () => {
         registry = await Registry.new();
-        
-        filter = await Filter.new();
-        authoriser = await Authoriser.new();
 
         lockStorage = await LockStorage.new();
         guardianStorage = await GuardianStorage.new();
         transferStorage = await TransferStorage.new();
 
-        transactionManager = await TransactionManager.new(
+        authoriser = await Authoriser.new();
+
+        module = await ArgentModule.new(
             registry.address,
             lockStorage.address,
             guardianStorage.address,
             transferStorage.address,
             authoriser.address,
-            SECURITY_PERIOD);
+            SECURITY_PERIOD,
+            SECURITY_WINDOW,
+            LOCK_PERIOD,
+            RECOVERY_PERIOD);
       
-        await registry.registerModule(transactionManager.address, ethers.utils.formatBytes32String("TransactionManager"));
+        await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
+        await authoriser.addAuthorisation(relayer, ZERO_ADDRESS); 
+
+        filter = await Filter.new();
     
         walletImplementation = await BaseWallet.new();
     
-        await manager.setRelayerManager(transactionManager);    
+        await manager.setRelayerManager(module);    
     });
 
     beforeEach(async () => {
         const proxy = await Proxy.new(walletImplementation.address);
         wallet = await BaseWallet.at(proxy.address);
-        await wallet.init(owner, [transactionManager.address]);
+        await wallet.init(owner, [module.address]);
     
         const decimals = 12; // number of decimal for TOKN contract
     
@@ -96,9 +103,9 @@ contract("TransactionManager", (accounts) => {
     }
 
     async function whitelist(target) {
-        await transactionManager.addToWhitelist(wallet.address, target, { from: owner });
+        await module.addToWhitelist(wallet.address, target, { from: owner });
         await utils.increaseTime(3);
-        isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
+        isTrusted = await module.isWhitelisted(wallet.address, target);
         assert.isTrue(isTrusted, "should be trusted after the security period");
     }
 
@@ -108,7 +115,7 @@ contract("TransactionManager", (accounts) => {
         // set the relayer nonce to > 0
         let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
         let txReceipt = await manager.relay(
-            transactionManager,
+            module,
             "multiCall",
             [wallet.address, [transaction]],
             wallet,
@@ -128,7 +135,7 @@ contract("TransactionManager", (accounts) => {
             let transaction = await encodeTransaction(recipient, 100, ZERO_BYTES32, false);
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCall",
                 [wallet.address, [transaction]],
                 wallet,
@@ -138,6 +145,7 @@ contract("TransactionManager", (accounts) => {
                 recipient);
             success = await utils.parseRelayReceipt(txReceipt).success;
             assert.isTrue(success, "call failed");
+            console.log("Gas to send ETH: " + txReceipt.gasUsed);
         });
 
         it("should call authorised contract when filter pass", async () => {
@@ -145,7 +153,7 @@ contract("TransactionManager", (accounts) => {
             let transaction = await encodeTransaction(contract.address, 0, data, false);
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCall",
                 [wallet.address, [transaction]],
                 wallet,
@@ -156,6 +164,7 @@ contract("TransactionManager", (accounts) => {
             success = await utils.parseRelayReceipt(txReceipt).success;
             assert.isTrue(success, "call failed");
             assert.equal(await contract.state(), 4, "contract state should be 4");
+            console.log("Gas to call contract: " + txReceipt.gasUsed);
         });
 
         it("should block call to authorised contract when filter doesn't pass", async () => {
@@ -163,7 +172,7 @@ contract("TransactionManager", (accounts) => {
             let transaction = await encodeTransaction(contract.address, 0, data, false);
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCall",
                 [wallet.address, [transaction]],
                 wallet,
@@ -196,7 +205,7 @@ contract("TransactionManager", (accounts) => {
             transactions.push(transaction);
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCall",
                 [wallet.address, transactions],
                 wallet,
@@ -207,6 +216,7 @@ contract("TransactionManager", (accounts) => {
             success = await utils.parseRelayReceipt(txReceipt).success; 
             assert.isTrue(success, "call failed");
             assert.equal(await contract.state(), 4, "contract state should be 4");
+            console.log("Gas to approve token and call contract: " + txReceipt.gasUsed);
         });
 
         it("should block call to authorised contract when filter doesn't pass", async () => {
@@ -221,7 +231,7 @@ contract("TransactionManager", (accounts) => {
             transactions.push(transaction);
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCall",
                 [wallet.address, transactions],
                 wallet,

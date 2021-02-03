@@ -18,8 +18,8 @@ const Registry = artifacts.require("ModuleRegistry");
 const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
-const TransactionManager = artifacts.require("TransactionManager");
-const Authoriser = artifacts.require("DappAuthoriser");
+const ArgentModule = artifacts.require("ArgentModule");
+const Authoriser = artifacts.require("AuthoriserRegistry");
 
 // Compound
 const Unitroller = artifacts.require("Unitroller");
@@ -43,6 +43,9 @@ const { ETH_TOKEN } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
+const SECURITY_WINDOW = 2;
+const LOCK_PERIOD = 4;
+const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 const { assert } = require("chai");
@@ -56,6 +59,7 @@ contract("TransactionManager", (accounts) => {
     const borrower = accounts[3];
     const recipient = accounts[4];
     const nonceInitialiser = accounts[5];
+    const relayer = accounts[5];
   
     let wallet;
     let walletImplementation;
@@ -63,7 +67,7 @@ contract("TransactionManager", (accounts) => {
     let lockStorage;
     let transferStorage;
     let guardianStorage;
-    let transactionManager;
+    let module;
     let authoriser;
     let compoundRegistry;
     let token;
@@ -138,21 +142,26 @@ contract("TransactionManager", (accounts) => {
         guardianStorage = await GuardianStorage.new();
         transferStorage = await TransferStorage.new();
 
-        transactionManager = await TransactionManager.new(
+        authoriser = await Authoriser.new();
+
+        module = await ArgentModule.new(
             registry.address,
             lockStorage.address,
             guardianStorage.address,
             transferStorage.address,
-            ZERO_ADDRESS,
-            SECURITY_PERIOD);
+            authoriser.address,
+            SECURITY_PERIOD,
+            SECURITY_WINDOW,
+            LOCK_PERIOD,
+            RECOVERY_PERIOD);
       
-        await registry.registerModule(transactionManager.address, ethers.utils.formatBytes32String("TransactionManager"));
+        await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
+        await authoriser.addAuthorisation(relayer, ZERO_ADDRESS); 
     
-        walletImplementation = await BaseWallet.new();
+        walletImplementation = await BaseWallet.new(); 
     
-        await manager.setRelayerManager(transactionManager);    
+        await manager.setRelayerManager(module);    
 
-        authoriser = await Authoriser.new();
         await authoriser.addAuthorisation(cEther.address, ZERO_ADDRESS);
         await authoriser.addAuthorisation(cToken.address, ZERO_ADDRESS);
     });
@@ -160,7 +169,7 @@ contract("TransactionManager", (accounts) => {
     beforeEach(async () => {
         const proxy = await Proxy.new(walletImplementation.address);
         wallet = await BaseWallet.at(proxy.address);
-        await wallet.init(owner, [transactionManager.address]);    
+        await wallet.init(owner, [module.address]);    
         await wallet.send(new BN("1000000000000000000"));
         await token.transfer(wallet.address, new BN("1000000000000000000"));
     });
@@ -170,9 +179,9 @@ contract("TransactionManager", (accounts) => {
     }
 
     async function whitelist(target) {
-        await transactionManager.addToWhitelist(wallet.address, target, { from: owner });
+        await module.addToWhitelist(wallet.address, target, { from: owner });
         await utils.increaseTime(3);
-        isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
+        isTrusted = await module.isWhitelisted(wallet.address, target);
         assert.isTrue(isTrusted, "should be trusted after the security period");
     }
 
@@ -182,14 +191,14 @@ contract("TransactionManager", (accounts) => {
         // set the relayer nonce to > 0
         let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
         let txReceipt = await manager.relay(
-            transactionManager,
+            module,
             "multiCall",
             [wallet.address, [transaction]],
             wallet,
             [owner]);
         success = await utils.parseRelayReceipt(txReceipt).success;
         assert.isTrue(success, "transfer failed");
-        const nonce = await transactionManager.getNonce(wallet.address);
+        const nonce = await module.getNonce(wallet.address);
         assert.isTrue(nonce.gt(0), "nonce init failed");
     }
     describe("Environment", () => {
@@ -230,12 +239,13 @@ contract("TransactionManager", (accounts) => {
             await cEther.accrueInterest();
         }
 
-        async function addInvestment(tokenAddress, days, amount) {
+        async function addInvestment(tokenAddress, amount, days) {
             let ctoken;
             let investInEth;
-            let transactions = [];
+            const transactions = [];
 
             if (tokenAddress === ETH_TOKEN) {
+                await wallet.send(amount);
                 ctoken = cEther;
                 investInEth = true;
 
@@ -243,6 +253,7 @@ contract("TransactionManager", (accounts) => {
                 let transaction = await encodeTransaction(cEther.address, amount, data);
                 transactions.push(transaction); 
             } else {
+                await token.transfer(wallet.address, amount);
                 ctoken = cToken;
                 investInEth = false;
 
@@ -256,21 +267,19 @@ contract("TransactionManager", (accounts) => {
             }
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCall",
                 [wallet.address, transactions],
                 wallet,
-                [owner],
-                1,
-                ETH_TOKEN,
-                recipient);
-                console.log(txReceipt.rawLogs);
-            success = await utils.parseRelayReceipt(txReceipt).success;
+                [owner]);
+            const { success, error } = await utils.parseRelayReceipt(txReceipt);
+            if (!success) {
+                console.log(error);
+            }
             assert.isTrue(success, "transfer failed");
-
             await utils.hasEvent(txReceipt, ctoken, "Mint");
-
-            await accrueInterests(days, investInEth);
+            const balance = await ctoken.balanceOf(wallet.address);
+            assert.isTrue(balance.gt(0), "should have cTokens");
 
             return txReceipt;
           }
@@ -280,12 +289,13 @@ contract("TransactionManager", (accounts) => {
         });
 
         it("should invest ETH", async () => {
-            await addInvestment(ETH_TOKEN, web3.utils.toWei("1"), 365);
-            
+            const txReceipt = await addInvestment(ETH_TOKEN, web3.utils.toWei("1"), 365);
+            console.log("Gas to invest ETH: " + txReceipt.gasUsed);
         });
 
-        // it("should invest ERC20", async () => {
-        //     await addInvestment(token.address, web3.utils.toWei("100"), 365);
-        // });
+        it("should invest ERC20", async () => {
+            const txReceipt = await addInvestment(token.address, web3.utils.toWei("100"), 365);
+            console.log("Gas to invest ERC20: " + txReceipt.gasUsed);
+        });
     });
 });

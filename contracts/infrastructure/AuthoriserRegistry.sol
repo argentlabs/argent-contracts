@@ -18,6 +18,7 @@ contract AuthoriserRegistry is IAuthoriser, Owned {
         if (authorisation.isActive) {
             return _data.length == 0 || authorisation.filter == address(0) || IFilter(authorisation.filter).validate(_data);
         }
+        return false;
     }
 
     function addAuthorisation(address _contract, address _filter) external onlyOwner {
