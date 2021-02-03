@@ -29,6 +29,4 @@ async function main() {
   await multisigExecutor.executeCall(MultiSigWrapper, "changeThreshold", [threshold]);
 }
 
-main().catch((err) => {
-  throw err;
-});
+module.exports = (cb) => main().then(cb).catch(cb);

@@ -24,4 +24,4 @@ fi
 NETWORK=$1
 shift
 
-AWS_PROFILE=argent-$NETWORK AWS_SDK_LOAD_CONFIG=true node $FILE --network $NETWORK "$@"
+AWS_PROFILE=argent-$NETWORK AWS_SDK_LOAD_CONFIG=true npx truffle exec $FILE --network $NETWORK "$@"
