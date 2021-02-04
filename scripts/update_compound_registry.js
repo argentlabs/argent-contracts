@@ -59,6 +59,4 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  throw err;
-});
+module.exports = (cb) => main().then(cb).catch(cb);

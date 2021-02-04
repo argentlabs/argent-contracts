@@ -2,7 +2,7 @@
 // Script to print environment configuration from AWS.
 //
 // Can be executed (from the project root as we're loading .env file from root via `dotenv`) as:
-// bash ./scripts/execute_script.sh --no-compile scripts/configReader.js <network>
+// bash ./scripts/execute_script.sh --no-compile scripts/config_reader.js <network>
 //
 // where:
 //     - network = [test, staging, prod]
@@ -40,6 +40,4 @@ async function main() {
   configurator._validate();
 }
 
-main().catch((err) => {
-  throw err;
-});
+module.exports = (cb) => main().then(cb).catch(cb);

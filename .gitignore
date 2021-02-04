@@ -5,7 +5,7 @@ tmp
 bin
 .outputParameter
 flatten
-
+flat
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof

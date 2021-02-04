@@ -46,6 +46,4 @@ async function main() {
   console.log("BaseWallet Update DONE.");
 }
 
-main().catch((err) => {
-  throw err;
-});
+module.exports = (cb) => main().then(cb).catch(cb);

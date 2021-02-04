@@ -98,6 +98,4 @@ async function main() {
   console.log("********************************");
 }
 
-main().catch((err) => {
-  throw err;
-});
+module.exports = (cb) => main().then(cb).catch(cb);

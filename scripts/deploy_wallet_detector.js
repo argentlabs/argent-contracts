@@ -49,8 +49,6 @@ async function main() {
   ]);
 }
 
-main().catch((err) => {
-  throw err;
-});
+module.exports = (cb) => main().then(cb).catch(cb);
 
 // contract deployed to prod at 0xeca4B0bDBf7c55E9b7925919d03CbF8Dc82537E8
