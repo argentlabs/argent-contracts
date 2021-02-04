@@ -62,7 +62,7 @@ async function main() {
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
   const receipt = await multisigExecutor.executeCall(TokenPriceRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
 
-  console.log(receipt);
+  console.log(receipt.transactionHash);
 }
 
 module.exports = (callback) => {
