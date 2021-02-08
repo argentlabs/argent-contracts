@@ -31,14 +31,14 @@ import "../../../lib/other/ERC20.sol";
  * @notice Base Module contract that contains methods common to all Modules.
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
-contract BaseModule is IModule {
+abstract contract BaseModule is IModule {
 
     using SafeMath for uint256;
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
     // Mock token address for ETH
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address constant internal ETH_TOKEN = address(0);
 
     //bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
 
@@ -137,21 +137,9 @@ contract BaseModule is IModule {
         authoriser = _authoriser;
     }
 
-    function init(address _wallet) external virtual override {
-        // do something
-    }
-
     function recoverToken(address _token) external {
         uint total = ERC20(_token).balanceOf(address(this));
         ERC20(_token).transfer(address(registry), total);
-    }
-
-    /**
-    * @inheritdoc IModule
-    */
-    function addModule(address _wallet, address _module) external override onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
-        require(registry.isRegisteredModule(_module), "VM: module is not registered");
-        IWallet(_wallet).authoriseModule(_module, true);
     }
 
     /**

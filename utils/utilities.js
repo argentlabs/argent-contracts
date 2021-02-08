@@ -4,7 +4,7 @@ const BN = require("bn.js");
 const chai = require("chai");
 
 const { expect } = chai;
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const ETH_TOKEN = ethers.constants.AddressZero;
 
 module.exports = {
 
@@ -36,8 +36,8 @@ module.exports = {
     });
   }),
 
-  async signOffchain(signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
-    const messageHash = this.getMessageHash(from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress);
+  async signOffchain(signers, from, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
+    const messageHash = this.getMessageHash(from, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress);
     const signatures = await Promise.all(
       signers.map(async (signer) => {
         const sig = await this.signMessage(messageHash, signer);
@@ -49,12 +49,11 @@ module.exports = {
     return joinedSignatures;
   },
 
-  getMessageHash(from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
+  getMessageHash(from, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
     const message = `0x${[
       "0x19",
       "0x00",
       from,
-      to,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(value), 32),
       data,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(chainId), 32),

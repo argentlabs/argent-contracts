@@ -9,11 +9,12 @@ const IGuardianStorage = artifacts.require("IGuardianStorage");
 //const IFeature = artifacts.require("IFeature");
 
 class RelayManager {
-  async setRelayerManager(relayerManager) {
-    this.relayerManager = relayerManager;
 
-    const guardianStorageAddress = await relayerManager.guardianStorage();
-    this.guardianStorage = await IGuardianStorage.at(guardianStorageAddress);
+  constructor(guardianStorage, tokenPriceRegistry) {
+    this.guardianStorage = IGuardianStorage.at(guardianStorage);
+    if (tokenPriceRegistry != ethers.constants.AddressZero) {
+      this.tokenPriceRegistry = ITokenPriceRegistry.at(tokenPriceRegistry);
+    }
   }
 
   // Relays without refund by default, unless the gasPrice is explicitely set to be >0
@@ -33,9 +34,7 @@ class RelayManager {
     // When the refund is in token (not ETH), calculate the amount needed for refund
     let gasPrice = _gasPrice;
     if (_refundToken !== ETH_TOKEN) {
-      const tokenPriceRegistryAddress = await this.relayerManager.tokenPriceRegistry();
-      const tokenPriceRegistry = await ITokenPriceRegistry.at(tokenPriceRegistryAddress);
-      const tokenPrice = await tokenPriceRegistry.getTokenPrice(_refundToken);
+      const tokenPrice = await this.tokenPriceRegistry.getTokenPrice(_refundToken);
 
       // How many tokens to pay per unit of gas spent
       // refundCost = gasLimit * gasPrice
@@ -48,7 +47,6 @@ class RelayManager {
 
     const signatures = await utils.signOffchain(
       _signers,
-      this.relayerManager.address,
       _feature.address,
       0,
       methodData,
@@ -60,9 +58,8 @@ class RelayManager {
       _refundAddress,
     );
 
-    const executeData = this.relayerManager.contract.methods.execute(
+    const executeData = _feature.contract.methods.execute(
       _wallet.address,
-      _feature.address,
       methodData,
       nonce,
       signatures,
@@ -88,9 +85,9 @@ class RelayManager {
     if (process.env.COVERAGE) {
       gas += 50000;
     }
-    const tx = await this.relayerManager.execute(
+
+    const tx = await _feature.execute(
       _wallet.address,
-      _feature.address,
       methodData,
       nonce,
       signatures,

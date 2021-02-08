@@ -42,7 +42,15 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
      * @inheritdoc IModule
      */
     function init(address _wallet) external override onlyWallet(_wallet) {
-        TransactionManager._init(_wallet);
+        enableStaticCall(_wallet);
+    }
+
+    /**
+    * @inheritdoc IModule
+    */
+    function addModule(address _wallet, address _module) external override onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
+        require(registry.isRegisteredModule(_module), "BM: module is not registered");
+        IWallet(_wallet).authoriseModule(_module, true);
     }
     
     /**
@@ -50,47 +58,51 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
      */
     function getRequiredSignatures(address _wallet, bytes calldata _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
-        if (methodId == TransactionManager.multiCall.selector || methodId == BaseModule.addModule.selector) {
-            return (1, OwnerSignature.Required);
-        } 
+
         if (methodId == TransactionManager.multiCallWithSession.selector) {
             return (1, OwnerSignature.Session);
         } 
-        if (methodId == TransactionManager.addToWhitelist.selector ||
-            methodId == TransactionManager.removeFromWhitelist.selector) 
+        if (methodId == TransactionManager.multiCall.selector ||
+            methodId == TransactionManager.addToWhitelist.selector ||
+            methodId == TransactionManager.removeFromWhitelist.selector ||
+            methodId == ArgentModule.addModule.selector ||
+            methodId == SecurityManager.addGuardian.selector ||
+            methodId == SecurityManager.revokeGuardian.selector ||
+            methodId == SecurityManager.cancelGuardianAddition.selector ||
+            methodId == RelayerManager.clearSession.selector)
         {
+            // owner
             return (1, OwnerSignature.Required);
-        }
+        } 
         if (methodId == SecurityManager.executeRecovery.selector) {
-            uint walletGuardians = guardianStorage.guardianCount(_wallet);
-            require(walletGuardians > 0, "SM: no guardians set on wallet");
-            uint numberOfSignaturesRequired = Utils.ceil(walletGuardians, 2);
+            // majority of guardians
+            uint numberOfSignaturesRequired = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
+            require(numberOfSignaturesRequired > 0, "SM: no guardians set on wallet");
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
         if (methodId == SecurityManager.cancelRecovery.selector) {
+            // majority of (owner + guardians)
             uint numberOfSignaturesRequired = Utils.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
             return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
-        if (methodId == SecurityManager.transferOwnership.selector) {
+        if (methodId == TransactionManager.toggleDappRegistry.selector ||
+            methodId == SecurityManager.transferOwnership.selector)
+        {
+            // owner + majority of guardians
             uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
             uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
             return (numberOfSignaturesRequired, OwnerSignature.Required);
-        }
-        if (methodId == SecurityManager.lock.selector || methodId == SecurityManager.unlock.selector) {
-            return (1, OwnerSignature.Disallowed);
-        }
-        if (methodId == SecurityManager.addGuardian.selector ||
-            methodId == SecurityManager.revokeGuardian.selector ||
-            methodId == SecurityManager.cancelGuardianAddition.selector ||
-            methodId == SecurityManager.confirmGuardianRevokation.selector) 
-        {
-            return (1, OwnerSignature.Required);
         }
         if (methodId == SecurityManager.finalizeRecovery.selector ||
             methodId == SecurityManager.confirmGuardianAddition.selector ||
             methodId == SecurityManager.confirmGuardianRevokation.selector)
         {
+            // anyone
             return (0, OwnerSignature.Anyone);
+        }
+        if (methodId == SecurityManager.lock.selector || methodId == SecurityManager.unlock.selector) {
+            // any guardian
+            return (1, OwnerSignature.Disallowed);
         }
         revert("SM: unknown method");
     }

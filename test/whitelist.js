@@ -37,7 +37,7 @@ const RelayManager = require("../utils/relay-manager");
 const { assert } = require("chai");
 
 contract("TransactionManager", (accounts) => {
-    const manager = new RelayManager();
+    let manager;
 
     const infrastructure = accounts[0];
     const owner = accounts[1];
@@ -56,11 +56,9 @@ contract("TransactionManager", (accounts) => {
 
     before(async () => {
         registry = await Registry.new();
-
         lockStorage = await LockStorage.new();
         guardianStorage = await GuardianStorage.new();
         transferStorage = await TransferStorage.new();
-
         authoriser = await Authoriser.new();
 
         module = await ArgentModule.new(
@@ -79,7 +77,7 @@ contract("TransactionManager", (accounts) => {
     
         walletImplementation = await BaseWallet.new();
     
-        await manager.setRelayerManager(module);    
+        manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);    
     });
 
     beforeEach(async () => {

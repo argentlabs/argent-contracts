@@ -34,7 +34,7 @@ abstract contract RelayerManager is BaseModule {
 
     mapping (address => RelayerConfig) internal relayer;
 
-    mapping (address => Session) public sessions;
+    mapping (address => Session) internal sessions;
 
     enum OwnerSignature {
         Anyone,             // Anyone
@@ -61,6 +61,7 @@ abstract contract RelayerManager is BaseModule {
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
     event Refund(address indexed wallet, address indexed refundAddress, address refundToken, uint256 refundAmount);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
+    event SessionCleared(address indexed wallet, address sessionKey);
 
     /* ***************** External methods ************************* */
 
@@ -76,7 +77,6 @@ abstract contract RelayerManager is BaseModule {
     /**
     * @notice Executes a relayed transaction.
     * @param _wallet The target wallet.
-    * @param _feature The target feature.
     * @param _data The data for the relayed transaction
     * @param _nonce The nonce used to prevent replay attacks.
     * @param _signatures The signatures as a concatenated byte array.
@@ -87,7 +87,6 @@ abstract contract RelayerManager is BaseModule {
     */
     function execute(
         address _wallet,
-        address _feature,
         bytes calldata _data,
         uint256 _nonce,
         bytes calldata _signatures,
@@ -111,7 +110,6 @@ abstract contract RelayerManager is BaseModule {
         require(stack.requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         stack.signHash = getSignHash(
             address(this),
-            _feature,
             0,
             _data,
             _nonce,
@@ -145,6 +143,20 @@ abstract contract RelayerManager is BaseModule {
     }
 
     /**
+    * @notice Clears the active session of a wallet if any.
+    * @param _wallet The target wallet.
+    */
+    function clearSession(
+        address _wallet
+    )
+        external
+        onlySelf()
+    {
+        emit SessionCleared(_wallet, sessions[_wallet].key);
+        delete sessions[_wallet];
+    }
+
+    /**
     * @notice Gets the current nonce for a wallet.
     * @param _wallet The target wallet.
     */
@@ -161,12 +173,19 @@ abstract contract RelayerManager is BaseModule {
         return relayer[_wallet].executedTx[_signHash];
     }
 
+    /**
+    * @notice Gets the last stored session for a wallet.
+    * @param _wallet The target wallet.
+    */
+    function getSession(address _wallet) external view returns (address key, uint64 expires) {
+        return (sessions[_wallet].key, sessions[_wallet].expires);
+    }
+
     /* ***************** Internal & Private methods ************************* */
 
     /**
     * @notice Generates the signed hash of a relayed transaction according to ERC 1077.
     * @param _from The starting address for the relayed transaction (should be the relayer module)
-    * @param _to The destination address for the relayed transaction (should be the target module)
     * @param _value The value for the relayed transaction.
     * @param _data The data for the relayed transaction which includes the wallet address.
     * @param _nonce The nonce used to prevent replay attacks.
@@ -177,7 +196,6 @@ abstract contract RelayerManager is BaseModule {
     */
     function getSignHash(
         address _from,
-        address _to,
         uint256 _value,
         bytes memory _data,
         uint256 _nonce,
@@ -197,7 +215,6 @@ abstract contract RelayerManager is BaseModule {
                     byte(0x19),
                     byte(0),
                     _from,
-                    _to,
                     _value,
                     _data,
                     getChainId(),
@@ -375,10 +392,6 @@ abstract contract RelayerManager is BaseModule {
         return (numberOfSignatures, OwnerSignature.Required);
     }
 
-    function isActiveSession(address _wallet) public view returns (bool) {
-        return sessions[_wallet].expires >= block.timestamp;
-    }
-
     function startSession(address _wallet, bytes calldata _data) internal returns (bool) {
         require(_data.length >= 68, "RM: Invalid session parameters");
         (address key, uint64 expires) = abi.decode(_data[36:], (address, uint64));
@@ -396,5 +409,9 @@ abstract contract RelayerManager is BaseModule {
         Session memory session = sessions[_wallet];
         address signer = Utils.recoverSigner(_signHash, _signatures, 0);
         return (signer == session.key && session.expires >= block.timestamp);
+    }
+
+    function signatureRequirement(bytes4 _method) internal view virtual returns (bool, uint256, OwnerSignature) {
+
     }
 }

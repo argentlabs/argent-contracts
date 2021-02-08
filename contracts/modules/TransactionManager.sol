@@ -44,7 +44,7 @@ abstract contract TransactionManager is BaseModule {
     event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
-    event Log(bool ss);
+    event ToggledDappRegistry(address _wallet, bytes32 _registry, bool isEnabled);
 
     // *************** External functions ************************ //
 
@@ -120,15 +120,33 @@ abstract contract TransactionManager is BaseModule {
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
+    function toggleDappRegistry(
+        address _wallet,
+        bytes32 _registry
+    )   
+        external
+        onlySelf()
+        onlyWhenUnlocked(_wallet)
+    {
+        bool isEnabled = authoriser.toggle(_wallet, _registry);
+        emit ToggledDappRegistry(_wallet, _registry, isEnabled);
+    }
+
     /**
     * @notice Checks if an address is whitelisted for a wallet.
     * @param _wallet The target wallet.
     * @param _target The address.
     * @return _isWhitelisted true if the address is whitelisted.
     */
-    function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
+    function isWhitelisted(
+        address _wallet,
+        address _target
+    )
+        public
+        view
+        returns (bool _isWhitelisted)
+    {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
-        
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
 
@@ -175,7 +193,7 @@ abstract contract TransactionManager is BaseModule {
 
     // *************** Internal Functions ********************* //
 
-    function _init(address _wallet) internal {
+    function enableStaticCall(address _wallet) internal {
         // setup static calls
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE);
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
