@@ -11,6 +11,8 @@
 //
 
 /* global artifacts */
+global.web3 = web3;
+
 const fs = require("fs");
 
 const MultiSig = artifacts.require("MultiSigWallet");
@@ -58,7 +60,12 @@ async function main() {
 
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
-  await multisigExecutor.executeCall(TokenPriceRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
+  const receipt = await multisigExecutor.executeCall(TokenPriceRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
+
+  console.log(receipt.transactionHash);
 }
 
-module.exports = (cb) => main().then(cb).catch(cb);
+module.exports = (callback) => {
+  // perform actions
+  main().then(() => callback()).catch((err) => callback(err));
+};
