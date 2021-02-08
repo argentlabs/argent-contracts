@@ -25,7 +25,7 @@ import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
  * @title RelayerManager
- * @notice Module to execute transactions signed by ETH-less accounts and sent by a relayer.
+ * @notice Abstract Module to execute transactions signed by ETH-less accounts and sent by a relayer.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
 abstract contract RelayerManager is BaseModule {

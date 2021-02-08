@@ -33,7 +33,7 @@ const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransactionManager = artifacts.require("TransactionManager");
-const Authoriser = artifacts.require("DappAuthoriser");
+const Authoriser = artifacts.require("DappRegistry");
 const Filter = artifacts.require("ParaswapFilter");
 const ERC20 = artifacts.require("TestERC20");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
@@ -42,7 +42,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -55,8 +55,8 @@ const TOKEN_B_RATE = web3.utils.toWei("0.03");
 const RelayManager = require("../utils/relay-manager");
 const { assert } = require("chai");
 
-contract("TransactionManager", (accounts) => {
-    const manager = new RelayManager();
+contract("ArgentModule", (accounts) => {
+    let manager;
 
     const infrastructure = accounts[0];
     const owner = accounts[1];
@@ -155,11 +155,11 @@ contract("TransactionManager", (accounts) => {
     
         walletImplementation = await BaseWallet.new();
     
-        await manager.setRelayerManager(transactionManager);    
+        manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);   
 
         filter = await Filter.new(tokenPriceRegistry.address);
-        await authoriser.addAuthorisation(paraswap.address, filter.address);
-        await authoriser.addAuthorisation(paraswapProxy, ZERO_ADDRESS);
+        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, paraswap.address, filter.address);
+        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, paraswapProxy, ZERO_ADDRESS);
     });
 
     beforeEach(async () => {

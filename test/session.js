@@ -17,26 +17,26 @@ const Registry = artifacts.require("ModuleRegistry");
 const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
-const TransactionManager = artifacts.require("TransactionManager");
-const SecurityManager = artifacts.require("SecurityManager");
+const ArgentModule = artifacts.require("ArgentModule");
+const Authoriser = artifacts.require("DappRegistry");
 
 const ERC20 = artifacts.require("TestERC20");
 const TestContract = artifacts.require("TestContract");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
-const LOCK_PERIOD = 2;
-const RECOVERY_PERIOD = 2;
+const LOCK_PERIOD = 4;
+const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 const { assert } = require("chai");
 
-contract("TransactionManager", (accounts) => {
-    const manager = new RelayManager();
+contract("ArgentModule", (accounts) => {
+    let manager;
 
     const infrastructure = accounts[0];
     const owner = accounts[1];
@@ -44,17 +44,16 @@ contract("TransactionManager", (accounts) => {
     const recipient = accounts[4];
     const nonceInitialiser = accounts[5];
     const sessionKey = accounts[6];
+    const relayer = accounts[9];
   
     let registry;
     let lockStorage;
     let transferStorage;
     let guardianStorage;
-    let transactionManager;
-    let securityManager;
+    let module;
     let wallet;
     let walletImplementation;
     let erc20;
-    let weth;
 
     before(async () => {
         registry = await Registry.new();
@@ -63,35 +62,31 @@ contract("TransactionManager", (accounts) => {
         guardianStorage = await GuardianStorage.new();
         transferStorage = await TransferStorage.new();
 
-        transactionManager = await TransactionManager.new(
+        authoriser = await Authoriser.new();
+
+        module = await ArgentModule.new(
             registry.address,
             lockStorage.address,
             guardianStorage.address,
             transferStorage.address,
-            ZERO_ADDRESS,
-            SECURITY_PERIOD);
-
-        securityManager = await SecurityManager.new(
-            registry.address,
-            lockStorage.address,
-            guardianStorage.address,
-            RECOVERY_PERIOD,
-            LOCK_PERIOD,
+            authoriser.address,
             SECURITY_PERIOD,
-            SECURITY_WINDOW);
+            SECURITY_WINDOW,
+            LOCK_PERIOD,
+            RECOVERY_PERIOD);
       
-        await registry.registerModule(transactionManager.address, ethers.utils.formatBytes32String("TransactionManager"));
-        await registry.registerModule(securityManager.address, ethers.utils.formatBytes32String("SecurityManager"));
+        await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
+        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS); 
     
         walletImplementation = await BaseWallet.new();
-    
-        await manager.setRelayerManager(transactionManager);    
+
+        manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
     });
 
     beforeEach(async () => {
         const proxy = await Proxy.new(walletImplementation.address);
         wallet = await BaseWallet.at(proxy.address);
-        await wallet.init(owner, [transactionManager.address, securityManager.address]);
+        await wallet.init(owner, [module.address]);
     
         const decimals = 12; // number of decimal for TOKN contract
         erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
@@ -103,9 +98,9 @@ contract("TransactionManager", (accounts) => {
     }
 
     async function whitelist(target) {
-        await transactionManager.addToWhitelist(wallet.address, target, { from: owner });
+        await module.addToWhitelist(wallet.address, target, { from: owner });
         await utils.increaseTime(3);
-        isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
+        isTrusted = await module.isWhitelisted(wallet.address, target);
         assert.isTrue(isTrusted, "should be trusted after the security period");
     }
 
@@ -113,30 +108,30 @@ contract("TransactionManager", (accounts) => {
         // add to whitelist
         await whitelist(nonceInitialiser);
         // set the relayer nonce to > 0
-        let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32);
+        let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
         let txReceipt = await manager.relay(
-            transactionManager,
+            module,
             "multiCall",
             [wallet.address, [transaction]],
             wallet,
             [owner]);
         success = await utils.parseRelayReceipt(txReceipt).success;
         assert.isTrue(success, "transfer failed");
-        const nonce = await transactionManager.getNonce(wallet.address);
+        const nonce = await module.getNonce(wallet.address);
         assert.isTrue(nonce.gt(0), "nonce init failed");
     }
 
       async function addGuardians(guardians) {
         // guardians can be BaseWallet or ContractWrapper objects
         for (const guardian of guardians) {
-          await securityManager.addGuardian(wallet.address, guardian, { from: owner });
+          await module.addGuardian(wallet.address, guardian, { from: owner });
         }
     
         await utils.increaseTime(30);
         for (let i = 1; i < guardians.length; i += 1) {
-          await securityManager.confirmGuardianAddition(wallet.address, guardians[i]);
+          await module.confirmGuardianAddition(wallet.address, guardians[i]);
         }
-        const count = (await securityManager.guardianCount(wallet.address)).toNumber();
+        const count = (await module.guardianCount(wallet.address)).toNumber();
         assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
       }
 
@@ -151,7 +146,7 @@ contract("TransactionManager", (accounts) => {
             let session = {key: sessionKey, expires: 0};
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCallWithSession",
                 [wallet.address, session, [transaction]],
                 wallet,
@@ -169,7 +164,7 @@ contract("TransactionManager", (accounts) => {
             let session = {key: sessionKey, expires: 1000000};
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCallWithSession",
                 [wallet.address, session, [transaction]],
                 wallet,
@@ -188,7 +183,7 @@ contract("TransactionManager", (accounts) => {
             let session = {key: sessionKey, expires};
 
             let txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCallWithSession",
                 [wallet.address, session, [transaction]],
                 wallet,
@@ -197,7 +192,7 @@ contract("TransactionManager", (accounts) => {
             assert.isTrue(success, "transfer failed");
 
             txReceipt = await manager.relay(
-                transactionManager,
+                module,
                 "multiCallWithSession",
                 [wallet.address, {key: ZERO_ADDRESS, expires: 0}, [transaction]],
                 wallet,

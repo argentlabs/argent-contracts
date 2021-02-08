@@ -18,10 +18,11 @@ const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("AuthoriserRegistry");
+const Authoriser = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
 const utils = require("../utils/utilities.js");
+const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -32,7 +33,7 @@ const RECOVERY_PERIOD = 4;
 const RelayManager = require("../utils/relay-manager");
 
 contract("TransactionManager", (accounts) => {
-    const manager = new RelayManager();
+    let manager;
 
     const infrastructure = accounts[0];
     const owner = accounts[1];
@@ -46,7 +47,7 @@ contract("TransactionManager", (accounts) => {
     let transferStorage;
     let guardianStorage;
     let module;
-    let newMdoule;
+    let newModule;
 
     let wallet;
     let walletImplementation;
@@ -91,11 +92,11 @@ contract("TransactionManager", (accounts) => {
         await registry.registerModule(newModule.address, ethers.utils.formatBytes32String("NewArgentModule"));
         await registry.registerModule(upgrader1.address, ethers.utils.formatBytes32String("Upgrader"));
 
-        await authoriser.addAuthorisation(relayer, ZERO_ADDRESS); 
+        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS); 
     
         walletImplementation = await BaseWallet.new();
     
-        await manager.setRelayerManager(module);    
+        manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);   
     });
 
     async function encodeTransaction(to, value, data, isSpenderInData) {

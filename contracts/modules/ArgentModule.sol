@@ -9,12 +9,9 @@ import "./SecurityManager.sol";
 import "./TransactionManager.sol";
 
 /**
- * @title RecoveryManager
- * @notice Feature to manage the recovery of a wallet owner.
- * Recovery is executed by a consensus of the wallet's guardians and takes 24 hours before it can be finalized.
- * Once finalised the ownership of the wallet is transfered to a new address.
+ * @title ArgentModule
+ * @notice Single module for the Argent wallet.
  * @author Julien Niset - <julien@argent.xyz>
- * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 contract ArgentModule is BaseModule, RelayerManager, SecurityManager, TransactionManager {
 
@@ -106,5 +103,4 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         }
         revert("SM: unknown method");
     }
-
 }

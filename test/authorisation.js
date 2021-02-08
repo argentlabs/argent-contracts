@@ -16,13 +16,13 @@ const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("AuthoriserRegistry");
+const Authoriser = artifacts.require("DappRegistry");
 const ERC20 = artifacts.require("TestERC20");
 const TestContract = artifacts.require("TestContract");
 const Filter = artifacts.require("TestFilter");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -33,8 +33,8 @@ const RECOVERY_PERIOD = 4;
 const RelayManager = require("../utils/relay-manager");
 const { assert } = require("chai");
 
-contract("TransactionManager", (accounts) => {
-    const manager = new RelayManager();
+contract("ArgentModule", (accounts) => {
+    let manager;
 
     const infrastructure = accounts[0];
     const owner = accounts[1];
@@ -75,13 +75,13 @@ contract("TransactionManager", (accounts) => {
             RECOVERY_PERIOD);
       
         await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-        await authoriser.addAuthorisation(relayer, ZERO_ADDRESS); 
+        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS); 
 
         filter = await Filter.new();
     
         walletImplementation = await BaseWallet.new();
     
-        await manager.setRelayerManager(module);    
+        manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);  
     });
 
     beforeEach(async () => {
@@ -127,8 +127,8 @@ contract("TransactionManager", (accounts) => {
     describe("call authorised contract", () => {
         beforeEach(async () => {
             initNonce();
-            await authoriser.addAuthorisation(contract.address, filter.address);
-            await authoriser.addAuthorisation(recipient, ZERO_ADDRESS);
+            await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, contract.address, filter.address);
+            await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
         });
         
         it("should send ETH to authorised address", async () => {
@@ -189,8 +189,8 @@ contract("TransactionManager", (accounts) => {
     describe("approve token and call authorised contract", () => {
         beforeEach(async () => {
             await initNonce();
-            await authoriser.addAuthorisation(contract.address, filter.address);
-            await authoriser.addAuthorisation(recipient, ZERO_ADDRESS);
+            await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, contract.address, filter.address);
+            await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
         });
 
         it("should call authorised contract when filter pass", async () => {

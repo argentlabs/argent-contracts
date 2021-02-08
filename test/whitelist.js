@@ -6,7 +6,7 @@ const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { expect } = chai;
+const { assert, expect } = chai;
 chai.use(bnChai(BN));
 
 const TruffleContract = require("@truffle/contract");
@@ -18,14 +18,14 @@ const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("AuthoriserRegistry");
+const Authoriser = artifacts.require("DappRegistry");
 const ERC721 = artifacts.require("TestERC721");
 const CK = artifacts.require("CryptoKittyTest");
 
 const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -34,9 +34,8 @@ const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
-const { assert } = require("chai");
 
-contract("TransactionManager", (accounts) => {
+contract("ArgentModule", (accounts) => {
     let manager;
 
     const infrastructure = accounts[0];
@@ -73,7 +72,7 @@ contract("TransactionManager", (accounts) => {
             RECOVERY_PERIOD);
       
         await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-        await authoriser.addAuthorisation(relayer, ZERO_ADDRESS); 
+        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS); 
     
         walletImplementation = await BaseWallet.new();
     
@@ -146,7 +145,8 @@ contract("TransactionManager", (accounts) => {
 
         it("should send ETH to a whitelisted address", async () => {
             await whitelist(recipient);
-            
+            const balanceStart = await utils.getBalance(recipient);
+
             let transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32, false);
 
             let txReceipt = await manager.relay(
@@ -160,6 +160,9 @@ contract("TransactionManager", (accounts) => {
                 relayer);
             success = await utils.parseRelayReceipt(txReceipt).success;
             assert.isTrue(success, "transfer failed");
+            const balanceEnd = await utils.getBalance(recipient);
+            assert.equal(balanceEnd.sub(balanceStart), 10, "should have received ETH");
+
             console.log("Gas for ETH transfer: " + txReceipt.gasUsed);
         });
     });
@@ -167,10 +170,13 @@ contract("TransactionManager", (accounts) => {
     describe("transfer/Approve ERC20", () => {
         beforeEach(async () => {
             await initNonce();
+            // init erc20 - recipient storage slot
+            await erc20.transfer(recipient, new BN("100"));
         });
 
         it("should send ERC20 to a whitelisted address", async () => {
             await whitelist(recipient);
+            let balanceStart = await erc20.balanceOf(recipient);
 
             let data = erc20.contract.methods.transfer(recipient, 100).encodeABI();
             let transaction = await encodeTransaction(erc20.address, 0, data, true);
@@ -186,8 +192,8 @@ contract("TransactionManager", (accounts) => {
                 relayer);
             success = await utils.parseRelayReceipt(txReceipt).success;
             assert.isTrue(success, "transfer failed");
-            let balance = await erc20.balanceOf(recipient);
-            assert.equal(balance, 100, "should have received tokens");
+            let balanceEnd = await erc20.balanceOf(recipient);
+            assert.equal(balanceEnd.sub(balanceStart), 100, "should have received tokens");
             console.log("Gas for EC20 transfer: " + txReceipt.gasUsed);
         });
 

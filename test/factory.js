@@ -16,7 +16,7 @@ const Factory = artifacts.require("WalletFactory");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
-const TransactionManager = artifacts.require("ArgentModule");
+const ArgentModule = artifacts.require("ArgentModule");
 
 const utils = require("../utils/utilities.js");
 
@@ -39,8 +39,6 @@ contract("WalletFactory", (accounts) => {
   let factory;
   let lockStorage;
   let transferStorage;
-  let transactionManager;
-  let securityManager;
   let modules;
 
   before(async () => {
@@ -54,7 +52,7 @@ contract("WalletFactory", (accounts) => {
     lockStorage = await LockStorage.new();
     transferStorage = await TransferStorage.new();
 
-    transactionManager = await TransactionManager.new(
+    module = await ArgentModule.new(
       registry.address,
       lockStorage.address,
       guardianStorage.address,
@@ -65,9 +63,9 @@ contract("WalletFactory", (accounts) => {
       LOCK_PERIOD,
       RECOVERY_PERIOD);
 
-    //await registry.registerModule(transactionManager.address, ethers.utils.formatBytes32String("TransactionManager"));
+      await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
-    modules = [transactionManager.address];
+    modules = [module.address];
   });
 
   async function signRefund(amount, token, signer) {
@@ -420,6 +418,7 @@ contract("WalletFactory", (accounts) => {
       // // we test that the wallet is at the correct address
       // assert.equal(futureAddr, walletAddr, "should have the correct address");
     }); return;
+    });
 
     it("should create with the correct owner", async () => {
       const salt = utils.generateSaltValue();
@@ -487,11 +486,11 @@ contract("WalletFactory", (accounts) => {
 
       const ERC1271_ISVALIDSIGNATURE_BYTES32 = utils.sha3("isValidSignature(bytes32,bytes)").slice(0, 10);
       const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);
-      assert.equal(isValidSignatureDelegate, transactionManager.address);
+      assert.equal(isValidSignatureDelegate, module.address);
 
       const ERC721_RECEIVED = utils.sha3("onERC721Received(address,address,uint256,bytes)").slice(0, 10);
       const isERC721Received = await wallet.enabled(ERC721_RECEIVED);
-      assert.equal(isERC721Received, transactionManager.address);
+      assert.equal(isERC721Received, module.address);
     });
   });
 });

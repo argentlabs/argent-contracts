@@ -22,27 +22,12 @@ import "./common/BaseModule.sol";
 import "../wallet/IWallet.sol";
 
 /**
- * @title RecoveryManager
- * @notice Feature to manage the recovery of a wallet owner.
- * Recovery is executed by a consensus of the wallet's guardians and takes 24 hours before it can be finalized.
- * Once finalised the ownership of the wallet is transfered to a new address.
+ * @title SecurityManager
+ * @notice Abstract module implementing the key security features of the wallet: guardians, lock and recovery.
  * @author Julien Niset - <julien@argent.xyz>
  * @author Olivier Van Den Biggelaar - <olivier@argent.xyz>
  */
 abstract contract SecurityManager is BaseModule {
-
-    // bytes4 constant internal EXECUTE_RECOVERY_PREFIX = bytes4(keccak256("executeRecovery(address,address)"));
-    // bytes4 constant internal FINALIZE_RECOVERY_PREFIX = bytes4(keccak256("finalizeRecovery(address)"));
-    // bytes4 constant internal CANCEL_RECOVERY_PREFIX = bytes4(keccak256("cancelRecovery(address)"));
-    // bytes4 constant internal TRANSFER_OWNERSHIP_PREFIX = bytes4(keccak256("transferOwnership(address,address)"));
-    // bytes4 constant internal LOCK_PREFIX = bytes4(keccak256("lock(address)"));
-    // bytes4 constant internal UNLOCK_PREFIX = bytes4(keccak256("unlock(address)"));
-    // bytes4 constant internal ADD_GUARDIAN_PREFIX = bytes4(keccak256("addGuardian(address,address)"));
-    // bytes4 constant internal CANCEL_GUARDIAN_ADDITION_PREFIX = bytes4(keccak256("cancelGuardianAddition(address,address)"));
-    // bytes4 constant internal REVOKE_GUARDIAN_PREFIX = bytes4(keccak256("revokeGuardian(address,address)"));
-    // bytes4 constant internal CANCEL_GUARDIAN_REVOKATION_PREFIX = bytes4(keccak256("cancelGuardianRevokation(address,address)"));
-    // bytes4 constant internal CONFIRM_GUARDIAN_ADDITION_PREFIX = bytes4(keccak256("confirmGuardianAddition(address,address)"));
-    // bytes4 constant internal CONFIRM_GUARDIAN_REVOKATION_PREFIX = bytes4(keccak256("confirmGuardianRevokation(address,address)"));
 
     struct RecoveryConfig {
         address recovery;

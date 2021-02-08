@@ -18,13 +18,13 @@ const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("AuthoriserRegistry");
+const Authoriser = artifacts.require("DappRegistry");
 
 const ERC20 = artifacts.require("TestERC20");
 const TestContract = artifacts.require("TestContract");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -35,8 +35,8 @@ const RECOVERY_PERIOD = 4;
 const RelayManager = require("../utils/relay-manager");
 const { assert } = require("chai");
 
-contract("SecurityManager", (accounts) => {
-    const manager = new RelayManager();
+contract("ArgentModule", (accounts) => {
+    let manager;
 
     const infrastructure = accounts[0];
     const owner = accounts[1];
@@ -73,11 +73,11 @@ contract("SecurityManager", (accounts) => {
             RECOVERY_PERIOD);
       
         await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-        await authoriser.addAuthorisation(relayer, ZERO_ADDRESS); 
+        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS); 
     
         walletImplementation = await BaseWallet.new();
     
-        await manager.setRelayerManager(module);
+        manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);   
     });
 
     beforeEach(async () => {
