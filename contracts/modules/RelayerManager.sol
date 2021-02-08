@@ -36,14 +36,6 @@ abstract contract RelayerManager is BaseModule {
 
     mapping (address => Session) internal sessions;
 
-    enum OwnerSignature {
-        Anyone,             // Anyone
-        Required,           // Owner required
-        Optional,           // Owner and/or guardians
-        Disallowed,         // guardians only
-        Session             // session key 
-    }
-
     struct RelayerConfig {
         uint256 nonce;
         mapping (bytes32 => bool) executedTx;
@@ -98,7 +90,9 @@ abstract contract RelayerManager is BaseModule {
         external
         returns (bool)
     {
-        uint startGas = gasleft();
+        // initial gas = 21k + non_zero_bytes * 8 + zero_bytes * 4
+        //            ~= 21k + calldata.length * [1/3 * 16 + 2/3 * 4]
+        uint256 startGas = gasleft() + 21000 + msg.data.length * 8;
         require(startGas >= _gasLimit, "RM: not enough gas provided");
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
         StackExtension memory stack;
@@ -351,19 +345,17 @@ abstract contract RelayerManager is BaseModule {
         if (_gasPrice > 0 && (_option == OwnerSignature.Required || _option == OwnerSignature.Session)) {
             address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
             if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
+                    // refundAddress must be whitelisted/authorised
                     if (!authoriser.authorise(_wallet, refundAddress, EMPTY_BYTES)) {
                         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, refundAddress);
                         require(whitelistAfter > 0 && whitelistAfter < block.timestamp, "RM: refund not authorised");
                     }
             }
-            uint256 refundAmount;
+            uint256 gasConsumed = _startGas.sub(gasleft()).add(14000);
+            uint256 refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
             if (_refundToken == ETH_TOKEN) {
-                uint256 gasConsumed = _startGas.sub(gasleft()).add(30000);
-                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
                 invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
             } else {
-                uint256 gasConsumed = _startGas.sub(gasleft()).add(35000);
-                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
                 bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
                 bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
                 // Check token refund is successful, when `transfer` returns a success bool result
@@ -373,6 +365,16 @@ abstract contract RelayerManager is BaseModule {
             }
             emit Refund(_wallet, refundAddress, _refundToken, refundAmount);    
         }
+    }
+
+    /**
+    * @notice Checks that the wallet address provided as the first parameter of _data matches _wallet
+    * @return false if the addresses are different.
+    */
+    function verifyData(address _wallet, bytes calldata _data) internal pure returns (bool) {
+        require(_data.length >= 36, "RM: Invalid dataWallet");
+        address dataWallet = abi.decode(_data[4:], (address));
+        return dataWallet == _wallet;
     }
 
    /**
@@ -409,9 +411,5 @@ abstract contract RelayerManager is BaseModule {
         Session memory session = sessions[_wallet];
         address signer = Utils.recoverSigner(_signHash, _signatures, 0);
         return (signer == session.key && session.expires >= block.timestamp);
-    }
-
-    function signatureRequirement(bytes4 _method) internal view virtual returns (bool, uint256, OwnerSignature) {
-
     }
 }

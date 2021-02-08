@@ -40,15 +40,12 @@ abstract contract BaseModule is IModule {
     // Mock token address for ETH
     address constant internal ETH_TOKEN = address(0);
 
-    //bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
-
-
     // The Module Registry
     IModuleRegistry internal registry;
     // The address of the Lock storage
     ILockStorage internal lockStorage;
     // The Guardian storage
-    IGuardianStorage public guardianStorage;
+    IGuardianStorage internal guardianStorage;
     // The Guardian storage
     ITransferStorage internal userWhitelist;
     // The Guardian storage
@@ -56,6 +53,14 @@ abstract contract BaseModule is IModule {
 
     // The security period
     uint256 internal securityPeriod;
+
+    enum OwnerSignature {
+        Anyone,             // Anyone
+        Required,           // Owner required
+        Optional,           // Owner and/or guardians
+        Disallowed,         // guardians only
+        Session             // session key 
+    }
 
     struct Lock {
         // the lock's release timestamp
@@ -105,7 +110,7 @@ abstract contract BaseModule is IModule {
     }
 
     /**
-     * @notice Throws if the sender is not an authorised feature of the target wallet.
+     * @notice Throws if the sender is not the module itself or the owner of the target wallet.
      */
     modifier onlyWalletOwnerOrSelf(address _wallet) {
         require(_isSelf(msg.sender) || _isOwner(_wallet, msg.sender), "BM: must be a wallet owner or self");
@@ -137,19 +142,13 @@ abstract contract BaseModule is IModule {
         authoriser = _authoriser;
     }
 
+    /**
+     * @notice Moves tokens that have been sent to the module by mistake.
+     * @param _token The target token.
+     */
     function recoverToken(address _token) external {
         uint total = ERC20(_token).balanceOf(address(this));
         ERC20(_token).transfer(address(registry), total);
-    }
-
-    /**
-    * @notice Checks that the wallet address provided as the first parameter of _data matches _wallet
-    * @return false if the addresses are different.
-    */
-    function verifyData(address _wallet, bytes calldata _data) internal pure returns (bool) {
-        require(_data.length >= 36, "RM: Invalid dataWallet");
-        address dataWallet = abi.decode(_data[4:], (address));
-        return dataWallet == _wallet;
     }
     
     /**
