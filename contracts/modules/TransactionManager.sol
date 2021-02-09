@@ -60,7 +60,10 @@ abstract contract TransactionManager is BaseModule {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
             address spender = recoverSpender(_wallet, _transactions[i]);
-            require(isWhitelisted(_wallet, spender) || isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
+            require(
+                isWhitelisted(_wallet, spender) ||
+                isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data),
+                "TM: call not authorised");
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;

@@ -1,12 +1,10 @@
 /* global artifacts */
 
-const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { expect } = chai;
 chai.use(bnChai(BN));
 
 const Proxy = artifacts.require("Proxy");
@@ -21,8 +19,10 @@ const ERC20 = artifacts.require("TestERC20");
 const TestContract = artifacts.require("TestContract");
 const Filter = artifacts.require("TestFilter");
 
+const { assert } = require("chai");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -31,7 +31,6 @@ const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
-const { assert } = require("chai");
 
 contract("ArgentModule", (accounts) => {
   let manager;
@@ -73,15 +72,15 @@ contract("ArgentModule", (accounts) => {
       SECURITY_WINDOW,
       LOCK_PERIOD,
       RECOVERY_PERIOD);
-  
+
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS); 
+    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS);
 
     filter = await Filter.new();
 
     walletImplementation = await BaseWallet.new();
 
-    manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);  
+    manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
@@ -99,13 +98,13 @@ contract("ArgentModule", (accounts) => {
   });
 
   async function encodeTransaction(to, value, data, isSpenderInData) {
-    return {to, value, data, isSpenderInData};
+    return { to, value, data, isSpenderInData };
   }
 
   async function whitelist(target) {
     await module.addToWhitelist(wallet.address, target, { from: owner });
     await utils.increaseTime(3);
-    isTrusted = await module.isWhitelisted(wallet.address, target);
+    const isTrusted = await module.isWhitelisted(wallet.address, target);
     assert.isTrue(isTrusted, "should be trusted after the security period");
   }
 
@@ -113,14 +112,14 @@ contract("ArgentModule", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    let txReceipt = await manager.relay(
+    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const txReceipt = await manager.relay(
       module,
       "multiCall",
       [wallet.address, [transaction]],
       wallet,
       [owner]);
-    success = await utils.parseRelayReceipt(txReceipt).success;
+    const success = await utils.parseRelayReceipt(txReceipt).success;
     assert.isTrue(success, "transfer failed");
   }
 
@@ -130,118 +129,118 @@ contract("ArgentModule", (accounts) => {
       await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, contract.address, filter.address);
       await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
     });
-    
-    it("should send ETH to authorised address", async () => {
-      let transaction = await encodeTransaction(recipient, 100, ZERO_BYTES32, false);
 
-      let txReceipt = await manager.relay(
-          module,
-          "multiCall",
-          [wallet.address, [transaction]],
-          wallet,
-          [owner],
-          10,
-          ETH_TOKEN,
-          recipient);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+    it("should send ETH to authorised address", async () => {
+      const transaction = await encodeTransaction(recipient, 100, ZERO_BYTES32, false);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        10,
+        ETH_TOKEN,
+        recipient);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "call failed");
-      console.log("Gas to send ETH: " + txReceipt.gasUsed);
+      console.log("Gas to send ETH: ", txReceipt.gasUsed);
     });
 
     it("should call authorised contract when filter pass", async () => {
       const data = contract.contract.methods.setState(4).encodeABI();
-      let transaction = await encodeTransaction(contract.address, 0, data, false);
+      const transaction = await encodeTransaction(contract.address, 0, data, false);
 
-      let txReceipt = await manager.relay(
-          module,
-          "multiCall",
-          [wallet.address, [transaction]],
-          wallet,
-          [owner],
-          10,
-          ETH_TOKEN,
-          recipient);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        10,
+        ETH_TOKEN,
+        recipient);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "call failed");
       assert.equal(await contract.state(), 4, "contract state should be 4");
-      console.log("Gas to call contract: " + txReceipt.gasUsed);
+      console.log("Gas to call contract: ", txReceipt.gasUsed);
     });
 
     it("should block call to authorised contract when filter doesn't pass", async () => {
       const data = contract.contract.methods.setState(5).encodeABI();
-      let transaction = await encodeTransaction(contract.address, 0, data, false);
+      const transaction = await encodeTransaction(contract.address, 0, data, false);
 
-      let txReceipt = await manager.relay(
-          module,
-          "multiCall",
-          [wallet.address, [transaction]],
-          wallet,
-          [owner],
-          10,
-          ETH_TOKEN,
-          recipient);
-      let { success, error } = await utils.parseRelayReceipt(txReceipt);
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        10,
+        ETH_TOKEN,
+        recipient);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success, "call should have failed");
       assert.equal(error, "TM: call not authorised");
     });
   });
 
   describe("approve token and call authorised contract", () => {
-      beforeEach(async () => {
-        await initNonce();
-        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, contract.address, filter.address);
-        await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
-      });
+    beforeEach(async () => {
+      await initNonce();
+      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, contract.address, filter.address);
+      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
+    });
 
-      it("should call authorised contract when filter pass", async () => {
-        const transactions = [];
+    it("should call authorised contract when filter pass", async () => {
+      const transactions = [];
 
-        let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
-        let transaction = await encodeTransaction(erc20.address, 0, data, true);
-        transactions.push(transaction);
+      let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
+      let transaction = await encodeTransaction(erc20.address, 0, data, true);
+      transactions.push(transaction);
 
-        data = contract.contract.methods.setStateAndPayToken(4, erc20.address, 100).encodeABI();
-        transaction = await encodeTransaction(contract.address, 0, data, false);
-        transactions.push(transaction);
+      data = contract.contract.methods.setStateAndPayToken(4, erc20.address, 100).encodeABI();
+      transaction = await encodeTransaction(contract.address, 0, data, false);
+      transactions.push(transaction);
 
-        let txReceipt = await manager.relay(
-          module,
-          "multiCall",
-          [wallet.address, transactions],
-          wallet,
-          [owner],
-          10,
-          ETH_TOKEN,
-          recipient);
-        success = await utils.parseRelayReceipt(txReceipt).success; 
-        assert.isTrue(success, "call failed");
-        assert.equal(await contract.state(), 4, "contract state should be 4");
-        console.log("Gas to approve token and call contract: " + txReceipt.gasUsed);
-      });
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, transactions],
+        wallet,
+        [owner],
+        10,
+        ETH_TOKEN,
+        recipient);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
+      assert.isTrue(success, "call failed");
+      assert.equal(await contract.state(), 4, "contract state should be 4");
+      console.log("Gas to approve token and call contract: ", txReceipt.gasUsed);
+    });
 
-      it("should block call to authorised contract when filter doesn't pass", async () => {
-        const transactions = [];
+    it("should block call to authorised contract when filter doesn't pass", async () => {
+      const transactions = [];
 
-        let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
-        let transaction = await encodeTransaction(erc20.address, 0, data, true);
-        transactions.push(transaction);
+      let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
+      let transaction = await encodeTransaction(erc20.address, 0, data, true);
+      transactions.push(transaction);
 
-        data = contract.contract.methods.setStateAndPayToken(5, erc20.address, 100).encodeABI();
-        transaction = await encodeTransaction(contract.address, 0, data, false);
-        transactions.push(transaction);
+      data = contract.contract.methods.setStateAndPayToken(5, erc20.address, 100).encodeABI();
+      transaction = await encodeTransaction(contract.address, 0, data, false);
+      transactions.push(transaction);
 
-        let txReceipt = await manager.relay(
-          module,
-          "multiCall",
-          [wallet.address, transactions],
-          wallet,
-          [owner],
-          10,
-          ETH_TOKEN,
-          recipient);
-        let { success, error } = await utils.parseRelayReceipt(txReceipt);
-        assert.isFalse(success, "call should have failed");
-        assert.equal(error, "TM: call not authorised");
-      });
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, transactions],
+        wallet,
+        [owner],
+        10,
+        ETH_TOKEN,
+        recipient);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "call should have failed");
+      assert.equal(error, "TM: call not authorised");
+    });
   });
 });

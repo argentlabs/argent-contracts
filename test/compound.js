@@ -1,16 +1,13 @@
 /* global artifacts */
 
-const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
-const { formatBytes32String } = require("ethers").utils;
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
+const { formatBytes32String } = require("ethers").utils;
 
-const { expect } = chai;
+const { expect, assert } = chai;
 chai.use(bnChai(BN));
-
-const TruffleContract = require("@truffle/contract");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -32,14 +29,13 @@ const CErc20 = artifacts.require("CErc20");
 const CToken = artifacts.require("CToken");
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 
-const WAD = new BN("1000000000000000000"); // 10**18
-const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
 const ERC20 = artifacts.require("TestERC20");
-
-const TestContract = artifacts.require("TestContract");
-
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+
+const WAD = new BN("1000000000000000000"); // 10**18
+const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
+
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -48,7 +44,6 @@ const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
-const { assert } = require("chai");
 
 contract("ArgentModule", (accounts) => {
   let manager;
@@ -57,7 +52,6 @@ contract("ArgentModule", (accounts) => {
   const owner = accounts[1];
   const liquidityProvider = accounts[2];
   const borrower = accounts[3];
-  const recipient = accounts[4];
   const nonceInitialiser = accounts[5];
   const relayer = accounts[5];
 
@@ -181,7 +175,7 @@ contract("ArgentModule", (accounts) => {
   async function whitelist(target) {
     await module.addToWhitelist(wallet.address, target, { from: owner });
     await utils.increaseTime(3);
-    isTrusted = await module.isWhitelisted(wallet.address, target);
+    const isTrusted = await module.isWhitelisted(wallet.address, target);
     assert.isTrue(isTrusted, "should be trusted after the security period");
   }
 
@@ -189,14 +183,14 @@ contract("ArgentModule", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    let txReceipt = await manager.relay(
+    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const txReceipt = await manager.relay(
       module,
       "multiCall",
       [wallet.address, [transaction]],
       wallet,
       [owner]);
-    success = await utils.parseRelayReceipt(txReceipt).success;
+    const success = await utils.parseRelayReceipt(txReceipt).success;
     assert.isTrue(success, "transfer failed");
     const nonce = await module.getNonce(wallet.address);
     assert.isTrue(nonce.gt(0), "nonce init failed");
@@ -217,7 +211,6 @@ contract("ArgentModule", (accounts) => {
   });
 
   describe("Investment", () => {
-
     async function accrueInterests(days, investInEth) {
       let tx;
       // generate borrows to create interests
@@ -249,8 +242,8 @@ contract("ArgentModule", (accounts) => {
         ctoken = cEther;
         investInEth = true;
 
-        let data = cEther.contract.methods.mint().encodeABI();
-        let transaction = await encodeTransaction(cEther.address, amount, data);
+        const data = cEther.contract.methods.mint().encodeABI();
+        const transaction = await encodeTransaction(cEther.address, amount, data);
         transactions.push(transaction);
       } else {
         await token.transfer(wallet.address, amount);
@@ -266,7 +259,7 @@ contract("ArgentModule", (accounts) => {
         transactions.push(transaction);
       }
 
-      let txReceipt = await manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "multiCall",
         [wallet.address, transactions],
@@ -281,6 +274,8 @@ contract("ArgentModule", (accounts) => {
       const balance = await ctoken.balanceOf(wallet.address);
       assert.isTrue(balance.gt(0), "should have cTokens");
 
+      await accrueInterests(days, investInEth);
+
       return txReceipt;
     }
 
@@ -290,12 +285,12 @@ contract("ArgentModule", (accounts) => {
 
     it("should invest ETH", async () => {
       const txReceipt = await addInvestment(ETH_TOKEN, web3.utils.toWei("1"), 365);
-      console.log("Gas to invest ETH: " + txReceipt.gasUsed);
+      console.log("Gas to invest ETH: ", txReceipt.gasUsed);
     });
 
     it("should invest ERC20", async () => {
       const txReceipt = await addInvestment(token.address, web3.utils.toWei("100"), 365);
-      console.log("Gas to invest ERC20: " + txReceipt.gasUsed);
+      console.log("Gas to invest ERC20: ", txReceipt.gasUsed);
     });
   });
 });

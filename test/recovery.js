@@ -1,15 +1,12 @@
 /* global artifacts */
 
-const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { expect } = chai;
+const { assert } = chai;
 chai.use(bnChai(BN));
-
-const TruffleContract = require("@truffle/contract");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -20,12 +17,9 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const Authoriser = artifacts.require("DappRegistry");
 
-const ERC20 = artifacts.require("TestERC20");
-const TestContract = artifacts.require("TestContract");
-
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
-const ZERO_BYTES32 = ethers.constants.HashZero;
+const { ARGENT_WHITELIST } = require("../utils/utilities.js");
+
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -33,7 +27,6 @@ const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
-const { assert } = require("chai");
 
 contract("ArgentModule", (accounts) => {
   let manager;
@@ -47,10 +40,11 @@ contract("ArgentModule", (accounts) => {
   let registry;
   let lockStorage;
   let guardianStorage;
+  let transferStorage;
   let module;
   let wallet;
   let walletImplementation;
-  let erc20;
+  let authoriser;
 
   before(async () => {
     registry = await Registry.new();
@@ -85,8 +79,6 @@ contract("ArgentModule", (accounts) => {
     wallet = await BaseWallet.at(proxy.address);
     await wallet.init(owner, [module.address]);
 
-    const decimals = 12; // number of decimal for TOKN contract
-    erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await wallet.send(new BN("1000000000000000000"));
   });
 
@@ -105,26 +97,25 @@ contract("ArgentModule", (accounts) => {
   }
 
   describe("recover wallet", () => {
-
     it("should recover wallet with 1 guardian", async () => {
       await addGuardians([guardian1]);
 
-      let txReceipt = await manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "executeRecovery",
         [wallet.address, newowner],
         wallet,
         [guardian1]);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "execute recovery failed");
-      console.log("Gas to execute recovery: " + txReceipt.gasUsed);
+      console.log("Gas to execute recovery: ", txReceipt.gasUsed);
 
       await utils.increaseTime(40);
 
-      tx = await module.finalizeRecovery(wallet.address, { from: infrastructure });
+      const tx = await module.finalizeRecovery(wallet.address, { from: infrastructure });
       const walletOwner = await wallet.owner();
       assert.equal(walletOwner, newowner, "wallet owner should have been changed");
-      console.log("Gas to finalize recovery: " + tx.receipt.gasUsed);
+      console.log("Gas to finalize recovery: ", tx.receipt.gasUsed);
     });
   });
 });

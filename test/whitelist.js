@@ -1,15 +1,12 @@
 /* global artifacts */
 
-const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { assert, expect } = chai;
+const { assert } = chai;
 chai.use(bnChai(BN));
-
-const TruffleContract = require("@truffle/contract");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -20,12 +17,12 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const Authoriser = artifacts.require("DappRegistry");
 const ERC721 = artifacts.require("TestERC721");
-const CK = artifacts.require("CryptoKittyTest");
 
 const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -52,6 +49,7 @@ contract("ArgentModule", (accounts) => {
   let wallet;
   let walletImplementation;
   let erc20;
+  let authoriser;
 
   before(async () => {
     registry = await Registry.new();
@@ -96,7 +94,7 @@ contract("ArgentModule", (accounts) => {
   async function whitelist(target) {
     await module.addToWhitelist(wallet.address, target, { from: owner });
     await utils.increaseTime(3);
-    isTrusted = await module.isWhitelisted(wallet.address, target);
+    const isTrusted = await module.isWhitelisted(wallet.address, target);
     assert.isTrue(isTrusted, "should be trusted after the security period");
   }
 
@@ -104,14 +102,14 @@ contract("ArgentModule", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    let txReceipt = await manager.relay(
+    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const txReceipt = await manager.relay(
       module,
       "multiCall",
       [wallet.address, [transaction]],
       wallet,
       [owner]);
-    success = await utils.parseRelayReceipt(txReceipt).success;
+    const success = await utils.parseRelayReceipt(txReceipt).success;
     assert.isTrue(success, "transfer failed");
     const nonce = await module.getNonce(wallet.address);
     assert.isTrue(nonce.gt(0), "nonce init failed");
@@ -122,19 +120,19 @@ contract("ArgentModule", (accounts) => {
       await initNonce();
     });
     it("should whitelist an address", async () => {
-      let target = accounts[6];
-      let txReceipt = await manager.relay(
+      const target = accounts[6];
+      const txReceipt = await manager.relay(
         module,
         "addToWhitelist",
         [wallet.address, target],
         wallet,
         [owner]);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "transfer failed");
       await utils.increaseTime(3);
-      let isTrusted = await module.isWhitelisted(wallet.address, target);
+      const isTrusted = await module.isWhitelisted(wallet.address, target);
       assert.isTrue(isTrusted, "should be trusted after the security period");
-      console.log("Gas for whitelisting: " + txReceipt.gasUsed);
+      console.log(`Gas for whitelisting: ${txReceipt.gasUsed}`);
     });
   });
 
@@ -147,9 +145,9 @@ contract("ArgentModule", (accounts) => {
       await whitelist(recipient);
       const balanceStart = await utils.getBalance(recipient);
 
-      let transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32, false);
+      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32, false);
 
-      let txReceipt = await manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "multiCall",
         [wallet.address, [transaction]],
@@ -158,12 +156,12 @@ contract("ArgentModule", (accounts) => {
         1,
         ETH_TOKEN,
         relayer);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "transfer failed");
       const balanceEnd = await utils.getBalance(recipient);
       assert.equal(balanceEnd.sub(balanceStart), 10, "should have received ETH");
 
-      console.log("Gas for ETH transfer: " + txReceipt.gasUsed);
+      console.log(`Gas for ETH transfer: ${txReceipt.gasUsed}`);
     });
   });
 
@@ -176,12 +174,12 @@ contract("ArgentModule", (accounts) => {
 
     it("should send ERC20 to a whitelisted address", async () => {
       await whitelist(recipient);
-      let balanceStart = await erc20.balanceOf(recipient);
+      const balanceStart = await erc20.balanceOf(recipient);
 
-      let data = erc20.contract.methods.transfer(recipient, 100).encodeABI();
-      let transaction = await encodeTransaction(erc20.address, 0, data, true);
+      const data = erc20.contract.methods.transfer(recipient, 100).encodeABI();
+      const transaction = await encodeTransaction(erc20.address, 0, data, true);
 
-      let txReceipt = await manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "multiCall",
         [wallet.address, [transaction]],
@@ -190,20 +188,20 @@ contract("ArgentModule", (accounts) => {
         1,
         ETH_TOKEN,
         relayer);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "transfer failed");
-      let balanceEnd = await erc20.balanceOf(recipient);
+      const balanceEnd = await erc20.balanceOf(recipient);
       assert.equal(balanceEnd.sub(balanceStart), 100, "should have received tokens");
-      console.log("Gas for EC20 transfer: " + txReceipt.gasUsed);
+      console.log(`Gas for EC20 transfer: ${txReceipt.gasUsed}`);
     });
 
     it("should approve ERC20 for a whitelisted address", async () => {
       await whitelist(recipient);
 
-      let data = erc20.contract.methods.approve(recipient, 100).encodeABI();
-      let transaction = await encodeTransaction(erc20.address, 0, data, true);
+      const data = erc20.contract.methods.approve(recipient, 100).encodeABI();
+      const transaction = await encodeTransaction(erc20.address, 0, data, true);
 
-      let txReceipt = await manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "multiCall",
         [wallet.address, [transaction]],
@@ -212,17 +210,17 @@ contract("ArgentModule", (accounts) => {
         1,
         ETH_TOKEN,
         relayer);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "transfer failed");
-      let balance = await erc20.allowance(wallet.address, recipient);
+      const balance = await erc20.allowance(wallet.address, recipient);
       assert.equal(balance, 100, "should have been approved tokens");
-      console.log("Gas for EC20 approve: " + txReceipt.gasUsed);
+      console.log(`Gas for EC20 approve: ${txReceipt.gasUsed}`);
     });
   });
 
   describe("transfer ERC721", () => {
     let erc721;
-    let tokenId = 7;
+    const tokenId = 7;
 
     beforeEach(async () => {
       await initNonce();
@@ -234,10 +232,10 @@ contract("ArgentModule", (accounts) => {
     it("should send an ERC721 to a whitelisted address", async () => {
       await whitelist(recipient);
 
-      let data = erc721.contract.methods.safeTransferFrom(wallet.address, recipient, tokenId).encodeABI();
-      let transaction = await encodeTransaction(erc721.address, 0, data, true);
+      const data = erc721.contract.methods.safeTransferFrom(wallet.address, recipient, tokenId).encodeABI();
+      const transaction = await encodeTransaction(erc721.address, 0, data, true);
 
-      let txReceipt = await manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "multiCall",
         [wallet.address, [transaction]],
@@ -246,9 +244,9 @@ contract("ArgentModule", (accounts) => {
         1,
         ETH_TOKEN,
         relayer);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "transfer failed");
-      console.log("Gas for ERC721 transfer: " + txReceipt.gasUsed);
+      console.log(`Gas for ERC721 transfer: ${txReceipt.gasUsed}`);
     });
   });
 });

@@ -241,7 +241,8 @@ abstract contract RelayerManager is BaseModule {
         internal
         returns (bool)
     {
-        if (requiredSignatures == 1 && (ownerSignatureRequirement == OwnerSignature.Required || ownerSignatureRequirement == OwnerSignature.Session)) {
+        if (requiredSignatures == 1 &&
+            (ownerSignatureRequirement == OwnerSignature.Required || ownerSignatureRequirement == OwnerSignature.Session)) {
             // use the incremental nonce
             if (_nonce <= relayer[_wallet].nonce) {
                 return false;

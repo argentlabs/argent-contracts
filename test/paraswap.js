@@ -1,12 +1,11 @@
 /* global artifacts */
 
-const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { expect } = chai;
+const { expect, assert } = chai;
 chai.use(bnChai(BN));
 
 // Paraswap
@@ -43,6 +42,7 @@ const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -53,7 +53,6 @@ const TOKEN_A_RATE = web3.utils.toWei("0.06");
 const TOKEN_B_RATE = web3.utils.toWei("0.03");
 
 const RelayManager = require("../utils/relay-manager");
-const { assert } = require("chai");
 
 contract("ArgentModule", (accounts) => {
   let manager;
@@ -83,7 +82,6 @@ contract("ArgentModule", (accounts) => {
   let tokenPriceRegistry;
 
   before(async () => {
-
     // Deploy test tokens
     tokenA = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
     tokenB = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
@@ -115,11 +113,11 @@ contract("ArgentModule", (accounts) => {
     );
 
     // Deploy Paraswap
-    const whitelist = await Whitelisted.new();
+    const paraswapWhitelist = await Whitelisted.new();
     const partnerDeployer = await PartnerDeployer.new();
     const partnerRegistry = await PartnerRegistry.new(partnerDeployer.address);
     paraswap = await AugustusSwapper.new(
-      whitelist.address,
+      paraswapWhitelist.address,
       infrastructure,
       partnerRegistry.address,
       infrastructure,
@@ -127,8 +125,8 @@ contract("ArgentModule", (accounts) => {
     );
     kyberAdapter = await Kyber.new(infrastructure);
     uniswapV2Adapter = await UniswapV2.new(weth.address);
-    await whitelist.addWhitelisted(kyberAdapter.address);
-    await whitelist.addWhitelisted(uniswapV2Adapter.address);
+    await paraswapWhitelist.addWhitelisted(kyberAdapter.address);
+    await paraswapWhitelist.addWhitelisted(uniswapV2Adapter.address);
     paraswapProxy = await paraswap.getTokenTransferProxy();
 
     // deploy Argent
@@ -181,7 +179,7 @@ contract("ArgentModule", (accounts) => {
   async function whitelist(target) {
     await transactionManager.addToWhitelist(wallet.address, target, { from: owner });
     await utils.increaseTime(3);
-    isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
+    const isTrusted = await transactionManager.isWhitelisted(wallet.address, target);
     assert.isTrue(isTrusted, "should be trusted after the security period");
   }
 
@@ -189,14 +187,14 @@ contract("ArgentModule", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    let txReceipt = await manager.relay(
+    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const txReceipt = await manager.relay(
       transactionManager,
       "multiCall",
       [wallet.address, [transaction]],
       wallet,
       [owner]);
-    success = await utils.parseRelayReceipt(txReceipt).success;
+    const success = await utils.parseRelayReceipt(txReceipt).success;
     assert.isTrue(success, "transfer failed");
   }
 
@@ -277,7 +275,8 @@ contract("ArgentModule", (accounts) => {
     let data;
     let value;
     let transaction;
-    let transactions = [];
+
+    const transactions = [];
 
     if (method === "sell") {
       srcAmount = fixedAmount;
@@ -298,8 +297,7 @@ contract("ArgentModule", (accounts) => {
     // approve token if necessary
     if (fromToken === ETH_TOKEN) {
       value = srcAmount;
-    }
-    else {
+    } else {
       value = 0;
       if (fromToken === tokenA.address) {
         data = tokenA.contract.methods.approve(paraswapProxy, srcAmount).encodeABI();
@@ -326,7 +324,7 @@ contract("ArgentModule", (accounts) => {
     transaction = await encodeTransaction(paraswap.address, value, data);
     transactions.push(transaction);
 
-    let txReceipt = await manager.relay(
+    const txReceipt = await manager.relay(
       transactionManager,
       "multiCall",
       [wallet.address, transactions],
@@ -335,10 +333,10 @@ contract("ArgentModule", (accounts) => {
       1,
       ETH_TOKEN,
       recipient);
-    let { success, error } = await utils.parseRelayReceipt(txReceipt);
+    const { success, error } = await utils.parseRelayReceipt(txReceipt);
     if (!success) console.log(error);
     assert.isTrue(success, "transfer failed");
-    console.log("Gas to swap: " + txReceipt.gasUsed);
+    console.log("Gas to swap: ", txReceipt.gasUsed);
 
     const afterFrom = await getBalance(fromToken, wallet);
     const afterTo = await getBalance(toToken, wallet);

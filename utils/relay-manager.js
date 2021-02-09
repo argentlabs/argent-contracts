@@ -6,13 +6,12 @@ const utils = require("./utilities.js");
 
 const ITokenPriceRegistry = artifacts.require("ITokenPriceRegistry");
 const IGuardianStorage = artifacts.require("IGuardianStorage");
-//const IFeature = artifacts.require("IFeature");
+// const IFeature = artifacts.require("IFeature");
 
 class RelayManager {
-
   constructor(guardianStorage, tokenPriceRegistry) {
     this.guardianStorage = IGuardianStorage.at(guardianStorage);
-    if (tokenPriceRegistry != ethers.constants.AddressZero) {
+    if (tokenPriceRegistry !== ethers.constants.AddressZero) {
       this.tokenPriceRegistry = ITokenPriceRegistry.at(tokenPriceRegistry);
     }
   }

@@ -1,15 +1,12 @@
 /* global artifacts */
 
-const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { expect } = chai;
+const { assert } = chai;
 chai.use(bnChai(BN));
-
-const TruffleContract = require("@truffle/contract");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -22,7 +19,8 @@ const Authoriser = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+const { ARGENT_WHITELIST } = require("../utils/utilities.js");
+
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -35,9 +33,9 @@ const RelayManager = require("../utils/relay-manager");
 contract("TransactionManager", (accounts) => {
   let manager;
 
-  const infrastructure = accounts[0];
+  // const infrastructure = accounts[0];
   const owner = accounts[1];
-  const recipient = accounts[4];
+  // const recipient = accounts[4];
   const nonceInitialiser = accounts[5];
   const relayer = accounts[9];
 
@@ -48,6 +46,8 @@ contract("TransactionManager", (accounts) => {
   let guardianStorage;
   let module;
   let newModule;
+  let upgrader1;
+  let authoriser;
 
   let wallet;
   let walletImplementation;
@@ -106,7 +106,7 @@ contract("TransactionManager", (accounts) => {
   async function whitelist(target) {
     await module.addToWhitelist(wallet.address, target, { from: owner });
     await utils.increaseTime(3);
-    isTrusted = await module.isWhitelisted(wallet.address, target);
+    const isTrusted = await module.isWhitelisted(wallet.address, target);
     assert.isTrue(isTrusted, "should be trusted after the security period");
   }
 
@@ -114,14 +114,14 @@ contract("TransactionManager", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    let transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    let txReceipt = await manager.relay(
+    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const txReceipt = await manager.relay(
       module,
       "multiCall",
       [wallet.address, [transaction]],
       wallet,
       [owner]);
-    success = await utils.parseRelayReceipt(txReceipt).success;
+    const success = await utils.parseRelayReceipt(txReceipt).success;
     assert.isTrue(success, "transfer failed");
     const nonce = await module.getNonce(wallet.address);
     assert.isTrue(nonce.gt(0), "nonce init failed");
@@ -135,7 +135,6 @@ contract("TransactionManager", (accounts) => {
   });
 
   describe("upgrader modules", () => {
-
     beforeEach(async () => {
       await initNonce();
     });
@@ -144,17 +143,17 @@ contract("TransactionManager", (accounts) => {
       let isAuthorised = await wallet.authorised(newModule.address);
       assert.equal(isAuthorised, false, "new module should not be authorised");
 
-      let txReceipt = await manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "addModule",
         [wallet.address, upgrader1.address],
         wallet,
         [owner]);
-      success = await utils.parseRelayReceipt(txReceipt).success;
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "transfer failed");
       isAuthorised = await wallet.authorised(newModule.address);
       assert.equal(isAuthorised, false, "new module should be authorised");
-      console.log("GAS for upgrade: " + txReceipt.gasUsed);
+      console.log("GAS for upgrade: ", txReceipt.gasUsed);
     });
   });
 });

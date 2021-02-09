@@ -1,6 +1,5 @@
 /* global artifacts */
 const ethers = require("ethers");
-const truffleAssert = require("truffle-assertions");
 
 const BaseWallet = artifacts.require("BaseWallet");
 const Factory = artifacts.require("WalletFactory");
@@ -21,7 +20,6 @@ const ArgentModule = artifacts.require("ArgentModule");
 const utils = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
-const ZERO_BYTES32 = ethers.constants.HashZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
 const LOCK_PERIOD = 4;
@@ -40,6 +38,8 @@ contract("WalletFactory", (accounts) => {
   let lockStorage;
   let transferStorage;
   let modules;
+  let module;
+  let registry;
 
   before(async () => {
     implementation = await BaseWallet.new();
@@ -63,7 +63,7 @@ contract("WalletFactory", (accounts) => {
       LOCK_PERIOD,
       RECOVERY_PERIOD);
 
-      await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
+    await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
     modules = [module.address];
   });
@@ -452,9 +452,9 @@ contract("WalletFactory", (accounts) => {
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the wallet has the correct modules
       const wallet = await BaseWallet.at(walletAddr);
-      let count =  await wallet.modules();
+      const count = await wallet.modules();
       assert.equal(count, 1, "1 modules should be authorised");
-      let isAuthorised = await wallet.authorised(modules[0]);
+      const isAuthorised = await wallet.authorised(modules[0]);
       assert.equal(isAuthorised, true, "first module should be authorised");
     });
 
@@ -480,9 +480,9 @@ contract("WalletFactory", (accounts) => {
       const tx = await factory.createCounterfactualWallet(
         owner, modules, guardian, salt,
       );
-      let event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
+      const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
-      wallet = await BaseWallet.at(walletAddr);
+      const wallet = await BaseWallet.at(walletAddr);
 
       const ERC1271_ISVALIDSIGNATURE_BYTES32 = utils.sha3("isValidSignature(bytes32,bytes)").slice(0, 10);
       const isValidSignatureDelegate = await wallet.enabled(ERC1271_ISVALIDSIGNATURE_BYTES32);

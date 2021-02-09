@@ -37,8 +37,9 @@ interface IParaswap {
 
 contract ParaswapFilter is IFilter {
 
-    bytes32 constant internal MULTISWAP = 0x00000000000000000000000000000000000000000000000000000000cbd1603e;//bytes32(0xcbd1603e); // bytes4(keccak256("multiSwap(address,address,uint256,uint256,uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[],uint256,address,uint256,string)"))
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;   
+    // bytes32(bytes4(keccak256("multiSwap(...)")))
+    bytes32 constant internal MULTISWAP = 0x00000000000000000000000000000000000000000000000000000000cbd1603e;
+    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // The token price registry
     ITokenPriceRegistry public tokenPriceRegistry;
