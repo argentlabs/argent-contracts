@@ -247,7 +247,7 @@ contract WalletFactory is Owned, Managed {
         address signer = Utils.recoverSigner(signedHash, _ownerSignature, 0);
         if (signer == _owner) {
             if (_refundToken == ETH_TOKEN) {
-			    invokeWallet(_wallet, refundAddress, _refundAmount, "");
+                invokeWallet(_wallet, refundAddress, _refundAmount, "");
             } else {
                 bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, _refundAmount);
                 bytes memory successBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
