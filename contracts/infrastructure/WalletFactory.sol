@@ -23,6 +23,7 @@ import "./base/Managed.sol";
 import "./storage/IGuardianStorage.sol";
 import "./IModuleRegistry.sol";
 import "../modules/common/IVersionManager.sol";
+import "../modules/common/Utils.sol";
 
 /**
  * @title WalletFactory
@@ -37,10 +38,13 @@ contract WalletFactory is Owned, Managed {
     address public walletImplementation;
     // The address of the GuardianStorage
     address public guardianStorage;
+    // The recipient of the refund
+    address public refundAddress; 
 
     // *************** Events *************************** //
 
     event ModuleRegistryChanged(address addr);
+    event RefundAddressChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
 
     // *************** Constructor ********************** //
@@ -48,39 +52,18 @@ contract WalletFactory is Owned, Managed {
     /**
      * @notice Default constructor.
      */
-    constructor(address _moduleRegistry, address _walletImplementation, address _guardianStorage) public {
+    constructor(address _moduleRegistry, address _walletImplementation, address _guardianStorage, address _refundAddress) public {
         require(_moduleRegistry != address(0), "WF: ModuleRegistry address not defined");
         require(_walletImplementation != address(0), "WF: WalletImplementation address not defined");
         require(_guardianStorage != address(0), "WF: GuardianStorage address not defined");
+        require(_refundAddress != address(0), "WF: refund address not defined");
         moduleRegistry = _moduleRegistry;
         walletImplementation = _walletImplementation;
         guardianStorage = _guardianStorage;
+        refundAddress = _refundAddress;
     }
 
     // *************** External Functions ********************* //
-    /**
-     * @notice Lets the manager create a wallet for an owner account.
-     * The wallet is initialised with the version manager module, a version number and a first guardian.
-     * The wallet is created using the CREATE opcode.
-     * @param _owner The account address.
-     * @param _versionManager The version manager module
-     * @param _guardian The guardian address.
-     * @param _version The version of the feature bundle.
-     */
-    function createWallet(
-        address _owner,
-        address _versionManager,
-        address _guardian,
-        uint256 _version
-    )
-        external
-        onlyManager
-    {
-        validateInputs(_owner, _versionManager, _guardian, _version);
-        Proxy proxy = new Proxy(walletImplementation);
-        address payable wallet = address(proxy);
-        configureWallet(BaseWallet(wallet), _owner, _versionManager, _guardian, _version);
-    }
      
     /**
      * @notice Lets the manager create a wallet for an owner account at a specific address.
@@ -97,7 +80,10 @@ contract WalletFactory is Owned, Managed {
         address _versionManager,
         address _guardian,
         bytes32 _salt,
-        uint256 _version
+        uint256 _version,
+        uint256 _refundAmount,
+        address _refundToken,
+        bytes calldata _ownerSignature
     )
         external
         onlyManager
@@ -108,6 +94,11 @@ contract WalletFactory is Owned, Managed {
         Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
         address payable wallet = address(proxy);
         configureWallet(BaseWallet(wallet), _owner, _versionManager, _guardian, _version);
+        if (_refundAmount > 0 && _ownerSignature.length == 65) {
+            validateAndRefund(wallet, _owner, _refundAmount, _refundToken, _ownerSignature);
+        }
+        // remove the factory from the authorised modules
+        BaseWallet(wallet).authoriseModule(address(this), false);
         return wallet;
     }
 
@@ -146,6 +137,16 @@ contract WalletFactory is Owned, Managed {
         require(_moduleRegistry != address(0), "WF: address cannot be null");
         moduleRegistry = _moduleRegistry;
         emit ModuleRegistryChanged(_moduleRegistry);
+    }
+
+    /**
+     * @notice Lets the owner change the refund address.
+     * @param _refundAddress The address to use for refunds.
+     */
+    function changeRefundAddress(address _refundAddress) external onlyOwner {
+        require(_refundAddress != address(0), "WF: address cannot be null");
+        refundAddress = _refundAddress;
+        emit RefundAddressChanged(_refundAddress);
     }
 
     /**
@@ -190,9 +191,6 @@ contract WalletFactory is Owned, Managed {
         // upgrade the wallet
         IVersionManager(_versionManager).upgradeWallet(address(_wallet), _version);
 
-        // remove the factory from the authorised modules
-        _wallet.authoriseModule(address(this), false);
-
         // emit event
         emit WalletCreated(address(_wallet), _owner, _guardian);
     }
@@ -221,5 +219,61 @@ contract WalletFactory is Owned, Managed {
         require(IModuleRegistry(moduleRegistry).isRegisteredModule(_versionManager), "WF: invalid _versionManager");
         require(_guardian != (address(0)), "WF: guardian cannot be null");
         require(_version > 0, "WF: invalid _version");
+    }
+
+    /**
+     * @notice Refunds the creation of the wallet when provided with a vild signature from the wallet owner.
+     * @param _wallet The wallet created
+     * @param _owner The owner address
+     * @param _refundAmount The amount to refund
+     * @param _refundToken The token to use for the refund
+     * @param _ownerSignature A signature from the wallet owner approving the refund amount and token. 
+     */
+    function validateAndRefund(
+        address _wallet,
+        address _owner,
+        uint256 _refundAmount,
+        address _refundToken,
+        bytes memory _ownerSignature
+    )
+        internal
+    {
+        bytes32 signedHash = keccak256(abi.encodePacked(
+                "\x19Ethereum Signed Message:\n32",
+                keccak256(abi.encodePacked(_refundAmount, _refundToken))
+            ));
+        address signer = Utils.recoverSigner(signedHash, _ownerSignature, 0);
+        if (signer == _owner) {
+            if (_refundToken == ETH_TOKEN) {
+				invokeWallet(_wallet, refundAddress, _refundAmount, "");
+            } else {
+                bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _refundToken, _refundAmount);
+                invokeWallet(_wallet, refundAddress, 0, methodData);
+            }
+        }
+    }
+
+    function invokeWallet(
+        address _wallet,
+        address _to,
+        uint256 _value,
+        bytes memory _data
+    )
+        internal
+        returns (bytes memory _res) 
+    {
+        bool success;
+        (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
+        if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
+            (_res) = abi.decode(_res, (bytes));
+        } else if (_res.length > 0) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
+            }
+        } else if (!success) {
+            revert("VM: wallet invoke reverted");
+        }
     }
 }
