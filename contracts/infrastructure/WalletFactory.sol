@@ -48,7 +48,6 @@ contract WalletFactory is Owned, Managed {
     event ModuleRegistryChanged(address addr);
     event RefundAddressChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
-    event Ok(bytes res);
 
     // *************** Constructor ********************** //
 
@@ -225,7 +224,7 @@ contract WalletFactory is Owned, Managed {
     }
 
     /**
-     * @notice Refunds the creation of the wallet when provided with a vild signature from the wallet owner.
+     * @notice Refunds the creation of the wallet when provided with a valid signature from the wallet owner.
      * @param _wallet The wallet created
      * @param _owner The owner address
      * @param _refundAmount The amount to refund
@@ -248,14 +247,25 @@ contract WalletFactory is Owned, Managed {
         address signer = Utils.recoverSigner(signedHash, _ownerSignature, 0);
         if (signer == _owner) {
             if (_refundToken == ETH_TOKEN) {
-				invokeWallet(_wallet, refundAddress, _refundAmount, "");
+			    invokeWallet(_wallet, refundAddress, _refundAmount, "");
             } else {
                 bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, _refundAmount);
-                invokeWallet(_wallet, _refundToken, 0, methodData);
+                bytes memory successBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
+                // Check token refund is successful, when `transfer` returns a success bool result
+                if (successBytes.length > 0) {
+                    require(abi.decode(successBytes, (bool)), "WF: refund failed");
+                }
             }
         }
     }
 
+    /**
+     * @notice Invoke the wallet to execute the refund transfer.
+     * @param _wallet The wallet
+     * @param _to The destination of the call
+     * @param _value The value of the call
+     * @param _data The data associated to the call
+     */
     function invokeWallet(
         address _wallet,
         address _to,
@@ -267,16 +277,12 @@ contract WalletFactory is Owned, Managed {
     {
         bool success;
         (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
-        if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
-            (_res) = abi.decode(_res, (bytes));
-        } else if (_res.length > 0) {
+        if (!success) {
             // solhint-disable-next-line no-inline-assembly
             assembly {
                 returndatacopy(0, 0, returndatasize())
                 revert(0, returndatasize())
             }
-        } else if (!success) {
-            revert("VM: wallet invoke reverted");
         }
     }
 }

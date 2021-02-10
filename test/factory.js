@@ -63,6 +63,7 @@ contract("WalletFactory", (accounts) => {
   beforeEach(async () => {
     // Restore the good state of factory (we set these to bad addresses in some tests)
     await factory.changeModuleRegistry(moduleRegistry.address);
+    await factory.changeRefundAddress(refundAddress);
 
     versionManager = await deployVersionManager();
     await moduleRegistry.registerModule(versionManager.address, ethers.utils.formatBytes32String("versionManager"));
@@ -247,7 +248,7 @@ contract("WalletFactory", (accounts) => {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the creation was refunded
-      assert.equal(balanceAfter.sub(balanceBefore), refundAmount, "should have refunded in ETH");
+      assert.equal(balanceAfter.sub(balanceBefore).toNumber(), refundAmount, "should have refunded in ETH");
     });
 
     it("should create and refund in ERC20 token when a valid signature is provided", async () => {
@@ -270,7 +271,7 @@ contract("WalletFactory", (accounts) => {
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the creation was refunded
-      assert.equal(balanceAfter.sub(balanceBefore), refundAmount, "should have refunded in token");
+      assert.equal(balanceAfter.sub(balanceBefore).toNumber(), refundAmount, "should have refunded in token");
     });
 
     it("should create but not refund when an invalid signature is provided", async () => {
