@@ -32,6 +32,8 @@ import "../modules/common/Utils.sol";
  */
 contract WalletFactory is Owned, Managed {
 
+    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     // The address of the module dregistry
     address public moduleRegistry;
     // The address of the base wallet implementation
@@ -46,6 +48,7 @@ contract WalletFactory is Owned, Managed {
     event ModuleRegistryChanged(address addr);
     event RefundAddressChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
+    event Ok(bytes res);
 
     // *************** Constructor ********************** //
 
@@ -247,8 +250,8 @@ contract WalletFactory is Owned, Managed {
             if (_refundToken == ETH_TOKEN) {
 				invokeWallet(_wallet, refundAddress, _refundAmount, "");
             } else {
-                bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", _refundToken, _refundAmount);
-                invokeWallet(_wallet, refundAddress, 0, methodData);
+                bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, _refundAmount);
+                invokeWallet(_wallet, _refundToken, 0, methodData);
             }
         }
     }
