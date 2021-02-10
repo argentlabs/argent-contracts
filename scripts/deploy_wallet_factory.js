@@ -29,15 +29,15 @@ async function main() {
     config.backend.refundCollector);
 
   // Set the backend keys as managers for the new WalletFactory
-  for (idx in config.backend.accounts) {
-    let account = config.backend.accounts[idx];
+  for (let idx = 0; idx < config.backend.accounts.length; idx += 1) {
+    const account = config.backend.accounts[idx];
     const WalletFactoryAddManagerTx = await NewWalletFactoryWrapper.contract.addManager(account);
     await NewWalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
-}
+  }
 
   // Set the multisig as the owner of the new WalletFactory
   const changeOwnerTx = await NewWalletFactoryWrapper.contract.changeOwner(config.contracts.MultiSigWallet);
-  await NewWalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, `Set the MultiSig as the owner of the WalletFactory`);
+  await NewWalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of the WalletFactory");
 
   console.log("Saving new config...");
   configurator.updateInfrastructureAddresses({ WalletFactory: NewWalletFactoryWrapper.address });
