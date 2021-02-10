@@ -232,6 +232,9 @@
           "items": {
             "$ref": "#/definitions/ethaddress"
           }
+        },
+        "refundCollector": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": ["accounts"],
