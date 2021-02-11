@@ -16,10 +16,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "@uniswap/v2-periphery/contracts/libraries/UniswapV2OracleLibrary.sol";
-import "@uniswap/v2-periphery/contracts/libraries/UniswapV2Library.sol";
-import "@uniswap/lib/contracts/libraries/FixedPoint.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "../../../lib/uniswapV2/uniswap-v2-periphery/UniswapV2OracleLibrary.sol";
+import "../../../lib/uniswapV2/uniswap-v2-periphery/UniswapV2Library.sol";
+import "../../../lib/uniswapV2/uniswap-lib/FixedPoint.sol";
+import "../../../lib/uniswapV2/uniswap-v2-core/interfaces/IUniswapV2Pair.sol";
 
 
 contract EmbeddedOracle {
