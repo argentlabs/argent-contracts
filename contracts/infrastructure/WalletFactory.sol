@@ -250,7 +250,10 @@ contract WalletFactory is Owned, Managed {
                 invokeWallet(_wallet, refundAddress, _refundAmount, "");
             } else {
                 bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, _refundAmount);
-                invokeWallet(_wallet, _refundToken, 0, methodData);
+                bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
+                if (transferSuccessBytes.length > 0) {
+                    require(abi.decode(transferSuccessBytes, (bool)), "WF: Refund transfer failed");
+                }
             }
         }
     }
@@ -269,9 +272,13 @@ contract WalletFactory is Owned, Managed {
         bytes memory _data
     )
         internal
+        returns (bytes memory _res)
     {
-        (bool success, ) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
-        if (!success) {
+        bool success;
+        (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
+        if (success) {
+            (_res) = abi.decode(_res, (bytes));
+        } else {
             // solhint-disable-next-line no-inline-assembly
             assembly {
                 returndatacopy(0, 0, returndatasize())
