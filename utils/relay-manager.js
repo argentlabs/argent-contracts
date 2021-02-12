@@ -33,7 +33,7 @@ class RelayManager {
     // When the refund is in token (not ETH), calculate the amount needed for refund
     let gasPrice = _gasPrice;
     if (_refundToken !== ETH_TOKEN) {
-      const tokenPrice = await this.tokenPriceRegistry.getTokenPrice(_refundToken);
+      const tokenPrice = 2 * (new BN(10).pow(new BN(18)));//await this.tokenPriceRegistry.getTokenPrice(_refundToken);
 
       // How many tokens to pay per unit of gas spent
       // refundCost = gasLimit * gasPrice
@@ -42,6 +42,7 @@ class RelayManager {
         .muln(_gasPrice)
         .div(tokenPrice)
         .toNumber();
+        console.log(_gasPrice);console.log(gasPrice);
     }
 
     const signatures = await utils.signOffchain(

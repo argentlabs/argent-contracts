@@ -97,19 +97,17 @@ abstract contract SecurityManager is BaseModule {
 
     constructor(
         uint256 _recoveryPeriod,
-        uint256 _lockPeriod,
-        uint256 _securityWindow
+        uint256 _lockPeriod
     )
         public
     {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
         // where securityPeriod and securityWindow are the security parameters of adding/removing guardians
         // and confirming large transfers.
-        require(_lockPeriod >= _recoveryPeriod, "SM: insecure security periods");
-        require(_recoveryPeriod >= securityPeriod + _securityWindow, "SM: insecure security periods");
+        require(_lockPeriod >= _recoveryPeriod, "SM: insecure lock period");
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
-        securityWindow = _securityWindow;
+        securityWindow = _recoveryPeriod.sub(securityPeriod);
     }
 
     // *************** External functions ************************ //

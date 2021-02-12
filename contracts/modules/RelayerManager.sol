@@ -20,6 +20,7 @@ pragma experimental ABIEncoderV2;
 import "./common/Utils.sol";
 import "./common/GuardianUtils.sol";
 import "./common/BaseModule.sol";
+import "./common/SimpleOracle.sol";
 import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 
@@ -28,7 +29,7 @@ import "../infrastructure/storage/IGuardianStorage.sol";
  * @notice Abstract Module to execute transactions signed by ETH-less accounts and sent by a relayer.
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
-abstract contract RelayerManager is BaseModule {
+abstract contract RelayerManager is BaseModule, SimpleOracle {
 
     uint256 constant internal BLOCKBOUND = 10000;
 
@@ -50,6 +51,12 @@ abstract contract RelayerManager is BaseModule {
 
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
     event Refund(address indexed wallet, address indexed refundAddress, address refundToken, uint256 refundAmount);
+
+    // *************** Constructor ************************ //
+
+    constructor(address _factory, address _weth) public SimpleOracle(_factory, _weth) {
+
+    }
 
     /* ***************** External methods ************************* */
 
@@ -294,7 +301,54 @@ abstract contract RelayerManager is BaseModule {
         return true;
     }
 
-    /**
+    // /**
+    // * @notice Refunds the gas used to the Relayer.
+    // * @param _wallet The target wallet.
+    // * @param _startGas The gas provided at the start of the execution.
+    // * @param _gasPrice The gas price for the refund.
+    // * @param _gasLimit The gas limit for the refund.
+    // * @param _refundToken The token to use for the gas refund.
+    // * @param _refundAddress The address refunded to prevent front-running.
+    // * @param _requiredSignatures The number of signatures required.
+    // */
+    // function refund(
+    //     address _wallet,
+    //     uint _startGas,
+    //     uint _gasPrice,
+    //     uint _gasLimit,
+    //     address _refundToken,
+    //     address _refundAddress,
+    //     uint256 _requiredSignatures,
+    //     OwnerSignature _option
+    // )
+    //     internal
+    // {
+    //     if (_gasPrice > 0 && (_option == OwnerSignature.Required || _option == OwnerSignature.Session)) {
+    //         address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
+    //         if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
+    //                 // refundAddress must be whitelisted/authorised
+    //                 if (!authoriser.authorise(_wallet, refundAddress, EMPTY_BYTES)) {
+    //                     uint whitelistAfter = userWhitelist.getWhitelist(_wallet, refundAddress);
+    //                     require(whitelistAfter > 0 && whitelistAfter < block.timestamp, "RM: refund not authorised");
+    //                 }
+    //         }
+    //         uint256 gasConsumed = _startGas.sub(gasleft()).add(14000);
+    //         uint256 refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
+    //         if (_refundToken == ETH_TOKEN) {
+    //             invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
+    //         } else {
+    //             bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
+    //             bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
+    //             // Check token refund is successful, when `transfer` returns a success bool result
+    //             if (transferSuccessBytes.length > 0) {
+    //                 require(abi.decode(transferSuccessBytes, (bool)), "RM: Refund transfer failed");
+    //             }
+    //         }
+    //         emit Refund(_wallet, refundAddress, _refundToken, refundAmount);    
+    //     }
+    // }
+
+        /**
     * @notice Refunds the gas used to the Relayer.
     * @param _wallet The target wallet.
     * @param _startGas The gas provided at the start of the execution.
@@ -325,11 +379,15 @@ abstract contract RelayerManager is BaseModule {
                         require(whitelistAfter > 0 && whitelistAfter < block.timestamp, "RM: refund not authorised");
                     }
             }
-            uint256 gasConsumed = _startGas.sub(gasleft()).add(14000);
-            uint256 refundAmount = Utils.min(gasConsumed, _gasLimit).mul(_gasPrice);
+            uint256 refundAmount;
             if (_refundToken == ETH_TOKEN) {
+                uint256 gasConsumed = _startGas.sub(gasleft()).add(14000);
+                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(Utils.min(_gasPrice, tx.gasprice));
                 invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
             } else {
+                uint256 gasConsumed = _startGas.sub(gasleft()).add(24000);
+                uint256 txGasPrice = tokenAmount(_refundToken, tx.gasprice);
+                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(Utils.min(_gasPrice, txGasPrice));
                 bytes memory methodData = abi.encodeWithSignature("transfer(address,uint256)", refundAddress, refundAmount);
                 bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
                 // Check token refund is successful, when `transfer` returns a success bool result
