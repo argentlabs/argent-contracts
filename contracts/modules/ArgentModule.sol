@@ -22,17 +22,16 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         IGuardianStorage _guardianStorage,
         ITransferStorage _userWhitelist,
         IAuthoriser _authoriser,
-        address _factory,
-        address _weth,
+        address _uniswapRouter,
         uint256 _securityPeriod,
-        //uint256 _securityWindow, _securityWindow = _recoveryPeriod - _securityPeriod
+        uint256 _securityWindow,
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
         public
         BaseModule(_registry, _guardianStorage, _userWhitelist, _authoriser, _securityPeriod, NAME)
         SecurityManager(_recoveryPeriod, _lockPeriod)
-        RelayerManager(_factory, _weth)
+        RelayerManager(_uniswapRouter)
     {
         
     }

@@ -16,6 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -26,22 +27,17 @@ contract SimpleOracle {
     address immutable weth;
     address immutable factory;
 
-    constructor(address _factory, address _weth) public {
-        weth = _weth;
-        factory = _factory;
+    constructor(address _uniswapRouter) public {
+        weth = IUniswapV2Router01(_uniswapRouter).WETH();
+        factory = IUniswapV2Router01(_uniswapRouter).factory();
     }
 
-    function ethAmount(address _token, uint256 _tokenAmount) internal view returns (uint256) {
-        (uint112 wethReserve, uint112 tokenReserve) = getReservesForTokenPool(_token);
-        return _tokenAmount.mul(wethReserve) / tokenReserve;
-    }
-
-    function tokenAmount(address _token, uint256 _ethAmount) internal view returns (uint256) {
-        (uint112 wethReserve, uint112 tokenReserve) = getReservesForTokenPool(_token);
+    function inToken(address _token, uint256 _ethAmount) internal view returns (uint256) {
+        (uint256 wethReserve, uint256 tokenReserve) = getReservesForTokenPool(_token);
         return _ethAmount.mul(tokenReserve) / wethReserve;
     }
 
-    function getReservesForTokenPool(address _token) internal view returns (uint112 wethReserve, uint112 tokenReserve) {
+    function getReservesForTokenPool(address _token) internal view returns (uint256 wethReserve, uint256 tokenReserve) {
         if (weth < _token) {
             address pair = getPairForSorted(weth, _token);
             (wethReserve, tokenReserve,) = IUniswapV2Pair(pair).getReserves();
@@ -57,7 +53,8 @@ contract SimpleOracle {
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(tokenA, tokenB)),
-                hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f' // init code hash
+                hex'8d4eafb0fd495310477556b0b53beb4cb0f669db323ce64533c25ace358cd1a2' // use for local tests
+                //hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f' // use for deployment to Ropstent/Mainnet
             ))));
     }
 }
