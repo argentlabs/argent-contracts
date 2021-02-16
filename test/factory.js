@@ -240,7 +240,7 @@ contract("WalletFactory", (accounts) => {
       const tx = await factory.createCounterfactualWallet(
         owner, versionManager.address, guardian, salt, 1, refundAmount, ETH_TOKEN, ownerSig,
       );
-      const event = await utils.getEvent(tx.receipt, factory, "WalletFeeRefund");
+      const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
       const balanceAfter = await utils.getBalance(refundAddress);
       // we test that the wallet is at the correct address
@@ -248,7 +248,6 @@ contract("WalletFactory", (accounts) => {
       // we test that the creation was refunded
       assert.equal(balanceAfter.sub(balanceBefore).toNumber(), refundAmount, "should have refunded in ETH");
 
-      assert.equal(event.args.refundAddress, refundAddress);
       assert.equal(event.args.refundToken, ETH_TOKEN);
       assert.equal(event.args.refundAmount, refundAmount);
     });
@@ -267,7 +266,7 @@ contract("WalletFactory", (accounts) => {
       const tx = await factory.createCounterfactualWallet(
         owner, versionManager.address, guardian, salt, 1, refundAmount, token.address, ownerSig,
       );
-      const event = await utils.getEvent(tx.receipt, factory, "WalletFeeRefund");
+      const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
 
       const balanceAfter = await token.balanceOf(refundAddress);
@@ -276,7 +275,6 @@ contract("WalletFactory", (accounts) => {
       // we test that the creation was refunded
       assert.equal(balanceAfter.sub(balanceBefore).toNumber(), refundAmount, "should have refunded in token");
 
-      assert.equal(event.args.refundAddress, refundAddress);
       assert.equal(event.args.refundToken, token.address);
       assert.equal(event.args.refundAmount, refundAmount);
     });
