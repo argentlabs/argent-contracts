@@ -48,6 +48,7 @@ contract WalletFactory is Owned, Managed {
     event ModuleRegistryChanged(address addr);
     event RefundAddressChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
+    event WalletFeeRefund(address indexed wallet, address indexed refundAddress, address refundToken, uint256 refundAmount);
 
     // *************** Constructor ********************** //
 
@@ -256,6 +257,8 @@ contract WalletFactory is Owned, Managed {
                 }
             }
         }
+
+        emit WalletFeeRefund(_wallet, refundAddress, _refundToken, _refundAmount);
     }
 
     /**
