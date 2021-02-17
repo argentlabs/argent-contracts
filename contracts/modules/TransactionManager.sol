@@ -29,7 +29,9 @@ import "../../lib/other/ERC20.sol";
 abstract contract TransactionManager is BaseModule {
 
     bytes4 private constant ERC1271_ISVALIDSIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
-    bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
+    bytes4 private constant ERC721_RECEIVED = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+    bytes4 private constant ERC1155_RECEIVED = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
+    bytes4 private constant ERC1155_BATCH_RECEIVED = bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
 
     struct Call {
         address to;
@@ -47,6 +49,7 @@ abstract contract TransactionManager is BaseModule {
     event ToggledDappRegistry(address _wallet, bytes32 _registry, bool isEnabled);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
+    event ERC1155TokenReceiverEnabled(address indexed _wallet);
 
     // *************** External functions ************************ //
 
@@ -163,6 +166,41 @@ abstract contract TransactionManager is BaseModule {
         emit SessionCleared(_wallet, sessions[_wallet].key);
         delete sessions[_wallet];
     }
+    
+    /*
+    * @notice Enable the static calls required to make the wallet compatible with the ERC1155TokenReceiver 
+    * interface (see https://eips.ethereum.org/EIPS/eip-1155#erc-1155-token-receiver). This method only 
+    * needs to be called for wallets deployed in version lower or equal to 2.4.0 as the ERC1155 static calls
+    * are not available by default for these versions of BaseWallet
+    * @param _wallet The target wallet.
+    */
+    function enableERC1155TokenReceiver(
+        address _wallet
+    )   
+        external
+        onlySelf()
+    {
+        IWallet(_wallet).enableStaticCall(address(this), ERC1155_RECEIVED);
+        IWallet(_wallet).enableStaticCall(address(this), ERC1155_BATCH_RECEIVED);
+        emit ERC1155TokenReceiverEnabled(_wallet);
+    }
+
+    /**
+     * @inheritdoc IModule
+     */
+    function supportsStaticCall(
+        bytes4 _methodId
+    ) 
+        external 
+        view
+        override
+        returns (bool _isSupported)
+    {
+        return _methodId == ERC1271_ISVALIDSIGNATURE ||
+               _methodId == ERC721_RECEIVED ||
+               _methodId == ERC1155_RECEIVED ||
+               _methodId == ERC1155_BATCH_RECEIVED;
+    }
 
     /** ******************* Callbacks ************************** */
 
@@ -180,29 +218,22 @@ abstract contract TransactionManager is BaseModule {
         return ERC1271_ISVALIDSIGNATURE;
     }
 
-    /**
-     * @notice Implementation of ERC721
-     * @notice An ERC721 smart contract calls this function on the recipient contract
-     * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received
-     * will be forwarded to the method onERC721Received of the present module.
-     * @return bytes4 `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-     */
-    function onERC721Received(
-        address /* operator */,
-        address /* from */,
-        uint256 /* tokenId */,
-        bytes calldata /* data*/
-    )
-        external
-        returns (bytes4)
-    {
-        return ERC721_RECEIVED;
+
+    fallback() external {
+        bytes4 methodId = Utils.functionPrefix(msg.data);
+        if(methodId == ERC721_RECEIVED || methodId == ERC1155_RECEIVED || methodId == ERC1155_BATCH_RECEIVED) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {                
+                calldatacopy(0, 0, 0x04)
+                return (0, 0x20)
+            }
+        }
     }
 
     // *************** Internal Functions ********************* //
 
-    function enableStaticCall(address _wallet) internal {
-        // setup static calls
+    function enableDefaultStaticCalls(address _wallet) internal {
+        // setup the static calls that are available for free for all wallets
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE);
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }

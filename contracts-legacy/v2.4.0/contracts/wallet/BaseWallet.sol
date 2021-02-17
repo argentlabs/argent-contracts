@@ -32,8 +32,8 @@ contract BaseWallet is IWallet {
     address public override owner;
     // The authorised modules
     mapping (address => bool) public override authorised;
-    // module executing static calls
-    address public staticCallExecutor;
+    // The enabled static calls
+    mapping (bytes4 => address) public override enabled;
     // The number of modules
     uint public override modules;
 
@@ -93,22 +93,10 @@ contract BaseWallet is IWallet {
     /**
     * @inheritdoc IWallet
     */
-    function enabled(bytes4 _sig) public view override returns (address) {
-        address executor = staticCallExecutor;
-        if(executor != address(0) && IModule(executor).supportsStaticCall(_sig)) {
-            return executor;
-        }
-        return address(0);
-    }
-
-    /**
-    * @inheritdoc IWallet
-    */
-    function enableStaticCall(address _module, bytes4 /* _method */) external override moduleOnly {
-        if(staticCallExecutor != _module) {
-            require(authorised[_module], "BW: static call executor must be authorised module");
-            staticCallExecutor = _module;
-        }
+    function enableStaticCall(address _module, bytes4 _method) external override moduleOnly {
+        require(authorised[_module], "BW: must be an authorised module for static call");
+        enabled[_method] = _module;
+        emit EnabledStaticCall(_module, _method);
     }
 
     /**
@@ -144,7 +132,7 @@ contract BaseWallet is IWallet {
      * to an enabled module, or logs the call otherwise.
      */
     fallback() external payable {
-        address module = enabled(msg.sig);
+        address module = enabled[msg.sig];
         if (module == address(0)) {
             emit Received(msg.value, msg.sender, msg.data);
         } else {
