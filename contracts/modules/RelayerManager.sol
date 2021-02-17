@@ -34,6 +34,7 @@ abstract contract RelayerManager is BaseModule {
 
     mapping (address => RelayerConfig) internal relayer;
 
+    // Maps wallet to session
     mapping (address => Session) internal sessions;
 
     struct RelayerConfig {
@@ -97,9 +98,7 @@ abstract contract RelayerManager is BaseModule {
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
         StackExtension memory stack;
         (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures(_wallet, _data);
-        if (stack.ownerSignatureRequirement == OwnerSignature.Session && startSession(_wallet, _data)) {
-            (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignaturesToStartSession(_wallet);
-        }
+
         require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
         require(stack.requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         stack.signHash = getSignHash(
@@ -117,11 +116,9 @@ abstract contract RelayerManager is BaseModule {
             stack.signHash,
             stack.requiredSignatures,
             stack.ownerSignatureRequirement), "RM: Duplicate request");
-        if (stack.ownerSignatureRequirement == OwnerSignature.Session) {
-            require(validateSession(_wallet, stack.signHash, _signatures), "RM: Invalid session");
-        } else {
-            require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
-        }
+
+        require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
+
         (stack.success, stack.returnData) = address(this).call(_data);
         refund(
             _wallet,
@@ -134,20 +131,6 @@ abstract contract RelayerManager is BaseModule {
             stack.ownerSignatureRequirement);
         emit TransactionExecuted(_wallet, stack.success, stack.returnData, stack.signHash);
         return stack.success;
-    }
-
-    /**
-    * @notice Clears the active session of a wallet if any.
-    * @param _wallet The target wallet.
-    */
-    function clearSession(
-        address _wallet
-    )
-        external
-        onlySelf()
-    {
-        emit SessionCleared(_wallet, sessions[_wallet].key);
-        delete sessions[_wallet];
     }
 
     /**
@@ -242,7 +225,7 @@ abstract contract RelayerManager is BaseModule {
         returns (bool)
     {
         if (requiredSignatures == 1 &&
-            (ownerSignatureRequirement == OwnerSignature.Required || ownerSignatureRequirement == OwnerSignature.Session)) {
+            (ownerSignatureRequirement == OwnerSignature.Required)) {
             // use the incremental nonce
             if (_nonce <= relayer[_wallet].nonce) {
                 return false;
@@ -268,19 +251,12 @@ abstract contract RelayerManager is BaseModule {
     * The method MUST throw if one or more signatures are not valid.
     * @param _wallet The target wallet.
     * @param _signHash The signed hash representing the relayed transaction.
-    * @param _signatures The signatures as a concatenated byte array.
-    * @param _option An enum indicating whether the owner is required, optional or disallowed.
+    * @param _signatures The signatures as a concatenated bytes array.
+    * @param _option An OwnerSignature enum indicating whether the owner is required, optional or disallowed.
     * @return A boolean indicating whether the signatures are valid.
     */
-    function validateSignatures(
-        address _wallet,
-        bytes32 _signHash,
-        bytes memory _signatures,
-        OwnerSignature _option
-    )
-        internal
-        view
-        returns (bool)
+    function validateSignatures(address _wallet, bytes32 _signHash, bytes memory _signatures, OwnerSignature _option) internal view
+    returns (bool)
     {
         if (_signatures.length == 0) {
             return true;
@@ -343,7 +319,7 @@ abstract contract RelayerManager is BaseModule {
     )
         internal
     {
-        if (_gasPrice > 0 && (_option == OwnerSignature.Required || _option == OwnerSignature.Session)) {
+        if (_gasPrice > 0 && _option == OwnerSignature.Required) {
             address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
             if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
                     // refundAddress must be whitelisted/authorised
@@ -387,25 +363,26 @@ abstract contract RelayerManager is BaseModule {
         assembly { chainId := chainid() }
     }
 
-    function getRequiredSignaturesToStartSession(address _wallet) internal view returns (uint256, OwnerSignature) {
-        // owner  + [n/2] guardians
-        uint numberOfGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
-        require(numberOfGuardians > 0, "RM: no guardians set on wallet");
-        uint numberOfSignatures = 1 + numberOfGuardians;
-        return (numberOfSignatures, OwnerSignature.Required);
+    function startSession(address _wallet, address _sessionUser, uint64 _duration) external 
+    onlyWallet(_wallet) returns (bool)
+    {
+        require(_sessionUser != address(0), "RM: Invalid session user");
+        require(_duration > 0, "RM: Invalid session duration");
+
+        uint64 expiry = Utils.safe64(block.timestamp + _duration);
+        sessions[_wallet] = Session(_sessionUser, expiry);
+        emit SessionCreated(_wallet, _sessionUser, expiry);
     }
 
-    function startSession(address _wallet, bytes calldata _data) internal returns (bool) {
-        require(_data.length >= 68, "RM: Invalid session parameters");
-        (address key, uint64 expires) = abi.decode(_data[36:], (address, uint64));
-        if (key != address(0)) {
-            if (expires > 0) {
-                sessions[_wallet] = Session(key, expires);
-                emit SessionCreated(_wallet, key, expires);
-            }
-            return true;
-        }
-        return false;
+    /**
+    * @notice Clears the active session of a wallet if any.
+    * @param _wallet The target wallet.
+    */
+    function clearSession(address _wallet) external
+    onlySelf()
+    {
+        delete sessions[_wallet];
+        emit SessionCleared(_wallet, sessions[_wallet].key);
     }
 
     function validateSession(address _wallet, bytes32 _signHash, bytes calldata _signatures) internal view returns (bool) { 

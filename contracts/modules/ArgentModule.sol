@@ -56,9 +56,6 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
     function getRequiredSignatures(address _wallet, bytes calldata _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
 
-        if (methodId == TransactionManager.multiCallWithSession.selector) {
-            return (1, OwnerSignature.Session);
-        } 
         if (methodId == TransactionManager.multiCall.selector ||
             methodId == TransactionManager.addToWhitelist.selector ||
             methodId == TransactionManager.removeFromWhitelist.selector ||
@@ -70,7 +67,7 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         {
             // owner
             return (1, OwnerSignature.Required);
-        } 
+        }
         if (methodId == SecurityManager.executeRecovery.selector) {
             // majority of guardians
             uint numberOfSignaturesRequired = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
@@ -100,6 +97,19 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         if (methodId == SecurityManager.lock.selector || methodId == SecurityManager.unlock.selector) {
             // any guardian
             return (1, OwnerSignature.Disallowed);
+        }
+        if (methodId == TransactionManager.multiCallWithApproval.selector) {
+            // Decode the second parameter of the multiCallWithApproval which the boolean useSession
+            bool useSession = abi.decode(_data[36:], (bool));
+            if (useSession) {
+                // When using a session, one signature is required - that of the session user assigned
+                return (1, OwnerSignature.Disallowed);
+            } else {
+                // owner + majority of guardians
+                uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
+                uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
+                return (numberOfSignaturesRequired, OwnerSignature.Required);
+            }
         }
         revert("SM: unknown method");
     }

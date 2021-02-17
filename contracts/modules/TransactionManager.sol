@@ -62,16 +62,15 @@ abstract contract TransactionManager is BaseModule {
             address spender = recoverSpender(_wallet, _transactions[i]);
             require(
                 isWhitelisted(_wallet, spender) ||
-                isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data),
-                "TM: call not authorised");
+                isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
     }
 
-    function multiCallWithSession(
+    function multiCallWithApproval(
         address _wallet,
-        Session calldata,
+        bool _useSession,
         Call[] calldata _transactions
     )
         external
@@ -214,7 +213,9 @@ abstract contract TransactionManager is BaseModule {
 
     function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) internal view returns (bool) {
         if (_to == _spender) {
-            return authoriser.authorise(_wallet, _to, _data); // do we need to block calls to the wallet or modules?
+            return authoriser.authorise(_wallet, _to, _data); 
+            // do we need to block calls to the wallet or modules?
+            // we do need to block calls to modules for the purposes of not being able to bypass calls to startSession 
         } else {
             return authoriser.authorise(_wallet, _spender, "");
         }

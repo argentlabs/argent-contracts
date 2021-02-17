@@ -5,8 +5,10 @@ const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { assert } = chai;
+const { assert, expect } = chai;
 chai.use(bnChai(BN));
+
+const truffleAssert = require("truffle-assertions");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
@@ -20,7 +22,7 @@ const Authoriser = artifacts.require("DappRegistry");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
+// const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -29,15 +31,15 @@ const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("ArgentModule", (accounts) => {
+contract("ArgentModule sessions", (accounts) => {
   let manager;
 
   // const infrastructure = accounts[0];
   const owner = accounts[1];
   const guardian1 = accounts[2];
   const recipient = accounts[4];
-  const nonceInitialiser = accounts[5];
-  const sessionKey = accounts[6];
+  const sessionUser = accounts[6];
+  const sessionUser2 = accounts[7];
   const relayer = accounts[9];
 
   let registry;
@@ -77,42 +79,6 @@ contract("ArgentModule", (accounts) => {
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
-  beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
-
-    await wallet.send(new BN("1000000000000000000"));
-  });
-
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
-  }
-
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function initNonce() {
-    // add to whitelist
-    await whitelist(nonceInitialiser);
-    // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-    const nonce = await module.getNonce(wallet.address);
-    assert.isTrue(nonce.gt(0), "nonce init failed");
-  }
-
   async function addGuardians(guardians) {
     // guardians can be BaseWallet or ContractWrapper objects
     for (const guardian of guardians) {
@@ -127,74 +93,168 @@ contract("ArgentModule", (accounts) => {
     assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
   }
 
-  describe("transfer ETH with session", () => {
-    beforeEach(async () => {
-      await initNonce();
-      await addGuardians([guardian1]);
-    });
+  beforeEach(async () => {
+    const proxy = await Proxy.new(walletImplementation.address);
+    wallet = await BaseWallet.at(proxy.address);
+    await wallet.init(owner, [module.address]);
 
-    it("should send ETH with guardians", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
-      const session = { key: sessionKey, expires: 0 };
+    await wallet.send(new BN("1000000000000000000"));
+
+    await addGuardians([guardian1]);
+  });
+
+  async function encodeTransaction(to, value, data, isSpenderInData = false) {
+    return { to, value, data, isSpenderInData };
+  }
+
+  describe("session lifecycle", () => {
+    it("owner plus majority guardians should be able to start a session", async () => {
+      const data = module.contract.methods.startSession(wallet.address, sessionUser, 1000).encodeABI();
+      const transaction = await encodeTransaction(module.address, 0, data, false);
 
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithSession",
-        [wallet.address, session, [transaction]],
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
         wallet,
         [owner, guardian1],
         1,
         ETH_TOKEN,
         recipient);
-      const success = await utils.parseRelayReceipt(txReceipt).success;
-      assert.isTrue(success, "transfer failed");
-      console.log(`Gas for ETH transfer with 1 guardian: ${txReceipt.gasUsed}`);
+
+      const { success } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success);
+
+      const session = await module.getSession(wallet.address);
+      assert.equal(session.key, sessionUser);
+
+      const timestamp = await utils.getTimestamp(txReceipt.blockNumber);
+      expect(session.expires).to.eq.BN(timestamp + 1000);
     });
 
-    it("should send ETH and create session", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
-      const session = { key: sessionKey, expires: 1000000 };
-
-      const txReceipt = await manager.relay(
+    it("should be able to overwrite an existing session", async () => {
+      // Start a session for sessionUser with duration 1000s
+      let data = module.contract.methods.startSession(wallet.address, sessionUser, 1000).encodeABI();
+      let transaction = await encodeTransaction(module.address, 0, data, false);
+      await manager.relay(
         module,
-        "multiCallWithSession",
-        [wallet.address, session, [transaction]],
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
         wallet,
         [owner, guardian1],
         1,
         ETH_TOKEN,
         recipient);
-      const success = await utils.parseRelayReceipt(txReceipt).success;
-      assert.isTrue(success, "transfer failed");
-      console.log(`Gas for ETH transfer and create session: ${txReceipt.gasUsed}`);
-    });
 
-    it("should send ETH with session key", async () => {
-      const expires = (await utils.getTimestamp()) + 10000;
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
-      const session = { key: sessionKey, expires };
-
-      let txReceipt = await manager.relay(
+      // Start another session on the same wallet for sessionUser2 with duration 2000s
+      data = module.contract.methods.startSession(wallet.address, sessionUser2, 2000).encodeABI();
+      transaction = await encodeTransaction(module.address, 0, data, false);
+      const txReceipt = await manager.relay(
         module,
-        "multiCallWithSession",
-        [wallet.address, session, [transaction]],
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
         wallet,
-        [owner, guardian1]);
-      let success = await utils.parseRelayReceipt(txReceipt).success;
-      assert.isTrue(success, "transfer failed");
-
-      txReceipt = await manager.relay(
-        module,
-        "multiCallWithSession",
-        [wallet.address, { key: ZERO_ADDRESS, expires: 0 }, [transaction]],
-        wallet,
-        [sessionKey],
+        [owner, guardian1],
         1,
         ETH_TOKEN,
         recipient);
-      success = await utils.parseRelayReceipt(txReceipt).success;
-      assert.isTrue(success, "transfer failed");
-      console.log(`Gas for ETH transfer with session: ${txReceipt.gasUsed}`);
+
+      const { success } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success);
+
+      const session = await module.getSession(wallet.address);
+      assert.equal(session.key, sessionUser2);
+
+      const timestamp = await utils.getTimestamp(txReceipt.blockNumber);
+      expect(session.expires).to.eq.BN(timestamp + 2000);
+    });
+
+    it.skip("should not be able to start a session for empty user address", async () => {
+      const data = module.contract.methods.startSession(wallet.address, ZERO_ADDRESS, 1000).encodeABI();
+      const transaction = await encodeTransaction(module.address, 0, data, false);
+      await truffleAssert.reverts(manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
+        wallet,
+        [owner, guardian1],
+        1,
+        ETH_TOKEN,
+        recipient), "RM: Invalid session user");
+    });
+
+    it.skip("should not be able to start a session for zero duration", async () => {
+      const data = module.contract.methods.startSession(wallet.address, sessionUser, 0).encodeABI();
+      const transaction = await encodeTransaction(module.address, 0, data, false);
+      await truffleAssert.reverts(manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
+        wallet,
+        [owner, guardian1],
+        1,
+        ETH_TOKEN,
+        recipient), "RM: Invalid session duration");
+    });
+
+    it("owner should be able to clear a session", async () => {
+      // Start a session for sessionUser with duration 1000s
+      const data = module.contract.methods.startSession(wallet.address, sessionUser, 1000).encodeABI();
+      const transaction = await encodeTransaction(module.address, 0, data, false);
+      await manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
+        wallet,
+        [owner, guardian1],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+
+      // owner clears the session
+      const txReceipt = await manager.relay(
+        module,
+        "clearSession",
+        [wallet.address],
+        wallet,
+        [owner],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+
+      const { success } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success);
+
+      const session = await module.getSession(wallet.address);
+      assert.equal(session.key, ZERO_ADDRESS);
+
+      expect(session.expires).to.eq.BN(0);
+    });
+
+    it("non-owner should not be able to clear a session", async () => {
+      // Start a session for sessionUser with duration 1000s
+      const data = module.contract.methods.startSession(wallet.address, sessionUser, 1000).encodeABI();
+      const transaction = await encodeTransaction(module.address, 0, data, false);
+      await manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
+        wallet,
+        [owner, guardian1],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+
+      // owner clears the session
+      await truffleAssert.reverts(manager.relay(
+        module,
+        "clearSession",
+        [wallet.address],
+        wallet,
+        [accounts[8]],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS), "RM: Invalid signatures");
     });
   });
 });
