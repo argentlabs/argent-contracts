@@ -2,7 +2,7 @@
 // Script to deploy a new WalletFactory contract
 //
 // Can be executed as:
-// ./execute_script.sh --no-compile deploy_wallet_factory.js <network>
+// ./scripts/execute_script.sh --no-compile scripts/deploy_wallet_factory.js <network>
 //
 // where:
 //     - network = [development, test, staging, prod]
@@ -16,7 +16,7 @@ const WalletFactory = artifacts.require("WalletFactory");
 const deployManager = require("../utils/deploy-manager.js");
 
 async function main() {
-  const { configurator } = await deployManager.getProps();
+  const { configurator, abiUploader } = await deployManager.getProps();
   const { config } = configurator;
   console.log("Config:", config);
 
@@ -28,21 +28,23 @@ async function main() {
     config.modules.GuardianStorage,
     config.backend.refundCollector);
 
-  // Set the backend keys as managers for the new WalletFactory
+  console.log("WalletFactory deployed at", NewWalletFactoryWrapper.address);
+
+  console.log("Setting the backend accounts as managers for the new WalletFactory...");
   for (let idx = 0; idx < config.backend.accounts.length; idx += 1) {
     const account = config.backend.accounts[idx];
-    const WalletFactoryAddManagerTx = await NewWalletFactoryWrapper.contract.addManager(account);
-    await NewWalletFactoryWrapper.verboseWaitForTransaction(WalletFactoryAddManagerTx, `Set ${account} as the manager of the WalletFactory`);
+    // Set `account` as the manager of the WalletFactory
+    await NewWalletFactoryWrapper.addManager(account);
   }
 
-  // Set the multisig as the owner of the new WalletFactory
-  const changeOwnerTx = await NewWalletFactoryWrapper.contract.changeOwner(config.contracts.MultiSigWallet);
-  await NewWalletFactoryWrapper.verboseWaitForTransaction(changeOwnerTx, "Set the MultiSig as the owner of the WalletFactory");
+  console.log("Setting the multisig as the owner of the new WalletFactory...");
+  await NewWalletFactoryWrapper.changeOwner(config.contracts.MultiSigWallet);
 
   console.log("Saving new config...");
   configurator.updateInfrastructureAddresses({ WalletFactory: NewWalletFactoryWrapper.address });
   await configurator.save();
-  await deployManager.abiUploader.upload(NewWalletFactoryWrapper, "contracts");
+
+  await abiUploader.upload(NewWalletFactoryWrapper, "contracts");
 
   console.log("WalletFactory Update DONE.");
 }

@@ -157,16 +157,14 @@ contract("WalletFactory", (accounts) => {
 
     it("should create with the correct owner", async () => {
       const salt = utils.generateSaltValue();
-      // we get the future address
-      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.address, guardian, salt, 1);
+
       // we create the wallet
       const tx = await factory.createCounterfactualWallet(
         owner, versionManager.address, guardian, salt, 1, 0, ZERO_ADDRESS, ZERO_BYTES32,
       );
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
-      // we test that the wallet is at the correct address
-      assert.equal(futureAddr, walletAddr, "should have the correct address");
+
       // we test that the wallet has the correct owner
       const wallet = await BaseWallet.at(walletAddr);
       const walletOwner = await wallet.owner();
@@ -249,6 +247,9 @@ contract("WalletFactory", (accounts) => {
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the creation was refunded
       assert.equal(balanceAfter.sub(balanceBefore).toNumber(), refundAmount, "should have refunded in ETH");
+
+      assert.equal(event.args.refundToken, ETH_TOKEN);
+      assert.equal(event.args.refundAmount, refundAmount);
     });
 
     it("should create and refund in ERC20 token when a valid signature is provided", async () => {
@@ -267,14 +268,18 @@ contract("WalletFactory", (accounts) => {
       );
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
+
       const balanceAfter = await token.balanceOf(refundAddress);
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
       // we test that the creation was refunded
       assert.equal(balanceAfter.sub(balanceBefore).toNumber(), refundAmount, "should have refunded in token");
+
+      assert.equal(event.args.refundToken, token.address);
+      assert.equal(event.args.refundAmount, refundAmount);
     });
 
-    it("should create but not refund when an invalid signature is provided", async () => {
+    it("should create but not refund when an invalid refund amount is provided", async () => {
       const refundAmount = 1000;
       const salt = utils.generateSaltValue();
       // we get the future address
@@ -297,7 +302,7 @@ contract("WalletFactory", (accounts) => {
       assert.equal(balanceAfter.sub(balanceBefore), 0, "should not have refunded");
     });
 
-    it("should create but not refund when an invalid refund amount is provided", async () => {
+    it("should create but not refund when an invalid signature is provided", async () => {
       const refundAmount = 1000;
       const salt = utils.generateSaltValue();
       // we get the future address
@@ -340,10 +345,15 @@ contract("WalletFactory", (accounts) => {
     it("should fail to create when there is not enough for the refund", async () => {
       const refundAmount = 1000;
       const salt = utils.generateSaltValue();
+
+      const futureAddr = await factory.getAddressForCounterfactualWallet(owner, versionManager.address, guardian, salt, 1);
+      // Send less ETH than the refund
+      await web3.eth.sendTransaction({ from: infrastructure, to: futureAddr, value: 900 });
+
       // we get the owner signature for a refund
       const ownerSig = await signRefund(refundAmount, ETH_TOKEN, owner);
       await truffleAssert.reverts(
-        factory.createCounterfactualWallet(owner, versionManager.address, ZERO_ADDRESS, salt, 1, refundAmount, ETH_TOKEN, ownerSig),
+        factory.createCounterfactualWallet(owner, versionManager.address, guardian, salt, 1, refundAmount, ETH_TOKEN, ownerSig)
       );
     });
 

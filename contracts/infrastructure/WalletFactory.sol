@@ -47,7 +47,7 @@ contract WalletFactory is Owned, Managed {
 
     event ModuleRegistryChanged(address addr);
     event RefundAddressChanged(address addr);
-    event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian);
+    event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian, address refundToken, uint256 refundAmount);
 
     // *************** Constructor ********************** //
 
@@ -101,6 +101,10 @@ contract WalletFactory is Owned, Managed {
         }
         // remove the factory from the authorised modules
         BaseWallet(wallet).authoriseModule(address(this), false);
+
+        // emit event
+        emit WalletCreated(wallet, _owner, _guardian, _refundToken, _refundAmount);
+
         return wallet;
     }
 
@@ -192,9 +196,6 @@ contract WalletFactory is Owned, Managed {
 
         // upgrade the wallet
         IVersionManager(_versionManager).upgradeWallet(address(_wallet), _version);
-
-        // emit event
-        emit WalletCreated(address(_wallet), _owner, _guardian);
     }
 
     /**
