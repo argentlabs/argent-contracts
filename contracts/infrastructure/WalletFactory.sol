@@ -39,8 +39,6 @@ contract WalletFactory is ManagedV2 {
     address public guardianStorage;
     // The recipient of the refund
     address public refundAddress; 
-    // The managers
-    mapping (address => bool) public managers;
 
     // *************** Events *************************** //
 
@@ -82,9 +80,10 @@ contract WalletFactory is ManagedV2 {
      * @param _guardian The guardian address.
      * @param _salt The salt.
      * @param _version The version of the feature bundle.
-     * @param _r The r part of a manager's signature
-     * @param _s The s part of a manager's signature
-     * @param _v The v part of a manager's signature
+     * @param _refundAmount The amount to refund to the relayer.
+     * @param _refundToken The token to use to refund the relayer.
+     * @param _ownerSignature The owner signature on the refund info.
+     * @param _managerSignature The manager signature on the wallet address.
      */
     function createCounterfactualWallet(
         address _owner,
@@ -94,19 +93,16 @@ contract WalletFactory is ManagedV2 {
         uint256 _version,
         uint256 _refundAmount,
         address _refundToken,
-        bytes calldata _ownerSignature
-        bytes32 _r,
-        bytes32 _s,
-        uint8 _v
+        bytes calldata _ownerSignature,
+        bytes calldata _managerSignature
     )
         external
         returns (address _wallet)
     {
         validateInputs(_owner, _versionManager, _guardian, _version);
         bytes32 newsalt = newSalt(_salt, _owner, _versionManager, _guardian, _version);
-        Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
-        address payable wallet = address(proxy);
-        validateAuthorisedCreation(wallet, _r, _s, _v);
+        address payable wallet = address(new Proxy{salt: newsalt}(walletImplementation));
+        validateAuthorisedCreation(wallet, _managerSignature);
         configureWallet(BaseWallet(wallet), _owner, _versionManager, _guardian, _version);
         if (_refundAmount > 0 && _ownerSignature.length == 65) {
             validateAndRefund(wallet, _owner, _refundAmount, _refundToken, _ownerSignature);
@@ -229,6 +225,27 @@ contract WalletFactory is ManagedV2 {
         require(_version > 0, "WF: invalid _version");
     }
 
+        
+    /**
+     * @notice Throws if the sender is not a manager and the manager's signature for the
+     * creation of the new wallet is invalid.
+     * @param _wallet The wallet address
+     * @param _managerSignature The manager's signature
+     */
+    function validateAuthorisedCreation(
+        address _wallet,
+        bytes memory _managerSignature
+    ) internal view {
+        address manager;
+        if(_managerSignature.length != 65) {
+            manager = msg.sender;
+        } else {
+            bytes32 signedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", bytes32(uint256(_wallet))));
+            manager = Utils.recoverSigner(signedHash, _managerSignature, 0);
+        }
+        require(managers[manager], "WF: unauthorised wallet creation");
+    }
+
     /**
      * @notice Refunds the creation of the wallet when provided with a valid signature from the wallet owner.
      * @param _wallet The wallet created
@@ -292,28 +309,4 @@ contract WalletFactory is ManagedV2 {
             }
         }
     }
-    
-    /**
-     * @notice Throws if the sender is not a manager and the manager's signature for the
-     * creation of the new wallet is invalid.
-     * @param _wallet The wallet address
-     * @param _r The r part of a manager's signature
-     * @param _s The s part of a manager's signature
-     * @param _v The v part of a manager's signature
-     */
-    function validateAuthorisedCreation(
-        address _wallet,
-        bytes32 _r,
-        bytes32 _s,
-        uint8 _v
-    ) internal view {
-        address manager;
-        if(uint256(_r) == 0) {
-            manager = msg.sender;
-        } else {
-            manager = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", bytes32(uint256(_wallet)))), _v, _r, _s);
-        }
-        require(managers[manager], "WF: unauthorised wallet creation");
-    }
-
 }

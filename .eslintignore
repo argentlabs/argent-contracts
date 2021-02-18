@@ -6,3 +6,4 @@ contracts-test/*
 coverage/*
 lib/*
 scripts/coverage.js
+tmp
