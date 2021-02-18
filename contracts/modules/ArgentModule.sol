@@ -99,11 +99,11 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
             return (1, OwnerSignature.Disallowed);
         }
         if (methodId == TransactionManager.multiCallWithApproval.selector) {
-            // Decode the second parameter of the multiCallWithApproval which the boolean useSession
+            // Decode the second parameter of the multiCallWithApproval: boolean useSession
             bool useSession = abi.decode(_data[36:], (bool));
             if (useSession) {
                 // When using a session, one signature is required - that of the session user assigned
-                return (1, OwnerSignature.Disallowed);
+                return (1, OwnerSignature.Session);
             } else {
                 // owner + majority of guardians
                 uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);

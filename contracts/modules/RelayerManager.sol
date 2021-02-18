@@ -117,8 +117,11 @@ abstract contract RelayerManager is BaseModule {
             stack.requiredSignatures,
             stack.ownerSignatureRequirement), "RM: Duplicate request");
 
-        require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
-
+        if (stack.ownerSignatureRequirement == OwnerSignature.Session) {
+            require(validateSession(_wallet, stack.signHash, _signatures), "RM: Invalid session");
+        } else {
+            require(validateSignatures(_wallet, stack.signHash, _signatures, stack.ownerSignatureRequirement), "RM: Invalid signatures");
+        }
         (stack.success, stack.returnData) = address(this).call(_data);
         refund(
             _wallet,
@@ -225,7 +228,7 @@ abstract contract RelayerManager is BaseModule {
         returns (bool)
     {
         if (requiredSignatures == 1 &&
-            (ownerSignatureRequirement == OwnerSignature.Required)) {
+            (ownerSignatureRequirement == OwnerSignature.Required || ownerSignatureRequirement == OwnerSignature.Session)) {
             // use the incremental nonce
             if (_nonce <= relayer[_wallet].nonce) {
                 return false;
@@ -319,7 +322,7 @@ abstract contract RelayerManager is BaseModule {
     )
         internal
     {
-        if (_gasPrice > 0 && _option == OwnerSignature.Required) {
+        if (_gasPrice > 0 && (_option == OwnerSignature.Required || ownerSignatureRequirement == OwnerSignature.Session)) {
             address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
             if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
                     // refundAddress must be whitelisted/authorised

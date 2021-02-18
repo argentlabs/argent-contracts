@@ -58,7 +58,8 @@ abstract contract BaseModule is IModule {
         Anyone,             // Anyone
         Required,           // Owner required
         Optional,           // Owner and/or guardians
-        Disallowed          // guardians only
+        Disallowed,         // Guardians only
+        Session             // Session only
     }
 
     struct Lock {

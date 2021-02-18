@@ -305,4 +305,78 @@ contract("ArgentModule sessions", (accounts) => {
       expect(balanceAfter.sub(balanceBefore)).to.eq.BN(10);
     });
   });
+
+  describe("transfer using session", () => {
+    beforeEach(async () => {
+      // Create a session for sessionUser with duration 1000s to use in tests
+      const data = module.contract.methods.startSession(wallet.address, sessionUser, 10000).encodeABI();
+      const transaction = await encodeTransaction(module.address, 0, data, false);
+
+      await manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
+        wallet,
+        [owner, guardian1],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+    });
+
+    it("should be able to send ETH", async () => {
+      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+
+      const balanceBefore = await utils.getBalance(recipient);
+      const txReceipt = await manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, true, [transaction]],
+        wallet,
+        [sessionUser],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
+      assert.isTrue(success);
+
+      const balanceAfter = await utils.getBalance(recipient);
+      expect(balanceAfter.sub(balanceBefore)).to.eq.BN(10);
+    });
+
+    it("should be able to transfer ERC20", async () => {
+      await token.transfer(wallet.address, 10);
+      const data = await token.contract.methods.transfer(recipient, 10).encodeABI();
+      const transaction = await encodeTransaction(token.address, 0, data);
+
+      const balanceBefore = await token.balanceOf(recipient);
+      const txReceipt = await manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, true, [transaction]],
+        wallet,
+        [sessionUser],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
+      assert.isTrue(success);
+
+      const balanceAfter = await token.balanceOf(recipient);
+      expect(balanceAfter.sub(balanceBefore)).to.eq.BN(10);
+    });
+
+    it("should not be able to send ETH with invalid session", async () => {
+      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+
+      await truffleAssert.reverts(manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, true, [transaction]],
+        wallet,
+        [sessionUser2],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS), "RM: Invalid session");
+    });
+  });
 });
