@@ -18,11 +18,12 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const Authoriser = artifacts.require("DappRegistry");
+const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 
-// const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -34,7 +35,7 @@ const RelayManager = require("../utils/relay-manager");
 contract("ArgentModule sessions", (accounts) => {
   let manager;
 
-  // const infrastructure = accounts[0];
+  const infrastructure = accounts[0];
   const owner = accounts[1];
   const guardian1 = accounts[2];
   const recipient = accounts[4];
@@ -50,6 +51,7 @@ contract("ArgentModule sessions", (accounts) => {
   let wallet;
   let walletImplementation;
   let authoriser;
+  let token;
 
   before(async () => {
     registry = await Registry.new();
@@ -77,6 +79,8 @@ contract("ArgentModule sessions", (accounts) => {
     walletImplementation = await BaseWallet.new();
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
+
+    token = await ERC20.new([infrastructure], web3.utils.toWei("10000"), 19);
   });
 
   async function addGuardians(guardians) {
@@ -255,6 +259,50 @@ contract("ArgentModule sessions", (accounts) => {
         0,
         ZERO_ADDRESS,
         ZERO_ADDRESS), "RM: Invalid signatures");
+    });
+  });
+
+  describe("approved transfer (without using a session)", () => {
+    it("should be able to send ETH with guardians", async () => {
+      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+
+      const balanceBefore = await utils.getBalance(recipient);
+      const txReceipt = await manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
+        wallet,
+        [owner, guardian1],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
+      assert.isTrue(success);
+
+      const balanceAfter = await utils.getBalance(recipient);
+      expect(balanceAfter.sub(balanceBefore)).to.eq.BN(10);
+    });
+
+    it("should be able to transfer ERC20 with guardians", async () => {
+      await token.transfer(wallet.address, 10);
+      const data = await token.contract.methods.transfer(recipient, 10).encodeABI();
+      const transaction = await encodeTransaction(token.address, 0, data);
+
+      const balanceBefore = await token.balanceOf(recipient);
+      const txReceipt = await manager.relay(
+        module,
+        "multiCallWithApproval",
+        [wallet.address, false, [transaction]],
+        wallet,
+        [owner, guardian1],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
+      assert.isTrue(success);
+
+      const balanceAfter = await token.balanceOf(recipient);
+      expect(balanceAfter.sub(balanceBefore)).to.eq.BN(10);
     });
   });
 });
