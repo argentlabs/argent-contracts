@@ -99,7 +99,7 @@ contract("UpgraderToVersionManager", (accounts) => {
       limitStorage.address,
       ethers.constants.AddressZero,
       versionManager.address);
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
     await versionManager.addVersion([transferManager.address, relayerManager.address], [transferManager.address]);
   });
 

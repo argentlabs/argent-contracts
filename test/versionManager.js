@@ -64,7 +64,7 @@ contract("VersionManager", (accounts) => {
       versionManager.address,
       42);
     await versionManager.addVersion([guardianManager.address, relayerManager.address, testFeature.address], []);
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
 
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);

@@ -44,8 +44,9 @@ step_setup_solc_select: &step_setup_solc_select
   run:
     name: "Setup solc-select"
     command: |
-      git clone https://github.com/crytic/solc-select.git
-      bash ./solc-select/scripts/install.sh
+      sudo pip3 install solc-select
+      solc-select install 0.5.4
+      solc-select install 0.6.12
 jobs:
   unit-test:
     <<: *job_common
@@ -115,8 +116,6 @@ jobs:
           name: "Check TokenPriceRegistry tokens for ERC20 compliance"
           command:  |
             export PATH=/home/circleci/.solc-select:$PATH
-            echo "export PATH=/home/circleci/.solc-select:$PATH" >> ~/.bashrc
-            solc --version
             npm run validate:erc20
       - run:
           name: "Run slither on infrastructure contracts based on solc 0.5"

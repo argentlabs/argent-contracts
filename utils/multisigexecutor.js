@@ -60,8 +60,27 @@ class MultisigExecutor {
 
     const signatures = `0x${sortedSignatures.map((s) => s.sig.slice(2)).join("")}`;
 
-    // Call "execute" on the Multisig wallet with data and signatures
-    const executeTransaction = await this._multisigWrapper.execute(contractWrapper.address, 0, data, signatures);
+    const estimateGas = await this._multisigWrapper.execute.estimateGas(contractWrapper.address, 0, data, signatures);
+
+    const { gasPriceGwei, gasLimit } = await inquirer.prompt([{
+      type: "number",
+      name: "gasLimit",
+      message: "Gas Limit",
+      default: estimateGas.toString(),
+    }, {
+      type: "number",
+      name: "gasPriceGwei",
+      message: "Gas Price (gwei)",
+      default: 50,
+    }]);
+
+    const options = {
+      gas: parseInt(gasLimit, 10),
+      gasPrice: web3.utils.toWei(String(gasPriceGwei), "gwei"),
+    };
+
+    // // Call "execute" on the Multisig wallet with data and signatures
+    const executeTransaction = await this._multisigWrapper.execute(contractWrapper.address, 0, data, signatures, options);
 
     return executeTransaction.receipt;
   }

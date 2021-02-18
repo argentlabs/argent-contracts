@@ -15,7 +15,7 @@ global.web3 = web3;
 const MultiSig = artifacts.require("MultiSigWallet");
 const DexRegistry = artifacts.require("DexRegistry");
 
-const deployManager = require("deploy-manager.js");
+const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
@@ -47,6 +47,4 @@ async function main() {
   await multisigExecutor.executeCall(DexRegistryWrapper, "setAuthorised", [dexAddress, dexStatus]);
 }
 
-main().catch((err) => {
-  throw err;
-});
+module.exports = (cb) => main().then(cb).catch(cb);

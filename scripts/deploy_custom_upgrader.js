@@ -23,7 +23,6 @@ async function main() {
     "0xE739e93dD617D28216dB669AcFdbFC70BF95663c",
   ];
   const upgraderName = "0x4ef2f261_0xee7263da";
-
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
@@ -31,12 +30,13 @@ async function main() {
   const UpgraderWrapper = await Upgrader.new(
     modulesToRemove,
     modulesToAdd,
+    { gas: 1200000 }
   );
-
   await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader",
-    [UpgraderWrapper.address, utils.asciiToBytes32(upgraderName)]);
+    [UpgraderWrapper.address, utils.asciiToBytes32(upgraderName)], { gas: 500000 });
+
+  await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
+    [UpgraderWrapper.address, utils.asciiToBytes32(upgraderName)], { gas: 500000 });
 }
 
-main().catch((err) => {
-  throw err;
-});
+module.exports = (cb) => main().then(cb).catch(cb);

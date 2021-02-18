@@ -128,7 +128,7 @@ contract("TransferManager", (accounts) => {
       limitStorage.address,
       tokenPriceRegistry.address,
       versionManager.address);
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([transferManager.address, relayerManager.address], [transferManager.address]);
   });

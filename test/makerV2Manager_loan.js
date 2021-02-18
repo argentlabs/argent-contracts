@@ -125,7 +125,7 @@ contract("MakerV2Loan", (accounts) => {
       ethers.constants.AddressZero,
       ethers.constants.AddressZero,
       versionManager.address);
-    manager.setRelayerManager(relayerManager);
+    await manager.setRelayerManager(relayerManager);
 
     await versionManager.addVersion([
       makerV2.address,
