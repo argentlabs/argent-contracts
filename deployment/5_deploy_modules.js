@@ -23,7 +23,7 @@ const deployManager = require("../utils/deploy-manager.js");
 // ///////////////////////////////////////////////////////
 
 async function main() {
-  const { network, configurator, abiUploader } = await deployManager.getProps();
+  const { configurator, abiUploader } = await deployManager.getProps();
   const { config } = configurator;
   console.log(config);
 
@@ -84,7 +84,6 @@ async function main() {
     config.settings.securityWindow || 0,
     config.settings.defaultLimit || "1000000000000000000",
     config.defi.weth,
-    ["test", "staging", "prod"].includes(network) ? config.modules.TransferManager : "0x0000000000000000000000000000000000000000",
   );
   // Deploy the TokenExchanger module
   const TokenExchangerWrapper = await TokenExchanger.new(

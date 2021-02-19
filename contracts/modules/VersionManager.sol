@@ -41,8 +41,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
 
     // Last bundle version
     uint256 public lastVersion;
-    // Minimum allowed version
-    uint256 public minVersion = 1;
     // Current bundle version for a wallet
     mapping(address => uint256) public walletVersions; // [wallet] => [version]
     // Features per version
@@ -101,15 +99,6 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
     function recoverToken(address _token) external override onlyOwner {
         uint total = ERC20(_token).balanceOf(address(this));
         _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, msg.sender, total));
-    }
-
-    /**
-     * @notice Lets the owner change the minimum allowed version
-     * @param _minVersion the minimum allowed version
-     */
-    function setMinVersion(uint256 _minVersion) external onlyOwner {
-        require(_minVersion > 0 && _minVersion <= lastVersion, "VM: invalid _minVersion");
-        minVersion = _minVersion;
     }
 
     /**
@@ -234,24 +223,12 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
             "VM: sender may not upgrade wallet"
         );
         uint256 fromVersion = walletVersions[_wallet];
-        uint256 minVersion_ = minVersion;
-        uint256 toVersion;
-
-        if(_toVersion < minVersion_ && fromVersion == 0 && IWallet(_wallet).modules() == 2) {
-            // When the caller is the WalletFactory, we automatically change toVersion to minVersion if needed.
-            // Note that when fromVersion == 0, the caller could be the WalletFactory or the UpgraderToVersionManager. 
-            // The WalletFactory will be the only possible caller when the wallet has only 2 authorised modules 
-            // (that number would be >= 3 for a call from the UpgraderToVersionManager)
-            toVersion = minVersion_;
-        } else {
-            toVersion = _toVersion;
-        }
-        require(toVersion >= minVersion_ && toVersion <= lastVersion, "VM: invalid _toVersion");
-        require(fromVersion < toVersion, "VM: already on new version");
-        walletVersions[_wallet] = toVersion;
+        require(_toVersion <= lastVersion, "VM: invalid _toVersion");
+        require(fromVersion < _toVersion, "VM: already on new version");
+        walletVersions[_wallet] = _toVersion;
 
         // Setup static call redirection
-        bytes4[] storage sigs = staticCallSignatures[toVersion];
+        bytes4[] storage sigs = staticCallSignatures[_toVersion];
         for(uint256 i = 0; i < sigs.length; i++) {
             bytes4 sig = sigs[i];
             if(IWallet(_wallet).enabled(sig) != address(this)) {
@@ -260,7 +237,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
         }
         
         // Init features
-        address[] storage featuresToInitInToVersion = featuresToInit[toVersion];
+        address[] storage featuresToInitInToVersion = featuresToInit[_toVersion];
         for(uint256 i = 0; i < featuresToInitInToVersion.length; i++) {
             address feature = featuresToInitInToVersion[i];
             // We only initialize a feature that was not already initialized in the previous version
@@ -269,7 +246,7 @@ contract VersionManager is IVersionManager, IModule, BaseFeature, Owned {
             }
         }
         
-        emit WalletUpgraded(_wallet, toVersion);
+        emit WalletUpgraded(_wallet, _toVersion);
 
     }
 

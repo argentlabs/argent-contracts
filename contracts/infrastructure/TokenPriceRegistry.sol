@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 
 import "./ITokenPriceRegistry.sol";
-import "./base/Managed.sol";
+import "./base/ManagedV2.sol";
 
 /**
  * @title TokenPriceRegistry
@@ -26,7 +26,7 @@ import "./base/Managed.sol";
  * The contract only defines basic setters and getters with no logic.
  * Only managers of this contract can modify its state.
  */
-contract TokenPriceRegistry is ITokenPriceRegistry, Managed {
+contract TokenPriceRegistry is ITokenPriceRegistry, ManagedV2 {
     struct TokenInfo {
         uint184 cachedPrice;
         uint64 updatedAt;

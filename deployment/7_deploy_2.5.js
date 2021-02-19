@@ -25,7 +25,7 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const utils = require("../utils/utilities.js");
 
-const TARGET_VERSION = "2.4.0";
+const TARGET_VERSION = "2.5.0";
 const MODULES_TO_ENABLE = [
   "VersionManager",
 ];
@@ -195,7 +195,9 @@ const main = async () => {
 
   console.log("Deploying WalletFactory");
   // Deploy the Wallet Factory
-  const WalletFactoryWrapper = await WalletFactory.new(config.contracts.BaseWallet, config.modules.GuardianStorage);
+  const WalletFactoryWrapper = await WalletFactory.new(
+    config.contracts.BaseWallet, config.modules.GuardianStorage
+  );
 
   // //////////////////////////////////
   // Set contracts' managers

@@ -70,7 +70,7 @@ async function main() {
     walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.address);
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await WalletFactory.new(
-    ModuleRegistryWrapper.address, BaseWalletWrapper.address, GuardianStorageWrapper.address, prevConfig.backend.refundCollector);
+    BaseWalletWrapper.address, GuardianStorageWrapper.address, prevConfig.backend.refundCollector);
 
   // Deploy and configure Maker Registry
   const ScdMcdMigrationWrapper = await ScdMcdMigration.at(newConfig.defi.maker.migration);
