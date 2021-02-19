@@ -6,10 +6,13 @@ const Registry = artifacts.require("ModuleRegistry");
 const BaseWallet = artifacts.require("BaseWallet");
 const Factory = artifacts.require("WalletFactory");
 const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const ArgentModule = artifacts.require("ArgentModule");
+<<<<<<< HEAD
 const ERC20 = artifacts.require("TestERC20");
+=======
+const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
+>>>>>>> 21568cea... addition of DummyUniV2Router test contract and update of all unit tests
 
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN } = require("../utils/utilities.js");
@@ -32,7 +35,6 @@ contract("WalletFactory", (accounts) => {
   let implementation;
   let guardianStorage;
   let factory;
-  let lockStorage;
   let transferStorage;
   let modules;
   let module;
@@ -40,6 +42,12 @@ contract("WalletFactory", (accounts) => {
 
   before(async () => {
     registry = await Registry.new();
+
+    guardianStorage = await GuardianStorage.new();
+    transferStorage = await TransferStorage.new();
+
+    const uniswapRouter = await UniswapV2Router01.new();
+
     implementation = await BaseWallet.new();
     guardianStorage = await GuardianStorage.new();
     factory = await Factory.new(
@@ -52,10 +60,10 @@ contract("WalletFactory", (accounts) => {
 
     module = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
       transferStorage.address,
       ZERO_ADDRESS,
+      uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       LOCK_PERIOD,

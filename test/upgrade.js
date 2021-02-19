@@ -11,12 +11,12 @@ chai.use(bnChai(BN));
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
-const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const Authoriser = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
+const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
 const utils = require("../utils/utilities.js");
 const { ARGENT_WHITELIST } = require("../utils/utilities.js");
@@ -41,7 +41,6 @@ contract("TransactionManager", (accounts) => {
 
   let registry;
 
-  let lockStorage;
   let transferStorage;
   let guardianStorage;
   let module;
@@ -61,12 +60,14 @@ contract("TransactionManager", (accounts) => {
 
     authoriser = await Authoriser.new();
 
+    const uniswapRouter = await UniswapV2Router01.new();
+
     module = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
       transferStorage.address,
       authoriser.address,
+      uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       LOCK_PERIOD,
@@ -74,10 +75,10 @@ contract("TransactionManager", (accounts) => {
 
     newModule = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
       transferStorage.address,
       authoriser.address,
+      uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       LOCK_PERIOD,

@@ -28,7 +28,6 @@ const WETH = artifacts.require("WETH9");
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
-const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
@@ -66,7 +65,6 @@ contract("ArgentModule", (accounts) => {
   const nonceInitialiser = accounts[4];
 
   let registry;
-  let lockStorage;
   let transferStorage;
   let guardianStorage;
   let module;
@@ -140,16 +138,15 @@ contract("ArgentModule", (accounts) => {
 
     authoriser = await Authoriser.new();
 
-    lockStorage = await LockStorage.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 
     module = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
       transferStorage.address,
       authoriser.address,
+      uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       LOCK_PERIOD,
