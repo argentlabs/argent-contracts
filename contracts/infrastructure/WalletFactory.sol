@@ -44,7 +44,6 @@ contract WalletFactory is ManagedV2 {
 
     event RefundAddressChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian, address refundToken, uint256 refundAmount);
-    event ManagerAdded(address indexed _manager);
 
     // *************** Constructor ********************** //
 

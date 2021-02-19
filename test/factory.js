@@ -361,6 +361,10 @@ contract("WalletFactory", (accounts) => {
   });
 
   describe("Managed-like contract logic", () => {
+    it("should not be able to revoke a manager", async () => {
+      await truffleAssert.reverts(factory.revokeManager(infrastructure), "WF: managers can't be revoked");
+    });
+
     it("should not be able to add manager if not called by owner", async () => {
       await truffleAssert.reverts(factory.addManager(other, { from: other }), "Must be owner");
     });
