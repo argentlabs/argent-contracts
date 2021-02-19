@@ -196,7 +196,7 @@ contract("ArgentModule", (accounts) => {
       const chainId = await utils.getChainId();
       const gasLimit = 100000;
       const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
-      const methodData = module.contract.methods["multiCall"](wallet.address, [transaction]).encodeABI();
+      const methodData = module.contract.methods.multiCall(wallet.address, [transaction]).encodeABI();
       const signatures = await utils.signOffchain(
         [owner],
         module.address,

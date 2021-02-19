@@ -51,6 +51,8 @@ abstract contract BaseModule is IModule {
     // The security period
     uint256 internal securityPeriod;
 
+    event ModuleCreated(bytes32 name);
+
     enum OwnerSignature {
         Anyone,             // Anyone
         Required,           // Owner required
@@ -138,6 +140,7 @@ abstract contract BaseModule is IModule {
         securityPeriod = _securityPeriod;
         userWhitelist = _userWhitelist;
         authoriser = _authoriser;
+        emit ModuleCreated(_name);
     }
 
     /**

@@ -24,7 +24,7 @@ class RelayManager {
     const chainId = await utils.getChainId();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
 
-    const gasLimit = await this.getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice);
+    const gasLimit = await RelayManager.getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice);
     // Uncomment when debugging gas limits
     // await this.debugGasLimits(_module, _method, _params, _wallet, _signers);
 
@@ -116,7 +116,7 @@ class RelayManager {
 
     Ignoring multiplication and comparison as that is <10 gas per operation
   */
-  async getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice) {
+  static async getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice) {
     const requiredSigsGas = 4800;
 
     // Estimate cost of checkAndUpdateUniqueness call
