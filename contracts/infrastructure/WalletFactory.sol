@@ -29,7 +29,7 @@ import "../modules/common/Utils.sol";
  */
 contract WalletFactory is ManagedV2 {
 
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address constant internal ETH_TOKEN = address(0);
 
     // The address of the base wallet implementation
     address public walletImplementation;
@@ -73,7 +73,7 @@ contract WalletFactory is ManagedV2 {
      * The wallet is initialised with the version manager module, the version number and a first guardian.
      * The wallet is created using the CREATE2 opcode.
      * @param _owner The account address.
-     * @param _modules The version manager module
+     * @param _modules The list of modules for wallet.
      * @param _guardian The guardian address.
      * @param _salt The salt.
      * @param _refundAmount The amount to refund to the relayer.
@@ -114,7 +114,7 @@ contract WalletFactory is ManagedV2 {
     /**
      * @notice Gets the address of a counterfactual wallet with a first default guardian.
      * @param _owner The account address.
-     * @param _modules The version manager module
+     * @param _modules The list of modules for wallet.
      * @param _guardian The guardian address.
      * @param _salt The salt.
      * @return _wallet The address that the wallet will have when created using CREATE2 and the same input parameters.
@@ -161,7 +161,7 @@ contract WalletFactory is ManagedV2 {
      * @notice Helper method to configure a wallet for a set of input parameters.
      * @param _wallet The target wallet
      * @param _owner The account address.
-     * @param _modules The version manager module
+     * @param _modules The list of modules for wallet.
      * @param _guardian The guardian address.
      */
     function configureWallet(
@@ -192,16 +192,17 @@ contract WalletFactory is ManagedV2 {
      * assumes https://github.com/matter-labs/zksync/pull/259 has been merged !!).
      * @param _salt The salt provided. In practice the hash of the L2 public key.
      * @param _owner The owner address.
-     * @param _modules The version manager module
+     * @param _modules The list of modules for wallet.
      * @param _guardian The guardian address.
      */
     function newSalt(bytes20 _salt, address _owner, address[] calldata _modules, address _guardian) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(keccak256(abi.encodePacked(_owner, _modules, _guardian)), _salt));
+    }
 
     /**
      * @notice Throws if the owner, guardian, version or version manager is invalid.
      * @param _owner The owner address.
-     * @param _modules The version manager module
+     * @param _modules The list of modules for wallet.
      * @param _guardian The guardian address
      */
     function validateInputs(address _owner, address[] calldata _modules, address _guardian) internal pure {

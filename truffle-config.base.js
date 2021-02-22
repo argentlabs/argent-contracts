@@ -29,7 +29,7 @@ function getKeys() {
   // NOTE: While https://github.com/trufflesuite/truffle/issues/1054 is implemented we are using a temporary fix
   // const { pkey, infuraKey } = await deployManager.getProps();
   // return (pkey, infuraKey);
-  return { pkey: process.env.PKEY, infuraKey: process.env.INFURA_KEY };
+  return { pkey: process.env.PKEY_TEST, infuraKey: process.env.INFURA_KEY };
 }
 
 // const fs = require('fs');
