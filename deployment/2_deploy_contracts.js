@@ -4,10 +4,10 @@ global.web3 = web3;
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const LockStorage = artifacts.require("LockStorage");
-const LimitStorage = artifacts.require("LimitStorage");
 
 const BaseWallet = artifacts.require("BaseWallet");
 const ModuleRegistry = artifacts.require("ModuleRegistry");
+const Authoriser = artifacts.require("DappRegistry");
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 const ENS = artifacts.require("ENSRegistryWithFallback");
@@ -42,8 +42,6 @@ async function main() {
   const TransferStorageWrapper = await TransferStorage.new();
   // Deploy the new LockStorage
   const LockStorageWrapper = await LockStorage.new();
-  // Deploy the new LimitStorage
-  const LimitStorageWrapper = await LimitStorage.new();
 
   // //////////////////////////////////
   // Deploy infrastructure contracts
@@ -61,6 +59,7 @@ async function main() {
 
   // Deploy Module Registry
   const ModuleRegistryWrapper = await ModuleRegistry.new();
+  const AuthoriserWrapper = await Authoriser.new();
   // Deploy Compound Registry
   const CompoundRegistryWrapper = await CompoundRegistry.new();
   // Deploy the ENS Resolver
@@ -125,7 +124,6 @@ async function main() {
     GuardianStorage: GuardianStorageWrapper.address,
     TransferStorage: TransferStorageWrapper.address,
     LockStorage: LockStorageWrapper.address,
-    LimitStorage: LimitStorageWrapper.address,
     TokenPriceRegistry: TokenPriceRegistryWrapper.address,
   });
 
@@ -135,6 +133,7 @@ async function main() {
     ENSResolver: ENSResolverWrapper.address,
     ENSManager: ENSManagerWrapper.address,
     ModuleRegistry: ModuleRegistryWrapper.address,
+    Authoriser: AuthoriserWrapper.address,
     CompoundRegistry: CompoundRegistryWrapper.address,
     DexRegistry: DexRegistryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
@@ -145,13 +144,13 @@ async function main() {
     abiUploader.upload(GuardianStorageWrapper, "modules"),
     abiUploader.upload(TransferStorageWrapper, "modules"),
     abiUploader.upload(LockStorageWrapper, "modules"),
-    abiUploader.upload(LimitStorageWrapper, "modules"),
     abiUploader.upload(TokenPriceRegistryWrapper, "modules"),
     abiUploader.upload(MultiSigWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(ENSResolverWrapper, "contracts"),
     abiUploader.upload(ENSManagerWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
+    abiUploader.upload(AuthoriserWrapper, "contracts"),
     abiUploader.upload(CompoundRegistryWrapper, "contracts"),
     abiUploader.upload(DexRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),

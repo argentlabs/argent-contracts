@@ -6,17 +6,7 @@ const childProcess = require("child_process");
 
 const MultiSig = artifacts.require("MultiSigWallet");
 const ModuleRegistry = artifacts.require("ModuleRegistry");
-const ApprovedTransfer = artifacts.require("ApprovedTransfer");
-const CompoundManager = artifacts.require("CompoundManager");
-const GuardianManager = artifacts.require("GuardianManager");
-const LockManager = artifacts.require("LockManager");
-const NftTransfer = artifacts.require("NftTransfer");
-const RecoveryManager = artifacts.require("RecoveryManager");
-const TokenExchanger = artifacts.require("TokenExchanger");
-const MakerV2Manager = artifacts.require("MakerV2Manager");
-const TransferManager = artifacts.require("TransferManager");
-const RelayerManager = artifacts.require("RelayerManager");
-const VersionManager = artifacts.require("VersionManager");
+const ArgentModule = artifacts.require("ArgentModule");
 const Upgrader = artifacts.require("UpgraderToVersionManager");
 const WalletFactory = artifacts.require("WalletFactory");
 
@@ -27,7 +17,7 @@ const utils = require("../utils/utilities.js");
 
 const TARGET_VERSION = "2.5.0";
 const MODULES_TO_ENABLE = [
-  "VersionManager",
+  "ArgentModule",
 ];
 const MODULES_TO_DISABLE = [];
 
@@ -57,137 +47,22 @@ const main = async () => {
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   // //////////////////////////////////
-  // Deploy VersionManager module
+  // Deploy modules
   // //////////////////////////////////
 
-  console.log("Deploying VersionManager module");
-  const VersionManagerWrapper = await VersionManager.new(
+  console.log("Deploying modules");
+
+  // Deploy ArgentModule
+  const ArgentModuleWrapper = await ArgentModule.new(
     config.contracts.ModuleRegistry,
     config.modules.LockStorage,
     config.modules.GuardianStorage,
     config.modules.TransferStorage,
-    config.modules.LimitStorage,
-  );
-  newModuleWrappers.push(VersionManagerWrapper);
-
-  // //////////////////////////////////
-  // Deploy features
-  // //////////////////////////////////
-
-  console.log("Deploying features");
-
-  // Deploy the GuardianManager module
-  const GuardianManagerWrapper = await GuardianManager.new(
-    config.modules.LockStorage,
-    config.modules.GuardianStorage,
-    VersionManagerWrapper.address,
+    config.contracts.Authoriser,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
-  );
-  // Deploy the LockManager module
-  const LockManagerWrapper = await LockManager.new(
-    config.modules.LockStorage,
-    config.modules.GuardianStorage,
-    VersionManagerWrapper.address,
     config.settings.lockPeriod || 0,
-  );
-  // Deploy the RecoveryManager module
-  const RecoveryManagerWrapper = await RecoveryManager.new(
-    config.modules.LockStorage,
-    config.modules.GuardianStorage,
-    VersionManagerWrapper.address,
-    config.settings.recoveryPeriod || 0,
-    config.settings.lockPeriod || 0,
-  );
-  // Deploy the ApprovedTransfer module
-  const ApprovedTransferWrapper = await ApprovedTransfer.new(
-    config.modules.LockStorage,
-    config.modules.GuardianStorage,
-    config.modules.LimitStorage,
-    VersionManagerWrapper.address,
-    config.defi.weth,
-  );
-  // Deploy the TransferManager module
-  const TransferManagerWrapper = await TransferManager.new(
-    config.modules.LockStorage,
-    config.modules.TransferStorage,
-    config.modules.LimitStorage,
-    config.modules.TokenPriceRegistry,
-    VersionManagerWrapper.address,
-    config.settings.securityPeriod || 0,
-    config.settings.securityWindow || 0,
-    config.settings.defaultLimit || "1000000000000000000",
-    config.defi.weth,
-  );
-  // Deploy the TokenExchanger module
-  const TokenExchangerWrapper = await TokenExchanger.new(
-    config.modules.LockStorage,
-    config.modules.TokenPriceRegistry,
-    VersionManagerWrapper.address,
-    config.contracts.DexRegistry,
-    config.defi.paraswap.contract,
-    "argent",
-  );
-  // Deploy the NFTTransfer module
-  const NftTransferWrapper = await NftTransfer.new(
-    config.modules.LockStorage,
-    config.modules.TokenPriceRegistry,
-    VersionManagerWrapper.address,
-    config.CryptoKitties.contract,
-  );
-  // Deploy the CompoundManager module
-  const CompoundManagerWrapper = await CompoundManager.new(
-    config.modules.LockStorage,
-    config.defi.compound.comptroller,
-    config.contracts.CompoundRegistry,
-    VersionManagerWrapper.address,
-  );
-  // Deploy MakerManagerV2
-  const MakerV2ManagerWrapper = await MakerV2Manager.new(
-    config.modules.LockStorage,
-    config.defi.maker.migration,
-    config.defi.maker.pot,
-    config.defi.maker.jug,
-    config.contracts.MakerRegistry,
-    config.defi.uniswap.factory,
-    VersionManagerWrapper.address,
-  );
-  // Deploy RelayerManager
-  const RelayerManagerWrapper = await RelayerManager.new(
-    config.modules.LockStorage,
-    config.modules.GuardianStorage,
-    config.modules.LimitStorage,
-    config.modules.TokenPriceRegistry,
-    VersionManagerWrapper.address,
-  );
-
-  // Add Features to Version Manager
-  const features = [
-    GuardianManagerWrapper.address,
-    LockManagerWrapper.address,
-    RecoveryManagerWrapper.address,
-    ApprovedTransferWrapper.address,
-    TransferManagerWrapper.address,
-    TokenExchangerWrapper.address,
-    NftTransferWrapper.address,
-    CompoundManagerWrapper.address,
-    MakerV2ManagerWrapper.address,
-    RelayerManagerWrapper.address,
-  ];
-  const featuresWithNoInit = [ // all features except the TransferManager
-    GuardianManagerWrapper.address,
-    LockManagerWrapper.address,
-    RecoveryManagerWrapper.address,
-    ApprovedTransferWrapper.address,
-    TokenExchangerWrapper.address,
-    NftTransferWrapper.address,
-    CompoundManagerWrapper.address,
-    MakerV2ManagerWrapper.address,
-    RelayerManagerWrapper.address,
-  ];
-  const featureToInit = features.filter((f) => !featuresWithNoInit.includes(f));
-  console.log("Adding new version");
-  await VersionManagerWrapper.addVersion(features, featureToInit);
+    config.settings.recoveryPeriod || 0);
 
   // //////////////////////////////////
   // Setup new infrastructure
@@ -196,7 +71,7 @@ const main = async () => {
   console.log("Deploying WalletFactory");
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await WalletFactory.new(
-    config.contracts.BaseWallet, config.modules.GuardianStorage
+    config.contracts.BaseWallet, config.modules.GuardianStorage, config.backend.refundCollector
   );
 
   // //////////////////////////////////
@@ -213,9 +88,6 @@ const main = async () => {
   // Set contracts' owners
   // //////////////////////////////////
 
-  console.log("Setting the MultiSig as the owner of VersionManagerWrapper");
-  await VersionManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
-
   console.log("Setting the MultiSig as the owner of WalletFactoryWrapper");
   await WalletFactoryWrapper.changeOwner(config.contracts.MultiSigWallet);
 
@@ -224,18 +96,7 @@ const main = async () => {
   // /////////////////////////////////////////////////
 
   configurator.updateModuleAddresses({
-    ApprovedTransfer: ApprovedTransferWrapper.address,
-    CompoundManager: CompoundManagerWrapper.address,
-    GuardianManager: GuardianManagerWrapper.address,
-    LockManager: LockManagerWrapper.address,
-    NftTransfer: NftTransferWrapper.address,
-    RecoveryManager: RecoveryManagerWrapper.address,
-    TokenExchanger: TokenExchangerWrapper.address,
-    MakerV2Manager: MakerV2ManagerWrapper.address,
-    TransferManager: TransferManagerWrapper.address,
-    RelayerManager: RelayerManagerWrapper.address,
-
-    VersionManager: VersionManagerWrapper.address,
+    ArgentModule: ArgentModuleWrapper.address,
   });
 
   configurator.updateInfrastructureAddresses({
@@ -250,18 +111,7 @@ const main = async () => {
 
   console.log("Uploading ABIs");
   await Promise.all([
-    abiUploader.upload(ApprovedTransferWrapper, "modules"),
-    abiUploader.upload(CompoundManagerWrapper, "modules"),
-    abiUploader.upload(GuardianManagerWrapper, "modules"),
-    abiUploader.upload(LockManagerWrapper, "modules"),
-    abiUploader.upload(NftTransferWrapper, "modules"),
-    abiUploader.upload(RecoveryManagerWrapper, "modules"),
-    abiUploader.upload(TokenExchangerWrapper, "modules"),
-    abiUploader.upload(MakerV2ManagerWrapper, "modules"),
-    abiUploader.upload(TransferManagerWrapper, "modules"),
-    abiUploader.upload(RelayerManagerWrapper, "modules"),
-
-    abiUploader.upload(VersionManagerWrapper, "modules"),
+    abiUploader.upload(ArgentModuleWrapper, "modules"),
 
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
   ]);
@@ -319,7 +169,7 @@ const main = async () => {
       config.contracts.ModuleRegistry,
       lockStorage,
       toRemove.map((module) => module.address),
-      VersionManagerWrapper.address, // to add
+      ArgentModuleWrapper.address, // to add
     );
 
     console.log(`Registering ${upgraderName} as a module`);

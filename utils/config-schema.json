@@ -120,6 +120,9 @@
         "ModuleRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
+        "Authoriser": {
+          "$ref": "#/definitions/ethaddress"
+        },
         "BaseWallet": {
           "$ref": "#/definitions/ethaddress"
         },
@@ -205,6 +208,9 @@
           "$ref": "#/definitions/ethaddress"
         },
         "VersionManager": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "ArgentModule": {
           "$ref": "#/definitions/ethaddress"
         }
       },
