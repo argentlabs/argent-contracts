@@ -263,8 +263,7 @@ abstract contract RelayerManager is BaseModule {
     * @param _option An OwnerSignature enum indicating whether the owner is required, optional or disallowed.
     * @return A boolean indicating whether the signatures are valid.
     */
-    function validateSignatures(address _wallet, bytes32 _signHash, bytes memory _signatures, OwnerSignature _option) internal view
-    returns (bool)
+    function validateSignatures(address _wallet, bytes32 _signHash, bytes memory _signatures, OwnerSignature _option) internal view returns (bool)
     {
         if (_signatures.length == 0) {
             return true;
@@ -371,8 +370,7 @@ abstract contract RelayerManager is BaseModule {
         assembly { chainId := chainid() }
     }
 
-    function startSession(address _wallet, address _sessionUser, uint64 _duration) external 
-    onlyWallet(_wallet) returns (bool)
+    function startSession(address _wallet, address _sessionUser, uint64 _duration) external onlyWallet(_wallet) returns (bool)
     {
         require(_sessionUser != address(0), "RM: Invalid session user");
         require(_duration > 0, "RM: Invalid session duration");
@@ -386,8 +384,7 @@ abstract contract RelayerManager is BaseModule {
     * @notice Clears the active session of a wallet if any.
     * @param _wallet The target wallet.
     */
-    function clearSession(address _wallet) external
-    onlySelf()
+    function clearSession(address _wallet) external onlySelf()
     {
         delete sessions[_wallet];
         emit SessionCleared(_wallet, sessions[_wallet].key);

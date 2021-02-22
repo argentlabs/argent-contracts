@@ -48,9 +48,7 @@ abstract contract TransactionManager is BaseModule {
 
     // *************** External functions ************************ //
 
-    function multiCall(address _wallet, Call[] calldata _transactions) external
-    onlySelf()
-    onlyWhenUnlocked(_wallet)
+    function multiCall(address _wallet, Call[] calldata _transactions) external onlySelf() onlyWhenUnlocked(_wallet)
     returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](_transactions.length);
@@ -64,17 +62,13 @@ abstract contract TransactionManager is BaseModule {
         return results;
     }
 
-    function multiCallWithSession(address _wallet, Call[] calldata _transactions) external
-    onlySelf()
-    onlyWhenUnlocked(_wallet)
+    function multiCallWithSession(address _wallet, Call[] calldata _transactions) external onlySelf() onlyWhenUnlocked(_wallet)
     returns (bytes[] memory)
     {
         multiCallWithApproval(_wallet, true, _transactions);
     }
 
-    function multiCallWithGuardians(address _wallet, Call[] calldata _transactions) external
-    onlySelf()
-    onlyWhenUnlocked(_wallet)
+    function multiCallWithGuardians(address _wallet, Call[] calldata _transactions) external onlySelf() onlyWhenUnlocked(_wallet)
     returns (bytes[] memory)
     {
         multiCallWithApproval(_wallet, false, _transactions);
@@ -95,9 +89,7 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
-    function addToWhitelist(address _wallet, address _target) external
-    onlyWalletOwnerOrSelf(_wallet)
-    onlyWhenUnlocked(_wallet)
+    function addToWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
     {
         require(_target != _wallet, "TM: Cannot whitelist wallet");
         require(!IWallet(_wallet).authorised(_target), "TM: Cannot whitelist module");
@@ -113,17 +105,13 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
-    function removeFromWhitelist(address _wallet, address _target) external
-    onlyWalletOwnerOrSelf(_wallet)
-    onlyWhenUnlocked(_wallet)
+    function removeFromWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
     {
         setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
-    function toggleDappRegistry(address _wallet, bytes32 _registry) external
-    onlySelf()
-    onlyWhenUnlocked(_wallet)
+    function toggleDappRegistry(address _wallet, bytes32 _registry) external onlySelf() onlyWhenUnlocked(_wallet)
     {
         bool isEnabled = authoriser.toggle(_wallet, _registry);
         emit ToggledDappRegistry(_wallet, _registry, isEnabled);
