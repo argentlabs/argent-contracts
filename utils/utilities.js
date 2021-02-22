@@ -96,14 +96,14 @@ module.exports = {
 
     let errorBytes;
     let error;
-    if (args.returnData) {
+    if (!args.success && args.returnData) {
       if (args.returnData.startsWith("0x08c379a0")) {
         // Remove the encoded error signatures 08c379a0
         const noErrorSelector = `0x${args.returnData.slice(10)}`;
         const errorBytesArray = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
         errorBytes = errorBytesArray[0]; // eslint-disable-line prefer-destructuring
       } else {
-        errorBytes = args.returnData;
+        errorBytes = args.returnData; console.log(errorBytes);
       }
       error = ethers.utils.toUtf8String(errorBytes);
     }

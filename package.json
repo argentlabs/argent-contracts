@@ -13,7 +13,7 @@
     "compile:infrastructure_0.5": "npx truffle compile --config truffle-config-infrastructure-0.5.js",
     "compile:infrastructure_0.6": "npx truffle compile --config truffle-config-infrastructure.js",
     "compile:infrastructure": "npm run compile:infrastructure_0.5 && npm run compile:infrastructure_0.6",
-    "compile:modules": "npx truffle compile --config truffle-config-modules.js && rm build/contracts/ApprovedTransfer.json && npx truffle compile --contracts_directory=./contracts/modules/ApprovedTransfer*.sol && rm build/contracts/RelayerManager.json && npx truffle compile --contracts_directory=./contracts/modules/RelayerManager*.sol && rm build/contracts/TransferManager.json && npx truffle compile --contracts_directory=./contracts/modules/TransferManager*.sol && rm build/contracts/TokenExchanger.json && npx truffle compile --contracts_directory=./contracts/modules/TokenExchanger*.sol",
+    "compile:modules": "npx truffle compile --config truffle-config-modules.js",
     "compile:wallet": "npx truffle compile --config truffle-config-wallet.js",
     "compile:test": "npx truffle compile --config truffle-config-contracts-test.js",
     "compile": "npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet",

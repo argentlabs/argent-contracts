@@ -20,27 +20,38 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../wallet/IWallet.sol";
 import "../../infrastructure/IModuleRegistry.sol";
 import "../../infrastructure/storage/ILockStorage.sol";
-import "./IFeature.sol";
+import "./IModule.sol";
 import "../../../lib/other/ERC20.sol";
-import "./IVersionManager.sol";
 
 /**
- * @title BaseFeature
- * @notice Base Feature contract that contains methods common to all Feature contracts.
+ * @title BaseModule
+ * @notice Base Module contract that contains methods common to all Modules.
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
-contract BaseFeature is IFeature {
+abstract contract BaseModule is IModule {
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
     // Mock token address for ETH
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    bytes4 constant internal ADD_MODULE_PREFIX = bytes4(keccak256("addModule(address,address)"));
+
+
+    // The Module Registry
+    IModuleRegistry private registry;
     // The address of the Lock storage
     ILockStorage internal lockStorage;
-    // The address of the Version Manager
-    IVersionManager internal versionManager;
 
     event FeatureCreated(bytes32 name);
+
+    /**
+     * @notice Throws if the wallet is not locked.
+     */
+    modifier onlyWhenLocked(address _wallet) {
+        require(lockStorage.isLocked(_wallet), "LM: wallet must be locked");
+        _;
+    }
 
     /**
      * @notice Throws if the wallet is locked.
@@ -51,10 +62,10 @@ contract BaseFeature is IFeature {
     }
 
     /**
-     * @notice Throws if the sender is not the VersionManager.
+     * @notice Throws if the sender is not the module itself.
      */
-    modifier onlyVersionManager() {
-        require(msg.sender == address(versionManager), "BF: caller must be VersionManager");
+    modifier onlySelf() {
+        require(msg.sender == address(this), "BM: must be module");
         _;
     }
 
@@ -62,69 +73,43 @@ contract BaseFeature is IFeature {
      * @notice Throws if the sender is not the owner of the target wallet.
      */
     modifier onlyWalletOwner(address _wallet) {
-        require(isOwner(_wallet, msg.sender), "BF: must be wallet owner");
+        require(isOwner(_wallet, msg.sender), "BM: must be wallet owner");
         _;
     }
 
     /**
      * @notice Throws if the sender is not an authorised feature of the target wallet.
      */
-    modifier onlyWalletFeature(address _wallet) {
-        require(versionManager.isFeatureAuthorised(_wallet, msg.sender), "BF: must be a wallet feature");
-        _;
-    }
-
-    /**
-     * @notice Throws if the sender is not the owner of the target wallet or the feature itself.
-     */
-    modifier onlyWalletOwnerOrFeature(address _wallet) {
-        // Wrapping in an internal method reduces deployment cost by avoiding duplication of inlined code
-        verifyOwnerOrAuthorisedFeature(_wallet, msg.sender);
+    modifier onlyWalletOwnerOrSelf(address _wallet) {
+        require(msg.sender == address(this) || isOwner(_wallet, msg.sender), "BM: must be a wallet owner or self");
         _;
     }
 
     constructor(
+        IModuleRegistry _registry,
         ILockStorage _lockStorage,
-        IVersionManager _versionManager,
         bytes32 _name
     ) public {
+        registry = _registry;
         lockStorage = _lockStorage;
-        versionManager = _versionManager;
         emit FeatureCreated(_name);
     }
 
-    /**
-    * @inheritdoc IFeature
-    */
-    function recoverToken(address _token) external virtual override {
+    function init(address _wallet) external override {
+        // do something
+    }
+
+    function recoverToken(address _token) external {
         uint total = ERC20(_token).balanceOf(address(this));
-        _token.call(abi.encodeWithSelector(ERC20(_token).transfer.selector, address(versionManager), total));
+        ERC20(_token).transfer(address(registry), total);
     }
 
     /**
-     * @notice Inits the feature for a wallet by doing nothing.
-     * @dev !! Overriding methods need make sure `init()` can only be called by the VersionManager !!
-     * @param _wallet The wallet.
-     */
-    function init(address _wallet) external virtual override  {}
-
-    /**
-     * @inheritdoc IFeature
-     */
-    function getRequiredSignatures(address, bytes calldata) external virtual view override returns (uint256, OwnerSignature) {
-        revert("BF: disabled method");
-    }
-
-    /**
-     * @inheritdoc IFeature
-     */
-    function getStaticCallSignatures() external virtual override view returns (bytes4[] memory _sigs) {}
-
-    /**
-     * @inheritdoc IFeature
-     */
-    function isFeatureAuthorisedInVersionManager(address _wallet, address _feature) public override view returns (bool) {
-        return versionManager.isFeatureAuthorised(_wallet, _feature);
+    * @inheritdoc IModule
+    */
+    function addModule(address _wallet, address _module) external override onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
+        require(registry.isRegisteredModule(_module), "VM: module is not registered");
+        IWallet(_wallet).authoriseModule(_module, true);
     }
 
     /**
@@ -147,15 +132,6 @@ contract BaseFeature is IFeature {
     }
 
     /**
-     * @notice Verify that the caller is an authorised feature or the wallet owner.
-     * @param _wallet The target wallet.
-     * @param _sender The caller.
-     */
-    function verifyOwnerOrAuthorisedFeature(address _wallet, address _sender) internal view {
-        require(isFeatureAuthorisedInVersionManager(_wallet, _sender) || isOwner(_wallet, _sender), "BF: must be owner or feature");
-    }
-
-    /**
      * @notice Helper method to invoke a wallet.
      * @param _wallet The target wallet.
      * @param _to The target address for the transaction.
@@ -166,7 +142,18 @@ contract BaseFeature is IFeature {
         internal
         returns (bytes memory _res) 
     {
-        _res = versionManager.checkAuthorisedFeatureAndInvokeWallet(_wallet, _to, _value, _data);
+        bool success;
+        (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
+        if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
+            (_res) = abi.decode(_res, (bytes));
+        } else if (_res.length > 0) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
+            }
+        } else if (!success) {
+            revert("VM: wallet invoke reverted");
+        }
     }
-
 }

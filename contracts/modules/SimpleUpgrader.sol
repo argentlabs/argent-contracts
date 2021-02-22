@@ -29,7 +29,6 @@ import "../wallet/IWallet.sol";
 contract SimpleUpgrader is IModule {
 
     IModuleRegistry private registry;
-    ILockStorage private lockStorage;
     address[] public toDisable;
     address[] public toEnable;
 
@@ -37,14 +36,12 @@ contract SimpleUpgrader is IModule {
 
     constructor(
         IModuleRegistry _registry,
-        ILockStorage _lockStorage,
         address[] memory _toDisable,
         address[] memory _toEnable
     )
         public
     {
         registry = _registry;
-        lockStorage = _lockStorage;
         toDisable = _toDisable;
         toEnable = _toEnable;
     }
@@ -57,7 +54,6 @@ contract SimpleUpgrader is IModule {
      */
     function init(address _wallet) external override {
         require(msg.sender == _wallet, "SU: only wallet can call init");
-        require(!lockStorage.isLocked(_wallet), "SU: wallet locked");
         require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
 
         uint256 i = 0;
@@ -76,5 +72,7 @@ contract SimpleUpgrader is IModule {
     /**
      * @inheritdoc IModule
      */
-    function addModule(address _wallet, address _module) external override {}
+    function addModule(address _wallet, address _module) external override {
+        revert("SU: method not implemented");
+    }
 }
