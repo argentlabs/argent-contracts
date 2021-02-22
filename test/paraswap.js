@@ -360,51 +360,50 @@ contract("ArgentModule", (accounts) => {
       });
     });
 
-    // it("should sell token A for ETH", async () => {
-    //     await testTrade({
-    //         method: "sell", fromToken: tokenA.address, toToken: ETH_TOKEN,
-    //     });
-    // });
+    it.skip("should sell token A for ETH", async () => {
+      await testTrade({
+        method: "sell", fromToken: tokenA.address, toToken: ETH_TOKEN,
+      });
+    });
 
-    // it("should sell tokenB for tokenA", async () => {
-    //     await testTrade({
-    //         method: "sell", fromToken: tokenB.address, toToken: tokenA.address,
-    //     });
-    // });
+    it.skip("should sell tokenB for tokenA", async () => {
+      await testTrade({
+        method: "sell", fromToken: tokenB.address, toToken: tokenA.address,
+      });
+    });
 
-    // it("should block selling ETH for tokenB", async () => {
+    it.skip("should block selling ETH for tokenB", async () => {
+      const srcAmount = web3.utils.toWei("0.01");
+      const destAmount = 1;
 
-    //     const srcAmount = web3.utils.toWei("0.01");
-    //     const destAmount = 1;
+      const path = buildPathes({
+        fromToken: ETH_TOKEN, toToken: tokenB.address, srcAmount, destAmount,
+      });
 
-    //     const path = buildPathes({
-    //         fromToken: ETH_TOKEN, toToken: tokenB.address, srcAmount, destAmount,
-    //       });
+      const data = paraswap.contract.methods.multiSwap(
+        ETH_TOKEN,
+        tokenB.address,
+        srcAmount,
+        destAmount,
+        0,
+        path,
+        0,
+        ZERO_ADDRESS,
+        0,
+        "abc",
+      ).encodeABI();
 
-    //     const data = paraswap.contract.methods.multiSwap(
-    //         ETH_TOKEN,
-    //         tokenB.address,
-    //         srcAmount,
-    //         destAmount,
-    //         0,
-    //         path,
-    //         0,
-    //         ZERO_ADDRESS,
-    //         0,
-    //         "abc",
-    //     ).encodeABI();
+      const transaction = await encodeTransaction(paraswap.address, srcAmount, data);
 
-    //     const transaction = await encodeTransaction(paraswap.address, srcAmount, data);
-
-    //     const txReceipt = await manager.relay(
-    //         module,
-    //         "multiCall",
-    //         [wallet.address, [transaction]],
-    //         wallet,
-    //         [owner]);
-    //     const { success, error } = await utils.parseRelayReceipt(txReceipt);
-    //     assert.isFalse(success, "call should have failed");
-    //     assert.equal(error, "TM: call not authorised");
-    // });
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner]);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "call should have failed");
+      assert.equal(error, "TM: call not authorised");
+    });
   });
 });

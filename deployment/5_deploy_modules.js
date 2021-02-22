@@ -23,10 +23,10 @@ async function main() {
   // Deploy ArgentModule
   const ArgentModuleWrapper = await ArgentModule.new(
     config.contracts.ModuleRegistry,
-    config.modules.LockStorage,
     config.modules.GuardianStorage,
     config.modules.TransferStorage,
     config.contracts.Authoriser,
+    config.defi.uniswap.v2Router,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.lockPeriod || 0,

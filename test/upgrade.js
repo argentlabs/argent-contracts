@@ -54,7 +54,6 @@ contract("TransactionManager", (accounts) => {
   before(async () => {
     registry = await Registry.new();
 
-    lockStorage = await LockStorage.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 

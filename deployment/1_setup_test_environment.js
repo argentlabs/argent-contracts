@@ -8,6 +8,9 @@ const UniswapFactory = artifacts.require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = artifacts.require("../lib/uniswap/UniswapExchange");
 const MakerMigration = artifacts.require("MockScdMcdMigration");
 
+// Uniswap V2
+const UniswapV2Router01 = artifacts.require("UniswapV2Router01");
+
 // Paraswap
 const AugustusSwapper = artifacts.require("AugustusSwapper");
 const Whitelisted = artifacts.require("Whitelisted");
@@ -19,6 +22,7 @@ const utils = require("../utils/utilities.js");
 const deployManager = require("../utils/deploy-manager.js");
 
 const BYTES32_NULL = "0x0000000000000000000000000000000000000000000000000000000000000000";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // For development purpose
 async function deployENSRegistry(owner, domain) {
@@ -74,10 +78,14 @@ async function main() {
   }
 
   if (config.defi.uniswap.deployOwn) {
+    // uniswap V1
     const UniswapFactoryWrapper = await UniswapFactory.new();
     configurator.updateUniswapFactory(UniswapFactoryWrapper.address);
     const UniswapExchangeTemplateWrapper = await UniswapExchange.new();
     await UniswapFactoryWrapper.initializeFactory(UniswapExchangeTemplateWrapper.address);
+    // Uniswap V2
+    const UniswapV2RouterWrapper = await UniswapV2Router01.new(ZERO_ADDRESS, ZERO_ADDRESS);
+    configurator.updateUniswapV2Router(UniswapV2RouterWrapper.address);
   }
 
   if (config.defi.maker.deployOwn) {

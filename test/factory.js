@@ -8,11 +8,8 @@ const Factory = artifacts.require("WalletFactory");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-<<<<<<< HEAD
 const ERC20 = artifacts.require("TestERC20");
-=======
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
->>>>>>> 21568cea... addition of DummyUniV2Router test contract and update of all unit tests
 
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN } = require("../utils/utilities.js");
@@ -55,7 +52,6 @@ contract("WalletFactory", (accounts) => {
       guardianStorage.address,
       refundAddress);
     await factory.addManager(infrastructure);
-    lockStorage = await LockStorage.new();
     transferStorage = await TransferStorage.new();
 
     module = await ArgentModule.new(

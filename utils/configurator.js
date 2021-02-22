@@ -44,6 +44,10 @@ class Configurator {
     this._config.defi.uniswap.factory = address;
   }
 
+  updateUniswapV2Router(address) {
+    this._config.defi.uniswap.v2Router = address;
+  }
+
   updateBackendAccounts(accounts) {
     this._config.backend.accounts = accounts;
   }
