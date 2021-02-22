@@ -1,6 +1,5 @@
 /* global artifacts */
 
-const truffleAssert = require("truffle-assertions");
 const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
@@ -137,21 +136,29 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should not add wallet to whitelist", async () => {
-      await truffleAssert.reverts(manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "addToWhitelist",
         [wallet.address, wallet.address],
         wallet,
-        [owner]), "TM: Cannot whitelist wallet");
+        [owner]);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "TM: Cannot whitelist wallet");
     });
 
     it("should not add module to whitelist", async () => {
-      await truffleAssert.reverts(manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "addToWhitelist",
         [wallet.address, module.address],
         wallet,
-        [owner]), "TM: Cannot whitelist module");
+        [owner]);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "TM: Cannot whitelist module");
     });
   });
 

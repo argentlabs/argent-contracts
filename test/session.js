@@ -173,10 +173,10 @@ contract("ArgentModule sessions", (accounts) => {
       expect(session.expires).to.eq.BN(timestamp + 2000);
     });
 
-    it.skip("should not be able to start a session for empty user address", async () => {
+    it("should not be able to start a session for empty user address", async () => {
       const data = module.contract.methods.startSession(wallet.address, ZERO_ADDRESS, 1000).encodeABI();
       const transaction = await encodeTransaction(module.address, 0, data, false);
-      await truffleAssert.reverts(manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "multiCallWithGuardians",
         [wallet.address, [transaction]],
@@ -184,13 +184,17 @@ contract("ArgentModule sessions", (accounts) => {
         [owner, guardian1],
         1,
         ETH_TOKEN,
-        recipient), "RM: Invalid session user");
+        recipient);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "RM: Invalid session user");
     });
 
-    it.skip("should not be able to start a session for zero duration", async () => {
+    it("should not be able to start a session for zero duration", async () => {
       const data = module.contract.methods.startSession(wallet.address, sessionUser, 0).encodeABI();
       const transaction = await encodeTransaction(module.address, 0, data, false);
-      await truffleAssert.reverts(manager.relay(
+      const txReceipt = await manager.relay(
         module,
         "multiCallWithGuardians",
         [wallet.address, [transaction]],
@@ -198,7 +202,11 @@ contract("ArgentModule sessions", (accounts) => {
         [owner, guardian1],
         1,
         ETH_TOKEN,
-        recipient), "RM: Invalid session duration");
+        recipient);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "RM: Invalid session duration");
     });
 
     it("owner should be able to clear a session", async () => {
