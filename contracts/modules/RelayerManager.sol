@@ -322,7 +322,7 @@ abstract contract RelayerManager is BaseModule {
     )
         internal
     {
-        if (_gasPrice > 0 && (_option == OwnerSignature.Required || ownerSignatureRequirement == OwnerSignature.Session)) {
+        if (_gasPrice > 0 && (_option == OwnerSignature.Required || _option == OwnerSignature.Session)) {
             address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
             if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
                     // refundAddress must be whitelisted/authorised

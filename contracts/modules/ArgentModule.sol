@@ -68,6 +68,19 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
             // owner
             return (1, OwnerSignature.Required);
         }
+        if (methodId == TransactionManager.multiCallWithApproval.selector) {
+            // Decode the second parameter of the multiCallWithApproval: boolean useSession
+            bool useSession = abi.decode(_data[36:], (bool));
+            if (useSession) {
+                // When using a session, one signature is required - that of the session user assigned
+                return (1, OwnerSignature.Session);
+            } else {
+                // owner + majority of guardians
+                uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
+                uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
+                return (numberOfSignaturesRequired, OwnerSignature.Required);
+            }
+        }
         if (methodId == SecurityManager.executeRecovery.selector) {
             // majority of guardians
             uint numberOfSignaturesRequired = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
@@ -97,19 +110,6 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         if (methodId == SecurityManager.lock.selector || methodId == SecurityManager.unlock.selector) {
             // any guardian
             return (1, OwnerSignature.Disallowed);
-        }
-        if (methodId == TransactionManager.multiCallWithApproval.selector) {
-            // Decode the second parameter of the multiCallWithApproval: boolean useSession
-            bool useSession = abi.decode(_data[36:], (bool));
-            if (useSession) {
-                // When using a session, one signature is required - that of the session user assigned
-                return (1, OwnerSignature.Session);
-            } else {
-                // owner + majority of guardians
-                uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
-                uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
-                return (numberOfSignaturesRequired, OwnerSignature.Required);
-            }
         }
         revert("SM: unknown method");
     }
