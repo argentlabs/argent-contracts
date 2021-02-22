@@ -48,14 +48,10 @@ abstract contract TransactionManager is BaseModule {
 
     // *************** External functions ************************ //
 
-    function multiCall(
-        address _wallet,
-        Call[] calldata _transactions
-    )
-        external
-        onlySelf()
-        onlyWhenUnlocked(_wallet)
-        returns (bytes[] memory)
+    function multiCall(address _wallet, Call[] calldata _transactions) external
+    onlySelf()
+    onlyWhenUnlocked(_wallet)
+    returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
@@ -68,15 +64,24 @@ abstract contract TransactionManager is BaseModule {
         return results;
     }
 
-    function multiCallWithApproval(
-        address _wallet,
-        bool _useSession,
-        Call[] calldata _transactions
-    )
-        external
-        onlySelf()
-        onlyWhenUnlocked(_wallet)
-        returns (bytes[] memory)
+    function multiCallWithSession(address _wallet, Call[] calldata _transactions) external
+    onlySelf()
+    onlyWhenUnlocked(_wallet)
+    returns (bytes[] memory)
+    {
+        multiCallWithApproval(_wallet, true, _transactions);
+    }
+
+    function multiCallWithGuardians(address _wallet, Call[] calldata _transactions) external
+    onlySelf()
+    onlyWhenUnlocked(_wallet)
+    returns (bytes[] memory)
+    {
+        multiCallWithApproval(_wallet, false, _transactions);
+    }
+
+    function multiCallWithApproval(address _wallet, bool _useSession, Call[] calldata _transactions) internal
+    returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
@@ -90,15 +95,13 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
-    function addToWhitelist(
-        address _wallet,
-        address _target
-    )
-        external
-        onlyWalletOwnerOrSelf(_wallet)
-        onlyWhenUnlocked(_wallet)
+    function addToWhitelist(address _wallet, address _target) external
+    onlyWalletOwnerOrSelf(_wallet)
+    onlyWhenUnlocked(_wallet)
     {
-        require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
+        require(_target != _wallet, "TM: Cannot whitelist wallet");
+        require(!IWallet(_wallet).authorised(_target), "TM: Cannot whitelist module");
+        require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
 
         uint256 whitelistAfter = block.timestamp.add(securityPeriod);
         setWhitelist(_wallet, _target, whitelistAfter);
@@ -110,25 +113,17 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
-    function removeFromWhitelist(
-        address _wallet,
-        address _target
-    )
-        external
-        onlyWalletOwnerOrSelf(_wallet)
-        onlyWhenUnlocked(_wallet)
+    function removeFromWhitelist(address _wallet, address _target) external
+    onlyWalletOwnerOrSelf(_wallet)
+    onlyWhenUnlocked(_wallet)
     {
         setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
-    function toggleDappRegistry(
-        address _wallet,
-        bytes32 _registry
-    )   
-        external
-        onlySelf()
-        onlyWhenUnlocked(_wallet)
+    function toggleDappRegistry(address _wallet, bytes32 _registry) external
+    onlySelf()
+    onlyWhenUnlocked(_wallet)
     {
         bool isEnabled = authoriser.toggle(_wallet, _registry);
         emit ToggledDappRegistry(_wallet, _registry, isEnabled);
@@ -140,13 +135,7 @@ abstract contract TransactionManager is BaseModule {
     * @param _target The address.
     * @return _isWhitelisted true if the address is whitelisted.
     */
-    function isWhitelisted(
-        address _wallet,
-        address _target
-    )
-        public
-        view
-        returns (bool _isWhitelisted)
+    function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted)
     {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
@@ -160,13 +149,7 @@ abstract contract TransactionManager is BaseModule {
     * @param _msgHash Hash of a message signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _msgHash
     */
-    function isValidSignature(
-        bytes32 _msgHash,
-        bytes memory _signature
-    ) 
-        external
-        view
-        returns (bytes4)
+    function isValidSignature(bytes32 _msgHash, bytes memory _signature) external view returns (bytes4)
     {
         require(_signature.length == 65, "TM: invalid signature length");
         address signer = Utils.recoverSigner(_msgHash, _signature, 0);
@@ -207,7 +190,7 @@ abstract contract TransactionManager is BaseModule {
             // transfer(to, value), transferFrom(wallet, to, value),
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
             return first == _wallet ? second : first;
-        }   
+        }
         return _transaction.to;
     }
 

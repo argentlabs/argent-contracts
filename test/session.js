@@ -118,8 +118,8 @@ contract("ArgentModule sessions", (accounts) => {
 
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         1,
@@ -142,8 +142,8 @@ contract("ArgentModule sessions", (accounts) => {
       let transaction = await encodeTransaction(module.address, 0, data, false);
       await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         1,
@@ -155,8 +155,8 @@ contract("ArgentModule sessions", (accounts) => {
       transaction = await encodeTransaction(module.address, 0, data, false);
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         1,
@@ -178,8 +178,8 @@ contract("ArgentModule sessions", (accounts) => {
       const transaction = await encodeTransaction(module.address, 0, data, false);
       await truffleAssert.reverts(manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         1,
@@ -192,8 +192,8 @@ contract("ArgentModule sessions", (accounts) => {
       const transaction = await encodeTransaction(module.address, 0, data, false);
       await truffleAssert.reverts(manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         1,
@@ -207,8 +207,8 @@ contract("ArgentModule sessions", (accounts) => {
       const transaction = await encodeTransaction(module.address, 0, data, false);
       await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         0,
@@ -241,8 +241,8 @@ contract("ArgentModule sessions", (accounts) => {
       const transaction = await encodeTransaction(module.address, 0, data, false);
       await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         0,
@@ -269,8 +269,8 @@ contract("ArgentModule sessions", (accounts) => {
       const balanceBefore = await utils.getBalance(recipient);
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         0,
@@ -291,8 +291,8 @@ contract("ArgentModule sessions", (accounts) => {
       const balanceBefore = await token.balanceOf(recipient);
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         0,
@@ -314,8 +314,8 @@ contract("ArgentModule sessions", (accounts) => {
 
       await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, false, [transaction]],
+        "multiCallWithGuardians",
+        [wallet.address, [transaction]],
         wallet,
         [owner, guardian1],
         0,
@@ -329,8 +329,8 @@ contract("ArgentModule sessions", (accounts) => {
       const balanceBefore = await utils.getBalance(recipient);
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, true, [transaction]],
+        "multiCallWithSession",
+        [wallet.address, [transaction]],
         wallet,
         [sessionUser],
         0,
@@ -351,8 +351,8 @@ contract("ArgentModule sessions", (accounts) => {
       const balanceBefore = await token.balanceOf(recipient);
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, true, [transaction]],
+        "multiCallWithSession",
+        [wallet.address, [transaction]],
         wallet,
         [sessionUser],
         0,
@@ -370,8 +370,8 @@ contract("ArgentModule sessions", (accounts) => {
 
       await truffleAssert.reverts(manager.relay(
         module,
-        "multiCallWithApproval",
-        [wallet.address, true, [transaction]],
+        "multiCallWithSession",
+        [wallet.address, [transaction]],
         wallet,
         [sessionUser2],
         0,

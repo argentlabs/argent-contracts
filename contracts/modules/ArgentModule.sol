@@ -68,18 +68,8 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
             // owner
             return (1, OwnerSignature.Required);
         }
-        if (methodId == TransactionManager.multiCallWithApproval.selector) {
-            // Decode the second parameter of the multiCallWithApproval: boolean useSession
-            bool useSession = abi.decode(_data[36:], (bool));
-            if (useSession) {
-                // When using a session, one signature is required - that of the session user assigned
-                return (1, OwnerSignature.Session);
-            } else {
-                // owner + majority of guardians
-                uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
-                uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
-                return (numberOfSignaturesRequired, OwnerSignature.Required);
-            }
+        if (methodId == TransactionManager.multiCallWithSession.selector) {
+            return (1, OwnerSignature.Session);
         }
         if (methodId == SecurityManager.executeRecovery.selector) {
             // majority of guardians
@@ -92,7 +82,8 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
             uint numberOfSignaturesRequired = Utils.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
             return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
-        if (methodId == TransactionManager.toggleDappRegistry.selector ||
+        if (methodId == TransactionManager.multiCallWithGuardians.selector ||
+            methodId == TransactionManager.toggleDappRegistry.selector ||
             methodId == SecurityManager.transferOwnership.selector)
         {
             // owner + majority of guardians

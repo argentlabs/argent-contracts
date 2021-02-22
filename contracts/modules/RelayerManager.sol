@@ -42,6 +42,11 @@ abstract contract RelayerManager is BaseModule {
         mapping (bytes32 => bool) executedTx;
     }
 
+    struct Session {
+        address key;
+        uint64 expires;
+    }
+
     // Used to avoid stack too deep error
     struct StackExtension {
         uint256 requiredSignatures;

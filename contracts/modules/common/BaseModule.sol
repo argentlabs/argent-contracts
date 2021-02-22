@@ -72,11 +72,6 @@ abstract contract BaseModule is IModule {
     // wallet specific storage
     mapping (address => Lock) internal locks;
 
-    struct Session {
-        address key;
-        uint64 expires;
-    }
-
     /**
      * @notice Throws if the wallet is not locked.
      */
