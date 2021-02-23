@@ -39,6 +39,7 @@ contract("ArgentModule sessions", (accounts) => {
   const owner = accounts[1];
   const guardian1 = accounts[2];
   const recipient = accounts[4];
+  const nonceInitialiser = accounts[5];
   const sessionUser = accounts[6];
   const sessionUser2 = accounts[7];
   const relayer = accounts[9];
@@ -97,6 +98,34 @@ contract("ArgentModule sessions", (accounts) => {
     assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
   }
 
+  async function whitelist(target) {
+    await module.addToWhitelist(wallet.address, target, { from: owner });
+    await utils.increaseTime(3);
+    const isTrusted = await module.isWhitelisted(wallet.address, target);
+    assert.isTrue(isTrusted, "should be trusted after the security period");
+  }
+
+  async function encodeTransaction(to, value, data, isSpenderInData = false) {
+    return { to, value, data, isSpenderInData };
+  }
+
+  async function initNonce() {
+    // add to whitelist
+    await whitelist(nonceInitialiser);
+    // set the relayer nonce to > 0
+    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const txReceipt = await manager.relay(
+      module,
+      "multiCall",
+      [wallet.address, [transaction]],
+      wallet,
+      [owner]);
+    const success = await utils.parseRelayReceipt(txReceipt).success;
+    assert.isTrue(success, "transfer failed");
+    const nonce = await module.getNonce(wallet.address);
+    assert.isTrue(nonce.gt(0), "nonce init failed");
+  }
+
   beforeEach(async () => {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
@@ -105,11 +134,9 @@ contract("ArgentModule sessions", (accounts) => {
     await wallet.send(new BN("1000000000000000000"));
 
     await addGuardians([guardian1]);
-  });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
-  }
+    await initNonce();
+  });
 
   describe("session lifecycle", () => {
     it("owner plus majority guardians should be able to start a session", async () => {
@@ -289,6 +316,7 @@ contract("ArgentModule sessions", (accounts) => {
 
       const balanceAfter = await utils.getBalance(recipient);
       expect(balanceAfter.sub(balanceBefore)).to.eq.BN(10);
+      console.log(`Gas for send ETH with guardians: ${txReceipt.gasUsed}`);
     });
 
     it("should be able to transfer ERC20 with guardians", async () => {
