@@ -26,10 +26,15 @@ contract SimpleOracle {
 
     address immutable weth;
     address immutable factory;
+    bytes32 immutable devCreationCode;
 
     constructor(address _uniswapRouter) public {
         weth = IUniswapV2Router01(_uniswapRouter).WETH();
-        factory = IUniswapV2Router01(_uniswapRouter).factory();
+        address _factory = IUniswapV2Router01(_uniswapRouter).factory();
+        factory = _factory;
+        // on development we get the creation code by calling getKeccakOfPairCreationCode() 
+        (, bytes memory _res) = _factory.staticcall(hex'5088e7fe');
+        devCreationCode = abi.decode(_res, (bytes32));
     }
 
     function inToken(address _token, uint256 _ethAmount) internal view returns (uint256) {
@@ -49,12 +54,17 @@ contract SimpleOracle {
     }
 
     function getPairForSorted(address tokenA, address tokenB) internal view returns (address pair) {
+        bytes32 creationCode;
+        if (factory == 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f) {
+            creationCode = hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f';
+        } else {
+            creationCode = devCreationCode;
+        }        
         pair = address(uint(keccak256(abi.encodePacked(
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(tokenA, tokenB)),
-                hex'8d4eafb0fd495310477556b0b53beb4cb0f669db323ce64533c25ace358cd1a2' // use for local tests
-                //hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f' // use for deployment to Ropstent/Mainnet
+                creationCode
             ))));
     }
 }
