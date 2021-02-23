@@ -65,16 +65,16 @@ abstract contract TransactionManager is BaseModule {
     function multiCallWithSession(address _wallet, Call[] calldata _transactions) external onlySelf() onlyWhenUnlocked(_wallet)
     returns (bytes[] memory)
     {
-        multiCallWithApproval(_wallet, true, _transactions);
+        multiCallWithApproval(_wallet, _transactions);
     }
 
     function multiCallWithGuardians(address _wallet, Call[] calldata _transactions) external onlySelf() onlyWhenUnlocked(_wallet)
     returns (bytes[] memory)
     {
-        multiCallWithApproval(_wallet, false, _transactions);
+        multiCallWithApproval(_wallet, _transactions);
     }
 
-    function multiCallWithApproval(address _wallet, bool _useSession, Call[] calldata _transactions) internal
+    function multiCallWithApproval(address _wallet, Call[] calldata _transactions) internal
     returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](_transactions.length);
