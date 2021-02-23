@@ -24,19 +24,12 @@ contract SimpleOracle {
 
     using SafeMath for uint256;
 
-    address private immutable weth;
-    address private immutable factory;
-    bytes32 private devCreationCode;
+    address internal immutable weth;
+    address internal immutable uniswapV2Factory;
 
     constructor(address _uniswapRouter) public {
         weth = IUniswapV2Router01(_uniswapRouter).WETH();
-        address _factory = IUniswapV2Router01(_uniswapRouter).factory();
-        factory = _factory;
-        // on development we get the creation code by calling getKeccakOfPairCreationCode() 
-        (bool success, bytes memory _res) = _factory.staticcall(hex'5088e7fe');
-        if (success) {
-            devCreationCode = abi.decode(_res, (bytes32));
-        }
+        uniswapV2Factory = IUniswapV2Router01(_uniswapRouter).factory();
     }
 
     function inToken(address _token, uint256 _ethAmount) internal view returns (uint256) {
@@ -55,18 +48,12 @@ contract SimpleOracle {
         require(wethReserve != 0 && tokenReserve != 0, "SO: no liquidity");
     }
 
-    function getPairForSorted(address tokenA, address tokenB) internal view returns (address pair) {
-        bytes32 creationCode;
-        if (factory == 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f) {
-            creationCode = hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f';
-        } else {
-            creationCode = devCreationCode;
-        }        
+    function getPairForSorted(address tokenA, address tokenB) internal virtual view returns (address pair) {    
         pair = address(uint(keccak256(abi.encodePacked(
                 hex'ff',
-                factory,
+                uniswapV2Factory,
                 keccak256(abi.encodePacked(tokenA, tokenB)),
-                creationCode
+                hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f'
             ))));
     }
 }
