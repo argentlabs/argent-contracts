@@ -370,8 +370,7 @@ abstract contract RelayerManager is BaseModule {
         assembly { chainId := chainid() }
     }
 
-    function startSession(address _wallet, address _sessionUser, uint64 _duration) external onlyWallet(_wallet) returns (bool)
-    {
+    function startSession(address _wallet, address _sessionUser, uint64 _duration) external onlyWallet(_wallet) {
         require(_sessionUser != address(0), "RM: Invalid session user");
         require(_duration > 0, "RM: Invalid session duration");
 
@@ -386,8 +385,8 @@ abstract contract RelayerManager is BaseModule {
     */
     function clearSession(address _wallet) external onlySelf()
     {
-        delete sessions[_wallet];
         emit SessionCleared(_wallet, sessions[_wallet].key);
+        delete sessions[_wallet];
     }
 
     function validateSession(address _wallet, bytes32 _signHash, bytes calldata _signatures) internal view returns (bool) { 
