@@ -107,18 +107,22 @@ contract("Static Calls", (accounts) => {
       staticCalls.push(
         { method: "onERC1155Received(address,address,uint256,uint256,bytes)", params: [infrastructure, infrastructure, 0, 0, "0x"] },
         { method: "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)", params: [infrastructure, infrastructure, [0], [0], "0x"] },
+        { method: "supportsInterface(bytes4)", params: ["0x01ffc9a7"], result: "0x0000000000000000000000000000000000000000000000000000000000000001" },
+        { method: "supportsInterface(bytes4)", params: ["0x4e2312e0"], result: "0x0000000000000000000000000000000000000000000000000000000000000001" },
+        { method: "supportsInterface(bytes4)", params: ["0xffffffff"], result: "0x0000000000000000000000000000000000000000000000000000000000000000" },
       );
     }
 
-    for (const { method, params } of staticCalls) {
-      const expectedRes = utils.sha3(method).slice(0, 10);
-      const delegate = await _wallet.enabled(expectedRes);
+    for (const { method, params, result } of staticCalls) {
+      const methodSig = utils.sha3(method).slice(0, 10);
+      const delegate = await _wallet.enabled(methodSig);
       assert.equal(delegate, module.address, "wallet.enabled() is not module");
-      const res = await web3.eth.call({
+      const output = await web3.eth.call({
         to: _wallet.address,
         data: utils.encodeFunctionCall(method, params),
       });
-      assert.equal(res.slice(0, 10), expectedRes, "unexpected static call return value");
+      const expectedOutput = (result === undefined) ? web3.utils.padRight(methodSig, 64) : result;
+      assert.equal(output, expectedOutput, `unexpected static call return value for ${method}`);
     }
   }
 
@@ -126,7 +130,7 @@ contract("Static Calls", (accounts) => {
     it("should have ERC721 and ERC1271 static calls enabled by default (old wallet)", async () => {
       await checkStaticCalls({ _wallet: oldWallet, _supportERC1155: false });
     });
-    it("should have all static calls enabled by default (new wallett)", async () => {
+    it("should have all static calls enabled by default (new wallet)", async () => {
       await checkStaticCalls({ _wallet: wallet, _supportERC1155: true });
     });
   });

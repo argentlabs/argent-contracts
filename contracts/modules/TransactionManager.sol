@@ -27,11 +27,12 @@ import "../../lib/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
-
-    bytes4 private constant ERC1271_ISVALIDSIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
+    bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     bytes4 private constant ERC1155_RECEIVED = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
     bytes4 private constant ERC1155_BATCH_RECEIVED = bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
+    bytes4 private constant ERC165_INTERFACE = bytes4(keccak256("supportsInterface(bytes4)"));
+    bytes4 private constant ERC1155_INTERFACE = ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED;
 
     struct Call {
         address to;
@@ -180,9 +181,18 @@ abstract contract TransactionManager is BaseModule {
         external
         onlySelf()
     {
+        IWallet(_wallet).enableStaticCall(address(this), ERC165_INTERFACE);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_RECEIVED);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_BATCH_RECEIVED);
         emit ERC1155TokenReceiverEnabled(_wallet);
+    }
+
+    /**
+     * @notice Returns true if this contract implements the interface defined by
+     * `interfaceId` (see https://eips.ethereum.org/EIPS/eip-165).
+     */
+    function supportsInterface(bytes4 interfaceID) external view returns (bool) {
+        return  interfaceID == ERC165_INTERFACE || interfaceID == ERC1155_INTERFACE;          
     }
 
     /**
@@ -196,8 +206,9 @@ abstract contract TransactionManager is BaseModule {
         override
         returns (bool _isSupported)
     {
-        return _methodId == ERC1271_ISVALIDSIGNATURE ||
+        return _methodId == ERC1271_IS_VALID_SIGNATURE ||
                _methodId == ERC721_RECEIVED ||
+               _methodId == ERC165_INTERFACE ||
                _methodId == ERC1155_RECEIVED ||
                _methodId == ERC1155_BATCH_RECEIVED;
     }
@@ -215,7 +226,7 @@ abstract contract TransactionManager is BaseModule {
         require(_signature.length == 65, "TM: invalid signature length");
         address signer = Utils.recoverSigner(_msgHash, _signature, 0);
         require(_isOwner(msg.sender, signer), "TM: Invalid signer");
-        return ERC1271_ISVALIDSIGNATURE;
+        return ERC1271_IS_VALID_SIGNATURE;
     }
 
 
@@ -234,7 +245,7 @@ abstract contract TransactionManager is BaseModule {
 
     function enableDefaultStaticCalls(address _wallet) internal {
         // setup the static calls that are available for free for all wallets
-        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE);
+        IWallet(_wallet).enableStaticCall(address(this), ERC1271_IS_VALID_SIGNATURE);
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
