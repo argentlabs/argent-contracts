@@ -92,7 +92,7 @@ abstract contract TransactionManager is BaseModule {
     function addToWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
     {
         require(_target != _wallet, "TM: Cannot whitelist wallet");
-        require(!IWallet(_wallet).authorised(_target), "TM: Cannot whitelist module");
+        require(!registry.isRegisteredModule(_target), "TM: Cannot whitelist module");
         require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
 
         uint256 whitelistAfter = block.timestamp.add(securityPeriod);
