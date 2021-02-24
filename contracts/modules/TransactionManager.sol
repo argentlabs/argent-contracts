@@ -96,9 +96,9 @@ abstract contract TransactionManager is BaseModule {
 
     function multiCallWithGuardiansAndStartSession(
         address _wallet,
+        Call[] calldata _transactions,
         address _sessionUser,
-        uint64 _duration,
-        Call[] calldata _transactions
+        uint64 _duration
     )
         external 
         onlySelf()

@@ -143,7 +143,7 @@ contract("ArgentModule sessions", (accounts) => {
       const txReceipt = await manager.relay(
         module,
         "multiCallWithGuardiansAndStartSession",
-        [wallet.address, sessionUser, 1000, []],
+        [wallet.address, [], sessionUser, 1000],
         wallet,
         [owner, guardian1],
         1,
@@ -166,7 +166,7 @@ contract("ArgentModule sessions", (accounts) => {
       await manager.relay(
         module,
         "multiCallWithGuardiansAndStartSession",
-        [wallet.address, sessionUser, 1000, []],
+        [wallet.address, [], sessionUser, 1000],
         wallet,
         [owner, guardian1],
         1,
@@ -177,7 +177,7 @@ contract("ArgentModule sessions", (accounts) => {
       const txReceipt = await manager.relay(
         module,
         "multiCallWithGuardiansAndStartSession",
-        [wallet.address, sessionUser2, 2000, []],
+        [wallet.address, [], sessionUser2, 2000],
         wallet,
         [owner, guardian1],
         1,
@@ -198,7 +198,7 @@ contract("ArgentModule sessions", (accounts) => {
       const txReceipt = await manager.relay(
         module,
         "multiCallWithGuardiansAndStartSession",
-        [wallet.address, ZERO_ADDRESS, 1000, []],
+        [wallet.address, [], ZERO_ADDRESS, 1000],
         wallet,
         [owner, guardian1],
         1,
@@ -214,7 +214,7 @@ contract("ArgentModule sessions", (accounts) => {
       const txReceipt = await manager.relay(
         module,
         "multiCallWithGuardiansAndStartSession",
-        [wallet.address, sessionUser, 0, []],
+        [wallet.address, [], sessionUser, 0],
         wallet,
         [owner, guardian1],
         1,
@@ -231,7 +231,7 @@ contract("ArgentModule sessions", (accounts) => {
       await manager.relay(
         module,
         "multiCallWithGuardiansAndStartSession",
-        [wallet.address, sessionUser, 1000, []],
+        [wallet.address, [], sessionUser, 1000],
         wallet,
         [owner, guardian1],
         0,
@@ -263,7 +263,7 @@ contract("ArgentModule sessions", (accounts) => {
       await manager.relay(
         module,
         "multiCallWithGuardiansAndStartSession",
-        [wallet.address, sessionUser, 1000, []],
+        [wallet.address, [], sessionUser, 1000],
         wallet,
         [owner, guardian1],
         0,
@@ -334,7 +334,7 @@ contract("ArgentModule sessions", (accounts) => {
       await manager.relay(
         module,
         "multiCallWithGuardiansAndStartSession",
-        [wallet.address, sessionUser, 10000, []],
+        [wallet.address, [], sessionUser, 10000],
         wallet,
         [owner, guardian1],
         0,
