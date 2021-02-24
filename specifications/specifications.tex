@@ -71,8 +71,25 @@ In addition to recovery it is possible for a user to transfer ownership of his w
 where the first signature is the owner and $n$ is the total number of guardians.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Multi-Call}
+
+The wallet can interact with the ethereum eco-system to e.g. send an asset or interact with the smart-contracts of a decentralized application
+through multi-calls. A multi-call is a sequence of transactions executed by the wallet one after the other and such that the multi-call fails if any of the transaction fails.
+
+For security the wallet will block a multi-call unless one of the following conditions is satisfied:
+\begin{enumerate}
+    \item the multicall is triggered by the wallet owner and each transaction of the multi-call:
+    \begin{itemize}
+        \item transfers or approves an asset (ETH, ERC20, ERC721, ERC1155) to a trusted contact see Section \ref{sec:trusted-contacts}
+        \item transfers or approves an asset (ETH, ERC20, ERC721, ERC1155) or calls an authorised Dapp see Section \ref{sec:authorised-dapps}
+    \end{itemize}
+    \item the multicall is approved by the owner and a majority of guardians see Section \ref{sec:guardian-approval} 
+    \item the multicall is executed with a valid session key see Section \ref{sec:session}
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Trusted Contacts}
-\label{sec:whitelist}
+\label{sec:trusted-contacts}
 
 The wallet keeps a list of trusted addresses managed by the wallet owner.
 
@@ -82,7 +99,24 @@ Interracting with a trusted contact to e.g. send and asset, can be triggered by 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Authorised Dapps}
+\label{sec:authorised-dapps}
 
+The wallet owner can decide to enable 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Guardian Approval}
+\label{sec:guardian-approval}
+
+Any sequence of transactions can be executed by the wallet owner, provided that they obtain approval from their guardians. The number of required signatures for an approved transfer is given by
+\begin{equation*}
+    1+\left\lceil {\frac{n}{2}} \right\rceil
+\end{equation*}
+where the first signature is the owner and $n$ is the total number of guardians.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Authorised Dapps}
+\label{sec:authorised-dapps}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
