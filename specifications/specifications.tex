@@ -6,7 +6,7 @@
 \graphicspath{ {./images/} }
 
 \title{Argent Smart Wallet Specification}
-\author{v2.0}
+\author{v3.0}
 \date{\today}
 
 
@@ -71,35 +71,19 @@ In addition to recovery it is possible for a user to transfer ownership of his w
 where the first signature is the owner and $n$ is the total number of guardians.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Daily Transfer Limit}
-\label{sec:dailylimit}
-The wallet is protected by a daily limit (rolling for 24 hours). The owner can spend up to the daily limit in a given 24 hours period. The daily limit default value is 1 ETH and can be modified by the owner. A reduction of the limit applies immediately. It takes 24 hours for an increase of the limit to be effective, unless the increase is approved by guardians (the number of guardians required is given in Section~\ref{sec:approved-transfer}), in which case the change is immediate.
-
-Any transfer exceeding the daily limit will be set as pending, and can be executed only after 24 hours.
-
-Transfers (and ERC20 token approvals) to whitelisted addresses (see Section~\ref{sec:whitelist}) and transfers (and ERC20 token approvals) approved by guardians (see Section~\ref{sec:approved-transfer}) do not contribute to the daily limit.
-
-The daily spend of a user is reset after 24 hours or after each transaction made via the \emph{ApprovedTransfer} feature, which involves a majority of guardians (see Section~\ref{sec:approved-transfer}).
-
-The daily limit is cross-token (ETH + ERC20) and we're using an on-chain oracle to get the conversion rates for ERC20 tokens.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Whitelist}
+\subsection{Trusted Contacts}
 \label{sec:whitelist}
 
-The wallet keeps a whitelist of trusted addresses. Transfers to those addresses are immediate and their amounts are not limited.
+The wallet keeps a list of trusted addresses managed by the wallet owner.
 
-Adding an address to the whitelist is an action triggered by the wallet owner and takes 24 hours to be effective. Removing an address is triggered by the owner and is immediate.
+Adding an address to this list is an action triggered by the wallet owner and takes 24 hours to be effective. Removing an address is triggered by the owner and is immediate.
+
+Interracting with a trusted contact to e.g. send and asset, can be triggered by the wallet owner and does not require any additional authorisation. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Approved Transfer}
-\label{sec:approved-transfer}
+\subsection{Authorised Dapps}
 
-Transfers and ERC20 token approvals exceeding the daily limit can be executed immediately by the owner, provided that they obtain approval from their guardians. The number of required signatures for an approved transfer is given by
-\begin{equation*}
-    1+\left\lceil {\frac{n}{2}} \right\rceil
-\end{equation*}
-where the first signature is the owner and $n$ is the total number of guardians.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{ERC20 Exchange}
