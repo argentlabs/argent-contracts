@@ -6,7 +6,7 @@ import "../contracts/modules/ArgentModule.sol";
 
 /**
  * @notice Extends the ArgentModule to get the creation code of uniswap pairs locally
- * and enbale ERC20 refunds in tests.
+ * and enable ERC20 refunds in tests.
  */
 contract ArgentModuleTest is ArgentModule {
 
