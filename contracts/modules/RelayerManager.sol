@@ -34,17 +34,9 @@ abstract contract RelayerManager is BaseModule {
 
     mapping (address => RelayerConfig) internal relayer;
 
-    // Maps wallet to session
-    mapping (address => Session) internal sessions;
-
     struct RelayerConfig {
         uint256 nonce;
         mapping (bytes32 => bool) executedTx;
-    }
-
-    struct Session {
-        address key;
-        uint64 expires;
     }
 
     // Used to avoid stack too deep error
@@ -58,8 +50,6 @@ abstract contract RelayerManager is BaseModule {
 
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
     event Refund(address indexed wallet, address indexed refundAddress, address refundToken, uint256 refundAmount);
-    event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
-    event SessionCleared(address indexed wallet, address sessionKey);
 
     /* ***************** External methods ************************* */
 
@@ -368,25 +358,6 @@ abstract contract RelayerManager is BaseModule {
     function getChainId() private pure returns (uint256 chainId) {
         // solhint-disable-next-line no-inline-assembly
         assembly { chainId := chainid() }
-    }
-
-    function startSession(address _wallet, address _sessionUser, uint64 _duration) external onlyWallet(_wallet) {
-        require(_sessionUser != address(0), "RM: Invalid session user");
-        require(_duration > 0, "RM: Invalid session duration");
-
-        uint64 expiry = Utils.safe64(block.timestamp + _duration);
-        sessions[_wallet] = Session(_sessionUser, expiry);
-        emit SessionCreated(_wallet, _sessionUser, expiry);
-    }
-
-    /**
-    * @notice Clears the active session of a wallet if any.
-    * @param _wallet The target wallet.
-    */
-    function clearSession(address _wallet) external onlySelf()
-    {
-        emit SessionCleared(_wallet, sessions[_wallet].key);
-        delete sessions[_wallet];
     }
 
     function validateSession(address _wallet, bytes32 _signHash, bytes calldata _signatures) internal view returns (bool) { 

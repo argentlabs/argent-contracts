@@ -45,13 +45,19 @@ abstract contract TransactionManager is BaseModule {
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event ToggledDappRegistry(address _wallet, bytes32 _registry, bool isEnabled);
+    event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
+    event SessionCleared(address indexed wallet, address sessionKey);
 
     // *************** External functions ************************ //
 
-    function multiCall(address _wallet, Call[] calldata _transactions) external
-    onlySelf()
-    onlyWhenUnlocked(_wallet)
-    returns (bytes[] memory)
+    function multiCall(
+        address _wallet,
+        Call[] calldata _transactions
+    )
+        external
+        onlySelf()
+        onlyWhenUnlocked(_wallet)
+        returns (bytes[] memory)
     {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
@@ -64,33 +70,43 @@ abstract contract TransactionManager is BaseModule {
         return results;
     }
 
-    function multiCallWithSession(address _wallet, Call[] calldata _transactions)
-    external
-    onlySelf()
-    onlyWhenUnlocked(_wallet)
-    returns (bytes[] memory)
+    function multiCallWithSession(
+        address _wallet,
+        Call[] calldata _transactions
+    )
+        external
+        onlySelf()
+        onlyWhenUnlocked(_wallet)
+        returns (bytes[] memory)
     {
         multiCallWithApproval(_wallet, _transactions);
     }
 
-    function multiCallWithGuardians(address _wallet, Call[] calldata _transactions)
-    external 
-    onlySelf()
-    onlyWhenUnlocked(_wallet)
-    returns (bytes[] memory)
+    function multiCallWithGuardians(
+        address _wallet,
+        Call[] calldata _transactions
+    )
+        external 
+        onlySelf()
+        onlyWhenUnlocked(_wallet)
+        returns (bytes[] memory)
     {
         multiCallWithApproval(_wallet, _transactions);
     }
 
-    function multiCallWithApproval(address _wallet, Call[] calldata _transactions)
-    internal
-    returns (bytes[] memory)
+    function multiCallWithGuardiansAndStartSession(
+        address _wallet,
+        address _sessionUser,
+        uint64 _duration,
+        Call[] calldata _transactions
+    )
+        external 
+        onlySelf()
+        onlyWhenUnlocked(_wallet)
+        returns (bytes[] memory)
     {
-        bytes[] memory results = new bytes[](_transactions.length);
-        for(uint i = 0; i < _transactions.length; i++) {
-            results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
-        }
-        return results;
+        startSession(_wallet, _sessionUser, _duration);
+        multiCallWithApproval(_wallet, _transactions);
     }
 
     /**
@@ -138,6 +154,16 @@ abstract contract TransactionManager is BaseModule {
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
 
+    /**
+    * @notice Clears the active session of a wallet if any.
+    * @param _wallet The target wallet.
+    */
+    function clearSession(address _wallet) external onlySelf()
+    {
+        emit SessionCleared(_wallet, sessions[_wallet].key);
+        delete sessions[_wallet];
+    }
+
     /** ******************* Callbacks ************************** */
 
     /**
@@ -179,6 +205,24 @@ abstract contract TransactionManager is BaseModule {
         // setup static calls
         IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE);
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
+    }
+
+    function multiCallWithApproval(address _wallet, Call[] calldata _transactions) internal returns (bytes[] memory)
+    {
+        bytes[] memory results = new bytes[](_transactions.length);
+        for(uint i = 0; i < _transactions.length; i++) {
+            results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
+        }
+        return results;
+    }
+
+    function startSession(address _wallet, address _sessionUser, uint64 _duration) internal {
+        require(_sessionUser != address(0), "RM: Invalid session user");
+        require(_duration > 0, "RM: Invalid session duration");
+
+        uint64 expiry = Utils.safe64(block.timestamp + _duration);
+        sessions[_wallet] = Session(_sessionUser, expiry);
+        emit SessionCreated(_wallet, _sessionUser, expiry);
     }
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {

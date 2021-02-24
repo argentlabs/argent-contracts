@@ -140,13 +140,10 @@ contract("ArgentModule sessions", (accounts) => {
 
   describe("session lifecycle", () => {
     it("owner plus majority guardians should be able to start a session", async () => {
-      const data = module.contract.methods.startSession(wallet.address, sessionUser, 1000).encodeABI();
-      const transaction = await encodeTransaction(module.address, 0, data, false);
-
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithGuardians",
-        [wallet.address, [transaction]],
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, sessionUser, 1000, []],
         wallet,
         [owner, guardian1],
         1,
@@ -161,16 +158,15 @@ contract("ArgentModule sessions", (accounts) => {
 
       const timestamp = await utils.getTimestamp(txReceipt.blockNumber);
       expect(session.expires).to.eq.BN(timestamp + 1000);
+
+      console.log(`Gas for starting a session: ${txReceipt.gasUsed}`);
     });
 
     it("should be able to overwrite an existing session", async () => {
-      // Start a session for sessionUser with duration 1000s
-      let data = module.contract.methods.startSession(wallet.address, sessionUser, 1000).encodeABI();
-      let transaction = await encodeTransaction(module.address, 0, data, false);
       await manager.relay(
         module,
-        "multiCallWithGuardians",
-        [wallet.address, [transaction]],
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, sessionUser, 1000, []],
         wallet,
         [owner, guardian1],
         1,
@@ -178,12 +174,10 @@ contract("ArgentModule sessions", (accounts) => {
         recipient);
 
       // Start another session on the same wallet for sessionUser2 with duration 2000s
-      data = module.contract.methods.startSession(wallet.address, sessionUser2, 2000).encodeABI();
-      transaction = await encodeTransaction(module.address, 0, data, false);
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithGuardians",
-        [wallet.address, [transaction]],
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, sessionUser2, 2000, []],
         wallet,
         [owner, guardian1],
         1,
@@ -201,12 +195,10 @@ contract("ArgentModule sessions", (accounts) => {
     });
 
     it("should not be able to start a session for empty user address", async () => {
-      const data = module.contract.methods.startSession(wallet.address, ZERO_ADDRESS, 1000).encodeABI();
-      const transaction = await encodeTransaction(module.address, 0, data, false);
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithGuardians",
-        [wallet.address, [transaction]],
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, ZERO_ADDRESS, 1000, []],
         wallet,
         [owner, guardian1],
         1,
@@ -219,12 +211,10 @@ contract("ArgentModule sessions", (accounts) => {
     });
 
     it("should not be able to start a session for zero duration", async () => {
-      const data = module.contract.methods.startSession(wallet.address, sessionUser, 0).encodeABI();
-      const transaction = await encodeTransaction(module.address, 0, data, false);
       const txReceipt = await manager.relay(
         module,
-        "multiCallWithGuardians",
-        [wallet.address, [transaction]],
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, sessionUser, 0, []],
         wallet,
         [owner, guardian1],
         1,
@@ -238,12 +228,10 @@ contract("ArgentModule sessions", (accounts) => {
 
     it("owner should be able to clear a session", async () => {
       // Start a session for sessionUser with duration 1000s
-      const data = module.contract.methods.startSession(wallet.address, sessionUser, 1000).encodeABI();
-      const transaction = await encodeTransaction(module.address, 0, data, false);
       await manager.relay(
         module,
-        "multiCallWithGuardians",
-        [wallet.address, [transaction]],
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, sessionUser, 1000, []],
         wallet,
         [owner, guardian1],
         0,
@@ -272,12 +260,10 @@ contract("ArgentModule sessions", (accounts) => {
 
     it("non-owner should not be able to clear a session", async () => {
       // Start a session for sessionUser with duration 1000s
-      const data = module.contract.methods.startSession(wallet.address, sessionUser, 1000).encodeABI();
-      const transaction = await encodeTransaction(module.address, 0, data, false);
       await manager.relay(
         module,
-        "multiCallWithGuardians",
-        [wallet.address, [transaction]],
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, sessionUser, 1000, []],
         wallet,
         [owner, guardian1],
         0,
@@ -345,13 +331,10 @@ contract("ArgentModule sessions", (accounts) => {
   describe("transfer using session", () => {
     beforeEach(async () => {
       // Create a session for sessionUser with duration 1000s to use in tests
-      const data = module.contract.methods.startSession(wallet.address, sessionUser, 10000).encodeABI();
-      const transaction = await encodeTransaction(module.address, 0, data, false);
-
       await manager.relay(
         module,
-        "multiCallWithGuardians",
-        [wallet.address, [transaction]],
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, sessionUser, 10000, []],
         wallet,
         [owner, guardian1],
         0,

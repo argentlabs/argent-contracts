@@ -62,6 +62,14 @@ abstract contract BaseModule is IModule {
         Session             // Session only
     }
 
+    struct Session {
+        address key;
+        uint64 expires;
+    }
+
+    // Maps wallet to session
+    mapping (address => Session) internal sessions;
+
     struct Lock {
         // the lock's release timestamp
         uint64 release;

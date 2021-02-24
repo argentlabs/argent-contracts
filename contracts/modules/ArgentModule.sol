@@ -59,11 +59,11 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         if (methodId == TransactionManager.multiCall.selector ||
             methodId == TransactionManager.addToWhitelist.selector ||
             methodId == TransactionManager.removeFromWhitelist.selector ||
+            methodId == TransactionManager.clearSession.selector ||
             methodId == ArgentModule.addModule.selector ||
             methodId == SecurityManager.addGuardian.selector ||
             methodId == SecurityManager.revokeGuardian.selector ||
-            methodId == SecurityManager.cancelGuardianAddition.selector ||
-            methodId == RelayerManager.clearSession.selector)
+            methodId == SecurityManager.cancelGuardianAddition.selector)
         {
             // owner
             return (1, OwnerSignature.Required);
@@ -83,6 +83,7 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
             return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
         if (methodId == TransactionManager.multiCallWithGuardians.selector ||
+            methodId == TransactionManager.multiCallWithGuardiansAndStartSession.selector ||
             methodId == TransactionManager.toggleDappRegistry.selector ||
             methodId == SecurityManager.transferOwnership.selector)
         {
