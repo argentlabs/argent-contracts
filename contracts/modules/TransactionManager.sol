@@ -45,6 +45,8 @@ abstract contract TransactionManager is BaseModule {
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event ToggledDappRegistry(address _wallet, bytes32 _registry, bool isEnabled);
+    event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
+    event SessionCleared(address indexed wallet, address sessionKey);
 
     // *************** External functions ************************ //
 
@@ -62,8 +64,7 @@ abstract contract TransactionManager is BaseModule {
             address spender = recoverSpender(_wallet, _transactions[i]);
             require(
                 isWhitelisted(_wallet, spender) ||
-                isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data),
-                "TM: call not authorised");
+                isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
@@ -71,7 +72,6 @@ abstract contract TransactionManager is BaseModule {
 
     function multiCallWithSession(
         address _wallet,
-        Session calldata,
         Call[] calldata _transactions
     )
         external
@@ -79,11 +79,34 @@ abstract contract TransactionManager is BaseModule {
         onlyWhenUnlocked(_wallet)
         returns (bytes[] memory)
     {
-        bytes[] memory results = new bytes[](_transactions.length);
-        for(uint i = 0; i < _transactions.length; i++) {
-            results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
-        }
-        return results;
+        multiCallWithApproval(_wallet, _transactions);
+    }
+
+    function multiCallWithGuardians(
+        address _wallet,
+        Call[] calldata _transactions
+    )
+        external 
+        onlySelf()
+        onlyWhenUnlocked(_wallet)
+        returns (bytes[] memory)
+    {
+        multiCallWithApproval(_wallet, _transactions);
+    }
+
+    function multiCallWithGuardiansAndStartSession(
+        address _wallet,
+        Call[] calldata _transactions,
+        address _sessionUser,
+        uint64 _duration
+    )
+        external 
+        onlySelf()
+        onlyWhenUnlocked(_wallet)
+        returns (bytes[] memory)
+    {
+        startSession(_wallet, _sessionUser, _duration);
+        multiCallWithApproval(_wallet, _transactions);
     }
 
     /**
@@ -91,15 +114,11 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
-    function addToWhitelist(
-        address _wallet,
-        address _target
-    )
-        external
-        onlyWalletOwnerOrSelf(_wallet)
-        onlyWhenUnlocked(_wallet)
+    function addToWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
     {
-        require(!isWhitelisted(_wallet, _target), "TT: target already whitelisted");
+        require(_target != _wallet, "TM: Cannot whitelist wallet");
+        require(!registry.isRegisteredModule(_target), "TM: Cannot whitelist module");
+        require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
 
         uint256 whitelistAfter = block.timestamp.add(securityPeriod);
         setWhitelist(_wallet, _target, whitelistAfter);
@@ -111,25 +130,13 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
-    function removeFromWhitelist(
-        address _wallet,
-        address _target
-    )
-        external
-        onlyWalletOwnerOrSelf(_wallet)
-        onlyWhenUnlocked(_wallet)
+    function removeFromWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
     {
         setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
-    function toggleDappRegistry(
-        address _wallet,
-        bytes32 _registry
-    )   
-        external
-        onlySelf()
-        onlyWhenUnlocked(_wallet)
+    function toggleDappRegistry(address _wallet, bytes32 _registry) external onlySelf() onlyWhenUnlocked(_wallet)
     {
         bool isEnabled = authoriser.toggle(_wallet, _registry);
         emit ToggledDappRegistry(_wallet, _registry, isEnabled);
@@ -141,16 +148,20 @@ abstract contract TransactionManager is BaseModule {
     * @param _target The address.
     * @return _isWhitelisted true if the address is whitelisted.
     */
-    function isWhitelisted(
-        address _wallet,
-        address _target
-    )
-        public
-        view
-        returns (bool _isWhitelisted)
+    function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted)
     {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
+    }
+
+    /**
+    * @notice Clears the active session of a wallet if any.
+    * @param _wallet The target wallet.
+    */
+    function clearSession(address _wallet) external onlySelf()
+    {
+        emit SessionCleared(_wallet, sessions[_wallet].key);
+        delete sessions[_wallet];
     }
 
     /** ******************* Callbacks ************************** */
@@ -161,13 +172,7 @@ abstract contract TransactionManager is BaseModule {
     * @param _msgHash Hash of a message signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _msgHash
     */
-    function isValidSignature(
-        bytes32 _msgHash,
-        bytes memory _signature
-    ) 
-        external
-        view
-        returns (bytes4)
+    function isValidSignature(bytes32 _msgHash, bytes memory _signature) external view returns (bytes4)
     {
         require(_signature.length == 65, "TM: invalid signature length");
         address signer = Utils.recoverSigner(_msgHash, _signature, 0);
@@ -202,19 +207,39 @@ abstract contract TransactionManager is BaseModule {
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
+    function multiCallWithApproval(address _wallet, Call[] calldata _transactions) internal returns (bytes[] memory)
+    {
+        bytes[] memory results = new bytes[](_transactions.length);
+        for(uint i = 0; i < _transactions.length; i++) {
+            results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
+        }
+        return results;
+    }
+
+    function startSession(address _wallet, address _sessionUser, uint64 _duration) internal {
+        require(_sessionUser != address(0), "RM: Invalid session user");
+        require(_duration > 0, "RM: Invalid session duration");
+
+        uint64 expiry = Utils.safe64(block.timestamp + _duration);
+        sessions[_wallet] = Session(_sessionUser, expiry);
+        emit SessionCreated(_wallet, _sessionUser, expiry);
+    }
+
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
         if (_transaction.isSpenderInData) {
             require(_transaction.value == 0, "TM: unsecure call with spender in data");
             // transfer(to, value), transferFrom(wallet, to, value),
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
             return first == _wallet ? second : first;
-        }   
+        }
         return _transaction.to;
     }
 
     function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) internal view returns (bool) {
         if (_to == _spender) {
-            return authoriser.authorise(_wallet, _to, _data); // do we need to block calls to the wallet or modules?
+            return authoriser.authorise(_wallet, _to, _data); 
+            // do we need to block calls to the wallet or modules?
+            // we do need to block calls to modules for the purposes of not being able to bypass calls to startSession 
         } else {
             return authoriser.authorise(_wallet, _spender, "");
         }

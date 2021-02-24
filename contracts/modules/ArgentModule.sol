@@ -56,21 +56,21 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
     function getRequiredSignatures(address _wallet, bytes calldata _data) public view override returns (uint256, OwnerSignature) {
         bytes4 methodId = Utils.functionPrefix(_data);
 
-        if (methodId == TransactionManager.multiCallWithSession.selector) {
-            return (1, OwnerSignature.Session);
-        } 
         if (methodId == TransactionManager.multiCall.selector ||
             methodId == TransactionManager.addToWhitelist.selector ||
             methodId == TransactionManager.removeFromWhitelist.selector ||
+            methodId == TransactionManager.clearSession.selector ||
             methodId == ArgentModule.addModule.selector ||
             methodId == SecurityManager.addGuardian.selector ||
             methodId == SecurityManager.revokeGuardian.selector ||
-            methodId == SecurityManager.cancelGuardianAddition.selector ||
-            methodId == RelayerManager.clearSession.selector)
+            methodId == SecurityManager.cancelGuardianAddition.selector)
         {
             // owner
             return (1, OwnerSignature.Required);
-        } 
+        }
+        if (methodId == TransactionManager.multiCallWithSession.selector) {
+            return (1, OwnerSignature.Session);
+        }
         if (methodId == SecurityManager.executeRecovery.selector) {
             // majority of guardians
             uint numberOfSignaturesRequired = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
@@ -82,7 +82,9 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
             uint numberOfSignaturesRequired = Utils.ceil(recoveryConfigs[_wallet].guardianCount + 1, 2);
             return (numberOfSignaturesRequired, OwnerSignature.Optional);
         }
-        if (methodId == TransactionManager.toggleDappRegistry.selector ||
+        if (methodId == TransactionManager.multiCallWithGuardians.selector ||
+            methodId == TransactionManager.multiCallWithGuardiansAndStartSession.selector ||
+            methodId == TransactionManager.toggleDappRegistry.selector ||
             methodId == SecurityManager.transferOwnership.selector)
         {
             // owner + majority of guardians

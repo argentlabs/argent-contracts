@@ -134,6 +134,32 @@ contract("ArgentModule", (accounts) => {
       assert.isTrue(isTrusted, "should be trusted after the security period");
       console.log(`Gas for whitelisting: ${txReceipt.gasUsed}`);
     });
+
+    it("should not add wallet to whitelist", async () => {
+      const txReceipt = await manager.relay(
+        module,
+        "addToWhitelist",
+        [wallet.address, wallet.address],
+        wallet,
+        [owner]);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "TM: Cannot whitelist wallet");
+    });
+
+    it("should not add module to whitelist", async () => {
+      const txReceipt = await manager.relay(
+        module,
+        "addToWhitelist",
+        [wallet.address, module.address],
+        wallet,
+        [owner]);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "TM: Cannot whitelist module");
+    });
   });
 
   describe("transfer ETH", () => {

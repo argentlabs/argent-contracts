@@ -34,8 +34,6 @@ abstract contract RelayerManager is BaseModule {
 
     mapping (address => RelayerConfig) internal relayer;
 
-    mapping (address => Session) internal sessions;
-
     struct RelayerConfig {
         uint256 nonce;
         mapping (bytes32 => bool) executedTx;
@@ -52,8 +50,6 @@ abstract contract RelayerManager is BaseModule {
 
     event TransactionExecuted(address indexed wallet, bool indexed success, bytes returnData, bytes32 signedHash);
     event Refund(address indexed wallet, address indexed refundAddress, address refundToken, uint256 refundAmount);
-    event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
-    event SessionCleared(address indexed wallet, address sessionKey);
 
     /* ***************** External methods ************************* */
 
@@ -97,9 +93,7 @@ abstract contract RelayerManager is BaseModule {
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
         StackExtension memory stack;
         (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures(_wallet, _data);
-        if (stack.ownerSignatureRequirement == OwnerSignature.Session && startSession(_wallet, _data)) {
-            (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignaturesToStartSession(_wallet);
-        }
+
         require(stack.requiredSignatures > 0 || stack.ownerSignatureRequirement == OwnerSignature.Anyone, "RM: Wrong signature requirement");
         require(stack.requiredSignatures * 65 == _signatures.length, "RM: Wrong number of signatures");
         stack.signHash = getSignHash(
@@ -117,6 +111,7 @@ abstract contract RelayerManager is BaseModule {
             stack.signHash,
             stack.requiredSignatures,
             stack.ownerSignatureRequirement), "RM: Duplicate request");
+
         if (stack.ownerSignatureRequirement == OwnerSignature.Session) {
             require(validateSession(_wallet, stack.signHash, _signatures), "RM: Invalid session");
         } else {
@@ -134,20 +129,6 @@ abstract contract RelayerManager is BaseModule {
             stack.ownerSignatureRequirement);
         emit TransactionExecuted(_wallet, stack.success, stack.returnData, stack.signHash);
         return stack.success;
-    }
-
-    /**
-    * @notice Clears the active session of a wallet if any.
-    * @param _wallet The target wallet.
-    */
-    function clearSession(
-        address _wallet
-    )
-        external
-        onlySelf()
-    {
-        emit SessionCleared(_wallet, sessions[_wallet].key);
-        delete sessions[_wallet];
     }
 
     /**
@@ -268,19 +249,11 @@ abstract contract RelayerManager is BaseModule {
     * The method MUST throw if one or more signatures are not valid.
     * @param _wallet The target wallet.
     * @param _signHash The signed hash representing the relayed transaction.
-    * @param _signatures The signatures as a concatenated byte array.
-    * @param _option An enum indicating whether the owner is required, optional or disallowed.
+    * @param _signatures The signatures as a concatenated bytes array.
+    * @param _option An OwnerSignature enum indicating whether the owner is required, optional or disallowed.
     * @return A boolean indicating whether the signatures are valid.
     */
-    function validateSignatures(
-        address _wallet,
-        bytes32 _signHash,
-        bytes memory _signatures,
-        OwnerSignature _option
-    )
-        internal
-        view
-        returns (bool)
+    function validateSignatures(address _wallet, bytes32 _signHash, bytes memory _signatures, OwnerSignature _option) internal view returns (bool)
     {
         if (_signatures.length == 0) {
             return true;
@@ -385,27 +358,6 @@ abstract contract RelayerManager is BaseModule {
     function getChainId() private pure returns (uint256 chainId) {
         // solhint-disable-next-line no-inline-assembly
         assembly { chainId := chainid() }
-    }
-
-    function getRequiredSignaturesToStartSession(address _wallet) internal view returns (uint256, OwnerSignature) {
-        // owner  + [n/2] guardians
-        uint numberOfGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
-        require(numberOfGuardians > 0, "RM: no guardians set on wallet");
-        uint numberOfSignatures = 1 + numberOfGuardians;
-        return (numberOfSignatures, OwnerSignature.Required);
-    }
-
-    function startSession(address _wallet, bytes calldata _data) internal returns (bool) {
-        require(_data.length >= 68, "RM: Invalid session parameters");
-        (address key, uint64 expires) = abi.decode(_data[36:], (address, uint64));
-        if (key != address(0)) {
-            if (expires > 0) {
-                sessions[_wallet] = Session(key, expires);
-                emit SessionCreated(_wallet, key, expires);
-            }
-            return true;
-        }
-        return false;
     }
 
     function validateSession(address _wallet, bytes32 _signHash, bytes calldata _signatures) internal view returns (bool) { 

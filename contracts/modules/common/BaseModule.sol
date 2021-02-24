@@ -58,9 +58,17 @@ abstract contract BaseModule is IModule {
         Anyone,             // Anyone
         Required,           // Owner required
         Optional,           // Owner and/or guardians
-        Disallowed,         // guardians only
-        Session             // session key 
+        Disallowed,         // Guardians only
+        Session             // Session only
     }
+
+    struct Session {
+        address key;
+        uint64 expires;
+    }
+
+    // Maps wallet to session
+    mapping (address => Session) internal sessions;
 
     struct Lock {
         // the lock's release timestamp
@@ -71,11 +79,6 @@ abstract contract BaseModule is IModule {
     
     // wallet specific storage
     mapping (address => Lock) internal locks;
-
-    struct Session {
-        address key;
-        uint64 expires;
-    }
 
     /**
      * @notice Throws if the wallet is not locked.
