@@ -13,14 +13,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.12;
 
 /**
- * @notice ENS Reverse Registrar interface.
+ * @notice ENS Resolver interface.
  */
-contract ENSReverseRegistrar {
-    function claim(address _owner) public returns (bytes32);
-    function claimWithResolver(address _owner, address _resolver) public returns (bytes32);
-    function setName(string memory _name) public returns (bytes32);
-    function node(address _addr) public pure returns (bytes32);
+interface IENSResolver {
+    event AddrChanged(bytes32 indexed _node, address _addr);
+    event NameChanged(bytes32 indexed _node, string _name);
+
+    function addr(bytes32 _node) external view returns (address);
+    function setAddr(bytes32 _node, address _addr) external;
+    function name(bytes32 _node) external view returns (string memory);
+    function setName(bytes32 _node, string memory _name) external;
 }

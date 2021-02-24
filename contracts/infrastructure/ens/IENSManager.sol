@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity >=0.5.4 <0.7.0;
+pragma solidity ^0.6.12;
 
 /**
  * @notice Interface for an ENS Mananger.
@@ -37,8 +37,9 @@ interface IENSManager {
     * Registers both the forward and reverse ENS.
     * @param _label The subdomain label.
     * @param _owner The owner of the subdomain.
+    * @param _managerSignature The manager signature of the hash of _owner and _label.
     */
-    function register(string calldata _label, address _owner) external;
+    function register(string calldata _label, address _owner, bytes calldata _managerSignature) external;
 
     /**
      * @notice Returns true is a given subnode is available.
@@ -52,10 +53,4 @@ interface IENSManager {
     * @return Address of the ENS reverse registrar.
     */
     function getENSReverseRegistrar() external view returns (address);
-
-    /**
-    * @notice Gets the ENS Resolver.
-    * @return Address of the ENS resolver.
-    */
-    function ensResolver() external view returns (address);
 }
