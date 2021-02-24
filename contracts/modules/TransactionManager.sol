@@ -179,20 +179,12 @@ abstract contract TransactionManager is BaseModule {
         address _wallet
     )   
         external
-        onlySelf()
+        onlyWalletOwnerOrSelf(_wallet)
     {
         IWallet(_wallet).enableStaticCall(address(this), ERC165_INTERFACE);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_RECEIVED);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_BATCH_RECEIVED);
         emit ERC1155TokenReceiverEnabled(_wallet);
-    }
-
-    /**
-     * @notice Returns true if this contract implements the interface defined by
-     * `interfaceId` (see https://eips.ethereum.org/EIPS/eip-165).
-     */
-    function supportsInterface(bytes4 interfaceID) external view returns (bool) {
-        return  interfaceID == ERC165_INTERFACE || interfaceID == ERC1155_INTERFACE;          
     }
 
     /**
@@ -214,6 +206,14 @@ abstract contract TransactionManager is BaseModule {
     }
 
     /** ******************* Callbacks ************************** */
+
+    /**
+     * @notice Returns true if this contract implements the interface defined by
+     * `interfaceId` (see https://eips.ethereum.org/EIPS/eip-165).
+     */
+    function supportsInterface(bytes4 interfaceID) external view returns (bool) {
+        return  interfaceID == ERC165_INTERFACE || interfaceID == ERC1155_INTERFACE;          
+    }
 
     /**
     * @notice Implementation of EIP 1271.
