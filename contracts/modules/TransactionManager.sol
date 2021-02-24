@@ -184,7 +184,6 @@ abstract contract TransactionManager is BaseModule {
         IWallet(_wallet).enableStaticCall(address(this), ERC165_INTERFACE);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_RECEIVED);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_BATCH_RECEIVED);
-        emit ERC1155TokenReceiverEnabled(_wallet);
     }
 
     /**
