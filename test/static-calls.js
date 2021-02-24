@@ -153,16 +153,19 @@ contract("Static Calls", (accounts) => {
   });
 
   describe("ERC1155 activation", () => {
-    it("lets the owner enable ERC1155TokenReceiver", async () => {
+    it("lets the owner enable ERC1155TokenReceiver (old wallet)", async () => {
       const txReceipt = await manager.relay(
         module,
         "enableERC1155TokenReceiver",
-        [wallet.address],
-        wallet,
+        [oldWallet.address],
+        oldWallet,
         [owner]);
       const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "enableERC1155TokenReceiver failed");
-      checkStaticCalls({ _wallet: wallet, _supportERC1155: true });
+      await checkStaticCalls({ _wallet: oldWallet, _supportERC1155: true });
+    });
+    it("supports ERC1155TokenReceiver by default (new wallet)", async () => {
+      await checkStaticCalls({ _wallet: wallet, _supportERC1155: true });
     });
   });
 });
