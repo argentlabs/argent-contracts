@@ -10,7 +10,6 @@ chai.use(bnChai(BN));
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
-const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
@@ -18,6 +17,7 @@ const Authoriser = artifacts.require("DappRegistry");
 const ERC20 = artifacts.require("TestERC20");
 const TestContract = artifacts.require("TestContract");
 const Filter = artifacts.require("TestFilter");
+const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
 const { assert } = require("chai");
 const utils = require("../utils/utilities.js");
@@ -42,7 +42,6 @@ contract("ArgentModule", (accounts) => {
   const relayer = accounts[9];
 
   let registry;
-  let lockStorage;
   let transferStorage;
   let guardianStorage;
   let module;
@@ -56,18 +55,19 @@ contract("ArgentModule", (accounts) => {
   before(async () => {
     registry = await Registry.new();
 
-    lockStorage = await LockStorage.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 
     authoriser = await Authoriser.new();
 
+    const uniswapRouter = await UniswapV2Router01.new();
+
     module = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
       transferStorage.address,
       authoriser.address,
+      uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       LOCK_PERIOD,

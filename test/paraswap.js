@@ -28,7 +28,6 @@ const WETH = artifacts.require("WETH9");
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
-const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
@@ -66,7 +65,6 @@ contract("ArgentModule", (accounts) => {
   const nonceInitialiser = accounts[4];
 
   let registry;
-  let lockStorage;
   let transferStorage;
   let guardianStorage;
   let module;
@@ -140,16 +138,15 @@ contract("ArgentModule", (accounts) => {
 
     authoriser = await Authoriser.new();
 
-    lockStorage = await LockStorage.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 
     module = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
       transferStorage.address,
       authoriser.address,
+      uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       LOCK_PERIOD,
@@ -363,51 +360,50 @@ contract("ArgentModule", (accounts) => {
       });
     });
 
-    // it("should sell token A for ETH", async () => {
-    //     await testTrade({
-    //         method: "sell", fromToken: tokenA.address, toToken: ETH_TOKEN,
-    //     });
-    // });
+    it.skip("should sell token A for ETH", async () => {
+      await testTrade({
+        method: "sell", fromToken: tokenA.address, toToken: ETH_TOKEN,
+      });
+    });
 
-    // it("should sell tokenB for tokenA", async () => {
-    //     await testTrade({
-    //         method: "sell", fromToken: tokenB.address, toToken: tokenA.address,
-    //     });
-    // });
+    it.skip("should sell tokenB for tokenA", async () => {
+      await testTrade({
+        method: "sell", fromToken: tokenB.address, toToken: tokenA.address,
+      });
+    });
 
-    // it("should block selling ETH for tokenB", async () => {
+    it.skip("should block selling ETH for tokenB", async () => {
+      const srcAmount = web3.utils.toWei("0.01");
+      const destAmount = 1;
 
-    //     const srcAmount = web3.utils.toWei("0.01");
-    //     const destAmount = 1;
+      const path = buildPathes({
+        fromToken: ETH_TOKEN, toToken: tokenB.address, srcAmount, destAmount,
+      });
 
-    //     const path = buildPathes({
-    //         fromToken: ETH_TOKEN, toToken: tokenB.address, srcAmount, destAmount,
-    //       });
+      const data = paraswap.contract.methods.multiSwap(
+        ETH_TOKEN,
+        tokenB.address,
+        srcAmount,
+        destAmount,
+        0,
+        path,
+        0,
+        ZERO_ADDRESS,
+        0,
+        "abc",
+      ).encodeABI();
 
-    //     const data = paraswap.contract.methods.multiSwap(
-    //         ETH_TOKEN,
-    //         tokenB.address,
-    //         srcAmount,
-    //         destAmount,
-    //         0,
-    //         path,
-    //         0,
-    //         ZERO_ADDRESS,
-    //         0,
-    //         "abc",
-    //     ).encodeABI();
+      const transaction = await encodeTransaction(paraswap.address, srcAmount, data);
 
-    //     const transaction = await encodeTransaction(paraswap.address, srcAmount, data);
-
-    //     const txReceipt = await manager.relay(
-    //         module,
-    //         "multiCall",
-    //         [wallet.address, [transaction]],
-    //         wallet,
-    //         [owner]);
-    //     const { success, error } = await utils.parseRelayReceipt(txReceipt);
-    //     assert.isFalse(success, "call should have failed");
-    //     assert.equal(error, "TM: call not authorised");
-    // });
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner]);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "call should have failed");
+      assert.equal(error, "TM: call not authorised");
+    });
   });
 });

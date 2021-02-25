@@ -86,6 +86,9 @@
           "properties": {
             "factory": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "v2Router": {
+              "$ref": "#/definitions/ethaddress"
             }
           }
         },

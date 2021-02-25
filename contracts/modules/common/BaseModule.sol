@@ -19,7 +19,6 @@ pragma solidity ^0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../wallet/IWallet.sol";
 import "../../infrastructure/IModuleRegistry.sol";
-import "../../infrastructure/storage/ILockStorage.sol";
 import "../../infrastructure/storage/IGuardianStorage.sol";
 import "../../infrastructure/IAuthoriser.sol";
 import "../../infrastructure/storage/ITransferStorage.sol";
@@ -42,8 +41,6 @@ abstract contract BaseModule is IModule {
 
     // The Module Registry
     IModuleRegistry internal registry;
-    // The address of the Lock storage
-    ILockStorage internal lockStorage;
     // The Guardian storage
     IGuardianStorage internal guardianStorage;
     // The Guardian storage
@@ -53,6 +50,8 @@ abstract contract BaseModule is IModule {
 
     // The security period
     uint256 internal securityPeriod;
+
+    event ModuleCreated(bytes32 name);
 
     enum OwnerSignature {
         Anyone,             // Anyone
@@ -130,7 +129,6 @@ abstract contract BaseModule is IModule {
 
     constructor(
         IModuleRegistry _registry,
-        ILockStorage _lockStorage,
         IGuardianStorage _guardianStorage,
         ITransferStorage _userWhitelist,
         IAuthoriser _authoriser,
@@ -138,11 +136,11 @@ abstract contract BaseModule is IModule {
         bytes32 _name
     ) public {
         registry = _registry;
-        lockStorage = _lockStorage;
         guardianStorage = _guardianStorage;
         securityPeriod = _securityPeriod;
         userWhitelist = _userWhitelist;
         authoriser = _authoriser;
+        emit ModuleCreated(_name);
     }
 
     /**
