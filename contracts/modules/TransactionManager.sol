@@ -118,8 +118,7 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
-    function addToWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
-    {
+    function addToWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
         require(_target != _wallet, "TM: Cannot whitelist wallet");
         require(!registry.isRegisteredModule(_target), "TM: Cannot whitelist module");
         require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
@@ -134,14 +133,12 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
-    function removeFromWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
-    {
+    function removeFromWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
         setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
-    function toggleDappRegistry(address _wallet, bytes32 _registry) external onlySelf() onlyWhenUnlocked(_wallet)
-    {
+    function toggleDappRegistry(address _wallet, bytes32 _registry) external onlySelf() onlyWhenUnlocked(_wallet) {
         bool isEnabled = authoriser.toggle(_wallet, _registry);
         emit ToggledDappRegistry(_wallet, _registry, isEnabled);
     }
@@ -152,8 +149,7 @@ abstract contract TransactionManager is BaseModule {
     * @param _target The address.
     * @return _isWhitelisted true if the address is whitelisted.
     */
-    function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted)
-    {
+    function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
@@ -162,8 +158,7 @@ abstract contract TransactionManager is BaseModule {
     * @notice Clears the active session of a wallet if any.
     * @param _wallet The target wallet.
     */
-    function clearSession(address _wallet) external onlySelf()
-    {
+    function clearSession(address _wallet) external onlySelf() {
         emit SessionCleared(_wallet, sessions[_wallet].key);
         delete sessions[_wallet];
     }
@@ -175,12 +170,7 @@ abstract contract TransactionManager is BaseModule {
     * are not available by default for these versions of BaseWallet
     * @param _wallet The target wallet.
     */
-    function enableERC1155TokenReceiver(
-        address _wallet
-    )   
-        external
-        onlyWalletOwnerOrSelf(_wallet)
-    {
+    function enableERC1155TokenReceiver(address _wallet) external onlyWalletOwnerOrSelf(_wallet) {
         IWallet(_wallet).enableStaticCall(address(this), ERC165_INTERFACE);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_RECEIVED);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_BATCH_RECEIVED);
@@ -189,14 +179,7 @@ abstract contract TransactionManager is BaseModule {
     /**
      * @inheritdoc IModule
      */
-    function supportsStaticCall(
-        bytes4 _methodId
-    ) 
-        external 
-        view
-        override
-        returns (bool _isSupported)
-    {
+    function supportsStaticCall(bytes4 _methodId) external view override returns (bool _isSupported) {
         return _methodId == ERC1271_IS_VALID_SIGNATURE ||
                _methodId == ERC721_RECEIVED ||
                _methodId == ERC165_INTERFACE ||
@@ -210,8 +193,8 @@ abstract contract TransactionManager is BaseModule {
      * @notice Returns true if this contract implements the interface defined by
      * `interfaceId` (see https://eips.ethereum.org/EIPS/eip-165).
      */
-    function supportsInterface(bytes4 interfaceID) external view returns (bool) {
-        return  interfaceID == ERC165_INTERFACE || interfaceID == ERC1155_INTERFACE;          
+    function supportsInterface(bytes4 _interfaceID) external view returns (bool) {
+        return  _interfaceID == ERC165_INTERFACE || _interfaceID == ERC1155_INTERFACE;          
     }
 
     /**
@@ -220,8 +203,7 @@ abstract contract TransactionManager is BaseModule {
     * @param _msgHash Hash of a message signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _msgHash
     */
-    function isValidSignature(bytes32 _msgHash, bytes memory _signature) external view returns (bytes4)
-    {
+    function isValidSignature(bytes32 _msgHash, bytes memory _signature) external view returns (bytes4) {
         require(_signature.length == 65, "TM: invalid signature length");
         address signer = Utils.recoverSigner(_msgHash, _signature, 0);
         require(_isOwner(msg.sender, signer), "TM: Invalid signer");
@@ -248,8 +230,7 @@ abstract contract TransactionManager is BaseModule {
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
-    function multiCallWithApproval(address _wallet, Call[] calldata _transactions) internal returns (bytes[] memory)
-    {
+    function multiCallWithApproval(address _wallet, Call[] calldata _transactions) internal returns (bytes[] memory) {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);

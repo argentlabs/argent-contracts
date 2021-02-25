@@ -22,6 +22,7 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const Authoriser = artifacts.require("DappRegistry");
+const ERC165Tester = artifacts.require("TestContract");
 
 const utils = require("../utils/utilities.js");
 const { ARGENT_WHITELIST } = require("../utils/utilities.js");
@@ -164,8 +165,11 @@ contract("Static Calls", (accounts) => {
       assert.isTrue(success, "enableERC1155TokenReceiver failed");
       await checkStaticCalls({ _wallet: oldWallet, _supportERC1155: true });
     });
-    it("supports ERC1155TokenReceiver by default (new wallet)", async () => {
-      await checkStaticCalls({ _wallet: wallet, _supportERC1155: true });
+
+    it("requires less than 10000 gas to call supportsInterface()", async () => {
+      // this call will fail if supportsInterface() consumes more than 10000 gas
+      const txReceipt = await (await ERC165Tester.new()).testERC165Gas(wallet.address, "0x4e2312e0");
+      console.log(`supportsInterface() costs less than ${txReceipt.logs[0].args._gas.toString()} gas`);
     });
   });
 });
