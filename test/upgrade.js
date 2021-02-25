@@ -19,7 +19,6 @@ const Upgrader = artifacts.require("SimpleUpgrader");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
 const utils = require("../utils/utilities.js");
-const { ARGENT_WHITELIST } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -57,7 +56,7 @@ contract("TransactionManager", (accounts) => {
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 
-    authoriser = await Authoriser.new();
+    authoriser = await Authoriser.new(0);
 
     const uniswapRouter = await UniswapV2Router01.new();
 
@@ -92,7 +91,7 @@ contract("TransactionManager", (accounts) => {
     await registry.registerModule(newModule.address, ethers.utils.formatBytes32String("NewArgentModule"));
     await registry.registerModule(upgrader1.address, ethers.utils.formatBytes32String("Upgrader"));
 
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS);
+    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 

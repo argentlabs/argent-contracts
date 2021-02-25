@@ -327,7 +327,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
             address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
             if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
                     // refundAddress must be whitelisted/authorised
-                    if (!authoriser.authorise(_wallet, refundAddress, EMPTY_BYTES)) {
+                    if (!authoriser.isAuthorised(_wallet, refundAddress, EMPTY_BYTES)) {
                         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, refundAddress);
                         require(whitelistAfter > 0 && whitelistAfter < block.timestamp, "RM: refund not authorised");
                     }

@@ -20,8 +20,10 @@ const Filter = artifacts.require("TestFilter");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
 const { assert } = require("chai");
+const truffleAssert = require("truffle-assertions");
+
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -30,6 +32,8 @@ const SECURITY_WINDOW = 2;
 const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 
+const CUSTOM_REGISTRY_ID = 12;
+
 const RelayManager = require("../utils/relay-manager");
 
 contract("ArgentModule", (accounts) => {
@@ -37,8 +41,10 @@ contract("ArgentModule", (accounts) => {
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const nonwhitelisted = accounts[3];
   const recipient = accounts[4];
   const nonceInitialiser = accounts[4];
+  const registryManager = accounts[5];
   const relayer = accounts[9];
 
   let registry;
@@ -51,6 +57,7 @@ contract("ArgentModule", (accounts) => {
   let filter;
   let authoriser;
   let contract;
+  let contract2;
 
   before(async () => {
     registry = await Registry.new();
@@ -58,7 +65,7 @@ contract("ArgentModule", (accounts) => {
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 
-    authoriser = await Authoriser.new();
+    authoriser = await Authoriser.new(SECURITY_PERIOD);
 
     const uniswapRouter = await UniswapV2Router01.new();
 
@@ -74,16 +81,43 @@ contract("ArgentModule", (accounts) => {
       LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS);
 
+    // setup DappRegistry
+    contract = await TestContract.new();
+    contract2 = await TestContract.new();
+    assert.equal(await contract.state(), 0, "initial contract state should be 0");
+    assert.equal(await contract2.state(), 0, "initial contract2 state should be 0");
     filter = await Filter.new();
+    await authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryManager);
+    await authoriser.addFilter(0, contract.address, filter.address);
+    await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract2.address, filter.address, { from: registryManager });
+    await authoriser.addFilter(0, recipient, ZERO_ADDRESS);
+    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
+    await utils.increaseTime(SECURITY_PERIOD + 1);
 
     walletImplementation = await BaseWallet.new();
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
-  beforeEach(async () => {
+  async function enableCustomRegistry() {
+    assert.equal(await authoriser.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), false, "custom registry should not be enabled");
+    const txReceipt = await manager.relay(
+      module,
+      "toggleDappRegistry",
+      [wallet.address, CUSTOM_REGISTRY_ID, true],
+      wallet,
+      [owner],
+      1,
+      ETH_TOKEN,
+      relayer);
+    const success = await utils.parseRelayReceipt(txReceipt).success;
+    assert.isTrue(success, "toggleDappRegistry failed");
+    assert.equal(await authoriser.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), true, "custom registry should be enabled");
+    console.log("Gas to call toggleDappRegistry: ", txReceipt.gasUsed);
+  }
+
+  async function setupWallet() {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
     await wallet.init(owner, [module.address]);
@@ -93,9 +127,8 @@ contract("ArgentModule", (accounts) => {
     erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await wallet.send(new BN("1000000000000000000"));
 
-    contract = await TestContract.new();
-    assert.equal(await contract.state(), 0, "initial contract state should be 0");
-  });
+    await enableCustomRegistry();
+  }
 
   async function encodeTransaction(to, value, data, isSpenderInData) {
     return { to, value, data, isSpenderInData };
@@ -123,11 +156,10 @@ contract("ArgentModule", (accounts) => {
     assert.isTrue(success, "transfer failed");
   }
 
-  describe("call authorised contract", () => {
+  describe("call (un)authorised contract", () => {
     beforeEach(async () => {
+      await setupWallet();
       initNonce();
-      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, contract.address, filter.address);
-      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
     });
 
     it("should send ETH to authorised address", async () => {
@@ -141,13 +173,13 @@ contract("ArgentModule", (accounts) => {
         [owner],
         10,
         ETH_TOKEN,
-        recipient);
+        relayer);
       const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "call failed");
       console.log("Gas to send ETH: ", txReceipt.gasUsed);
     });
 
-    it("should call authorised contract when filter pass", async () => {
+    it("should call authorised contract when filter passes (argent registry)", async () => {
       const data = contract.contract.methods.setState(4).encodeABI();
       const transaction = await encodeTransaction(contract.address, 0, data, false);
 
@@ -166,6 +198,25 @@ contract("ArgentModule", (accounts) => {
       console.log("Gas to call contract: ", txReceipt.gasUsed);
     });
 
+    it("should call authorised contract when filter passes (community registry)", async () => {
+      const data = contract2.contract.methods.setState(4).encodeABI();
+      const transaction = await encodeTransaction(contract2.address, 0, data, false);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        10,
+        ETH_TOKEN,
+        relayer);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
+      assert.isTrue(success, "call failed");
+      assert.equal(await contract.state(), 4, "contract state should be 4");
+      console.log("Gas to call contract: ", txReceipt.gasUsed);
+    });
+
     it("should block call to authorised contract when filter doesn't pass", async () => {
       const data = contract.contract.methods.setState(5).encodeABI();
       const transaction = await encodeTransaction(contract.address, 0, data, false);
@@ -178,18 +229,34 @@ contract("ArgentModule", (accounts) => {
         [owner],
         10,
         ETH_TOKEN,
-        recipient);
+        relayer);
       const { success, error } = await utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success, "call should have failed");
+      assert.equal(error, "TM: call not authorised");
+    });
+
+    it("should not send ETH to unauthorised address", async () => {
+      const transaction = await encodeTransaction(nonwhitelisted, 100, ZERO_BYTES32, false);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        10,
+        ETH_TOKEN,
+        relayer);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "transfer should have failed");
       assert.equal(error, "TM: call not authorised");
     });
   });
 
   describe("approve token and call authorised contract", () => {
     beforeEach(async () => {
+      await setupWallet();
       await initNonce();
-      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, contract.address, filter.address);
-      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
     });
 
     it("should call authorised contract when filter pass", async () => {
@@ -211,7 +278,7 @@ contract("ArgentModule", (accounts) => {
         [owner],
         10,
         ETH_TOKEN,
-        recipient);
+        relayer);
       const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "call failed");
       assert.equal(await contract.state(), 4, "contract state should be 4");
@@ -237,10 +304,75 @@ contract("ArgentModule", (accounts) => {
         [owner],
         10,
         ETH_TOKEN,
-        recipient);
+        relayer);
       const { success, error } = await utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success, "call should have failed");
       assert.equal(error, "TM: call not authorised");
+    });
+  });
+
+  describe("enable/disable registry for wallet", () => {
+    beforeEach(async () => {
+      await setupWallet();
+    });
+    it("should not enable non-existing registry", async () => {
+      const txReceipt = await manager.relay(
+        module,
+        "toggleDappRegistry",
+        [wallet.address, 66, true],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "toggleDappRegistry should have failed");
+      assert.equal(error, "AR: unknow registry");
+    });
+    it("should not enable already-enabled registry", async () => {
+      const txReceipt = await manager.relay(
+        module,
+        "toggleDappRegistry",
+        [wallet.address, CUSTOM_REGISTRY_ID, true],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "toggleDappRegistry should have failed");
+      assert.equal(error, "AR: bad state change");
+    });
+  });
+
+  describe("add registry", () => {
+    it("should not recreate the Argent registry", async () => {
+      await truffleAssert.reverts(
+        authoriser.createRegistry(0, registryManager, { from: infrastructure }), "AR: invalid parameters"
+      );
+    });
+    it("should not create a duplicate registry", async () => {
+      await truffleAssert.reverts(
+        authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryManager, { from: infrastructure }), "AR: duplicate registry"
+      );
+    });
+  });
+
+  describe("add authorisation to registry", () => {
+    it("should not allow non-owner to add authorisation to the Argent registry", async () => {
+      await truffleAssert.reverts(
+        authoriser.addFilter(0, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender should be owner"
+      );
+    });
+    it("should not add authorisation to non-existing registry", async () => {
+      await truffleAssert.reverts(
+        authoriser.addFilter(66, contract.address, filter.address, { from: nonwhitelisted }), "AR: unknow registry"
+      );
+    });
+    it("should not allow non-manager to add authorisation to a registry", async () => {
+      await truffleAssert.reverts(
+        authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender should be manager"
+      );
     });
   });
 });

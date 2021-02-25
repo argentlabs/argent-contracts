@@ -5,13 +5,10 @@ const chai = require("chai");
 
 const { expect } = chai;
 const ETH_TOKEN = ethers.constants.AddressZero;
-// keccak("argent_default")
-const ARGENT_WHITELIST = "0x25e02283418fb6688fb558f5f77d08f858b4e52aeabec4e6238d67146bdda3c4";
 
 module.exports = {
 
   ETH_TOKEN,
-  ARGENT_WHITELIST,
 
   namehash(_name) {
     return ethers.utils.namehash(_name);

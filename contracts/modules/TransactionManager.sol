@@ -47,9 +47,9 @@ abstract contract TransactionManager is BaseModule {
     event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
-    event ToggledDappRegistry(address _wallet, bytes32 _registry, bool isEnabled);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
+    event ToggledDappRegistry(address _wallet, uint8 _registryId, bool _enabled);
 
     // *************** External functions ************************ //
 
@@ -137,9 +137,9 @@ abstract contract TransactionManager is BaseModule {
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
-    function toggleDappRegistry(address _wallet, bytes32 _registry) external onlySelf() onlyWhenUnlocked(_wallet) {
-        bool isEnabled = authoriser.toggle(_wallet, _registry);
-        emit ToggledDappRegistry(_wallet, _registry, isEnabled);
+    function toggleDappRegistry(address _wallet, uint8 _registryId, bool _enabled) external onlySelf() onlyWhenUnlocked(_wallet) {
+        authoriser.toggleRegistry(_wallet, _registryId, _enabled);
+        emit ToggledDappRegistry(_wallet, _registryId, _enabled);
     }
 
     /**
@@ -258,11 +258,9 @@ abstract contract TransactionManager is BaseModule {
 
     function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) internal view returns (bool) {
         if (_to == _spender) {
-            return authoriser.authorise(_wallet, _to, _data); 
-            // do we need to block calls to the wallet or modules?
-            // we do need to block calls to modules for the purposes of not being able to bypass calls to startSession 
+            return authoriser.isAuthorised(_wallet, _to, _data);
         } else {
-            return authoriser.authorise(_wallet, _spender, "");
+            return authoriser.isAuthorised(_wallet, _spender, "");
         }
     }
 
