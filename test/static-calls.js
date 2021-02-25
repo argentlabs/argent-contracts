@@ -64,7 +64,7 @@ contract("Static Calls", (accounts) => {
     registry = await Registry.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
-    authoriser = await Authoriser.new();
+    authoriser = await Authoriser.new(0);
 
     const uniswapRouter = await UniswapV2Router01.new();
 

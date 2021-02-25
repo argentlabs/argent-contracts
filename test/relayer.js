@@ -76,7 +76,7 @@ contract("ArgentModule", (accounts) => {
     registry = await Registry.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
-    authoriser = await Authoriser.new();
+    authoriser = await Authoriser.new(0);
 
     module = await ArgentModule.new(
       registry.address,
