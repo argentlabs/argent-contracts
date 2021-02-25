@@ -22,18 +22,18 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Introduction}
 
-The Argent wallet is an Ethereum Smart Contract based mobile wallet. The wallet's user keeps an Ethereum account (Externally Owned Account) secretly on his mobile device. This account is set as the owner of the Smart Contract. User's funds (ETH and ERC20 tokens) are stored on the Smart Contract. With that model, logic can be added to the wallet to improve both the user experience and the wallet security. For instance, the wallet is guarded, recoverable, lockable, protected by a daily limit and upgradable.
+The Argent wallet is an Ethereum Smart Contract based mobile wallet. The wallet's user keeps an Ethereum account (Externally Owned Account) secretly on his mobile device. This account is set as the owner of the Smart Contract. User's assets (ETH, ERC20, ERC721 or ERC1155 tokens) are stored on the Smart Contract. With that model, logic can be added to the wallet to improve both the user experience and the wallet security. For instance, the wallet is guarded, recoverable, lockable and upgradable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Guardians}
 
-The wallet security model is based on the ability to add Guardians. A Guardian is an account (EOA or smart contract) that has been given permission by the wallet's owner to execute certain specific operations on their wallet. In particular guardians can lock, unlock, and trigger a recovery procedure on the wallet as well as approve the execution of a large transfer to an unknown account.
+The wallet security model is based on the ability to add Guardians. A Guardian is an account (EOA or smart contract) that has been given permission by the wallet's owner to execute certain specific operations on their wallet. In particular guardians can lock, unlock, and trigger a recovery procedure on the wallet as well as approve the execution of transactions to an unknown account.
 
 We do not impose restrictions on who or what Guardians are. They can be a friend's Argent wallet, a friend's EOA, a hardware wallet, or even a paid third-party service.
 
-Adding a Guardian is an action triggered by the wallet owner. While the first Guardian is added immediately, all subsequent additions must be confirmed after 24 hours and no later than 36 hours after the addition was requested. This confirmation window ensures that a pending addition will be canceled (expire) should the wallet be locked or recovered.
+Adding a Guardian is an action triggered by the wallet owner. While the first Guardian is added immediately when the wallet is created, all subsequent additions must be confirmed after 36 hours and no later than 48 hours after the addition was requested. This confirmation window ensures that a pending addition will be canceled (expire) should the wallet be locked or recovered.
 
-Removing a Guardian is an action triggered by the wallet owner. It must always be confirmed after 24 hours and no later than 36 hours after the removal was requested. This leaves the legitimate wallet owner enough time to notice and prevent the appointment of an illegitimate Guardian (or the dismissal of a legitimate Guardian) in case the owner lost control over their mobile device.
+Removing a Guardian is an action triggered by the wallet owner. It must always be confirmed after 36 hours and no later than 48 hours after the removal was requested. This leaves the legitimate wallet owner enough time to notice and prevent the appointment of an illegitimate Guardian (or the dismissal of a legitimate Guardian) in case the owner lost control over their mobile device.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Locking}
@@ -45,7 +45,7 @@ To unlock a wallet before the end of the security period, any guardian should tr
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Recovery}
 
-Wallet recovery is a process requested by a user who asserts ownership of a wallet while not being in possession of the owner key. A successful recovery sets a new account as the wallet owner. This process should be validated by the wallet's guardians to be executed. Once a recovery has been executed it may be finalised after 36 hours, unless it has been cancelled.
+Wallet recovery is a process requested by a user who asserts ownership of a wallet while not being in possession of the owner key. A successful recovery sets a new account as the wallet owner. This process should be validated by the wallet's guardians to be executed and thus requires the wallet to have at least 1 guardian. Once a recovery has been executed it may be finalised after 48 hours, unless it has been cancelled.
 
 The number of signatures needed to execute a recovery is given by
 \begin{equation*}
@@ -76,7 +76,7 @@ where the first signature is the owner and $n$ is the total number of guardians.
 The wallet can interact with the ethereum eco-system to e.g. send an asset or interact with the smart-contracts of a decentralized application
 through multi-calls. A multi-call is a sequence of transactions executed by the wallet one after the other and such that the multi-call fails if any of the transaction fails.
 
-For security the wallet will block a multi-call unless one of the following conditions is satisfied:
+By design the wallet will block a multi-call unless one of the following conditions is satisfied:
 \begin{enumerate}
     \item the multicall is triggered by the wallet owner and each transaction of the multi-call:
     \begin{itemize}
@@ -92,57 +92,53 @@ For security the wallet will block a multi-call unless one of the following cond
 \label{sec:trusted-contacts}
 
 The wallet keeps a list of trusted addresses managed by the wallet owner.
-
 Adding an address to this list is an action triggered by the wallet owner and takes 24 hours to be effective. Removing an address is triggered by the owner and is immediate.
 
 Interracting with a trusted contact to e.g. send and asset, can be triggered by the wallet owner and does not require any additional authorisation. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Authorised Dapps}
+\subsection{Dapp Registry}
 \label{sec:authorised-dapps}
 
 In addition to trusted contacts, the wallet can support 2 registries of authorised addresses managed by Argent.
-Each registry is a mapping between a trusted address and a set of conditions that a transaction must satisfied to call that address.
-Adding or removing an entry in a registry is a timelocked operations that can only be initiated by the Argent multisig. The timelock is set to 7 days.
+Each registry is a mapping between a trusted address and a filter containing the set of conditions that a transaction must satisfied to call that address.
+Adding or removing an entry in a registry is a timelocked operations that can only be initiated by the Argent multisig.
+The timelock is set to 7 days to give enough time for a user to disable the correspoding registry should they not approve the new addition. 
 
-The first registry is enabled by default (opt-out) and contains all the dapps that have been natively integrated in the Argent client application (Paraswap, Compound, Maker, Aave, etc).
+The first registry is enabled by default (opt-out) and contains all the dapps that are natively integrated in the Argent client application (Paraswap, Compound, Maker, Aave, etc).
 
 The second registry is disabled by default (opt-in) and contains a list of curated dapps that the user can access through WalletConnect.
 
-The wallet owner can disable a registry while adding a registry requires the approval from their guardians. The number of required signatures is given by
+Enabling a registry requires guardian approvals and the number of required signatures is given by
 \begin{equation*}
     1+\left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
-where the first signature is the owner and $n$ is the total number of guardians.
+where the first signature is the owner and $n$ is the total number of guardians. Disabling a registry can be executed by the wallet owner alone.
 
+Interacting with an authorised dapp to e.g. invest an asset in a DeFi protocol, can be triggered by the owner provided that the corresponding registry is enabled for the wallet and the transaction passes the associated filter.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Guardian Approval}
 \label{sec:guardian-approval}
 
-Any sequence of transactions can be executed by the wallet owner, provided that they obtain approval from their guardians. The number of required signatures for an approved transfer is given by
+Any sequence of transactions (multi-call) can be executed by the wallet owner provided that they obtain approval from their guardians. The number of required signatures is given by
 \begin{equation*}
     1+\left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
 where the first signature is the owner and $n$ is the total number of guardians.
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Session}
 \label{sec:session}
 
+To avoid the need to request guardian approvals on every multi-call, the wallet owner can open a session (authorise a temporary session key) with the help of their guardians. The number of required signatures to start a session is given by
+\begin{equation*}
+    1+\left\lceil {\frac{n}{2}} \right\rceil
+\end{equation*}
+where the first signature is the owner and $n$ is the total number of guardians.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{ERC20 Exchange}
-
-The owner is able to trade ETH and ERC20 tokens through an integration with Paraswap exchange.
-
-Swapping tokens is not constrained by the daily limit since no value is leaving the wallet.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{ENS}
-
-The Wallet is associated to an ENS. This association is forward and backward meaning that it is possible to obtain the Wallet address from the ENS and the ENS from the Wallet address.
+The owner can specify the duration of the session, and any sequence of transactions can be executed with a valid session key.
+The wallet owner alone can close a session before it's expiration.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Upgradability}
@@ -158,17 +154,17 @@ Owner and guardians can execute wallet operations without the need to pay transa
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Summary of Guardian Operations}
 \begin{table}[ht]
-    \begin{tabular}{ |c|m{6em}|m{6em}|m{6em}|m{6em}|m{6em}| }
+    \begin{tabular}{ |c|m{5em}|m{5em}|m{5em}|m{5em}|m{5em}|m{5em}| }
      \hline
-       & Lock/Unlock & Execute \newline Recovery & Cancel  \newline Recovery & Transfer Ownership & Approve Transfer \\
+       & Lock/Unlock & Execute \newline Recovery & Cancel  \newline Recovery & Transfer Ownership & Approve Multi-call / Start Session & Enable Registry \\
      \hline \hline
-       & Guardians & Guardians & Owner OR Guardians & Owner AND Guardians & Owner AND Guardians \\
+       & Guardians & Guardians & Owner OR Guardians & Owner AND Guardians & Owner AND Guardians & Owner AND Guardians \\
      \hline
-     1 & 1 & 1 & 1 & 2 & 2 \\
-     2 & 1 & 1 & 2 & 2 & 2 \\
-     3 & 1 & 2 & 2 & 3 & 3 \\
-     4 & 1 & 2 & 3 & 3 & 3 \\
-     5 & 1 & 3 & 3 & 4 & 4 \\
+     1 & 1 & 1 & 1 & 2 & 2 & 2 \\
+     2 & 1 & 1 & 2 & 2 & 2 & 2\\
+     3 & 1 & 2 & 2 & 3 & 3 & 3\\
+     4 & 1 & 2 & 3 & 3 & 3 & 4\\
+     5 & 1 & 3 & 3 & 4 & 4 & 4\\
      \hline
 
     \end{tabular}
@@ -183,33 +179,28 @@ Owner and guardians can execute wallet operations without the need to pay transa
 \subsection{Smart Contracts architecture}
 
 
-Our architecture is made up of multiple contracts. A first group of contracts form the infrastructure required to deploy or update user wallets. These infrastructure contracts are meant to be deployed only once:
+Our architecture is made up of multiple contracts. A first group of contracts form the infrastructure required to deploy or update user wallets as well as to expose on-chain information needed to secure the wallets. These infrastructure contracts are meant to be deployed only once:
 \begin{itemize}
     \item \textbf{Multisig Wallet:} Custom-made multi-signatures wallet which is the owner of most of other infrastructure contracts. All calls on those contracts will therefore need to be approved by multiple persons.
-    \item \textbf{Wallet Factory:} Wallet factory contract used to create proxy wallets using CREATE or CREATE2 and assign them to users.
+    \item \textbf{Wallet Factory:} Wallet factory contract used to create proxy wallets using CREATE2 and assign them to users.
     \item \textbf{ENS Manager:} The ENS Manager is responsible for registering ENS subdomains (e.g. mike.argent.xyz) and assigning them to wallets.
     \item \textbf{ENS Resolver:} The ENS Resolver keeps links between ENS subdomains and wallet addresses and allows to resolve them in both directions.
     \item \textbf{Module Registry:} The Module Registry maintains a list of the registered \emph{Module} contracts that can be used with user wallets. It also maintains a list of registered \emph{Upgrader} contracts that a user can use to migrate the module(s) used with their wallet (see Section~\ref{sec:upgradability}).
-    \item \textbf{Compound Registry:} Registry maintaining a mapping between underlying assets (ETH, DAI, BAT, etc) and their corresponding Compound Token (cETH, cDAI, cBAT, etc).
-    \item \textbf{Maker Registry:} Registry maintaining a mapping between token collaterals (ETH, BAT, USDC, WBTC) and their corresponding Maker Join adapters.
-    \item \textbf{Token Price Registry:} On-chain price oracle for ERC20 tokens. It is used by wallets to estimate the value in ETH of ERC20 transfers. This is necessary for the update of the daily limit and the refund of the relayer's gas costs. 
-    \item \textbf{Dex Registry:} Registry of supported DEXes. Only the exchanges listed in this registry can be used (through Paraswap) to trade tokens when using the \emph{TokenExchanger} feature.
+    \item \textbf{Token Price Registry:} Legacy on-chain price oracle for ERC20 tokens. Still used by wallets as a list of ERC20 tokens that can be safely traded.  
+    \item \textbf{Dex Registry:} Registry of DEXes compatible with the Argent security model. Only the exchanges listed in this registry can be used to trade tokens through Paraswap.
+    \item \textbf{Dapp Registry:} List of registries of authorised dapps. Currently 2 registries are being used by wallets.
 \end{itemize}
 
 \begin{figure}[h]
     \label{fig:sc-flow}
-    \includegraphics[width=\textwidth]{SC_Flow_2_x_final_}
+    \includegraphics[width=\textwidth]{SC_Flow_3_x}
     \caption{Call flow in Argent}
 \end{figure}
 
 A second group of contracts implements the functionalities of the wallet:
 \begin{itemize}
-    \item \textbf{Version Manager:} The Version Manager is the only module authorised for a wallet. A module is a contract that has the permission to call certain methods of a wallet on which the module is authorised. This follows a wallet design pattern introduced by Nick Johnson\footnote{https://gist.github.com/Arachnid/a619d31f6d32757a4328a428286da186 and https://gist.github.com/Arachnid/6a5c8ff96869fbdf0736a3a7be91b84e}: instead of directly calling a method in their wallet to perform a given operation, users call a method in the appropriate module contract (e.g. \emph{upgradeWallet()} in the \emph{VersionManager} module), which  verifies that the user holds the required authorization (e.g. checking that the caller is the wallet owner) and if so, calls an appropriate method on the wallet (e.g. \emph{enableStaticCall()}). 
-    In a previous architecture of the Argent wallet, all functionalities were implemented as modules. Because this led to large gas cost during wallet creation and upgrades, most functionalities are now implemented as \emph{Features} (see below), which can be seen as "layer 2 modules" as they don't call the wallet directly but call it via the \emph{VersionManager} instead (see Figure~\ref{fig:sc-flow}). 
-    The \emph{VersionManager} module holds a mapping of version numbers to feature bundles as well as a mapping of wallet addresses to version numbers. This allows upgrading a wallet (i.e. changing the list of features it uses) by only changing its associated version number in the \emph{VersionManager}.
-    \item \textbf{Features:} As mentionned above, different functionalities of the wallet are encapsulated in different \emph{Features}. In general, a single feature contract (e.g. \emph{GuardianManager}) is used by all wallets to handle a specific set of operations (e.g. adding and revoking guardians). Features are added in bundles by the Argent multisig and each bundle is given a unique version number. A wallet can then be upgraded by its owner to use a certain bundle of features (i.e. version number).
-    Features can either be called directly by the appropriate account when only one signature (e.g. owner or guardian) is required or can be called indirectly via the \emph{RelayerManager} feature (see section \ref{RelayerManager}).
-    \item \textbf{Storages:} Some features store part of their states in a dedicated storage contract (see Section~\ref{sec:storage}).
+    \item \textbf{ArgentModule:} Different functionalities of the wallet are typically encapsulated in different \emph{Modules}. A single module contract is used by all wallets to handle a specific set of operations (e.g. adding and revoking guardians). Modules are added in bundles by the Argent multisig and each bundle is given a unique version number. A wallet can then be upgraded by its owner to use a certain bundle of features (i.e. version number). The current version of the wallet has only one module the \emph{ArgentModule} which implements all the required functionalities.
+    \item \textbf{Storages:} Modules store part of their states in a dedicated storage contract (see Section~\ref{sec:storage}).
     \item \textbf{Proxy Wallet:} Lightweight proxy contract that delegates all calls to a Base Wallet library-like contract. There is one proxy deployed per wallet. Note that the rationale for using the Proxy-Implementation design pattern\footnote{ introduced by Nick Johnson in https://gist.github.com/Arachnid/4ca9da48d51e23e5cfe0f0e14dd6318f} is \emph{not} to enable wallet upgradability (we use upgradable modules/features for that) but simply to reduce the deployment cost of each new wallet.
     \item \textbf{Base Wallet:} The Base Wallet is a simple library-like contract implementing basic wallet functionalities used by proxy wallets (via delegatecalls), that are not expected to ever change. These functionalities include changing the owner of the wallet, (de)authorizating modules and performing (value-carrying) internal transactions to third-party contracts.
 \end{itemize}
@@ -218,77 +209,45 @@ A second group of contracts implements the functionalities of the wallet:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Upgradability}
 \label{sec:upgradability}
-An Argent wallet can be upgraded on two levels. In both cases, a wallet cannot be upgraded while it is locked.
-\begin{itemize}
-    \item \textbf{Feature Upgrade (occasional)}:
-The Argent multisig can add a new version (i.e. bundle of features) to the \emph{VersionManager}. Wallet owners can then choose to upgrade their wallets to that new version by calling the \emph{upgradeWallet()} method of the \emph{VersionManager}.
-    \item \textbf{Module Upgrade (rare)}:
-In the rare case where the \emph{VersionManager} itself needs to be upgraded, the \emph{addModule()} method of the \emph{VersionManager} can be called to add a temporary Upgrader module that defines a migration path for a wallet. This upgrader module would remove (deauthorise) the old \emph{VersionManager} and add (authorise) the new \emph{VersionManager}. The temporary Upgrader module as well as the new \emph{VersionManager} need to be registered in the \emph{ModuleRegistry}. 
-\end{itemize}
+Argent maintains an evolving set of registered \emph{Module} contracts. A subset of these \emph{Module} contracts are \emph{SimpleUpgrader} modules that define a migration path from a particular set of old modules to a new set of registered modules, i.e. it contains the list of modules to disable and the list of modules to enable to go from the old set to the new set. A user can perform an upgrade of their modules using one of the registered \emph{SimpleUpgrader} contracts.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Storage}
 \label{sec:storage}
-In general, each feature stores the entire state pertaining to all the wallets that use that feature. For example, the \emph{MakerV2Manager} feature stores a mapping of the vaults it manages for the wallets. Some features such as the \emph{TransferManager} make use of an additional storage contract (e.g. \emph{TransferStorage}). This is the case when their storage needs to be accessed by other features and/or to simplify the upgradability of that feature in the future.
+To enable cost-efficient upgrades, the part of the wallet state that must be permanent across upgrades is stored on dedicated storage contracts. 
 
-Storage contracts include:
+The wallet currently uses one storage contract:
 \begin{itemize}
-\item \textbf{Lock Storage:} Used to store a wallet's lock status.
-\item \textbf{Guardian Storage:} Used to store a wallet's guardians\footnote{Note that \emph{GuardianStorage} used to also be used to store a wallet's lock status, but this is now handled by \emph{LockStorage}.}.
-\item \textbf{Limit Storage:} Used to store a wallet's current daily limit (and future daily limit, if it is about to change) as well as the wallet's current daily spend.
-\item \textbf{Transfer Storage:} Used to store addresses that have been whitelisted by a wallet.
+\item \textbf{Transfer Storage:} Used to store the trusted contacts of a wallet.
 \end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Meta-Transactions}
 \label{sec:meta-transactions}
-Meta-Transactions are implemented via a dedicated \emph{RelayerManager} feature. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding feature methods to do so.
-
-The \emph{RelayerManager} calls the target feature (e.g. \emph{TransferManager} for token transfers) to determine the number of required signature(s) and to run the desired business logic (e.g. transfer of tokens).
+Meta-Transactions are implemented in the abstract \emph{RelayerManager} from which the \emph{ArgentModule} inherit. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding feature methods to do so.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Features}
+\subsection{Modules}
+As mentionned above, all the features of the Argent wallet are currently implemented in a single module. To structure the code, the \emph{ArgentModule} inherits from several abstract modules that each implements a coherent subset of the logic.
 
-\subsubsection{RelayerManager feature}\label{RelayerManager}
+\subsubsection{RelayerManager}\label{RelayerManager}
 
-This feature is the entry point for meta-transactions. A relayer calls the \emph{execute()} method of the \emph{RelayerManager}, which validates the signatures provided, calls the required target feature to run the business logic and optionally refunds the relayer's gas cost.
+The RelayerManager module is the entry point for meta-transactions. A relayer calls the \emph{execute()} method of the \emph{RelayerManager}, which validates the signatures provided, calls the required target method to run the business logic and optionally refunds the relayer's gas cost.
 
-\subsubsection{GuardianManager feature}
+\subsubsection{SecurityManager}
 
-This feature is used by the wallet owner to add or revoke a guardian. The addition or revokation of a guardian is done in two steps: an addition (or revokation) step that takes 24h to complete, followed by a confirmation (or cancellation) step that needs to be done in a subsequent 12h window period.
+The SecurityManager module contains all the logic related to the security of the wallet; namely adding and removing guardians, locking and unlocking the wallet, recovering and transfering ownership. 
 
-\subsubsection{LockManager feature}
+\subsubsection{TransactionManager}
 
-This feature is used by guardians to lock or unlock a wallet.
+The TransactionManager module contains all the logic to execute multi-calls, including adding or removing a trusted contact, enabling or disabling a dapp registry, starting or closing a session, and executing multi-calls. 
 
-\subsubsection{RecoveryManager feature}
+\subsubsection{BaseModule}
 
-This feature is used to change the owner of a wallet to a new owner. It can be executed immediately if the owner is still in possession of the current owner account (transfer ownership), or with a delay if the owner account is lost or stolen (recovery). Both operations need to be approved by guardians.
+The BaseModule is a base contract containing logic common to all modules.
 
-\subsubsection{TransferManager feature}
+\subsection{Dapp Registry}
 
-This feature lets users perform transfers of ETH and ERC20 tokens, approve ERC20 tokens for third-party contracts, or call third-party contracts directly. Calling contracts can be coupled with a value transfer by either providing an ETH amount or approving a spender to widthraw an ERC20 amount as part of the same transaction.
-
-All transfers of value can be done either to whitelisted addresses without any limit, or to non-whitelisted addresses within a certain daily allowance. If the daily limit is reached for a given period, the transfer is set to a pending state and will only be executed after 24h.
-
-\subsubsection{ApprovedTransfer feature}
-
-This feature lets users perform instant transfers of ETH and ERC20 tokens, approval of ERC20 tokens, or contract calls to non-whitelisted addresses with the signed approval of a majority of guardians. It is also used to make instant changes to the daily transfer limit.
-
-\subsubsection{TokenExchanger feature}
-
-This feature lets users trade ETH and ERC20 tokens using Paraswap.
-
-\subsubsection{CompoundManager feature}
-
-This feature lets users lend and borrow tokens with the Compound protocol. 
-
-\subsubsection{NftTransfer feature}
-
-This feature lets users transfer collectibles that comply to the ERC-721 interface.  
-
-\subsubsection{MakerManagerV2 feature}
-
-This feature lets users invest their DAI in the DSR (Dai Savings Rate) or borrow DAI with the Maker protocol. 
+TODO
 
 \end{document}
