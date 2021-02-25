@@ -101,7 +101,20 @@ Interracting with a trusted contact to e.g. send and asset, can be triggered by 
 \subsection{Authorised Dapps}
 \label{sec:authorised-dapps}
 
-The wallet owner can decide to enable 
+In addition to trusted contacts, the wallet can support 2 registries of authorised addresses managed by Argent.
+Each registry is a mapping between a trusted address and a set of conditions that a transaction must satisfied to call that address.
+Adding or removing an entry in a registry is a timelocked operations that can only be initiated by the Argent multisig. The timelock is set to 7 days.
+
+The first registry is enabled by default (opt-out) and contains all the dapps that have been natively integrated in the Argent client application (Paraswap, Compound, Maker, Aave, etc).
+
+The second registry is disabled by default (opt-in) and contains a list of curated dapps that the user can access through WalletConnect.
+
+The wallet owner can disable a registry while adding a registry requires the approval from their guardians. The number of required signatures is given by
+\begin{equation*}
+    1+\left\lceil {\frac{n}{2}} \right\rceil
+\end{equation*}
+where the first signature is the owner and $n$ is the total number of guardians.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Guardian Approval}
@@ -115,8 +128,8 @@ where the first signature is the owner and $n$ is the total number of guardians.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Authorised Dapps}
-\label{sec:authorised-dapps}
+\subsection{Session}
+\label{sec:session}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
