@@ -2,7 +2,7 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
-import "../contracts/modules/ArgentModule.sol";
+import "./ArgentModule.sol";
 
 /**
  * @notice Extends the ArgentModule to get the creation code of uniswap pairs locally
