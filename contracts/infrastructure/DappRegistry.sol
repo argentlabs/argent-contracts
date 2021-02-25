@@ -96,10 +96,16 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
 
     /**************  Management of registries' content  *****************/
 
+    /**
+    * @notice Set an authorisation filter for a dapp that has _not_ previously been authorised or 
+    * that has previously been authorised _without_ a filter. To change a non-zero filter, use `requestFilterUpdate`
+    * and `confirmFilterUpdate` instead.
+    * @param _registryId The id of the registry to modify
+    * @param _dapp The address of the dapp contract to authorise.
+    * @param _filter The address of the filter contract to use.
+    */
     function addFilter(uint8 _registryId, address _dapp, address _filter) external {
         validateManager(_registryId);
-        // For dapps that have _not_ previously been authorised or that have previously been authorised _without_ a filter, 
-        // we can update the filter immediately as the addition of a filter necessarily makes the authorisation _more_ restrictive.
         uint auth = uint(authorisations[_registryId][_dapp]); // {filter:160}{validFrom:64}
         require((auth >> 64) == 0, "DR: filter already set");
         uint validFrom = auth & 0xffffffffffffffff;
@@ -109,15 +115,23 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
         } else {
             emit FilterUpdated(_registryId, _dapp, _filter, validFrom);
         }
-        // Store the new authorisation as {filter:160}{validFrom:64}
+        // Store the new authorisation as {filter:160}{validFrom:64}.
+        // For dapps that have previously been authorised _without_ a filter, we can update the filter immediately (i.e. keep validFrom unchanged)
+        // as the addition of a filter necessarily makes the authorisation _more_ restrictive.
         authorisations[_registryId][_dapp] = bytes32((uint(uint160(_filter)) << 64) | validFrom);
     }
 
+    /**
+    * @notice Request to change an authorisation filter for a dapp that has previously been authorised _with_ a filter. 
+    * For such dapps, we cannot immediately override the existing filter and need to store the new filter for a security
+    * period before being able to change the filter. To set a filter for a new dapp or for a dapp that currently has no 
+    * filter set, use `addFilter` instead.
+    * @param _registryId The id of the registry to modify
+    * @param _dapp The address of the dapp contract to authorise.
+    * @param _filter The address of the new filter contract to use.
+    */
     function requestFilterUpdate(uint8 _registryId, address _dapp, address _filter) external {
         validateManager(_registryId);
-        // For dapps that have previously been authorised _with_ a filter, we cannot immediately override
-        // the existing filter and need to store the new filter for a security period before being able
-        // to change the filter
         uint auth = uint(authorisations[_registryId][_dapp]); // {filter:160}{validFrom:64}
         require((auth >> 64) > 0, "AR: should use addFilter()");
         uint validFrom = block.timestamp + securityPeriod;
@@ -126,6 +140,11 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
         emit FilterUpdatePended(_registryId, _dapp, _filter, validFrom);
     }
 
+    /**
+    * @notice Confirm the filter change requested by `requestFilterUpdate`
+    * @param _registryId The id of the registry to modify
+    * @param _dapp The address of the dapp contract to authorise.
+    */
     function confirmFilterUpdate(uint8 _registryId, address _dapp) external {
         uint newAuth = uint(pendingFilterUpdates[_registryId][_dapp]);
         require(newAuth > 0, "AR: no pending filter update");
@@ -136,6 +155,11 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
         delete pendingFilterUpdates[_registryId][_dapp];
     }
 
+    /**
+    * @notice Deauthorise a dapp in a registry
+    * @param _registryId The id of the registry to modify
+    * @param _dapp The address of the dapp contract to deauthorise.
+    */
     function removeDapp(uint8 _registryId, address _dapp) external {
         validateManager(_registryId);
         require(authorisations[_registryId][_dapp] != bytes32(0), "AR: unknown dapp");
