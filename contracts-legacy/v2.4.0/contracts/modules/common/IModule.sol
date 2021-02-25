@@ -35,11 +35,4 @@ interface IModule {
      * @param _wallet The wallet.
      */
     function init(address _wallet) external;
-
-
-    /**
-     * @notice Returns whether the module implements a callback for a given static call method.
-     * @param _methodId The method id.
-     */
-    function supportsStaticCall(bytes4 _methodId) external view returns (bool _isSupported);
 }

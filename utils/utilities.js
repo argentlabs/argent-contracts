@@ -261,5 +261,19 @@ module.exports = {
   async getAccount(index) {
     const accounts = await web3.eth.getAccounts();
     return accounts[index];
+  },
+
+  encodeFunctionCall(method, params) {
+    if (typeof method === "object") return web3.eth.abi.encodeFunctionCall(method, params);
+    if (typeof method === "string") {
+      const paramStart = method.indexOf("(");
+      const name = method.substring(0, paramStart);
+      const inputs = method
+        .substring(paramStart + 1, method.length - 1)
+        .split(",")
+        .map((type, idx) => ({ type, name: `arg${idx}` }));
+      return web3.eth.abi.encodeFunctionCall({ name, inputs, type: "function" }, params);
+    }
+    throw new Error(`Invalid method "${method}"`);
   }
 };

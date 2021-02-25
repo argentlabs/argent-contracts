@@ -27,9 +27,12 @@ import "../../lib/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
-
-    bytes4 private constant ERC1271_ISVALIDSIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
-    bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
+    bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
+    bytes4 private constant ERC721_RECEIVED = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+    bytes4 private constant ERC1155_RECEIVED = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
+    bytes4 private constant ERC1155_BATCH_RECEIVED = bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
+    bytes4 private constant ERC165_INTERFACE = bytes4(keccak256("supportsInterface(bytes4)"));
+    bytes4 private constant ERC1155_INTERFACE = ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED;
 
     struct Call {
         address to;
@@ -47,6 +50,7 @@ abstract contract TransactionManager is BaseModule {
     event ToggledDappRegistry(address _wallet, bytes32 _registry, bool isEnabled);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
+    event ERC1155TokenReceiverEnabled(address indexed _wallet);
 
     // *************** External functions ************************ //
 
@@ -114,8 +118,7 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
-    function addToWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
-    {
+    function addToWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
         require(_target != _wallet, "TM: Cannot whitelist wallet");
         require(!registry.isRegisteredModule(_target), "TM: Cannot whitelist module");
         require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
@@ -130,14 +133,12 @@ abstract contract TransactionManager is BaseModule {
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
-    function removeFromWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet)
-    {
+    function removeFromWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
         setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
     }
 
-    function toggleDappRegistry(address _wallet, bytes32 _registry) external onlySelf() onlyWhenUnlocked(_wallet)
-    {
+    function toggleDappRegistry(address _wallet, bytes32 _registry) external onlySelf() onlyWhenUnlocked(_wallet) {
         bool isEnabled = authoriser.toggle(_wallet, _registry);
         emit ToggledDappRegistry(_wallet, _registry, isEnabled);
     }
@@ -148,8 +149,7 @@ abstract contract TransactionManager is BaseModule {
     * @param _target The address.
     * @return _isWhitelisted true if the address is whitelisted.
     */
-    function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted)
-    {
+    function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
     }
@@ -158,13 +158,44 @@ abstract contract TransactionManager is BaseModule {
     * @notice Clears the active session of a wallet if any.
     * @param _wallet The target wallet.
     */
-    function clearSession(address _wallet) external onlySelf()
-    {
+    function clearSession(address _wallet) external onlySelf() {
         emit SessionCleared(_wallet, sessions[_wallet].key);
         delete sessions[_wallet];
     }
+    
+    /*
+    * @notice Enable the static calls required to make the wallet compatible with the ERC1155TokenReceiver 
+    * interface (see https://eips.ethereum.org/EIPS/eip-1155#erc-1155-token-receiver). This method only 
+    * needs to be called for wallets deployed in version lower or equal to 2.4.0 as the ERC1155 static calls
+    * are not available by default for these versions of BaseWallet
+    * @param _wallet The target wallet.
+    */
+    function enableERC1155TokenReceiver(address _wallet) external onlyWalletOwnerOrSelf(_wallet) {
+        IWallet(_wallet).enableStaticCall(address(this), ERC165_INTERFACE);
+        IWallet(_wallet).enableStaticCall(address(this), ERC1155_RECEIVED);
+        IWallet(_wallet).enableStaticCall(address(this), ERC1155_BATCH_RECEIVED);
+    }
+
+    /**
+     * @inheritdoc IModule
+     */
+    function supportsStaticCall(bytes4 _methodId) external view override returns (bool _isSupported) {
+        return _methodId == ERC1271_IS_VALID_SIGNATURE ||
+               _methodId == ERC721_RECEIVED ||
+               _methodId == ERC165_INTERFACE ||
+               _methodId == ERC1155_RECEIVED ||
+               _methodId == ERC1155_BATCH_RECEIVED;
+    }
 
     /** ******************* Callbacks ************************** */
+
+    /**
+     * @notice Returns true if this contract implements the interface defined by
+     * `interfaceId` (see https://eips.ethereum.org/EIPS/eip-165).
+     */
+    function supportsInterface(bytes4 _interfaceID) external view returns (bool) {
+        return  _interfaceID == ERC165_INTERFACE || _interfaceID == ERC1155_INTERFACE;          
+    }
 
     /**
     * @notice Implementation of EIP 1271.
@@ -172,43 +203,34 @@ abstract contract TransactionManager is BaseModule {
     * @param _msgHash Hash of a message signed on the behalf of address(this)
     * @param _signature Signature byte array associated with _msgHash
     */
-    function isValidSignature(bytes32 _msgHash, bytes memory _signature) external view returns (bytes4)
-    {
+    function isValidSignature(bytes32 _msgHash, bytes memory _signature) external view returns (bytes4) {
         require(_signature.length == 65, "TM: invalid signature length");
         address signer = Utils.recoverSigner(_msgHash, _signature, 0);
         require(_isOwner(msg.sender, signer), "TM: Invalid signer");
-        return ERC1271_ISVALIDSIGNATURE;
+        return ERC1271_IS_VALID_SIGNATURE;
     }
 
-    /**
-     * @notice Implementation of ERC721
-     * @notice An ERC721 smart contract calls this function on the recipient contract
-     * after a `safeTransfer`. If the recipient is a BaseWallet, the call to onERC721Received
-     * will be forwarded to the method onERC721Received of the present module.
-     * @return bytes4 `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-     */
-    function onERC721Received(
-        address /* operator */,
-        address /* from */,
-        uint256 /* tokenId */,
-        bytes calldata /* data*/
-    )
-        external
-        returns (bytes4)
-    {
-        return ERC721_RECEIVED;
+
+    fallback() external {
+        bytes4 methodId = Utils.functionPrefix(msg.data);
+        if(methodId == ERC721_RECEIVED || methodId == ERC1155_RECEIVED || methodId == ERC1155_BATCH_RECEIVED) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {                
+                calldatacopy(0, 0, 0x04)
+                return (0, 0x20)
+            }
+        }
     }
 
     // *************** Internal Functions ********************* //
 
-    function enableStaticCall(address _wallet) internal {
-        // setup static calls
-        IWallet(_wallet).enableStaticCall(address(this), ERC1271_ISVALIDSIGNATURE);
+    function enableDefaultStaticCalls(address _wallet) internal {
+        // setup the static calls that are available for free for all wallets
+        IWallet(_wallet).enableStaticCall(address(this), ERC1271_IS_VALID_SIGNATURE);
         IWallet(_wallet).enableStaticCall(address(this), ERC721_RECEIVED);
     }
 
-    function multiCallWithApproval(address _wallet, Call[] calldata _transactions) internal returns (bytes[] memory)
-    {
+    function multiCallWithApproval(address _wallet, Call[] calldata _transactions) internal returns (bytes[] memory) {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);

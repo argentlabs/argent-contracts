@@ -75,4 +75,11 @@ contract SimpleUpgrader is IModule {
     function addModule(address _wallet, address _module) external override {
         revert("SU: method not implemented");
     }
+
+    /**
+     * @inheritdoc IModule
+     */
+    function supportsStaticCall(bytes4 _methodId) external view override returns (bool _isSupported) { 
+        return false;
+    }
 }
