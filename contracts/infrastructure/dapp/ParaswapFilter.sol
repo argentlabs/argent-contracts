@@ -52,8 +52,12 @@ contract ParaswapFilter is IFilter {
         tokenPriceRegistry = _tokenPriceRegistry;
     }
 
-    function validate(address _spender, address _to, bytes calldata _data) external view override returns (bool) {
-        (bytes32 sig, address fromToken, address destToken) = abi.decode(abi.encodePacked(bytes28(0),_data), (bytes32, address, address));
-        return sig == MULTISWAP && (destToken == ETH_TOKEN || tokenPriceRegistry.isTokenTradable(destToken));
+    function validate(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+        (bytes32 sig,, address destToken) = abi.decode(abi.encodePacked(bytes28(0), _data), (bytes32, address, address));
+        (address beneficiary) = abi.decode(_data[228:], (address)); // skipping 4 + 7*32 = 228 bytes
+        return sig == 
+            MULTISWAP &&
+            (beneficiary == address(0) || beneficiary == _wallet) && 
+            (destToken == ETH_TOKEN || tokenPriceRegistry.isTokenTradable(destToken));
     }
 }
