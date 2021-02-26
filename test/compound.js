@@ -31,7 +31,7 @@ const CompoundRegistry = artifacts.require("CompoundRegistry");
 
 const ERC20 = artifacts.require("TestERC20");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
 
 const WAD = new BN("1000000000000000000"); // 10**18
 const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
@@ -151,9 +151,9 @@ contract("ArgentModule", (accounts) => {
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS);
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, cEther.address, ZERO_ADDRESS);
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, cToken.address, ZERO_ADDRESS);
+    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
+    await authoriser.addFilter(0, cEther.address, ZERO_ADDRESS);
+    await authoriser.addFilter(0, cToken.address, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 
