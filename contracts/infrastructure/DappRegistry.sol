@@ -51,16 +51,16 @@ contract DappRegistry is IAuthoriser, Storage {
         return ((registries >> _registryId) & 1) > 0;
     }
 
-    function isAuthorised(address _wallet, address _dapp, bytes calldata _data) external view override returns (bool) {
-        (bool isActive, address filter) = getFilter(_wallet, _dapp);
+    function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+        (bool isActive, address filter) = getFilter(_wallet, _spender);
         if (isActive) {
-            return _data.length == 0 || filter == address(0) || IFilter(filter).validate(_data);
+            return _data.length == 0 || filter == address(0) || IFilter(filter).validate(_spender, _to, _data);
         }
         return false;
     }
 
     function toggleRegistry(address _wallet, uint8 _registryId, bool _enabled) external override onlyModule(_wallet) returns (bool) {
-        require(_registryId == 0 /* Argent Default Registry */ || registryOwners[_registryId] != address(0), "AR: unknown registry");
+        require(registryOwners[_registryId] != address(0), "AR: unknown registry");
         uint registries = uint(enabledRegistryIds[_wallet]);
         bool current = ((registries >> _registryId) & 1) > 0;
         require(current != _enabled, "AR: bad state change" );
@@ -172,7 +172,7 @@ contract DappRegistry is IAuthoriser, Storage {
 
     /********  Internal Functions ***********/
 
-    function validateOwner(uint8 _registryId) internal {
+    function validateOwner(uint8 _registryId) internal view {
         address owner = registryOwners[_registryId];
         require(owner != address(0), "AR: unknow registry");
         require(msg.sender == owner, "AR: sender != registry owner");

@@ -52,7 +52,7 @@ contract ParaswapFilter is IFilter {
         tokenPriceRegistry = _tokenPriceRegistry;
     }
 
-    function validate(bytes calldata _data) external view override returns (bool) {
+    function validate(address _spender, address _to, bytes calldata _data) external view override returns (bool) {
         (bytes32 sig, address fromToken, address destToken) = abi.decode(abi.encodePacked(bytes28(0),_data), (bytes32, address, address));
         return sig == MULTISWAP && (destToken == ETH_TOKEN || tokenPriceRegistry.isTokenTradable(destToken));
     }

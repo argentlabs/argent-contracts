@@ -67,7 +67,7 @@ abstract contract TransactionManager is BaseModule {
             address spender = recoverSpender(_wallet, _transactions[i]);
             require(
                 isWhitelisted(_wallet, spender) ||
-                isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
+                authoriser.isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
@@ -249,19 +249,11 @@ abstract contract TransactionManager is BaseModule {
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
         if (_transaction.isSpenderInData) {
             require(_transaction.value == 0, "TM: unsecure call");
-            // transfer(to, value), transferFrom(wallet, to, value),
+           // transfer(to, value), transferFrom(wallet, to, value), approve(to, value), setApprovalForAll(to, approved)
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
             return first == _wallet ? second : first;
         }
         return _transaction.to;
-    }
-
-    function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) internal view returns (bool) {
-        if (_to == _spender) {
-            return authoriser.isAuthorised(_wallet, _to, _data);
-        } else {
-            return authoriser.isAuthorised(_wallet, _spender, "");
-        }
     }
 
     function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {
