@@ -42,11 +42,11 @@ abstract contract BaseModule is IModule {
     // The Module Registry
     IModuleRegistry internal registry;
     // The Guardian storage
-    IGuardianStorage internal guardianStorage;
+    IGuardianStorage internal immutable guardianStorage;
     // The Guardian storage
-    ITransferStorage internal userWhitelist;
+    ITransferStorage internal immutable userWhitelist;
     // The Guardian storage
-    IAuthoriser internal authoriser;
+    IAuthoriser internal immutable authoriser;
 
     // The security period
     uint256 internal securityPeriod;
