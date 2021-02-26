@@ -36,7 +36,7 @@ const CUSTOM_REGISTRY_ID = 12;
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("ArgentModule", (accounts) => {
+contract("Authorisation", (accounts) => {
   let manager;
 
   const infrastructure = accounts[0];
@@ -44,7 +44,7 @@ contract("ArgentModule", (accounts) => {
   const nonwhitelisted = accounts[3];
   const recipient = accounts[4];
   const nonceInitialiser = accounts[4];
-  const registryManager = accounts[5];
+  const registryOwner = accounts[5];
   const relayer = accounts[9];
 
   let registry;
@@ -58,17 +58,33 @@ contract("ArgentModule", (accounts) => {
   let authoriser;
   let contract;
   let contract2;
+  let uniswapRouter;
 
   before(async () => {
     registry = await Registry.new();
-
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
+    uniswapRouter = await UniswapV2Router01.new();
 
+    contract = await TestContract.new();
+    contract2 = await TestContract.new();
+    assert.equal(await contract.state(), 0, "initial contract state should be 0");
+    assert.equal(await contract2.state(), 0, "initial contract2 state should be 0");
+    filter = await Filter.new();
+
+    walletImplementation = await BaseWallet.new();
+
+    manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
+  });
+
+  async function setupRegistries() {
     authoriser = await Authoriser.new(SECURITY_PERIOD);
-
-    const uniswapRouter = await UniswapV2Router01.new();
-
+    await authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryOwner);
+    await authoriser.addFilter(0, contract.address, filter.address);
+    await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract2.address, filter.address, { from: registryOwner });
+    await authoriser.addFilter(0, recipient, ZERO_ADDRESS);
+    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
+    await utils.increaseTime(SECURITY_PERIOD + 1);
     module = await ArgentModule.new(
       registry.address,
       guardianStorage.address,
@@ -81,23 +97,10 @@ contract("ArgentModule", (accounts) => {
       LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
+  }
 
-    // setup DappRegistry
-    contract = await TestContract.new();
-    contract2 = await TestContract.new();
-    assert.equal(await contract.state(), 0, "initial contract state should be 0");
-    assert.equal(await contract2.state(), 0, "initial contract2 state should be 0");
-    filter = await Filter.new();
-    await authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryManager);
-    await authoriser.addFilter(0, contract.address, filter.address);
-    await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract2.address, filter.address, { from: registryManager });
-    await authoriser.addFilter(0, recipient, ZERO_ADDRESS);
-    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
-    await utils.increaseTime(SECURITY_PERIOD + 1);
-
-    walletImplementation = await BaseWallet.new();
-
-    manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
+  beforeEach(async () => {
+    await setupRegistries();
   });
 
   async function enableCustomRegistry() {
@@ -155,6 +158,8 @@ contract("ArgentModule", (accounts) => {
     const success = await utils.parseRelayReceipt(txReceipt).success;
     assert.isTrue(success, "transfer failed");
   }
+
+  // wallet-centric functions
 
   describe("call (un)authorised contract", () => {
     beforeEach(async () => {
@@ -345,33 +350,74 @@ contract("ArgentModule", (accounts) => {
     });
   });
 
+  // management of registry contract
+
   describe("add registry", () => {
-    it("should not recreate the Argent registry", async () => {
-      await truffleAssert.reverts(
-        authoriser.createRegistry(0, registryManager, { from: infrastructure }), "AR: duplicate registry"
-      );
-    });
     it("should not create a duplicate registry", async () => {
       await truffleAssert.reverts(
-        authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryManager, { from: infrastructure }), "AR: duplicate registry"
+        authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryOwner, { from: infrastructure }), "AR: duplicate registry"
+      );
+    });
+    it("should not create a registry without owner", async () => {
+      await truffleAssert.reverts(
+        authoriser.createRegistry(CUSTOM_REGISTRY_ID, ZERO_ADDRESS, { from: infrastructure }), "AR: registry owner is 0"
       );
     });
   });
 
+  describe("owner change", () => {
+    it("changes a registry owner", async () => {
+      await authoriser.changeOwner(0, recipient);
+      let regOwner = await authoriser.registryOwners(0, { from: infrastructure });
+      assert.equal(regOwner, recipient, "registry owner change failed");
+      await authoriser.changeOwner(0, infrastructure, { from: recipient });
+      regOwner = await authoriser.registryOwners(0);
+      assert.equal(regOwner, infrastructure, "registry owner change failed");
+    });
+
+    it("can't change a registry to null owner", async () => {
+      await truffleAssert.reverts(
+        authoriser.changeOwner(0, ZERO_ADDRESS, { from: infrastructure }), "AR: new registry owner is 0"
+      );
+    });
+  });
+
+  describe("timelock change", () => {
+    it("can change the timelock", async () => {
+      const tl = await authoriser.securityPeriod();
+      const requestedTl = 12;
+      await authoriser.requestTimelockChange(requestedTl, { from: infrastructure });
+      await truffleAssert.reverts(
+        authoriser.confirmTimelockChange(), "AR: can't (yet) change timelock"
+      );
+      let newTl = await authoriser.securityPeriod();
+      assert.equal(newTl.toString(), tl.toString(), "timelock shouldn't have changed");
+      await utils.increaseTime(requestedTl);
+      await authoriser.confirmTimelockChange();
+      newTl = await authoriser.securityPeriod();
+      assert.equal(newTl.toString(), requestedTl, "timelock change failed");
+
+      await authoriser.requestTimelockChange(tl, { from: infrastructure });
+      await utils.increaseTime(newTl);
+    });
+  });
+
+  // management of registry content
+
   describe("add authorisation to registry", () => {
+    it("should allow addFilter to override non-existing filter", async () => {
+      await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, ZERO_ADDRESS, { from: registryOwner });
+      await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: registryOwner });
+    });
+    it("should not allow addFilter to override existing filter", async () => {
+      await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: registryOwner });
+      await truffleAssert.reverts(
+        authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: registryOwner }), "DR: filter already set"
+      );
+    });
     it("should not allow non-owner to add authorisation to the Argent registry", async () => {
       await truffleAssert.reverts(
         authoriser.addFilter(0, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
-      );
-    });
-    it("should not add authorisation to non-existing registry", async () => {
-      await truffleAssert.reverts(
-        authoriser.addFilter(66, contract.address, filter.address, { from: nonwhitelisted }), "AR: unknown registry"
-      );
-    });
-    it("should not allow non-manager to add authorisation to a registry", async () => {
-      await truffleAssert.reverts(
-        authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
       );
     });
   });
