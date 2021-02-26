@@ -231,7 +231,7 @@ abstract contract SecurityManager is BaseModule {
      * @param _guardian The guardian to add.
      */
     function addGuardian(address _wallet, address _guardian) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
-        require(!_isOwner(_wallet, _guardian), "SM: _guardian cannot be owner");
+        require(!_isOwner(_wallet, _guardian), "SM: guardian cannot be owner");
         require(!isGuardian(_wallet, _guardian), "SM: duplicate guardian");
         // Guardians must either be an EOA or a contract with an owner()
         // method that returns an address with a 5000 gas stipend.
@@ -370,8 +370,8 @@ abstract contract SecurityManager is BaseModule {
     // *************** Internal Functions ********************* //
 
     function validateNewOwner(address _wallet, address _newOwner) internal view {
-        require(_newOwner != address(0), "SM: _newOwner cannot be null");
-        require(!isGuardian(_wallet, _newOwner), "SM: _newOwner is guardian");
+        require(_newOwner != address(0), "SM: new owner cannot be null");
+        require(!isGuardian(_wallet, _newOwner), "SM: new owner cannot be guardian");
     }
 
     function _setLock(address _wallet, uint256 _releaseAfter, bytes4 _locker) internal {
