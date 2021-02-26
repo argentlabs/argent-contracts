@@ -60,7 +60,7 @@ contract DappRegistry is IAuthoriser, Storage {
     }
 
     function toggleRegistry(address _wallet, uint8 _registryId, bool _enabled) external override onlyModule(_wallet) returns (bool) {
-        require(_registryId == 0 /* Argent Default Registry */ || registryOwners[_registryId] != address(0), "AR: unknow registry");
+        require(_registryId == 0 /* Argent Default Registry */ || registryOwners[_registryId] != address(0), "AR: unknown registry");
         uint registries = uint(enabledRegistryIds[_wallet]);
         bool current = ((registries >> _registryId) & 1) > 0;
         require(current != _enabled, "AR: bad state change" );

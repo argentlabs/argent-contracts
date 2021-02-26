@@ -327,7 +327,7 @@ contract("ArgentModule", (accounts) => {
         relayer);
       const { success, error } = await utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success, "toggleDappRegistry should have failed");
-      assert.equal(error, "AR: unknow registry");
+      assert.equal(error, "AR: unknown registry");
     });
     it("should not enable already-enabled registry", async () => {
       const txReceipt = await manager.relay(
@@ -366,7 +366,7 @@ contract("ArgentModule", (accounts) => {
     });
     it("should not add authorisation to non-existing registry", async () => {
       await truffleAssert.reverts(
-        authoriser.addFilter(66, contract.address, filter.address, { from: nonwhitelisted }), "AR: unknow registry"
+        authoriser.addFilter(66, contract.address, filter.address, { from: nonwhitelisted }), "AR: unknown registry"
       );
     });
     it("should not allow non-manager to add authorisation to a registry", async () => {
