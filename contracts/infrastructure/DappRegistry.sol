@@ -25,10 +25,10 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
     
     event RegistryCreated(uint8 registryId, address manager);
     event RegistryRemoved(uint8 registryId);
-    event TimelockChangePended(uint64 newSecurityPeriod);
+    event TimelockChangeRequested(uint64 newSecurityPeriod);
     event TimelockChanged(uint64 newSecurityPeriod);
     event FilterUpdated(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
-    event FilterUpdatePended(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
+    event FilterUpdateRequested(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
     event DappAdded(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
     event DappRemoved(uint8 indexed registryId, address dapp);
     
@@ -43,8 +43,8 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
         return ((registries >> _registryId) & 1) > 0;
     }
 
-    function isAuthorised(address _wallet, address _contract, bytes calldata _data) external view override returns (bool) {
-        (bool isActive, address filter) = getFilter(_wallet, _contract);
+    function isAuthorised(address _wallet, address _dapp, bytes calldata _data) external view override returns (bool) {
+        (bool isActive, address filter) = getFilter(_wallet, _dapp);
         if (isActive) {
             return _data.length == 0 || filter == address(0) || IFilter(filter).validate(_data);
         }
@@ -82,12 +82,12 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
     function requestTimelockChange(uint64 _newSecurityPeriod) external onlyOwner {
         newSecurityPeriod = _newSecurityPeriod;
         securityPeriodChangeAfter = uint64(block.timestamp) + securityPeriod;
-        emit TimelockChangePended(_newSecurityPeriod);
+        emit TimelockChangeRequested(_newSecurityPeriod);
     }
 
     function confirmTimelockChange() external {
         uint64 newPeriod = newSecurityPeriod;
-        require(newPeriod > 0 && securityPeriodChangeAfter <= block.timestamp, "AR: can't (yet) change timelock");
+        require(securityPeriodChangeAfter > 0 && securityPeriodChangeAfter <= block.timestamp, "AR: can't (yet) change timelock");
         securityPeriod = newPeriod;
         newSecurityPeriod = 0;
         securityPeriodChangeAfter = 0;
@@ -137,7 +137,7 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
         uint validFrom = block.timestamp + securityPeriod;
         // Store the future authorisation as {filter:160}{validFrom:64}
         pendingFilterUpdates[_registryId][_dapp] = bytes32((uint(uint160(_filter)) << 64) | validFrom);
-        emit FilterUpdatePended(_registryId, _dapp, _filter, validFrom);
+        emit FilterUpdateRequested(_registryId, _dapp, _filter, validFrom);
     }
 
     /**
