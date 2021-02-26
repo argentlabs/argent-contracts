@@ -42,11 +42,11 @@ abstract contract BaseModule is IModule {
     // The Module Registry
     IModuleRegistry internal registry;
     // The Guardian storage
-    IGuardianStorage internal guardianStorage;
+    IGuardianStorage internal immutable guardianStorage;
     // The Guardian storage
-    ITransferStorage internal userWhitelist;
+    ITransferStorage internal immutable userWhitelist;
     // The Guardian storage
-    IAuthoriser internal authoriser;
+    IAuthoriser internal immutable authoriser;
 
     // The security period
     uint256 internal securityPeriod;
@@ -115,7 +115,7 @@ abstract contract BaseModule is IModule {
      * @notice Throws if the sender is not the module itself or the owner of the target wallet.
      */
     modifier onlyWalletOwnerOrSelf(address _wallet) {
-        require(_isSelf(msg.sender) || _isOwner(_wallet, msg.sender), "BM: must be a wallet owner or self");
+        require(_isSelf(msg.sender) || _isOwner(_wallet, msg.sender), "BM: must be wallet owner/self");
         _;
     }
 

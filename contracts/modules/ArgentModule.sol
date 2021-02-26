@@ -90,7 +90,7 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         }
         if (methodId == SecurityManager.executeRecovery.selector) {
             // majority of guardians
-            uint numberOfSignaturesRequired = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
+            uint numberOfSignaturesRequired = _majorityOfGuardians(_wallet);
             require(numberOfSignaturesRequired > 0, "SM: no guardians set on wallet");
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
@@ -105,7 +105,7 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
             methodId == SecurityManager.transferOwnership.selector)
         {
             // owner + majority of guardians
-            uint majorityGuardians = Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
+            uint majorityGuardians = _majorityOfGuardians(_wallet);
             uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
             return (numberOfSignaturesRequired, OwnerSignature.Required);
         }
@@ -121,5 +121,9 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
             return (1, OwnerSignature.Disallowed);
         }
         revert("SM: unknown method");
+    }
+
+    function _majorityOfGuardians(address _wallet) internal view returns (uint) {
+        return Utils.ceil(guardianStorage.guardianCount(_wallet), 2);
     }
 }

@@ -17,12 +17,12 @@ const BaseWalletV24Contract = require("../build-legacy/v2.4.0/BaseWallet");
 const BaseWalletV24 = TruffleContract(BaseWalletV24Contract);
 
 const Registry = artifacts.require("ModuleRegistry");
-const LockStorage = artifacts.require("LockStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const Authoriser = artifacts.require("DappRegistry");
 const ERC165Tester = artifacts.require("TestContract");
+const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
 const utils = require("../utils/utilities.js");
 const { ARGENT_WHITELIST } = require("../utils/utilities.js");
@@ -47,7 +47,6 @@ contract("Static Calls", (accounts) => {
   let signature;
 
   let registry;
-  let lockStorage;
   let transferStorage;
   let guardianStorage;
   let module;
@@ -63,17 +62,18 @@ contract("Static Calls", (accounts) => {
     BaseWalletV24.setProvider(web3.currentProvider);
 
     registry = await Registry.new();
-    lockStorage = await LockStorage.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
     authoriser = await Authoriser.new();
 
+    const uniswapRouter = await UniswapV2Router01.new();
+
     module = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
       transferStorage.address,
       authoriser.address,
+      uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
       LOCK_PERIOD,
