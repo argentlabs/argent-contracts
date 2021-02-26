@@ -5,7 +5,7 @@ import "./dapp/IFilter.sol";
 import "./base/Owned.sol";
 import "./storage/Storage.sol";
 
-contract DappRegistry is IAuthoriser, Storage, Owned {
+contract DappRegistry is IAuthoriser, Storage {
 
     // The timelock period
     uint64 public securityPeriod;
@@ -20,20 +20,29 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
     mapping (uint8 => mapping (address => bytes32)) public authorisations; // [registryId] => [dapp] => [{filter:160}{validAfter:64}]
     // pending authorised dapps and their filters for each registry id
     mapping (uint8 => mapping (address => bytes32)) public pendingFilterUpdates; // [registryId] => [dapp] => [{filter:160}{validAfter:64}]
-    // managers for each registry id
-    mapping (uint8 => address) public registryManagers; // [registryId] => [manager]
+    // owners for each registry id
+    mapping (uint8 => address) public registryOwners; // [registryId] => [owner]
     
-    event RegistryCreated(uint8 registryId, address manager);
+    event RegistryCreated(uint8 registryId, address registryOwner);
     event RegistryRemoved(uint8 registryId);
+    event OwnerChanged(uint8 registryId, address newRegistryOwner)
     event TimelockChangeRequested(uint64 newSecurityPeriod);
     event TimelockChanged(uint64 newSecurityPeriod);
     event FilterUpdated(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
     event FilterUpdateRequested(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
     event DappAdded(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
     event DappRemoved(uint8 indexed registryId, address dapp);
+
+    modifier onlyOwner(uint8 _registryId) {
+        validateOwner(_registryId);
+        _;
+    }
     
     constructor(uint64 _securityPeriod) public {
+        // set the timelock period
         securityPeriod = _securityPeriod;
+        // set the owner of the Argent Registry (registryId == 0)
+        registryOwners[0] = msg.sender;
     }
 
     /********* Wallet-centered functions *************/
@@ -52,7 +61,7 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
     }
 
     function toggleRegistry(address _wallet, uint8 _registryId, bool _enabled) external override onlyModule(_wallet) returns (bool) {
-        require(_registryId == 0 /* Argent Default Registry */ || registryManagers[_registryId] != address(0), "AR: unknow registry");
+        require(_registryId == 0 /* Argent Default Registry */ || registryOwners[_registryId] != address(0), "AR: unknow registry");
         uint registries = uint(enabledRegistryIds[_wallet]);
         bool current = ((registries >> _registryId) & 1) > 0;
         require(current != _enabled, "AR: bad state change" );
@@ -61,25 +70,23 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
 
     /**************  Management of registry list  *****************/
 
-    function createRegistry(uint8 _registryId, address _manager) external onlyOwner {
-        require(_registryId > 0 && _manager != address(0), "AR: invalid parameters");
-        require(registryManagers[_registryId] == address(0), "AR: duplicate registry");
-        registryManagers[_registryId] = _manager;
-        emit RegistryCreated(_registryId, _manager);
+    function createRegistry(uint8 _registryId, address _registryOwner) external onlyOwner(0) {
+        require(_registryOwner != address(0), "AR: registry owner is 0");
+        require(registryOwners[_registryId] == address(0), "AR: duplicate registry");
+        registryOwners[_registryId] = _registryOwner;
+        emit RegistryCreated(_registryId, _registryOwner);
     }
 
     // Note: removeRegistry is not supported because that would allow the owner to replace registries that 
     // have already been enabled by users with a new (potentially maliciously populated) registry 
 
-    function changeManager(uint8 _registryId, address _newManager) external {
-        address manager = registryManagers[_registryId];
-        require(manager != address(0), "AR: unknow registry");
-        require(_newManager != address(0), "AR: new manager is 0");
-        require(msg.sender == manager, "AR: sender should be manager");
-        registryManagers[_registryId] = _newManager;
+    function changeOwner(uint8 _registryId, address _newRegistryOwner) external onlyOwner(_registryId) {
+        require(_newRegistryOwner != address(0), "AR: new registry owner is 0");
+        registryOwners[_registryId] = _newRegistryOwner;
+        emit OwnerChanged(_registryId, _newRegistryOwner);
     }
 
-    function requestTimelockChange(uint64 _newSecurityPeriod) external onlyOwner {
+    function requestTimelockChange(uint64 _newSecurityPeriod) external onlyOwner(0) {
         newSecurityPeriod = _newSecurityPeriod;
         securityPeriodChangeAfter = uint64(block.timestamp) + securityPeriod;
         emit TimelockChangeRequested(_newSecurityPeriod);
@@ -104,8 +111,7 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
     * @param _dapp The address of the dapp contract to authorise.
     * @param _filter The address of the filter contract to use.
     */
-    function addFilter(uint8 _registryId, address _dapp, address _filter) external {
-        validateManager(_registryId);
+    function addFilter(uint8 _registryId, address _dapp, address _filter) external onlyOwner(_registryId) {
         uint auth = uint(authorisations[_registryId][_dapp]); // {filter:160}{validFrom:64}
         require((auth >> 64) == 0, "DR: filter already set");
         uint validFrom = auth & 0xffffffffffffffff;
@@ -130,8 +136,7 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
     * @param _dapp The address of the dapp contract to authorise.
     * @param _filter The address of the new filter contract to use.
     */
-    function requestFilterUpdate(uint8 _registryId, address _dapp, address _filter) external {
-        validateManager(_registryId);
+    function requestFilterUpdate(uint8 _registryId, address _dapp, address _filter) external onlyOwner(_registryId) {
         uint auth = uint(authorisations[_registryId][_dapp]); // {filter:160}{validFrom:64}
         require((auth >> 64) > 0, "AR: should use addFilter()");
         uint validFrom = block.timestamp + securityPeriod;
@@ -160,8 +165,7 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
     * @param _registryId The id of the registry to modify
     * @param _dapp The address of the dapp contract to deauthorise.
     */
-    function removeDapp(uint8 _registryId, address _dapp) external {
-        validateManager(_registryId);
+    function removeDapp(uint8 _registryId, address _dapp) external onlyOwner(_registryId) {
         require(authorisations[_registryId][_dapp] != bytes32(0), "AR: unknown dapp");
         delete authorisations[_registryId][_dapp];
         emit DappRemoved(_registryId, _dapp);
@@ -169,14 +173,10 @@ contract DappRegistry is IAuthoriser, Storage, Owned {
 
     /********  Internal Functions ***********/
 
-    function validateManager(uint8 _registryId) internal {
-        if (_registryId == 0) { // Argent Default Registry
-            require(msg.sender == owner, "AR: sender should be owner");
-        } else { // Community Registry
-            address manager = registryManagers[_registryId];
-            require(manager != address(0), "AR: unknow registry");
-            require(msg.sender == manager, "AR: sender should be manager");
-        }
+    function validateOwner(uint8 _registryId) internal {
+        address owner = registryOwners[_registryId];
+        require(owner != address(0), "AR: unknow registry");
+        require(msg.sender == owner, "AR: sender != registry owner");
     }
 
     function getFilter(address _wallet, address _dapp) internal view returns (bool, address) {
