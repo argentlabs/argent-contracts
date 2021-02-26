@@ -174,7 +174,7 @@ contract DappRegistry is IAuthoriser, Storage {
 
     function validateOwner(uint8 _registryId) internal view {
         address owner = registryOwners[_registryId];
-        require(owner != address(0), "AR: unknow registry");
+        require(owner != address(0), "AR: unknown registry");
         require(msg.sender == owner, "AR: sender != registry owner");
     }
 
