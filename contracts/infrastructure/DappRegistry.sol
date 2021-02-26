@@ -2,7 +2,6 @@ pragma solidity ^0.6.12;
 
 import "./IAuthoriser.sol";
 import "./dapp/IFilter.sol";
-import "./base/Owned.sol";
 import "./storage/Storage.sol";
 
 contract DappRegistry is IAuthoriser, Storage {
@@ -25,7 +24,7 @@ contract DappRegistry is IAuthoriser, Storage {
     
     event RegistryCreated(uint8 registryId, address registryOwner);
     event RegistryRemoved(uint8 registryId);
-    event OwnerChanged(uint8 registryId, address newRegistryOwner)
+    event OwnerChanged(uint8 registryId, address newRegistryOwner);
     event TimelockChangeRequested(uint64 newSecurityPeriod);
     event TimelockChanged(uint64 newSecurityPeriod);
     event FilterUpdated(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);

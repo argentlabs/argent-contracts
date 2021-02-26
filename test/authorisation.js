@@ -348,7 +348,7 @@ contract("ArgentModule", (accounts) => {
   describe("add registry", () => {
     it("should not recreate the Argent registry", async () => {
       await truffleAssert.reverts(
-        authoriser.createRegistry(0, registryManager, { from: infrastructure }), "AR: invalid parameters"
+        authoriser.createRegistry(0, registryManager, { from: infrastructure }), "AR: duplicate registry"
       );
     });
     it("should not create a duplicate registry", async () => {
@@ -361,7 +361,7 @@ contract("ArgentModule", (accounts) => {
   describe("add authorisation to registry", () => {
     it("should not allow non-owner to add authorisation to the Argent registry", async () => {
       await truffleAssert.reverts(
-        authoriser.addFilter(0, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender should be owner"
+        authoriser.addFilter(0, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
       );
     });
     it("should not add authorisation to non-existing registry", async () => {
@@ -371,7 +371,7 @@ contract("ArgentModule", (accounts) => {
     });
     it("should not allow non-manager to add authorisation to a registry", async () => {
       await truffleAssert.reverts(
-        authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender should be manager"
+        authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
       );
     });
   });
