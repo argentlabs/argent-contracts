@@ -50,7 +50,6 @@ abstract contract TransactionManager is BaseModule {
     event ToggledDappRegistry(address _wallet, bytes32 _registry, bool isEnabled);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
-    event ERC1155TokenReceiverEnabled(address indexed _wallet);
 
     // *************** External functions ************************ //
 
@@ -249,7 +248,7 @@ abstract contract TransactionManager is BaseModule {
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
         if (_transaction.isSpenderInData) {
-            require(_transaction.value == 0, "TM: unsecure call with spender in data");
+            require(_transaction.value == 0, "TM: unsecure call");
             // transfer(to, value), transferFrom(wallet, to, value),
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
             return first == _wallet ? second : first;
