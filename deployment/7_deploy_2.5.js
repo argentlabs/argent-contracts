@@ -24,7 +24,7 @@ const MODULES_TO_DISABLE = [];
 const BACKWARD_COMPATIBILITY = 4;
 
 const main = async () => {
-  const { network, deploymentAccount, configurator, versionUploader, abiUploader } = await deployManager.getProps();
+  const { deploymentAccount, configurator, versionUploader, abiUploader } = await deployManager.getProps();
 
   const newModuleWrappers = [];
   const newVersion = {};
@@ -58,7 +58,7 @@ const main = async () => {
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0);
 
-    newModuleWrappers.push(ArgentModuleWrapper);
+  newModuleWrappers.push(ArgentModuleWrapper);
 
   // //////////////////////////////////
   // Setup new infrastructure
