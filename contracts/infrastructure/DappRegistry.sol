@@ -54,7 +54,7 @@ contract DappRegistry is IAuthoriser, Storage {
     function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
         (bool isActive, address filter) = getFilter(_wallet, _spender);
         if (isActive) {
-            return _data.length == 0 || filter == address(0) || IFilter(filter).validate(_wallet, _spender, _to, _data);
+            return filter == address(0) || IFilter(filter).validate(_wallet, _spender, _to, _data);
         }
         return false;
     }
