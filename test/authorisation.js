@@ -41,8 +41,8 @@ contract("Authorisation", (accounts) => {
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
-  const nonwhitelisted = accounts[3];
-  const recipient = accounts[4];
+  const nonwhitelisted = accounts[2];
+  const recipient = accounts[3];
   const nonceInitialiser = accounts[4];
   const registryOwner = accounts[5];
   const relayer = accounts[9];
@@ -55,6 +55,7 @@ contract("Authorisation", (accounts) => {
   let walletImplementation;
   let erc20;
   let filter;
+  let filter2;
   let authoriser;
   let contract;
   let contract2;
@@ -71,6 +72,7 @@ contract("Authorisation", (accounts) => {
     assert.equal(await contract.state(), 0, "initial contract state should be 0");
     assert.equal(await contract2.state(), 0, "initial contract2 state should be 0");
     filter = await Filter.new();
+    filter2 = await Filter.new();
 
     walletImplementation = await BaseWallet.new();
 
@@ -404,20 +406,54 @@ contract("Authorisation", (accounts) => {
 
   // management of registry content
 
-  describe("add authorisation to registry", () => {
+  describe("add/remove filter", () => {
     it("should allow addFilter to override non-existing filter", async () => {
-      await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, ZERO_ADDRESS, { from: registryOwner });
-      await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: registryOwner });
+      await authoriser.addFilter(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+      await authoriser.addFilter(0, contract2.address, filter.address, { from: infrastructure });
     });
     it("should not allow addFilter to override existing filter", async () => {
-      await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: registryOwner });
+      await authoriser.addFilter(0, contract2.address, filter.address, { from: infrastructure });
       await truffleAssert.reverts(
-        authoriser.addFilter(CUSTOM_REGISTRY_ID, contract.address, filter.address, { from: registryOwner }), "DR: filter already set"
+        authoriser.addFilter(0, contract2.address, filter.address, { from: infrastructure }), "DR: filter already set"
       );
     });
     it("should not allow non-owner to add authorisation to the Argent registry", async () => {
       await truffleAssert.reverts(
-        authoriser.addFilter(0, contract.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
+        authoriser.addFilter(0, contract2.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
+      );
+    });
+    it("should allow removing a dapp", async () => {
+      await truffleAssert.reverts(
+        authoriser.removeDapp(0, contract2.address, { from: infrastructure }), "AR: unknown dapp"
+      );
+      await authoriser.addFilter(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+      await authoriser.removeDapp(0, contract2.address, { from: infrastructure });
+    });
+  });
+
+  describe("update filter", () => {
+    it("should allow changing an existing filter", async () => {
+      await authoriser.addFilter(0, contract2.address, filter.address, { from: infrastructure });
+      await authoriser.requestFilterUpdate(0, contract2.address, filter2.address, { from: infrastructure });
+      await truffleAssert.reverts(
+        authoriser.confirmFilterUpdate(0, contract2.address, { from: infrastructure }),
+        "AR: too early to confirm auth"
+      );
+      const tl = await authoriser.securityPeriod();
+      await utils.increaseTime(tl);
+      await authoriser.confirmFilterUpdate(0, contract2.address, { from: infrastructure });
+    });
+    it("should not allow changing a non-existing filter", async () => {
+      await authoriser.addFilter(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+      await truffleAssert.reverts(
+        authoriser.requestFilterUpdate(0, contract2.address, filter.address, { from: infrastructure }),
+        "AR: should use addFilter()"
+      );
+    });
+    it("should not allow confirming change of a non-existing pending change", async () => {
+      await truffleAssert.reverts(
+        authoriser.confirmFilterUpdate(0, contract2.address, { from: infrastructure }),
+        "AR: no pending filter update"
       );
     });
   });
