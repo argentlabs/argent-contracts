@@ -69,8 +69,8 @@ contract("TransactionManager", (accounts) => {
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
-      LOCK_PERIOD,
-      RECOVERY_PERIOD);
+      RECOVERY_PERIOD,
+      LOCK_PERIOD);
 
     newModule = await ArgentModule.new(
       registry.address,
@@ -80,8 +80,8 @@ contract("TransactionManager", (accounts) => {
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
-      LOCK_PERIOD,
-      RECOVERY_PERIOD);
+      RECOVERY_PERIOD,
+      LOCK_PERIOD);
 
     upgrader1 = await Upgrader.new(
       registry.address,

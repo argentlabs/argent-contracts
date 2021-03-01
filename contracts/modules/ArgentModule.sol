@@ -91,7 +91,7 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         if (methodId == SecurityManager.executeRecovery.selector) {
             // majority of guardians
             uint numberOfSignaturesRequired = _majorityOfGuardians(_wallet);
-            require(numberOfSignaturesRequired > 0, "SM: no guardians set on wallet");
+            require(numberOfSignaturesRequired > 0, "AM: no guardians set on wallet");
             return (numberOfSignaturesRequired, OwnerSignature.Disallowed);
         }
         if (methodId == SecurityManager.cancelRecovery.selector) {

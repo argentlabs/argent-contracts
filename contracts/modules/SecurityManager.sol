@@ -73,7 +73,7 @@ abstract contract SecurityManager is BaseModule {
      * @notice Throws if there is no ongoing recovery procedure.
      */
     modifier onlyWhenRecovery(address _wallet) {
-        require(recoveryConfigs[_wallet].executeAfter > 0, "RM: no ongoing recovery");
+        require(recoveryConfigs[_wallet].executeAfter > 0, "SM: no ongoing recovery");
         _;
     }
 
@@ -81,7 +81,7 @@ abstract contract SecurityManager is BaseModule {
      * @notice Throws if there is an ongoing recovery procedure.
      */
     modifier notWhenRecovery(address _wallet) {
-        require(recoveryConfigs[_wallet].executeAfter == 0, "RM: ongoing recovery");
+        require(recoveryConfigs[_wallet].executeAfter == 0, "SM: ongoing recovery");
         _;
     }
 
@@ -246,7 +246,7 @@ abstract contract SecurityManager is BaseModule {
             GuardianManagerConfig storage config = guardianConfigs[_wallet];
             require(
                 config.pending[id] == 0 || block.timestamp > config.pending[id] + securityWindow,
-                "SM: duplicate pending additon");
+                "SM: duplicate pending addition");
             config.pending[id] = block.timestamp + securityPeriod;
             emit GuardianAdditionRequested(_wallet, _guardian, block.timestamp + securityPeriod);
         }
