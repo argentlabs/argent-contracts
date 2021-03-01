@@ -7,8 +7,8 @@ const childProcess = require("child_process");
 const MultiSig = artifacts.require("MultiSigWallet");
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ArgentModule = artifacts.require("ArgentModule");
-const Upgrader = artifacts.require("UpgraderToVersionManager");
 const WalletFactory = artifacts.require("WalletFactory");
+const Upgrader = artifacts.require("SimpleUpgrader");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -25,12 +25,6 @@ const BACKWARD_COMPATIBILITY = 4;
 
 const main = async () => {
   const { network, deploymentAccount, configurator, versionUploader, abiUploader } = await deployManager.getProps();
-
-  if (!["kovan", "kovan-fork", "staging", "prod"].includes(network)) {
-    console.warn("------------------------------------------------------------------------");
-    console.warn(`WARNING: The MakerManagerV2 module is not fully functional on ${network}`);
-    console.warn("------------------------------------------------------------------------");
-  }
 
   const newModuleWrappers = [];
   const newVersion = {};
@@ -55,14 +49,16 @@ const main = async () => {
   // Deploy ArgentModule
   const ArgentModuleWrapper = await ArgentModule.new(
     config.contracts.ModuleRegistry,
-    config.modules.LockStorage,
     config.modules.GuardianStorage,
     config.modules.TransferStorage,
     config.contracts.Authoriser,
+    config.defi.uniswap.v2Router,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0);
+
+    newModuleWrappers.push(ArgentModuleWrapper);
 
   // //////////////////////////////////
   // Setup new infrastructure
@@ -112,7 +108,6 @@ const main = async () => {
   console.log("Uploading ABIs");
   await Promise.all([
     abiUploader.upload(ArgentModuleWrapper, "modules"),
-
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
   ]);
 
@@ -160,16 +155,11 @@ const main = async () => {
 
     const upgraderName = `${version.fingerprint}_${fingerprint}`;
 
-    // if upgrading from a version strictly older than 2.1 (toRemove.length > 1), we use the "old LockStorage",
-    // which was part of the GuardianStorage prior to 2.1. Otherwise (toRemove.length === 1), we use the new LockStorage introduced in 2.1
-    const lockStorage = (toRemove.length === 1) ? config.modules.LockStorage : config.modules.GuardianStorage;
-
     console.log(`Deploying upgrader ${upgraderName}`);
     const UpgraderWrapper = await Upgrader.new(
       config.contracts.ModuleRegistry,
-      lockStorage,
       toRemove.map((module) => module.address),
-      ArgentModuleWrapper.address, // to add
+      toAdd.map((module) => module.address)
     );
 
     console.log(`Registering ${upgraderName} as a module`);
