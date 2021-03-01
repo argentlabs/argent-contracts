@@ -46,11 +46,23 @@ contract DappRegistry is IAuthoriser {
 
     /********* Wallet-centered functions *************/
 
+    /**
+    * @notice Returns whether a registry is enabled for a wallet
+    * @param _wallet The wallet
+    * @param _registryId The registry id
+    */
     function isEnabledRegistry(address _wallet, uint8 _registryId) external view returns (bool) {
         uint registries = uint(enabledRegistryIds[_wallet]);
         return ((registries >> _registryId) & 1) > 0;
     }
 
+    /**
+    * @notice Returns whether a (_spender, _to, _data) call is authorised for a wallet
+    * @param _wallet The wallet
+    * @param _spender The spender of the tokens for token approvals, or the target of the transaction otherwise
+    * @param _to The target of the transaction
+    * @param _data The calldata of the transaction
+    */
     function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
         (bool isActive, address filter) = getFilter(_wallet, _spender);
         if (isActive) {
@@ -59,6 +71,11 @@ contract DappRegistry is IAuthoriser {
         return false;
     }
 
+    /**
+    * @notice Allows a wallet to decide whether _registryId should be part of the list of enabled registries for that wallet
+    * @param _registryId The id of the registry to enable/disable
+    * @param _enabled Whether the registry should be enabled (true) or disabled (false)
+    */
     function toggleRegistry(uint8 _registryId, bool _enabled) external returns (bool) {
         require(registryOwners[_registryId] != address(0), "AR: unknown registry");
         uint registries = uint(enabledRegistryIds[msg.sender]);
@@ -122,6 +139,13 @@ contract DappRegistry is IAuthoriser {
 
     /**************  Management of registries' content  *****************/
 
+    /**
+    * @notice Returns the (filter, validAfter) tuple recorded for a dapp in a given registry.
+    * `filter` is the authorisation filter stored for the dapp (if any) and `validAfter` is the 
+    * timestamp after which the filter becomes active.
+    * @param _registryId The registry id
+    * @param _dapp The dapp
+    */
     function getAuthorisation(uint8 _registryId, address _dapp) external view returns (address filter, uint64 validAfter) {
         uint auth = uint(authorisations[_registryId][_dapp]);
         filter = address(uint160(auth >> 64));
