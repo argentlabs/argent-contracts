@@ -335,6 +335,9 @@
         "securityWindow": {
           "type": "integer"
         },
+        "timelockPeriod": {
+          "type": "integer"
+        },
         "defaultLimit": {
           "type": "string"
         },
