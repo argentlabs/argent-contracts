@@ -21,7 +21,7 @@ const MODULES_TO_ENABLE = [
 ];
 const MODULES_TO_DISABLE = [];
 
-const BACKWARD_COMPATIBILITY = 3;
+const BACKWARD_COMPATIBILITY = 4;
 
 const main = async () => {
   const { network, deploymentAccount, configurator, versionUploader, abiUploader } = await deployManager.getProps();
@@ -61,8 +61,8 @@ const main = async () => {
     config.contracts.Authoriser,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
-    config.settings.lockPeriod || 0,
-    config.settings.recoveryPeriod || 0);
+    config.settings.recoveryPeriod || 0,
+    config.settings.lockPeriod || 0);
 
   // //////////////////////////////////
   // Setup new infrastructure

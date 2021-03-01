@@ -73,7 +73,7 @@ abstract contract SecurityManager is BaseModule {
      * @notice Throws if there is no ongoing recovery procedure.
      */
     modifier onlyWhenRecovery(address _wallet) {
-        require(recoveryConfigs[_wallet].executeAfter > 0, "RM: no ongoing recovery");
+        require(recoveryConfigs[_wallet].executeAfter > 0, "SM: no ongoing recovery");
         _;
     }
 
@@ -81,7 +81,7 @@ abstract contract SecurityManager is BaseModule {
      * @notice Throws if there is an ongoing recovery procedure.
      */
     modifier notWhenRecovery(address _wallet) {
-        require(recoveryConfigs[_wallet].executeAfter == 0, "RM: ongoing recovery");
+        require(recoveryConfigs[_wallet].executeAfter == 0, "SM: ongoing recovery");
         _;
     }
 

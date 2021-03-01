@@ -30,25 +30,24 @@ const RECOVERY_PERIOD = 36;
 const RelayManager = require("../utils/relay-manager");
 
 contract("GuardianManager", (accounts) => {
-    let manager;
+  let manager;
 
-    const infrastructure = accounts[0];
-    const owner = accounts[1];
-    const guardian1 = accounts[2];
-    const guardian2 = accounts[3];
-    const guardian3 = accounts[4];
-    const guardian4 = accounts[5];
-    const guardian5 = accounts[6];
-    const nonowner = accounts[7];
-    const relayer = accounts[9];
-  
-    let registry;
-    let guardianStorage;
-    let transferStorage;
-    let module;
-    let wallet;
-    let walletImplementation;
-    let authoriser;
+  const owner = accounts[1];
+  const guardian1 = accounts[2];
+  const guardian2 = accounts[3];
+  const guardian3 = accounts[4];
+  const guardian4 = accounts[5];
+  const guardian5 = accounts[6];
+  const nonowner = accounts[7];
+  const relayer = accounts[9];
+
+  let registry;
+  let guardianStorage;
+  let transferStorage;
+  let module;
+  let wallet;
+  let walletImplementation;
+  let authoriser;
 
   before(async () => {
     registry = await Registry.new();
