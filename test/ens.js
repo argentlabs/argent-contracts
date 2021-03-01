@@ -19,16 +19,18 @@ const Filter = artifacts.require("TestFilter");
 
 const truffleAssert = require("truffle-assertions");
 const utilities = require("../utils/utilities.js");
-const { ZERO_ADDRESS, ARGENT_WHITELIST } = require("../utils/utilities.js");
+const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_ADDRESS = ethers.constants.AddressZero;
 
 contract("ENS contracts", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const amanager = accounts[2];
   const anonmanager = accounts[3];
+  const recipient = accounts[3];
 
   const root = "xyz";
   const subnameWallet = "argent";
@@ -208,6 +210,8 @@ contract("ENS contracts", (accounts) => {
       const filter = await Filter.new();
       await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, ensReverse.address, filter.address);
       await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, ensManager.address, filter.address);
+      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
+
       const uniswapRouter = await UniswapV2Router01.new();
       const SECURITY_PERIOD = 2;
       const SECURITY_WINDOW = 2;
@@ -258,9 +262,9 @@ contract("ENS contracts", (accounts) => {
         [wallet.address, transactions],
         wallet,
         [owner],
-        0,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS);
+        1,
+        ETH_TOKEN,
+        recipient);
       const success = await utilities.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "call failed");
 
