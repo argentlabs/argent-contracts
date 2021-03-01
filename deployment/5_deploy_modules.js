@@ -29,8 +29,8 @@ async function main() {
     config.defi.uniswap.v2Router,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
-    config.settings.lockPeriod || 0,
-    config.settings.recoveryPeriod || 0);
+    config.settings.recoveryPeriod || 0,
+    config.settings.lockPeriod || 0);
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs

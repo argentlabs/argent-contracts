@@ -7,6 +7,7 @@ const childProcess = require("child_process");
 const MultiSig = artifacts.require("MultiSigWallet");
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ArgentModule = artifacts.require("ArgentModule");
+const BaseWallet = artifacts.require("BaseWallet");
 const WalletFactory = artifacts.require("WalletFactory");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
@@ -61,14 +62,18 @@ const main = async () => {
   newModuleWrappers.push(ArgentModuleWrapper);
 
   // //////////////////////////////////
-  // Setup new infrastructure
+  // Deploy infrastructure
   // //////////////////////////////////
 
-  console.log("Deploying WalletFactory");
+  // Deploy new BaseWallet
+  const BaseWalletWrapper = await BaseWallet.new();
+  console.log("Deployed BaseWallet at ", BaseWalletWrapper.address);
+
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await WalletFactory.new(
-    config.contracts.BaseWallet, config.modules.GuardianStorage, config.backend.refundCollector
+    BaseWalletWrapper.address, config.modules.GuardianStorage, config.backend.refundCollector
   );
+  console.log("Deployed WalletFactory at ", WalletFactoryWrapper.address);
 
   // //////////////////////////////////
   // Set contracts' managers
@@ -97,6 +102,7 @@ const main = async () => {
 
   configurator.updateInfrastructureAddresses({
     WalletFactory: WalletFactoryWrapper.address,
+    BaseWallet: BaseWalletWrapper.address,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -109,6 +115,7 @@ const main = async () => {
   await Promise.all([
     abiUploader.upload(ArgentModuleWrapper, "modules"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
+    abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
