@@ -63,8 +63,8 @@ contract("ArgentModule", (accounts) => {
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
-      LOCK_PERIOD,
-      RECOVERY_PERIOD);
+      RECOVERY_PERIOD,
+      LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
     await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS);
