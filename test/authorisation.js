@@ -422,6 +422,11 @@ contract("Authorisation", (accounts) => {
         authoriser.addDapp(0, contract2.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
       );
     });
+    it("should not allow adding authorisation to unknown registry", async () => {
+      await truffleAssert.reverts(
+        authoriser.addDapp(66, contract2.address, filter.address, { from: nonwhitelisted }), "AR: unknown registry"
+      );
+    });
     it("should allow registry owner to remove a dapp", async () => {
       await truffleAssert.reverts(
         authoriser.removeDapp(0, contract2.address, { from: infrastructure }), "AR: unknown dapp"
