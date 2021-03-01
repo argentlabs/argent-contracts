@@ -27,9 +27,9 @@ contract DappRegistry is IAuthoriser, Storage {
     event OwnerChanged(uint8 registryId, address newRegistryOwner);
     event TimelockChangeRequested(uint64 newSecurityPeriod);
     event TimelockChanged(uint64 newSecurityPeriod);
-    event FilterUpdated(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
-    event FilterUpdateRequested(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
-    event DappAdded(uint8 indexed registryId, address dapp, address filter, uint256 validFrom);
+    event FilterUpdated(uint8 indexed registryId, address dapp, address filter, uint256 validAfter);
+    event FilterUpdateRequested(uint8 indexed registryId, address dapp, address filter, uint256 validAfter);
+    event DappAdded(uint8 indexed registryId, address dapp, address filter, uint256 validAfter);
     event DappRemoved(uint8 indexed registryId, address dapp);
 
     modifier onlyOwner(uint8 _registryId) {
@@ -111,19 +111,19 @@ contract DappRegistry is IAuthoriser, Storage {
     * @param _filter The address of the filter contract to use.
     */
     function addFilter(uint8 _registryId, address _dapp, address _filter) external onlyOwner(_registryId) {
-        uint auth = uint(authorisations[_registryId][_dapp]); // {filter:160}{validFrom:64}
+        uint auth = uint(authorisations[_registryId][_dapp]); // {filter:160}{validAfter:64}
         require((auth >> 64) == 0, "DR: filter already set");
-        uint validFrom = auth & 0xffffffffffffffff;
-        if(validFrom == 0)  { // this is a newly authorised dapp
-            validFrom = block.timestamp + securityPeriod;
-            emit DappAdded(_registryId, _dapp, _filter, validFrom);
+        uint validAfter = auth & 0xffffffffffffffff;
+        if(validAfter == 0)  { // this is a newly authorised dapp
+            validAfter = block.timestamp + securityPeriod;
+            emit DappAdded(_registryId, _dapp, _filter, validAfter);
         } else {
-            emit FilterUpdated(_registryId, _dapp, _filter, validFrom);
+            emit FilterUpdated(_registryId, _dapp, _filter, validAfter);
         }
-        // Store the new authorisation as {filter:160}{validFrom:64}.
-        // For dapps that have previously been authorised _without_ a filter, we can update the filter immediately (i.e. keep validFrom unchanged)
+        // Store the new authorisation as {filter:160}{validAfter:64}.
+        // For dapps that have previously been authorised _without_ a filter, we can update the filter immediately (i.e. keep validAfter unchanged)
         // as the addition of a filter necessarily makes the authorisation _more_ restrictive.
-        authorisations[_registryId][_dapp] = bytes32((uint(uint160(_filter)) << 64) | validFrom);
+        authorisations[_registryId][_dapp] = bytes32((uint(uint160(_filter)) << 64) | validAfter);
     }
 
     /**
@@ -136,12 +136,12 @@ contract DappRegistry is IAuthoriser, Storage {
     * @param _filter The address of the new filter contract to use.
     */
     function requestFilterUpdate(uint8 _registryId, address _dapp, address _filter) external onlyOwner(_registryId) {
-        uint auth = uint(authorisations[_registryId][_dapp]); // {filter:160}{validFrom:64}
+        uint auth = uint(authorisations[_registryId][_dapp]); // {filter:160}{validAfter:64}
         require((auth >> 64) > 0, "AR: should use addFilter()");
-        uint validFrom = block.timestamp + securityPeriod;
-        // Store the future authorisation as {filter:160}{validFrom:64}
-        pendingFilterUpdates[_registryId][_dapp] = bytes32((uint(uint160(_filter)) << 64) | validFrom);
-        emit FilterUpdateRequested(_registryId, _dapp, _filter, validFrom);
+        uint validAfter = block.timestamp + securityPeriod;
+        // Store the future authorisation as {filter:160}{validAfter:64}
+        pendingFilterUpdates[_registryId][_dapp] = bytes32((uint(uint160(_filter)) << 64) | validAfter);
+        emit FilterUpdateRequested(_registryId, _dapp, _filter, validAfter);
     }
 
     /**
@@ -152,10 +152,10 @@ contract DappRegistry is IAuthoriser, Storage {
     function confirmFilterUpdate(uint8 _registryId, address _dapp) external {
         uint newAuth = uint(pendingFilterUpdates[_registryId][_dapp]);
         require(newAuth > 0, "AR: no pending filter update");
-        uint validFrom = newAuth & 0xffffffffffffffff;
-        require(validFrom <= block.timestamp, "AR: too early to confirm auth");
+        uint validAfter = newAuth & 0xffffffffffffffff;
+        require(validAfter <= block.timestamp, "AR: too early to confirm auth");
         pendingFilterUpdates[_registryId][_dapp] = bytes32(newAuth);
-        emit FilterUpdated(_registryId, _dapp, address(uint160(newAuth >> 64)), validFrom); 
+        emit FilterUpdated(_registryId, _dapp, address(uint160(newAuth >> 64)), validAfter); 
         delete pendingFilterUpdates[_registryId][_dapp];
     }
 
