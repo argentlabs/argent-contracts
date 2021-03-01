@@ -82,10 +82,11 @@ contract("Authorisation", (accounts) => {
   async function setupRegistries() {
     authoriser = await Authoriser.new(SECURITY_PERIOD);
     await authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryOwner);
-    await authoriser.addFilter(0, contract.address, filter.address);
-    await authoriser.addFilter(CUSTOM_REGISTRY_ID, contract2.address, filter.address, { from: registryOwner });
-    await authoriser.addFilter(0, recipient, ZERO_ADDRESS);
-    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
+    await authoriser.addDapp(0, contract.address, filter.address);
+    await authoriser.addDapp(CUSTOM_REGISTRY_ID, contract2.address, filter.address, { from: registryOwner });
+    await authoriser.addDapp(0, recipient, ZERO_ADDRESS);
+    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
+    await authoriser.addDapp(0, authoriser.address, ZERO_ADDRESS); // authorise "toggleRegistry()"
     await utils.increaseTime(SECURITY_PERIOD + 1);
     module = await ArgentModule.new(
       registry.address,
@@ -105,21 +106,24 @@ contract("Authorisation", (accounts) => {
     await setupRegistries();
   });
 
+  function encodeTransaction(to, value, data, isSpenderInData) {
+    return { to, value, data, isSpenderInData };
+  }
+
   async function enableCustomRegistry() {
     assert.equal(await authoriser.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), false, "custom registry should not be enabled");
+    const data = authoriser.contract.methods.toggleRegistry(CUSTOM_REGISTRY_ID, true).encodeABI();
+    const transaction = encodeTransaction(authoriser.address, 0, data, false);
     const txReceipt = await manager.relay(
       module,
-      "toggleDappRegistry",
-      [wallet.address, CUSTOM_REGISTRY_ID, true],
+      "multiCall",
+      [wallet.address, [transaction]],
       wallet,
-      [owner],
-      1,
-      ETH_TOKEN,
-      relayer);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "toggleDappRegistry failed");
+      [owner]);
+    const { success, error } = await utils.parseRelayReceipt(txReceipt);
+    assert.isTrue(success, `toggleRegistry failed with "${error}"`);
     assert.equal(await authoriser.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), true, "custom registry should be enabled");
-    console.log("Gas to call toggleDappRegistry: ", txReceipt.gasUsed);
+    console.log("Gas to call toggleRegistry: ", txReceipt.gasUsed);
   }
 
   async function setupWallet() {
@@ -135,10 +139,6 @@ contract("Authorisation", (accounts) => {
     await enableCustomRegistry();
   }
 
-  async function encodeTransaction(to, value, data, isSpenderInData) {
-    return { to, value, data, isSpenderInData };
-  }
-
   async function whitelist(target) {
     await module.addToWhitelist(wallet.address, target, { from: owner });
     await utils.increaseTime(3);
@@ -150,7 +150,7 @@ contract("Authorisation", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
@@ -170,8 +170,7 @@ contract("Authorisation", (accounts) => {
     });
 
     it("should send ETH to authorised address", async () => {
-      const transaction = await encodeTransaction(recipient, 100, ZERO_BYTES32, false);
-
+      const transaction = encodeTransaction(recipient, 100, ZERO_BYTES32, false);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -188,7 +187,7 @@ contract("Authorisation", (accounts) => {
 
     it("should call authorised contract when filter passes (argent registry)", async () => {
       const data = contract.contract.methods.setState(4).encodeABI();
-      const transaction = await encodeTransaction(contract.address, 0, data, false);
+      const transaction = encodeTransaction(contract.address, 0, data, false);
 
       const txReceipt = await manager.relay(
         module,
@@ -207,7 +206,7 @@ contract("Authorisation", (accounts) => {
 
     it("should call authorised contract when filter passes (community registry)", async () => {
       const data = contract2.contract.methods.setState(4).encodeABI();
-      const transaction = await encodeTransaction(contract2.address, 0, data, false);
+      const transaction = encodeTransaction(contract2.address, 0, data, false);
 
       const txReceipt = await manager.relay(
         module,
@@ -226,7 +225,7 @@ contract("Authorisation", (accounts) => {
 
     it("should block call to authorised contract when filter doesn't pass", async () => {
       const data = contract.contract.methods.setState(5).encodeABI();
-      const transaction = await encodeTransaction(contract.address, 0, data, false);
+      const transaction = encodeTransaction(contract.address, 0, data, false);
 
       const txReceipt = await manager.relay(
         module,
@@ -243,7 +242,7 @@ contract("Authorisation", (accounts) => {
     });
 
     it("should not send ETH to unauthorised address", async () => {
-      const transaction = await encodeTransaction(nonwhitelisted, 100, ZERO_BYTES32, false);
+      const transaction = encodeTransaction(nonwhitelisted, 100, ZERO_BYTES32, false);
 
       const txReceipt = await manager.relay(
         module,
@@ -270,11 +269,11 @@ contract("Authorisation", (accounts) => {
       const transactions = [];
 
       let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
-      let transaction = await encodeTransaction(erc20.address, 0, data, true);
+      let transaction = encodeTransaction(erc20.address, 0, data, true);
       transactions.push(transaction);
 
       data = contract.contract.methods.setStateAndPayToken(4, erc20.address, 100).encodeABI();
-      transaction = await encodeTransaction(contract.address, 0, data, false);
+      transaction = encodeTransaction(contract.address, 0, data, false);
       transactions.push(transaction);
 
       const txReceipt = await manager.relay(
@@ -296,11 +295,11 @@ contract("Authorisation", (accounts) => {
       const transactions = [];
 
       let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
-      let transaction = await encodeTransaction(erc20.address, 0, data, true);
+      let transaction = encodeTransaction(erc20.address, 0, data, true);
       transactions.push(transaction);
 
       data = contract.contract.methods.setStateAndPayToken(5, erc20.address, 100).encodeABI();
-      transaction = await encodeTransaction(contract.address, 0, data, false);
+      transaction = encodeTransaction(contract.address, 0, data, false);
       transactions.push(transaction);
 
       const txReceipt = await manager.relay(
@@ -323,31 +322,29 @@ contract("Authorisation", (accounts) => {
       await setupWallet();
     });
     it("should not enable non-existing registry", async () => {
+      const data = authoriser.contract.methods.toggleRegistry(66, true).encodeABI();
+      const transaction = encodeTransaction(authoriser.address, 0, data, false);
       const txReceipt = await manager.relay(
         module,
-        "toggleDappRegistry",
-        [wallet.address, 66, true],
+        "multiCall",
+        [wallet.address, [transaction]],
         wallet,
-        [owner],
-        1,
-        ETH_TOKEN,
-        relayer);
+        [owner]);
       const { success, error } = await utils.parseRelayReceipt(txReceipt);
-      assert.isFalse(success, "toggleDappRegistry should have failed");
+      assert.isFalse(success, "toggleRegistry should have failed");
       assert.equal(error, "AR: unknown registry");
     });
     it("should not enable already-enabled registry", async () => {
+      const data = authoriser.contract.methods.toggleRegistry(CUSTOM_REGISTRY_ID, true).encodeABI();
+      const transaction = encodeTransaction(authoriser.address, 0, data, false);
       const txReceipt = await manager.relay(
         module,
-        "toggleDappRegistry",
-        [wallet.address, CUSTOM_REGISTRY_ID, true],
+        "multiCall",
+        [wallet.address, [transaction]],
         wallet,
-        [owner],
-        1,
-        ETH_TOKEN,
-        relayer);
+        [owner]);
       const { success, error } = await utils.parseRelayReceipt(txReceipt);
-      assert.isFalse(success, "toggleDappRegistry should have failed");
+      assert.isFalse(success, "toggleRegistry should have failed");
       assert.equal(error, "AR: bad state change");
     });
   });
@@ -386,18 +383,18 @@ contract("Authorisation", (accounts) => {
 
   describe("timelock change", () => {
     it("can change the timelock", async () => {
-      const tl = await authoriser.securityPeriod();
+      const tl = (await authoriser.timelockPeriod()).toNumber();
       const requestedTl = 12;
       await authoriser.requestTimelockChange(requestedTl, { from: infrastructure });
       await truffleAssert.reverts(
         authoriser.confirmTimelockChange(), "AR: can't (yet) change timelock"
       );
-      let newTl = await authoriser.securityPeriod();
-      assert.equal(newTl.toString(), tl.toString(), "timelock shouldn't have changed");
+      let newTl = (await authoriser.timelockPeriod()).toNumber();
+      assert.equal(newTl, tl, "timelock shouldn't have changed");
       await utils.increaseTime(requestedTl);
       await authoriser.confirmTimelockChange();
-      newTl = await authoriser.securityPeriod();
-      assert.equal(newTl.toString(), requestedTl, "timelock change failed");
+      newTl = (await authoriser.timelockPeriod()).toNumber();
+      assert.equal(newTl, requestedTl, "timelock change failed");
 
       await authoriser.requestTimelockChange(tl, { from: infrastructure });
       await utils.increaseTime(newTl);
@@ -406,48 +403,56 @@ contract("Authorisation", (accounts) => {
 
   // management of registry content
 
-  describe("add/remove filter", () => {
-    it("should allow addFilter to override non-existing filter", async () => {
-      await authoriser.addFilter(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
-      await authoriser.addFilter(0, contract2.address, filter.address, { from: infrastructure });
+  describe("add/remove dapp", () => {
+    it("should allow registry owner to add a dapp", async () => {
+      const { validAfter } = await authoriser.getAuthorisation(0, contract2.address);
+      assert.equal(validAfter.toNumber(), 0);
+      await authoriser.addDapp(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+      const { validAfter: validAfter2 } = await authoriser.getAuthorisation(0, contract2.address);
+      assert.isTrue(validAfter2.gt(0), "Invalid validAfter after addDapp call");
     });
-    it("should not allow addFilter to override existing filter", async () => {
-      await authoriser.addFilter(0, contract2.address, filter.address, { from: infrastructure });
+    it("should not allow registry owner to add duplicate dapp", async () => {
+      await authoriser.addDapp(0, contract2.address, filter.address, { from: infrastructure });
       await truffleAssert.reverts(
-        authoriser.addFilter(0, contract2.address, filter.address, { from: infrastructure }), "DR: filter already set"
+        authoriser.addDapp(0, contract2.address, filter.address, { from: infrastructure }), "AR: dapp already added"
       );
     });
     it("should not allow non-owner to add authorisation to the Argent registry", async () => {
       await truffleAssert.reverts(
-        authoriser.addFilter(0, contract2.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
+        authoriser.addDapp(0, contract2.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
       );
     });
-    it("should allow removing a dapp", async () => {
+    it("should allow registry owner to remove a dapp", async () => {
       await truffleAssert.reverts(
         authoriser.removeDapp(0, contract2.address, { from: infrastructure }), "AR: unknown dapp"
       );
-      await authoriser.addFilter(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+      await authoriser.addDapp(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
       await authoriser.removeDapp(0, contract2.address, { from: infrastructure });
+      const { validAfter } = await authoriser.getAuthorisation(0, contract2.address);
+      assert.equal(validAfter.toNumber(), 0);
     });
   });
 
   describe("update filter", () => {
-    it("should allow changing an existing filter", async () => {
-      await authoriser.addFilter(0, contract2.address, filter.address, { from: infrastructure });
+    it("should allow registry owner to change an existing filter", async () => {
+      await authoriser.addDapp(0, contract2.address, filter.address, { from: infrastructure });
+      const { filter: filter_ } = await authoriser.getAuthorisation(0, contract2.address);
+      assert.equal(filter_, filter.address);
       await authoriser.requestFilterUpdate(0, contract2.address, filter2.address, { from: infrastructure });
       await truffleAssert.reverts(
         authoriser.confirmFilterUpdate(0, contract2.address, { from: infrastructure }),
         "AR: too early to confirm auth"
       );
-      const tl = await authoriser.securityPeriod();
-      await utils.increaseTime(tl);
+      const tl = (await authoriser.timelockPeriod()).toNumber();
+      await utils.increaseTime(tl + 1);
       await authoriser.confirmFilterUpdate(0, contract2.address, { from: infrastructure });
+      const { filter: filter2_ } = await authoriser.getAuthorisation(0, contract2.address);
+      assert.equal(filter2_, filter2.address);
     });
-    it("should not allow changing a non-existing filter", async () => {
-      await authoriser.addFilter(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+    it("should not allow changing filter for a non-existing dapp", async () => {
       await truffleAssert.reverts(
         authoriser.requestFilterUpdate(0, contract2.address, filter.address, { from: infrastructure }),
-        "AR: should use addFilter()"
+        "AR: unknown dapp"
       );
     });
     it("should not allow confirming change of a non-existing pending change", async () => {

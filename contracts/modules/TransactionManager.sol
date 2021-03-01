@@ -49,7 +49,6 @@ abstract contract TransactionManager is BaseModule {
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
-    event ToggledDappRegistry(address _wallet, uint8 _registryId, bool _enabled);
 
     // *************** External functions ************************ //
 
@@ -135,11 +134,6 @@ abstract contract TransactionManager is BaseModule {
     function removeFromWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
         setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
-    }
-
-    function toggleDappRegistry(address _wallet, uint8 _registryId, bool _enabled) external onlySelf() onlyWhenUnlocked(_wallet) {
-        authoriser.toggleRegistry(_wallet, _registryId, _enabled);
-        emit ToggledDappRegistry(_wallet, _registryId, _enabled);
     }
 
     /**
