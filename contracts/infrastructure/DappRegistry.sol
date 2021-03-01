@@ -51,9 +51,9 @@ contract DappRegistry is IAuthoriser {
     * @param _wallet The wallet
     * @param _registryId The registry id
     */
-    function isEnabledRegistry(address _wallet, uint8 _registryId) external view returns (bool) {
+    function isEnabledRegistry(address _wallet, uint8 _registryId) external view returns (bool isEnabled) {
         uint registries = uint(enabledRegistryIds[_wallet]);
-        return ((registries >> _registryId) & 1) > 0;
+        return (((registries >> _registryId) & 1) > 0) /* "is bit set for regId?" */ == (_registryId > 0) /* "not Argent registry?" */;
     }
 
     /**

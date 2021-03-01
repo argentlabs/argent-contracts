@@ -321,6 +321,23 @@ contract("Authorisation", (accounts) => {
     beforeEach(async () => {
       await setupWallet();
     });
+
+    it("should have Argent Registry enabled by default", async () => {
+      assert.equal(await authoriser.isEnabledRegistry(wallet.address, 0), true, "Argent Registry isn't enabled");
+    });
+
+    // not a test per-say, but just a note of something to be aware of
+    it("has isEnabledRegistry return true for _registryId > 255 when isEnabledRegistry(_wallet, _registryId % 256) == true", async () => {
+      const dataWithBadSig = utils.encodeFunctionCall("isEnabledRegistry(address,uint)", [wallet.address, 256 + CUSTOM_REGISTRY_ID]);
+      const correctSig = web3.utils.sha3("isEnabledRegistry(address,uint8)").slice(0, 10);
+      const data = `${correctSig}${dataWithBadSig.slice(10)}`;
+      const output = await web3.eth.call({
+        to: authoriser.address,
+        data
+      });
+      assert.equal(output.toString(), "0x0000000000000000000000000000000000000000000000000000000000000001");
+    });
+
     it("should not enable non-existing registry", async () => {
       const data = authoriser.contract.methods.toggleRegistry(66, true).encodeABI();
       const transaction = encodeTransaction(authoriser.address, 0, data, false);
