@@ -154,7 +154,7 @@ contract DappRegistry is IAuthoriser, Storage {
         require(newAuth > 0, "AR: no pending filter update");
         uint validAfter = newAuth & 0xffffffffffffffff;
         require(validAfter <= block.timestamp, "AR: too early to confirm auth");
-        pendingFilterUpdates[_registryId][_dapp] = bytes32(newAuth);
+        authorisations[_registryId][_dapp] = bytes32(newAuth);
         emit FilterUpdated(_registryId, _dapp, address(uint160(newAuth >> 64)), validAfter); 
         delete pendingFilterUpdates[_registryId][_dapp];
     }
