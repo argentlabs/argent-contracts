@@ -21,9 +21,26 @@ const TARGET_VERSION = "2.5.0";
 const MODULES_TO_ENABLE = [
   "ArgentModule",
 ];
-const MODULES_TO_DISABLE = [];
+const MODULES_TO_DISABLE = [
+  "VersionManager",
+  "MakerV2Manager",
+  "TokenExchanger",
+  "LockManager",
+  "RecoveryManager",
+  "TransferManager",
+  "NftTransfer",
+  "RelayerManager",
+  "CompoundManager",
+  "GuardianManager",
+  "ApprovedTransfer",
+  "UniswapManager",
+  "MakerManager",
+  "DappManager",
+  "ModuleManager",
+  "TokenTransfer"
+];
 
-const BACKWARD_COMPATIBILITY = 4;
+const BACKWARD_COMPATIBILITY = 5;
 
 const main = async () => {
   const { deploymentAccount, configurator, versionUploader, abiUploader } = await deployManager.getProps();
