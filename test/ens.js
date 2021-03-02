@@ -19,7 +19,7 @@ const Filter = artifacts.require("TestFilter");
 
 const truffleAssert = require("truffle-assertions");
 const utilities = require("../utils/utilities.js");
-const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
@@ -242,11 +242,12 @@ contract("ENS contracts", (accounts) => {
       const registry = await Registry.new();
       const guardianStorage = await GuardianStorage.new();
       const transferStorage = await TransferStorage.new();
-      const authoriser = await Authoriser.new();
+      const authoriser = await Authoriser.new(0);
       const filter = await Filter.new();
-      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, ensReverse.address, filter.address);
-      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, ensManager.address, filter.address);
-      await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, recipient, ZERO_ADDRESS);
+
+      await authoriser.addDapp(0, ensReverse.address, filter.address);
+      await authoriser.addDapp(0, ensManager.address, filter.address);
+      await authoriser.addDapp(0, recipient, ZERO_ADDRESS);
 
       const uniswapRouter = await UniswapV2Router01.new();
       const SECURITY_PERIOD = 2;
