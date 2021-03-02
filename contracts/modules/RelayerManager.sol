@@ -21,7 +21,6 @@ import "./common/Utils.sol";
 import "./common/GuardianUtils.sol";
 import "./common/BaseModule.sol";
 import "./common/SimpleOracle.sol";
-import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**

@@ -18,7 +18,6 @@ pragma solidity ^0.6.12;
 
 import "./common/IModule.sol";
 import "../infrastructure/IModuleRegistry.sol";
-import "../infrastructure/storage/ILockStorage.sol";
 import "../wallet/IWallet.sol";
 
 /**
