@@ -101,7 +101,6 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         }
         if (methodId == TransactionManager.multiCallWithGuardians.selector ||
             methodId == TransactionManager.multiCallWithGuardiansAndStartSession.selector ||
-            methodId == TransactionManager.toggleDappRegistry.selector ||
             methodId == SecurityManager.transferOwnership.selector)
         {
             // owner + majority of guardians

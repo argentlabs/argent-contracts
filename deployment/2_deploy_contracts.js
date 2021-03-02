@@ -59,7 +59,7 @@ async function main() {
 
   // Deploy Module Registry
   const ModuleRegistryWrapper = await ModuleRegistry.new();
-  const AuthoriserWrapper = await Authoriser.new();
+  const AuthoriserWrapper = await Authoriser.new(newConfig.settings.timelockPeriod);
   // Deploy Compound Registry
   const CompoundRegistryWrapper = await CompoundRegistry.new();
   // Deploy the ENS Resolver

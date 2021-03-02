@@ -18,7 +18,6 @@ const Authoriser = artifacts.require("DappRegistry");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
 const utils = require("../utils/utilities.js");
-const { ARGENT_WHITELIST } = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 24;
@@ -57,7 +56,7 @@ contract("RecoveryManager", (accounts) => {
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 
-    authoriser = await Authoriser.new();
+    authoriser = await Authoriser.new(0);
 
     const uniswapRouter = await UniswapV2Router01.new();
 
@@ -73,7 +72,7 @@ contract("RecoveryManager", (accounts) => {
       LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS);
+    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 

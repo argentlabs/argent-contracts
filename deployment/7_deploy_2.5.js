@@ -9,6 +9,7 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ArgentModule = artifacts.require("ArgentModule");
 const BaseWallet = artifacts.require("BaseWallet");
 const WalletFactory = artifacts.require("WalletFactory");
+const Authoriser = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
 const deployManager = require("../utils/deploy-manager.js");
@@ -34,32 +35,11 @@ const main = async () => {
   // Setup
   // //////////////////////////////////
 
-  // if (1 + 1) return;
   const { config } = configurator;
 
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
-
-  // //////////////////////////////////
-  // Deploy modules
-  // //////////////////////////////////
-
-  console.log("Deploying modules");
-
-  // Deploy ArgentModule
-  const ArgentModuleWrapper = await ArgentModule.new(
-    config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
-    config.modules.TransferStorage,
-    config.contracts.Authoriser,
-    config.defi.uniswap.v2Router,
-    config.settings.securityPeriod || 0,
-    config.settings.securityWindow || 0,
-    config.settings.recoveryPeriod || 0,
-    config.settings.lockPeriod || 0);
-
-  newModuleWrappers.push(ArgentModuleWrapper);
 
   // //////////////////////////////////
   // Deploy infrastructure
@@ -74,6 +54,30 @@ const main = async () => {
     BaseWalletWrapper.address, config.modules.GuardianStorage, config.backend.refundCollector
   );
   console.log("Deployed WalletFactory at ", WalletFactoryWrapper.address);
+
+  // Deploy Authoriser
+  const AuthoriserWrapper = await Authoriser.new(config.settings.timelockPeriod);
+  console.log("Deployed Authoriser at ", AuthoriserWrapper.address);
+
+  // //////////////////////////////////
+  // Deploy modules
+  // //////////////////////////////////
+
+  console.log("Deploying modules");
+
+  // Deploy ArgentModule
+  const ArgentModuleWrapper = await ArgentModule.new(
+    config.contracts.ModuleRegistry,
+    config.modules.GuardianStorage,
+    config.modules.TransferStorage,
+    AuthoriserWrapper.address,
+    config.defi.uniswap.v2Router,
+    config.settings.securityPeriod || 0,
+    config.settings.securityWindow || 0,
+    config.settings.recoveryPeriod || 0,
+    config.settings.lockPeriod || 0);
+
+  newModuleWrappers.push(ArgentModuleWrapper);
 
   // //////////////////////////////////
   // Set contracts' managers
@@ -103,6 +107,7 @@ const main = async () => {
   configurator.updateInfrastructureAddresses({
     WalletFactory: WalletFactoryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
+    Authoriser: AuthoriserWrapper.address,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -116,6 +121,7 @@ const main = async () => {
     abiUploader.upload(ArgentModuleWrapper, "modules"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
+    abiUploader.upload(AuthoriserWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////

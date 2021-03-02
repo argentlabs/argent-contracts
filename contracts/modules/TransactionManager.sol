@@ -47,7 +47,6 @@ abstract contract TransactionManager is BaseModule {
     event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
-    event ToggledDappRegistry(address _wallet, bytes32 _registry, bool isEnabled);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
 
@@ -67,7 +66,7 @@ abstract contract TransactionManager is BaseModule {
             address spender = recoverSpender(_wallet, _transactions[i]);
             require(
                 isWhitelisted(_wallet, spender) ||
-                isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
+                authoriser.isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
@@ -135,11 +134,6 @@ abstract contract TransactionManager is BaseModule {
     function removeFromWhitelist(address _wallet, address _target) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
         setWhitelist(_wallet, _target, 0);
         emit RemovedFromWhitelist(_wallet, _target);
-    }
-
-    function toggleDappRegistry(address _wallet, bytes32 _registry) external onlySelf() onlyWhenUnlocked(_wallet) {
-        bool isEnabled = authoriser.toggle(_wallet, _registry);
-        emit ToggledDappRegistry(_wallet, _registry, isEnabled);
     }
 
     /**
@@ -249,21 +243,11 @@ abstract contract TransactionManager is BaseModule {
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
         if (_transaction.isSpenderInData) {
             require(_transaction.value == 0, "TM: unsecure call");
-            // transfer(to, value), transferFrom(wallet, to, value),
+           // transfer(to, value), transferFrom(wallet, to, value), approve(to, value), setApprovalForAll(to, approved)
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
             return first == _wallet ? second : first;
         }
         return _transaction.to;
-    }
-
-    function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) internal view returns (bool) {
-        if (_to == _spender) {
-            return authoriser.authorise(_wallet, _to, _data); 
-            // do we need to block calls to the wallet or modules?
-            // we do need to block calls to modules for the purposes of not being able to bypass calls to startSession 
-        } else {
-            return authoriser.authorise(_wallet, _spender, "");
-        }
     }
 
     function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {

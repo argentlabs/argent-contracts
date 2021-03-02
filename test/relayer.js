@@ -24,7 +24,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -76,7 +76,7 @@ contract("ArgentModule", (accounts) => {
     registry = await Registry.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
-    authoriser = await Authoriser.new();
+    authoriser = await Authoriser.new(0);
 
     module = await ArgentModule.new(
       registry.address,
@@ -90,7 +90,7 @@ contract("ArgentModule", (accounts) => {
       LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, relayer, ZERO_ADDRESS);
+    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 

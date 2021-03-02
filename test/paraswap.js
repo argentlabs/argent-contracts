@@ -40,7 +40,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, ARGENT_WHITELIST } = require("../utils/utilities.js");
+const { ETH_TOKEN } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -136,7 +136,7 @@ contract("ArgentModule", (accounts) => {
     tokenPriceRegistry = await TokenPriceRegistry.new();
     await tokenPriceRegistry.setTradableForTokenList([tokenA.address], [true]);
 
-    authoriser = await Authoriser.new();
+    authoriser = await Authoriser.new(0);
 
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -159,8 +159,8 @@ contract("ArgentModule", (accounts) => {
     manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
 
     filter = await Filter.new(tokenPriceRegistry.address);
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, paraswap.address, filter.address);
-    await authoriser.addAuthorisationToRegistry(ARGENT_WHITELIST, paraswapProxy, ZERO_ADDRESS);
+    await authoriser.addDapp(0, paraswap.address, filter.address);
+    await authoriser.addDapp(0, paraswapProxy, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
