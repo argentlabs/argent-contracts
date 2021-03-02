@@ -43,8 +43,6 @@ abstract contract TransactionManager is BaseModule {
 
     // *************** Events *************************** //
 
-    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
-    event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
