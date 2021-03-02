@@ -107,10 +107,11 @@ contract DappRegistry is IAuthoriser {
         require(registryOwners[_registryId] != address(0), "AR: unknown registry");
         uint registries = uint(enabledRegistryIds[msg.sender]);
         bool current = ((registries >> _registryId) & 1) > 0;
-        require(current != _enabled, "AR: bad state change" );
-        enabledRegistryIds[msg.sender] = bytes32(registries ^ (uint(1) << _registryId)); // toggle [_registryId]^th bit
+        if(current != _enabled) {
+            enabledRegistryIds[msg.sender] = bytes32(registries ^ (uint(1) << _registryId)); // toggle [_registryId]^th bit
+        }
         emit ToggledRegistry(msg.sender, _registryId, _enabled);
-  }
+    }
 
     /**************  Management of registry list  *****************/
 

@@ -351,19 +351,6 @@ contract("Authorisation", (accounts) => {
       assert.isFalse(success, "toggleRegistry should have failed");
       assert.equal(error, "AR: unknown registry");
     });
-    it("should not enable already-enabled registry", async () => {
-      const data = authoriser.contract.methods.toggleRegistry(CUSTOM_REGISTRY_ID, true).encodeABI();
-      const transaction = encodeTransaction(authoriser.address, 0, data, false);
-      const txReceipt = await manager.relay(
-        module,
-        "multiCall",
-        [wallet.address, [transaction]],
-        wallet,
-        [owner]);
-      const { success, error } = await utils.parseRelayReceipt(txReceipt);
-      assert.isFalse(success, "toggleRegistry should have failed");
-      assert.equal(error, "AR: bad state change");
-    });
   });
 
   // management of registry contract
