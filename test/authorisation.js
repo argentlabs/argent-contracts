@@ -326,7 +326,7 @@ contract("Authorisation", (accounts) => {
       assert.equal(await authoriser.isEnabledRegistry(wallet.address, 0), true, "Argent Registry isn't enabled");
     });
 
-    // not a test per-say, but just a note of something to be aware of
+    // not a test per se, but just a note of something to be aware of
     it("has isEnabledRegistry return true for _registryId > 255 when isEnabledRegistry(_wallet, _registryId % 256) == true", async () => {
       const dataWithBadSig = utils.encodeFunctionCall("isEnabledRegistry(address,uint)", [wallet.address, 256 + CUSTOM_REGISTRY_ID]);
       const correctSig = web3.utils.sha3("isEnabledRegistry(address,uint8)").slice(0, 10);
