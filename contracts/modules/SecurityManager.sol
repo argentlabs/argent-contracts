@@ -123,7 +123,7 @@ abstract contract SecurityManager is BaseModule {
     /**
      * @notice Lets the guardians start the execution of the recovery procedure.
      * Once triggered the recovery is pending for the security period before it can be finalised.
-     * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2).
+     * Must be confirmed by N guardians, where N = ceil(Nb Guardians / 2).
      * @param _wallet The target wallet.
      * @param _recovery The address to which ownership should be transferred.
      */
@@ -154,7 +154,7 @@ abstract contract SecurityManager is BaseModule {
 
     /**
      * @notice Lets the owner cancel an ongoing recovery procedure.
-     * Must be confirmed by N guardians, where N = ((Nb Guardian + 1) / 2) - 1.
+     * Must be confirmed by N guardians, where N = ceil(Nb Guardian at executeRecovery + 1) / 2) - 1.
      * @param _wallet The target wallet.
      */
     function cancelRecovery(address _wallet) external onlySelf() onlyWhenRecovery(_wallet) {

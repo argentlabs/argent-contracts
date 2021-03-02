@@ -27,6 +27,7 @@ import "../../lib/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
+
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     bytes4 private constant ERC1155_RECEIVED = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
@@ -59,6 +60,13 @@ abstract contract TransactionManager is BaseModule {
 
     // *************** External functions ************************ //
 
+    /**
+     * @notice Makes the target wallet execute a sequence of transactions authorised by the wallet owner.
+     * The method reverts if any of the inner transactions reverts.
+     * The method reverts if any of the inner transaction is not to a trusted contact or an authorised dapp.
+     * @param _wallet The target wallet.
+     * @param _transactions The sequence of transactions.
+     */
     function multiCall(
         address _wallet,
         Call[] calldata _transactions
@@ -79,6 +87,12 @@ abstract contract TransactionManager is BaseModule {
         return results;
     }
 
+    /**
+     * @notice Makes the target wallet execute a sequence of transactions authorised by a session key.
+     * The method reverts if any of the inner transactions reverts.
+     * @param _wallet The target wallet.
+     * @param _transactions The sequence of transactions.
+     */
     function multiCallWithSession(
         address _wallet,
         Call[] calldata _transactions
@@ -91,6 +105,12 @@ abstract contract TransactionManager is BaseModule {
         multiCallWithApproval(_wallet, _transactions);
     }
 
+    /**
+     * @notice Makes the target wallet execute a sequence of transactions approved by a majority of guardians.
+     * The method reverts if any of the inner transactions reverts.
+     * @param _wallet The target wallet.
+     * @param _transactions The sequence of transactions.
+     */
     function multiCallWithGuardians(
         address _wallet,
         Call[] calldata _transactions
@@ -103,6 +123,13 @@ abstract contract TransactionManager is BaseModule {
         multiCallWithApproval(_wallet, _transactions);
     }
 
+    /**
+     * @notice Makes the target wallet execute a sequence of transactions approved by a majority of guardians.
+     * The method reverts if any of the inner transactions reverts.
+     * Upon success a new session is started.
+     * @param _wallet The target wallet.
+     * @param _transactions The sequence of transactions.
+     */
     function multiCallWithGuardiansAndStartSession(
         address _wallet,
         Call[] calldata _transactions,
@@ -119,7 +146,7 @@ abstract contract TransactionManager is BaseModule {
     }
 
     /**
-     * @notice Adds an address to the whitelist of a wallet.
+     * @notice Adds an address to the list of trusted contacts.
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
@@ -134,7 +161,7 @@ abstract contract TransactionManager is BaseModule {
     }
 
     /**
-     * @notice Removes an address from the whitelist of a wallet.
+     * @notice Removes an address from the list of trusted contacts.
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
@@ -144,10 +171,10 @@ abstract contract TransactionManager is BaseModule {
     }
 
     /**
-    * @notice Checks if an address is whitelisted for a wallet.
+    * @notice Checks if an address is a trusted contact for a wallet.
     * @param _wallet The target wallet.
     * @param _target The address.
-    * @return _isWhitelisted true if the address is whitelisted.
+    * @return _isWhitelisted true if the address is a trusted contact.
     */
     function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
