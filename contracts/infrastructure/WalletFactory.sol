@@ -18,7 +18,7 @@ pragma solidity ^0.6.12;
 
 import "../wallet/Proxy.sol";
 import "../wallet/BaseWallet.sol";
-import "./base/ManagedV2.sol";
+import "./base/Managed.sol";
 import "./storage/IGuardianStorage.sol";
 import "../modules/common/Utils.sol";
 
@@ -27,7 +27,7 @@ import "../modules/common/Utils.sol";
  * @notice The WalletFactory contract creates and assigns wallets to accounts.
  * @author Julien Niset, Olivier VDB - <julien@argent.xyz>, <olivier@argent.xyz>
  */
-contract WalletFactory is ManagedV2 {
+contract WalletFactory is Managed {
 
     address constant internal ETH_TOKEN = address(0);
 
@@ -164,14 +164,7 @@ contract WalletFactory is ManagedV2 {
      * @param _modules The list of modules for wallet.
      * @param _guardian The guardian address.
      */
-    function configureWallet(
-        BaseWallet _wallet,
-        address _owner,
-        address[] calldata _modules,
-        address _guardian
-    )
-        internal
-    {
+    function configureWallet(BaseWallet _wallet, address _owner, address[] calldata _modules, address _guardian) internal {
         // add the factory to modules so it can add a guardian and upgrade the wallet to the required version
         address[] memory extendedModules = new address[](_modules.length + 1);
         extendedModules[0] = address(this);
@@ -218,10 +211,7 @@ contract WalletFactory is ManagedV2 {
      * @param _wallet The wallet address
      * @param _managerSignature The manager's signature
      */
-    function validateAuthorisedCreation(
-        address _wallet,
-        bytes memory _managerSignature
-    ) internal view {
+    function validateAuthorisedCreation(address _wallet, bytes memory _managerSignature) internal view {
         address manager;
         if(_managerSignature.length != 65) {
             manager = msg.sender;

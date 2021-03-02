@@ -14,14 +14,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.12;
 
-import "../../infrastructure/base/Owned.sol";
+import "./Owned.sol";
 
 /**
  * @title Managed
  * @notice Basic contract that defines a set of managers. Only the owner can add/remove managers.
- * @author Julien Niset - <julien@argent.xyz>
+ * @author Julien Niset, Olivier VDB - <julien@argent.xyz>, <olivier@argent.xyz>
  */
 contract Managed is Owned {
 
@@ -55,7 +55,7 @@ contract Managed is Owned {
     * @notice Revokes a manager.
     * @param _manager The address of the manager.
     */
-    function revokeManager(address _manager) external onlyOwner {
+    function revokeManager(address _manager) external virtual onlyOwner {
         require(managers[_manager] == true, "M: Target must be an existing manager");
         delete managers[_manager];
         emit ManagerRevoked(_manager);

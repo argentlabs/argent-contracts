@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.5.4;
+pragma solidity ^0.6.12;
 import "../base/Managed.sol";
-import "./ENSResolver.sol";
+import "./IENSResolver.sol";
 
 /**
  * @title ArgentENSResolver
@@ -24,7 +24,7 @@ import "./ENSResolver.sol";
  * to the list of resolved names.
  * @author Julien Niset - <julien@argent.im>
  */
-contract ArgentENSResolver is Owned, Managed, ENSResolver {
+contract ArgentENSResolver is Owned, Managed, IENSResolver {
 
     bytes4 constant SUPPORT_INTERFACE_ID = 0x01ffc9a7;
     bytes4 constant ADDR_INTERFACE_ID = 0x3b3b57de;
@@ -45,7 +45,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The node to update.
      * @param _addr The address to set.
      */
-    function setAddr(bytes32 _node, address _addr) public onlyManager {
+    function setAddr(bytes32 _node, address _addr) public override onlyManager {
         records[_node].addr = _addr;
         emit AddrChanged(_node, _addr);
     }
@@ -55,7 +55,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The node to update.
      * @param _name The name to set.
      */
-    function setName(bytes32 _node, string memory _name) public onlyManager {
+    function setName(bytes32 _node, string memory _name) public override onlyManager {
         records[_node].name = _name;
         emit NameChanged(_node, _name);
     }
@@ -65,7 +65,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The target node.
      * @return the address of the target node.
      */
-    function addr(bytes32 _node) public view returns (address) {
+    function addr(bytes32 _node) public view override returns (address) {
         return records[_node].addr;
     }
 
@@ -74,7 +74,7 @@ contract ArgentENSResolver is Owned, Managed, ENSResolver {
      * @param _node The target ENS node.
      * @return the name of the target ENS node.
      */
-    function name(bytes32 _node) public view returns (string memory) {
+    function name(bytes32 _node) public view override returns (string memory) {
         return records[_node].name;
     }
 
