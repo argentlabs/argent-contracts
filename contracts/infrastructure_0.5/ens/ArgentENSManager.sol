@@ -99,10 +99,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
         ensResolver.setAddr(node, _owner);
 
         // Reverse ENS
-        strings.slice[] memory parts = new strings.slice[](2);
-        parts[0] = _label.toSlice();
-        parts[1] = rootName.toSlice();
-        string memory name = ".".toSlice().join(parts);
+        string memory name = string(abi.encodePacked(_label, ".", rootName));
         ENSReverseRegistrar reverseRegistrar = ENSReverseRegistrar(_getENSReverseRegistrar());
         bytes32 reverseNode = reverseRegistrar.node(_owner);
         ensResolver.setName(reverseNode, name);
