@@ -14,7 +14,7 @@ const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("DappRegistry");
+const DappRegistry = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
@@ -45,7 +45,7 @@ contract("TransactionManager", (accounts) => {
   let module;
   let newModule;
   let upgrader1;
-  let authoriser;
+  let dappRegistry;
 
   let wallet;
   let walletImplementation;
@@ -56,7 +56,7 @@ contract("TransactionManager", (accounts) => {
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 
-    authoriser = await Authoriser.new(0);
+    dappRegistry = await DappRegistry.new(0);
 
     const uniswapRouter = await UniswapV2Router01.new();
 
@@ -64,7 +64,7 @@ contract("TransactionManager", (accounts) => {
       registry.address,
       guardianStorage.address,
       transferStorage.address,
-      authoriser.address,
+      dappRegistry.address,
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
@@ -75,7 +75,7 @@ contract("TransactionManager", (accounts) => {
       registry.address,
       guardianStorage.address,
       transferStorage.address,
-      authoriser.address,
+      dappRegistry.address,
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
@@ -91,7 +91,7 @@ contract("TransactionManager", (accounts) => {
     await registry.registerModule(newModule.address, ethers.utils.formatBytes32String("NewArgentModule"));
     await registry.registerModule(upgrader1.address, ethers.utils.formatBytes32String("Upgrader"));
 
-    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 

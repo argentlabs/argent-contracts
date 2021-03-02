@@ -13,7 +13,7 @@ const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("DappRegistry");
+const DappRegistry = artifacts.require("DappRegistry");
 const ERC20 = artifacts.require("TestERC20");
 const TestContract = artifacts.require("TestContract");
 const Filter = artifacts.require("TestFilter");
@@ -56,7 +56,7 @@ contract("Authorisation", (accounts) => {
   let erc20;
   let filter;
   let filter2;
-  let authoriser;
+  let dappRegistry;
   let contract;
   let contract2;
   let uniswapRouter;
@@ -80,19 +80,19 @@ contract("Authorisation", (accounts) => {
   });
 
   async function setupRegistries() {
-    authoriser = await Authoriser.new(SECURITY_PERIOD);
-    await authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryOwner);
-    await authoriser.addDapp(0, contract.address, filter.address);
-    await authoriser.addDapp(CUSTOM_REGISTRY_ID, contract2.address, filter.address, { from: registryOwner });
-    await authoriser.addDapp(0, recipient, ZERO_ADDRESS);
-    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
-    await authoriser.addDapp(0, authoriser.address, ZERO_ADDRESS); // authorise "toggleRegistry()"
+    dappRegistry = await DappRegistry.new(SECURITY_PERIOD);
+    await dappRegistry.createRegistry(CUSTOM_REGISTRY_ID, registryOwner);
+    await dappRegistry.addDapp(0, contract.address, filter.address);
+    await dappRegistry.addDapp(CUSTOM_REGISTRY_ID, contract2.address, filter.address, { from: registryOwner });
+    await dappRegistry.addDapp(0, recipient, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, dappRegistry.address, ZERO_ADDRESS); // authorise "toggleRegistry()"
     await utils.increaseTime(SECURITY_PERIOD + 1);
     module = await ArgentModule.new(
       registry.address,
       guardianStorage.address,
       transferStorage.address,
-      authoriser.address,
+      dappRegistry.address,
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
@@ -111,9 +111,9 @@ contract("Authorisation", (accounts) => {
   }
 
   async function enableCustomRegistry() {
-    assert.equal(await authoriser.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), false, "custom registry should not be enabled");
-    const data = authoriser.contract.methods.toggleRegistry(CUSTOM_REGISTRY_ID, true).encodeABI();
-    const transaction = encodeTransaction(authoriser.address, 0, data, false);
+    assert.equal(await dappRegistry.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), false, "custom registry should not be enabled");
+    const data = dappRegistry.contract.methods.toggleRegistry(CUSTOM_REGISTRY_ID, true).encodeABI();
+    const transaction = encodeTransaction(dappRegistry.address, 0, data, false);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
@@ -122,7 +122,7 @@ contract("Authorisation", (accounts) => {
       [owner]);
     const { success, error } = await utils.parseRelayReceipt(txReceipt);
     assert.isTrue(success, `toggleRegistry failed with "${error}"`);
-    assert.equal(await authoriser.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), true, "custom registry should be enabled");
+    assert.equal(await dappRegistry.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), true, "custom registry should be enabled");
     console.log("Gas to call toggleRegistry: ", txReceipt.gasUsed);
   }
 
@@ -323,7 +323,7 @@ contract("Authorisation", (accounts) => {
     });
 
     it("should have Argent Registry enabled by default", async () => {
-      assert.equal(await authoriser.isEnabledRegistry(wallet.address, 0), true, "Argent Registry isn't enabled");
+      assert.equal(await dappRegistry.isEnabledRegistry(wallet.address, 0), true, "Argent Registry isn't enabled");
     });
 
     // not a test per se, but just a note of something to be aware of
@@ -332,15 +332,15 @@ contract("Authorisation", (accounts) => {
       const correctSig = web3.utils.sha3("isEnabledRegistry(address,uint8)").slice(0, 10);
       const data = `${correctSig}${dataWithBadSig.slice(10)}`;
       const output = await web3.eth.call({
-        to: authoriser.address,
+        to: dappRegistry.address,
         data
       });
       assert.equal(output.toString(), "0x0000000000000000000000000000000000000000000000000000000000000001");
     });
 
     it("should not enable non-existing registry", async () => {
-      const data = authoriser.contract.methods.toggleRegistry(66, true).encodeABI();
-      const transaction = encodeTransaction(authoriser.address, 0, data, false);
+      const data = dappRegistry.contract.methods.toggleRegistry(66, true).encodeABI();
+      const transaction = encodeTransaction(dappRegistry.address, 0, data, false);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -358,49 +358,49 @@ contract("Authorisation", (accounts) => {
   describe("add registry", () => {
     it("should not create a duplicate registry", async () => {
       await truffleAssert.reverts(
-        authoriser.createRegistry(CUSTOM_REGISTRY_ID, registryOwner, { from: infrastructure }), "AR: duplicate registry"
+        dappRegistry.createRegistry(CUSTOM_REGISTRY_ID, registryOwner, { from: infrastructure }), "AR: duplicate registry"
       );
     });
     it("should not create a registry without owner", async () => {
       await truffleAssert.reverts(
-        authoriser.createRegistry(CUSTOM_REGISTRY_ID, ZERO_ADDRESS, { from: infrastructure }), "AR: registry owner is 0"
+        dappRegistry.createRegistry(CUSTOM_REGISTRY_ID, ZERO_ADDRESS, { from: infrastructure }), "AR: registry owner is 0"
       );
     });
   });
 
   describe("owner change", () => {
     it("changes a registry owner", async () => {
-      await authoriser.changeOwner(0, recipient);
-      let regOwner = await authoriser.registryOwners(0, { from: infrastructure });
+      await dappRegistry.changeOwner(0, recipient);
+      let regOwner = await dappRegistry.registryOwners(0, { from: infrastructure });
       assert.equal(regOwner, recipient, "registry owner change failed");
-      await authoriser.changeOwner(0, infrastructure, { from: recipient });
-      regOwner = await authoriser.registryOwners(0);
+      await dappRegistry.changeOwner(0, infrastructure, { from: recipient });
+      regOwner = await dappRegistry.registryOwners(0);
       assert.equal(regOwner, infrastructure, "registry owner change failed");
     });
 
     it("can't change a registry to null owner", async () => {
       await truffleAssert.reverts(
-        authoriser.changeOwner(0, ZERO_ADDRESS, { from: infrastructure }), "AR: new registry owner is 0"
+        dappRegistry.changeOwner(0, ZERO_ADDRESS, { from: infrastructure }), "AR: new registry owner is 0"
       );
     });
   });
 
   describe("timelock change", () => {
     it("can change the timelock", async () => {
-      const tl = (await authoriser.timelockPeriod()).toNumber();
+      const tl = (await dappRegistry.timelockPeriod()).toNumber();
       const requestedTl = 12;
-      await authoriser.requestTimelockChange(requestedTl, { from: infrastructure });
+      await dappRegistry.requestTimelockChange(requestedTl, { from: infrastructure });
       await truffleAssert.reverts(
-        authoriser.confirmTimelockChange(), "AR: can't (yet) change timelock"
+        dappRegistry.confirmTimelockChange(), "AR: can't (yet) change timelock"
       );
-      let newTl = (await authoriser.timelockPeriod()).toNumber();
+      let newTl = (await dappRegistry.timelockPeriod()).toNumber();
       assert.equal(newTl, tl, "timelock shouldn't have changed");
       await utils.increaseTime(requestedTl);
-      await authoriser.confirmTimelockChange();
-      newTl = (await authoriser.timelockPeriod()).toNumber();
+      await dappRegistry.confirmTimelockChange();
+      newTl = (await dappRegistry.timelockPeriod()).toNumber();
       assert.equal(newTl, requestedTl, "timelock change failed");
 
-      await authoriser.requestTimelockChange(tl, { from: infrastructure });
+      await dappRegistry.requestTimelockChange(tl, { from: infrastructure });
       await utils.increaseTime(newTl);
     });
   });
@@ -409,64 +409,64 @@ contract("Authorisation", (accounts) => {
 
   describe("add/remove dapp", () => {
     it("should allow registry owner to add a dapp", async () => {
-      const { validAfter } = await authoriser.getAuthorisation(0, contract2.address);
+      const { validAfter } = await dappRegistry.getAuthorisation(0, contract2.address);
       assert.equal(validAfter.toNumber(), 0);
-      await authoriser.addDapp(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
-      const { validAfter: validAfter2 } = await authoriser.getAuthorisation(0, contract2.address);
+      await dappRegistry.addDapp(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+      const { validAfter: validAfter2 } = await dappRegistry.getAuthorisation(0, contract2.address);
       assert.isTrue(validAfter2.gt(0), "Invalid validAfter after addDapp call");
     });
     it("should not allow registry owner to add duplicate dapp", async () => {
-      await authoriser.addDapp(0, contract2.address, filter.address, { from: infrastructure });
+      await dappRegistry.addDapp(0, contract2.address, filter.address, { from: infrastructure });
       await truffleAssert.reverts(
-        authoriser.addDapp(0, contract2.address, filter.address, { from: infrastructure }), "AR: dapp already added"
+        dappRegistry.addDapp(0, contract2.address, filter.address, { from: infrastructure }), "AR: dapp already added"
       );
     });
     it("should not allow non-owner to add authorisation to the Argent registry", async () => {
       await truffleAssert.reverts(
-        authoriser.addDapp(0, contract2.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
+        dappRegistry.addDapp(0, contract2.address, filter.address, { from: nonwhitelisted }), "AR: sender != registry owner"
       );
     });
     it("should not allow adding authorisation to unknown registry", async () => {
       await truffleAssert.reverts(
-        authoriser.addDapp(66, contract2.address, filter.address, { from: nonwhitelisted }), "AR: unknown registry"
+        dappRegistry.addDapp(66, contract2.address, filter.address, { from: nonwhitelisted }), "AR: unknown registry"
       );
     });
     it("should allow registry owner to remove a dapp", async () => {
       await truffleAssert.reverts(
-        authoriser.removeDapp(0, contract2.address, { from: infrastructure }), "AR: unknown dapp"
+        dappRegistry.removeDapp(0, contract2.address, { from: infrastructure }), "AR: unknown dapp"
       );
-      await authoriser.addDapp(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
-      await authoriser.removeDapp(0, contract2.address, { from: infrastructure });
-      const { validAfter } = await authoriser.getAuthorisation(0, contract2.address);
+      await dappRegistry.addDapp(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+      await dappRegistry.removeDapp(0, contract2.address, { from: infrastructure });
+      const { validAfter } = await dappRegistry.getAuthorisation(0, contract2.address);
       assert.equal(validAfter.toNumber(), 0);
     });
   });
 
   describe("update filter", () => {
     it("should allow registry owner to change an existing filter", async () => {
-      await authoriser.addDapp(0, contract2.address, filter.address, { from: infrastructure });
-      const { filter: filter_ } = await authoriser.getAuthorisation(0, contract2.address);
+      await dappRegistry.addDapp(0, contract2.address, filter.address, { from: infrastructure });
+      const { filter: filter_ } = await dappRegistry.getAuthorisation(0, contract2.address);
       assert.equal(filter_, filter.address);
-      await authoriser.requestFilterUpdate(0, contract2.address, filter2.address, { from: infrastructure });
+      await dappRegistry.requestFilterUpdate(0, contract2.address, filter2.address, { from: infrastructure });
       await truffleAssert.reverts(
-        authoriser.confirmFilterUpdate(0, contract2.address, { from: infrastructure }),
+        dappRegistry.confirmFilterUpdate(0, contract2.address, { from: infrastructure }),
         "AR: too early to confirm auth"
       );
-      const tl = (await authoriser.timelockPeriod()).toNumber();
+      const tl = (await dappRegistry.timelockPeriod()).toNumber();
       await utils.increaseTime(tl + 1);
-      await authoriser.confirmFilterUpdate(0, contract2.address, { from: infrastructure });
-      const { filter: filter2_ } = await authoriser.getAuthorisation(0, contract2.address);
+      await dappRegistry.confirmFilterUpdate(0, contract2.address, { from: infrastructure });
+      const { filter: filter2_ } = await dappRegistry.getAuthorisation(0, contract2.address);
       assert.equal(filter2_, filter2.address);
     });
     it("should not allow changing filter for a non-existing dapp", async () => {
       await truffleAssert.reverts(
-        authoriser.requestFilterUpdate(0, contract2.address, filter.address, { from: infrastructure }),
+        dappRegistry.requestFilterUpdate(0, contract2.address, filter.address, { from: infrastructure }),
         "AR: unknown dapp"
       );
     });
     it("should not allow confirming change of a non-existing pending change", async () => {
       await truffleAssert.reverts(
-        authoriser.confirmFilterUpdate(0, contract2.address, { from: infrastructure }),
+        dappRegistry.confirmFilterUpdate(0, contract2.address, { from: infrastructure }),
         "AR: no pending filter update"
       );
     });

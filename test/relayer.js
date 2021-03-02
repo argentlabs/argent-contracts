@@ -19,7 +19,7 @@ const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModuleTest");
-const Authoriser = artifacts.require("DappRegistry");
+const DappRegistry = artifacts.require("DappRegistry");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const ERC20 = artifacts.require("TestERC20");
 
@@ -51,7 +51,7 @@ contract("ArgentModule", (accounts) => {
   let wallet;
   let walletImplementation;
   let token;
-  let authoriser;
+  let dappRegistry;
   let tokenPriceRegistry;
 
   before(async () => {
@@ -76,13 +76,13 @@ contract("ArgentModule", (accounts) => {
     registry = await Registry.new();
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
-    authoriser = await Authoriser.new(0);
+    dappRegistry = await DappRegistry.new(0);
 
     module = await ArgentModule.new(
       registry.address,
       guardianStorage.address,
       transferStorage.address,
-      authoriser.address,
+      dappRegistry.address,
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
@@ -90,7 +90,7 @@ contract("ArgentModule", (accounts) => {
       LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 

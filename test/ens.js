@@ -13,7 +13,7 @@ const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("DappRegistry");
+const DappRegistry = artifacts.require("DappRegistry");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 const Filter = artifacts.require("TestFilter");
 
@@ -242,12 +242,12 @@ contract("ENS contracts", (accounts) => {
       const registry = await Registry.new();
       const guardianStorage = await GuardianStorage.new();
       const transferStorage = await TransferStorage.new();
-      const authoriser = await Authoriser.new(0);
+      const dappRegistry = await DappRegistry.new(0);
       const filter = await Filter.new();
 
-      await authoriser.addDapp(0, ensReverse.address, filter.address);
-      await authoriser.addDapp(0, ensManager.address, filter.address);
-      await authoriser.addDapp(0, recipient, ZERO_ADDRESS);
+      await dappRegistry.addDapp(0, ensReverse.address, filter.address);
+      await dappRegistry.addDapp(0, ensManager.address, filter.address);
+      await dappRegistry.addDapp(0, recipient, ZERO_ADDRESS);
 
       const uniswapRouter = await UniswapV2Router01.new();
       const SECURITY_PERIOD = 2;
@@ -259,7 +259,7 @@ contract("ENS contracts", (accounts) => {
         registry.address,
         guardianStorage.address,
         transferStorage.address,
-        authoriser.address,
+        dappRegistry.address,
         uniswapRouter.address,
         SECURITY_PERIOD,
         SECURITY_WINDOW,

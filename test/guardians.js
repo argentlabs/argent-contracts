@@ -14,7 +14,7 @@ const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("DappRegistry");
+const DappRegistry = artifacts.require("DappRegistry");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 const DumbContract = artifacts.require("TestContract");
 
@@ -46,7 +46,7 @@ contract("GuardianManager", (accounts) => {
   let module;
   let wallet;
   let walletImplementation;
-  let authoriser;
+  let dappRegistry;
 
   before(async () => {
     registry = await Registry.new();
@@ -54,7 +54,7 @@ contract("GuardianManager", (accounts) => {
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
 
-    authoriser = await Authoriser.new(0);
+    dappRegistry = await DappRegistry.new(0);
 
     const uniswapRouter = await UniswapV2Router01.new();
 
@@ -62,7 +62,7 @@ contract("GuardianManager", (accounts) => {
       registry.address,
       guardianStorage.address,
       transferStorage.address,
-      authoriser.address,
+      dappRegistry.address,
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
@@ -70,7 +70,7 @@ contract("GuardianManager", (accounts) => {
       LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 

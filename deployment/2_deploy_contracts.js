@@ -7,7 +7,7 @@ const LockStorage = artifacts.require("LockStorage");
 
 const BaseWallet = artifacts.require("BaseWallet");
 const ModuleRegistry = artifacts.require("ModuleRegistry");
-const Authoriser = artifacts.require("DappRegistry");
+const DappRegistry = artifacts.require("DappRegistry");
 const CompoundRegistry = artifacts.require("CompoundRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 const ENS = artifacts.require("ENSRegistryWithFallback");
@@ -59,7 +59,7 @@ async function main() {
 
   // Deploy Module Registry
   const ModuleRegistryWrapper = await ModuleRegistry.new();
-  const AuthoriserWrapper = await Authoriser.new(newConfig.settings.timelockPeriod);
+  const DappRegistryWrapper = await DappRegistry.new(newConfig.settings.timelockPeriod);
   // Deploy Compound Registry
   const CompoundRegistryWrapper = await CompoundRegistry.new();
   // Deploy the ENS Resolver
@@ -133,7 +133,7 @@ async function main() {
     ENSResolver: ENSResolverWrapper.address,
     ENSManager: ENSManagerWrapper.address,
     ModuleRegistry: ModuleRegistryWrapper.address,
-    Authoriser: AuthoriserWrapper.address,
+    DappRegistry: DappRegistryWrapper.address,
     CompoundRegistry: CompoundRegistryWrapper.address,
     DexRegistry: DexRegistryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
@@ -150,7 +150,7 @@ async function main() {
     abiUploader.upload(ENSResolverWrapper, "contracts"),
     abiUploader.upload(ENSManagerWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
-    abiUploader.upload(AuthoriserWrapper, "contracts"),
+    abiUploader.upload(DappRegistryWrapper, "contracts"),
     abiUploader.upload(CompoundRegistryWrapper, "contracts"),
     abiUploader.upload(DexRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),

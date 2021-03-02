@@ -31,7 +31,7 @@ const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
-const Authoriser = artifacts.require("DappRegistry");
+const DappRegistry = artifacts.require("DappRegistry");
 const Filter = artifacts.require("ParaswapFilter");
 const ERC20 = artifacts.require("TestERC20");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
@@ -71,7 +71,7 @@ contract("ArgentModule", (accounts) => {
   let wallet;
   let walletImplementation;
   let filter;
-  let authoriser;
+  let dappRegistry;
   let kyberNetwork;
   let kyberAdapter;
   let uniswapRouter;
@@ -136,7 +136,7 @@ contract("ArgentModule", (accounts) => {
     tokenPriceRegistry = await TokenPriceRegistry.new();
     await tokenPriceRegistry.setTradableForTokenList([tokenA.address], [true]);
 
-    authoriser = await Authoriser.new(0);
+    dappRegistry = await DappRegistry.new(0);
 
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -145,7 +145,7 @@ contract("ArgentModule", (accounts) => {
       registry.address,
       guardianStorage.address,
       transferStorage.address,
-      authoriser.address,
+      dappRegistry.address,
       uniswapRouter.address,
       SECURITY_PERIOD,
       SECURITY_WINDOW,
@@ -159,8 +159,8 @@ contract("ArgentModule", (accounts) => {
     manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
 
     filter = await Filter.new(tokenPriceRegistry.address);
-    await authoriser.addDapp(0, paraswap.address, filter.address);
-    await authoriser.addDapp(0, paraswapProxy, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, paraswap.address, filter.address);
+    await dappRegistry.addDapp(0, paraswapProxy, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {

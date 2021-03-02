@@ -9,7 +9,7 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ArgentModule = artifacts.require("ArgentModule");
 const BaseWallet = artifacts.require("BaseWallet");
 const WalletFactory = artifacts.require("WalletFactory");
-const Authoriser = artifacts.require("DappRegistry");
+const DappRegistry = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
 const deployManager = require("../utils/deploy-manager.js");
@@ -72,9 +72,9 @@ const main = async () => {
   );
   console.log("Deployed WalletFactory at ", WalletFactoryWrapper.address);
 
-  // Deploy Authoriser
-  const AuthoriserWrapper = await Authoriser.new(config.settings.timelockPeriod);
-  console.log("Deployed Authoriser at ", AuthoriserWrapper.address);
+  // Deploy DappRegistry
+  const DappRegistryWrapper = await DappRegistry.new(config.settings.timelockPeriod);
+  console.log("Deployed DappRegistry at ", DappRegistryWrapper.address);
 
   // //////////////////////////////////
   // Deploy modules
@@ -87,7 +87,7 @@ const main = async () => {
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
     config.modules.TransferStorage,
-    AuthoriserWrapper.address,
+    DappRegistryWrapper.address,
     config.defi.uniswap.v2Router,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,
@@ -124,7 +124,7 @@ const main = async () => {
   configurator.updateInfrastructureAddresses({
     WalletFactory: WalletFactoryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
-    Authoriser: AuthoriserWrapper.address,
+    DappRegistry: DappRegistryWrapper.address,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -138,7 +138,7 @@ const main = async () => {
     abiUploader.upload(ArgentModuleWrapper, "modules"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
-    abiUploader.upload(AuthoriserWrapper, "contracts"),
+    abiUploader.upload(DappRegistryWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
