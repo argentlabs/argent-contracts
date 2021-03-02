@@ -86,7 +86,7 @@ contract("ENS contracts", (accounts) => {
     });
 
     it("should register an ENS name with manager signature", async () => {
-      const label = "wallet";
+      const label = "walletа";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
 
       const message = `0x${[
@@ -101,8 +101,43 @@ contract("ENS contracts", (accounts) => {
       assert.isTrue(recordExists);
       const nodeOwner = await ensRegistry.owner(labelNode);
       assert.equal(nodeOwner, owner);
-      const res = await ensRegistry.resolver(labelNode);
-      assert.equal(res, ensResolver.address);
+
+      const ensRecord = await ensResolver.addr(labelNode);
+      assert.equal(ensRecord, owner);
+
+      // check ens reverse record in not set
+      const node = await ensReverse.node(owner);
+      const name = await ensResolver.name(node);
+      assert.equal(name, "");
+    });
+
+    it("should register wallet with reverse registrar when required", async () => {
+      // Register with ENSReverse registrar first
+      await ensReverse.claimWithResolver(ensManager.address, ensResolver.address, { from: owner });
+
+      const label = "wallet";
+      const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
+
+      const message = `0x${[
+        owner,
+        ethers.utils.hexlify(ethers.utils.toUtf8Bytes(label)),
+      ].map((hex) => hex.slice(2)).join("")}`;
+      const managerSig = await utilities.signMessage(ethers.utils.keccak256(message), infrastructure);
+
+      await ensManager.register(label, owner, managerSig, { from: anonmanager });
+
+      // check ens record
+      const recordExists = await ensRegistry.recordExists(labelNode);
+      assert.isTrue(recordExists);
+      const nodeOwner = await ensRegistry.owner(labelNode);
+      assert.equal(nodeOwner, owner);
+      const ensRecord = await ensResolver.addr(labelNode);
+      assert.equal(ensRecord, owner);
+
+      // check ens reverse record
+      const reverseNode = await ensReverse.node(owner);
+      const name = await ensResolver.name(reverseNode);
+      assert.equal(name, "wallet.argent.xyz");
     });
 
     it("should return the correct availability for a subnode", async () => {
@@ -189,11 +224,12 @@ contract("ENS contracts", (accounts) => {
 
     it("should resolve a name", async () => {
       const label = "wallet";
+      const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
+
       await ensManager.register(label, owner, "0x");
 
-      const node = await ensReverse.node(owner);
-      const name = await ensResolver.name(node);
-      assert.equal(name, "wallet.argent.xyz");
+      const ensRecord = await ensResolver.addr(labelNode);
+      assert.equal(ensRecord, owner);
     });
   });
 
@@ -275,6 +311,11 @@ contract("ENS contracts", (accounts) => {
       assert.equal(nodeOwner, wallet.address);
       const res = await ensRegistry.resolver(labelNode);
       assert.equal(res, ensResolver.address);
+
+      // check ens reverse record
+      const reverseNode = await ensReverse.node(wallet.address);
+      const name = await ensResolver.name(reverseNode);
+      assert.equal(name, "wallet.argent.xyz");
 
       console.log("Gas to register ENS label: ", txReceipt.gasUsed);
     });
