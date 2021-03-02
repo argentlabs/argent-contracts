@@ -134,7 +134,6 @@ contract("WalletFactory", (accounts) => {
     it("should let a manager create a wallet with the correct (owner, modules, guardian) properties", async () => {
       const salt = generateSaltValue();
       // we get the future address
-      console.log({ owner, modules, guardian, salt });
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
 
       const managerSig = "0x";
