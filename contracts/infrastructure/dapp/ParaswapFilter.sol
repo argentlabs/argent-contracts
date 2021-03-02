@@ -52,7 +52,7 @@ contract ParaswapFilter is IFilter {
         tokenPriceRegistry = _tokenPriceRegistry;
     }
 
-    function validate(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+    function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
         (bytes32 sig,, address destToken) = abi.decode(abi.encodePacked(bytes28(0), _data), (bytes32, address, address));
         (address beneficiary) = abi.decode(_data[228:], (address)); // skipping 4 + 7*32 = 228 bytes
         return sig == 

@@ -63,9 +63,21 @@ contract DappRegistry is IAuthoriser {
     * @param _data The calldata of the transaction
     */
     function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
-        (bool isActive, address filter) = getFilter(_wallet, _spender);
-        if (isActive) {
-            return filter == address(0) || IFilter(filter).validate(_wallet, _spender, _to, _data);
+        uint registries = uint(enabledRegistryIds[_wallet]);
+        // Check Argent Default Registry first. It is enabled by default, implying that a zero 
+        // at position 0 of the `registries` bit vector means that the Argent Registry is enabled)
+        for(uint registryId = 0; registryId == 0 || (registries >> registryId) > 0; registryId++) {
+            bool isEnabled = (((registries >> registryId) & 1) > 0) /* "is bit set for regId?" */ == (registryId > 0) /* "not Argent registry?" */;
+            if(isEnabled) { // if registryId is enabled
+                uint auth = uint(authorisations[uint8(registryId)][_spender]); 
+                uint validAfter = auth & 0xffffffffffffffff;
+                if (0 < validAfter && validAfter <= block.timestamp) { // if the current time is greater than the validity time
+                    address filter = address(uint160(auth >> 64));
+                    if(filter == address(0) || IFilter(filter).isValid(_wallet, _spender, _to, _data)) {
+                        return true;
+                    }
+                }
+            }
         }
         return false;
     }
@@ -214,23 +226,5 @@ contract DappRegistry is IAuthoriser {
         address owner = registryOwners[_registryId];
         require(owner != address(0), "AR: unknown registry");
         require(msg.sender == owner, "AR: sender != registry owner");
-    }
-
-    function getFilter(address _wallet, address _dapp) internal view returns (bool, address) {
-        uint registries = uint(enabledRegistryIds[_wallet]);
-        // Check Argent Default Registry first. It is enabled by default, implying that a zero 
-        // at position 0 of the `registries` bit vector means that the Argent Registry is enabled)
-        for(uint registryId = 0; registryId == 0 || (registries >> registryId) > 0; registryId++) {
-            bool isEnabled = (((registries >> registryId) & 1) > 0) /* "is bit set for regId?" */ == (registryId > 0) /* "not Argent registry?" */;
-            if(isEnabled) { // if registryId is enabled
-                uint auth = uint(authorisations[uint8(registryId)][_dapp]); 
-                uint validAfter = auth & 0xffffffffffffffff;
-                if (0 < validAfter && validAfter <= block.timestamp) { // if the current time is greater than the validity time
-                    return (true, address(uint160(auth >> 64))); // return the filter stored for _dapp
-                }
-            }
-        }
-        
-        return (false, address(0));
     }
 }
