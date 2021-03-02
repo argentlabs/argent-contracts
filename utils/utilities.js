@@ -173,13 +173,6 @@ module.exports = {
     return ethers.Wallet.createRandom().address;
   },
 
-  generateSaltValue() {
-    return ethers.utils.hexZeroPad(
-      ethers.BigNumber.from(ethers.utils.randomBytes(32)).toHexString(),
-      32,
-    );
-  },
-
   async getBalance(account) {
     const balance = await web3.eth.getBalance(account);
     return new BN(balance);
