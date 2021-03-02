@@ -109,7 +109,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
         // Optionally set the reverse ENS
         bytes32 reverseNode = IReverseRegistrar(_getENSReverseRegistrar()).node(_owner);
 
-        if(ensRegistry.owner(reverseNode) == address(this)) {
+        if(ensRegistry.resolver(reverseNode) == address(ensResolver)) {
             ensResolver.setName(reverseNode, name);
         }
 
