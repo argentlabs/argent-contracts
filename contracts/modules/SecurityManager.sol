@@ -40,17 +40,20 @@ abstract contract SecurityManager is BaseModule {
         mapping (bytes32 => uint256) pending;
     }
 
-    // Wallet specific recovery storage
+    // Wallet specific storage for recovery
     mapping (address => RecoveryConfig) internal recoveryConfigs;
-    // The wallet specific storage
+    // Wallet specific storage for pending guardian addition/revokation
     mapping (address => GuardianManagerConfig) internal guardianConfigs;
 
+
     // Recovery period
-    uint256 internal recoveryPeriod;
+    uint256 internal immutable recoveryPeriod;
     // Lock period
-    uint256 internal lockPeriod;
+    uint256 internal immutable lockPeriod;
+    // The security period to add/remove guardians
+    uint256 internal immutable securityPeriod;
     // The security window
-    uint256 internal securityWindow;
+    uint256 internal immutable securityWindow;
 
     // *************** Events *************************** //
 
@@ -86,7 +89,7 @@ abstract contract SecurityManager is BaseModule {
     }
 
     /**
-     * @notice Throws if the caller is not a guardian for the wallet.
+     * @notice Throws if the caller is not a guardian for the wallet or the module itself.
      */
     modifier onlyGuardianOrSelf(address _wallet) {
         require(_isSelf(msg.sender) || isGuardian(_wallet, msg.sender), "SM: must be guardian/self");
@@ -97,19 +100,20 @@ abstract contract SecurityManager is BaseModule {
 
     constructor(
         uint256 _recoveryPeriod,
+        uint256 _securityPeriod,
         uint256 _securityWindow,
         uint256 _lockPeriod
     )
         public
     {
         // For the wallet to be secure we must have recoveryPeriod >= securityPeriod + securityWindow
-        // where securityPeriod and securityWindow are the security parameters of adding/removing guardians
-        // and confirming large transfers.
+        // where securityPeriod and securityWindow are the security parameters of adding/removing guardians.
         require(_lockPeriod >= _recoveryPeriod, "SM: insecure lock period");
-        require(_recoveryPeriod >= securityPeriod + _securityWindow, "SM: insecure security periods");
+        require(_recoveryPeriod >= _securityPeriod + _securityWindow, "SM: insecure security periods");
         recoveryPeriod = _recoveryPeriod;
         lockPeriod = _lockPeriod;
         securityWindow = _securityWindow;
+        securityPeriod = _securityPeriod;
     }
 
     // *************** External functions ************************ //

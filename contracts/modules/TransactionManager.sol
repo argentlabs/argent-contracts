@@ -41,12 +41,21 @@ abstract contract TransactionManager is BaseModule {
         bool isSpenderInData;
     }
 
+    // The time delay for adding a trusted contact
+    uint256 internal immutable whitelistPeriod;
+
     // *************** Events *************************** //
 
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
+
+    // *************** Constructor ************************ //
+
+    constructor(uint256 _whitelistPeriod) public {
+        whitelistPeriod = _whitelistPeriod;
+    }
 
     // *************** External functions ************************ //
 
@@ -119,7 +128,7 @@ abstract contract TransactionManager is BaseModule {
         require(!registry.isRegisteredModule(_target), "TM: Cannot whitelist module");
         require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
 
-        uint256 whitelistAfter = block.timestamp.add(securityPeriod);
+        uint256 whitelistAfter = block.timestamp.add(whitelistPeriod);
         setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }

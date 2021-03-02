@@ -39,17 +39,14 @@ abstract contract BaseModule is IModule {
     // Mock token address for ETH
     address constant internal ETH_TOKEN = address(0);
 
-    // The Module Registry
-    IModuleRegistry internal registry;
-    // The Guardian storage
+    // The module registry
+    IModuleRegistry internal immutable registry;
+    // The guardians storage
     IGuardianStorage internal immutable guardianStorage;
-    // The Guardian storage
+    // The trusted contacts storage
     ITransferStorage internal immutable userWhitelist;
-    // The Guardian storage
+    // The authoriser
     IAuthoriser internal immutable authoriser;
-
-    // The security period
-    uint256 internal securityPeriod;
 
     event ModuleCreated(bytes32 name);
 
@@ -76,7 +73,7 @@ abstract contract BaseModule is IModule {
         bytes4 locker;
     }
     
-    // wallet specific storage
+    // Wallet specific lock storage
     mapping (address => Lock) internal locks;
 
     /**
@@ -132,12 +129,10 @@ abstract contract BaseModule is IModule {
         IGuardianStorage _guardianStorage,
         ITransferStorage _userWhitelist,
         IAuthoriser _authoriser,
-        uint256 _securityPeriod,
         bytes32 _name
     ) public {
         registry = _registry;
         guardianStorage = _guardianStorage;
-        securityPeriod = _securityPeriod;
         userWhitelist = _userWhitelist;
         authoriser = _authoriser;
         emit ModuleCreated(_name);
@@ -184,10 +179,7 @@ abstract contract BaseModule is IModule {
      * @param _value The value of the transaction.
      * @param _data The data of the transaction.
      */
-    function invokeWallet(address _wallet, address _to, uint256 _value, bytes memory _data)
-        internal
-        returns (bytes memory _res) 
-    {
+    function invokeWallet(address _wallet, address _to, uint256 _value, bytes memory _data) internal returns (bytes memory _res) {
         bool success;
         (success, _res) = _wallet.call(abi.encodeWithSignature("invoke(address,uint256,bytes)", _to, _value, _data));
         if (success && _res.length > 0) { //_res is empty if _wallet is an "old" BaseWallet that can't return output values
