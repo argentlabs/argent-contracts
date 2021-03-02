@@ -151,9 +151,9 @@ contract("ArgentModule", (accounts) => {
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
-    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
-    await authoriser.addFilter(0, cEther.address, ZERO_ADDRESS);
-    await authoriser.addFilter(0, cToken.address, ZERO_ADDRESS);
+    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
+    await authoriser.addDapp(0, cEther.address, ZERO_ADDRESS);
+    await authoriser.addDapp(0, cToken.address, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 

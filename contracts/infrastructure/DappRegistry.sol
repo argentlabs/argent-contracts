@@ -22,7 +22,6 @@ contract DappRegistry is IAuthoriser {
     mapping (uint8 => address) public registryOwners; // [registryId] => [owner]
     
     event RegistryCreated(uint8 registryId, address registryOwner);
-    event RegistryRemoved(uint8 registryId);
     event OwnerChanged(uint8 registryId, address newRegistryOwner);
     event TimelockChangeRequested(uint64 newTimelockPeriod);
     event TimelockChanged(uint64 newTimelockPeriod);

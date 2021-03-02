@@ -159,8 +159,8 @@ contract("ArgentModule", (accounts) => {
     manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
 
     filter = await Filter.new(tokenPriceRegistry.address);
-    await authoriser.addFilter(0, paraswap.address, filter.address);
-    await authoriser.addFilter(0, paraswapProxy, ZERO_ADDRESS);
+    await authoriser.addDapp(0, paraswap.address, filter.address);
+    await authoriser.addDapp(0, paraswapProxy, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {

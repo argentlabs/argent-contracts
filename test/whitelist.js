@@ -70,7 +70,7 @@ contract("ArgentModule", (accounts) => {
       LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
+    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 

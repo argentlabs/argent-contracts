@@ -91,7 +91,7 @@ contract("TransactionManager", (accounts) => {
     await registry.registerModule(newModule.address, ethers.utils.formatBytes32String("NewArgentModule"));
     await registry.registerModule(upgrader1.address, ethers.utils.formatBytes32String("Upgrader"));
 
-    await authoriser.addFilter(0, relayer, ZERO_ADDRESS);
+    await authoriser.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
 
