@@ -123,7 +123,7 @@
         "ModuleRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
-        "Authoriser": {
+        "DappRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
         "BaseWallet": {
