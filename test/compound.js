@@ -174,44 +174,22 @@ contract("ArgentModule", (accounts) => {
   });
 
   describe("Investment", () => {
-    async function accrueInterests(days, investInEth) {
-      let tx;
-      // generate borrows to create interests
-      await comptroller.enterMarkets([cEther.address, cToken.address], { from: borrower });
-      if (!investInEth) {
-        await token.approve(cToken.address, web3.utils.toWei("20"), { from: borrower });
-        await cToken.mint(web3.utils.toWei("20"), { from: borrower });
-        tx = await cEther.borrow(web3.utils.toWei("0.1"), { from: borrower });
-        await utils.hasEvent(tx.receipt, CToken, "Borrow");
-      } else {
-        await cEther.mint({ value: web3.utils.toWei("2"), from: borrower });
-        tx = await cToken.borrow(web3.utils.toWei("0.1"), { from: borrower });
-        await utils.hasEvent(tx.receipt, CToken, "Borrow");
-      }
-      // increase time to accumulate interests
-      await utils.increaseTime(3600 * 24 * days);
-      await cToken.accrueInterest();
-      await cEther.accrueInterest();
-    }
-
     async function addInvestment(tokenAddress, amount, days) {
-      let ctoken;
-      let investInEth;
       const transactions = [];
+      let tokenBefore;
+      let tokenAfter;
+      let cTokenBefore;
+      let cTokenAfter;
 
       if (tokenAddress === ETH_TOKEN) {
-        await wallet.send(amount);
-        ctoken = cEther;
-        investInEth = true;
-
+        tokenBefore = await utils.getBalance(wallet.address);
+        cTokenBefore = await cEther.balanceOf(wallet.address);
         const data = cEther.contract.methods.mint().encodeABI();
         const transaction = encodeTransaction(cEther.address, amount, data);
         transactions.push(transaction);
       } else {
-        await token.transfer(wallet.address, amount);
-        ctoken = cToken;
-        investInEth = false;
-
+        tokenBefore = await token.balanceOf(wallet.address);
+        cTokenBefore = await cToken.balanceOf(wallet.address);
         let data = token.contract.methods.approve(cToken.address, amount).encodeABI();
         let transaction = encodeTransaction(token.address, 0, data);
         transactions.push(transaction);
@@ -220,6 +198,7 @@ contract("ArgentModule", (accounts) => {
         transaction = encodeTransaction(cToken.address, 0, data);
         transactions.push(transaction);
       }
+
 
       const txReceipt = await manager.relay(
         module,
@@ -233,10 +212,12 @@ contract("ArgentModule", (accounts) => {
       }
       assert.isTrue(success, "transfer failed");
       await utils.hasEvent(txReceipt, ctoken, "Mint");
-      const balance = await ctoken.balanceOf(wallet.address);
+      cToken = await ctoken.balanceOf(wallet.address);
       assert.isTrue(balance.gt(0), "should have cTokens");
 
-      await accrueInterests(days, investInEth);
+      if (tokenAddress === ETH_TOKEN) {
+
+      } else
 
       return txReceipt;
     }
