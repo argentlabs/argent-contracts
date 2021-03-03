@@ -24,7 +24,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, addTrustedContact, initNonce } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -109,35 +109,6 @@ contract("ArgentModule", (accounts) => {
     await wallet.send(web3.utils.toWei("1"));
     await token.transfer(wallet.address, web3.utils.toWei("1"));
   });
-
-  function encodeTransaction(to, value, data, isTokenCall = false) {
-    return { to, value, data, isTokenCall };
-  }
-
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function initStorage() {
-    // init nonce storage
-    await whitelist(nonceInitialiser);
-    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-    const nonce = await module.getNonce(wallet.address);
-    assert.isTrue(nonce.gt(0), "nonce init failed");
-    // init token storage for relayer
-    await token.transfer(relayer, 1);
-  }
 
   describe("relay transactions", () => {
     it("should fail when _data is less than 36 bytes", async () => {
@@ -253,8 +224,8 @@ contract("ArgentModule", (accounts) => {
 
   describe("refund", () => {
     beforeEach(async () => {
-      await initStorage();
-      await whitelist(recipient);
+      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
     });
 
     it("should refund in ETH", async () => {

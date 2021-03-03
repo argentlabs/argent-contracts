@@ -21,7 +21,7 @@ const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, addTrustedContact, initNonce } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -87,37 +87,9 @@ contract("ArgentModule", (accounts) => {
     await wallet.send(new BN("1000000000000000000"));
   });
 
-  function encodeTransaction(to, value, data, isTokenCall = false) {
-    return { to, value, data, isTokenCall };
-  }
-
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function initNonce() {
-    // add to whitelist
-    await whitelist(nonceInitialiser);
-    // set the relayer nonce to > 0
-    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-    const nonce = await module.getNonce(wallet.address);
-    assert.isTrue(nonce.gt(0), "nonce init failed");
-  }
-
   describe("whitelist", () => {
     beforeEach(async () => {
-      await initNonce();
+      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
     });
     it("should whitelist an address", async () => {
       const target = accounts[6];
@@ -164,11 +136,11 @@ contract("ArgentModule", (accounts) => {
 
   describe("transfer ETH", () => {
     beforeEach(async () => {
-      await initNonce();
+      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
     });
 
     it("should send ETH to a whitelisted address", async () => {
-      await whitelist(recipient);
+      await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
       const balanceStart = await utils.getBalance(recipient);
 
       const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32, false);
@@ -193,13 +165,13 @@ contract("ArgentModule", (accounts) => {
 
   describe("transfer/Approve ERC20", () => {
     beforeEach(async () => {
-      await initNonce();
+      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
       // init erc20 - recipient storage slot
       await erc20.transfer(recipient, new BN("100"));
     });
 
     it("should send ERC20 to a whitelisted address", async () => {
-      await whitelist(recipient);
+      await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
       const balanceStart = await erc20.balanceOf(recipient);
 
       const data = erc20.contract.methods.transfer(recipient, 100).encodeABI();
@@ -222,7 +194,7 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should approve ERC20 for a whitelisted address", async () => {
-      await whitelist(recipient);
+      await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
 
       const data = erc20.contract.methods.approve(recipient, 100).encodeABI();
       const transaction = encodeTransaction(erc20.address, 0, data, true);
@@ -249,14 +221,14 @@ contract("ArgentModule", (accounts) => {
     const tokenId = 7;
 
     beforeEach(async () => {
-      await initNonce();
+      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
 
       erc721 = await ERC721.new();
       await erc721.mint(wallet.address, tokenId);
     });
 
     it("should send an ERC721 to a whitelisted address", async () => {
-      await whitelist(recipient);
+      await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
 
       const data = erc721.contract.methods.safeTransferFrom(wallet.address, recipient, tokenId).encodeABI();
       const transaction = encodeTransaction(erc721.address, 0, data, true);

@@ -30,12 +30,11 @@ const CToken = artifacts.require("CToken");
 
 const ERC20 = artifacts.require("TestERC20");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
 
 const WAD = new BN("1000000000000000000"); // 10**18
 const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -162,33 +161,6 @@ contract("ArgentModule", (accounts) => {
     await token.transfer(wallet.address, new BN("1000000000000000000"));
   });
 
-  function encodeTransaction(to, value, data, isTokenCall = false) {
-    return { to, value, data, isTokenCall };
-  }
-
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function initNonce() {
-    // add to whitelist
-    await whitelist(nonceInitialiser);
-    // set the relayer nonce to > 0
-    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-    const nonce = await module.getNonce(wallet.address);
-    assert.isTrue(nonce.gt(0), "nonce init failed");
-  }
   describe("Environment", () => {
     it("should deploy the environment correctly", async () => {
       const cOracle = await comptroller.oracle();
@@ -270,7 +242,7 @@ contract("ArgentModule", (accounts) => {
     }
 
     beforeEach(async () => {
-      await initNonce();
+      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
     });
 
     it("should invest ETH", async () => {

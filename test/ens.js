@@ -19,7 +19,7 @@ const Filter = artifacts.require("TestFilter");
 
 const truffleAssert = require("truffle-assertions");
 const utilities = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
@@ -232,10 +232,6 @@ contract("ENS contracts", (accounts) => {
       assert.equal(ensRecord, owner);
     });
   });
-
-  function encodeTransaction(to, value, data, isTokenCall = false) {
-    return { to, value, data, isTokenCall };
-  }
 
   describe("Relayed ENS registration", () => {
     it("should be able to register label for wallet", async () => {

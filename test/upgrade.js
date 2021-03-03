@@ -18,9 +18,8 @@ const DappRegistry = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
-const utils = require("../utils/utilities.js");
+const { initNonce, parseRelayReceipt } = require("../utils/utilities.js");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -98,34 +97,6 @@ contract("TransactionManager", (accounts) => {
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
-  function encodeTransaction(to, value, data, isTokenCall = false) {
-    return { to, value, data, isTokenCall };
-  }
-
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function initNonce() {
-    // add to whitelist
-    await whitelist(nonceInitialiser);
-    // set the relayer nonce to > 0
-    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-    const nonce = await module.getNonce(wallet.address);
-    assert.isTrue(nonce.gt(0), "nonce init failed");
-  }
-
   beforeEach(async () => {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
@@ -135,7 +106,7 @@ contract("TransactionManager", (accounts) => {
 
   describe("upgrader modules", () => {
     beforeEach(async () => {
-      await initNonce();
+      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
     });
 
     it("should remove 1 and add 1 module", async () => {
@@ -148,7 +119,7 @@ contract("TransactionManager", (accounts) => {
         [wallet.address, upgrader1.address],
         wallet,
         [owner]);
-      const success = await utils.parseRelayReceipt(txReceipt).success;
+      const success = await parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "transfer failed");
       isAuthorised = await wallet.authorised(newModule.address);
       assert.equal(isAuthorised, false, "new module should be authorised");
