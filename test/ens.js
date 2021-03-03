@@ -198,7 +198,7 @@ contract("ENS contracts", (accounts) => {
     });
 
     it("should not be able to change the ens resolver to an empty address", async () => {
-      await truffleAssert.reverts(ensManager.changeENSResolver(ethers.constants.AddressZero), "WF: address cannot be null");
+      await truffleAssert.reverts(ensManager.changeENSResolver(ethers.constants.AddressZero), "AEM: cannot set empty resolver");
     });
   });
 
