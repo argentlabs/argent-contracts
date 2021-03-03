@@ -232,7 +232,7 @@ contract("ArgentModule", (accounts) => {
       const balanceStart = await utils.getBalance(wallet.address);
       // send erc20
       const data = token.contract.methods.transfer(recipient, 100).encodeABI();
-      const transaction = encodeTransaction(token.address, 0, data, true);
+      const transaction = encodeTransaction(token.address, 0, data);
 
       const txReceipt = await manager.relay(
         module,
@@ -253,7 +253,7 @@ contract("ArgentModule", (accounts) => {
       // token balance
       const balanceStart = await token.balanceOf(relayer);
       // send ETH
-      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32, false);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -303,7 +303,7 @@ contract("ArgentModule", (accounts) => {
     it("should fail when there is not enough ERC20 to refund", async () => {
       const balance = await token.balanceOf(wallet.address);
       const data = token.contract.methods.transfer(recipient, balance.toString()).encodeABI();
-      const transaction = encodeTransaction(token.address, 0, data, true);
+      const transaction = encodeTransaction(token.address, 0, data);
 
       await truffleAssert.reverts(
         manager.relay(

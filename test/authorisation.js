@@ -108,7 +108,7 @@ contract("Authorisation", (accounts) => {
   async function enableCustomRegistry() {
     assert.equal(await dappRegistry.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), false, "custom registry should not be enabled");
     const data = dappRegistry.contract.methods.toggleRegistry(CUSTOM_REGISTRY_ID, true).encodeABI();
-    const transaction = encodeTransaction(dappRegistry.address, 0, data, false);
+    const transaction = encodeTransaction(dappRegistry.address, 0, data);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
@@ -160,7 +160,7 @@ contract("Authorisation", (accounts) => {
 
     it("should call authorised contract when filter passes (argent registry)", async () => {
       const data = contract.contract.methods.setState(4).encodeABI();
-      const transaction = encodeTransaction(contract.address, 0, data, false);
+      const transaction = encodeTransaction(contract.address, 0, data);
 
       const txReceipt = await manager.relay(
         module,
@@ -179,7 +179,7 @@ contract("Authorisation", (accounts) => {
 
     it("should call authorised contract when filter passes (community registry)", async () => {
       const data = contract2.contract.methods.setState(4).encodeABI();
-      const transaction = encodeTransaction(contract2.address, 0, data, false);
+      const transaction = encodeTransaction(contract2.address, 0, data);
 
       const txReceipt = await manager.relay(
         module,
@@ -198,7 +198,7 @@ contract("Authorisation", (accounts) => {
 
     it("should block call to authorised contract when filter doesn't pass", async () => {
       const data = contract.contract.methods.setState(5).encodeABI();
-      const transaction = encodeTransaction(contract.address, 0, data, false);
+      const transaction = encodeTransaction(contract.address, 0, data);
 
       const txReceipt = await manager.relay(
         module,
@@ -215,7 +215,7 @@ contract("Authorisation", (accounts) => {
     });
 
     it("should not send ETH to unauthorised address", async () => {
-      const transaction = encodeTransaction(nonwhitelisted, 100, ZERO_BYTES32, false);
+      const transaction = encodeTransaction(nonwhitelisted, 100, ZERO_BYTES32);
 
       const txReceipt = await manager.relay(
         module,
@@ -242,11 +242,11 @@ contract("Authorisation", (accounts) => {
       const transactions = [];
 
       let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
-      let transaction = encodeTransaction(erc20.address, 0, data, true);
+      let transaction = encodeTransaction(erc20.address, 0, data);
       transactions.push(transaction);
 
       data = contract.contract.methods.setStateAndPayToken(4, erc20.address, 100).encodeABI();
-      transaction = encodeTransaction(contract.address, 0, data, false);
+      transaction = encodeTransaction(contract.address, 0, data);
       transactions.push(transaction);
 
       const txReceipt = await manager.relay(
@@ -268,11 +268,11 @@ contract("Authorisation", (accounts) => {
       const transactions = [];
 
       let data = erc20.contract.methods.approve(contract.address, 100).encodeABI();
-      let transaction = encodeTransaction(erc20.address, 0, data, true);
+      let transaction = encodeTransaction(erc20.address, 0, data);
       transactions.push(transaction);
 
       data = contract.contract.methods.setStateAndPayToken(5, erc20.address, 100).encodeABI();
-      transaction = encodeTransaction(contract.address, 0, data, false);
+      transaction = encodeTransaction(contract.address, 0, data);
       transactions.push(transaction);
 
       const txReceipt = await manager.relay(
@@ -313,7 +313,7 @@ contract("Authorisation", (accounts) => {
 
     it("should not enable non-existing registry", async () => {
       const data = dappRegistry.contract.methods.toggleRegistry(66, true).encodeABI();
-      const transaction = encodeTransaction(dappRegistry.address, 0, data, false);
+      const transaction = encodeTransaction(dappRegistry.address, 0, data);
       const txReceipt = await manager.relay(
         module,
         "multiCall",

@@ -142,7 +142,7 @@ contract("ArgentModule", (accounts) => {
       await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
       const balanceStart = await utils.getBalance(recipient);
 
-      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32, false);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
 
       const txReceipt = await manager.relay(
         module,
@@ -174,7 +174,7 @@ contract("ArgentModule", (accounts) => {
       const balanceStart = await erc20.balanceOf(recipient);
 
       const data = erc20.contract.methods.transfer(recipient, 100).encodeABI();
-      const transaction = encodeTransaction(erc20.address, 0, data, true);
+      const transaction = encodeTransaction(erc20.address, 0, data);
 
       const txReceipt = await manager.relay(
         module,
@@ -196,7 +196,7 @@ contract("ArgentModule", (accounts) => {
       await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
 
       const data = erc20.contract.methods.approve(recipient, 100).encodeABI();
-      const transaction = encodeTransaction(erc20.address, 0, data, true);
+      const transaction = encodeTransaction(erc20.address, 0, data);
 
       const txReceipt = await manager.relay(
         module,
@@ -230,7 +230,7 @@ contract("ArgentModule", (accounts) => {
       await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
 
       const data = erc721.contract.methods.safeTransferFrom(wallet.address, recipient, tokenId).encodeABI();
-      const transaction = encodeTransaction(erc721.address, 0, data, true);
+      const transaction = encodeTransaction(erc721.address, 0, data);
 
       const txReceipt = await manager.relay(
         module,

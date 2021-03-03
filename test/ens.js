@@ -315,7 +315,7 @@ contract("ENS contracts", (accounts) => {
       const transactions = [];
       // build the claimWithResolver call
       let data = ensReverse.contract.methods.claimWithResolver(ensManager.address, ensResolver.address).encodeABI();
-      let transaction = encodeTransaction(ensReverse.address, 0, data, false);
+      let transaction = encodeTransaction(ensReverse.address, 0, data);
       transactions.push(transaction);
 
       // build the ens register call

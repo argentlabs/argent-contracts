@@ -28,7 +28,15 @@ import "../../lib/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
+    // ERC20 & ERC721 transfers & approvals
+    bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
+    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("transferFrom(address,address,uint256)"));
+    bytes4 private constant ERC721_TRANSFER_FROM = bytes4(keccak256("transferFrom(address,address,uint256)"));
+    bytes4 private constant ERC721_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256)"));
+    bytes4 private constant ERC721_SAFE_TRANSFER_FROM_BYTES = bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)"));
+    bytes4 private constant ERC721_SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
 
+    // Static calls
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     bytes4 private constant ERC1155_RECEIVED = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
@@ -37,10 +45,9 @@ abstract contract TransactionManager is BaseModule {
     bytes4 private constant ERC1155_INTERFACE = ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED;
 
     struct Call {
-        address to;         // the target of the call
-        uint256 value;      // the ETH to transfer
-        bytes data;         // the data payload
-        bool isTokenCall;   // true if target is a token and data is a standard ERC20/721/1155 method
+        address to;
+        uint256 value;
+        bytes data;
     }
 
     // The time delay for adding a trusted contact
@@ -275,9 +282,16 @@ abstract contract TransactionManager is BaseModule {
     }
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
-        if (_transaction.isTokenCall) {
+        bytes4 methodId = Utils.functionPrefix(_transaction.data);
+        if(
+            methodId == ERC20_TRANSFER ||
+            methodId == ERC20_APPROVE ||
+            methodId == ERC721_TRANSFER_FROM ||
+            methodId == ERC721_SAFE_TRANSFER_FROM ||
+            methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
+            methodId == ERC721_SET_APPROVAL_FOR_ALL
+        ) {
             require(_transaction.value == 0, "TM: unsecure call");
-           // transfer(to, value), transferFrom(wallet, to, value), approve(to, value), setApprovalForAll(to, approved)
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
             return first == _wallet ? second : first;
         }
