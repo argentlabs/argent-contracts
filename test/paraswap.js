@@ -175,8 +175,8 @@ contract("ArgentModule", (accounts) => {
     await tokenB.mint(wallet.address, web3.utils.toWei("1000"));
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
+  function encodeTransaction(to, value, data, isTokenCall = false) {
+    return { to, value, data, isTokenCall };
   }
 
   async function whitelist(target) {
@@ -190,7 +190,7 @@ contract("ArgentModule", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
@@ -307,7 +307,7 @@ contract("ArgentModule", (accounts) => {
       } else {
         data = tokenB.contract.methods.approve(paraswapProxy, srcAmount).encodeABI();
       }
-      transaction = await encodeTransaction(fromToken, 0, data, true);
+      transaction = encodeTransaction(fromToken, 0, data, true);
       transactions.push(transaction);
     }
 
@@ -324,7 +324,7 @@ contract("ArgentModule", (accounts) => {
       0,
       "abc",
     ).encodeABI();
-    transaction = await encodeTransaction(paraswap.address, value, data);
+    transaction = encodeTransaction(paraswap.address, value, data);
     transactions.push(transaction);
 
     const txReceipt = await manager.relay(
@@ -393,7 +393,7 @@ contract("ArgentModule", (accounts) => {
         "abc",
       ).encodeABI();
 
-      const transaction = await encodeTransaction(paraswap.address, srcAmount, data);
+      const transaction = encodeTransaction(paraswap.address, srcAmount, data);
 
       const txReceipt = await manager.relay(
         module,

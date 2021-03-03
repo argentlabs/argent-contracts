@@ -162,8 +162,8 @@ contract("ArgentModule", (accounts) => {
     await token.transfer(wallet.address, new BN("1000000000000000000"));
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
+  function encodeTransaction(to, value, data, isTokenCall = false) {
+    return { to, value, data, isTokenCall };
   }
 
   async function whitelist(target) {
@@ -177,7 +177,7 @@ contract("ArgentModule", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
@@ -233,7 +233,7 @@ contract("ArgentModule", (accounts) => {
         investInEth = true;
 
         const data = cEther.contract.methods.mint().encodeABI();
-        const transaction = await encodeTransaction(cEther.address, amount, data);
+        const transaction = encodeTransaction(cEther.address, amount, data);
         transactions.push(transaction);
       } else {
         await token.transfer(wallet.address, amount);
@@ -241,11 +241,11 @@ contract("ArgentModule", (accounts) => {
         investInEth = false;
 
         let data = token.contract.methods.approve(cToken.address, amount).encodeABI();
-        let transaction = await encodeTransaction(token.address, 0, data, true);
+        let transaction = encodeTransaction(token.address, 0, data, true);
         transactions.push(transaction);
 
         data = cToken.contract.methods.mint(amount).encodeABI();
-        transaction = await encodeTransaction(cToken.address, 0, data);
+        transaction = encodeTransaction(cToken.address, 0, data);
         transactions.push(transaction);
       }
 

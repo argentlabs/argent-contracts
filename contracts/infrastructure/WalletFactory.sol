@@ -149,7 +149,7 @@ contract WalletFactory is Managed {
 
     /**
      * @notice Required to make the factory a module during the 
-     *  initialisation fo the wallet. 
+     * initialisation of the wallet. 
      * @param _wallet The wallet.
      */
     function init(BaseWallet _wallet) external pure {

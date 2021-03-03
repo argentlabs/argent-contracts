@@ -106,8 +106,8 @@ contract("ArgentModule", (accounts) => {
     await erc1155.mint(sender, erc1155Id, 10000000);
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
+  function encodeTransaction(to, value, data, isTokenCall = false) {
+    return { to, value, data, isTokenCall };
   }
 
   async function whitelist(target) {
@@ -121,7 +121,7 @@ contract("ArgentModule", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
@@ -148,7 +148,7 @@ contract("ArgentModule", (accounts) => {
       expect(after.sub(before)).to.gt.BN(0);
       // send
       before = after;
-      const transaction = await encodeTransaction(recipient, web3.utils.toWei("1"), ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, web3.utils.toWei("1"), ZERO_BYTES32);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -173,7 +173,7 @@ contract("ArgentModule", (accounts) => {
       // send
       before = after;
       const data = await erc20.contract.methods.transfer(recipient, 10000).encodeABI();
-      const transaction = await encodeTransaction(erc20.address, 0, data, true);
+      const transaction = encodeTransaction(erc20.address, 0, data, true);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -198,7 +198,7 @@ contract("ArgentModule", (accounts) => {
       // send
       before = after;
       const data = erc721.contract.methods.safeTransferFrom(wallet.address, recipient, erc721Id).encodeABI();
-      const transaction = await encodeTransaction(erc721.address, 0, data, true);
+      const transaction = encodeTransaction(erc721.address, 0, data, true);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -223,7 +223,7 @@ contract("ArgentModule", (accounts) => {
       // send
       before = after;
       const data = ck.contract.methods.transfer(recipient, ckId).encodeABI();
-      const transaction = await encodeTransaction(ck.address, 0, data, true);
+      const transaction = encodeTransaction(ck.address, 0, data, true);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -248,7 +248,7 @@ contract("ArgentModule", (accounts) => {
       // send
       before = after;
       const data = erc1155.contract.methods.safeTransferFrom(wallet.address, recipient, erc1155Id, 1000, ZERO_BYTES32).encodeABI();
-      const transaction = await encodeTransaction(erc1155.address, 0, data, true);
+      const transaction = encodeTransaction(erc1155.address, 0, data, true);
       const txReceipt = await manager.relay(
         module,
         "multiCall",

@@ -110,8 +110,8 @@ contract("ArgentModule", (accounts) => {
     await token.transfer(wallet.address, web3.utils.toWei("1"));
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
+  function encodeTransaction(to, value, data, isTokenCall = false) {
+    return { to, value, data, isTokenCall };
   }
 
   async function whitelist(target) {
@@ -124,7 +124,7 @@ contract("ArgentModule", (accounts) => {
   async function initStorage() {
     // init nonce storage
     await whitelist(nonceInitialiser);
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
@@ -158,7 +158,7 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should fail when the first param is not the wallet", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
       await truffleAssert.reverts(
         manager.relay(module, "multiCall", [infrastructure, [transaction]], wallet, [owner]),
         "RM: Target of _data != _wallet"
@@ -184,7 +184,7 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should fail when a wrong number of signatures is provided", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
       await truffleAssert.reverts(
         manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner, recipient]),
         "RM: Wrong number of signatures"
@@ -195,7 +195,7 @@ contract("ArgentModule", (accounts) => {
       const nonce = await utils.getNonceForRelay();
       const chainId = await utils.getChainId();
       const gasLimit = 100000;
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
       const methodData = module.contract.methods.multiCall(wallet.address, [transaction]).encodeABI();
       const signatures = await utils.signOffchain(
         [owner],
@@ -234,7 +234,7 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should update the nonce after the transaction", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
 
       const nonceBefore = await module.getNonce(wallet.address);
       await manager.relay(
@@ -262,7 +262,7 @@ contract("ArgentModule", (accounts) => {
       const balanceStart = await utils.getBalance(wallet.address);
       // send erc20
       const data = token.contract.methods.transfer(recipient, 100).encodeABI();
-      const transaction = await encodeTransaction(token.address, 0, data, true);
+      const transaction = encodeTransaction(token.address, 0, data, true);
 
       const txReceipt = await manager.relay(
         module,
@@ -283,7 +283,7 @@ contract("ArgentModule", (accounts) => {
       // token balance
       const balanceStart = await token.balanceOf(relayer);
       // send ETH
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32, false);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32, false);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -300,7 +300,7 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should emit the Refund event", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -315,7 +315,7 @@ contract("ArgentModule", (accounts) => {
 
     it("should fail when there is not enough ETH to refund", async () => {
       const balance = await utils.getBalance(wallet.address);
-      const transaction = await encodeTransaction(recipient, balance.toString(), ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, balance.toString(), ZERO_BYTES32);
 
       await truffleAssert.reverts(
         manager.relay(
@@ -333,7 +333,7 @@ contract("ArgentModule", (accounts) => {
     it("should fail when there is not enough ERC20 to refund", async () => {
       const balance = await token.balanceOf(wallet.address);
       const data = token.contract.methods.transfer(recipient, balance.toString()).encodeABI();
-      const transaction = await encodeTransaction(token.address, 0, data, true);
+      const transaction = encodeTransaction(token.address, 0, data, true);
 
       await truffleAssert.reverts(
         manager.relay(

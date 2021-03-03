@@ -233,8 +233,8 @@ contract("ENS contracts", (accounts) => {
     });
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
+  function encodeTransaction(to, value, data, isTokenCall = false) {
+    return { to, value, data, isTokenCall };
   }
 
   describe("Relayed ENS registration", () => {
@@ -279,7 +279,7 @@ contract("ENS contracts", (accounts) => {
       const transactions = [];
       // build the claimWithResolver call
       let data = ensReverse.contract.methods.claimWithResolver(ensManager.address, ensResolver.address).encodeABI();
-      let transaction = await encodeTransaction(ensReverse.address, 0, data, false);
+      let transaction = encodeTransaction(ensReverse.address, 0, data, false);
       transactions.push(transaction);
 
       // build the ens register call
@@ -290,7 +290,7 @@ contract("ENS contracts", (accounts) => {
       ].map((hex) => hex.slice(2)).join("")}`;
       const managerSig = await utilities.signMessage(ethers.utils.keccak256(message), infrastructure);
       data = ensManager.contract.methods.register(label, wallet.address, managerSig).encodeABI();
-      transaction = await encodeTransaction(ensManager.address, 0, data, false);
+      transaction = encodeTransaction(ensManager.address, 0, data, false);
       transactions.push(transaction);
 
       const txReceipt = await manager.relay(

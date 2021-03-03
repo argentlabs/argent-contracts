@@ -87,8 +87,8 @@ contract("ArgentModule", (accounts) => {
     await wallet.send(new BN("1000000000000000000"));
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
+  function encodeTransaction(to, value, data, isTokenCall = false) {
+    return { to, value, data, isTokenCall };
   }
 
   async function whitelist(target) {
@@ -102,7 +102,7 @@ contract("ArgentModule", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
@@ -171,7 +171,7 @@ contract("ArgentModule", (accounts) => {
       await whitelist(recipient);
       const balanceStart = await utils.getBalance(recipient);
 
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32, false);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32, false);
 
       const txReceipt = await manager.relay(
         module,
@@ -203,7 +203,7 @@ contract("ArgentModule", (accounts) => {
       const balanceStart = await erc20.balanceOf(recipient);
 
       const data = erc20.contract.methods.transfer(recipient, 100).encodeABI();
-      const transaction = await encodeTransaction(erc20.address, 0, data, true);
+      const transaction = encodeTransaction(erc20.address, 0, data, true);
 
       const txReceipt = await manager.relay(
         module,
@@ -225,7 +225,7 @@ contract("ArgentModule", (accounts) => {
       await whitelist(recipient);
 
       const data = erc20.contract.methods.approve(recipient, 100).encodeABI();
-      const transaction = await encodeTransaction(erc20.address, 0, data, true);
+      const transaction = encodeTransaction(erc20.address, 0, data, true);
 
       const txReceipt = await manager.relay(
         module,
@@ -259,7 +259,7 @@ contract("ArgentModule", (accounts) => {
       await whitelist(recipient);
 
       const data = erc721.contract.methods.safeTransferFrom(wallet.address, recipient, tokenId).encodeABI();
-      const transaction = await encodeTransaction(erc721.address, 0, data, true);
+      const transaction = encodeTransaction(erc721.address, 0, data, true);
 
       const txReceipt = await manager.relay(
         module,

@@ -106,8 +106,8 @@ contract("Authorisation", (accounts) => {
     await setupRegistries();
   });
 
-  function encodeTransaction(to, value, data, isSpenderInData) {
-    return { to, value, data, isSpenderInData };
+  function encodeTransaction(to, value, data, isTokenCall = false) {
+    return { to, value, data, isTokenCall };
   }
 
   async function enableCustomRegistry() {

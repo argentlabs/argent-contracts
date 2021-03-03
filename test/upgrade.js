@@ -98,8 +98,8 @@ contract("TransactionManager", (accounts) => {
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData) {
-    return { to, value, data, isSpenderInData };
+  function encodeTransaction(to, value, data, isTokenCall = false) {
+    return { to, value, data, isTokenCall };
   }
 
   async function whitelist(target) {
@@ -113,7 +113,7 @@ contract("TransactionManager", (accounts) => {
     // add to whitelist
     await whitelist(nonceInitialiser);
     // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
+    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
     const txReceipt = await manager.relay(
       module,
       "multiCall",
