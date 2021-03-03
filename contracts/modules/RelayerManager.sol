@@ -17,8 +17,8 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/Math.sol";
 import "./common/Utils.sol";
-import "./common/GuardianUtils.sol";
 import "./common/BaseModule.sol";
 import "./common/SimpleOracle.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
@@ -291,7 +291,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
                 return false; // Signers must be different
             }
             lastSigner = signer;
-            (isGuardian, guardians) = GuardianUtils.isGuardianOrGuardianSigner(guardians, signer);
+            (isGuardian, guardians) = Utils.isGuardianOrGuardianSigner(guardians, signer);
             if (!isGuardian) {
                 return false;
             }
@@ -348,12 +348,12 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
             uint256 refundAmount;
             if (_refundToken == ETH_TOKEN) {
                 uint256 gasConsumed = _startGas.sub(gasleft()).add(14000);
-                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(Utils.min(_gasPrice, tx.gasprice));
+                refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tx.gasprice));
                 invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
             } else {
                 uint256 gasConsumed = _startGas.sub(gasleft()).add(28500);
                 uint256 tokenGasPrice = inToken(_refundToken, tx.gasprice);
-                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(Utils.min(_gasPrice, tokenGasPrice));
+                refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tokenGasPrice));
                 bytes memory methodData = abi.encodeWithSelector(ERC20.transfer.selector, refundAddress, refundAmount);
                 bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
                 // Check token refund is successful, when `transfer` returns a success bool result

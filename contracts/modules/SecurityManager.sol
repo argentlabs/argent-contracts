@@ -16,8 +16,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
+import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./common/Utils.sol";
-import "./common/GuardianUtils.sol";
 import "./common/BaseModule.sol";
 import "../wallet/IWallet.sol";
 
@@ -350,7 +350,7 @@ abstract contract SecurityManager is BaseModule {
     * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
     */
     function isGuardianOrGuardianSigner(address _wallet, address _guardian) external view returns (bool _isGuardian) {
-        (_isGuardian, ) = GuardianUtils.isGuardianOrGuardianSigner(guardianStorage.getGuardians(_wallet), _guardian);
+        (_isGuardian, ) = Utils.isGuardianOrGuardianSigner(guardianStorage.getGuardians(_wallet), _guardian);
     }
 
     /**
@@ -379,6 +379,6 @@ abstract contract SecurityManager is BaseModule {
     }
 
     function _setLock(address _wallet, uint256 _releaseAfter, bytes4 _locker) internal {
-        locks[_wallet] = Lock(Utils.safe64(_releaseAfter), _locker);
+        locks[_wallet] = Lock(SafeCast.toUint64(_releaseAfter), _locker);
     }
 }
