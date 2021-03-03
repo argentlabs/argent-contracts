@@ -39,7 +39,7 @@ abstract contract TransactionManager is BaseModule {
         address to;         // the target of the call
         uint256 value;      // the ETH to transfer
         bytes data;         // the data payload
-        bool isTokenCall;   // true if the target is a token
+        bool isTokenCall;   // true if target is a token and data is a standard ERC20/721/1155 method
     }
 
     // The time delay for adding a trusted contact
