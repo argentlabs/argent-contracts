@@ -232,8 +232,8 @@ abstract contract TransactionManager is BaseModule {
     }
 
     function startSession(address _wallet, address _sessionUser, uint64 _duration) internal {
-        require(_sessionUser != address(0), "RM: Invalid session user");
-        require(_duration > 0, "RM: Invalid session duration");
+        require(_sessionUser != address(0), "TM: Invalid session user");
+        require(_duration > 0, "TM: Invalid session duration");
 
         uint64 expiry = Utils.safe64(block.timestamp + _duration);
         sessions[_wallet] = Session(_sessionUser, expiry);

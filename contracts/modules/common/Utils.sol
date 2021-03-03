@@ -52,7 +52,7 @@ library Utils {
     * @notice Helper method to parse data and extract the method signature.
     */
     function functionPrefix(bytes memory _data) internal pure returns (bytes4 prefix) {
-        require(_data.length >= 4, "RM: Invalid functionPrefix");
+        require(_data.length >= 4, "Utils: Invalid functionPrefix");
         // solhint-disable-next-line no-inline-assembly
         assembly {
             prefix := mload(add(_data, 0x20))
@@ -79,12 +79,12 @@ library Utils {
     }
 
     function safe128(uint256 _num) internal pure returns (uint128) {
-        require(_num < 2**128, "LU: more then 128 bits");
+        require(_num < 2**128, "Utils: more then 128 bits");
         return uint128(_num);
     }
 
     function safe64(uint256 _num) internal pure returns (uint64) {
-        require(_num < 2**64, "LU: more then 64 bits");
+        require(_num < 2**64, "Utils: more then 64 bits");
         return uint64(_num);
     }
 }

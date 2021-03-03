@@ -83,7 +83,7 @@ abstract contract BaseModule is IModule {
      * @notice Throws if the wallet is not locked.
      */
     modifier onlyWhenLocked(address _wallet) {
-        require(_isLocked(_wallet), "LM: wallet must be locked");
+        require(_isLocked(_wallet), "BM: wallet must be locked");
         _;
     }
 
@@ -91,7 +91,7 @@ abstract contract BaseModule is IModule {
      * @notice Throws if the wallet is locked.
      */
     modifier onlyWhenUnlocked(address _wallet) {
-        require(!_isLocked(_wallet), "BF: wallet locked");
+        require(!_isLocked(_wallet), "BM: wallet locked");
         _;
     }
 
