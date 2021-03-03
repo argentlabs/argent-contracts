@@ -207,7 +207,7 @@ contract("ArgentModule sessions", (accounts) => {
 
       const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success);
-      assert.equal(error, "RM: Invalid session user");
+      assert.equal(error, "TM: Invalid session user");
     });
 
     it("should not be able to start a session for zero duration", async () => {
@@ -223,7 +223,7 @@ contract("ArgentModule sessions", (accounts) => {
 
       const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success);
-      assert.equal(error, "RM: Invalid session duration");
+      assert.equal(error, "TM: Invalid session duration");
     });
 
     it("owner should be able to clear a session", async () => {

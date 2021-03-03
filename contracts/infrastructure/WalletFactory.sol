@@ -50,9 +50,9 @@ contract WalletFactory is Managed {
      */
     constructor(address _walletImplementation, address _guardianStorage, address _refundAddress) public {
         
-        require(_walletImplementation != address(0), "WF: WalletImplementation address not defined");
-        require(_guardianStorage != address(0), "WF: GuardianStorage address not defined");
-        require(_refundAddress != address(0), "WF: refund address not defined");
+        require(_walletImplementation != address(0), "WF: empty wallet implementation");
+        require(_guardianStorage != address(0), "WF: empty guardian storage");
+        require(_refundAddress != address(0), "WF: empty refund address");
         walletImplementation = _walletImplementation;
         guardianStorage = _guardianStorage;
         refundAddress = _refundAddress;
@@ -141,7 +141,7 @@ contract WalletFactory is Managed {
      * @param _refundAddress The address to use for refunds.
      */
     function changeRefundAddress(address _refundAddress) external onlyOwner {
-        require(_refundAddress != address(0), "WF: address cannot be null");
+        require(_refundAddress != address(0), "WF: cannot set to empty");
         refundAddress = _refundAddress;
         emit RefundAddressChanged(_refundAddress);
     }
@@ -199,10 +199,10 @@ contract WalletFactory is Managed {
      * @param _guardian The guardian address
      */
     function validateInputs(address _owner, address[] calldata _modules, address _guardian) internal pure {
-        require(_owner != address(0), "WF: owner cannot be null");
+        require(_owner != address(0), "WF: empty owner address");
         require(_owner != _guardian, "WF: owner cannot be guardian");
-        require(_modules.length > 0, "WF: cannot assign with less than 1 module");
-        require(_guardian != (address(0)), "WF: guardian cannot be null");        
+        require(_modules.length > 0, "WF: empty modules");
+        require(_guardian != (address(0)), "WF: empty guardian");        
     }
 
     /**

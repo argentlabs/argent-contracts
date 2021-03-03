@@ -96,21 +96,21 @@ contract("WalletFactory", (accounts) => {
       await truffleAssert.reverts(Factory.new(
         ZERO_ADDRESS,
         guardianStorage.address,
-        refundAddress), "WF: WalletImplementation address not defined");
+        refundAddress), "WF: empty wallet implementation");
     });
 
     it("should not allow to be created with empty GuardianStorage", async () => {
       await truffleAssert.reverts(Factory.new(
         implementation.address,
         ZERO_ADDRESS,
-        refundAddress), "WF: GuardianStorage address not defined");
+        refundAddress), "WF: empty guardian storage");
     });
 
     it("should not allow to be created with empty refund address", async () => {
       await truffleAssert.reverts(Factory.new(
         implementation.address,
         guardianStorage.address,
-        ZERO_ADDRESS), "WF: refund address not defined");
+        ZERO_ADDRESS), "WF: empty refund address");
     });
 
     it("should allow owner to change the refund address", async () => {
@@ -121,7 +121,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should not allow owner to change the refund address to zero address", async () => {
-      await truffleAssert.reverts(factory.changeRefundAddress(ZERO_ADDRESS), "WF: address cannot be null");
+      await truffleAssert.reverts(factory.changeRefundAddress(ZERO_ADDRESS), "WF: cannot set to empty");
     });
 
     it("should not allow non-owner to change the refund address", async () => {
@@ -343,7 +343,7 @@ contract("WalletFactory", (accounts) => {
       const salt = generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(ZERO_ADDRESS, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x"),
-        "WF: owner cannot be null",
+        "WF: empty owner address",
       );
     });
 
@@ -351,7 +351,7 @@ contract("WalletFactory", (accounts) => {
       const salt = generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(owner, modules, ZERO_ADDRESS, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x"),
-        "WF: guardian cannot be null",
+        "WF: empty guardian",
       );
     });
 
@@ -392,7 +392,7 @@ contract("WalletFactory", (accounts) => {
       const salt = generateSaltValue();
       await truffleAssert.reverts(
         factory.getAddressForCounterfactualWallet(owner, modules, ZERO_ADDRESS, salt),
-        "WF: guardian cannot be null",
+        "WF: empty guardian",
       );
     });
   });

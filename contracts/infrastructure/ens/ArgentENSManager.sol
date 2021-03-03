@@ -79,7 +79,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
      * @param _ensResolver The address of the ENS resolver contract.
      */
     function changeENSResolver(address _ensResolver) external onlyOwner {
-        require(_ensResolver != address(0), "WF: address cannot be null");
+        require(_ensResolver != address(0), "AEM: cannot set empty resolver");
         ensResolver = IENSResolver(_ensResolver);
         emit ENSResolverChanged(_ensResolver);
     }

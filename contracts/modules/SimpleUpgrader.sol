@@ -54,7 +54,7 @@ contract SimpleUpgrader is IModule {
      */
     function init(address _wallet) external override {
         require(msg.sender == _wallet, "SU: only wallet can call init");
-        require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
+        require(registry.isRegisteredModule(toEnable), "SU: module not registered");
 
         uint256 i = 0;
         //add new modules

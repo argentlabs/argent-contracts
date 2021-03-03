@@ -56,6 +56,7 @@ contract Managed is Owned {
     * @param _manager The address of the manager.
     */
     function revokeManager(address _manager) external virtual onlyOwner {
+        // solhint-disable-next-line reason-string
         require(managers[_manager] == true, "M: Target must be an existing manager");
         delete managers[_manager];
         emit ManagerRevoked(_manager);

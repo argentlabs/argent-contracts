@@ -30,7 +30,7 @@ import "./TransactionManager.sol";
  */
 contract ArgentModule is BaseModule, RelayerManager, SecurityManager, TransactionManager {
 
-    bytes32 constant NAME = "ArgentModule";
+    bytes32 constant public NAME = "ArgentModule";
 
     constructor (
         IModuleRegistry _registry,
@@ -62,7 +62,7 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
     * @inheritdoc IModule
     */
     function addModule(address _wallet, address _module) external override onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
-        require(registry.isRegisteredModule(_module), "BM: module is not registered");
+        require(registry.isRegisteredModule(_module), "AM: module is not registered");
         IWallet(_wallet).authoriseModule(_module, true);
     }
     
