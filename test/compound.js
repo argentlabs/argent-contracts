@@ -27,7 +27,6 @@ const InterestModel = artifacts.require("WhitePaperInterestRateModel");
 const CEther = artifacts.require("CEther");
 const CErc20 = artifacts.require("CErc20");
 const CToken = artifacts.require("CToken");
-const CompoundRegistry = artifacts.require("CompoundRegistry");
 
 const ERC20 = artifacts.require("TestERC20");
 const utils = require("../utils/utilities.js");
@@ -62,7 +61,6 @@ contract("ArgentModule", (accounts) => {
   let guardianStorage;
   let module;
   let dappRegistry;
-  let compoundRegistry;
   let token;
   let cToken;
   let cEther;
@@ -124,10 +122,6 @@ contract("ArgentModule", (accounts) => {
     await cToken.mint(web3.utils.toWei("1"), { from: liquidityProvider });
 
     /* Deploy Argent Architecture */
-
-    compoundRegistry = await CompoundRegistry.new();
-    await compoundRegistry.addCToken(ETH_TOKEN, cEther.address);
-    await compoundRegistry.addCToken(token.address, cToken.address);
 
     registry = await Registry.new();
 
@@ -197,10 +191,6 @@ contract("ArgentModule", (accounts) => {
   }
   describe("Environment", () => {
     it("should deploy the environment correctly", async () => {
-      const getCToken = await compoundRegistry.getCToken(token.address);
-      assert.isTrue(getCToken === cToken.address, "cToken should be registered");
-      const getCEther = await compoundRegistry.getCToken(ETH_TOKEN);
-      assert.isTrue(getCEther === cEther.address, "cEther should be registered");
       const cOracle = await comptroller.oracle();
       assert.isTrue(cOracle === oracleProxy.address, "oracle should be registered");
       const cTokenPrice = await oracleProxy.getUnderlyingPrice(cToken.address);

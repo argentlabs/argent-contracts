@@ -23,7 +23,7 @@ import "../../lib/other/ERC20.sol";
 
 /**
  * @title TransactionManager
- * @notice Module to execute transactions to e.g. transfer tokens (ETH or ERC20) or call third-party contracts.
+ * @notice Module to execute transactions in sequence to e.g. transfer tokens (ETH, ERC20, ERC721, ERC1155) or call third-party contracts.
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
@@ -36,10 +36,10 @@ abstract contract TransactionManager is BaseModule {
     bytes4 private constant ERC1155_INTERFACE = ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED;
 
     struct Call {
-        address to;
-        uint256 value;
-        bytes data;
-        bool isSpenderInData;
+        address to;         // the target of the call
+        uint256 value;      // the ETH to transfer
+        bytes data;         // the data payload
+        bool isTokenCall;   // true if the target is a token
     }
 
     // The time delay for adding a trusted contact
@@ -275,7 +275,7 @@ abstract contract TransactionManager is BaseModule {
     }
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
-        if (_transaction.isSpenderInData) {
+        if (_transaction.isTokenCall) {
             require(_transaction.value == 0, "TM: unsecure call");
            // transfer(to, value), transferFrom(wallet, to, value), approve(to, value), setApprovalForAll(to, approved)
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
