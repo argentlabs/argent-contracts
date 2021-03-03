@@ -30,7 +30,7 @@ import "./TransactionManager.sol";
  */
 contract ArgentModule is BaseModule, RelayerManager, SecurityManager, TransactionManager {
 
-    bytes32 constant NAME = "ArgentModule";
+    bytes32 constant public NAME = "ArgentModule";
 
     constructor (
         IModuleRegistry _registry,
