@@ -206,16 +206,17 @@ contract("ArgentModule", (accounts) => {
         wallet,
         [owner]);
       const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, "mint failed");
       if (!success) {
         console.log(error);
       }
-      assert.isTrue(success, "transfer failed");
-      await utils.hasEvent(txReceipt, ctoken, "Mint");
 
       if (tokenAddress === ETH_TOKEN) {
+        await utils.hasEvent(txReceipt, cEther, "Mint");
         tokenAfter = await utils.getBalance(wallet.address);
         cTokenAfter = await cEther.balanceOf(wallet.address);
       } else {
+        await utils.hasEvent(txReceipt, cToken, "Mint");
         tokenAfter = await token.balanceOf(wallet.address);
         cTokenAfter = await cToken.balanceOf(wallet.address);
       }
@@ -226,18 +227,98 @@ contract("ArgentModule", (accounts) => {
       return txReceipt;
     }
 
+    async function removeInvestment(tokenAddress, amount) {
+      const transactions = [];
+      let tokenBefore;
+      let tokenAfter;
+      let cTokenBefore;
+      let cTokenAfter;
+
+      if (tokenAddress === ETH_TOKEN) {
+        tokenBefore = await utils.getBalance(wallet.address);
+        cTokenBefore = await cEther.balanceOf(wallet.address);
+        const data = cEther.contract.methods.redeem(amount).encodeABI();
+        const transaction = await encodeTransaction(cEther.address, 0, data);
+        transactions.push(transaction);
+      } else {
+        tokenBefore = await token.balanceOf(wallet.address);
+        cTokenBefore = await cToken.balanceOf(wallet.address);
+        const data = cToken.contract.methods.redeem(amount).encodeABI();
+        const transaction = await encodeTransaction(cToken.address, 0, data);
+        transactions.push(transaction);
+      }
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, transactions],
+        wallet,
+        [owner]);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, "redeem failed");
+      if (!success) {
+        console.log(error);
+      }
+
+      if (tokenAddress === ETH_TOKEN) {
+        await utils.hasEvent(txReceipt, cEther, "Redeem");
+        tokenAfter = await utils.getBalance(wallet.address);
+        cTokenAfter = await cEther.balanceOf(wallet.address);
+      } else {
+        await utils.hasEvent(txReceipt, cToken, "Redeem");
+        tokenAfter = await token.balanceOf(wallet.address);
+        cTokenAfter = await cToken.balanceOf(wallet.address);
+      }
+
+      expect(tokenAfter.sub(tokenBefore)).to.gt.BN(0);
+      expect(cTokenBefore.sub(cTokenAfter)).to.gt.BN(0);
+
+      return txReceipt;
+    }
+
     beforeEach(async () => {
       await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
-    it("should invest ETH", async () => {
+    it("should mint cETH", async () => {
       const txReceipt = await addInvestment(ETH_TOKEN, web3.utils.toWei("1"));
-      console.log("Gas to invest ETH: ", txReceipt.gasUsed);
+      console.log("Gas to mint cETH: ", txReceipt.gasUsed);
     });
 
-    it("should invest ERC20", async () => {
+    it("should mint cErc20", async () => {
       const txReceipt = await addInvestment(token.address, web3.utils.toWei("100"));
-      console.log("Gas to invest ERC20: ", txReceipt.gasUsed);
+      console.log("Gas to mint cErc20: ", txReceipt.gasUsed);
+    });
+
+    it("should redeem cETH", async () => {
+      const amount = web3.utils.toWei("1");
+      await addInvestment(ETH_TOKEN, amount);
+      const txReceipt = await removeInvestment(ETH_TOKEN, amount / 2);
+      console.log("Gas to redeem cETH: ", txReceipt.gasUsed);
+    });
+
+    it("should redeem cErc20", async () => {
+      const amount = web3.utils.toWei("1");
+      await addInvestment(token.address, amount);
+      const txReceipt = await removeInvestment(token.address, amount / 2);
+      console.log("Gas to redeem cErc20: ", txReceipt.gasUsed);
+    });
+
+    it("should fail to send ETH to a cToken", async () => {
+      const transaction = await encodeTransaction(cToken, web3.utils.toWei("1"), ZERO_BYTES32);
+      await truffleAssert.reverts(
+        manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]),
+        "TM: call not authorised"
+      );
+    });
+
+    it("should fail to call an unauthorised method on a cToken", async () => {
+      const data = await cToken.contract.methods.borrow(10000).encodeABI();
+      const transaction = await encodeTransaction(cToken.address, 0, data);
+      await truffleAssert.reverts(
+        manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]),
+        "TM: call not authorised"
+      );
     });
   });
 });

@@ -23,7 +23,6 @@ contract CompoundFilter is IFilter {
     bytes4 private constant CETH_MINT = bytes4(keccak256("mint()"));
     bytes4 private constant CERC20_MINT = bytes4(keccak256("mint(uint256)"));
     bytes4 private constant CTOKEN_REDEEM = bytes4(keccak256("redeem(uint256)"));
-    bytes4 private constant CTOKEN_REDEEM_UNDERLYING = bytes4(keccak256("redeemUnderlying(uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
     function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
@@ -34,7 +33,7 @@ contract CompoundFilter is IFilter {
         bytes4 method = abi.decode(_data[:4], (bytes4));
         // only mint or redeem on a cToken
         if (_spender == _to) {
-            return (method == CETH_MINT || method == CERC20_MINT || method == CTOKEN_REDEEM || method == CTOKEN_REDEEM_UNDERLYING);
+            return (method == CETH_MINT || method == CERC20_MINT || method == CTOKEN_REDEEM);
         // only approve on an ERC20
         } else {
             return method == ERC20_APPROVE;
