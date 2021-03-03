@@ -101,14 +101,6 @@ abstract contract BaseModule is IModule {
     }
 
     /**
-     * @notice Throws if the sender is not the owner of the target wallet.
-     */
-    modifier onlyWalletOwner(address _wallet) {
-        require(_isOwner(_wallet, msg.sender), "BM: must be wallet owner");
-        _;
-    }
-
-    /**
      * @notice Throws if the sender is not the module itself or the owner of the target wallet.
      */
     modifier onlyWalletOwnerOrSelf(address _wallet) {
