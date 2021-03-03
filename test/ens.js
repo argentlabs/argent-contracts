@@ -72,6 +72,11 @@ contract("ENS contracts", (accounts) => {
       assert.equal(ensResolverOnManager, ensResolver.address, "should have the correct ENSResolver addrress");
     });
 
+    it("should return correct ENSReeverseRegistrar", async () => {
+      const reverseRegistrar = await ensManager.getENSReverseRegistrar();
+      assert.equal(reverseRegistrar, ensReverse.address);
+    });
+
     it("should register an ENS name", async () => {
       const label = "wallet";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
@@ -83,6 +88,18 @@ contract("ENS contracts", (accounts) => {
       assert.equal(nodeOwner, owner);
       const res = await ensRegistry.resolver(labelNode);
       assert.equal(res, ensResolver.address);
+    });
+
+    it("should not be able to register an ENS name twice", async () => {
+      const label = "wallet";
+      await ensManager.register(label, owner, "0x");
+
+      await truffleAssert.reverts(ensManager.register(label, owner, "0x"), "AEM: label is already owned");
+    });
+
+    it("should not be able to register an empty ENS label", async () => {
+      const label = "";
+      await truffleAssert.reverts(ensManager.register(label, owner, "0x"), "AEM: ENS label must be defined");
     });
 
     it("should register an ENS name with manager signature", async () => {
