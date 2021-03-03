@@ -174,7 +174,7 @@ contract("ArgentModule", (accounts) => {
   });
 
   describe("Investment", () => {
-    async function addInvestment(tokenAddress, amount, days) {
+    async function addInvestment(tokenAddress, amount) {
       const transactions = [];
       let tokenBefore;
       let tokenAfter;
@@ -199,7 +199,6 @@ contract("ArgentModule", (accounts) => {
         transactions.push(transaction);
       }
 
-
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -212,12 +211,17 @@ contract("ArgentModule", (accounts) => {
       }
       assert.isTrue(success, "transfer failed");
       await utils.hasEvent(txReceipt, ctoken, "Mint");
-      cToken = await ctoken.balanceOf(wallet.address);
-      assert.isTrue(balance.gt(0), "should have cTokens");
 
       if (tokenAddress === ETH_TOKEN) {
+        tokenAfter = await utils.getBalance(wallet.address);
+        cTokenAfter = await cEther.balanceOf(wallet.address);
+      } else {
+        tokenAfter = await token.balanceOf(wallet.address);
+        cTokenAfter = await cToken.balanceOf(wallet.address);
+      }
 
-      } else
+      expect(tokenBefore.sub(tokenAfter)).to.gt.BN(0);
+      expect(cTokenAfter.sub(cTokenBefore)).to.gt.BN(0);
 
       return txReceipt;
     }
@@ -227,12 +231,12 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should invest ETH", async () => {
-      const txReceipt = await addInvestment(ETH_TOKEN, web3.utils.toWei("1"), 365);
+      const txReceipt = await addInvestment(ETH_TOKEN, web3.utils.toWei("1"));
       console.log("Gas to invest ETH: ", txReceipt.gasUsed);
     });
 
     it("should invest ERC20", async () => {
-      const txReceipt = await addInvestment(token.address, web3.utils.toWei("100"), 365);
+      const txReceipt = await addInvestment(token.address, web3.utils.toWei("100"));
       console.log("Gas to invest ERC20: ", txReceipt.gasUsed);
     });
   });
