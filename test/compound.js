@@ -17,6 +17,7 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
+const CompoundFilter = artifacts.require("CompoundFilter");
 
 // Compound
 const Unitroller = artifacts.require("Unitroller");
@@ -127,6 +128,7 @@ contract("ArgentModule", (accounts) => {
     transferStorage = await TransferStorage.new();
 
     dappRegistry = await DappRegistry.new(0);
+    const compoundFilter = await CompoundFilter.new();
 
     const uniswapRouter = await UniswapV2Router01.new();
 
@@ -144,8 +146,8 @@ contract("ArgentModule", (accounts) => {
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
-    await dappRegistry.addDapp(0, cEther.address, ZERO_ADDRESS);
-    await dappRegistry.addDapp(0, cToken.address, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, cEther.address, compoundFilter.address);
+    await dappRegistry.addDapp(0, cToken.address, compoundFilter.address);
 
     walletImplementation = await BaseWallet.new();
 
@@ -156,8 +158,8 @@ contract("ArgentModule", (accounts) => {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
     await wallet.init(owner, [module.address]);
-    await wallet.send(new BN("1000000000000000000"));
-    await token.transfer(wallet.address, new BN("1000000000000000000"));
+    await wallet.send(web3.utils.toWei("1"));
+    await token.transfer(wallet.address, web3.utils.toWei("1"));
   });
 
   describe("Environment", () => {
@@ -176,8 +178,7 @@ contract("ArgentModule", (accounts) => {
       let tx;
       // generate borrows to create interests
       await comptroller.enterMarkets([cEther.address, cToken.address], { from: borrower });
-
-      if (investInEth) {
+      if (!investInEth) {
         await token.approve(cToken.address, web3.utils.toWei("20"), { from: borrower });
         await cToken.mint(web3.utils.toWei("20"), { from: borrower });
         tx = await cEther.borrow(web3.utils.toWei("0.1"), { from: borrower });
