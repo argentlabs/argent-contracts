@@ -23,7 +23,7 @@ const { assert } = require("chai");
 const truffleAssert = require("truffle-assertions");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -43,7 +43,6 @@ contract("Authorisation", (accounts) => {
   const owner = accounts[1];
   const nonwhitelisted = accounts[2];
   const recipient = accounts[3];
-  const nonceInitialiser = accounts[4];
   const registryOwner = accounts[5];
   const relayer = accounts[9];
 
@@ -106,10 +105,6 @@ contract("Authorisation", (accounts) => {
     await setupRegistries();
   });
 
-  function encodeTransaction(to, value, data, isSpenderInData) {
-    return { to, value, data, isSpenderInData };
-  }
-
   async function enableCustomRegistry() {
     assert.equal(await dappRegistry.isEnabledRegistry(wallet.address, CUSTOM_REGISTRY_ID), false, "custom registry should not be enabled");
     const data = dappRegistry.contract.methods.toggleRegistry(CUSTOM_REGISTRY_ID, true).encodeABI();
@@ -139,38 +134,16 @@ contract("Authorisation", (accounts) => {
     await enableCustomRegistry();
   }
 
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function initNonce() {
-    // add to whitelist
-    await whitelist(nonceInitialiser);
-    // set the relayer nonce to > 0
-    const transaction = encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-  }
-
   // wallet-centric functions
 
   describe("call (un)authorised contract", () => {
     beforeEach(async () => {
       await setupWallet();
-      initNonce();
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     it("should send ETH to authorised address", async () => {
-      const transaction = encodeTransaction(recipient, 100, ZERO_BYTES32, false);
+      const transaction = encodeTransaction(recipient, 100, ZERO_BYTES32);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -262,7 +235,7 @@ contract("Authorisation", (accounts) => {
   describe("approve token and call authorised contract", () => {
     beforeEach(async () => {
       await setupWallet();
-      await initNonce();
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     it("should call authorised contract when filter pass", async () => {

@@ -27,16 +27,14 @@ const InterestModel = artifacts.require("WhitePaperInterestRateModel");
 const CEther = artifacts.require("CEther");
 const CErc20 = artifacts.require("CErc20");
 const CToken = artifacts.require("CToken");
-const CompoundRegistry = artifacts.require("CompoundRegistry");
 
 const ERC20 = artifacts.require("TestERC20");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
 
 const WAD = new BN("1000000000000000000"); // 10**18
 const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -52,7 +50,6 @@ contract("ArgentModule", (accounts) => {
   const owner = accounts[1];
   const liquidityProvider = accounts[2];
   const borrower = accounts[3];
-  const nonceInitialiser = accounts[5];
   const relayer = accounts[5];
 
   let wallet;
@@ -62,7 +59,6 @@ contract("ArgentModule", (accounts) => {
   let guardianStorage;
   let module;
   let dappRegistry;
-  let compoundRegistry;
   let token;
   let cToken;
   let cEther;
@@ -125,10 +121,6 @@ contract("ArgentModule", (accounts) => {
 
     /* Deploy Argent Architecture */
 
-    compoundRegistry = await CompoundRegistry.new();
-    await compoundRegistry.addCToken(ETH_TOKEN, cEther.address);
-    await compoundRegistry.addCToken(token.address, cToken.address);
-
     registry = await Registry.new();
 
     guardianStorage = await GuardianStorage.new();
@@ -168,39 +160,8 @@ contract("ArgentModule", (accounts) => {
     await token.transfer(wallet.address, new BN("1000000000000000000"));
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
-  }
-
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function initNonce() {
-    // add to whitelist
-    await whitelist(nonceInitialiser);
-    // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-    const nonce = await module.getNonce(wallet.address);
-    assert.isTrue(nonce.gt(0), "nonce init failed");
-  }
   describe("Environment", () => {
     it("should deploy the environment correctly", async () => {
-      const getCToken = await compoundRegistry.getCToken(token.address);
-      assert.isTrue(getCToken === cToken.address, "cToken should be registered");
-      const getCEther = await compoundRegistry.getCToken(ETH_TOKEN);
-      assert.isTrue(getCEther === cEther.address, "cEther should be registered");
       const cOracle = await comptroller.oracle();
       assert.isTrue(cOracle === oracleProxy.address, "oracle should be registered");
       const cTokenPrice = await oracleProxy.getUnderlyingPrice(cToken.address);
@@ -243,7 +204,7 @@ contract("ArgentModule", (accounts) => {
         investInEth = true;
 
         const data = cEther.contract.methods.mint().encodeABI();
-        const transaction = await encodeTransaction(cEther.address, amount, data);
+        const transaction = encodeTransaction(cEther.address, amount, data);
         transactions.push(transaction);
       } else {
         await token.transfer(wallet.address, amount);
@@ -251,11 +212,11 @@ contract("ArgentModule", (accounts) => {
         investInEth = false;
 
         let data = token.contract.methods.approve(cToken.address, amount).encodeABI();
-        let transaction = await encodeTransaction(token.address, 0, data, true);
+        let transaction = encodeTransaction(token.address, 0, data, true);
         transactions.push(transaction);
 
         data = cToken.contract.methods.mint(amount).encodeABI();
-        transaction = await encodeTransaction(cToken.address, 0, data);
+        transaction = encodeTransaction(cToken.address, 0, data);
         transactions.push(transaction);
       }
 
@@ -280,7 +241,7 @@ contract("ArgentModule", (accounts) => {
     }
 
     beforeEach(async () => {
-      await initNonce();
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     it("should invest ETH", async () => {

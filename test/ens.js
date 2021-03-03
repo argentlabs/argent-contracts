@@ -19,7 +19,7 @@ const Filter = artifacts.require("TestFilter");
 
 const truffleAssert = require("truffle-assertions");
 const utilities = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
@@ -233,10 +233,6 @@ contract("ENS contracts", (accounts) => {
     });
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
-  }
-
   describe("Relayed ENS registration", () => {
     it("should be able to register label for wallet", async () => {
       const registry = await Registry.new();
@@ -279,7 +275,7 @@ contract("ENS contracts", (accounts) => {
       const transactions = [];
       // build the claimWithResolver call
       let data = ensReverse.contract.methods.claimWithResolver(ensManager.address, ensResolver.address).encodeABI();
-      let transaction = await encodeTransaction(ensReverse.address, 0, data, false);
+      let transaction = encodeTransaction(ensReverse.address, 0, data, false);
       transactions.push(transaction);
 
       // build the ens register call
@@ -290,7 +286,7 @@ contract("ENS contracts", (accounts) => {
       ].map((hex) => hex.slice(2)).join("")}`;
       const managerSig = await utilities.signMessage(ethers.utils.keccak256(message), infrastructure);
       data = ensManager.contract.methods.register(label, wallet.address, managerSig).encodeABI();
-      transaction = await encodeTransaction(ensManager.address, 0, data, false);
+      transaction = encodeTransaction(ensManager.address, 0, data, false);
       transactions.push(transaction);
 
       const txReceipt = await manager.relay(

@@ -3,12 +3,10 @@ global.web3 = web3;
 
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransferStorage = artifacts.require("TransferStorage");
-const LockStorage = artifacts.require("LockStorage");
 
 const BaseWallet = artifacts.require("BaseWallet");
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const DappRegistry = artifacts.require("DappRegistry");
-const CompoundRegistry = artifacts.require("CompoundRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 const ENS = artifacts.require("ENSRegistryWithFallback");
 const ENSManager = artifacts.require("ArgentENSManager");
@@ -17,9 +15,6 @@ const WalletFactory = artifacts.require("WalletFactory");
 
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
-
-const MakerRegistry = artifacts.require("MakerRegistry");
-const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 
 const utils = require("../utils/utilities.js");
 const deployManager = require("../utils/deploy-manager.js");
@@ -40,8 +35,6 @@ async function main() {
   const GuardianStorageWrapper = await GuardianStorage.new();
   // Deploy the Transfer Storage
   const TransferStorageWrapper = await TransferStorage.new();
-  // Deploy the new LockStorage
-  const LockStorageWrapper = await LockStorage.new();
 
   // //////////////////////////////////
   // Deploy infrastructure contracts
@@ -60,8 +53,6 @@ async function main() {
   // Deploy Module Registry
   const ModuleRegistryWrapper = await ModuleRegistry.new();
   const DappRegistryWrapper = await DappRegistry.new(newConfig.settings.timelockPeriod);
-  // Deploy Compound Registry
-  const CompoundRegistryWrapper = await CompoundRegistry.new();
   // Deploy the ENS Resolver
   const ENSResolverWrapper = await ENSResolver.new();
   // Deploy the ENS Manager
@@ -70,16 +61,6 @@ async function main() {
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await WalletFactory.new(
     BaseWalletWrapper.address, GuardianStorageWrapper.address, prevConfig.backend.refundCollector);
-
-  // Deploy and configure Maker Registry
-  const ScdMcdMigrationWrapper = await ScdMcdMigration.at(newConfig.defi.maker.migration);
-  const vatAddress = await ScdMcdMigrationWrapper.vat();
-  const MakerRegistryWrapper = await MakerRegistry.new(vatAddress);
-  const wethJoinAddress = await ScdMcdMigrationWrapper.wethJoin();
-  console.log(`Adding join adapter ${wethJoinAddress} to the MakerRegistry`);
-  await MakerRegistryWrapper.addCollateral(wethJoinAddress);
-  console.log("Set the MultiSig as the owner of the MakerRegistry");
-  await MakerRegistryWrapper.changeOwner(newConfig.contracts.MultiSigWallet);
 
   // /////////////////////////////////////////////////
   // Making ENSManager owner of the root wallet ENS
@@ -108,22 +89,11 @@ async function main() {
   }
 
   // /////////////////////////////////////////////////
-  // Add token to the Compound Registry
-  // /////////////////////////////////////////////////
-
-  for (const underlying in newConfig.defi.compound.markets) {
-    const cToken = newConfig.defi.compound.markets[underlying];
-    console.log(`Adding unerlying ${underlying} with cToken ${cToken} to the registry`);
-    await CompoundRegistryWrapper.addCToken(underlying, cToken);
-  }
-
-  // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
   configurator.updateModuleAddresses({
     GuardianStorage: GuardianStorageWrapper.address,
     TransferStorage: TransferStorageWrapper.address,
-    LockStorage: LockStorageWrapper.address,
     TokenPriceRegistry: TokenPriceRegistryWrapper.address,
   });
 
@@ -134,7 +104,6 @@ async function main() {
     ENSManager: ENSManagerWrapper.address,
     ModuleRegistry: ModuleRegistryWrapper.address,
     DappRegistry: DappRegistryWrapper.address,
-    CompoundRegistry: CompoundRegistryWrapper.address,
     DexRegistry: DexRegistryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
   });
@@ -143,7 +112,6 @@ async function main() {
   await Promise.all([
     abiUploader.upload(GuardianStorageWrapper, "modules"),
     abiUploader.upload(TransferStorageWrapper, "modules"),
-    abiUploader.upload(LockStorageWrapper, "modules"),
     abiUploader.upload(TokenPriceRegistryWrapper, "modules"),
     abiUploader.upload(MultiSigWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
@@ -151,7 +119,6 @@ async function main() {
     abiUploader.upload(ENSManagerWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
     abiUploader.upload(DappRegistryWrapper, "contracts"),
-    abiUploader.upload(CompoundRegistryWrapper, "contracts"),
     abiUploader.upload(DexRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);

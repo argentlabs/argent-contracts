@@ -17,16 +17,18 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "../../lib/other/ERC20.sol";
 
 /**
  * @title TransactionManager
- * @notice Module to execute transactions to e.g. transfer tokens (ETH or ERC20) or call third-party contracts.
+ * @notice Module to execute transactions in sequence to e.g. transfer tokens (ETH, ERC20, ERC721, ERC1155) or call third-party contracts.
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
+
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     bytes4 private constant ERC1155_RECEIVED = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
@@ -35,23 +37,37 @@ abstract contract TransactionManager is BaseModule {
     bytes4 private constant ERC1155_INTERFACE = ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED;
 
     struct Call {
-        address to;
-        uint256 value;
-        bytes data;
-        bool isSpenderInData;
+        address to;         // the target of the call
+        uint256 value;      // the ETH to transfer
+        bytes data;         // the data payload
+        bool isTokenCall;   // true if target is a token and data is a standard ERC20/721/1155 method
     }
+
+    // The time delay for adding a trusted contact
+    uint256 internal immutable whitelistPeriod;
 
     // *************** Events *************************** //
 
-    event Transfer(address indexed wallet, address indexed token, uint256 indexed amount, address to, bytes data);
-    event CalledContract(address indexed wallet, address indexed to, uint256 amount, bytes data);
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
 
+    // *************** Constructor ************************ //
+
+    constructor(uint256 _whitelistPeriod) public {
+        whitelistPeriod = _whitelistPeriod;
+    }
+
     // *************** External functions ************************ //
 
+    /**
+     * @notice Makes the target wallet execute a sequence of transactions authorised by the wallet owner.
+     * The method reverts if any of the inner transactions reverts.
+     * The method reverts if any of the inner transaction is not to a trusted contact or an authorised dapp.
+     * @param _wallet The target wallet.
+     * @param _transactions The sequence of transactions.
+     */
     function multiCall(
         address _wallet,
         Call[] calldata _transactions
@@ -72,6 +88,12 @@ abstract contract TransactionManager is BaseModule {
         return results;
     }
 
+    /**
+     * @notice Makes the target wallet execute a sequence of transactions authorised by a session key.
+     * The method reverts if any of the inner transactions reverts.
+     * @param _wallet The target wallet.
+     * @param _transactions The sequence of transactions.
+     */
     function multiCallWithSession(
         address _wallet,
         Call[] calldata _transactions
@@ -84,6 +106,12 @@ abstract contract TransactionManager is BaseModule {
         multiCallWithApproval(_wallet, _transactions);
     }
 
+    /**
+     * @notice Makes the target wallet execute a sequence of transactions approved by a majority of guardians.
+     * The method reverts if any of the inner transactions reverts.
+     * @param _wallet The target wallet.
+     * @param _transactions The sequence of transactions.
+     */
     function multiCallWithGuardians(
         address _wallet,
         Call[] calldata _transactions
@@ -96,6 +124,13 @@ abstract contract TransactionManager is BaseModule {
         multiCallWithApproval(_wallet, _transactions);
     }
 
+    /**
+     * @notice Makes the target wallet execute a sequence of transactions approved by a majority of guardians.
+     * The method reverts if any of the inner transactions reverts.
+     * Upon success a new session is started.
+     * @param _wallet The target wallet.
+     * @param _transactions The sequence of transactions.
+     */
     function multiCallWithGuardiansAndStartSession(
         address _wallet,
         Call[] calldata _transactions,
@@ -112,7 +147,7 @@ abstract contract TransactionManager is BaseModule {
     }
 
     /**
-     * @notice Adds an address to the whitelist of a wallet.
+     * @notice Adds an address to the list of trusted contacts.
      * @param _wallet The target wallet.
      * @param _target The address to add.
      */
@@ -121,13 +156,13 @@ abstract contract TransactionManager is BaseModule {
         require(!registry.isRegisteredModule(_target), "TM: Cannot whitelist module");
         require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
 
-        uint256 whitelistAfter = block.timestamp.add(securityPeriod);
+        uint256 whitelistAfter = block.timestamp.add(whitelistPeriod);
         setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }
 
     /**
-     * @notice Removes an address from the whitelist of a wallet.
+     * @notice Removes an address from the list of trusted contacts.
      * @param _wallet The target wallet.
      * @param _target The address to remove.
      */
@@ -137,10 +172,10 @@ abstract contract TransactionManager is BaseModule {
     }
 
     /**
-    * @notice Checks if an address is whitelisted for a wallet.
+    * @notice Checks if an address is a trusted contact for a wallet.
     * @param _wallet The target wallet.
     * @param _target The address.
-    * @return _isWhitelisted true if the address is whitelisted.
+    * @return _isWhitelisted true if the address is a trusted contact.
     */
     function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
@@ -235,13 +270,13 @@ abstract contract TransactionManager is BaseModule {
         require(_sessionUser != address(0), "TM: Invalid session user");
         require(_duration > 0, "TM: Invalid session duration");
 
-        uint64 expiry = Utils.safe64(block.timestamp + _duration);
+        uint64 expiry = SafeCast.toUint64(block.timestamp + _duration);
         sessions[_wallet] = Session(_sessionUser, expiry);
         emit SessionCreated(_wallet, _sessionUser, expiry);
     }
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
-        if (_transaction.isSpenderInData) {
+        if (_transaction.isTokenCall) {
             require(_transaction.value == 0, "TM: unsecure call");
            // transfer(to, value), transferFrom(wallet, to, value), approve(to, value), setApprovalForAll(to, approved)
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));

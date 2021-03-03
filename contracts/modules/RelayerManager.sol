@@ -17,11 +17,10 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/Math.sol";
 import "./common/Utils.sol";
-import "./common/GuardianUtils.sol";
 import "./common/BaseModule.sol";
 import "./common/SimpleOracle.sol";
-import "../infrastructure/storage/ILimitStorage.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
 
 /**
@@ -75,8 +74,8 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
     * @param _data The data for the relayed transaction
     * @param _nonce The nonce used to prevent replay attacks.
     * @param _signatures The signatures as a concatenated byte array.
-    * @param _gasPrice The gas price to use for the gas refund.
-    * @param _gasLimit The gas limit to use for the gas refund.
+    * @param _gasPrice The max gas price (in token) to use for the gas refund.
+    * @param _gasLimit The max gas limit to use for the gas refund.
     * @param _refundToken The token to use for the gas refund.
     * @param _refundAddress The address refunded to prevent front-running.
     */
@@ -93,7 +92,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
         external
         returns (bool)
     {
-        // initial gas = 21k + non_zero_bytes * 8 + zero_bytes * 4
+        // initial gas = 21k + non_zero_bytes * 16 + zero_bytes * 4
         //            ~= 21k + calldata.length * [1/3 * 16 + 2/3 * 4]
         uint256 startGas = gasleft() + 21000 + msg.data.length * 8;
         require(startGas >= _gasLimit, "RM: not enough gas provided");
@@ -171,8 +170,8 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
     * @param _value The value for the relayed transaction.
     * @param _data The data for the relayed transaction which includes the wallet address.
     * @param _nonce The nonce used to prevent replay attacks.
-    * @param _gasPrice The gas price to use for the gas refund.
-    * @param _gasLimit The gas limit to use for the gas refund.
+    * @param _gasPrice The max gas price (in token) to use for the gas refund.
+    * @param _gasLimit The max gas limit to use for the gas refund.
     * @param _refundToken The token to use for the gas refund.
     * @param _refundAddress The address refunded to prevent front-running.
     */
@@ -210,7 +209,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
 
     /**
     * @notice Checks if the relayed transaction is unique. If yes the state is updated.
-    * For actions requiring 1 signature by the owner we use the incremental nonce.
+    * For actions requiring 1 signature by the owner or a session key we use the incremental nonce.
     * For all other actions we check/store the signHash in a mapping.
     * @param _wallet The target wallet.
     * @param _nonce The nonce.
@@ -253,7 +252,6 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
 
     /**
     * @notice Validates the signatures provided with a relayed transaction.
-    * The method MUST throw if one or more signatures are not valid.
     * @param _wallet The target wallet.
     * @param _signHash The signed hash representing the relayed transaction.
     * @param _signatures The signatures as a concatenated bytes array.
@@ -293,7 +291,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
                 return false; // Signers must be different
             }
             lastSigner = signer;
-            (isGuardian, guardians) = GuardianUtils.isGuardianOrGuardianSigner(guardians, signer);
+            (isGuardian, guardians) = Utils.isGuardianOrGuardianSigner(guardians, signer);
             if (!isGuardian) {
                 return false;
             }
@@ -302,14 +300,28 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
     }
 
     /**
+    * @notice Validates the signature provided when a session key was used.
+    * @param _wallet The target wallet.
+    * @param _signHash The signed hash representing the relayed transaction.
+    * @param _signatures The signatures as a concatenated bytes array.
+    * @return A boolean indicating whether the signature is valid.
+    */
+    function validateSession(address _wallet, bytes32 _signHash, bytes calldata _signatures) internal view returns (bool) { 
+        Session memory session = sessions[_wallet];
+        address signer = Utils.recoverSigner(_signHash, _signatures, 0);
+        return (signer == session.key && session.expires >= block.timestamp);
+    }
+
+    /**
     * @notice Refunds the gas used to the Relayer.
     * @param _wallet The target wallet.
     * @param _startGas The gas provided at the start of the execution.
-    * @param _gasPrice The gas price for the refund.
-    * @param _gasLimit The gas limit for the refund.
+    * @param _gasPrice The max gas price (in token) for the refund.
+    * @param _gasLimit The max gas limit for the refund.
     * @param _refundToken The token to use for the gas refund.
     * @param _refundAddress The address refunded to prevent front-running.
     * @param _requiredSignatures The number of signatures required.
+    * @param _option An OwnerSignature enum indicating the signature requirement.
     */
     function refund(
         address _wallet,
@@ -323,6 +335,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
     )
         internal
     {
+        // Only refund when the owner is one of the signers or a session key was used
         if (_gasPrice > 0 && (_option == OwnerSignature.Required || _option == OwnerSignature.Session)) {
             address refundAddress = _refundAddress == address(0) ? msg.sender : _refundAddress;
             if (_requiredSignatures == 1 && _option == OwnerSignature.Required) {
@@ -335,12 +348,12 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
             uint256 refundAmount;
             if (_refundToken == ETH_TOKEN) {
                 uint256 gasConsumed = _startGas.sub(gasleft()).add(14000);
-                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(Utils.min(_gasPrice, tx.gasprice));
+                refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tx.gasprice));
                 invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
             } else {
                 uint256 gasConsumed = _startGas.sub(gasleft()).add(28500);
                 uint256 tokenGasPrice = inToken(_refundToken, tx.gasprice);
-                refundAmount = Utils.min(gasConsumed, _gasLimit).mul(Utils.min(_gasPrice, tokenGasPrice));
+                refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tokenGasPrice));
                 bytes memory methodData = abi.encodeWithSelector(ERC20.transfer.selector, refundAddress, refundAmount);
                 bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
                 // Check token refund is successful, when `transfer` returns a success bool result
@@ -369,11 +382,5 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
     function getChainId() private pure returns (uint256 chainId) {
         // solhint-disable-next-line no-inline-assembly
         assembly { chainId := chainid() }
-    }
-
-    function validateSession(address _wallet, bytes32 _signHash, bytes calldata _signatures) internal view returns (bool) { 
-        Session memory session = sessions[_wallet];
-        address signer = Utils.recoverSigner(_signHash, _signatures, 0);
-        return (signer == session.key && session.expires >= block.timestamp);
     }
 }

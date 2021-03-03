@@ -40,9 +40,8 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -62,7 +61,6 @@ contract("ArgentModule", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const recipient = accounts[4];
-  const nonceInitialiser = accounts[4];
 
   let registry;
   let transferStorage;
@@ -175,32 +173,6 @@ contract("ArgentModule", (accounts) => {
     await tokenB.mint(wallet.address, web3.utils.toWei("1000"));
   });
 
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
-  }
-
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function initNonce() {
-    // add to whitelist
-    await whitelist(nonceInitialiser);
-    // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-  }
-
   async function getBalance(tokenAddress, _wallet) {
     let balance;
     if (tokenAddress === ETH_TOKEN) {
@@ -307,7 +279,7 @@ contract("ArgentModule", (accounts) => {
       } else {
         data = tokenB.contract.methods.approve(paraswapProxy, srcAmount).encodeABI();
       }
-      transaction = await encodeTransaction(fromToken, 0, data, true);
+      transaction = encodeTransaction(fromToken, 0, data, true);
       transactions.push(transaction);
     }
 
@@ -324,7 +296,7 @@ contract("ArgentModule", (accounts) => {
       0,
       "abc",
     ).encodeABI();
-    transaction = await encodeTransaction(paraswap.address, value, data);
+    transaction = encodeTransaction(paraswap.address, value, data);
     transactions.push(transaction);
 
     const txReceipt = await manager.relay(
@@ -350,7 +322,7 @@ contract("ArgentModule", (accounts) => {
 
   describe("multi swap", () => {
     beforeEach(async () => {
-      await initNonce();
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     // todo fix this test
@@ -393,7 +365,7 @@ contract("ArgentModule", (accounts) => {
         "abc",
       ).encodeABI();
 
-      const transaction = await encodeTransaction(paraswap.address, srcAmount, data);
+      const transaction = encodeTransaction(paraswap.address, srcAmount, data);
 
       const txReceipt = await manager.relay(
         module,

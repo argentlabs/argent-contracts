@@ -21,7 +21,7 @@ const ERC20 = artifacts.require("TestERC20");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -39,7 +39,6 @@ contract("ArgentModule sessions", (accounts) => {
   const owner = accounts[1];
   const guardian1 = accounts[2];
   const recipient = accounts[4];
-  const nonceInitialiser = accounts[5];
   const sessionUser = accounts[6];
   const sessionUser2 = accounts[7];
   const relayer = accounts[9];
@@ -98,34 +97,6 @@ contract("ArgentModule sessions", (accounts) => {
     assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
   }
 
-  async function whitelist(target) {
-    await module.addToWhitelist(wallet.address, target, { from: owner });
-    await utils.increaseTime(3);
-    const isTrusted = await module.isWhitelisted(wallet.address, target);
-    assert.isTrue(isTrusted, "should be trusted after the security period");
-  }
-
-  async function encodeTransaction(to, value, data, isSpenderInData = false) {
-    return { to, value, data, isSpenderInData };
-  }
-
-  async function initNonce() {
-    // add to whitelist
-    await whitelist(nonceInitialiser);
-    // set the relayer nonce to > 0
-    const transaction = await encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32, false);
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, [transaction]],
-      wallet,
-      [owner]);
-    const success = await utils.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
-    const nonce = await module.getNonce(wallet.address);
-    assert.isTrue(nonce.gt(0), "nonce init failed");
-  }
-
   beforeEach(async () => {
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
@@ -135,7 +106,7 @@ contract("ArgentModule sessions", (accounts) => {
 
     await addGuardians([guardian1]);
 
-    await initNonce();
+    await initNonce(wallet, module, manager, SECURITY_PERIOD);
   });
 
   describe("session lifecycle", () => {
@@ -285,7 +256,7 @@ contract("ArgentModule sessions", (accounts) => {
 
   describe("approved transfer (without using a session)", () => {
     it("should be able to send ETH with guardians", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
 
       const balanceBefore = await utils.getBalance(recipient);
       const txReceipt = await manager.relay(
@@ -308,7 +279,7 @@ contract("ArgentModule sessions", (accounts) => {
     it("should be able to transfer ERC20 with guardians", async () => {
       await token.transfer(wallet.address, 10);
       const data = await token.contract.methods.transfer(recipient, 10).encodeABI();
-      const transaction = await encodeTransaction(token.address, 0, data);
+      const transaction = encodeTransaction(token.address, 0, data);
 
       const balanceBefore = await token.balanceOf(recipient);
       const txReceipt = await manager.relay(
@@ -343,7 +314,7 @@ contract("ArgentModule sessions", (accounts) => {
     });
 
     it("should be able to send ETH", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
 
       const balanceBefore = await utils.getBalance(recipient);
       const txReceipt = await manager.relay(
@@ -365,7 +336,7 @@ contract("ArgentModule sessions", (accounts) => {
     it("should be able to transfer ERC20", async () => {
       await token.transfer(wallet.address, 10);
       const data = await token.contract.methods.transfer(recipient, 10).encodeABI();
-      const transaction = await encodeTransaction(token.address, 0, data);
+      const transaction = encodeTransaction(token.address, 0, data);
 
       const balanceBefore = await token.balanceOf(recipient);
       const txReceipt = await manager.relay(
@@ -385,7 +356,7 @@ contract("ArgentModule sessions", (accounts) => {
     });
 
     it("should not be able to send ETH with invalid session", async () => {
-      const transaction = await encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
 
       await truffleAssert.reverts(manager.relay(
         module,

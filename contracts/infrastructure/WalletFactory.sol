@@ -61,7 +61,7 @@ contract WalletFactory is Managed {
     // *************** External Functions ********************* //
 
     /**
-    * @notice Revokes a manager (unused).
+    * @notice Disables the ability for the owner of the factory to revoke a manager.
     * @param _manager The address of the manager.
     */
     function revokeManager(address _manager) override external {
@@ -69,11 +69,12 @@ contract WalletFactory is Managed {
     }
      
     /**
-     * @notice Lets the manager create a wallet for an owner account at a specific address.
-     * The wallet is initialised with the version manager module, the version number and a first guardian.
-     * The wallet is created using the CREATE2 opcode.
+     * @notice Creates a wallet for an owner account at a specific address.
+     * The wallet is initialised with the target modules and a first guardian by default.
+     * The wallet is created using the CREATE2 opcode and must have been approved 
+     * by a manager of the factory.
      * @param _owner The account address.
-     * @param _modules The list of modules for wallet.
+     * @param _modules The list of modules for the wallet.
      * @param _guardian The guardian address.
      * @param _salt The salt.
      * @param _refundAmount The amount to refund to the relayer.
@@ -137,7 +138,7 @@ contract WalletFactory is Managed {
     }
 
     /**
-     * @notice Lets the owner change the refund address.
+     * @notice Lets the owner of the factory change the refund address.
      * @param _refundAddress The address to use for refunds.
      */
     function changeRefundAddress(address _refundAddress) external onlyOwner {
@@ -147,8 +148,8 @@ contract WalletFactory is Managed {
     }
 
     /**
-     * @notice Inits the module for a wallet by doing nothing.
-     * The method can only be called by the wallet itself.
+     * @notice Required to make the factory a module during the 
+     * initialisation of the wallet. 
      * @param _wallet The wallet.
      */
     function init(BaseWallet _wallet) external pure {
@@ -160,12 +161,12 @@ contract WalletFactory is Managed {
     /**
      * @notice Helper method to configure a wallet for a set of input parameters.
      * @param _wallet The target wallet
-     * @param _owner The account address.
-     * @param _modules The list of modules for wallet.
-     * @param _guardian The guardian address.
+     * @param _owner The owner address.
+     * @param _modules The list of modules.
+     * @param _guardian The guardian.
      */
     function configureWallet(BaseWallet _wallet, address _owner, address[] calldata _modules, address _guardian) internal {
-        // add the factory to modules so it can add a guardian and upgrade the wallet to the required version
+        // add the factory to modules so it can add the first guardian and trigger the refund
         address[] memory extendedModules = new address[](_modules.length + 1);
         extendedModules[0] = address(this);
         for (uint i = 0; i < _modules.length; i++) {
@@ -175,7 +176,7 @@ contract WalletFactory is Managed {
         // initialise the wallet with the owner and the extended modules
         _wallet.init(_owner, extendedModules);
 
-        // add guardian
+        // add the first guardian
         IGuardianStorage(guardianStorage).addGuardian(address(_wallet), _guardian);
     }
 
@@ -193,10 +194,10 @@ contract WalletFactory is Managed {
     }
 
     /**
-     * @notice Throws if the owner, guardian, version or version manager is invalid.
+     * @notice Throws if the owner, guardian, or module array is invalid.
      * @param _owner The owner address.
-     * @param _modules The list of modules for wallet.
-     * @param _guardian The guardian address
+     * @param _modules The list of modules for the wallet.
+     * @param _guardian The guardian address.
      */
     function validateInputs(address _owner, address[] calldata _modules, address _guardian) internal pure {
         require(_owner != address(0), "WF: empty owner address");
