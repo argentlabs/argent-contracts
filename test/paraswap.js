@@ -61,7 +61,6 @@ contract("ArgentModule", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const recipient = accounts[4];
-  const nonceInitialiser = accounts[4];
 
   let registry;
   let transferStorage;
@@ -323,7 +322,7 @@ contract("ArgentModule", (accounts) => {
 
   describe("multi swap", () => {
     beforeEach(async () => {
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     // todo fix this test

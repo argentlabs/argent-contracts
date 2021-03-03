@@ -34,7 +34,6 @@ contract("TransactionManager", (accounts) => {
   // const infrastructure = accounts[0];
   const owner = accounts[1];
   // const recipient = accounts[4];
-  const nonceInitialiser = accounts[5];
   const relayer = accounts[9];
 
   let registry;
@@ -106,7 +105,7 @@ contract("TransactionManager", (accounts) => {
 
   describe("upgrader modules", () => {
     beforeEach(async () => {
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     it("should remove 1 and add 1 module", async () => {

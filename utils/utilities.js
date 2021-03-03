@@ -269,18 +269,17 @@ const utilities = {
   },
 
   // set the relayer nonce to > 0
-  initNonce: async (wallet, account, module, manager, securityPeriod) => {
-    await utilities.addTrustedContact(wallet, account, module, securityPeriod);
+  initNonce: async (wallet, module, manager, securityPeriod) => {
+    const nonceInitialiser = await utilities.getAccount(8);
+    await utilities.addTrustedContact(wallet, nonceInitialiser, module, securityPeriod);
     const owner = await wallet.owner();
-    const transaction = utilities.encodeTransaction(account, 1, ZERO_BYTES32);
-    const txReceipt = await manager.relay(
+    const transaction = utilities.encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32);
+    await manager.relay(
       module,
       "multiCall",
       [wallet.address, [transaction]],
       wallet,
       [owner]);
-    const success = await utilities.parseRelayReceipt(txReceipt).success;
-    assert.isTrue(success, "transfer failed");
     const nonce = await module.getNonce(wallet.address);
     assert.isTrue(nonce.gt(0), "nonce init failed");
   }

@@ -43,7 +43,6 @@ contract("Authorisation", (accounts) => {
   const owner = accounts[1];
   const nonwhitelisted = accounts[2];
   const recipient = accounts[3];
-  const nonceInitialiser = accounts[4];
   const registryOwner = accounts[5];
   const relayer = accounts[9];
 
@@ -140,7 +139,7 @@ contract("Authorisation", (accounts) => {
   describe("call (un)authorised contract", () => {
     beforeEach(async () => {
       await setupWallet();
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     it("should send ETH to authorised address", async () => {
@@ -236,7 +235,7 @@ contract("Authorisation", (accounts) => {
   describe("approve token and call authorised contract", () => {
     beforeEach(async () => {
       await setupWallet();
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     it("should call authorised contract when filter pass", async () => {

@@ -41,7 +41,6 @@ contract("ArgentModule", (accounts) => {
   const owner = accounts[1];
   const sender = accounts[2];
   const recipient = accounts[4];
-  const nonceInitialiser = accounts[5];
   const relayer = accounts[9];
 
   let registry;
@@ -108,7 +107,7 @@ contract("ArgentModule", (accounts) => {
 
   describe("send and receive assets", () => {
     beforeEach(async () => {
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
       await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
     });
 

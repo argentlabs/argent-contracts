@@ -38,7 +38,6 @@ contract("ArgentModule", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const recipient = accounts[4];
-  const nonceInitialiser = accounts[5];
   const relayer = accounts[9];
 
   let registry;
@@ -89,7 +88,7 @@ contract("ArgentModule", (accounts) => {
 
   describe("whitelist", () => {
     beforeEach(async () => {
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
     it("should whitelist an address", async () => {
       const target = accounts[6];
@@ -136,7 +135,7 @@ contract("ArgentModule", (accounts) => {
 
   describe("transfer ETH", () => {
     beforeEach(async () => {
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     it("should send ETH to a whitelisted address", async () => {
@@ -165,7 +164,7 @@ contract("ArgentModule", (accounts) => {
 
   describe("transfer/Approve ERC20", () => {
     beforeEach(async () => {
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
       // init erc20 - recipient storage slot
       await erc20.transfer(recipient, new BN("100"));
     });
@@ -221,7 +220,7 @@ contract("ArgentModule", (accounts) => {
     const tokenId = 7;
 
     beforeEach(async () => {
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
 
       erc721 = await ERC721.new();
       await erc721.mint(wallet.address, tokenId);

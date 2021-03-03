@@ -39,7 +39,6 @@ contract("ArgentModule sessions", (accounts) => {
   const owner = accounts[1];
   const guardian1 = accounts[2];
   const recipient = accounts[4];
-  const nonceInitialiser = accounts[5];
   const sessionUser = accounts[6];
   const sessionUser2 = accounts[7];
   const relayer = accounts[9];
@@ -107,7 +106,7 @@ contract("ArgentModule sessions", (accounts) => {
 
     await addGuardians([guardian1]);
 
-    await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+    await initNonce(wallet, module, manager, SECURITY_PERIOD);
   });
 
   describe("session lifecycle", () => {

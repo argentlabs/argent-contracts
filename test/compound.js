@@ -50,7 +50,6 @@ contract("ArgentModule", (accounts) => {
   const owner = accounts[1];
   const liquidityProvider = accounts[2];
   const borrower = accounts[3];
-  const nonceInitialiser = accounts[5];
   const relayer = accounts[5];
 
   let wallet;
@@ -242,7 +241,7 @@ contract("ArgentModule", (accounts) => {
     }
 
     beforeEach(async () => {
-      await initNonce(wallet, nonceInitialiser, module, manager, SECURITY_PERIOD);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
 
     it("should invest ETH", async () => {
