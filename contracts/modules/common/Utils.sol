@@ -41,7 +41,7 @@ library Utils {
             s := mload(add(_signatures, add(0x40,mul(0x41,_index))))
             v := and(mload(add(_signatures, add(0x41,mul(0x41,_index)))), 0xff)
         }
-        require(v == 27 || v == 28);
+        require(v == 27 || v == 28, "Utils: bad v value in signature");
 
         address recoveredAddress = ecrecover(_signedHash, v, r, s);
         require(recoveredAddress != address(0), "Utils: ecrecover returned 0");

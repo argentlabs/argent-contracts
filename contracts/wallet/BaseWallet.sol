@@ -46,7 +46,7 @@ contract BaseWallet is IWallet {
      * @notice Throws if the sender is not an authorised module.
      */
     modifier moduleOnly {
-        require(authorised[msg.sender], "BW: msg.sender not an authorized module");
+        require(authorised[msg.sender], "BW: sender not authorized");
         _;
     }
 
@@ -57,7 +57,7 @@ contract BaseWallet is IWallet {
      */
     function init(address _owner, address[] calldata _modules) external {
         require(owner == address(0) && modules == 0, "BW: wallet already initialised");
-        require(_modules.length > 0, "BW: construction requires at least 1 module");
+        require(_modules.length > 0, "BW: empty modules");
         owner = _owner;
         modules = _modules.length;
         for (uint256 i = 0; i < _modules.length; i++) {
@@ -83,7 +83,7 @@ contract BaseWallet is IWallet {
                 IModule(_module).init(address(this));
             } else {
                 modules -= 1;
-                require(modules > 0, "BW: wallet must have at least one module");
+                require(modules > 0, "BW: cannot remove last module");
                 delete authorised[_module];
             }
         }
@@ -105,7 +105,7 @@ contract BaseWallet is IWallet {
     */
     function enableStaticCall(address _module, bytes4 /* _method */) external override moduleOnly {
         if(staticCallExecutor != _module) {
-            require(authorised[_module], "BW: static call executor must be authorised module");
+            require(authorised[_module], "BW: unauthorized executor");
             staticCallExecutor = _module;
         }
     }
@@ -147,7 +147,7 @@ contract BaseWallet is IWallet {
         if (module == address(0)) {
             emit Received(msg.value, msg.sender, msg.data);
         } else {
-            require(authorised[module], "BW: must be an authorised module for static call");
+            require(authorised[module], "BW: unauthorised module");
 
             // solhint-disable-next-line no-inline-assembly
             assembly {
