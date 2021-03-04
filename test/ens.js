@@ -122,7 +122,8 @@ contract("ENS contracts", (accounts) => {
       ].map((hex) => hex.slice(2)).join("")}`;
       const managerSig = await utilities.signMessage(ethers.utils.keccak256(message), infrastructure);
 
-      await ensManager.register(label, owner, managerSig, { from: anonmanager });
+      const data = await ensManager.contract.methods["register(string,address,bytes)"](label, owner, managerSig).encodeABI();
+      await ensManager.sendTransaction({ data, from: anonmanager });
 
       const recordExists = await ensRegistry.recordExists(labelNode);
       assert.isTrue(recordExists);
@@ -151,7 +152,8 @@ contract("ENS contracts", (accounts) => {
       ].map((hex) => hex.slice(2)).join("")}`;
       const managerSig = await utilities.signMessage(ethers.utils.keccak256(message), infrastructure);
 
-      await ensManager.register(label, owner, managerSig, { from: anonmanager });
+      const data = await ensManager.contract.methods["register(string,address,bytes)"](label, owner, managerSig).encodeABI();
+      await ensManager.sendTransaction({ data, from: anonmanager });
 
       // check ens record
       const recordExists = await ensRegistry.recordExists(labelNode);
@@ -190,14 +192,17 @@ contract("ENS contracts", (accounts) => {
       const label = "wallet";
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
       await ensManager.addManager(amanager);
-      await ensManager.register(label, owner, "0x", { from: amanager });
+      const data = await ensManager.contract.methods["register(string,address,bytes)"](label, owner, "0x").encodeABI();
+      await ensManager.sendTransaction({ data, from: amanager });
+
       const nodeOwner = await ensRegistry.owner(labelNode);
       assert.equal(nodeOwner, owner, "new manager should have registered the ens name");
     });
 
     it("should fail to register an ENS name when the caller is not a manager", async () => {
       const label = "wallet";
-      await truffleAssert.reverts(ensManager.register(label, owner, "0x", { from: anonmanager }), "AEM: user is not manager");
+      const data = await ensManager.contract.methods["register(string,address,bytes)"](label, owner, "0x").encodeABI();
+      await truffleAssert.reverts(ensManager.sendTransaction({ data, from: anonmanager }), "AEM: user is not manager");
     });
 
     it("should be able to change the root node owner", async () => {
