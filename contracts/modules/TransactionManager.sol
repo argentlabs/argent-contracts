@@ -28,13 +28,14 @@ import "../../lib/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
-    // ERC20 & ERC721 transfers & approvals
+    // ERC20, ERC721 & ERC1155 transfers & approvals
     bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
     bytes4 private constant ERC721_TRANSFER_FROM = bytes4(keccak256("transferFrom(address,address,uint256)"));
     bytes4 private constant ERC721_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256)"));
     bytes4 private constant ERC721_SAFE_TRANSFER_FROM_BYTES = bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)"));
     bytes4 private constant ERC721_SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
+    bytes4 private constant ERC1155_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes)"));
 
     // Static calls
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
@@ -288,7 +289,8 @@ abstract contract TransactionManager is BaseModule {
             methodId == ERC721_TRANSFER_FROM ||
             methodId == ERC721_SAFE_TRANSFER_FROM ||
             methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
-            methodId == ERC721_SET_APPROVAL_FOR_ALL
+            methodId == ERC721_SET_APPROVAL_FOR_ALL ||
+            methodId == ERC1155_SAFE_TRANSFER_FROM
         ) {
             require(_transaction.value == 0, "TM: unsecure call");
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
