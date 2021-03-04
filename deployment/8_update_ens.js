@@ -16,6 +16,9 @@ async function main() {
   const { deploymentAccount, configurator, abiUploader } = await deployManager.getProps();
   const { config } = configurator;
   const { domain } = config.ENS;
+  // ENVIRONMENT SPECIFIC
+  // ROPSTEN
+  const walletFactoryVersion16 = "0x802248Ec4d68879Ce62d33748776Db5a1a98C422";
 
   // Instantiate the ENS Registry and existing ENSManager
   const ENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);
@@ -40,6 +43,9 @@ async function main() {
     console.log(`Set ${account} as the manager of the WalletFactory`);
     await NewENSManagerWrapper.addManager(account);
   }
+
+  // The legacy factory has to be a manager of the new ENSManager as it calls it's register function for new wallets
+  await NewENSManagerWrapper.addManager(walletFactoryVersion16);
 
   // Set the MultiSig as the owner of the new ENSManager
   await NewENSManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
