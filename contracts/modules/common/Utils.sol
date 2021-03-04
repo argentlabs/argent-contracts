@@ -77,15 +77,12 @@ library Utils {
     * given a list of guardians.
     * @param _guardians the list of guardians
     * @param _guardian the address to test
-    * @return true and the list of guardians minus the found guardian upon success, false and the original list of guardians if not found.
     */
-    function isGuardianOrGuardianSigner(address[] memory _guardians, address _guardian) internal view returns (bool, address[] memory) {
+    function isGuardianOrGuardianSigner(address[] memory _guardians, address _guardian) internal view returns (bool) {
         if (_guardians.length == 0 || _guardian == address(0)) {
             return (false, _guardians);
         }
         bool isFound = false;
-        address[] memory updatedGuardians = new address[](_guardians.length - 1);
-        uint256 index = 0;
         for (uint256 i = 0; i < _guardians.length; i++) {
             if (!isFound) {
                 // check if _guardian is an account guardian
@@ -99,12 +96,8 @@ library Utils {
                     continue;
                 }
             }
-            if (index < updatedGuardians.length) {
-                updatedGuardians[index] = _guardians[i];
-                index++;
-            }
         }
-        return isFound ? (true, updatedGuardians) : (false, _guardians);
+        return isFound;
     }
 
     /**
