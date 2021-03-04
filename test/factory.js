@@ -15,7 +15,7 @@ const utils = require("../utils/utilities.js");
 const { ETH_TOKEN } = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
-const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_BYTES = "0x";
 
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -140,7 +140,7 @@ contract("WalletFactory", (accounts) => {
 
       // we create the wallet
       const tx = await factory.createCounterfactualWallet(
-        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, managerSig, { from: infrastructure });
+        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, managerSig, { from: infrastructure });
 
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
@@ -170,7 +170,7 @@ contract("WalletFactory", (accounts) => {
 
       // we create the wallet
       const tx = await factory.createCounterfactualWallet(
-        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, managerSig, { from: owner });
+        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, managerSig, { from: owner });
 
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
@@ -186,7 +186,7 @@ contract("WalletFactory", (accounts) => {
       const msg = ethers.utils.hexZeroPad(futureAddr, 32);
       const managerSig = await utils.signMessage(msg, infrastructure);
       const tx = await factory.createCounterfactualWallet(
-        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, managerSig, { from: owner });
+        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, managerSig, { from: owner });
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       const walletAddr = event.args.wallet;
       const wallet = await BaseWallet.at(walletAddr);
@@ -305,14 +305,14 @@ contract("WalletFactory", (accounts) => {
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
       // we create the first wallet
       const tx = await factory.createCounterfactualWallet(
-        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x"
+        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"
       );
       const event = await utils.getEvent(tx.receipt, factory, "WalletCreated");
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, event.args.wallet, "should have the correct address");
       // we create the second wallet
       await truffleAssert.reverts(
-        factory.createCounterfactualWallet(owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x")
+        factory.createCounterfactualWallet(owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x")
       );
     });
 
@@ -335,14 +335,14 @@ contract("WalletFactory", (accounts) => {
       const salt = generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(
-          owner, [ethers.constants.AddressZero], guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x"
+          owner, [ethers.constants.AddressZero], guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"
         ));
     });
 
     it("should fail to create when the owner is empty", async () => {
       const salt = generateSaltValue();
       await truffleAssert.reverts(
-        factory.createCounterfactualWallet(ZERO_ADDRESS, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x"),
+        factory.createCounterfactualWallet(ZERO_ADDRESS, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"),
         "WF: empty owner address",
       );
     });
@@ -350,7 +350,7 @@ contract("WalletFactory", (accounts) => {
     it("should fail to create when the guardian is empty", async () => {
       const salt = generateSaltValue();
       await truffleAssert.reverts(
-        factory.createCounterfactualWallet(owner, modules, ZERO_ADDRESS, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x"),
+        factory.createCounterfactualWallet(owner, modules, ZERO_ADDRESS, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"),
         "WF: empty guardian",
       );
     });
@@ -358,7 +358,7 @@ contract("WalletFactory", (accounts) => {
     it("should fail to create when the owner is the guardian", async () => {
       const salt = generateSaltValue();
       await truffleAssert.reverts(
-        factory.createCounterfactualWallet(owner, modules, owner, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x"),
+        factory.createCounterfactualWallet(owner, modules, owner, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"),
         "WF: owner cannot be guardian",
       );
     });
@@ -366,7 +366,7 @@ contract("WalletFactory", (accounts) => {
     it("should fail to create by a non-manager without a manager's signature", async () => {
       const salt = generateSaltValue();
       await truffleAssert.reverts(
-        factory.createCounterfactualWallet(owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x", { from: other }),
+        factory.createCounterfactualWallet(owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x", { from: other }),
         "WF: unauthorised wallet creation",
       );
     });
@@ -380,7 +380,7 @@ contract("WalletFactory", (accounts) => {
       await web3.eth.sendTransaction({ from: infrastructure, to: futureAddr, value: amount });
       // we create the wallet
       const tx = await factory.createCounterfactualWallet(
-        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES32, "0x"
+        owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"
       );
       const wallet = await BaseWallet.at(futureAddr);
       const event = await utils.getEvent(tx.receipt, wallet, "Received");

@@ -23,7 +23,7 @@ const ERC20 = artifacts.require("TestERC20");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction, addTrustedContact, initNonce } = require("../utils/utilities.js");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -142,7 +142,7 @@ contract("ArgentModule", (accounts) => {
       await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
       const balanceStart = await utils.getBalance(recipient);
 
-      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
 
       const txReceipt = await manager.relay(
         module,

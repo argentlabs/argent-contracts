@@ -23,7 +23,7 @@ const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -256,7 +256,7 @@ contract("ArgentModule sessions", (accounts) => {
 
   describe("approved transfer (without using a session)", () => {
     it("should be able to send ETH with guardians", async () => {
-      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
 
       const balanceBefore = await utils.getBalance(recipient);
       const txReceipt = await manager.relay(
@@ -314,7 +314,7 @@ contract("ArgentModule sessions", (accounts) => {
     });
 
     it("should be able to send ETH", async () => {
-      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
 
       const balanceBefore = await utils.getBalance(recipient);
       const txReceipt = await manager.relay(
@@ -356,7 +356,7 @@ contract("ArgentModule sessions", (accounts) => {
     });
 
     it("should not be able to send ETH with invalid session", async () => {
-      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
 
       await truffleAssert.reverts(manager.relay(
         module,

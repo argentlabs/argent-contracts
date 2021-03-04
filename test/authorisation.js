@@ -25,7 +25,7 @@ const truffleAssert = require("truffle-assertions");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -143,7 +143,7 @@ contract("Authorisation", (accounts) => {
     });
 
     it("should send ETH to authorised address", async () => {
-      const transaction = encodeTransaction(recipient, 100, ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, 100, ZERO_BYTES);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -215,7 +215,7 @@ contract("Authorisation", (accounts) => {
     });
 
     it("should not send ETH to unauthorised address", async () => {
-      const transaction = encodeTransaction(nonwhitelisted, 100, ZERO_BYTES32);
+      const transaction = encodeTransaction(nonwhitelisted, 100, ZERO_BYTES);
 
       const txReceipt = await manager.relay(
         module,
