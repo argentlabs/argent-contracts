@@ -111,7 +111,7 @@ contract("ArgentModule", (accounts) => {
       await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
     });
 
-    it.only("should send and receive ETH", async () => {
+    it("should send and receive ETH", async () => {
       // receive
       let before = await utils.getBalance(wallet.address);
       await wallet.send(web3.utils.toWei("1"), { from: sender });
