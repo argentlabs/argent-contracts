@@ -146,6 +146,14 @@ abstract contract TransactionManager is BaseModule {
     }
 
     /**
+    * @notice Clears the active session of a wallet if any.
+    * @param _wallet The target wallet.
+    */
+    function clearSession(address _wallet) public onlyWalletOwnerOrSelf(_wallet) {
+        _clearSession(_wallet);
+    }
+
+    /**
      * @notice Adds an address to the list of trusted contacts.
      * @param _wallet The target wallet.
      * @param _target The address to add.

@@ -49,6 +49,7 @@ abstract contract BaseModule is IModule {
     IAuthoriser internal immutable authoriser;
 
     event ModuleCreated(bytes32 name);
+    event SessionCleared(address indexed wallet, address sessionKey);
 
     enum OwnerSignature {
         Anyone,             // Anyone
