@@ -69,7 +69,7 @@ abstract contract SecurityManager is BaseModule {
     event GuardianRevokationCancelled(address indexed wallet, address indexed guardian);
     event GuardianAdded(address indexed wallet, address indexed guardian);
     event GuardianRevoked(address indexed wallet, address indexed guardian);
-
+    event SessionCleared(address indexed wallet, address sessionKey);
     // *************** Modifiers ************************ //
 
     /**
@@ -146,6 +146,8 @@ abstract contract SecurityManager is BaseModule {
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
 
+        _clearSession(_wallet);
+
         IWallet(_wallet).setOwner(recoveryOwner);
         _setLock(_wallet, 0, bytes4(0));
 
@@ -184,6 +186,14 @@ abstract contract SecurityManager is BaseModule {
     function getRecovery(address _wallet) external view returns(address _address, uint64 _executeAfter, uint32 _guardianCount) {
         RecoveryConfig storage config = recoveryConfigs[_wallet];
         return (config.recovery, config.executeAfter, config.guardianCount);
+    }
+
+    /**
+    * @notice Clears the active session of a wallet if any.
+    * @param _wallet The target wallet.
+    */
+    function clearSession(address _wallet) public onlyWalletOwnerOrSelf(_wallet) {
+        _clearSession(_wallet);
     }
 
     // *************** Lock functions ************************ //
@@ -380,5 +390,10 @@ abstract contract SecurityManager is BaseModule {
 
     function _setLock(address _wallet, uint256 _releaseAfter, bytes4 _locker) internal {
         locks[_wallet] = Lock(SafeCast.toUint64(_releaseAfter), _locker);
+    }
+
+    function _clearSession(address _wallet) internal {
+        emit SessionCleared(_wallet, sessions[_wallet].key);
+        delete sessions[_wallet];
     }
 }

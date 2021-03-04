@@ -76,12 +76,12 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         if (methodId == TransactionManager.multiCall.selector ||
             methodId == TransactionManager.addToWhitelist.selector ||
             methodId == TransactionManager.removeFromWhitelist.selector ||
-            methodId == TransactionManager.clearSession.selector ||
             methodId == TransactionManager.enableERC1155TokenReceiver.selector ||
             methodId == ArgentModule.addModule.selector ||
             methodId == SecurityManager.addGuardian.selector ||
             methodId == SecurityManager.revokeGuardian.selector ||
-            methodId == SecurityManager.cancelGuardianAddition.selector)
+            methodId == SecurityManager.cancelGuardianAddition.selector ||
+            methodId == SecurityManager.clearSession.selector)
         {
             // owner
             return (1, OwnerSignature.Required);

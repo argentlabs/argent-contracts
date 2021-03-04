@@ -94,7 +94,6 @@ contract("BaseModule", (accounts) => {
       await truffleAssert.reverts(module.multiCallWithSession(wallet.address, []), "BM: must be module");
       await truffleAssert.reverts(module.multiCallWithGuardians(wallet.address, []), "BM: must be module");
       await truffleAssert.reverts(module.multiCallWithGuardiansAndStartSession(wallet.address, [], ZERO_ADDRESS, 0), "BM: must be module");
-      await truffleAssert.reverts(module.clearSession(wallet.address), "BM: must be module");
     });
   });
 

@@ -174,32 +174,6 @@ contract("RecoveryManager", (accounts) => {
     });
   }
 
-  function testFinalizeRecovery() {
-    it("should let anyone finalize the recovery procedure after the recovery period", async () => {
-      await utils.increaseTime(40); // moving time to after the end of the recovery period
-      await manager.relay(module, "finalizeRecovery", [wallet.address], wallet, []);
-      const isLocked = await module.isLocked(wallet.address);
-      assert.isFalse(isLocked, "should no longer be locked after finalization of recovery");
-      const walletOwner = await wallet.owner();
-      assert.equal(walletOwner, newowner, "wallet owner should have been changed");
-
-      const recoveryConfig = await module.getRecovery(wallet.address);
-      assert.equal(recoveryConfig._address, ethers.constants.AddressZero);
-      assert.equal(recoveryConfig._executeAfter.toNumber(), 0);
-      assert.equal(recoveryConfig._guardianCount, 0);
-    });
-
-    it("should not let anyone finalize the recovery procedure before the end of the recovery period", async () => {
-      const txReceipt = await manager.relay(module, "finalizeRecovery", [wallet.address], wallet, []);
-      const { success, error } = utils.parseRelayReceipt(txReceipt);
-      assert.isFalse(success);
-      assert.equal(error, "SM: ongoing recovery period");
-
-      const isLocked = await module.isLocked(wallet.address);
-      assert.isTrue(isLocked, "should still be locked");
-    });
-  }
-
   function testCancelRecovery() {
     it("should let 2 guardians cancel the recovery procedure", async () => {
       await manager.relay(module, "cancelRecovery", [wallet.address], wallet, utils.sortWalletByAddress([guardian1, guardian2]));
@@ -440,6 +414,9 @@ contract("RecoveryManager", (accounts) => {
   describe("Finalize Recovery", () => {
     beforeEach(async () => {
       await addGuardians([guardian1, guardian2, guardian3]);
+    });
+
+    it("should let anyone finalize the recovery procedure after the recovery period", async () => {
       await manager.relay(
         module,
         "executeRecovery",
@@ -447,9 +424,66 @@ contract("RecoveryManager", (accounts) => {
         wallet,
         utils.sortWalletByAddress([guardian1, guardian2]),
       );
+      await utils.increaseTime(40); // moving time to after the end of the recovery period
+      await manager.relay(module, "finalizeRecovery", [wallet.address], wallet, []);
+      const isLocked = await module.isLocked(wallet.address);
+      assert.isFalse(isLocked, "should no longer be locked after finalization of recovery");
+      const walletOwner = await wallet.owner();
+      assert.equal(walletOwner, newowner, "wallet owner should have been changed");
+
+      const recoveryConfig = await module.getRecovery(wallet.address);
+      assert.equal(recoveryConfig._address, ethers.constants.AddressZero);
+      assert.equal(recoveryConfig._executeAfter.toNumber(), 0);
+      assert.equal(recoveryConfig._guardianCount, 0);
     });
 
-    testFinalizeRecovery();
+    it("should not let anyone finalize the recovery procedure before the end of the recovery period", async () => {
+      await manager.relay(
+        module,
+        "executeRecovery",
+        [wallet.address, newowner],
+        wallet,
+        utils.sortWalletByAddress([guardian1, guardian2]),
+      );
+      const txReceipt = await manager.relay(module, "finalizeRecovery", [wallet.address], wallet, []);
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "SM: ongoing recovery period");
+
+      const isLocked = await module.isLocked(wallet.address);
+      assert.isTrue(isLocked, "should still be locked");
+    });
+
+    it("session should be cleared", async () => {
+      // start sesesion
+      await manager.relay(
+        module,
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, [], accounts[6], 1000],
+        wallet,
+        [owner, guardian1, guardian2],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+
+      let session = await module.getSession(wallet.address);
+      assert.equal(session.key, accounts[6]);
+
+      // start recovery
+      await manager.relay(
+        module,
+        "executeRecovery",
+        [wallet.address, newowner],
+        wallet,
+        utils.sortWalletByAddress([guardian1, guardian2]),
+      );
+      await utils.increaseTime(40); // moving time to after the end of the recovery period
+
+      // finalize recovery and check the session has been cleared
+      await manager.relay(module, "finalizeRecovery", [wallet.address], wallet, []);
+      session = await module.getSession(wallet.address);
+      assert.equal(session.key, ZERO_ADDRESS);
+    });
   });
 
   describe("Cancel Recovery with 3 guardians", () => {
