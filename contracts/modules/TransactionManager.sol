@@ -282,24 +282,26 @@ abstract contract TransactionManager is BaseModule {
     }
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
-        bytes4 methodId;
-        bytes memory data = _transaction.data;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            methodId := mload(add(data, 0x20))
-        }
-        if(
-            methodId == ERC20_TRANSFER ||
-            methodId == ERC20_APPROVE ||
-            methodId == ERC721_TRANSFER_FROM ||
-            methodId == ERC721_SAFE_TRANSFER_FROM ||
-            methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
-            methodId == ERC721_SET_APPROVAL_FOR_ALL ||
-            methodId == ERC1155_SAFE_TRANSFER_FROM
-        ) {
-            require(_transaction.value == 0, "TM: unsecure call");
-            (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
-            return first == _wallet ? second : first;
+        if(_transaction.data.length >= 4) {
+            bytes4 methodId;
+            bytes memory data = _transaction.data;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                methodId := mload(add(data, 0x20))
+            }
+            if(
+                methodId == ERC20_TRANSFER ||
+                methodId == ERC20_APPROVE ||
+                methodId == ERC721_TRANSFER_FROM ||
+                methodId == ERC721_SAFE_TRANSFER_FROM ||
+                methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
+                methodId == ERC721_SET_APPROVAL_FOR_ALL ||
+                methodId == ERC1155_SAFE_TRANSFER_FROM
+            ) {
+                require(_transaction.value == 0, "TM: unsecure call");
+                (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
+                return first == _wallet ? second : first;
+            }
         }
         return _transaction.to;
     }
