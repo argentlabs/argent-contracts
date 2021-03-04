@@ -34,7 +34,7 @@ contract CompoundFilter is IFilter {
         // only mint or redeem on a cToken
         if (_spender == _to) {
             return (method == CETH_MINT || method == CERC20_MINT || method == CTOKEN_REDEEM);
-        // only approve on an ERC20
+        // only approve on an ERC20 with cToken as spender
         } else {
             return method == ERC20_APPROVE;
         }
