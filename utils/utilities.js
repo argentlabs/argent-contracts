@@ -282,6 +282,12 @@ const utilities = {
       [owner]);
     const nonce = await module.getNonce(wallet.address);
     assert.isTrue(nonce.gt(0), "nonce init failed");
+  },
+
+  assertFailedWithError: (txReceipt, msg) => {
+    const { success, error } = utilities.parseRelayReceipt(txReceipt);
+    assert.isFalse(success);
+    assert.equal(error, msg);
   }
 };
 

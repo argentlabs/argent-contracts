@@ -9,8 +9,6 @@ const { formatBytes32String } = require("ethers").utils;
 const { expect, assert } = chai;
 chai.use(bnChai(BN));
 
-const truffleAssert = require("truffle-assertions");
-
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
@@ -29,16 +27,15 @@ const Comptroller = artifacts.require("Comptroller");
 const InterestModel = artifacts.require("WhitePaperInterestRateModel");
 const CEther = artifacts.require("CEther");
 const CErc20 = artifacts.require("CErc20");
-const CToken = artifacts.require("CToken");
 
 const ERC20 = artifacts.require("TestERC20");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce, assertFailedWithError } = require("../utils/utilities.js");
 
 const WAD = new BN("1000000000000000000"); // 10**18
 const ETH_EXCHANGE_RATE = new BN("200000000000000000000000000");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -182,7 +179,7 @@ contract("ArgentModule", (accounts) => {
       let tokenBefore;
       let tokenAfter;
       let cTokenBefore;
-      let cTokenAfter; console.log("amount", amount);
+      let cTokenAfter;
 
       if (tokenAddress === ETH_TOKEN) {
         tokenBefore = await utils.getBalance(wallet.address);
@@ -293,35 +290,50 @@ contract("ArgentModule", (accounts) => {
       console.log("Gas to mint cErc20: ", txReceipt.gasUsed);
     });
 
-    // it("should redeem cETH", async () => {
-    //   const amount = web3.utils.toWei("1", "finney");
-    //   await addInvestment(ETH_TOKEN, amount);
-    //   const txReceipt = await removeInvestment(ETH_TOKEN, amount / 2);
-    //   console.log("Gas to redeem cETH: ", txReceipt.gasUsed);
-    // });
+    it("should redeem cETH", async () => {
+      const amount = web3.utils.toWei("1", "finney");
+      await addInvestment(ETH_TOKEN, amount);
+      const cTokenBalance = await cEther.balanceOf(wallet.address);
+      const txReceipt = await removeInvestment(ETH_TOKEN, cTokenBalance / 2);
+      console.log("Gas to redeem cETH: ", txReceipt.gasUsed);
+    });
 
-    // it("should redeem cErc20", async () => {
-    //   const amount = web3.utils.toWei("1", "finney");
-    //   await addInvestment(token.address, amount);
-    //   const txReceipt = await removeInvestment(token.address, amount / 2);
-    //   console.log("Gas to redeem cErc20: ", txReceipt.gasUsed);
-    // });
+    it("should redeem cErc20", async () => {
+      const amount = web3.utils.toWei("1", "finney");
+      await addInvestment(token.address, amount);
+      const cTokenBalance = await cToken.balanceOf(wallet.address);
+      const txReceipt = await removeInvestment(token.address, cTokenBalance / 2);
+      console.log("Gas to redeem cErc20: ", txReceipt.gasUsed);
+    });
 
-    // it("should fail to send ETH to a cToken", async () => {
-    //   const transaction = await encodeTransaction(cToken, web3.utils.toWei("1", "finney"), ZERO_BYTES32);
-    //   await truffleAssert.reverts(
-    //     manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]),
-    //     "TM: call not authorised"
-    //   );
-    // });
+    it("should fail to send ETH to a cToken", async () => {
+      const transaction = await encodeTransaction(cToken.address, web3.utils.toWei("1", "finney"), ZERO_BYTES);
+      const txReceipt = await manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]);
+      assertFailedWithError(txReceipt, "TM: call not authorised");
+    });
 
-    // it("should fail to call an unauthorised method on a cToken", async () => {
-    //   const data = await cToken.contract.methods.borrow(10000).encodeABI();
-    //   const transaction = await encodeTransaction(cToken.address, 0, data);
-    //   await truffleAssert.reverts(
-    //     manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]),
-    //     "TM: call not authorised"
-    //   );
-    // });
+    it("should fail to call an unauthorised method on a cToken", async () => {
+      const data = await cToken.contract.methods.borrow(10000).encodeABI();
+      const transaction = await encodeTransaction(cToken.address, 0, data);
+      const txReceipt = await manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]);
+      assertFailedWithError(txReceipt, "TM: call not authorised");
+    });
+
+    it("should fail to approve a token for cEther", async () => {
+      const amount = web3.utils.toWei("1", "finney");
+      const data = token.contract.methods.approve(cEther.address, amount).encodeABI();
+      const transaction = encodeTransaction(token.address, 0, data, true);
+      const txReceipt = await manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]);
+      assertFailedWithError(txReceipt, "TM: call not authorised");
+    });
+
+    it("should fail to approve a token not the underlying of a cToken", async () => {
+      const amount = web3.utils.toWei("1", "finney");
+      const notUnderlying = await ERC20.new([infrastructure, wallet.address], 10000000, 18);
+      const data = notUnderlying.contract.methods.approve(cToken.address, amount).encodeABI();
+      const transaction = encodeTransaction(notUnderlying.address, 0, data, true);
+      const txReceipt = await manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]);
+      assertFailedWithError(txReceipt, "TM: call not authorised");
+    });
   });
 });
