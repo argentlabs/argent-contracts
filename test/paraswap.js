@@ -279,7 +279,7 @@ contract("ArgentModule", (accounts) => {
       } else {
         data = tokenB.contract.methods.approve(paraswapProxy, srcAmount).encodeABI();
       }
-      transaction = encodeTransaction(fromToken, 0, data, true);
+      transaction = encodeTransaction(fromToken, 0, data);
       transactions.push(transaction);
     }
 

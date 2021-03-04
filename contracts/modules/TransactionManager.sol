@@ -28,19 +28,26 @@ import "../../lib/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
+    // ERC20, ERC721 & ERC1155 transfers & approvals
+    bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
+    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
+    bytes4 private constant ERC721_TRANSFER_FROM = bytes4(keccak256("transferFrom(address,address,uint256)"));
+    bytes4 private constant ERC721_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256)"));
+    bytes4 private constant ERC721_SAFE_TRANSFER_FROM_BYTES = bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)"));
+    bytes4 private constant ERC721_SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
+    bytes4 private constant ERC1155_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes)"));
 
+    // Static calls
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
     bytes4 private constant ERC721_RECEIVED = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
     bytes4 private constant ERC1155_RECEIVED = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
     bytes4 private constant ERC1155_BATCH_RECEIVED = bytes4(keccak256("onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"));
     bytes4 private constant ERC165_INTERFACE = bytes4(keccak256("supportsInterface(bytes4)"));
-    bytes4 private constant ERC1155_INTERFACE = ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED;
 
     struct Call {
-        address to;         // the target of the call
-        uint256 value;      // the ETH to transfer
-        bytes data;         // the data payload
-        bool isTokenCall;   // true if target is a token and data is a standard ERC20/721/1155 method
+        address to;
+        uint256 value;
+        bytes data;
     }
 
     // The time delay for adding a trusted contact
@@ -221,7 +228,7 @@ abstract contract TransactionManager is BaseModule {
      * `interfaceId` (see https://eips.ethereum.org/EIPS/eip-165).
      */
     function supportsInterface(bytes4 _interfaceID) external view returns (bool) {
-        return  _interfaceID == ERC165_INTERFACE || _interfaceID == ERC1155_INTERFACE;          
+        return  _interfaceID == ERC165_INTERFACE || _interfaceID == (ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED);          
     }
 
     /**
@@ -275,11 +282,26 @@ abstract contract TransactionManager is BaseModule {
     }
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
-        if (_transaction.isTokenCall) {
-            require(_transaction.value == 0, "TM: unsecure call");
-           // transfer(to, value), transferFrom(wallet, to, value), approve(to, value), setApprovalForAll(to, approved)
-            (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
-            return first == _wallet ? second : first;
+        if(_transaction.data.length >= 4) {
+            bytes4 methodId;
+            bytes memory data = _transaction.data;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                methodId := mload(add(data, 0x20))
+            }
+            if(
+                methodId == ERC20_TRANSFER ||
+                methodId == ERC20_APPROVE ||
+                methodId == ERC721_TRANSFER_FROM ||
+                methodId == ERC721_SAFE_TRANSFER_FROM ||
+                methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
+                methodId == ERC721_SET_APPROVAL_FOR_ALL ||
+                methodId == ERC1155_SAFE_TRANSFER_FROM
+            ) {
+                require(_transaction.value == 0, "TM: unsecure call");
+                (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
+                return first == _wallet ? second : first;
+            }
         }
         return _transaction.to;
     }

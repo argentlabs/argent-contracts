@@ -212,7 +212,7 @@ contract("ArgentModule", (accounts) => {
         investInEth = false;
 
         let data = token.contract.methods.approve(cToken.address, amount).encodeABI();
-        let transaction = encodeTransaction(token.address, 0, data, true);
+        let transaction = encodeTransaction(token.address, 0, data);
         transactions.push(transaction);
 
         data = cToken.contract.methods.mint(amount).encodeABI();

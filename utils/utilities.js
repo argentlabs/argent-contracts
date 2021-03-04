@@ -5,7 +5,7 @@ const chai = require("chai");
 
 const { assert, expect } = chai;
 const ETH_TOKEN = ethers.constants.AddressZero;
-const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_BYTES = "0x";
 
 const utilities = {
 
@@ -258,7 +258,7 @@ const utilities = {
     throw new Error(`Invalid method "${method}"`);
   },
 
-  encodeTransaction: (to, value, data, isTokenCall = false) => ({ to, value, data, isTokenCall }),
+  encodeTransaction: (to, value, data) => ({ to, value, data }),
 
   addTrustedContact: async (wallet, target, module, securityPeriod) => {
     const owner = await wallet.owner();
@@ -273,7 +273,7 @@ const utilities = {
     const nonceInitialiser = await utilities.getAccount(8);
     await utilities.addTrustedContact(wallet, nonceInitialiser, module, securityPeriod);
     const owner = await wallet.owner();
-    const transaction = utilities.encodeTransaction(nonceInitialiser, 1, ZERO_BYTES32);
+    const transaction = utilities.encodeTransaction(nonceInitialiser, 1, ZERO_BYTES);
     await manager.relay(
       module,
       "multiCall",
