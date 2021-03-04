@@ -66,8 +66,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     // *************** External Functions ********************* //
 
     /**
-     * @notice This function must be called when the ENS Manager contract is replaced and the address of the new Manager should be provided.
-     * @param _newOwner The address of the new ENS manager that will manage the root node.
+     * @inheritdoc IENSManager
      */
     function changeRootnodeOwner(address _newOwner) external override onlyOwner {
         ensRegistry.setOwner(rootNode, _newOwner);
@@ -85,16 +84,23 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     }
 
     /**
-    * @notice Lets the manager assign an ENS subdomain of the root node to a target address.
-    * Registers both the forward and reverse ENS.
-    * @param _label The subdomain label.
-    * @param _owner The owner of the subdomain.
-    * @param _managerSignature The manager signature of the hash of _owner and _label.
-    */
+     * @inheritdoc IENSManager
+     */
     function register(string calldata _label, address _owner, bytes calldata _managerSignature) external override validateENSLabel(_label) {
         bytes32 signedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", keccak256(abi.encodePacked(_owner, _label))));
         validateManagerSignature(signedHash, _managerSignature);
 
+        _register(_label, _owner);
+    }
+
+    /**
+     * @inheritdoc IENSManager
+     */
+    function register(string calldata _label, address _owner) external override onlyManager validateENSLabel(_label) {
+        _register(_label, _owner);
+    }
+
+    function _register(string calldata _label, address _owner) internal {
         bytes32 labelNode = keccak256(abi.encodePacked(_label));
         bytes32 node = keccak256(abi.encodePacked(rootNode, labelNode));
         address currentOwner = ensRegistry.owner(node);
@@ -132,9 +138,8 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     }
 
     /**
-    * @notice Gets the official ENS reverse registrar.
-    * @return Address of the ENS reverse registrar.
-    */
+     * @inheritdoc IENSManager
+     */
     function getENSReverseRegistrar() external view override returns (address) {
         return _getENSReverseRegistrar();
     }
@@ -142,9 +147,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     // *************** Public Functions ********************* //
 
     /**
-     * @notice Returns true is a given subnode is available.
-     * @param _subnode The target subnode.
-     * @return true if the subnode is available.
+     * @inheritdoc IENSManager
      */
     function isAvailable(bytes32 _subnode) public view override returns (bool) {
         bytes32 node = keccak256(abi.encodePacked(rootNode, _subnode));
