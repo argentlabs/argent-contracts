@@ -76,22 +76,22 @@ library Utils {
     * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian
     * given a list of guardians.
     * @param _guardians the list of guardians
-    * @param _guardian the address to test
+    * @param _user the address to test
     */
-    function isGuardianOrGuardianSigner(address[] memory _guardians, address _guardian) internal view returns (bool) {
-        if (_guardians.length == 0 || _guardian == address(0)) {
+    function isGuardianOrGuardianSigner(address[] memory _guardians, address _user) internal view returns (bool) {
+        if (_guardians.length == 0 || _user == address(0)) {
             return (false, _guardians);
         }
         bool isFound = false;
         for (uint256 i = 0; i < _guardians.length; i++) {
             if (!isFound) {
-                // check if _guardian is an account guardian
-                if (_guardian == _guardians[i]) {
+                // check if _user is an account guardian
+                if (_user == _guardians[i]) {
                     isFound = true;
                     continue;
                 }
-                // check if _guardian is the owner of a smart contract guardian
-                if (isContract(_guardians[i]) && isGuardianOwner(_guardians[i], _guardian)) {
+                // check if _user is the owner of a smart contract guardian
+                if (isContract(_guardians[i]) && isGuardianOwner(_guardians[i], _user)) {
                     isFound = true;
                     continue;
                 }
@@ -103,10 +103,10 @@ library Utils {
     /**
     * @notice Checks if an address is the owner of a guardian contract.
     * The method does not revert if the call to the owner() method consumes more then 5000 gas.
-    * @param _guardian The guardian contract
+    * @param _contract The contract to check
     * @param _owner The owner to verify.
     */
-    function isGuardianOwner(address _guardian, address _owner) internal view returns (bool) {
+    function isGuardianOwner(address _contract, address _owner) internal view returns (bool) {
         address owner = address(0);
         bytes4 sig = bytes4(keccak256("owner()"));
 
@@ -114,7 +114,7 @@ library Utils {
         assembly {
             let ptr := mload(0x40)
             mstore(ptr,sig)
-            let result := staticcall(5000, _guardian, ptr, 0x20, ptr, 0x20)
+            let result := staticcall(5000, _contract, ptr, 0x20, ptr, 0x20)
             if eq(result, 1) {
                 owner := mload(ptr)
             }
