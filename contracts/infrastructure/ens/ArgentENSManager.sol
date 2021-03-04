@@ -42,8 +42,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
 
 
    modifier validateENSLabel(string memory _label) {
-      bytes memory labelBytes = bytes(_label);
-      require(labelBytes.length != 0, "AEM: ENS label must be defined");
+      require(bytes(_label).length != 0, "AEM: ENS label must be defined");
       _;
     }
 
