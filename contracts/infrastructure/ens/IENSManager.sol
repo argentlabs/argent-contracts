@@ -34,12 +34,21 @@ interface IENSManager {
 
     /**
     * @notice Lets the manager assign an ENS subdomain of the root node to a target address.
-    * Registers both the forward and reverse ENS.
+    * Registers forward ENS and optionally reverse ENS.
     * @param _label The subdomain label.
     * @param _owner The owner of the subdomain.
     * @param _managerSignature The manager signature of the hash of _owner and _label.
     */
     function register(string calldata _label, address _owner, bytes calldata _managerSignature) external;
+
+    /**
+    * @notice Backward compatible overload for WalletFactory 1.6
+    * Lets the manager assign an ENS subdomain of the root node to a target address.
+    * Registers forward ENS and optionally reverse ENS.
+    * @param _label The subdomain label.
+    * @param _owner The owner of the subdomain.
+    */
+    function register(string calldata _label, address _owner) external;
 
     /**
      * @notice Returns true is a given subnode is available.
