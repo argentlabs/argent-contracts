@@ -49,7 +49,6 @@ abstract contract BaseModule is IModule {
     IAuthoriser internal immutable authoriser;
 
     event ModuleCreated(bytes32 name);
-    event SessionCleared(address indexed wallet, address sessionKey);
 
     enum OwnerSignature {
         Anyone,             // Anyone
@@ -141,7 +140,6 @@ abstract contract BaseModule is IModule {
     }
 
     function _clearSession(address _wallet) internal {
-        emit SessionCleared(_wallet, sessions[_wallet].key);
         delete sessions[_wallet];
     }
     

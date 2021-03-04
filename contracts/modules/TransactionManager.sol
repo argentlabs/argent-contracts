@@ -51,7 +51,7 @@ abstract contract TransactionManager is BaseModule {
     event AddedToWhitelist(address indexed wallet, address indexed target, uint64 whitelistAfter);
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
-
+    event SessionCleared(address indexed wallet, address sessionKey);
     // *************** Constructor ************************ //
 
     constructor(uint256 _whitelistPeriod) public {
@@ -150,6 +150,7 @@ abstract contract TransactionManager is BaseModule {
     * @param _wallet The target wallet.
     */
     function clearSession(address _wallet) public onlyWalletOwnerOrSelf(_wallet) {
+        emit SessionCleared(_wallet, sessions[_wallet].key);
         _clearSession(_wallet);
     }
 
