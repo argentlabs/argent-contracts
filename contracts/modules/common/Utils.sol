@@ -73,12 +73,12 @@ library Utils {
     }
 
     /**
-    * @notice Checks if an address is the owner of a guardian contract.
+    * @notice Checks if an address is the owner of a contract.
     * The method does not revert if the call to the owner() method consumes more then 5000 gas.
     * @param _contract The contract to check
     * @param _owner The owner to verify.
     */
-    function isGuardianOwner(address _contract, address _owner) internal view returns (bool) {
+    function isContractOwner(address _contract, address _owner) internal view returns (bool) {
         address owner = address(0);
         bytes4 sig = bytes4(keccak256("owner()"));
 

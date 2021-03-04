@@ -191,7 +191,7 @@ abstract contract BaseModule is IModule {
                     continue;
                 }
                 // check if _user is the owner of a smart contract guardian
-                if (Utils.isContract(guardians[i]) && Utils.isGuardianOwner(guardians[i], _user)) {
+                if (Utils.isContract(guardians[i]) && Utils.isContractOwner(guardians[i], _user)) {
                     isFound = true;
                     continue;
                 }
