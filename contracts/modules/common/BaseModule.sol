@@ -173,23 +173,25 @@ abstract contract BaseModule is IModule {
     /**
     * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian
     * given a list of guardians.
-    * @param _guardians the list of guardians
+    * @param _wallet the wallet address
     * @param _user the address to test
     */
-    function _isGuardianOrGuardianSigner(address[] memory _guardians, address _user) internal view returns (bool) {
-        if (_guardians.length == 0 || _user == address(0)) {
+    function _isGuardianOrGuardianSigner(address _wallet, address _user) internal view returns (bool) {
+        address[] memory guardians = guardianStorage.getGuardians(_wallet);
+
+        if (guardians.length == 0 || _user == address(0)) {
             return false;
         }
         bool isFound = false;
-        for (uint256 i = 0; i < _guardians.length; i++) {
+        for (uint256 i = 0; i < guardians.length; i++) {
             if (!isFound) {
                 // check if _user is an account guardian
-                if (_user == _guardians[i]) {
+                if (_user == guardians[i]) {
                     isFound = true;
                     continue;
                 }
                 // check if _user is the owner of a smart contract guardian
-                if (Utils.isContract(_guardians[i]) && Utils.isGuardianOwner(_guardians[i], _user)) {
+                if (Utils.isContract(guardians[i]) && Utils.isGuardianOwner(guardians[i], _user)) {
                     isFound = true;
                     continue;
                 }

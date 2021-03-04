@@ -263,10 +263,6 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
             return true;
         }
         address lastSigner = address(0);
-        address[] memory guardians;
-        if (_option != OwnerSignature.Required || _signatures.length > 65) {
-            guardians = guardianStorage.getGuardians(_wallet); // guardians are only read if they may be needed
-        }
 
         for (uint256 i = 0; i < _signatures.length / 65; i++) {
             address signer = Utils.recoverSigner(_signHash, _signatures, i);
@@ -289,7 +285,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
                 return false; // Signers must be different
             }
             lastSigner = signer;
-            bool isGuardian = _isGuardianOrGuardianSigner(guardians, signer);
+            bool isGuardian = _isGuardianOrGuardianSigner(_wallet, signer);
             if (!isGuardian) {
                 return false;
             }

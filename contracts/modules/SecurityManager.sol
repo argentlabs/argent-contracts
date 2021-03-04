@@ -350,7 +350,7 @@ abstract contract SecurityManager is BaseModule {
     * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
     */
     function isGuardianOrGuardianSigner(address _wallet, address _user) external view returns (bool _isGuardian) {
-        return _isGuardianOrGuardianSigner(guardianStorage.getGuardians(_wallet), _user);
+        return _isGuardianOrGuardianSigner(_wallet, _user);
     }
 
     /**
