@@ -73,34 +73,6 @@ library Utils {
     }
 
     /**
-    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian
-    * given a list of guardians.
-    * @param _guardians the list of guardians
-    * @param _user the address to test
-    */
-    function isGuardianOrGuardianSigner(address[] memory _guardians, address _user) internal view returns (bool) {
-        if (_guardians.length == 0 || _user == address(0)) {
-            return (false, _guardians);
-        }
-        bool isFound = false;
-        for (uint256 i = 0; i < _guardians.length; i++) {
-            if (!isFound) {
-                // check if _user is an account guardian
-                if (_user == _guardians[i]) {
-                    isFound = true;
-                    continue;
-                }
-                // check if _user is the owner of a smart contract guardian
-                if (isContract(_guardians[i]) && isGuardianOwner(_guardians[i], _user)) {
-                    isFound = true;
-                    continue;
-                }
-            }
-        }
-        return isFound;
-    }
-
-    /**
     * @notice Checks if an address is the owner of a guardian contract.
     * The method does not revert if the call to the owner() method consumes more then 5000 gas.
     * @param _contract The contract to check

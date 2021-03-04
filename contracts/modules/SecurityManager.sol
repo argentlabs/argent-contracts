@@ -17,7 +17,6 @@
 pragma solidity ^0.6.12;
 
 import "@openzeppelin/contracts/utils/SafeCast.sol";
-import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "../wallet/IWallet.sol";
 
@@ -351,7 +350,7 @@ abstract contract SecurityManager is BaseModule {
     * @return _isGuardian `true` if the address is a guardian for the wallet otherwise `false`.
     */
     function isGuardianOrGuardianSigner(address _wallet, address _user) external view returns (bool _isGuardian) {
-        return Utils.isGuardianOrGuardianSigner(guardianStorage.getGuardians(_wallet), _user);
+        return _isGuardianOrGuardianSigner(guardianStorage.getGuardians(_wallet), _user);
     }
 
     /**

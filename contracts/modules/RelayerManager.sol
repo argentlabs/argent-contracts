@@ -18,7 +18,6 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/Math.sol";
-import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "./common/SimpleOracle.sol";
 import "../infrastructure/storage/IGuardianStorage.sol";
@@ -290,7 +289,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
                 return false; // Signers must be different
             }
             lastSigner = signer;
-            bool isGuardian = Utils.isGuardianOrGuardianSigner(guardians, signer);
+            bool isGuardian = _isGuardianOrGuardianSigner(guardians, signer);
             if (!isGuardian) {
                 return false;
             }

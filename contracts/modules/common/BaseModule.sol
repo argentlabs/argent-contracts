@@ -23,6 +23,7 @@ import "../../infrastructure/storage/IGuardianStorage.sol";
 import "../../infrastructure/IAuthoriser.sol";
 import "../../infrastructure/storage/ITransferStorage.sol";
 import "./IModule.sol";
+import "./Utils.sol";
 import "../../../lib/other/ERC20.sol";
 
 /**
@@ -166,6 +167,35 @@ abstract contract BaseModule is IModule {
      */
     function _isSelf(address _addr) internal view returns (bool) {
         return _addr == address(this);
+    }
+
+
+    /**
+    * @notice Checks if an address is a guardian or an account authorised to sign on behalf of a smart-contract guardian
+    * given a list of guardians.
+    * @param _guardians the list of guardians
+    * @param _user the address to test
+    */
+    function _isGuardianOrGuardianSigner(address[] memory _guardians, address _user) internal view returns (bool) {
+        if (_guardians.length == 0 || _user == address(0)) {
+            return false;
+        }
+        bool isFound = false;
+        for (uint256 i = 0; i < _guardians.length; i++) {
+            if (!isFound) {
+                // check if _user is an account guardian
+                if (_user == _guardians[i]) {
+                    isFound = true;
+                    continue;
+                }
+                // check if _user is the owner of a smart contract guardian
+                if (Utils.isContract(_guardians[i]) && Utils.isGuardianOwner(_guardians[i], _user)) {
+                    isFound = true;
+                    continue;
+                }
+            }
+        }
+        return isFound;
     }
 
     /**

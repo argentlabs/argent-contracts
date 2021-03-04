@@ -18,7 +18,6 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/utils/SafeCast.sol";
-import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "../../lib/other/ERC20.sol";
 
