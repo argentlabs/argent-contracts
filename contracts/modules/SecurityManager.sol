@@ -69,7 +69,6 @@ abstract contract SecurityManager is BaseModule {
     event GuardianRevokationCancelled(address indexed wallet, address indexed guardian);
     event GuardianAdded(address indexed wallet, address indexed guardian);
     event GuardianRevoked(address indexed wallet, address indexed guardian);
-
     // *************** Modifiers ************************ //
 
     /**
@@ -145,6 +144,8 @@ abstract contract SecurityManager is BaseModule {
         require(uint64(block.timestamp) > config.executeAfter, "SM: ongoing recovery period");
         address recoveryOwner = config.recovery;
         delete recoveryConfigs[_wallet];
+
+        _clearSession(_wallet);
 
         IWallet(_wallet).setOwner(recoveryOwner);
         _setLock(_wallet, 0, bytes4(0));

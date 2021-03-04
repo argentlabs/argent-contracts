@@ -52,7 +52,6 @@ abstract contract TransactionManager is BaseModule {
     event RemovedFromWhitelist(address indexed wallet, address indexed target);
     event SessionCreated(address indexed wallet, address sessionKey, uint64 expires);
     event SessionCleared(address indexed wallet, address sessionKey);
-
     // *************** Constructor ************************ //
 
     constructor(uint256 _whitelistPeriod) public {
@@ -147,6 +146,15 @@ abstract contract TransactionManager is BaseModule {
     }
 
     /**
+    * @notice Clears the active session of a wallet if any.
+    * @param _wallet The target wallet.
+    */
+    function clearSession(address _wallet) public onlyWalletOwnerOrSelf(_wallet) {
+        emit SessionCleared(_wallet, sessions[_wallet].key);
+        _clearSession(_wallet);
+    }
+
+    /**
      * @notice Adds an address to the list of trusted contacts.
      * @param _wallet The target wallet.
      * @param _target The address to add.
@@ -180,15 +188,6 @@ abstract contract TransactionManager is BaseModule {
     function isWhitelisted(address _wallet, address _target) public view returns (bool _isWhitelisted) {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
-    }
-
-    /**
-    * @notice Clears the active session of a wallet if any.
-    * @param _wallet The target wallet.
-    */
-    function clearSession(address _wallet) external onlySelf() {
-        emit SessionCleared(_wallet, sessions[_wallet].key);
-        delete sessions[_wallet];
     }
     
     /*
