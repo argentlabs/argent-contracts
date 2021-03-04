@@ -6,7 +6,6 @@ const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const WalletFactory = artifacts.require("WalletFactory");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
-const CompoundRegistry = artifacts.require("CompoundRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
 
 const deployManager = require("../utils/deploy-manager.js");
@@ -19,7 +18,6 @@ async function main() {
   const ENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);
   const WalletFactoryWrapper = await WalletFactory.at(config.contracts.WalletFactory);
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
-  const CompoundRegistryWrapper = await CompoundRegistry.at(config.contracts.CompoundRegistry);
   const TokenPriceRegistryWrapper = await TokenPriceRegistry.at(config.modules.TokenPriceRegistry);
   const DexRegistryWrapper = await DexRegistry.at(config.contracts.DexRegistry);
 
@@ -59,7 +57,6 @@ async function main() {
     ENSManagerWrapper,
     WalletFactoryWrapper,
     ModuleRegistryWrapper,
-    CompoundRegistryWrapper,
     TokenPriceRegistryWrapper,
     DexRegistryWrapper];
 

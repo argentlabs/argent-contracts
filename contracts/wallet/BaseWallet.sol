@@ -32,13 +32,12 @@ contract BaseWallet is IWallet {
     address public override owner;
     // The authorised modules
     mapping (address => bool) public override authorised;
-    // The enabled static calls
-    mapping (bytes4 => address) public override enabled;
+    // module executing static calls
+    address public staticCallExecutor;
     // The number of modules
     uint public override modules;
 
     event AuthorisedModule(address indexed module, bool value);
-    event EnabledStaticCall(address indexed module, bytes4 indexed method);
     event Invoked(address indexed module, address indexed target, uint indexed value, bytes data);
     event Received(uint indexed value, address indexed sender, bytes data);
     event OwnerChanged(address owner);
@@ -47,7 +46,7 @@ contract BaseWallet is IWallet {
      * @notice Throws if the sender is not an authorised module.
      */
     modifier moduleOnly {
-        require(authorised[msg.sender], "BW: msg.sender not an authorized module");
+        require(authorised[msg.sender], "BW: sender not authorized");
         _;
     }
 
@@ -58,7 +57,7 @@ contract BaseWallet is IWallet {
      */
     function init(address _owner, address[] calldata _modules) external {
         require(owner == address(0) && modules == 0, "BW: wallet already initialised");
-        require(_modules.length > 0, "BW: construction requires at least 1 module");
+        require(_modules.length > 0, "BW: empty modules");
         owner = _owner;
         modules = _modules.length;
         for (uint256 i = 0; i < _modules.length; i++) {
@@ -84,7 +83,7 @@ contract BaseWallet is IWallet {
                 IModule(_module).init(address(this));
             } else {
                 modules -= 1;
-                require(modules > 0, "BW: wallet must have at least one module");
+                require(modules > 0, "BW: cannot remove last module");
                 delete authorised[_module];
             }
         }
@@ -93,10 +92,22 @@ contract BaseWallet is IWallet {
     /**
     * @inheritdoc IWallet
     */
-    function enableStaticCall(address _module, bytes4 _method) external override moduleOnly {
-        require(authorised[_module], "BW: must be an authorised module for static call");
-        enabled[_method] = _module;
-        emit EnabledStaticCall(_module, _method);
+    function enabled(bytes4 _sig) public view override returns (address) {
+        address executor = staticCallExecutor;
+        if(executor != address(0) && IModule(executor).supportsStaticCall(_sig)) {
+            return executor;
+        }
+        return address(0);
+    }
+
+    /**
+    * @inheritdoc IWallet
+    */
+    function enableStaticCall(address _module, bytes4 /* _method */) external override moduleOnly {
+        if(staticCallExecutor != _module) {
+            require(authorised[_module], "BW: unauthorized executor");
+            staticCallExecutor = _module;
+        }
     }
 
     /**
@@ -132,11 +143,11 @@ contract BaseWallet is IWallet {
      * to an enabled module, or logs the call otherwise.
      */
     fallback() external payable {
-        address module = enabled[msg.sig];
+        address module = enabled(msg.sig);
         if (module == address(0)) {
             emit Received(msg.value, msg.sender, msg.data);
         } else {
-            require(authorised[module], "BW: must be an authorised module for static call");
+            require(authorised[module], "BW: unauthorised module");
 
             // solhint-disable-next-line no-inline-assembly
             assembly {

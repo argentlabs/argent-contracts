@@ -86,6 +86,9 @@
           "properties": {
             "factory": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "v2Router": {
+              "$ref": "#/definitions/ethaddress"
             }
           }
         },
@@ -118,6 +121,9 @@
           "$ref": "#/definitions/ethaddress"
         },
         "ModuleRegistry": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "DappRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
         "BaseWallet": {
@@ -205,6 +211,9 @@
           "$ref": "#/definitions/ethaddress"
         },
         "VersionManager": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "ArgentModule": {
           "$ref": "#/definitions/ethaddress"
         }
       },
@@ -324,6 +333,9 @@
           "type": "integer"
         },
         "securityWindow": {
+          "type": "integer"
+        },
+        "timelockPeriod": {
           "type": "integer"
         },
         "defaultLimit": {

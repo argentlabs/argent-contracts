@@ -4,175 +4,134 @@ const ethers = require("ethers");
 const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
-const { formatBytes32String } = require("ethers").utils;
-const utils = require("../utils/utilities.js");
-const { ETH_TOKEN } = require("../utils/utilities.js");
 
-const { expect } = chai;
+const { assert, expect } = chai;
 chai.use(bnChai(BN));
+
+// UniswapV2
+const UniswapV2Factory = artifacts.require("UniswapV2Factory");
+const UniswapV2Router01 = artifacts.require("UniswapV2Router01");
+const WETH = artifacts.require("WETH9");
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
-const BadFeature = artifacts.require("BadFeature");
-const RelayerManager = artifacts.require("RelayerManager");
-const TestFeature = artifacts.require("TestFeature");
-const TestLimitFeature = artifacts.require("TestLimitFeature");
 const Registry = artifacts.require("ModuleRegistry");
-const GuardianManager = artifacts.require("GuardianManager");
+const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
-const LimitStorage = artifacts.require("LimitStorage");
+const ArgentModule = artifacts.require("ArgentModuleTest");
+const DappRegistry = artifacts.require("DappRegistry");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
-const ApprovedTransfer = artifacts.require("ApprovedTransfer");
-const RecoveryManager = artifacts.require("RecoveryManager"); // non-owner only feature
-const VersionManager = artifacts.require("VersionManager");
 const ERC20 = artifacts.require("TestERC20");
+
+const utils = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, addTrustedContact, initNonce } = require("../utils/utilities.js");
+
+const ZERO_BYTES = "0x";
+const ZERO_ADDRESS = ethers.constants.AddressZero;
+const SECURITY_PERIOD = 2;
+const SECURITY_WINDOW = 2;
+const LOCK_PERIOD = 4;
+const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("RelayerManager", (accounts) => {
-  const manager = new RelayManager();
+contract("ArgentModule", (accounts) => {
+  let manager;
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
-  const recipient = accounts[3];
-  const guardian = accounts[4];
+  const recipient = accounts[4];
+  const relayer = accounts[9];
 
   let registry;
+  let transferStorage;
   let guardianStorage;
-  let lockStorage;
-  let limitStorage;
-  let guardianManager;
-  let recoveryManager;
+  let module;
   let wallet;
-  let approvedTransfer;
-  let testFeature;
-  let testFeatureNew;
-  let relayerManager;
+  let walletImplementation;
+  let token;
+  let dappRegistry;
   let tokenPriceRegistry;
-  let limitFeature;
-  let badFeature;
-  let versionManager;
-  let versionManagerV2;
 
   before(async () => {
+    // deploy Uniswap V2
+    const weth = await WETH.new();
+    token = await ERC20.new([infrastructure], web3.utils.toWei("1000"), 18);
+    const uniswapFactory = await UniswapV2Factory.new(ZERO_ADDRESS);
+    const uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
+    await token.approve(uniswapRouter.address, web3.utils.toWei("600"));
+    const timestamp = await utils.getTimestamp();
+    await uniswapRouter.addLiquidityETH(
+      token.address,
+      web3.utils.toWei("600"),
+      1,
+      1,
+      infrastructure,
+      timestamp + 300,
+      { value: web3.utils.toWei("300") }
+    );
+
+    // deploy Argent
     registry = await Registry.new();
     guardianStorage = await GuardianStorage.new();
-    lockStorage = await LockStorage.new();
-    limitStorage = await LimitStorage.new();
-    versionManager = await VersionManager.new(
+    transferStorage = await TransferStorage.new();
+    dappRegistry = await DappRegistry.new(0);
+
+    module = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
-      ethers.constants.AddressZero,
-      limitStorage.address);
-    versionManagerV2 = await VersionManager.new(
-      registry.address,
-      lockStorage.address,
-      guardianStorage.address,
-      ethers.constants.AddressZero,
-      limitStorage.address);
+      transferStorage.address,
+      dappRegistry.address,
+      uniswapRouter.address,
+      SECURITY_PERIOD,
+      SECURITY_WINDOW,
+      RECOVERY_PERIOD,
+      LOCK_PERIOD);
+
+    await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
+    await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
+
+    walletImplementation = await BaseWallet.new();
 
     tokenPriceRegistry = await TokenPriceRegistry.new();
     await tokenPriceRegistry.addManager(infrastructure);
-    relayerManager = await RelayerManager.new(
-      lockStorage.address,
-      guardianStorage.address,
-      limitStorage.address,
-      tokenPriceRegistry.address,
-      versionManager.address);
-    await manager.setRelayerManager(relayerManager);
+    const tokenRate = new BN(10).pow(new BN(18)).div(new BN(2));
+    await tokenPriceRegistry.setPriceForTokenList([token.address], [tokenRate]);
+
+    manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
   });
 
   beforeEach(async () => {
-    approvedTransfer = await ApprovedTransfer.new(
-      lockStorage.address,
-      guardianStorage.address,
-      limitStorage.address,
-      versionManager.address,
-      ethers.constants.AddressZero);
-    guardianManager = await GuardianManager.new(
-      lockStorage.address,
-      guardianStorage.address,
-      versionManager.address,
-      24,
-      12);
-    recoveryManager = await RecoveryManager.new(
-      lockStorage.address,
-      guardianStorage.address,
-      versionManager.address,
-      36, 24 * 5);
-
-    testFeature = await TestFeature.new(lockStorage.address, versionManager.address, 0);
-    testFeatureNew = await TestFeature.new(lockStorage.address, versionManager.address, 0);
-
-    limitFeature = await TestLimitFeature.new(
-      lockStorage.address, limitStorage.address, versionManager.address);
-    badFeature = await BadFeature.new(lockStorage.address, versionManager.address);
-
-    const walletImplementation = await BaseWallet.new();
     const proxy = await Proxy.new(walletImplementation.address);
     wallet = await BaseWallet.at(proxy.address);
-
-    for (const vm of [versionManager, versionManagerV2]) {
-      await vm.addVersion([
-        relayerManager.address,
-        approvedTransfer.address,
-        guardianManager.address,
-        recoveryManager.address,
-        testFeature.address,
-        limitFeature.address,
-        badFeature.address,
-      ], []);
-    }
-
-    await wallet.init(owner, [versionManager.address]);
-    await versionManager.upgradeWallet(wallet.address, await versionManager.lastVersion(), { from: owner });
+    await wallet.init(owner, [module.address]);
+    await wallet.send(web3.utils.toWei("1"));
+    await token.transfer(wallet.address, web3.utils.toWei("1"));
   });
 
-  describe("relaying feature transactions", () => {
+  describe("relay transactions", () => {
     it("should fail when _data is less than 36 bytes", async () => {
-      const params = []; // the first argument is not the wallet address, which should make the relaying revert
+      const nonce = await utils.getNonceForRelay();
+      const gasLimit = 2000000;
       await truffleAssert.reverts(
-        manager.relay(testFeature, "clearInt", params, wallet, [owner]), "RM: Invalid dataWallet",
-      );
-    });
-
-    it("should fail when feature is not authorised", async () => {
-      const params = [wallet.address, 2];
-      await truffleAssert.reverts(
-        manager.relay(testFeatureNew, "setIntOwnerOnly", params, wallet, [owner]), "RM: feature not authorised",
-      );
-    });
-
-    it("should fail when the RelayerManager is not authorised", async () => {
-      await versionManager.addVersion([testFeature.address], []);
-      const wrongWallet = await BaseWallet.new();
-      await wrongWallet.init(owner, [versionManager.address]);
-      await versionManager.upgradeWallet(wrongWallet.address, await versionManager.lastVersion(), { from: owner });
-      const params = [wrongWallet.address, 2];
-      const txReceipt = await manager.relay(testFeature, "setIntOwnerOnly", params, wrongWallet, [owner]);
-
-      const { success, error } = utils.parseRelayReceipt(txReceipt);
-      assert.isFalse(success);
-      assert.equal(error, "BF: must be owner or feature");
-
-      // reset last version to default bundle
-      await versionManager.addVersion([
-        relayerManager.address,
-        approvedTransfer.address,
-        guardianManager.address,
-        recoveryManager.address,
-        testFeature.address,
-        limitFeature.address,
-        badFeature.address,
-      ], []);
+        module.execute(
+          wallet.address,
+          "0xf435f5a7",
+          nonce,
+          "0xdeadbeef",
+          0,
+          gasLimit,
+          ETH_TOKEN,
+          ethers.constants.AddressZero,
+          { gas: 2 * gasLimit, gasPrice: 0, from: relayer }
+        ), "RM: Invalid dataWallet");
     });
 
     it("should fail when the first param is not the wallet", async () => {
-      const params = [owner, 4];
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
       await truffleAssert.reverts(
-        manager.relay(testFeature, "setIntOwnerOnly", params, wallet, [owner]), "RM: Target of _data != _wallet",
+        manager.relay(module, "multiCall", [infrastructure, [transaction]], wallet, [owner]),
+        "RM: Target of _data != _wallet"
       );
     });
 
@@ -181,9 +140,8 @@ contract("RelayerManager", (accounts) => {
       const gasLimit = 2000000;
 
       await truffleAssert.reverts(
-        relayerManager.execute(
+        module.execute(
           wallet.address,
-          testFeature.address,
           "0xdeadbeef",
           nonce,
           "0xdeadbeef",
@@ -191,231 +149,173 @@ contract("RelayerManager", (accounts) => {
           gasLimit,
           ETH_TOKEN,
           ethers.constants.AddressZero,
-          { gas: gasLimit * 0.9, gasPrice: 0, from: accounts[9] }
+          { gas: gasLimit * 0.9, gasPrice: 0, from: relayer }
         ), "RM: not enough gas provided");
     });
 
     it("should fail when a wrong number of signatures is provided", async () => {
-      const params = [wallet.address, 2];
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
       await truffleAssert.reverts(
-        manager.relay(testFeature, "setIntOwnerOnly", params, wallet, [owner, recipient]),
+        manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner, recipient]),
         "RM: Wrong number of signatures"
       );
     });
 
     it("should fail a duplicate transaction", async () => {
-      const methodData = testFeature.contract.methods.setIntOwnerOnly(wallet.address, 2).encodeABI();
       const nonce = await utils.getNonceForRelay();
       const chainId = await utils.getChainId();
-
+      const gasLimit = 100000;
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
+      const methodData = module.contract.methods.multiCall(wallet.address, [transaction]).encodeABI();
       const signatures = await utils.signOffchain(
         [owner],
-        relayerManager.address,
-        testFeature.address,
+        module.address,
         0,
         methodData,
         chainId,
         nonce,
         0,
-        0,
+        gasLimit,
         ETH_TOKEN,
         ethers.constants.AddressZero,
       );
 
-      await relayerManager.execute(
+      await module.execute(
         wallet.address,
-        testFeature.address,
         methodData,
         nonce,
         signatures,
         0,
-        0,
+        gasLimit,
         ETH_TOKEN,
-        ethers.constants.AddressZero,
-        { from: accounts[9] });
+        ethers.constants.AddressZero);
 
       await truffleAssert.reverts(
-        relayerManager.execute(
+        module.execute(
           wallet.address,
-          testFeature.address,
           methodData,
           nonce,
           signatures,
           0,
-          0,
+          gasLimit,
           ETH_TOKEN,
-          ethers.constants.AddressZero,
-          { from: accounts[9] }
-        ), "RM: Duplicate request");
-    });
-
-    it("should fail when relaying to itself", async () => {
-      const methodData = testFeature.contract.methods.setIntOwnerOnly(wallet.address, 2).encodeABI();
-      const params = [
-        wallet.address,
-        testFeature.address,
-        methodData,
-        0,
-        ethers.constants.HashZero,
-        0,
-        200000,
-        ETH_TOKEN,
-        ethers.constants.AddressZero,
-      ];
-      await truffleAssert.reverts(
-        manager.relay(relayerManager, "execute", params, wallet, [owner]), "BF: disabled method",
-      );
+          ethers.constants.AddressZero),
+        "RM: Duplicate request");
     });
 
     it("should update the nonce after the transaction", async () => {
-      const nonceBefore = await relayerManager.getNonce(wallet.address);
-      await manager.relay(testFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner]);
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
 
-      const nonceAfter = await relayerManager.getNonce(wallet.address);
+      const nonceBefore = await module.getNonce(wallet.address);
+      await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+      const nonceAfter = await module.getNonce(wallet.address);
       expect(nonceAfter).to.be.gt.BN(nonceBefore);
     });
   });
 
-  describe("refund relayed transactions", () => {
-    let erc20;
+  describe("refund", () => {
     beforeEach(async () => {
-      const decimals = 12; // number of decimal for TOKN contract
-      erc20 = await ERC20.new([infrastructure], 10000000, decimals); // TOKN contract with 10M tokens (10M TOKN for account[0])
-
-      // Prices stored in registry = price per token * 10^(18-token decimals)
-      const tokenRate = new BN(10).pow(new BN(19)).mul(new BN(51)); // 1 TOKN = 0.00051 ETH = 0.00051*10^18 ETH wei => *10^(18-decimals) = 0.00051*10^18 * 10^6 = 0.00051*10^24 = 51*10^19
-      await tokenPriceRegistry.setPriceForTokenList([erc20.address], [tokenRate]);
-
-      await limitFeature.setLimitAndDailySpent(wallet.address, 10000000000, 0);
+      await initNonce(wallet, module, manager, SECURITY_PERIOD);
+      await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
     });
 
-    async function callAndRefund({ refundToken }) {
-      const relayParams = [
-        testFeature,
-        "setIntOwnerOnly",
-        [wallet.address, 2],
+    it("should refund in ETH", async () => {
+      // eth balance
+      const balanceStart = await utils.getBalance(wallet.address);
+      // send erc20
+      const data = token.contract.methods.transfer(recipient, 100).encodeABI();
+      const transaction = encodeTransaction(token.address, 0, data);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
         wallet,
         [owner],
-        10000,
-        refundToken,
-        recipient];
-      const txReceipt = await manager.relay(...relayParams);
-      return txReceipt;
-    }
-
-    it("should refund in ETH", async () => {
-      await wallet.send("100000000000000");
-      const wBalanceStart = await utils.getBalance(wallet.address);
-      const rBalanceStart = await utils.getBalance(recipient);
-      await callAndRefund({ refundToken: ETH_TOKEN });
-      const wBalanceEnd = await utils.getBalance(wallet.address);
-      const rBalanceEnd = await utils.getBalance(recipient);
-      const refund = wBalanceStart.sub(wBalanceEnd);
-      // should have refunded ETH
-      expect(refund).to.be.gt.BN(0);
-      // should have refunded the recipient
-      expect(refund).to.eq.BN(rBalanceEnd.sub(rBalanceStart));
+        1,
+        ETH_TOKEN,
+        relayer);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
+      assert.isTrue(success, "transfer failed");
+      const balanceEnd = await utils.getBalance(wallet.address);
+      expect(balanceEnd.sub(balanceStart)).to.be.lt.BN(0);
     });
 
     it("should refund in ERC20", async () => {
-      await erc20.transfer(wallet.address, "10000000000");
-      const wBalanceStart = await erc20.balanceOf(wallet.address);
-      const rBalanceStart = await erc20.balanceOf(recipient);
-      await callAndRefund({ refundToken: erc20.address });
-      const wBalanceEnd = await erc20.balanceOf(wallet.address);
-      const rBalanceEnd = await erc20.balanceOf(recipient);
-      const refund = wBalanceStart.sub(wBalanceEnd);
-      // should have refunded ERC20
-      expect(refund).to.be.gt.BN(0);
-      // should have refunded the recipient
-      expect(refund).to.eq.BN(rBalanceEnd.sub(rBalanceStart));
+      // token balance
+      const balanceStart = await token.balanceOf(relayer);
+      // send ETH
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        1,
+        token.address,
+        relayer);
+      const success = await utils.parseRelayReceipt(txReceipt).success;
+      assert.isTrue(success, "transfer failed");
+      const balanceEnd = await token.balanceOf(relayer);
+      expect(balanceEnd.sub(balanceStart)).to.be.gt.BN(0);
     });
 
     it("should emit the Refund event", async () => {
-      await wallet.send("100000000000");
-      const txReceipt = await callAndRefund({ refundToken: ETH_TOKEN });
-      await utils.hasEvent(txReceipt, relayerManager, "Refund");
+      const transaction = encodeTransaction(recipient, 10, ZERO_BYTES);
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+      await utils.hasEvent(txReceipt, module, "Refund");
     });
 
-    it("should fail the transaction when there is not enough ETH for the refund", async () => {
-      await wallet.send(10);
-      await truffleAssert.reverts(callAndRefund({ refundToken: ETH_TOKEN }), "VM: wallet invoke reverted");
-    });
+    it("should fail when there is not enough ETH to refund", async () => {
+      const balance = await utils.getBalance(wallet.address);
+      const transaction = encodeTransaction(recipient, balance.toString(), ZERO_BYTES);
 
-    it("should fail the transaction when there is not enough ERC20 for the refund", async () => {
-      await erc20.transfer(wallet.address, 10);
-      await truffleAssert.reverts(callAndRefund({ refundToken: erc20.address }), "ERC20: transfer amount exceeds balance");
-    });
-
-    it("should include the refund in the daily limit", async () => {
-      await wallet.send("100000000000");
-      await limitFeature.setLimitAndDailySpent(wallet.address, "100000000000000000", 10);
-      let dailySpent = await limitFeature.getDailySpent(wallet.address);
-      expect(dailySpent).to.eq.BN(10);
-      await callAndRefund({ refundToken: ETH_TOKEN });
-      dailySpent = await limitFeature.getDailySpent(wallet.address);
-      expect(dailySpent).to.be.gt.BN(10);
-    });
-
-    it("should refund and reset the daily limit when approved by guardians", async () => {
-      // set funds and limit/daily spent
-      await wallet.send("100000000000");
-      await limitFeature.setLimitAndDailySpent(wallet.address, 1000000000, 10);
-      let dailySpent = await limitFeature.getDailySpent(wallet.address);
-      // initial daily spent should be 10
-      expect(dailySpent).to.eq.BN(10);
-      const rBalanceStart = await utils.getBalance(recipient);
-      // add a guardian
-      await guardianManager.addGuardian(wallet.address, guardian, { from: owner });
-      // call approvedTransfer
-      const params = [wallet.address, ETH_TOKEN, recipient, 1000, ethers.constants.HashZero];
-      await manager.relay(approvedTransfer, "transferToken", params, wallet, [owner, guardian]);
-
-      dailySpent = await limitFeature.getDailySpent(wallet.address);
-      // daily spent should be reset
-      expect(dailySpent).to.be.zero;
-      const rBalanceEnd = await utils.getBalance(recipient);
-      expect(rBalanceEnd).to.be.gt.BN(rBalanceStart);
-    });
-
-    it("should fail if required signatures is 0 and OwnerRequirement is not Anyone", async () => {
       await truffleAssert.reverts(
-        manager.relay(badFeature, "setIntOwnerOnly", [wallet.address, 2], wallet, [owner]), "RM: Wrong signature requirement",
+        manager.relay(
+          module,
+          "multiCall",
+          [wallet.address, [transaction]],
+          wallet,
+          [owner],
+          1,
+          ETH_TOKEN,
+          relayer)
       );
     });
 
-    it("should fail the transaction when the refund is over the daily limit", async () => {
-      await wallet.send("100000000000");
-      await limitFeature.setLimitAndDailySpent(wallet.address, 1000000000, 999999990);
-      const dailySpent = await limitFeature.getDailySpent(wallet.address);
-      expect(dailySpent).to.eq.BN(999999990);
-      await truffleAssert.reverts(callAndRefund({ refundToken: ETH_TOKEN }), "RM: refund is above daily limit");
-    });
-  });
+    it("should fail when there is not enough ERC20 to refund", async () => {
+      const balance = await token.balanceOf(wallet.address);
+      const data = token.contract.methods.transfer(recipient, balance.toString()).encodeABI();
+      const transaction = encodeTransaction(token.address, 0, data);
 
-  describe("addModule transactions", () => {
-    it("should succeed when relayed on VersionManager", async () => {
-      await registry.registerModule(versionManagerV2.address, formatBytes32String("versionManagerV2"));
-      const params = [wallet.address, versionManagerV2.address];
-      await manager.relay(versionManager, "addModule", params, wallet, [owner]);
-
-      const isModuleAuthorised = await wallet.authorised(versionManagerV2.address);
-      assert.isTrue(isModuleAuthorised);
-      await registry.deregisterModule(versionManagerV2.address);
-    });
-
-    it("should succeed when called directly on VersionManager", async () => {
-      await registry.registerModule(versionManagerV2.address, formatBytes32String("versionManagerV2"));
-      await versionManager.addModule(wallet.address, versionManagerV2.address, { from: owner });
-
-      const isModuleAuthorised = await wallet.authorised(versionManagerV2.address);
-      assert.isTrue(isModuleAuthorised);
-      await registry.deregisterModule(versionManagerV2.address);
-    });
-
-    it("should fail to add module which is not registered", async () => {
-      await truffleAssert.reverts(versionManager.addModule(wallet.address, versionManagerV2.address, { from: owner }),
-        "VM: module is not registered");
+      await truffleAssert.reverts(
+        manager.relay(
+          module,
+          "multiCall",
+          [wallet.address, [transaction]],
+          wallet,
+          [owner],
+          1,
+          token.address,
+          relayer)
+      );
     });
   });
 });

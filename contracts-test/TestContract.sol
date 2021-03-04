@@ -2,6 +2,7 @@
 pragma solidity ^0.6.12;
 import "./TokenConsumer.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/introspection/IERC165.sol";
 
 /**
  * @title TestContract
@@ -14,6 +15,7 @@ contract TestContract {
     TokenConsumer public tokenConsumer;
 
     event StateSet(uint256 indexed _state, uint256 indexed _value);
+    event GasUsed(uint _gas);
 
     constructor() public {
         tokenConsumer = new TokenConsumer();
@@ -36,5 +38,12 @@ contract TestContract {
             state = _state;
             emit StateSet(_state, _amount);
         }
+    }
+    
+    function testERC165Gas(address _wallet, bytes4 _interfaceId) external {
+        uint startGas = gasleft();
+        IERC165(_wallet).supportsInterface{gas: 10000}(_interfaceId);
+        uint endGas = gasleft();
+        emit GasUsed(startGas - endGas);
     }
 }

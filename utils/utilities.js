@@ -3,16 +3,15 @@ const ethers = require("ethers");
 const BN = require("bn.js");
 const chai = require("chai");
 
-const { expect } = chai;
-const ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+const { assert, expect } = chai;
+const ETH_TOKEN = ethers.constants.AddressZero;
+const ZERO_BYTES = "0x";
 
-module.exports = {
+const utilities = {
 
   ETH_TOKEN,
 
-  namehash(_name) {
-    return ethers.utils.namehash(_name);
-  },
+  namehash: (name) => ethers.utils.namehash(name),
 
   sha3: (input) => {
     if (ethers.utils.isHexString(input)) {
@@ -36,11 +35,11 @@ module.exports = {
     });
   }),
 
-  async signOffchain(signers, from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
-    const messageHash = this.getMessageHash(from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress);
+  signOffchain: async (signers, from, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) => {
+    const messageHash = utilities.getMessageHash(from, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress);
     const signatures = await Promise.all(
       signers.map(async (signer) => {
-        const sig = await this.signMessage(messageHash, signer);
+        const sig = await utilities.signMessage(messageHash, signer);
         return sig.slice(2);
       })
     );
@@ -49,12 +48,11 @@ module.exports = {
     return joinedSignatures;
   },
 
-  getMessageHash(from, to, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) {
+  getMessageHash: (from, value, data, chainId, nonce, gasPrice, gasLimit, refundToken, refundAddress) => {
     const message = `0x${[
       "0x19",
       "0x00",
       from,
-      to,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(value), 32),
       data,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(chainId), 32),
@@ -69,7 +67,7 @@ module.exports = {
     return messageHash;
   },
 
-  async signMessage(message, signer) {
+  signMessage: async (message, signer) => {
     const sig = await web3.eth.sign(message, signer);
     let v = parseInt(sig.substring(130, 132), 16);
     if (v < 27) v += 27;
@@ -79,45 +77,43 @@ module.exports = {
 
   personalSign: async (signHash, signer) => ethers.utils.joinSignature(signer.signingKey.signDigest(signHash)),
 
-  sortWalletByAddress(wallets) {
-    return wallets.sort((s1, s2) => {
-      const bn1 = ethers.BigNumber.from(s1);
-      const bn2 = ethers.BigNumber.from(s2);
-      if (bn1.lt(bn2)) return -1;
-      if (bn1.gt(bn2)) return 1;
-      return 0;
-    });
-  },
+  sortWalletByAddress: (wallets) => wallets.sort((s1, s2) => {
+    const bn1 = ethers.BigNumber.from(s1);
+    const bn2 = ethers.BigNumber.from(s2);
+    if (bn1.lt(bn2)) return -1;
+    if (bn1.gt(bn2)) return 1;
+    return 0;
+  }),
 
   // Parses the RelayerModule.execute receipt to decompose the success value of the transaction
   // and additionally if an error was raised in the sub-call to optionally return that
-  parseRelayReceipt(txReceipt) {
+  parseRelayReceipt: (txReceipt) => {
     const { args } = txReceipt.logs.find((e) => e.event === "TransactionExecuted");
 
     let errorBytes;
     let error;
-    if (args.returnData) {
+    if (!args.success && args.returnData) {
       if (args.returnData.startsWith("0x08c379a0")) {
         // Remove the encoded error signatures 08c379a0
         const noErrorSelector = `0x${args.returnData.slice(10)}`;
         const errorBytesArray = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
         errorBytes = errorBytesArray[0]; // eslint-disable-line prefer-destructuring
       } else {
-        errorBytes = args.returnData;
+        errorBytes = args.returnData; console.log(errorBytes);
       }
       error = ethers.utils.toUtf8String(errorBytes);
     }
     return { success: args.success, error };
   },
 
-  async hasEvent(txReceipt, emitter, eventName) {
-    const event = await this.getEvent(txReceipt, emitter, eventName);
+  hasEvent: async (txReceipt, emitter, eventName) => {
+    const event = await utilities.getEvent(txReceipt, emitter, eventName);
     return expect(event, "Event does not exist in recept").to.exist;
   },
 
-  async getEvent(txReceipt, emitter, eventName) {
+  getEvent: async (txReceipt, emitter, eventName) => {
     const receipt = await web3.eth.getTransactionReceipt(txReceipt.transactionHash);
-    const logs = await this.decodeLogs(receipt.logs, emitter, eventName);
+    const logs = await utilities.decodeLogs(receipt.logs, emitter, eventName);
     const event = logs.find((e) => e.event === eventName);
     return event;
   },
@@ -125,7 +121,7 @@ module.exports = {
   // Copied from https://github.com/OpenZeppelin/openzeppelin-test-helpers
   // This decodes longs for a single event type, and returns a decoded object in
   // the same form truffle-contract uses on its receipts
-  decodeLogs(logs, emitter, eventName) {
+  decodeLogs: (logs, emitter, eventName) => {
     let address;
 
     const { abi } = emitter;
@@ -155,7 +151,7 @@ module.exports = {
       .map((decoded) => ({ event: eventName, args: decoded }));
   },
 
-  versionFingerprint(modules) {
+  versionFingerprint: (modules) => {
     const concat = modules.map((module) => module.address).sort((m1, m2) => {
       const bn1 = ethers.BigNumber.from(m1);
       const bn2 = ethers.BigNumber.from(m2);
@@ -170,49 +166,36 @@ module.exports = {
     return ethers.utils.keccak256(concat).slice(0, 10);
   },
 
-  getRandomAddress() {
-    return ethers.Wallet.createRandom().address;
-  },
+  getRandomAddress: () => ethers.Wallet.createRandom().address,
 
-  generateSaltValue() {
-    return ethers.utils.hexZeroPad(
-      ethers.BigNumber.from(ethers.utils.randomBytes(32)).toHexString(),
-      32,
-    );
-  },
-
-  async getBalance(account) {
+  getBalance: async (account) => {
     const balance = await web3.eth.getBalance(account);
     return new BN(balance);
   },
 
-  async getTimestamp(blockNumber) {
+  getTimestamp: async (blockNumber) => {
     const blockN = !blockNumber ? "latest" : blockNumber;
     const { timestamp } = await web3.eth.getBlock(blockN);
     return timestamp;
   },
 
-  async getChainId() {
-    // TODO: The web3 version packaged with truffle is 1.2.1 while the getChainId logic
-    // we need here was introduced in 1.2.2
-    // Uncomment when https://github.com/trufflesuite/truffle/issues/2688#issuecomment-709879003 is resolved
-    // const chainId = await web3.eth.getChainId();
-    // console.log("chainId", chainId)
-    // return chainId;
-    return 1895;
-  },
+  // TODO: The web3 version packaged with truffle is 1.2.1 while the getChainId logic
+  // we need here was introduced in 1.2.2
+  // Uncomment when https://github.com/trufflesuite/truffle/issues/2688#issuecomment-709879003 is resolved
+  // const chainId = await web3.eth.getChainId();
+  // console.log("chainId", chainId)
+  // return chainId;
+  getChainId: async () => 1895,
 
-  async web3GetClient() {
-    return new Promise((resolve, reject) => {
-      web3.eth.getNodeInfo((err, res) => {
-        if (err !== null) return reject(err);
-        return resolve(res);
-      });
+  web3GetClient: async () => new Promise((resolve, reject) => {
+    web3.eth.getNodeInfo((err, res) => {
+      if (err !== null) return reject(err);
+      return resolve(res);
     });
-  },
+  }),
 
-  async increaseTime(seconds) {
-    const client = await this.web3GetClient();
+  increaseTime: async (seconds) => {
+    const client = await utilities.web3GetClient();
     const p = new Promise((resolve, reject) => {
       if (client.indexOf("TestRPC") === -1) {
         console.warning("Client is not ganache-cli and cannot forward time");
@@ -249,15 +232,57 @@ module.exports = {
     return p;
   },
 
-  async getNonceForRelay() {
+  getNonceForRelay: async () => {
     const block = await web3.eth.getBlockNumber();
     const timestamp = new Date().getTime();
     return `0x${ethers.utils.hexZeroPad(ethers.utils.hexlify(block), 16)
       .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   },
 
-  async getAccount(index) {
+  getAccount: async (index) => {
     const accounts = await web3.eth.getAccounts();
     return accounts[index];
+  },
+
+  encodeFunctionCall: (method, params) => {
+    if (typeof method === "object") return web3.eth.abi.encodeFunctionCall(method, params);
+    if (typeof method === "string") {
+      const paramStart = method.indexOf("(");
+      const name = method.substring(0, paramStart);
+      const inputs = method
+        .substring(paramStart + 1, method.length - 1)
+        .split(",")
+        .map((type, idx) => ({ type, name: `arg${idx}` }));
+      return web3.eth.abi.encodeFunctionCall({ name, inputs, type: "function" }, params);
+    }
+    throw new Error(`Invalid method "${method}"`);
+  },
+
+  encodeTransaction: (to, value, data) => ({ to, value, data }),
+
+  addTrustedContact: async (wallet, target, module, securityPeriod) => {
+    const owner = await wallet.owner();
+    await module.addToWhitelist(wallet.address, target, { from: owner });
+    await utilities.increaseTime(securityPeriod + 2);
+    const isTrusted = await module.isWhitelisted(wallet.address, target);
+    assert.isTrue(isTrusted, "should be trusted after the security period");
+  },
+
+  // set the relayer nonce to > 0
+  initNonce: async (wallet, module, manager, securityPeriod) => {
+    const nonceInitialiser = await utilities.getAccount(8);
+    await utilities.addTrustedContact(wallet, nonceInitialiser, module, securityPeriod);
+    const owner = await wallet.owner();
+    const transaction = utilities.encodeTransaction(nonceInitialiser, 1, ZERO_BYTES);
+    await manager.relay(
+      module,
+      "multiCall",
+      [wallet.address, [transaction]],
+      wallet,
+      [owner]);
+    const nonce = await module.getNonce(wallet.address);
+    assert.isTrue(nonce.gt(0), "nonce init failed");
   }
 };
+
+module.exports = utilities;
