@@ -32,6 +32,9 @@ abstract contract TransactionManager is BaseModule {
     bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
     bytes4 private constant ERC721_TRANSFER_FROM = bytes4(keccak256("transferFrom(address,address,uint256)"));
+    bytes4 private constant ERC721_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256)"));
+    bytes4 private constant ERC721_SAFE_TRANSFER_FROM_BYTES = bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)"));
+    bytes4 private constant ERC721_SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
 
     // Static calls
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
@@ -279,7 +282,14 @@ abstract contract TransactionManager is BaseModule {
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
         bytes4 methodId = Utils.functionPrefix(_transaction.data);
-        if(methodId == ERC20_TRANSFER || methodId == ERC20_APPROVE || methodId == ERC721_TRANSFER_FROM) {
+        if(
+            methodId == ERC20_TRANSFER ||
+            methodId == ERC20_APPROVE ||
+            methodId == ERC721_TRANSFER_FROM ||
+            methodId == ERC721_SAFE_TRANSFER_FROM ||
+            methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
+            methodId == ERC721_SET_APPROVAL_FOR_ALL
+        ) {
             require(_transaction.value == 0, "TM: unsecure call");
             (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
             return first == _wallet ? second : first;
