@@ -391,9 +391,4 @@ abstract contract SecurityManager is BaseModule {
     function _setLock(address _wallet, uint256 _releaseAfter, bytes4 _locker) internal {
         locks[_wallet] = Lock(SafeCast.toUint64(_releaseAfter), _locker);
     }
-
-    function _clearSession(address _wallet) internal {
-        emit SessionCleared(_wallet, sessions[_wallet].key);
-        delete sessions[_wallet];
-    }
 }

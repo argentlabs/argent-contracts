@@ -138,6 +138,11 @@ abstract contract BaseModule is IModule {
         uint total = ERC20(_token).balanceOf(address(this));
         ERC20(_token).transfer(address(registry), total);
     }
+
+    function _clearSession(address _wallet) internal {
+        emit SessionCleared(_wallet, sessions[_wallet].key);
+        delete sessions[_wallet];
+    }
     
     /**
      * @notice Helper method to check if an address is the owner of a target wallet.
