@@ -25,7 +25,7 @@ const ERC1155 = artifacts.require("TestERC1155");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction, addTrustedContact, initNonce } = require("../utils/utilities.js");
 
-const ZERO_BYTES32 = ethers.constants.HashZero;
+const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -111,7 +111,7 @@ contract("ArgentModule", (accounts) => {
       await addTrustedContact(wallet, recipient, module, SECURITY_PERIOD);
     });
 
-    it("should send and receice ETH", async () => {
+    it.only("should send and receive ETH", async () => {
       // receive
       let before = await utils.getBalance(wallet.address);
       await wallet.send(web3.utils.toWei("1"), { from: sender });
@@ -119,7 +119,7 @@ contract("ArgentModule", (accounts) => {
       expect(after.sub(before)).to.gt.BN(0);
       // send
       before = after;
-      const transaction = encodeTransaction(recipient, web3.utils.toWei("1"), ZERO_BYTES32);
+      const transaction = encodeTransaction(recipient, web3.utils.toWei("1"), ZERO_BYTES);
       const txReceipt = await manager.relay(
         module,
         "multiCall",
@@ -129,8 +129,9 @@ contract("ArgentModule", (accounts) => {
         1,
         ETH_TOKEN,
         relayer);
-      const { success } = utils.parseRelayReceipt(txReceipt);
-      assert.isTrue(success);
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, `sending ETH failed with "${error}"`);
+      console.log({ gas: txReceipt.gasUsed.toString() });
       after = await utils.getBalance(wallet.address);
       expect(after.sub(before)).to.lt.BN(0);
     });
@@ -213,12 +214,12 @@ contract("ArgentModule", (accounts) => {
     it("should send and receive ERC1155", async () => {
       // receive
       let before = await erc1155.balanceOf(wallet.address, erc1155Id);
-      await erc1155.safeTransferFrom(sender, wallet.address, erc1155Id, 1000, ZERO_BYTES32, { from: sender });
+      await erc1155.safeTransferFrom(sender, wallet.address, erc1155Id, 1000, ZERO_BYTES, { from: sender });
       let after = await erc1155.balanceOf(wallet.address, erc1155Id);
       expect(after.sub(before)).to.eq.BN(1000);
       // send
       before = after;
-      const data = erc1155.contract.methods.safeTransferFrom(wallet.address, recipient, erc1155Id, 1000, ZERO_BYTES32).encodeABI();
+      const data = erc1155.contract.methods.safeTransferFrom(wallet.address, recipient, erc1155Id, 1000, ZERO_BYTES).encodeABI();
       const transaction = encodeTransaction(erc1155.address, 0, data, true);
       const txReceipt = await manager.relay(
         module,

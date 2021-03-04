@@ -282,7 +282,12 @@ abstract contract TransactionManager is BaseModule {
     }
 
     function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
-        bytes4 methodId = Utils.functionPrefix(_transaction.data);
+        bytes4 methodId;
+        bytes memory data = _transaction.data;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            methodId := mload(add(data, 0x20))
+        }
         if(
             methodId == ERC20_TRANSFER ||
             methodId == ERC20_APPROVE ||

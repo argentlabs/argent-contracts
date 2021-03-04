@@ -258,7 +258,7 @@ const utilities = {
     throw new Error(`Invalid method "${method}"`);
   },
 
-  encodeTransaction: (to, value, data, isTokenCall = false) => ({ to, value, data, isTokenCall }),
+  encodeTransaction: (to, value, data) => ({ to, value, data }),
 
   addTrustedContact: async (wallet, target, module, securityPeriod) => {
     const owner = await wallet.owner();
