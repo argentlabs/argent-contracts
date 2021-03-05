@@ -105,9 +105,9 @@ The first registry is enabled by default (opt-out) for all wallets and contains 
 
 Each registry entry is a mapping between an authorised address and a filter containing the set of conditions that a transaction from a wallet to the authorised address must satisfy.
 Adding or removing an entry in a registry is a timelocked operation that can only be initiated by the Argent multisig.
-The timelock is set to 7 days to give enough time for a user to disable the correspoding registry should they not approve the new addition. 
+The timelock is set to 7 days to give enough time for a user to disable the correspoding registry should they not approve the new addition.
 
-Enabling or disabling a registry for a wallet requires guardian approvals and the number of required signatures is given by
+Enabling or disabling a registry for a wallet is achieved via a multicall and requires guardian approvals. The number of required signatures is given by
 \begin{equation*}
     1+\left\lceil {\frac{n}{2}} \right\rceil
 \end{equation*}
@@ -224,7 +224,7 @@ The SecurityManager module contains all the logic related to the security of the
 
 \subsubsection{TransactionManager}
 
-The TransactionManager module contains all the logic to execute multi-calls, including adding or removing a trusted contact, enabling or disabling a dapp registry, starting or closing a session, and executing multi-calls with the correct authorisation. 
+The TransactionManager module contains all the logic to execute multi-calls, including adding or removing a trusted contact, starting or closing a session, and executing multi-calls with the correct authorisation. 
 
 \subsubsection{BaseModule}
 
@@ -253,8 +253,7 @@ The DappRegistry maintains a list of registries, where each registry is a mappin
 
 Each registry has an owner who is the only account that can request the addition or update of an entry in the registry. Once the addition/update has been requested a timelock period of 7 days must pass before the operation can be completed. Anybody can trigger the confirmation transaction provided that the timelock period has expired. Removing an entry from a registry must be triggered by the owner of the registry and is immediate. The Argent multisig is the owner of registry Id[0] and Id[1].
 
-In addition, the owner of registry Id[0] has a special role as it is the only account authorised to create a new registry or to change the timelock period of the \emph{DappRegistry} contract. Changing the timelock is also a 2 step process where the confirmation transaction can only be executed after the old timelock period as expired. We note that it is not possible to remove an existing registry because that would allow the owner of registry Id[0] to replace registries that 
-have already been enabled by users with a new (potentially maliciously populated) registry.
+In addition, the owner of registry Id[0] has a special role as it is the only account authorised to create a new registry or to change the timelock period of the \emph{DappRegistry} contract. Changing the timelock is also a 2 step process where the confirmation transaction can only be executed after the old timelock period as expired. We note that it is not possible to remove an existing registry because that would allow the owner of registry Id[0] to replace registries that have already been enabled by users with a new (potentially maliciously populated) registry.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Filters}
