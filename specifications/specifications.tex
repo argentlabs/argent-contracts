@@ -200,8 +200,8 @@ A second group of contracts implements the functionalities of the wallet:
 \begin{itemize}
     \item \textbf{Proxy Wallet:} Lightweight proxy contract that delegates all calls to a Base Wallet library-like contract. There is one proxy deployed per wallet. Note that the rationale for using the Proxy-Implementation design pattern\footnote{ introduced by Nick Johnson in https://gist.github.com/Arachnid/4ca9da48d51e23e5cfe0f0e14dd6318f} is \emph{not} to enable wallet upgradability (we use upgradable modules/features for that) but simply to reduce the deployment cost of each new wallet.
     \item \textbf{Base Wallet:} The Base Wallet is a simple library-like contract implementing basic wallet functionalities used by proxy wallets (via delegatecalls), that are not expected to ever change. These functionalities include changing the owner of the wallet, (de)authorizating modules and performing (value-carrying) internal transactions to third-party contracts.
-    \item \textbf{ArgentModule:} The different functionalities of the wallet are typically encapsulated in \emph{Modules}. Each module contract is used by all wallets to handle a specific set of operations (e.g. adding and revoking guardians). Modules are added in bundles by the Argent multisig and each bundle is given a unique version number. A wallet can then be upgraded by its owner to use a certain bundle of features (i.e. version number). The current version of the wallet has only one module the \emph{ArgentModule} which implements all the required functionalities.
-    \item \textbf{Storages:} Modules store part of their states in a dedicated storage contract (see Section~\ref{sec:storage}).
+    \item \textbf{Modules:} The different functionalities of the wallet are encapsulated in \emph{Modules}. Each Module contract is used by all wallets to handle a specific set of operations (e.g. adding and revoking guardians, doing multicalls, etc). Registered Modules can be added and removed by the wallet owner to update the functionalities of its wallet but the wallet must always have at least 1 module. Modules are grouped in bundles and each bundle is given a unique version number. A wallet is typically upgraded by its owner to use a certain bundle of modules (i.e. version number). 
+    \item \textbf{Storages:} Some Modules store part of their states in a dedicated storage contract (see Section~\ref{sec:storage}).
 \end{itemize}
 
 
@@ -209,6 +209,26 @@ A second group of contracts implements the functionalities of the wallet:
 \subsection{Upgradability}
 \label{sec:upgradability}
 Argent maintains an evolving set of registered \emph{Module} contracts. A subset of these \emph{Module} contracts are \emph{SimpleUpgrader} modules that define a migration path from a particular set of old modules to a new set of registered modules, i.e. it contains the list of modules to disable and the list of modules to enable to go from the old set to the new set. A user can perform an upgrade of their modules using one of the registered \emph{SimpleUpgrader} contracts.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Modules}
+As mentionned above, all the features of the Argent wallet are currently implemented in a single module. To structure the code, the \emph{ArgentModule} inherits from several abstract modules that each implements a coherent subset of the logic.
+
+\subsubsection{RelayerManager}\label{RelayerManager}
+
+The RelayerManager module is the entry point for meta-transactions. A relayer calls the \emph{execute()} method of the \emph{RelayerManager}, which validates the signatures provided, calls the required target method to run the business logic and optionally refunds the relayer's gas cost.
+
+\subsubsection{SecurityManager}
+
+The SecurityManager module contains all the logic related to the security of the wallet; namely adding and removing guardians, locking and unlocking the wallet, recovering and transfering ownership.
+
+\subsubsection{TransactionManager}
+
+The TransactionManager module contains all the logic to execute multi-calls, including adding or removing a trusted contact, enabling or disabling a dapp registry, starting or closing a session, and executing multi-calls with the correct authorisation. 
+
+\subsubsection{BaseModule}
+
+The BaseModule is a base contract containing logic common to all modules.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Storage}
@@ -227,27 +247,31 @@ The current version of the wallet uses two storage contracts:
 Meta-Transactions are implemented in the abstract \emph{RelayerManager} from which the \emph{ArgentModule} inherit. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding feature methods to do so.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Modules}
-As mentionned above, all the features of the Argent wallet are currently implemented in a single module. To structure the code, the \emph{ArgentModule} inherits from several abstract modules that each implements a coherent subset of the logic.
-
-\subsubsection{RelayerManager}\label{RelayerManager}
-
-The RelayerManager module is the entry point for meta-transactions. A relayer calls the \emph{execute()} method of the \emph{RelayerManager}, which validates the signatures provided, calls the required target method to run the business logic and optionally refunds the relayer's gas cost.
-
-\subsubsection{SecurityManager}
-
-The SecurityManager module contains all the logic related to the security of the wallet; namely adding and removing guardians, locking and unlocking the wallet, recovering and transfering ownership. 
-
-\subsubsection{TransactionManager}
-
-The TransactionManager module contains all the logic to execute multi-calls, including adding or removing a trusted contact, enabling or disabling a dapp registry, starting or closing a session, and executing multi-calls. 
-
-\subsubsection{BaseModule}
-
-The BaseModule is a base contract containing logic common to all modules.
-
 \subsection{Dapp Registry}
 
-TODO
+The DappRegistry maintains a list of registries, where each registry is a mapping between a set of authorised addresses and \emph{Filter} contracts that implement the conditions that must be satisfied to send value and/or data to these authorised addresses. In theory up to 256 registries can be defined on the DappRegistry but the current version only defines two: registry Id[0] containing all the dapps that are natively integrated in the Argent client application and registry Id[1] containing a list of curated dapps that can be accessed through WalletConnect. 
+
+Each registry has an owner who is the only account that can request the addition or update of an entry in the registry. Once the addition/update has been requested a timelock period of 7 days must pass before the operation can be completed. Anybody can trigger the confirmation transaction provided that the timelock period has expired. Removing an entry from a registry must be triggered by the owner of the registry and is immediate. The Argent multisig is the owner of registry Id[0] and Id[1].
+
+In addition, the owner of registry Id[0] has a special role as it is the only account authorised to create a new registry or to change the timelock period of the \emph{DappRegistry} contract. Changing the timelock is also a 2 step process where the confirmation transaction can only be executed after the old timelock period as expired. We note that it is not possible to remove an existing registry because that would allow the owner of registry Id[0] to replace registries that 
+have already been enabled by users with a new (potentially maliciously populated) registry.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Filters}
+\label{sec:filters}
+
+Filters are smart-contracts that expose a single method that validates:
+\begin{itemize}
+    \item that a contract call from a wallet to an authorised address is considered secure
+    \item that a contract call from a wallet to an ERC20/ERC721/ERC1155 token where the authorised address is the spender is considered secure
+    \item that an ETH transfer from the wallet to the authorised address is considered secure
+\end{itemize}
+ We note that \textit{secure} is to be understood in the context of an Argent wallet whose assets need to be protected even if the owner key is compromised. \\
+
+Some example of filters added to registry Id[0]:
+
+\subsubsection{CompoundCTokenFilter}
+The CompoundCTokenFilter accepts all contract calls to a CToken with the exception of \textit{repayBorrowBehalf} and the \textit{fallback} method when the cToken is not cEther. In particular it accepts calls to \textit{mint()}/\textit{mint(uint256)}, \textit{redeem(uint256)}, \textit{redeemUnderlying(uint256)} and \textit{repayBorrowBehalf}.
+The CompoundCTokenFilter blocks all contract calls to ERC20/ERC721/ERC1155 token where the spender is the cToken to prevent e.g. transfering DAI to the cEther contract. The only exception is an ERC20 approve on the underlying of the cToken.
 
 \end{document}
