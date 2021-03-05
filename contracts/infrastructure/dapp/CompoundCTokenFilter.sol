@@ -18,28 +18,32 @@ pragma solidity ^0.6.12;
 
 import "./IFilter.sol";
 
-contract CompoundFilter is IFilter {
+contract CompoundCTokenFilter is IFilter {
 
-    bytes4 private constant CETH_MINT = bytes4(keccak256("mint()"));
-    bytes4 private constant CERC20_MINT = bytes4(keccak256("mint(uint256)"));
-    bytes4 private constant CTOKEN_REDEEM = bytes4(keccak256("redeem(uint256)"));
+    bytes4 private constant CTOKEN_REPAY_BORROW_BEHALF = bytes4(keccak256("repayBorrowBehalf(address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
+    address internal immutable underlying;
+
+    constructor (address _underlying) public {
+        underlying = _underlying;
+    }
+
     function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
-        // disable ETH transfer
-        if (_data.length < 4) {
+        // disable ETH transfer for cErc20
+        if (underlying != address(0) && _data.length < 4) {
             return false;
         }
         bytes4 method = getMethod(_data);
-        // only mint or redeem on a cToken (cEth and cErc20)
+        // cToken methods
         if (_spender == _to) {
-            return (method == CETH_MINT || method == CERC20_MINT || method == CTOKEN_REDEEM);
-        // only approve on the underlying when cErc20 is spender
-        } else if (method == ERC20_APPROVE) {
-            (bool success, bytes memory data) = _spender.staticcall(abi.encodeWithSignature("underlying()"));
-            return success && (abi.decode(data, (address)) == _to);
+            // block repayBorrowBehalf
+            return (method != CTOKEN_REPAY_BORROW_BEHALF);
+        // ERC20 methods
+        } else {
+            // only allow an approve on the underlying 
+            return (method == ERC20_APPROVE && underlying == _to);
         }
-        return false;
     }
 
     function getMethod(bytes memory _data) internal pure returns (bytes4 method) {

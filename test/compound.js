@@ -17,7 +17,7 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
-const CompoundFilter = artifacts.require("CompoundFilter");
+const CompoundCTokenFilter = artifacts.require("CompoundCTokenFilter");
 
 // Compound
 const Unitroller = artifacts.require("Unitroller");
@@ -128,7 +128,6 @@ contract("ArgentModule", (accounts) => {
     transferStorage = await TransferStorage.new();
 
     dappRegistry = await DappRegistry.new(0);
-    const compoundFilter = await CompoundFilter.new();
 
     const uniswapRouter = await UniswapV2Router01.new();
 
@@ -145,9 +144,11 @@ contract("ArgentModule", (accounts) => {
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
+    const cEtherFilter = await CompoundCTokenFilter.new(ZERO_ADDRESS);
+    const cErc20Filter = await CompoundCTokenFilter.new(token.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
-    await dappRegistry.addDapp(0, cEther.address, compoundFilter.address);
-    await dappRegistry.addDapp(0, cToken.address, compoundFilter.address);
+    await dappRegistry.addDapp(0, cEther.address, cEtherFilter.address);
+    await dappRegistry.addDapp(0, cToken.address, cErc20Filter.address);
 
     walletImplementation = await BaseWallet.new();
 
@@ -174,7 +175,7 @@ contract("ArgentModule", (accounts) => {
   });
 
   describe("Mint and redeem", () => {
-    async function addInvestment(tokenAddress, amount) {
+    async function addInvestment(tokenAddress, amount, useFallback = false) {
       const transactions = [];
       let tokenBefore;
       let tokenAfter;
@@ -184,9 +185,12 @@ contract("ArgentModule", (accounts) => {
       if (tokenAddress === ETH_TOKEN) {
         tokenBefore = await utils.getBalance(wallet.address);
         cTokenBefore = await cEther.balanceOf(wallet.address);
-        const data = cEther.contract.methods.mint().encodeABI();
-        const transaction = encodeTransaction(cEther.address, amount, data);
-        transactions.push(transaction);
+        if (useFallback) {
+          transactions.push(encodeTransaction(cEther.address, amount, ZERO_BYTES));
+        } else {
+          const data = cEther.contract.methods.mint().encodeABI();
+          transactions.push(encodeTransaction(cEther.address, amount, data));
+        }
       } else {
         tokenBefore = await token.balanceOf(wallet.address);
         cTokenBefore = await cToken.balanceOf(wallet.address);
@@ -285,6 +289,11 @@ contract("ArgentModule", (accounts) => {
       console.log("Gas to mint cETH: ", txReceipt.gasUsed);
     });
 
+    it("should mint cETH with the fallback", async () => {
+      const txReceipt = await addInvestment(ETH_TOKEN, web3.utils.toWei("1", "finney"), true);
+      console.log("Gas to mint cETH: ", txReceipt.gasUsed);
+    });
+
     it("should mint cErc20", async () => {
       const txReceipt = await addInvestment(token.address, web3.utils.toWei("1", "finney"));
       console.log("Gas to mint cErc20: ", txReceipt.gasUsed);
@@ -306,14 +315,14 @@ contract("ArgentModule", (accounts) => {
       console.log("Gas to redeem cErc20: ", txReceipt.gasUsed);
     });
 
-    it("should fail to send ETH to a cToken", async () => {
+    it("should fail to send ETH to a cErc20", async () => {
       const transaction = await encodeTransaction(cToken.address, web3.utils.toWei("1", "finney"), ZERO_BYTES);
       const txReceipt = await manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]);
       assertFailedWithError(txReceipt, "TM: call not authorised");
     });
 
-    it("should fail to call an unauthorised method on a cToken", async () => {
-      const data = await cToken.contract.methods.borrow(10000).encodeABI();
+    it("should fail to call an unauthorised method", async () => {
+      const data = await cToken.contract.methods.repayBorrowBehalf(borrower, 10000).encodeABI();
       const transaction = await encodeTransaction(cToken.address, 0, data);
       const txReceipt = await manager.relay(module, "multiCall", [wallet.address, [transaction]], wallet, [owner]);
       assertFailedWithError(txReceipt, "TM: call not authorised");
