@@ -18,38 +18,22 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./IFilter.sol";
-import "../ITokenPriceRegistry.sol";
 
 interface IParaswap {
-
     struct Route {
         address payable exchange;
         address targetExchange;
         uint percent;
         bytes payload;
-        uint256 networkFee; // only used for 0xV3
+        uint256 networkFee;
     }
 
     struct Path {
         address to;
-        uint256 totalNetworkFee; // only used for 0xV3
+        uint256 totalNetworkFee;
         Route[] routes;
     }
-
-    function multiSwap(
-        address fromToken,
-        address toToken,
-        uint256 fromAmount,
-        uint256 toAmount,
-        uint256 expectedAmount,
-        Path[] memory path,
-        uint256 mintPrice,
-        address payable beneficiary,
-        uint256 donationPercentage,
-        string memory referrer
-    ) external payable returns (uint256);
 }
-
 
 contract ParaswapFilter is IFilter {
 
@@ -58,22 +42,43 @@ contract ParaswapFilter is IFilter {
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // The token price registry
-    ITokenPriceRegistry public tokenPriceRegistry;
+    address public immutable tokenPriceRegistry;
+    // The DEX registry
+    address public immutable dexRegistry;
 
-    constructor(
-        ITokenPriceRegistry _tokenPriceRegistry
-    ) 
-        public 
-    {
+    constructor(address _tokenPriceRegistry, address _dexRegistry) public {
         tokenPriceRegistry = _tokenPriceRegistry;
+        dexRegistry = _dexRegistry;
     }
 
+
     function isValid(address _wallet, address /*_spender*/, address /*_to*/, bytes calldata _data) external view override returns (bool) {
-        (bytes32 sig,, address destToken) = abi.decode(abi.encodePacked(bytes28(0), _data), (bytes32, address, address));
+        (, address destToken,,,,IParaswap.Path[] memory path) = abi.decode(_data[4:], (address, address,uint256,uint256,uint256,IParaswap.Path[]));
+        return isMultiSwap(_data) && hasValidBeneficiary(_wallet, _data) && hasTradableToken(destToken) && hasValidExchangeAdapters(path);
+    }
+
+    function isMultiSwap(bytes calldata _data) internal pure returns (bool) {
+        (bytes32 sig) = abi.decode(abi.encodePacked(bytes28(0), _data), (bytes32));
+        return sig == MULTISWAP;
+    }
+
+    function hasValidBeneficiary(address _wallet, bytes calldata _data) internal pure returns (bool) {
         (address beneficiary) = abi.decode(_data[228:], (address)); // skipping 4 + 7*32 = 228 bytes
-        return sig == 
-            MULTISWAP &&
-            (beneficiary == address(0) || beneficiary == _wallet) && 
-            (destToken == ETH_TOKEN || tokenPriceRegistry.isTokenTradable(destToken));
+        return (beneficiary == address(0) || beneficiary == _wallet);
+    }
+
+    function hasTradableToken(address _destToken) internal view returns (bool) {
+        if(_destToken == ETH_TOKEN) {
+            return true;
+        }
+        (bool success, bytes memory res) = tokenPriceRegistry.staticcall(abi.encodeWithSignature("isTokenTradable(address)", _destToken));
+        return success && abi.decode(res, (bool));
+    }
+
+    function hasValidExchangeAdapters(IParaswap.Path[] memory path) internal view returns (bool) {
+        (bool success,) = dexRegistry.staticcall(
+            abi.encodeWithSignature("verifyExchangeAdapters((address,uint256,(address,address,uint256,bytes,uint256)[])[])", path)
+        );
+        return success;
     }
 }

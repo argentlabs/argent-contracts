@@ -35,6 +35,7 @@ const DappRegistry = artifacts.require("DappRegistry");
 const Filter = artifacts.require("ParaswapFilter");
 const ERC20 = artifacts.require("TestERC20");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const DexRegistry = artifacts.require("DexRegistry");
 
 // Utils
 const { makePathes } = require("../utils/paraswap/sell-helper");
@@ -56,7 +57,7 @@ const TOKEN_B_RATE = web3.utils.toWei("0.03");
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("ArgentModule", (accounts) => {
+contract("Paraswap Filter", (accounts) => {
   let manager;
 
   const infrastructure = accounts[0];
@@ -80,6 +81,7 @@ contract("ArgentModule", (accounts) => {
   let paraswap;
   let paraswapProxy;
   let tokenPriceRegistry;
+  let dexRegistry;
 
   before(async () => {
     // Deploy test tokens
@@ -133,6 +135,8 @@ contract("ArgentModule", (accounts) => {
     registry = await Registry.new();
     tokenPriceRegistry = await TokenPriceRegistry.new();
     await tokenPriceRegistry.setTradableForTokenList([tokenA.address], [true]);
+    dexRegistry = await DexRegistry.new();
+    await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -147,7 +151,7 @@ contract("ArgentModule", (accounts) => {
       RECOVERY_PERIOD,
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    filter = await Filter.new(tokenPriceRegistry.address);
+    filter = await Filter.new(tokenPriceRegistry.address, dexRegistry.address);
     await dappRegistry.addDapp(0, paraswap.address, filter.address);
     await dappRegistry.addDapp(0, paraswapProxy, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
@@ -383,7 +387,7 @@ contract("ArgentModule", (accounts) => {
 
       const data = paraswap.contract.methods.multiSwap(
         PARASWAP_ETH_TOKEN,
-        tokenB.address,
+        tokenA.address,
         srcAmount,
         destAmount,
         0,
@@ -436,9 +440,42 @@ contract("ArgentModule", (accounts) => {
         [wallet.address, [transaction]],
         wallet,
         [owner]);
+      const { success } = await utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success, "call should have failed");
+    });
+
+    it("can exclude exchanges", async () => {
+      await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [false, false]);
+      const srcAmount = web3.utils.toWei("0.01");
+      const destAmount = 1;
+      const path = buildPathes({
+        fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, srcAmount, destAmount,
+      });
+      const data = paraswap.contract.methods.multiSwap(
+        PARASWAP_ETH_TOKEN,
+        tokenA.address,
+        srcAmount,
+        destAmount,
+        0,
+        path,
+        0,
+        ZERO_ADDRESS,
+        0,
+        "abc",
+      ).encodeABI();
+      const transaction = encodeTransaction(paraswap.address, srcAmount, data);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner]);
       const { success, error } = await utils.parseRelayReceipt(txReceipt);
       assert.isFalse(success, "call should have failed");
       assert.equal(error, "TM: call not authorised");
+
+      await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
     });
   });
 });
