@@ -1,6 +1,7 @@
 /* global artifacts */
 global.web3 = web3;
 
+const ethers = require("ethers");
 const semver = require("semver");
 const childProcess = require("child_process");
 
@@ -87,6 +88,8 @@ const main = async () => {
   // Deploy DappRegistry (initial timelock of 0 to enable immediate addition to Argent Registry)
   const DappRegistryWrapper = await DappRegistry.new(0);
   console.log("Deployed DappRegistry at ", DappRegistryWrapper.address);
+
+  await DappRegistryWrapper.addDapp(0, config.backend.refundCollector, ethers.constants.AddressZero);
 
   // //////////////////////////////////
   // Deploy and add filters to Argent Registry
@@ -206,6 +209,9 @@ const main = async () => {
 
   console.log("Setting the MultiSig as the owner of WalletFactoryWrapper");
   await WalletFactoryWrapper.changeOwner(config.contracts.MultiSigWallet);
+
+  console.log("Setting the MultiSig as the owner of default registry");
+  await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
