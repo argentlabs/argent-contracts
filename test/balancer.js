@@ -21,13 +21,12 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
-const Filter = artifacts.require("AaveV2Filter");
-const AaveV2LendingPool = artifacts.require("AaveV2LendingPoolMock");
+const Filter = artifacts.require("BalancerFilter");
+const BPool = artifacts.require("BPool");
 const ERC20 = artifacts.require("TestERC20");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 // Utils
-
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, initNonce, encodeCalls } = require("../utils/utilities.js");
 
@@ -40,7 +39,7 @@ const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("Aave Filter", (accounts) => {
+contract("Balancer Filter", (accounts) => {
   let manager;
 
   const infrastructure = accounts[0];
@@ -59,19 +58,28 @@ contract("Aave Filter", (accounts) => {
   let uniswapRouter;
 
   let tokenA;
-  let aave;
+  let tokenB;
+  let pool;
   let tokenPriceRegistry;
 
   before(async () => {
+    // Deploy Balancer Pool
+    pool = await BPool.new();
+
     // Deploy test tokens
     tokenA = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
+    tokenB = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
 
-    // Deploy AaveV2
-    aave = await AaveV2LendingPool.new([tokenA.address]);
+    // Setup Balancer Pool
+    await tokenA.approve(pool.address, web3.utils.toWei("1000"));
+    await tokenB.approve(pool.address, web3.utils.toWei("1000"));
+    await pool.bind(tokenA.address, web3.utils.toWei("1000"), web3.utils.toWei("1"));
+    await pool.bind(tokenB.address, web3.utils.toWei("1000"), web3.utils.toWei("1"));
+    await pool.finalize();
 
     // Deploy and fund UniswapV2
-    const uniswapFactory = await UniswapV2Factory.new(ZERO_ADDRESS);
     const weth = await WETH.new();
+    const uniswapFactory = await UniswapV2Factory.new(ZERO_ADDRESS);
     uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
 
     // deploy Argent
@@ -93,7 +101,7 @@ contract("Aave Filter", (accounts) => {
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
     filter = await Filter.new();
-    await dappRegistry.addDapp(0, aave.address, filter.address);
+    await dappRegistry.addDapp(0, pool.address, filter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
     manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
@@ -108,75 +116,72 @@ contract("Aave Filter", (accounts) => {
     // fund wallet
     await wallet.send(web3.utils.toWei("0.1"));
     await tokenA.mint(wallet.address, web3.utils.toWei("1000"));
+
+    await initNonce(wallet, module, manager, SECURITY_PERIOD);
   });
 
-  describe("Aave V2", () => {
-    beforeEach(async () => {
-      await initNonce(wallet, module, manager, SECURITY_PERIOD);
-    });
+  const amount = web3.utils.toWei("1");
 
-    const amount = web3.utils.toWei("1");
+  const multiCall = async (transactions) => {
+    const txReceipt = await manager.relay(
+      module,
+      "multiCall",
+      [wallet.address, transactions],
+      wallet,
+      [owner],
+      1,
+      ETH_TOKEN,
+      relayer);
+    return utils.parseRelayReceipt(txReceipt);
+  };
 
-    const multiCall = async (transactions) => {
-      const txReceipt = await manager.relay(
-        module,
-        "multiCall",
-        [wallet.address, transactions],
-        wallet,
-        [owner],
-        1,
-        ETH_TOKEN,
-        relayer);
-      return utils.parseRelayReceipt(txReceipt);
-    };
+  const deposit = async () => multiCall(encodeCalls([
+    [tokenA, "approve", [pool.address, amount]],
+    [pool, "joinswapExternAmountIn", [tokenA.address, amount, 1]]
+  ]));
 
-    const deposit = async (beneficiary) => multiCall(encodeCalls([
-      [tokenA, "approve", [aave.address, amount]],
-      [aave, "deposit", [tokenA.address, amount, beneficiary, ""]]
+  const withdraw = async ({ fixedOutAmount }) => {
+    const bpt = await pool.balanceOf(wallet.address);
+    return multiCall(encodeCalls([
+      [pool, "approve", [pool.address, bpt.toString()]],
+      (fixedOutAmount ? [
+        pool, "exitswapExternAmountOut", [tokenA.address, web3.utils.toWei("0.1"), bpt.toString()]
+      ] : [
+        pool, "exitswapPoolAmountIn", [tokenA.address, bpt.toString(), 1]
+      ])
     ]));
+  };
 
-    const withdraw = async (beneficiary) => multiCall(encodeCalls([
-      [aave, "withdraw", [tokenA.address, amount, beneficiary]]
+  it("should allow deposits", async () => {
+    const { success, error } = await deposit();
+    assert.isTrue(success, `joinswapExternAmountIn failed: "${error}"`);
+  });
+
+  it("should allow withdrawals (exitswapExternAmountOut)", async () => {
+    await deposit();
+    const { success, error } = await withdraw({ fixedOutAmount: true });
+    assert.isTrue(success, `exitswapExternAmountOut failed: "${error}"`);
+  });
+
+  it("should allow withdrawals (exitswapPoolAmountIn)", async () => {
+    await deposit();
+    const { success, error } = await withdraw({ fixedOutAmount: false });
+    assert.isTrue(success, `exitswapPoolAmountIn failed: "${error}"`);
+  });
+
+  it("should not allow direct transfers to pool", async () => {
+    const { success, error } = await multiCall(encodeCalls([
+      [tokenA, "transfer", [pool.address, amount]],
     ]));
+    assert.isFalse(success, "transfer should have failed");
+    assert.equal(error, "TM: call not authorised");
+  });
 
-    it("should allow deposits on behalf of wallet", async () => {
-      const { success, error } = await deposit(wallet.address);
-      assert.isTrue(success, `deposit failed: "${error}"`);
-    });
-
-    it("should not allow deposits on behalf of non-wallet", async () => {
-      const { success, error } = await deposit(infrastructure);
-      assert.isFalse(success, "deposit should have failed");
-      assert.equal(error, "TM: call not authorised");
-    });
-
-    it("should allow withdrawals to wallet", async () => {
-      await deposit(wallet.address);
-      const { success, error } = await withdraw(wallet.address);
-      assert.isTrue(success, `withdraw failed: "${error}"`);
-    });
-
-    it("should not allow withdrawals to non-wallet", async () => {
-      await deposit(wallet.address);
-      const { success, error } = await withdraw(infrastructure);
-      assert.isFalse(success, "withdraw should have failed");
-      assert.equal(error, "TM: call not authorised");
-    });
-
-    it("should not allow direct transfers to lending pool", async () => {
-      const { success, error } = await multiCall(encodeCalls([
-        [tokenA, "transfer", [aave.address, amount]],
-      ]));
-      assert.isFalse(success, "transfer should have failed");
-      assert.equal(error, "TM: call not authorised");
-    });
-
-    it("should not allow calling forbidden lending pool methods", async () => {
-      const { success, error } = await multiCall(encodeCalls([
-        [aave, "borrow", [tokenA.address, amount, 0, 0, wallet.address]]
-      ]));
-      assert.isFalse(success, "borrow should have failed");
-      assert.equal(error, "TM: call not authorised");
-    });
+  it("should not allow unsupported method", async () => {
+    const { success, error } = await multiCall(encodeCalls([
+      [pool, "swapExactAmountIn", [tokenA.address, web3.utils.toWei("0.1"), tokenB.address, 1, web3.utils.toWei("10000")]]
+    ]));
+    assert.isFalse(success, "swap should have failed");
+    assert.equal(error, "TM: call not authorised");
   });
 });

@@ -18,10 +18,11 @@ pragma solidity ^0.6.12;
 
 import "./IFilter.sol";
 
-contract AaveV2Filter is IFilter {
+contract BalancerFilter is IFilter {
 
-    bytes4 private constant DEPOSIT = bytes4(keccak256("deposit(address,uint256,address,uint16)"));
-    bytes4 private constant WITHDRAW = bytes4(keccak256("withdraw(address,uint256,address)"));
+    bytes4 private constant DEPOSIT = bytes4(keccak256("joinswapExternAmountIn(address,uint256,uint256)"));
+    bytes4 private constant WITHDRAW1 = bytes4(keccak256("exitswapExternAmountOut(address,uint256,uint256)"));
+    bytes4 private constant WITHDRAW2 = bytes4(keccak256("exitswapPoolAmountIn(address,uint256,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
     function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
@@ -30,15 +31,10 @@ contract AaveV2Filter is IFilter {
             return false;
         }
         bytes4 method = getMethod(_data);
-
-        // only allow deposits and withdrawals with wallet as beneficiary
-        if(method == DEPOSIT || method == WITHDRAW) {
-            (,, address beneficiary) = abi.decode(_data[4:], (address, uint256, address));   
-            return beneficiary == _wallet;
-        }
-
-        // only allow approve (LendingPool can only transfer a valid asset => no need to validate the token address here)
-        return (method == ERC20_APPROVE);
+        // approve() is authorised for approving an underlying token to the pool (in case of deposits) or 
+        // for approving the pool LP token to itself (in case of withdrawals). Note that BPool can only 
+        // transfer underlying pool tokens (or burn its own pool LP tokens) => no need to validate the token address here
+        return method == ERC20_APPROVE || method == DEPOSIT || method == WITHDRAW1 || method == WITHDRAW2;
     }
 
     function getMethod(bytes memory _data) internal pure returns (bytes4 method) {
