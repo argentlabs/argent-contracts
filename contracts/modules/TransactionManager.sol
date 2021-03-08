@@ -156,7 +156,7 @@ abstract contract TransactionManager is BaseModule {
     * @notice Clears the active session of a wallet if any.
     * @param _wallet The target wallet.
     */
-    function clearSession(address _wallet) public onlyWalletOwnerOrSelf(_wallet) {
+    function clearSession(address _wallet) external onlyWalletOwnerOrSelf(_wallet) {
         emit SessionCleared(_wallet, sessions[_wallet].key);
         _clearSession(_wallet);
     }
