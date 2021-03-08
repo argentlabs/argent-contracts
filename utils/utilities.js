@@ -260,6 +260,10 @@ const utilities = {
 
   encodeTransaction: (to, value, data) => ({ to, value, data }),
 
+  encodeCalls: (calls) => calls.map(([instance, method, params = [], value = 0]) => utilities.encodeTransaction(
+    instance.address, value, instance.contract.methods[method](...params).encodeABI())
+  ),
+
   addTrustedContact: async (wallet, target, module, securityPeriod) => {
     const owner = await wallet.owner();
     await module.addToWhitelist(wallet.address, target, { from: owner });
