@@ -232,6 +232,21 @@ contract("Paraswap Filter", (accounts) => {
     return makeRoutes(fromToken, toToken, routes, exchanges, targetExchanges);
   }
 
+  const multiCall = async (transactions) => {
+    const txReceipt = await manager.relay(
+      module,
+      "multiCall",
+      [wallet.address, transactions],
+      wallet,
+      [owner],
+      1,
+      ETH_TOKEN,
+      relayer);
+    const res = utils.parseRelayReceipt(txReceipt);
+    if (res.success) console.log("Gas to swap: ", txReceipt.gasUsed);
+    return res;
+  };
+
   async function testTrade({
     method, fromToken, toToken, beneficiary = ZERO_ADDRESS
   }) {
@@ -294,18 +309,8 @@ contract("Paraswap Filter", (accounts) => {
     transaction = encodeTransaction(paraswap.address, value, data);
     transactions.push(transaction);
 
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, transactions],
-      wallet,
-      [owner],
-      1,
-      ETH_TOKEN,
-      relayer);
-    const { success, error } = utils.parseRelayReceipt(txReceipt);
+    const { success, error } = await multiCall(transactions);
     assert.isTrue(success, `transfer failed: "${error}"`);
-    console.log("Gas to swap: ", txReceipt.gasUsed);
 
     const afterFrom = await getBalance(fromToken, wallet);
     const afterTo = await getBalance(toToken, wallet);
@@ -366,13 +371,7 @@ contract("Paraswap Filter", (accounts) => {
 
       const transaction = encodeTransaction(paraswap.address, srcAmount, data);
 
-      const txReceipt = await manager.relay(
-        module,
-        "multiCall",
-        [wallet.address, [transaction]],
-        wallet,
-        [owner]);
-      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      const { success, error } = await multiCall([transaction]);
       assert.isFalse(success, "call should have failed");
       assert.equal(error, "TM: call not authorised");
     });
@@ -400,13 +399,7 @@ contract("Paraswap Filter", (accounts) => {
 
       const transaction = encodeTransaction(paraswap.address, srcAmount, data);
 
-      const txReceipt = await manager.relay(
-        module,
-        "multiCall",
-        [wallet.address, [transaction]],
-        wallet,
-        [owner]);
-      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      const { success, error } = await multiCall([transaction]);
       assert.isFalse(success, "call should have failed");
       assert.equal(error, "TM: call not authorised");
     });
@@ -434,13 +427,7 @@ contract("Paraswap Filter", (accounts) => {
 
       const transaction = encodeTransaction(paraswap.address, srcAmount, data);
 
-      const txReceipt = await manager.relay(
-        module,
-        "multiCall",
-        [wallet.address, [transaction]],
-        wallet,
-        [owner]);
-      const { success } = await utils.parseRelayReceipt(txReceipt);
+      const { success } = await multiCall([transaction]);
       assert.isFalse(success, "call should have failed");
     });
 
@@ -465,17 +452,17 @@ contract("Paraswap Filter", (accounts) => {
       ).encodeABI();
       const transaction = encodeTransaction(paraswap.address, srcAmount, data);
 
-      const txReceipt = await manager.relay(
-        module,
-        "multiCall",
-        [wallet.address, [transaction]],
-        wallet,
-        [owner]);
-      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      const { success, error } = await multiCall([transaction]);
       assert.isFalse(success, "call should have failed");
       assert.equal(error, "TM: call not authorised");
 
       await dexRegistry.setAuthorised([kyberAdapter.address, uniswapV2Adapter.address], [true, true]);
+    });
+
+    it("should not allow sending ETH to Augustus", async () => {
+      const { success, error } = await multiCall([encodeTransaction(paraswap.address, web3.utils.toWei("0.01"), "0x")]);
+      assert.isFalse(success, "sending ETH should have failed");
+      assert.equal(error, "TM: call not authorised");
     });
   });
 });

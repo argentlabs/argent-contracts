@@ -29,7 +29,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 // Utils
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, initNonce, encodeCalls } = require("../utils/utilities.js");
+const { ETH_TOKEN, initNonce, encodeCalls, encodeTransaction } = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -176,6 +176,12 @@ contract("Aave Filter", (accounts) => {
         [aave, "borrow", [tokenA.address, amount, 0, 0, wallet.address]]
       ]));
       assert.isFalse(success, "borrow should have failed");
+      assert.equal(error, "TM: call not authorised");
+    });
+
+    it("should not allow sending ETH to lending pool", async () => {
+      const { success, error } = await multiCall([encodeTransaction(aave.address, web3.utils.toWei("0.01"), "0x")]);
+      assert.isFalse(success, "sending ETH should have failed");
       assert.equal(error, "TM: call not authorised");
     });
   });

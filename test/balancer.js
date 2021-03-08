@@ -28,7 +28,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 // Utils
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, initNonce, encodeCalls } = require("../utils/utilities.js");
+const { ETH_TOKEN, initNonce, encodeCalls, encodeTransaction } = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -182,6 +182,12 @@ contract("Balancer Filter", (accounts) => {
       [pool, "swapExactAmountIn", [tokenA.address, web3.utils.toWei("0.1"), tokenB.address, 1, web3.utils.toWei("10000")]]
     ]));
     assert.isFalse(success, "swap should have failed");
+    assert.equal(error, "TM: call not authorised");
+  });
+
+  it("should not allow sending ETH to pool", async () => {
+    const { success, error } = await multiCall([encodeTransaction(pool.address, web3.utils.toWei("0.01"), "0x")]);
+    assert.isFalse(success, "sending ETH should have failed");
     assert.equal(error, "TM: call not authorised");
   });
 });

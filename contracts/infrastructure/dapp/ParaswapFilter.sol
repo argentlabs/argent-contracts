@@ -56,6 +56,10 @@ contract ParaswapFilter is IFilter {
     }
 
     function isMultiSwap(bytes calldata _data) internal pure returns (bool) {
+        // disable ETH transfer
+        if (_data.length < 4) {
+            return false;
+        }
         (bytes32 sig) = abi.decode(abi.encodePacked(bytes28(0), _data), (bytes32));
         return sig == MULTISWAP;
     }
