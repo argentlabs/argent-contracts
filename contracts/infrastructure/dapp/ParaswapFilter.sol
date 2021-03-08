@@ -51,10 +51,8 @@ contract ParaswapFilter is IFilter {
         dexRegistry = _dexRegistry;
     }
 
-
     function isValid(address _wallet, address /*_spender*/, address /*_to*/, bytes calldata _data) external view override returns (bool) {
-        (, address destToken,,,,IParaswap.Path[] memory path) = abi.decode(_data[4:], (address, address,uint256,uint256,uint256,IParaswap.Path[]));
-        return isMultiSwap(_data) && hasValidBeneficiary(_wallet, _data) && hasTradableToken(destToken) && hasValidExchangeAdapters(path);
+        return isMultiSwap(_data) && hasValidBeneficiary(_wallet, _data) && hasTradableToken(_data) && hasValidExchangeAdapters(_data);
     }
 
     function isMultiSwap(bytes calldata _data) internal pure returns (bool) {
@@ -67,7 +65,8 @@ contract ParaswapFilter is IFilter {
         return (beneficiary == address(0) || beneficiary == _wallet);
     }
 
-    function hasTradableToken(address _destToken) internal view returns (bool) {
+    function hasTradableToken(bytes calldata _data) internal view returns (bool) {
+        (, address _destToken) = abi.decode(_data[4:], (address, address));   
         if(_destToken == ETH_TOKEN) {
             return true;
         }
@@ -75,7 +74,9 @@ contract ParaswapFilter is IFilter {
         return success && abi.decode(res, (bool));
     }
 
-    function hasValidExchangeAdapters(IParaswap.Path[] memory path) internal view returns (bool) {
+    function hasValidExchangeAdapters(bytes calldata _data) internal view returns (bool) {
+        // Note: using uint256[5] instead of (address, address, uint, uint, uint) to avoid "stack too deep" issues
+        (,IParaswap.Path[] memory path) = abi.decode(_data[4:], (uint256[5], IParaswap.Path[]));
         (bool success,) = dexRegistry.staticcall(
             abi.encodeWithSignature("verifyExchangeAdapters((address,uint256,(address,address,uint256,bytes,uint256)[])[])", path)
         );
