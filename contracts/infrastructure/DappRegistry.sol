@@ -55,8 +55,11 @@ contract DappRegistry is IAuthoriser {
     constructor(uint64 _timelockPeriod) public {
         // set the timelock period
         timelockPeriod = _timelockPeriod;
-        // set the owner of the Argent Registry (registryId == 0)
+        // set the owner of the Argent Registry (registryId = 0)
         registryOwners[0] = msg.sender;
+
+        emit RegistryCreated(0, msg.sender);
+        emit TimelockChanged(_timelockPeriod);
     }
 
     /********* Wallet-centered functions *************/
