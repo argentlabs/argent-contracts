@@ -16,16 +16,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./IFilter.sol";
-import "../../modules/common/Utils.sol";
+import "./BaseFilter.sol";
 
-contract LidoFilter is IFilter {
+contract LidoFilter is BaseFilter {
   bytes4 private constant DEPOSIT = bytes4(keccak256("depositBufferedEther()"));
 
   function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
     // Allow sending ETH as well as calls to depositBufferedEther()
+    if (_data.length == 0) {
+        return true;
+    }
     if(_spender == _to) {
-      bytes4 methodId = Utils.functionPrefix(_data);
+      bytes4 methodId = getMethod(_data);
       if (methodId == DEPOSIT) {
         return true;
       }

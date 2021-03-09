@@ -18,14 +18,11 @@ const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const LidoFilter = artifacts.require("LidoFilter");
 const ILido = artifacts.require("ILido");
-const ERC20 = artifacts.require("TestERC20");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 // UniswapV2
 const UniswapV2Factory = artifacts.require("UniswapV2Factory");
 const UniswapV2Router01 = artifacts.require("UniswapV2Router01");
 const WETH = artifacts.require("WETH9");
-
 
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, initNonce, encodeTransaction } = require("../utils/utilities.js");
@@ -42,7 +39,6 @@ const RelayManager = require("../utils/relay-manager");
 contract("Lido Filter", (accounts) => {
   let manager;
 
-  const infrastructure = accounts[0];
   const owner = accounts[1];
   const relayer = accounts[4];
 
@@ -54,23 +50,14 @@ contract("Lido Filter", (accounts) => {
   let walletImplementation;
   let filter;
   let dappRegistry;
-
   let uniswapRouter;
 
-  let tokenA;
   let lido;
-  let lidoAddress;
-  let tokenPriceRegistry;
 
   before(async () => {
-    // Deploy test tokens
-    //tokenA = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
+    // Lido contract on mainnet
+    lido = await ILido.at("0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84");
 
-    lidoAddress = "0x20dC62D5904633cC6a5E34bEc87A048E80C92e97";
-    // Deploy Lido
-    //lido = await LidoPool.new([tokenA.address]);
-    lido = await ILido.at(lidoAddress);
-    
     const uniswapFactory = await UniswapV2Factory.new(ZERO_ADDRESS);
     const weth = await WETH.new();
     uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
@@ -107,18 +94,18 @@ contract("Lido Filter", (accounts) => {
     // fund wallet
     await wallet.send(web3.utils.toWei("0.1"));
 
-    // await initNonce(wallet, module, manager, SECURITY_PERIOD);
+    await initNonce(wallet, module, manager, SECURITY_PERIOD);
   });
 
   describe("Lido staking", () => {
     it("should allow staking from wallet", async () => {
       const transactions = [];
-      let transaction = encodeTransaction(lido.address, 10, ZERO_BYTES);
+      let transaction = encodeTransaction(lido.address, 100, ZERO_BYTES);
       transactions.push(transaction);
 
-      //const data = lido.contract.methods.depositBufferedEther().encodeABI();
-      //transaction = encodeTransaction(lido.address, 0, data);
-      //transactions.push(transaction);
+      const data = lido.contract.methods.depositBufferedEther().encodeABI();
+      transaction = encodeTransaction(lido.address, 0, data);
+      transactions.push(transaction);
 
       const txReceipt = await manager.relay(
         module,
@@ -132,20 +119,28 @@ contract("Lido Filter", (accounts) => {
 
       const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isTrue(success, `deposit failed: "${error}"`);
-    });
 
-    it("should not allow staking on behalf of non-wallet", async () => {
-      // const { success, error } = await deposit(infrastructure);
-      // assert.isFalse(success, "deposit should have failed");
-      // assert.equal(error, "TM: call not authorised");
+      const walletBalance = await lido.balanceOf(wallet.address);
+      assert.equal(walletBalance.toNumber(), 99);
     });
 
     it("should not allow calling forbidden staking pool methods", async () => {
-      // const { success, error } = await multiCall(encodeTransaction([
-      //   [lido, "borrow", [tokenA.address, amount, 0, 0, wallet.address]]
-      // ]));
-      // assert.isFalse(success, "borrow should have failed");
-      // assert.equal(error, "TM: call not authorised");
+      const data = lido.contract.methods.approve(accounts[5], 10).encodeABI();
+      const transaction = encodeTransaction(lido.address, 0, data);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "TM: call not authorised");
     });
   });
 });

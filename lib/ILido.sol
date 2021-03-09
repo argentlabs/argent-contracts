@@ -26,4 +26,8 @@ interface ILido {
     * @dev This function is separated from submit() to reduce the cost of sending funds.
     */
     function depositBufferedEther() external;
+
+    function balanceOf(address user) external view returns (uint256);
+
+    function approve(address user, uint256 amount) external returns (bool success);
 }

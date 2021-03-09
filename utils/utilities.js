@@ -185,7 +185,7 @@ const utilities = {
   // const chainId = await web3.eth.getChainId();
   // console.log("chainId", chainId)
   // return chainId;
-  getChainId: async () => 1, //1895
+  getChainId: async () => 1, // 1895
 
   web3GetClient: async () => new Promise((resolve, reject) => {
     web3.eth.getNodeInfo((err, res) => {
