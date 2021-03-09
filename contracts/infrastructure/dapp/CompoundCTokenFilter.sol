@@ -31,8 +31,8 @@ contract CompoundCTokenFilter is BaseFilter {
 
     function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
         // disable ETH transfer for cErc20
-        if (underlying != address(0) && _data.length < 4) {
-            return false;
+        if (_data.length < 4) {
+            return (_data.length == 0) && (underlying == address(0));
         }
         bytes4 method = getMethod(_data);
         // cToken methods

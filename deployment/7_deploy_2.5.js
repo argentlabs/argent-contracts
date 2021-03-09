@@ -117,12 +117,19 @@ const main = async () => {
   }
 
   // yEarn
-  console.log("Deploying YearnFilter");
-  const YearnFilterWrapper = await YearnFilter.new();
-  console.log(`Deployed YearnFilter at ${YearnFilterWrapper.address}`);
+  console.log("Deploying YearnFilter (isWeth=false)");
+  const YearnFilterWrapper = await YearnFilter.new(false);
+  console.log(`Deployed YearnFilter (isWeth=false) at ${YearnFilterWrapper.address}`);
+  console.log("Deploying YearnFilter (isWeth=true)");
+  const WethYearnFilterWrapper = await YearnFilter.new(true);
+  console.log(`Deployed YearnFilter (isWeth=true) at ${WethYearnFilterWrapper.address}`);
   for (const pool of (config.defi.yearn.pools)) {
     console.log(`Adding filter for Yearn pool ${pool}`);
     await DappRegistryWrapper.addDapp(0, pool, YearnFilterWrapper.address);
+  }
+  for (const pool of (config.defi.yearn.wethPools)) {
+    console.log(`Adding filter for WETH Yearn pool ${pool}`);
+    await DappRegistryWrapper.addDapp(0, pool, WethYearnFilterWrapper.address);
   }
 
   // Setting timelock

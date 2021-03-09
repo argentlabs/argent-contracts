@@ -100,7 +100,8 @@
         "0x629c759D1E83eFbF63d84eb3868B564d9521C129",
         "0x881b06da56BB5675c54E4Ed311c21E54C5025298",
         "0x29E240CFD7946BA20895a7a02eDb25C210f9f324"
-      ]
+      ],
+      "wethPools": ["0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7"]
     }
   },
   "contracts": {

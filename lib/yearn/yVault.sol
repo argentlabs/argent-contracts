@@ -9,6 +9,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./interfaces/IController.sol";
+import "./interfaces/IWETH.sol";
 
 contract yVault is ERC20, ERC20Detailed {
     using SafeERC20 for IERC20;
@@ -119,5 +120,54 @@ contract yVault is ERC20, ERC20Detailed {
 
     function getPricePerFullShare() public view returns (uint256) {
         return balance().mul(1e18).div(totalSupply());
+    }
+
+    // ETH deposit/withdrawals
+
+    function depositETH() public payable {
+        uint _pool = balance();
+        uint _before = token.balanceOf(address(this));
+        uint _amount = msg.value;
+        IWETH(address(token)).deposit.value(_amount)();
+        uint _after = token.balanceOf(address(this));
+        _amount = _after.sub(_before); // Additional check for deflationary tokens
+        uint shares = 0;
+        if (totalSupply() == 0) {
+            shares = _amount;
+        } else {
+            shares = (_amount.mul(totalSupply())).div(_pool);
+        }
+        _mint(msg.sender, shares);
+    }
+
+    // No rebalance implementation for lower fees and faster swaps
+    function withdrawETH(uint _shares) public {
+        uint256 r = (balance().mul(_shares)).div(totalSupply());
+        _burn(msg.sender, _shares);
+
+        // Check balance
+        uint256 b = token.balanceOf(address(this));
+        if (b < r) {
+            uint256 _withdraw = r.sub(b);
+            IController(controller).withdraw(address(token), _withdraw);
+            uint256 _after = token.balanceOf(address(this));
+            uint256 _diff = _after.sub(b);
+            if (_diff < _withdraw) {
+                r = b.add(_diff);
+            }
+        }
+
+        IWETH(address(token)).withdraw(r);
+        address(msg.sender).transfer(r);
+    }
+
+    function withdrawAllETH() external {
+        withdrawETH(balanceOf(msg.sender));
+    }
+
+    function () external payable {
+        if (msg.sender != address(token)) {
+            depositETH();
+        }
     }
 }

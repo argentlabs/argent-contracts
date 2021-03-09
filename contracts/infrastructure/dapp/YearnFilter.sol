@@ -21,19 +21,37 @@ import "./BaseFilter.sol";
 contract YearnFilter is BaseFilter {
 
     bytes4 private constant DEPOSIT = bytes4(keccak256("deposit(uint256)"));
+    bytes4 private constant DEPOSIT_ETH = bytes4(keccak256("depositETH()"));
     bytes4 private constant WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
     bytes4 private constant WITHDRAW_ALL = bytes4(keccak256("withdrawAll()"));
+    bytes4 private constant WITHDRAW_ETH = bytes4(keccak256("withdrawETH(uint256)"));
+    bytes4 private constant WITHDRAW_ALL_ETH = bytes4(keccak256("withdrawAllETH()"));
+
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
+    bool private immutable isWeth;
+
+    constructor (bool _isWeth) public {
+        isWeth = _isWeth;
+    }
+
     function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
-        // disable ETH transfer
+        // disable ETH transfer, except for WETH vault
         if (_data.length < 4) {
-            return false;
+            return (_data.length == 0) && isWeth;
         }
         bytes4 method = getMethod(_data);
 
         if(_spender == _to) {
-            return method == DEPOSIT || method == WITHDRAW || method == WITHDRAW_ALL;
+            return 
+                method == DEPOSIT ||
+                method == WITHDRAW ||
+                method == WITHDRAW_ALL ||
+                isWeth && (
+                    method == DEPOSIT_ETH ||
+                    method == WITHDRAW_ETH ||
+                    method == WITHDRAW_ALL_ETH
+                );
         }
 
         // Note that yVault can only call transferFrom on the underlying token => no need to validate the token address here
