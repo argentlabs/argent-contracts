@@ -1,9 +1,9 @@
-pragma solidity ^0.5.4;
+pragma solidity >=0.5.4;
 
-import './interfaces/IUniswapV2Factory.sol';
-import './UniswapV2Pair.sol';
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "./UniswapV2PairMock.sol";
 
-contract UniswapV2Factory is IUniswapV2Factory {
+contract UniswapV2FactoryMock {
     address public feeTo;
     address public feeToSetter;
 
@@ -23,7 +23,7 @@ contract UniswapV2Factory is IUniswapV2Factory {
     // !! Argent Modification !!
     // The following method was added to be able to use the correct UniswapV2Pair init code in UniswapV2Library
     function getKeccakOfPairCreationCode() external pure returns (bytes32) {
-        return keccak256(type(UniswapV2Pair).creationCode);
+        return keccak256(type(UniswapV2PairMock).creationCode);
     }
 
     function createPair(address tokenA, address tokenB) external returns (address pair) {
@@ -31,7 +31,7 @@ contract UniswapV2Factory is IUniswapV2Factory {
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0), 'UniswapV2: ZERO_ADDRESS');
         require(getPair[token0][token1] == address(0), 'UniswapV2: PAIR_EXISTS'); // single check is sufficient
-        bytes memory bytecode = type(UniswapV2Pair).creationCode;
+        bytes memory bytecode = type(UniswapV2PairMock).creationCode;
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
