@@ -20,11 +20,19 @@ import "./IFilter.sol";
 
 contract UniswapV2UniZapFilter is IFilter {
 
-    bytes4 constant internal ADD_LIQUIDITY_WITH_TOKEN = bytes4(keccak256("swapExactTokensAndAddLiquidity(address,address,uint256,uint256,address,uint256)"));
-    bytes4 constant internal ADD_LIQUIDITY_WITH_ETH = bytes4(keccak256("swapExactETHAndAddLiquidity(address,uint256,address,uint256)"));
-    bytes4 constant internal REMOVE_LIQUIDITY_TO_TOKEN = bytes4(keccak256("removeLiquidityAndSwapToToken(address,address,uint256,uint256,address,uint256)"));
-    bytes4 constant internal REMOVE_LIQUIDITY_TO_ETH = bytes4(keccak256("removeLiquidityAndSwapToETH(address,uint256,uint256,address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
+    bytes4 constant internal ADD_LIQUIDITY_WITH_ETH = bytes4(keccak256("swapExactETHAndAddLiquidity(address,uint256,address,uint256)"));
+    bytes4 constant internal REMOVE_LIQUIDITY_TO_ETH = bytes4(keccak256("removeLiquidityAndSwapToETH(address,uint256,uint256,address,uint256)"));
+    bytes4 constant internal ADD_LIQUIDITY_WITH_TOKEN = bytes4(
+        keccak256(
+            "swapExactTokensAndAddLiquidity(address,address,uint256,uint256,address,uint256)"
+            )
+        );
+    bytes4 constant internal REMOVE_LIQUIDITY_TO_TOKEN = bytes4(
+        keccak256(
+            "removeLiquidityAndSwapToToken(address,address,uint256,uint256,address,uint256)"
+            )
+        );
 
     function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
         // not needed but detects failure early
@@ -35,13 +43,13 @@ contract UniswapV2UniZapFilter is IFilter {
         // UniZap method: check that recipient is the wallet
         if (_spender == _to) {
             if (method == ADD_LIQUIDITY_WITH_TOKEN || method == REMOVE_LIQUIDITY_TO_TOKEN) {
-                return (_to == abi.decode(_data[132:], (address)));
+                return (_wallet == abi.decode(_data[132:], (address)));
             }
             if (method == ADD_LIQUIDITY_WITH_ETH) {
-                return (_to == abi.decode(_data[68:], (address)));
+                return (_wallet == abi.decode(_data[68:], (address)));
             }
             if (method == REMOVE_LIQUIDITY_TO_ETH) {
-                return (_to == abi.decode(_data[100:], (address)));
+                return (_wallet == abi.decode(_data[100:], (address)));
             }
          // ERC20 methods
         } else {
