@@ -16,6 +16,7 @@ const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const BalancerFilter = artifacts.require("BalancerFilter");
+const YearnFilter = artifacts.require("YearnFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -113,6 +114,15 @@ const main = async () => {
   for (const pool of (config.defi.balancer.pools)) {
     console.log(`Adding filter for Balancer pool ${pool}`);
     await DappRegistryWrapper.addDapp(0, pool, BalancerFilterWrapper.address);
+  }
+
+  // yEarn
+  console.log("Deploying YearnFilter");
+  const YearnFilterWrapper = await YearnFilter.new();
+  console.log(`Deployed YearnFilter at ${YearnFilterWrapper.address}`);
+  for (const pool of (config.defi.yearn.pools)) {
+    console.log(`Adding filter for Yearn pool ${pool}`);
+    await DappRegistryWrapper.addDapp(0, pool, YearnFilterWrapper.address);
   }
 
   // Setting timelock

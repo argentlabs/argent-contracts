@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./IFilter.sol";
+import "./BaseFilter.sol";
 
 interface IParaswap {
     struct Route {
@@ -35,10 +35,9 @@ interface IParaswap {
     }
 }
 
-contract ParaswapFilter is IFilter {
+contract ParaswapFilter is BaseFilter {
 
-    // bytes32(bytes4(keccak256("multiSwap(...)")))
-    bytes32 constant internal MULTISWAP = 0x00000000000000000000000000000000000000000000000000000000cbd1603e;
+    bytes4 constant internal MULTISWAP = 0xcbd1603e; // bytes4(keccak256("multiSwap(...)"))
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // The token price registry
@@ -60,8 +59,7 @@ contract ParaswapFilter is IFilter {
         if (_data.length < 4) {
             return false;
         }
-        (bytes32 sig) = abi.decode(abi.encodePacked(bytes28(0), _data), (bytes32));
-        return sig == MULTISWAP;
+        return getMethod(_data) == MULTISWAP;
     }
 
     function hasValidBeneficiary(address _wallet, bytes calldata _data) internal pure returns (bool) {

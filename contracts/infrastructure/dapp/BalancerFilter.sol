@@ -16,9 +16,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./IFilter.sol";
+import "./BaseFilter.sol";
 
-contract BalancerFilter is IFilter {
+contract BalancerFilter is BaseFilter {
 
     bytes4 private constant DEPOSIT = bytes4(keccak256("joinswapExternAmountIn(address,uint256,uint256)"));
     bytes4 private constant WITHDRAW1 = bytes4(keccak256("exitswapExternAmountOut(address,uint256,uint256)"));
@@ -35,12 +35,5 @@ contract BalancerFilter is IFilter {
         // for approving the pool LP token to itself (in case of withdrawals). Note that BPool can only 
         // transfer underlying pool tokens (or burn its own pool LP tokens) => no need to validate the token address here
         return method == ERC20_APPROVE || method == DEPOSIT || method == WITHDRAW1 || method == WITHDRAW2;
-    }
-
-    function getMethod(bytes memory _data) internal pure returns (bytes4 method) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            method := mload(add(_data, 0x20))
-        }
     }
 }

@@ -16,9 +16,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./IFilter.sol";
+import "./BaseFilter.sol";
 
-contract CompoundCTokenFilter is IFilter {
+contract CompoundCTokenFilter is BaseFilter {
 
     bytes4 private constant CTOKEN_REPAY_BORROW_BEHALF = bytes4(keccak256("repayBorrowBehalf(address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
@@ -43,13 +43,6 @@ contract CompoundCTokenFilter is IFilter {
         } else {
             // only allow an approve on the underlying 
             return (method == ERC20_APPROVE && underlying == _to);
-        }
-    }
-
-    function getMethod(bytes memory _data) internal pure returns (bytes4 method) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            method := mload(add(_data, 0x20))
         }
     }
 }

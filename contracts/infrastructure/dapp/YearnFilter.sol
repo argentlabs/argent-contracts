@@ -18,26 +18,25 @@ pragma solidity ^0.6.12;
 
 import "./BaseFilter.sol";
 
-contract AaveV2Filter is BaseFilter {
+contract YearnFilter is BaseFilter {
 
-    bytes4 private constant DEPOSIT = bytes4(keccak256("deposit(address,uint256,address,uint16)"));
-    bytes4 private constant WITHDRAW = bytes4(keccak256("withdraw(address,uint256,address)"));
+    bytes4 private constant DEPOSIT = bytes4(keccak256("deposit(uint256)"));
+    bytes4 private constant WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
+    bytes4 private constant WITHDRAW_ALL = bytes4(keccak256("withdrawAll()"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
-    function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
         // disable ETH transfer
         if (_data.length < 4) {
             return false;
         }
         bytes4 method = getMethod(_data);
 
-        // only allow deposits and withdrawals with wallet as beneficiary
-        if(method == DEPOSIT || method == WITHDRAW) {
-            (,, address beneficiary) = abi.decode(_data[4:], (address, uint256, address));   
-            return beneficiary == _wallet;
+        if(_spender == _to) {
+            return method == DEPOSIT || method == WITHDRAW || method == WITHDRAW_ALL;
         }
 
-        // only allow approve (LendingPool can only transfer a valid asset => no need to validate the token address here)
-        return (method == ERC20_APPROVE);
+        // Note that yVault can only call transferFrom on the underlying token => no need to validate the token address here
+        return method == ERC20_APPROVE;
     }
 }
