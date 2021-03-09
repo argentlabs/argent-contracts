@@ -85,11 +85,14 @@ jobs:
       - run:
           name: "Running unit tests"
           command: npm run ganache >/dev/null 2>&1 & npm run test
-      # Save coverage artifacts
+      # Save test artifacts
       - store_artifacts:
           path: gas-usage-report.log
           destination: reports/gas-usage-report.log
       - run: npx codechecks
+      - run:
+          name: "Running integration tests"
+          command: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
       - run:
           name: "Running coverage"
           command: |
