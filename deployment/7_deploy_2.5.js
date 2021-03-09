@@ -12,6 +12,11 @@ const WalletFactory = artifacts.require("WalletFactory");
 const DappRegistry = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
+const CompoundFilter = artifacts.require("CompoundCTokenFilter");
+const ParaswapFilter = artifacts.require("ParaswapFilter");
+const AaveV2Filter = artifacts.require("AaveV2Filter");
+const BalancerFilter = artifacts.require("BalancerFilter");
+
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
@@ -72,9 +77,49 @@ const main = async () => {
   );
   console.log("Deployed WalletFactory at ", WalletFactoryWrapper.address);
 
-  // Deploy DappRegistry
-  const DappRegistryWrapper = await DappRegistry.new(config.settings.timelockPeriod);
+  // Deploy DappRegistry (initial timelock of 0 to enable immediate addition to Argent Registry)
+  const DappRegistryWrapper = await DappRegistry.new(0);
   console.log("Deployed DappRegistry at ", DappRegistryWrapper.address);
+
+  // //////////////////////////////////
+  // Deploy and add filters to Argent Registry
+  // //////////////////////////////////
+
+  // Compound
+  for (const [underlying, cToken] of Object.entries(config.defi.compound.markets)) {
+    console.log(`Deploying filter for Compound Underlying ${underlying}`);
+    const CompoundFilterWrapper = await CompoundFilter.new(underlying);
+    console.log(`Deployed filter for Compound Underlying ${underlying} at ${CompoundFilterWrapper.address}`);
+    console.log(`Adding filter for Compound Underlying ${underlying}`);
+    await DappRegistryWrapper.addDapp(0, cToken, CompoundFilterWrapper.address);
+  }
+
+  // Paraswap
+  console.log("Deploying ParaswapFilter");
+  const ParaswapFilterWrapper = await ParaswapFilter.new(config.modules.TokenPriceRegistry, config.contracts.DexRegistry);
+  console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
+
+  // AaveV2
+  console.log("Deploying AaveV2Filter");
+  const AaveV2FilterWrapper = await AaveV2Filter.new();
+  console.log(`Deployed AaveV2Filter at ${AaveV2FilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.aave.contract, AaveV2FilterWrapper.address);
+
+  // Balancer
+  console.log("Deploying BalancerFilter");
+  const BalancerFilterWrapper = await BalancerFilter.new();
+  console.log(`Deployed BalancerFilter at ${BalancerFilterWrapper.address}`);
+  for (const pool of (config.defi.balancer.pools)) {
+    console.log(`Adding filter for Balancer pool ${pool}`);
+    await DappRegistryWrapper.addDapp(0, pool, BalancerFilterWrapper.address);
+  }
+
+  // Setting timelock
+  console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);
+  await DappRegistryWrapper.requestTimelockChange(config.settings.timelockPeriod);
+  await DappRegistryWrapper.confirmTimelockChange();
+  console.log("Timelock changed.");
 
   // //////////////////////////////////
   // Deploy modules
@@ -209,6 +254,4 @@ const main = async () => {
 };
 
 // For truffle exec
-module.exports = function (callback) {
-  main().then(() => callback()).catch((err) => callback(err));
-};
+module.exports = (cb) => main().then(cb).catch(cb);

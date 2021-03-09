@@ -50,6 +50,42 @@
       "authorisedExchanges": {
         "Kyber": "0x47bdB2D7d6528C760b6f228b3B8F9F650169a10f"
       }
+    },
+    "aave": {
+      "contract": "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9"
+    },
+    "balancer": {
+      "pools": [
+        "0x59a19d8c652fa0284f44113d0ff9aba70bd46fb4",
+        "0x1eff8af5d577060ba4ac8a29a13525bb0ee2a3d5",
+        "0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf",
+        "0x5b475f2cc362265ddf6a958f3519a35b305d2824",
+        "0xf54025af2dc86809be1153c1f20d77adb7e8ecf4",
+        "0xe036cce08cf4e23d33bc6b18e53caf532afa8513",
+        "0x72cd8f4504941bf8c5a21d1fd83a96499fd71d2c",
+        "0x454c1d458f9082252750ba42d60fae0887868a3b",
+        "0x9dde0b1d39d0d2c6589cde1bfed3542d2a3c5b11",
+        "0xb1f9ec02480dd9e16053b010dfc6e6c4b72ecad5",
+        "0xe867be952ee17d2d294f2de62b13b9f4af521e9a",
+        "0xe0e6b25b22173849668c85e06bc2ce1f69baff8c",
+        "0xe93e8aa4e88359dacf33c491cf5bd56eb6c110c1",
+        "0xee9a6009b926645d33e10ee5577e9c8d3c95c165",
+        "0xd3c8dcfcf2a5203f6a3210591dabea14e181db2d",
+        "0x9762c600a39bda3359f50a1fb1f90945cead379d",
+        "0x2e22a35a29f0ccafe8c6fb935f7d0269f706ea72",
+        "0xa5da8cc7167070b62fdcb332ef097a55a68d8824",
+        "0xf9ab7776c7baeed1d65f0492fe2bb3951a1787ef",
+        "0x9866772a9bdb4dc9d2c5a4753e8658b8b0ca1fc3",
+        "0x7c90a3cd7ec80dd2f633ed562480abbeed3be546",
+        "0x834fb8276b4e8a24010e2108fdd7f8417c8922bd",
+        "0x6b9887422e2a4ae11577f59ea9c01a6c998752e2",
+        "0xa0313dea2ed259edd2d95986cc9046d1a65f649b",
+        "0x5b18df96d3c8b9f1d1b9e38752498f92d1e2d490",
+        "0x41284a88d970d3552a26fae680692ed40b34010c",
+        "0x5e37910cfb8de1b14ec4e4bac0bec27c35dc07d5",
+        "0x57755f7dec33320bca83159c26e93751bfd30fbe",
+        "0xe010fcda8894c16a8acfef7b37741a760faeddc4"
+      ]
     }
   },
   "contracts": {
