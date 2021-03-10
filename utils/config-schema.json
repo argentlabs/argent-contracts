@@ -129,9 +129,6 @@
         "BaseWallet": {
           "$ref": "#/definitions/ethaddress"
         },
-        "CompoundRegistry": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "MakerRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
@@ -150,7 +147,6 @@
         "TokenPriceProvider",
         "ModuleRegistry",
         "BaseWallet",
-        "CompoundRegistry",
         "MakerRegistry",
         "DexRegistry"
       ],
