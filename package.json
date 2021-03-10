@@ -20,7 +20,7 @@
     "compile": "npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet",
     "cc": "rm -rf build && rm -rf build-legacy && npm run compile:lib && npm run compile && npm run compile:legacy && npm run compile:test && npm run provision:lib:artefacts",
     "ganache": "npx ganache-cli --chainId 1895 --networkId 1597649375983 --gasLimit=20700000 -e 10000 --acctKeys=\"./ganache-accounts.json\" --deterministic",
-    "mainnet-fork": "npx ganache-cli  --port 3601  --deterministic --fork https://mainnet.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')",
+    "mainnet-fork": "npx ganache-cli --chainId 1895 --port 3601  --deterministic --fork https://mainnet.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')",
     "test": "npx truffle test --compile-none",
     "ctest": "npm run compile && npm run test",
     "test:integration": "npx truffle test --compile-none --network prodFork test-integration/filter-lido.js",
