@@ -56,11 +56,11 @@ contract MultiCallHelper {
     function isMultiCallAuthorised(address _wallet, Call[] calldata _transactions) external view returns (bool) {
         for(uint i = 0; i < _transactions.length; i++) {
             address spender = recoverSpender(_wallet, _transactions[i]);
-            if (isWhitelisted(_wallet, spender) || isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data) != MAX_INT) {
-                return true;
+            if (!isWhitelisted(_wallet, spender) && isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data) == MAX_INT) {
+                return false;
             }
         }
-        return false;
+        return true;
     }
 
     function multiCallAuthorisation(address _wallet, Call[] calldata _transactions) external view returns (uint256[] memory registryIds) {
