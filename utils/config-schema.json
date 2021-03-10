@@ -137,6 +137,9 @@
         },
         "ArgentWalletDetector": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "MultiCallHelper": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": [
