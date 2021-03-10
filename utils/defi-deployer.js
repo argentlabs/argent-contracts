@@ -170,6 +170,7 @@ module.exports = {
       bat,
       weth,
       vat,
+      daiJoin,
       batJoin,
       wethJoin,
       tub,

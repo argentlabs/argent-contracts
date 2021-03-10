@@ -29,7 +29,7 @@ contract YearnFilter is BaseFilter {
 
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
-    bool private immutable isWeth;
+    bool public immutable isWeth;
 
     constructor (bool _isWeth) public {
         isWeth = _isWeth;

@@ -16,33 +16,30 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./BaseFilter.sol";
+import "../BaseFilter.sol";
 
-contract CompoundCTokenFilter is BaseFilter {
+contract VatFilter is BaseFilter {
 
-    bytes4 private constant CTOKEN_REPAY_BORROW_BEHALF = bytes4(keccak256("repayBorrowBehalf(address,uint256)"));
-    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
+    bytes4 private constant HOPE = bytes4(keccak256("hope(address)"));
 
-    address public immutable underlying;
+    address public immutable daiJoin;
+    address public immutable pot;
 
-    constructor (address _underlying) public {
-        underlying = _underlying;
+    constructor(address _daiJoin, address _pot) public {
+        daiJoin = _daiJoin;
+        pot = _pot;
     }
 
     function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
-        // disable ETH transfer for cErc20
+        // disable ETH transfer
         if (_data.length < 4) {
-            return (_data.length == 0) && (underlying == address(0));
+            return false;
         }
         bytes4 method = getMethod(_data);
-        // cToken methods
-        if (_spender == _to) {
-            // block repayBorrowBehalf
-            return (method != CTOKEN_REPAY_BORROW_BEHALF);
-        // ERC20 methods
-        } else {
-            // only allow an approve on the underlying 
-            return (method == ERC20_APPROVE && underlying == _to);
+    
+        if(method == HOPE) {
+            address hoped = abi.decode(_data[4:], (address));
+            return hoped == daiJoin || hoped == pot;
         }
     }
 }

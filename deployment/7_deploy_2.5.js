@@ -19,6 +19,10 @@ const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const BalancerFilter = artifacts.require("BalancerFilter");
 const YearnFilter = artifacts.require("YearnFilter");
+const PotFilter = artifacts.require("PotFilter");
+const DaiJoinFilter = artifacts.require("DaiJoinFilter");
+const VatFilter = artifacts.require("VatFilter");
+const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -140,6 +144,25 @@ const main = async () => {
     console.log(`Adding filter for WETH Yearn pool ${pool}`);
     await DappRegistryWrapper.addDapp(0, pool, WethYearnFilterWrapper.address);
   }
+
+  // DSR
+  console.log("Deploying PotFilter");
+  const PotFilterWrapper = await PotFilter.new();
+  console.log(`Deployed PotFilter at ${PotFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.maker.pot, PotFilterWrapper.address);
+
+  console.log("Deploying DaiJoinFilter");
+  const DaiJoinFilterWrapper = await DaiJoinFilter.new();
+  console.log(`Deployed DaiJoinFilter at ${DaiJoinFilterWrapper.address}`);
+  const migration = await ScdMcdMigration.at(config.defi.maker.migration);
+  const daiJoin = await migration.daiJoin();
+  await DappRegistryWrapper.addDapp(0, daiJoin, DaiJoinFilterWrapper.address);
+
+  console.log("Deploying VatFilter");
+  const vat = await migration.vat();
+  const VatFilterWrapper = await VatFilter.new(daiJoin, config.defi.maker.pot);
+  console.log(`Deployed VatFilter at ${VatFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, vat, VatFilterWrapper.address);
 
   // Setting timelock
   console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);

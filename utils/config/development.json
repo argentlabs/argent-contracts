@@ -1,7 +1,7 @@
 {
   "ENS": {
     "deployOwnRegistry": true,
-    "ensRegistry": "0x63B27eC64A3207648bA02E90597A113896d763Cd",
+    "ensRegistry": "0xDe2f00CCfEefAdD1Ecc87BE765cf46AC901A6AC8",
     "domain": "argent.xyz"
   },
   "backend": {
@@ -29,26 +29,26 @@
     "maker": {
       "deployOwn": true,
       "tub": "0x0000000000000000000000000000000000000000",
-      "pot": "0x0000000000000000000000000000000000000000",
+      "pot": "0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7",
       "jug": "0x0000000000000000000000000000000000000000",
-      "migration": "0x96Cc3ea46F59A1b6bf83081Ee41C9fA795fB46BB"
+      "migration": "0xF6aFcd935c28365CCe278Fed78b26Fe2BC9ae518"
     },
     "uniswap": {
       "deployOwn": true,
-      "factory": "0x6D401A19c626A15730E64D5F3f2FA19680Fa88B4",
-      "v2Router": "0xc59d95b66aF45a5b2f17Cf1097EE708727990a4c"
+      "factory": "0x027e4121d4675465E8029F09511D813c3476Ebf5",
+      "v2Router": "0xaa8751Df9FC4b9424831Fb361F0C14096FC0C204"
     },
     "compound": {
       "comptroller": "0x0000000000000000000000000000000000000000",
       "markets": {
-        "0x0000000000000000000000000000000000000000": "0x0000000000000000000000000000000000000000"
+        "0x6b175474e89094c44da98b954eedeac495271d0f": "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643"
       }
     },
     "paraswap": {
       "deployOwn": true,
-      "contract": "0x7b03ff5df5e6D6F13f468E786a7B0EcD562e9CF2",
+      "contract": "0xf42Fe9b8e2009be073f1AeDc57a72623AC4F3045",
       "authorisedExchanges": {
-        "Kyber": "0xc4Ec44A6093dE4ab082d2403091F7C0cA303B513"
+        "Kyber": "0xbCFC9461B73D7Fb423552d6cd594f406F7B0585D"
       }
     },
     "aave": { "contract": "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9" },
@@ -105,21 +105,21 @@
     }
   },
   "contracts": {
-    "MultiSigWallet": "0xB6721C7F775b49FbE92A7c39Fc5dfBC8d5F400Ab",
-    "WalletFactory": "0xfbA546BCC02748C92778c80764b52Cc8AB4846e8",
-    "ENSResolver": "0x95EC91C9b929f5f6E0226Ac472463fD54330Ea63",
-    "ENSManager": "0x29BF7e2c2a1891cC5Ac80E98e94B68Ca6bE80858",
+    "MultiSigWallet": "0xACF05e2a9b757e70C2900432c9b4E08Fdc54dD53",
+    "WalletFactory": "0xFA64858C14345C0a3aD805E0da64900C4d7ec5e6",
+    "ENSResolver": "0x9a74f110586971345A396C74228094A04f5A5eA6",
+    "ENSManager": "0x49de73CaB6e369f1F97Def0b95b558cd77c5d6a2",
     "TokenPriceProvider": "0xE09C322B745434Fbb2D18c107c13795D4bDF3657",
-    "ModuleRegistry": "0xD65a454ece87405Ff640E9A3604aF8127e54E3dD",
-    "BaseWallet": "0x15a01899477195F8D0af58E5a8EC3d7404BceE38",
+    "ModuleRegistry": "0x77D32f6f5F454Fa76f93859f49f9431CeA8c225F",
+    "BaseWallet": "0x439D0306A0EBD39771781AFB74c1Ae8De29E97Fa",
     "CompoundRegistry": "0x06362D9Cd157fd80d210360a269B56B4Eb9394b9",
     "MakerRegistry": "0x355d26E5f04255F60E910F1aA1251DE5D10996E8",
-    "DexRegistry": "0xC974cF3e7625c1ef0aD0FF5f939aBE34f22f7EDD",
-    "DappRegistry": "0x8F8f324bDD4356be6f84Ea87d19595ADE18e927E"
+    "DexRegistry": "0xFd6e1d4eaDbc80322F62e7148AD223596A005238",
+    "DappRegistry": "0xc21dc5A1b919088F308e0b02243Aaf64c060Dbd0"
   },
   "modules": {
-    "GuardianStorage": "0x00266082DE5E6CF65D12A706B817d315943aB9B9",
-    "TransferStorage": "0x8B074eE849EB477191B6F49E8e05f6FDCE5B5a69",
+    "GuardianStorage": "0x49455287eBCC42a875B40724C62519D03e2EDcff",
+    "TransferStorage": "0xe5608e4945998aB5E4548Bc95b421E188095DA8E",
     "GuardianManager": "0x08238aD7707355dcC4A2f7819C00B0a22a4955C1",
     "LockManager": "0xD46123b08c56530A8e09bB65B4DFEfA72418e97B",
     "RecoveryManager": "0xef5C8Ae82202f2dAAE319A9b664Fc00074b565f4",
@@ -136,8 +136,8 @@
     "RelayerManager": "0x6F6BfF298e182882091B8D0FF40208d09aE96B62",
     "VersionManager": "0xA2a1ccaB58a416459576764881380408555f0fAf",
     "LockStorage": "0x80EaE59c5f92F9f65338bba4F26FFC8Ca2b6224A",
-    "TokenPriceRegistry": "0x17a47115d589FDe38835FfBA180A832c29119b5f",
-    "ArgentModule": "0x2685b1B327E333d5b6BE506eADb9a88F84D317c9"
+    "TokenPriceRegistry": "0x85cd1F9550CdF662944bEc3E58021f8dbE6fE878",
+    "ArgentModule": "0x970e1d481CEDbeaeFE776275F0d1b4E1B301bB3b"
   },
-  "gitCommit": "d1401ba470b8e8571bac2335403eca48366369cd"
+  "gitCommit": "f7e8b18cc8bcc5b2d85dc3dc5c1032f8c9b23d5e"
 }
