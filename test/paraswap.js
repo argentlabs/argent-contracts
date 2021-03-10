@@ -32,7 +32,8 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
-const Filter = artifacts.require("ParaswapFilter");
+const ParaswapFilter = artifacts.require("ParaswapFilter");
+const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const ERC20 = artifacts.require("TestERC20");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
@@ -41,7 +42,7 @@ const DexRegistry = artifacts.require("DexRegistry");
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const { makeRoutes } = require("../utils/paraswap/buy-helper");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce, encodeCalls } = require("../utils/utilities.js");
 
 const PARASWAP_ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -70,7 +71,6 @@ contract("Paraswap Filter", (accounts) => {
   let module;
   let wallet;
   let walletImplementation;
-  let filter;
   let dappRegistry;
   let kyberNetwork;
   let kyberAdapter;
@@ -151,9 +151,10 @@ contract("Paraswap Filter", (accounts) => {
       RECOVERY_PERIOD,
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    filter = await Filter.new(tokenPriceRegistry.address, dexRegistry.address);
-    await dappRegistry.addDapp(0, paraswap.address, filter.address);
-    await dappRegistry.addDapp(0, paraswapProxy, ZERO_ADDRESS);
+    const paraswapFilter = await ParaswapFilter.new(tokenPriceRegistry.address, dexRegistry.address);
+    const proxyFilter = await OnlyApproveFilter.new();
+    await dappRegistry.addDapp(0, paraswap.address, paraswapFilter.address);
+    await dappRegistry.addDapp(0, paraswapProxy, proxyFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
 
@@ -429,6 +430,12 @@ contract("Paraswap Filter", (accounts) => {
 
       const { success } = await multiCall([transaction]);
       assert.isFalse(success, "call should have failed");
+    });
+
+    it("should not allow the wallet to transfer tokens directly to the Paraswap proxy", async () => {
+      const { success, error } = await multiCall(encodeCalls([[tokenA, "transfer", [paraswapProxy, 1]]]));
+      assert.isFalse(success, "call should have failed");
+      assert.equal(error, "TM: call not authorised");
     });
 
     it("can exclude exchanges", async () => {
