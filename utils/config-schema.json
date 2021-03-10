@@ -144,65 +144,21 @@
         "TokenPriceProvider",
         "ModuleRegistry",
         "BaseWallet",
-        "DexRegistry"
+        "DexRegistry",
+        "ArgentWalletDetector"
       ],
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "modules": {
       "type": "object",
       "properties": {
-        "ModuleManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "GuardianManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "GuardianStorage": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "LimitStorage": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "TokenPriceStorage": {
           "$ref": "#/definitions/ethaddress"
         },
         "TokenPriceRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
-        "LockManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "RecoveryManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "ApprovedTransfer": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "TransferManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "TransferStorage": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "TokenExchanger": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "NftTransfer": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "CompoundManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "MakerManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "MakerV2Manager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "RelayerManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "VersionManager": {
           "$ref": "#/definitions/ethaddress"
         },
         "ArgentModule": {
@@ -210,18 +166,8 @@
         }
       },
       "required": [
-        "GuardianManager",
         "GuardianStorage",
-        "LockManager",
-        "RecoveryManager",
-        "ApprovedTransfer",
-        "TransferManager",
-        "TransferStorage",
-        "TokenExchanger",
-        "NftTransfer",
-        "CompoundManager",
-        "MakerManager",
-        "MakerV2Manager"
+        "TransferStorage"
       ],
       "additionalProperties": true
     },
@@ -328,12 +274,6 @@
           "type": "integer"
         },
         "timelockPeriod": {
-          "type": "integer"
-        },
-        "defaultLimit": {
-          "type": "string"
-        },
-        "feeRatio": {
           "type": "integer"
         }
       },
