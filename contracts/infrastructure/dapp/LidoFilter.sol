@@ -22,7 +22,7 @@ contract LidoFilter is BaseFilter {
   bytes4 private constant SUBMIT = bytes4(keccak256("submit(address)"));
 
   function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
-    // Allow sending ETH as well as calls to send(address)
+    // Allow sending ETH as well as calls to submit(address)
     if (_data.length == 0) {
         return true;
     }
