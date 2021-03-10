@@ -13,7 +13,9 @@ const DappRegistry = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
+const IAugustusSwapper = artifacts.require("IAugustusSwapper");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
+const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const BalancerFilter = artifacts.require("BalancerFilter");
 const YearnFilter = artifacts.require("YearnFilter");
@@ -100,6 +102,13 @@ const main = async () => {
   const ParaswapFilterWrapper = await ParaswapFilter.new(config.modules.TokenPriceRegistry, config.contracts.DexRegistry);
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
+
+  // Paraswap Proxy
+  console.log("Deploying OnlyApproveFilter");
+  const OnlyApproveFilterWrapper = await OnlyApproveFilter.new();
+  console.log(`Deployed OnlyApproveFilter at ${OnlyApproveFilterWrapper.address}`);
+  const AugustusSwapperWrapper = await IAugustusSwapper.at(config.defi.paraswap.contract);
+  await DappRegistryWrapper.addDapp(0, await AugustusSwapperWrapper.getTokenTransferProxy(), OnlyApproveFilterWrapper.address);
 
   // AaveV2
   console.log("Deploying AaveV2Filter");
