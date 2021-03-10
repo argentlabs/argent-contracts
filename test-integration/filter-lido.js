@@ -98,19 +98,34 @@ contract("Lido Filter", (accounts) => {
   });
 
   describe("Lido staking", () => {
-    it("should allow staking from wallet", async () => {
-      const transactions = [];
-      let transaction = encodeTransaction(lido.address, 100, ZERO_BYTES);
-      transactions.push(transaction);
-
-      const data = lido.contract.methods.depositBufferedEther().encodeABI();
-      transaction = encodeTransaction(lido.address, 0, data);
-      transactions.push(transaction);
+    it("should allow staking from wallet via fallback", async () => {
+      const transaction = encodeTransaction(lido.address, 100, ZERO_BYTES);
 
       const txReceipt = await manager.relay(
         module,
         "multiCall",
-        [wallet.address, transactions],
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, `deposit failed: "${error}"`);
+
+      const walletBalance = await lido.balanceOf(wallet.address);
+      assert.equal(walletBalance.toNumber(), 99);
+    });
+
+    it("should allow staking from wallet via submit", async () => {
+      const data = lido.contract.methods.submit(accounts[5]).encodeABI();
+      const transaction = encodeTransaction(lido.address, 100, data);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
         wallet,
         [owner],
         1,

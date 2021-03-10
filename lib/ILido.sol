@@ -21,11 +21,7 @@ pragma solidity 0.5.4;
 * for each token holder and thus running an unbounded loop.
 */
 interface ILido {
-    /**
-    * @notice Deposits buffered ethers to the official DepositContract.
-    * @dev This function is separated from submit() to reduce the cost of sending funds.
-    */
-    function depositBufferedEther() external;
+    function submit(address referral) external;
 
     function balanceOf(address user) external view returns (uint256);
 

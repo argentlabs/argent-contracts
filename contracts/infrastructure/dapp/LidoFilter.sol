@@ -19,16 +19,16 @@ pragma solidity ^0.6.12;
 import "./BaseFilter.sol";
 
 contract LidoFilter is BaseFilter {
-  bytes4 private constant DEPOSIT = bytes4(keccak256("depositBufferedEther()"));
+  bytes4 private constant SUBMIT = bytes4(keccak256("submit(address)"));
 
-  function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
-    // Allow sending ETH as well as calls to depositBufferedEther()
+  function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+    // Allow sending ETH as well as calls to send(address)
     if (_data.length == 0) {
         return true;
     }
-    if(_spender == _to) {
+    if(_spender == _to && _data.length >= 4) {
       bytes4 methodId = getMethod(_data);
-      if (methodId == DEPOSIT) {
+      if (methodId == SUBMIT) {
         return true;
       }
     }
