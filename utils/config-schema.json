@@ -144,8 +144,7 @@
         "TokenPriceProvider",
         "ModuleRegistry",
         "BaseWallet",
-        "DexRegistry",
-        "ArgentWalletDetector"
+        "DexRegistry"
       ],
       "additionalProperties": true
     },
