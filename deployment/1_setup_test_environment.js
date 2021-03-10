@@ -9,8 +9,8 @@ const UniswapExchange = artifacts.require("../lib/uniswap/UniswapExchange");
 const MakerMigration = artifacts.require("MockScdMcdMigration");
 
 // Uniswap V2
-const UniswapV2Router01 = artifacts.require("UniswapV2Router01");
-const UniswapV2Factory = artifacts.require("UniswapV2Factory");
+const UniswapV2Router01 = artifacts.require("UniswapV2Router01Mock");
+const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
 
 // Paraswap
 const AugustusSwapper = artifacts.require("AugustusSwapper");
