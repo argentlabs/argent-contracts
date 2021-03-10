@@ -32,7 +32,7 @@ interface IDappRegistry {
  */
 contract MultiCallHelper {
 
-    uint256 private constant MAX_INT = 2**256 - 1;
+    uint256 private constant MAX_UINT = 2**256 - 1;
 
     bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
@@ -67,7 +67,7 @@ contract MultiCallHelper {
     function isMultiCallAuthorised(address _wallet, Call[] calldata _transactions) external view returns (bool) {
         for(uint i = 0; i < _transactions.length; i++) {
             address spender = recoverSpender(_wallet, _transactions[i]);
-            if (!isWhitelisted(_wallet, spender) && isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data) == MAX_INT) {
+            if (!isWhitelisted(_wallet, spender) && isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data) == MAX_UINT) {
                 return false;
             }
         }
@@ -79,7 +79,7 @@ contract MultiCallHelper {
      * For each transaction of the sequence it returns an Id where:
      *     - Id is in [0,255]: the transaction is to an address authorised in registry Id of the DappRegistry
      *     - Id = 256: the transaction is to an address authorised in the trusted contacts of the wallet
-     *     - Id = MAX_INT: the transaction is not authorised
+     *     - Id = MAX_UINT: the transaction is not authorised
      * @param _wallet The target wallet.
      * @param _transactions The sequence of transactions.
      */
@@ -138,7 +138,7 @@ contract MultiCallHelper {
                 }
             }
         }
-        return MAX_INT;
+        return MAX_UINT;
     }
 
     function isWhitelisted(address _wallet, address _target) internal view returns (bool _isWhitelisted) {
