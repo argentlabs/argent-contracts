@@ -33,8 +33,7 @@ contract AaveV2Filter is BaseFilter {
 
         // only allow deposits and withdrawals with wallet as beneficiary
         if(method == DEPOSIT || method == WITHDRAW) {
-            (,, address beneficiary) = abi.decode(_data[4:], (address, uint256, address));   
-            return beneficiary == _wallet;
+            return _wallet == abi.decode(_data[68:], (address));
         }
 
         // only allow approve (LendingPool can only transfer a valid asset => no need to validate the token address here)
