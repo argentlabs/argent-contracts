@@ -20,8 +20,6 @@
     "compile": "npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet",
     "cc": "rm -rf build && rm -rf build-legacy && npm run compile:lib && npm run compile && npm run compile:legacy && npm run compile:test && npm run provision:lib:artefacts",
     "ganache": "npx ganache-cli --chainId 1895 --networkId 1597649375983 --gasLimit=20700000 -e 10000 --acctKeys=\"./ganache-accounts.json\" --deterministic",
-    "kovan-fork": "npx ganache-cli -i 42 -l 20700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')@16988040",
-    "kovan-fork-latest": "npx ganache-cli -i 42 -l 20700000 -f https://kovan.infura.io/v3/$(cat .env | sed -En 's/INFURA_KEY=''\"''([^''\"'']+)''\"''/\\1/p')",
     "test": "npx truffle test --compile-none",
     "ctest": "npm run compile && npm run test",
     "provision:lib:artefacts": "bash ./scripts/provision_lib_artefacts.sh",
