@@ -30,7 +30,7 @@ const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 // Utils
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, initNonce, encodeCalls, encodeTransaction } = require("../utils/utilities.js");
-const { deployMaker, WAD, } = require("../utils/defi-deployer");
+const { deployMaker, WAD } = require("../utils/defi-deployer");
 
 const DAI_SENT = WAD.div(new BN(100000000));
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -129,12 +129,12 @@ contract("DSR Filter", (accounts) => {
     [dai, "approve", [daiJoin.address, DAI_SENT.toString()]],
     [daiJoin, "join", [wallet.address, DAI_SENT.toString()]],
     [vat, "hope", [pot.address]],
-    [pot, "join", [DAI_SENT.mul(new BN(999)).div(new BN(1000)).toString()]],
+    [pot, "join", [DAI_SENT.toString()]],
   ]));
 
   const withdraw = async () => multiCall(encodeCalls([
     [pot, "drip"],
-    [pot, "exit", [DAI_SENT.mul(new BN(999)).div(new BN(1000)).toString()]],
+    [pot, "exit", [DAI_SENT.toString()]],
     [vat, "hope", [daiJoin.address]],
     [daiJoin, "exit", [wallet.address, DAI_SENT.toString()]],
   ]));
