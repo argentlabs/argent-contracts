@@ -62,9 +62,8 @@ contract WalletFactory is Managed {
 
     /**
     * @notice Disables the ability for the owner of the factory to revoke a manager.
-    * @param _manager The address of the manager.
     */
-    function revokeManager(address _manager) override external {
+    function revokeManager(address /*_manager*/) override external {
         revert("WF: managers can't be revoked");
     }
      
