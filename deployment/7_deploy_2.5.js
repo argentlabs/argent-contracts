@@ -24,6 +24,7 @@ const PotFilter = artifacts.require("PotFilter");
 const DaiJoinFilter = artifacts.require("DaiJoinFilter");
 const VatFilter = artifacts.require("VatFilter");
 const ScdMcdMigration = artifacts.require("ScdMcdMigration");
+const UniswapV2Filter = artifacts.require("UniswapV2UniZapFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -166,6 +167,12 @@ const main = async () => {
   const VatFilterWrapper = await VatFilter.new(daiJoin, config.defi.maker.pot);
   console.log(`Deployed VatFilter at ${VatFilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, vat, VatFilterWrapper.address);
+
+  // Uniswap V2
+  console.log("Deploying UniswapV2Filter");
+  const UniswapV2FilterWrapper = await UniswapV2Filter.new();
+  console.log(`Deployed UniswapV2Filter at ${UniswapV2FilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.uniswap.unizap, UniswapV2Filter.address);
 
   // Setting timelock
   console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);
