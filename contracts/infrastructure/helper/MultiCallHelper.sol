@@ -19,6 +19,7 @@ pragma experimental ABIEncoderV2;
 
 import "../dapp/IFilter.sol";
 import "../storage/ITransferStorage.sol";
+import "../../modules/common/Utils.sol";
 
 interface IDappRegistry {
     function enabledRegistryIds(address _wallet) external view returns (bytes32);
@@ -33,14 +34,6 @@ interface IDappRegistry {
 contract MultiCallHelper {
 
     uint256 private constant MAX_UINT = 2**256 - 1;
-
-    bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
-    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
-    bytes4 private constant ERC721_TRANSFER_FROM = bytes4(keccak256("transferFrom(address,address,uint256)"));
-    bytes4 private constant ERC721_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256)"));
-    bytes4 private constant ERC721_SAFE_TRANSFER_FROM_BYTES = bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)"));
-    bytes4 private constant ERC721_SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
-    bytes4 private constant ERC1155_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes)"));
 
     struct Call {
         address to;
@@ -66,8 +59,11 @@ contract MultiCallHelper {
      */
     function isMultiCallAuthorised(address _wallet, Call[] calldata _transactions) external view returns (bool) {
         for(uint i = 0; i < _transactions.length; i++) {
-            address spender = recoverSpender(_wallet, _transactions[i]);
-            if (!isWhitelisted(_wallet, spender) && isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data) == MAX_UINT) {
+            address spender = Utils.recoverSpender(_wallet, _transactions[i].to, _transactions[i].data);
+            if (
+                (spender != _transactions[i].to && _transactions[i].value != 0) ||
+                (!isWhitelisted(_wallet, spender) && isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data) == MAX_UINT)
+            ) {
                 return false;
             }
         }
@@ -86,40 +82,16 @@ contract MultiCallHelper {
     function multiCallAuthorisation(address _wallet, Call[] calldata _transactions) external view returns (uint256[] memory registryIds) {
         registryIds = new uint256[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
-            address spender = recoverSpender(_wallet, _transactions[i]);
-            if (isWhitelisted(_wallet, spender)) {
+            address spender = Utils.recoverSpender(_wallet, _transactions[i].to, _transactions[i].data);
+            if (spender != _transactions[i].to && _transactions[i].value != 0) {
+                registryIds[i] = MAX_UINT;
+            } else if (isWhitelisted(_wallet, spender)) {
                 registryIds[i] = 256;
             } else {
                 registryIds[i] = isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data);
             }
         }
     }
-
-    function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
-        if(_transaction.data.length >= 4) {
-            bytes4 methodId;
-            bytes memory data = _transaction.data;
-            // solhint-disable-next-line no-inline-assembly
-            assembly {
-                methodId := mload(add(data, 0x20))
-            }
-            if(
-                methodId == ERC20_TRANSFER ||
-                methodId == ERC20_APPROVE ||
-                methodId == ERC721_TRANSFER_FROM ||
-                methodId == ERC721_SAFE_TRANSFER_FROM ||
-                methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
-                methodId == ERC721_SET_APPROVAL_FOR_ALL ||
-                methodId == ERC1155_SAFE_TRANSFER_FROM
-            ) {
-                require(_transaction.value == 0, "TM: unsecure call");
-                (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
-                return first == _wallet ? second : first;
-            }
-        }
-        return _transaction.to;
-    } 
-
 
     function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) internal view returns (uint256) {
         uint registries = uint(dappRegistry.enabledRegistryIds(_wallet));
