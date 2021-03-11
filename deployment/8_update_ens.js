@@ -24,9 +24,7 @@ async function main() {
 
   WalletFactory16.setProvider(web3.currentProvider);
 
-  // ENVIRONMENT SPECIFIC
-  // ROPSTEN
-  const walletFactory16Wrapper = await WalletFactory16.at("0x802248Ec4d68879Ce62d33748776Db5a1a98C422");
+  const walletFactory16Wrapper = await WalletFactory16.at(config.contracts.WalletFactory16);
 
   // Instantiate the ENS Registry and existing ENSManager
   const ENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);

@@ -111,6 +111,9 @@
         "WalletFactory": {
           "$ref": "#/definitions/ethaddress"
         },
+        "WalletFactory16": {
+          "$ref": "#/definitions/ethaddress"
+        },
         "ENSResolver": {
           "$ref": "#/definitions/ethaddress"
         },
