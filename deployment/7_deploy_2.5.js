@@ -172,7 +172,7 @@ const main = async () => {
   console.log("Deploying UniswapV2Filter");
   const UniswapV2FilterWrapper = await UniswapV2Filter.new();
   console.log(`Deployed UniswapV2Filter at ${UniswapV2FilterWrapper.address}`);
-  await DappRegistryWrapper.addDapp(0, config.defi.uniswap.unizap, UniswapV2Filter.address);
+  await DappRegistryWrapper.addDapp(0, config.defi.uniswap.unizap, UniswapV2FilterWrapper.address);
 
   // Setting timelock
   console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);
