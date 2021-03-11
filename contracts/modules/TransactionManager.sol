@@ -102,7 +102,7 @@ abstract contract TransactionManager is BaseModule {
         onlyWhenUnlocked(_wallet)
         returns (bytes[] memory)
     {
-        multiCallWithApproval(_wallet, _transactions);
+        return multiCallWithApproval(_wallet, _transactions);
     }
 
     /**
@@ -120,7 +120,7 @@ abstract contract TransactionManager is BaseModule {
         onlyWhenUnlocked(_wallet)
         returns (bytes[] memory)
     {
-        multiCallWithApproval(_wallet, _transactions);
+        return multiCallWithApproval(_wallet, _transactions);
     }
 
     /**
@@ -142,7 +142,7 @@ abstract contract TransactionManager is BaseModule {
         returns (bytes[] memory)
     {
         startSession(_wallet, _sessionUser, _duration);
-        multiCallWithApproval(_wallet, _transactions);
+        return multiCallWithApproval(_wallet, _transactions);
     }
 
     /**

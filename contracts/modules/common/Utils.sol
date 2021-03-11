@@ -66,11 +66,15 @@ library Utils {
     * @param _data The data payload.
     */
     function recoverSpender(address _wallet, address _to, bytes memory _data) internal pure returns (address) {
-        if(_data.length >= 4) {
+        if(_data.length >= 68) {
             bytes4 methodId;
+            address first;
+            address second;
             // solhint-disable-next-line no-inline-assembly
             assembly {
                 methodId := mload(add(_data, 0x20))
+                first := mload(add(_data, 0x24))
+                second := mload(add(_data, 0x44))
             }
             if(
                 methodId == ERC20_TRANSFER ||
@@ -79,15 +83,8 @@ library Utils {
                 methodId == ERC721_SAFE_TRANSFER_FROM ||
                 methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
                 methodId == ERC721_SET_APPROVAL_FOR_ALL ||
-                methodId == ERC1155_SAFE_TRANSFER_FROM
-            ) {
-                address first;
-                address second;
-                // solhint-disable-next-line no-inline-assembly
-                assembly {
-                    first := mload(add(_data, 0x24))
-                    second := mload(add(_data, 0x44))
-                }
+                methodId == ERC1155_SAFE_TRANSFER_FROM) 
+            {
                 return first == _wallet ? second : first;
             }
         }
