@@ -1,9 +1,14 @@
 /* global artifacts */
 global.web3 = web3;
 
+const TruffleContract = require("@truffle/contract");
+
 const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const MultiSig = artifacts.require("MultiSigWallet");
+const WalletFactory16Contract = require("../build-legacy/v1.6.0/WalletFactory");
+
+const WalletFactory16 = TruffleContract(WalletFactory16Contract);
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -16,9 +21,10 @@ async function main() {
   const { deploymentAccount, configurator, abiUploader } = await deployManager.getProps();
   const { config } = configurator;
   const { domain } = config.ENS;
-  // ENVIRONMENT SPECIFIC
-  // ROPSTEN
-  const walletFactoryVersion16 = "0x802248Ec4d68879Ce62d33748776Db5a1a98C422";
+
+  WalletFactory16.setProvider(web3.currentProvider);
+
+  const walletFactory16Wrapper = await WalletFactory16.at(config.contracts.WalletFactory16);
 
   // Instantiate the ENS Registry and existing ENSManager
   const ENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);
@@ -45,7 +51,10 @@ async function main() {
   }
 
   // The legacy factory has to be a manager of the new ENSManager as it calls it's register function for new wallets
-  await NewENSManagerWrapper.addManager(walletFactoryVersion16);
+  await NewENSManagerWrapper.addManager(walletFactory16Wrapper.address);
+
+  await multisigExecutor.executeCall(walletFactory16Wrapper, "changeENSManager", [NewENSManagerWrapper.address]);
+  console.log(`EnsManager on legacy wallet factory changed to ${NewENSManagerWrapper.address}`);
 
   // Set the MultiSig as the owner of the new ENSManager
   await NewENSManagerWrapper.changeOwner(config.contracts.MultiSigWallet);
