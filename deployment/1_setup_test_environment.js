@@ -9,8 +9,9 @@ const UniswapExchange = artifacts.require("../lib/uniswap/UniswapExchange");
 const MakerMigration = artifacts.require("MockScdMcdMigration");
 
 // Uniswap V2
-const UniswapV2Router01 = artifacts.require("UniswapV2Router01");
-const UniswapV2Factory = artifacts.require("UniswapV2Factory");
+const UniswapV2Router01 = artifacts.require("UniswapV2Router01Mock");
+const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
+const UniZap = artifacts.require("UniZap");
 
 // Paraswap
 const AugustusSwapper = artifacts.require("AugustusSwapper");
@@ -88,6 +89,8 @@ async function main() {
     const UniswapV2FactoryWrapper = await UniswapV2Factory.new(ZERO_ADDRESS);
     const UniswapV2RouterWrapper = await UniswapV2Router01.new(UniswapV2FactoryWrapper.address, ZERO_ADDRESS);
     configurator.updateUniswapV2Router(UniswapV2RouterWrapper.address);
+    const UniZapWrapper = await UniZap.new(UniswapV2FactoryWrapper.address, UniswapV2RouterWrapper.address, ZERO_ADDRESS);
+    configurator.updateUniswapV2Zap(UniZapWrapper.address);
   }
 
   if (config.defi.maker.deployOwn) {

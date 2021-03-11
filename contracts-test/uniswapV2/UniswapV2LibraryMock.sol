@@ -1,13 +1,10 @@
 pragma solidity >=0.5.0;
 
-import '@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol';
-import './SafeMath.sol';
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "./libraries/SafeMath.sol";
 // !! Argent Modification !!
-// The following import was added to the original file
-// to be able to use the correct UniswapV2Pair init code
-import '../../../../lib/uniswapV2/uniswap-v2-core/interfaces/IUniswapV2Factory.sol';
-
-library UniswapV2Library {
+// To be able to use the correct UniswapV2Pair init code.
+library UniswapV2LibraryMock {
     using SafeMath for uint256;
 
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
@@ -22,24 +19,27 @@ library UniswapV2Library {
         address factory,
         address tokenA,
         address tokenB
-    ) internal pure returns (address pair) {
+    ) internal view returns (address pair) {
         (address token0, address token1) = sortTokens(tokenA, tokenB);
         // !! Argent Modification !!
         // the original file used the following hardcoded value as init code hash:
         // hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f'
-        bytes32 initCode = IUniswapV2Factory(factory).getKeccakOfPairCreationCode();
-        pair = address(
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        hex'ff',
-                        factory,
-                        keccak256(abi.encodePacked(token0, token1)),
-                        initCode
+        (bool success, bytes memory _res) = factory.staticcall(abi.encodeWithSignature("getKeccakOfPairCreationCode()"));
+        if (success) {
+            bytes32 initCode = abi.decode(_res, (bytes32));
+            pair = address(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            hex'ff',
+                            factory,
+                            keccak256(abi.encodePacked(token0, token1)),
+                            initCode
+                        )
                     )
                 )
-            )
-        );
+            );
+        }
     }
 
     // fetches and sorts the reserves for a pair
