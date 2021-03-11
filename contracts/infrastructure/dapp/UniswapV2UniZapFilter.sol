@@ -16,9 +16,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
 
-import "./IFilter.sol";
+import "./BaseFilter.sol";
 
-contract UniswapV2UniZapFilter is IFilter {
+contract UniswapV2UniZapFilter is BaseFilter {
 
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
     bytes4 constant internal ADD_LIQUIDITY_WITH_ETH = bytes4(keccak256("swapExactETHAndAddLiquidity(address,uint256,address,uint256)"));
@@ -55,13 +55,6 @@ contract UniswapV2UniZapFilter is IFilter {
         } else {
             // only allow approve
             return (method == ERC20_APPROVE);
-        }
-    }
-
-    function getMethod(bytes memory _data) internal pure returns (bytes4 method) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            method := mload(add(_data, 0x20))
         }
     }
 }
