@@ -12,6 +12,18 @@ const WalletFactory = artifacts.require("WalletFactory");
 const DappRegistry = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 
+const CompoundFilter = artifacts.require("CompoundCTokenFilter");
+const IAugustusSwapper = artifacts.require("IAugustusSwapper");
+const ParaswapFilter = artifacts.require("ParaswapFilter");
+const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
+const AaveV2Filter = artifacts.require("AaveV2Filter");
+const BalancerFilter = artifacts.require("BalancerFilter");
+const YearnFilter = artifacts.require("YearnFilter");
+const PotFilter = artifacts.require("PotFilter");
+const DaiJoinFilter = artifacts.require("DaiJoinFilter");
+const VatFilter = artifacts.require("VatFilter");
+const ScdMcdMigration = artifacts.require("ScdMcdMigration");
+
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
@@ -72,9 +84,91 @@ const main = async () => {
   );
   console.log("Deployed WalletFactory at ", WalletFactoryWrapper.address);
 
-  // Deploy DappRegistry
-  const DappRegistryWrapper = await DappRegistry.new(config.settings.timelockPeriod);
+  // Deploy DappRegistry (initial timelock of 0 to enable immediate addition to Argent Registry)
+  const DappRegistryWrapper = await DappRegistry.new(0);
   console.log("Deployed DappRegistry at ", DappRegistryWrapper.address);
+
+  // //////////////////////////////////
+  // Deploy and add filters to Argent Registry
+  // //////////////////////////////////
+
+  // Compound
+  for (const [underlying, cToken] of Object.entries(config.defi.compound.markets)) {
+    console.log(`Deploying filter for Compound Underlying ${underlying}`);
+    const CompoundFilterWrapper = await CompoundFilter.new(underlying);
+    console.log(`Deployed filter for Compound Underlying ${underlying} at ${CompoundFilterWrapper.address}`);
+    console.log(`Adding filter for Compound Underlying ${underlying}`);
+    await DappRegistryWrapper.addDapp(0, cToken, CompoundFilterWrapper.address);
+  }
+
+  // Paraswap
+  console.log("Deploying ParaswapFilter");
+  const ParaswapFilterWrapper = await ParaswapFilter.new(config.modules.TokenPriceRegistry, config.contracts.DexRegistry);
+  console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
+
+  // Paraswap Proxy
+  console.log("Deploying OnlyApproveFilter");
+  const OnlyApproveFilterWrapper = await OnlyApproveFilter.new();
+  console.log(`Deployed OnlyApproveFilter at ${OnlyApproveFilterWrapper.address}`);
+  const AugustusSwapperWrapper = await IAugustusSwapper.at(config.defi.paraswap.contract);
+  await DappRegistryWrapper.addDapp(0, await AugustusSwapperWrapper.getTokenTransferProxy(), OnlyApproveFilterWrapper.address);
+
+  // AaveV2
+  console.log("Deploying AaveV2Filter");
+  const AaveV2FilterWrapper = await AaveV2Filter.new();
+  console.log(`Deployed AaveV2Filter at ${AaveV2FilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.aave.contract, AaveV2FilterWrapper.address);
+
+  // Balancer
+  console.log("Deploying BalancerFilter");
+  const BalancerFilterWrapper = await BalancerFilter.new();
+  console.log(`Deployed BalancerFilter at ${BalancerFilterWrapper.address}`);
+  for (const pool of (config.defi.balancer.pools)) {
+    console.log(`Adding filter for Balancer pool ${pool}`);
+    await DappRegistryWrapper.addDapp(0, pool, BalancerFilterWrapper.address);
+  }
+
+  // yEarn
+  console.log("Deploying YearnFilter (isWeth=false)");
+  const YearnFilterWrapper = await YearnFilter.new(false);
+  console.log(`Deployed YearnFilter (isWeth=false) at ${YearnFilterWrapper.address}`);
+  console.log("Deploying YearnFilter (isWeth=true)");
+  const WethYearnFilterWrapper = await YearnFilter.new(true);
+  console.log(`Deployed YearnFilter (isWeth=true) at ${WethYearnFilterWrapper.address}`);
+  for (const pool of (config.defi.yearn.pools)) {
+    console.log(`Adding filter for Yearn pool ${pool}`);
+    await DappRegistryWrapper.addDapp(0, pool, YearnFilterWrapper.address);
+  }
+  for (const pool of (config.defi.yearn.wethPools)) {
+    console.log(`Adding filter for WETH Yearn pool ${pool}`);
+    await DappRegistryWrapper.addDapp(0, pool, WethYearnFilterWrapper.address);
+  }
+
+  // DSR
+  console.log("Deploying PotFilter");
+  const PotFilterWrapper = await PotFilter.new();
+  console.log(`Deployed PotFilter at ${PotFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.maker.pot, PotFilterWrapper.address);
+
+  console.log("Deploying DaiJoinFilter");
+  const DaiJoinFilterWrapper = await DaiJoinFilter.new();
+  console.log(`Deployed DaiJoinFilter at ${DaiJoinFilterWrapper.address}`);
+  const migration = await ScdMcdMigration.at(config.defi.maker.migration);
+  const daiJoin = await migration.daiJoin();
+  await DappRegistryWrapper.addDapp(0, daiJoin, DaiJoinFilterWrapper.address);
+
+  console.log("Deploying VatFilter");
+  const vat = await migration.vat();
+  const VatFilterWrapper = await VatFilter.new(daiJoin, config.defi.maker.pot);
+  console.log(`Deployed VatFilter at ${VatFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, vat, VatFilterWrapper.address);
+
+  // Setting timelock
+  console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);
+  await DappRegistryWrapper.requestTimelockChange(config.settings.timelockPeriod);
+  await DappRegistryWrapper.confirmTimelockChange();
+  console.log("Timelock changed.");
 
   // //////////////////////////////////
   // Deploy modules
@@ -209,6 +303,4 @@ const main = async () => {
 };
 
 // For truffle exec
-module.exports = function (callback) {
-  main().then(() => callback()).catch((err) => callback(err));
-};
+module.exports = (cb) => main().then(cb).catch(cb);

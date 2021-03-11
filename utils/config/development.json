@@ -1,7 +1,7 @@
 {
   "ENS": {
     "deployOwnRegistry": true,
-    "ensRegistry": "0xAcB736654547368c54F3A8B3d22E9AAD6820c828",
+    "ensRegistry": "0xDe2f00CCfEefAdD1Ecc87BE765cf46AC901A6AC8",
     "domain": "argent.xyz"
   },
   "backend": {
@@ -29,45 +29,97 @@
     "maker": {
       "deployOwn": true,
       "tub": "0x0000000000000000000000000000000000000000",
-      "pot": "0x0000000000000000000000000000000000000000",
+      "pot": "0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7",
       "jug": "0x0000000000000000000000000000000000000000",
-      "migration": "0xf695c7dd0EeDa4cC9167795Cbb0ca5139cC04555"
+      "migration": "0xF6aFcd935c28365CCe278Fed78b26Fe2BC9ae518"
     },
     "uniswap": {
       "deployOwn": true,
-      "factory": "0x60E7d8d59ebCF15cCa9f238A67379655BD812860",
-      "v2Router": "0x30E4659D445e29beB4626413Cd4239DF80C50156"
+      "factory": "0x027e4121d4675465E8029F09511D813c3476Ebf5",
+      "v2Router": "0xaa8751Df9FC4b9424831Fb361F0C14096FC0C204"
     },
     "compound": {
       "comptroller": "0x0000000000000000000000000000000000000000",
       "markets": {
-        "0x0000000000000000000000000000000000000000": "0x0000000000000000000000000000000000000000"
+        "0x6b175474e89094c44da98b954eedeac495271d0f": "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643"
       }
     },
     "paraswap": {
       "deployOwn": true,
-      "contract": "0x4b38ACFF6A4A3FD2D5A53B02b38654078c0Ba752",
+      "contract": "0xf42Fe9b8e2009be073f1AeDc57a72623AC4F3045",
       "authorisedExchanges": {
-        "Kyber": "0x47bdB2D7d6528C760b6f228b3B8F9F650169a10f"
+        "Kyber": "0xbCFC9461B73D7Fb423552d6cd594f406F7B0585D"
       }
+    },
+    "aave": { "contract": "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9" },
+    "balancer": {
+      "pools": [
+        "0x59a19d8c652fa0284f44113d0ff9aba70bd46fb4",
+        "0x1eff8af5d577060ba4ac8a29a13525bb0ee2a3d5",
+        "0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf",
+        "0x5b475f2cc362265ddf6a958f3519a35b305d2824",
+        "0xf54025af2dc86809be1153c1f20d77adb7e8ecf4",
+        "0xe036cce08cf4e23d33bc6b18e53caf532afa8513",
+        "0x72cd8f4504941bf8c5a21d1fd83a96499fd71d2c",
+        "0x454c1d458f9082252750ba42d60fae0887868a3b",
+        "0x9dde0b1d39d0d2c6589cde1bfed3542d2a3c5b11",
+        "0xb1f9ec02480dd9e16053b010dfc6e6c4b72ecad5",
+        "0xe867be952ee17d2d294f2de62b13b9f4af521e9a",
+        "0xe0e6b25b22173849668c85e06bc2ce1f69baff8c",
+        "0xe93e8aa4e88359dacf33c491cf5bd56eb6c110c1",
+        "0xee9a6009b926645d33e10ee5577e9c8d3c95c165",
+        "0xd3c8dcfcf2a5203f6a3210591dabea14e181db2d",
+        "0x9762c600a39bda3359f50a1fb1f90945cead379d",
+        "0x2e22a35a29f0ccafe8c6fb935f7d0269f706ea72",
+        "0xa5da8cc7167070b62fdcb332ef097a55a68d8824",
+        "0xf9ab7776c7baeed1d65f0492fe2bb3951a1787ef",
+        "0x9866772a9bdb4dc9d2c5a4753e8658b8b0ca1fc3",
+        "0x7c90a3cd7ec80dd2f633ed562480abbeed3be546",
+        "0x834fb8276b4e8a24010e2108fdd7f8417c8922bd",
+        "0x6b9887422e2a4ae11577f59ea9c01a6c998752e2",
+        "0xa0313dea2ed259edd2d95986cc9046d1a65f649b",
+        "0x5b18df96d3c8b9f1d1b9e38752498f92d1e2d490",
+        "0x41284a88d970d3552a26fae680692ed40b34010c",
+        "0x5e37910cfb8de1b14ec4e4bac0bec27c35dc07d5",
+        "0x57755f7dec33320bca83159c26e93751bfd30fbe",
+        "0xe010fcda8894c16a8acfef7b37741a760faeddc4"
+      ]
+    },
+    "yearn": {
+      "pools": [
+        "0x597aD1e0c13Bfe8025993D9e79C69E1c0233522e",
+        "0x5dbcF33D8c2E976c6b560249878e6F1491Bca25c",
+        "0x37d19d1c4E1fa9DC47bD1eA12f742a0887eDa74a",
+        "0xACd43E627e64355f1861cEC6d3a6688B31a6F952",
+        "0x2f08119C6f07c006695E079AAFc638b8789FAf18",
+        "0xBA2E7Fed597fd0E3e70f5130BcDbbFE06bB94fe1",
+        "0x2994529C0652D127b7842094103715ec5299bBed",
+        "0x7Ff566E1d69DEfF32a7b244aE7276b9f90e9D0f6",
+        "0x9cA85572E6A3EbF24dEDd195623F188735A5179f",
+        "0xec0d8D3ED5477106c6D4ea27D90a60e594693C90",
+        "0x629c759D1E83eFbF63d84eb3868B564d9521C129",
+        "0x881b06da56BB5675c54E4Ed311c21E54C5025298",
+        "0x29E240CFD7946BA20895a7a02eDb25C210f9f324"
+      ],
+      "wethPools": ["0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7"]
     }
   },
   "contracts": {
-    "MultiSigWallet": "0x13BdacF2fd86DE458022fA78f8632D594dE6D916",
-    "WalletFactory": "0x72BD4Bd2004999270c83bcdc59d6325Bf7DD55a4",
-    "ENSResolver": "0x3c574B30F493e585FB9054F0baB0d02CE1D4f42b",
-    "ENSManager": "0x419d56Fa63045e35B3D278a2CFb2f05D47DD0c34",
+    "MultiSigWallet": "0xACF05e2a9b757e70C2900432c9b4E08Fdc54dD53",
+    "WalletFactory": "0xFA64858C14345C0a3aD805E0da64900C4d7ec5e6",
+    "ENSResolver": "0x9a74f110586971345A396C74228094A04f5A5eA6",
+    "ENSManager": "0x49de73CaB6e369f1F97Def0b95b558cd77c5d6a2",
     "TokenPriceProvider": "0xE09C322B745434Fbb2D18c107c13795D4bDF3657",
-    "ModuleRegistry": "0x1cDdB4735C994336AdecE7361746f7808e0Ab648",
-    "BaseWallet": "0xdFc8050206A480F517E5D22b226b81051c0b1334",
+    "ModuleRegistry": "0x77D32f6f5F454Fa76f93859f49f9431CeA8c225F",
+    "BaseWallet": "0x439D0306A0EBD39771781AFB74c1Ae8De29E97Fa",
     "CompoundRegistry": "0x06362D9Cd157fd80d210360a269B56B4Eb9394b9",
     "MakerRegistry": "0x355d26E5f04255F60E910F1aA1251DE5D10996E8",
-    "DexRegistry": "0x54537c7A445372d8Cfdb880d4B3F85191986c6B4",
-    "DappRegistry": "0x03670D965e0E7ec5C3323510eb5A735a2814138D"
+    "DexRegistry": "0xFd6e1d4eaDbc80322F62e7148AD223596A005238",
+    "DappRegistry": "0xc21dc5A1b919088F308e0b02243Aaf64c060Dbd0"
   },
   "modules": {
-    "GuardianStorage": "0x00936F571dDD39E5DC13291b3e93C941A208998A",
-    "TransferStorage": "0x34E17AEF434165eDe54C6Fc8F5c8B1f879CACDd0",
+    "GuardianStorage": "0x49455287eBCC42a875B40724C62519D03e2EDcff",
+    "TransferStorage": "0xe5608e4945998aB5E4548Bc95b421E188095DA8E",
     "GuardianManager": "0x08238aD7707355dcC4A2f7819C00B0a22a4955C1",
     "LockManager": "0xD46123b08c56530A8e09bB65B4DFEfA72418e97B",
     "RecoveryManager": "0xef5C8Ae82202f2dAAE319A9b664Fc00074b565f4",
@@ -84,8 +136,8 @@
     "RelayerManager": "0x6F6BfF298e182882091B8D0FF40208d09aE96B62",
     "VersionManager": "0xA2a1ccaB58a416459576764881380408555f0fAf",
     "LockStorage": "0x80EaE59c5f92F9f65338bba4F26FFC8Ca2b6224A",
-    "TokenPriceRegistry": "0xd8CE1E76663A3B4FE5316964823072b408e7192E",
-    "ArgentModule": "0xaaF0CCef0C0C355Ee764B3d36bcCF257C527269B"
+    "TokenPriceRegistry": "0x85cd1F9550CdF662944bEc3E58021f8dbE6fE878",
+    "ArgentModule": "0x970e1d481CEDbeaeFE776275F0d1b4E1B301bB3b"
   },
-  "gitCommit": "dab3b32049108fe4cc3318f509ec56a3bda628e5"
+  "gitCommit": "f7e8b18cc8bcc5b2d85dc3dc5c1032f8c9b23d5e"
 }
