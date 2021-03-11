@@ -27,7 +27,7 @@ const SECURITY_WINDOW = 2;
 const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 
-const MAX_UINT = (new BN(2)).pow(new BN(256)) - 1;
+const MAX_UINT = (new BN(2)).pow(new BN(256)).sub(new BN(1));
 
 contract("ArgentModule", (accounts) => {
   const owner = accounts[1];
@@ -108,7 +108,7 @@ contract("ArgentModule", (accounts) => {
       const registryId = await helper.multiCallAuthorisation(wallet.address, transactions);
       assert.equal(registryId[0], 256, "should be 256 for trusted contacts");
       assert.equal(registryId[1], 0, "should be the correct registry");
-      assert.equal(registryId[2], MAX_UINT, "should be MAX_UINT when not trusted");
+      assert.isTrue(MAX_UINT.eq(registryId[2]), "should be MAX_UINT when not trusted");
     });
   });
 });
