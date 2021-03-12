@@ -1,6 +1,6 @@
 pragma solidity ^0.6.12;
-import "../lib/other/ERC20.sol";
-import "../lib/other/KyberNetwork.sol";
+import "../lib_0.5/other/ERC20.sol";
+import "../lib_0.5/other/KyberNetwork.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 // SPDX-License-Identifier: GPL-3.0-only

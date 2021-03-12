@@ -17,7 +17,7 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../../lib/paraswap/IAugustusSwapper.sol";
+import "../../lib_0.5/paraswap/V2/IAugustusSwapper.sol";
 
 /**
  * @title IDexRegistry
