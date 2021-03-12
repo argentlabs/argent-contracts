@@ -28,14 +28,6 @@ import "../../lib/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
-    // ERC20, ERC721 & ERC1155 transfers & approvals
-    bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
-    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
-    bytes4 private constant ERC721_TRANSFER_FROM = bytes4(keccak256("transferFrom(address,address,uint256)"));
-    bytes4 private constant ERC721_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256)"));
-    bytes4 private constant ERC721_SAFE_TRANSFER_FROM_BYTES = bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)"));
-    bytes4 private constant ERC721_SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
-    bytes4 private constant ERC1155_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes)"));
 
     // Static calls
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
@@ -85,10 +77,11 @@ abstract contract TransactionManager is BaseModule {
     {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
-            address spender = recoverSpender(_wallet, _transactions[i]);
+            address spender = Utils.recoverSpender(_wallet, _transactions[i].to, _transactions[i].data);
             require(
-                isWhitelisted(_wallet, spender) ||
-                authoriser.isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data), "TM: call not authorised");
+                (_transactions[i].value == 0 || spender == _transactions[i].to) &&
+                (isWhitelisted(_wallet, spender) || authoriser.isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data)),
+                "TM: call not authorised");
             results[i] = invokeWallet(_wallet, _transactions[i].to, _transactions[i].value, _transactions[i].data);
         }
         return results;
@@ -109,7 +102,7 @@ abstract contract TransactionManager is BaseModule {
         onlyWhenUnlocked(_wallet)
         returns (bytes[] memory)
     {
-        multiCallWithApproval(_wallet, _transactions);
+        return multiCallWithApproval(_wallet, _transactions);
     }
 
     /**
@@ -127,7 +120,7 @@ abstract contract TransactionManager is BaseModule {
         onlyWhenUnlocked(_wallet)
         returns (bytes[] memory)
     {
-        multiCallWithApproval(_wallet, _transactions);
+        return multiCallWithApproval(_wallet, _transactions);
     }
 
     /**
@@ -149,7 +142,7 @@ abstract contract TransactionManager is BaseModule {
         returns (bytes[] memory)
     {
         startSession(_wallet, _sessionUser, _duration);
-        multiCallWithApproval(_wallet, _transactions);
+        return multiCallWithApproval(_wallet, _transactions);
     }
 
     /**
@@ -279,31 +272,6 @@ abstract contract TransactionManager is BaseModule {
         uint64 expiry = SafeCast.toUint64(block.timestamp + _duration);
         sessions[_wallet] = Session(_sessionUser, expiry);
         emit SessionCreated(_wallet, _sessionUser, expiry);
-    }
-
-    function recoverSpender(address _wallet, Call calldata _transaction) internal pure returns (address) {
-        if(_transaction.data.length >= 4) {
-            bytes4 methodId;
-            bytes memory data = _transaction.data;
-            // solhint-disable-next-line no-inline-assembly
-            assembly {
-                methodId := mload(add(data, 0x20))
-            }
-            if(
-                methodId == ERC20_TRANSFER ||
-                methodId == ERC20_APPROVE ||
-                methodId == ERC721_TRANSFER_FROM ||
-                methodId == ERC721_SAFE_TRANSFER_FROM ||
-                methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
-                methodId == ERC721_SET_APPROVAL_FOR_ALL ||
-                methodId == ERC1155_SAFE_TRANSFER_FROM
-            ) {
-                require(_transaction.value == 0, "TM: unsecure call");
-                (address first, address second) = abi.decode(_transaction.data[4:], (address, address));
-                return first == _wallet ? second : first;
-            }
-        }
-        return _transaction.to;
     }
 
     function setWhitelist(address _wallet, address _target, uint256 _whitelistAfter) internal {

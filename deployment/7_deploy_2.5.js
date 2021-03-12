@@ -12,6 +12,7 @@ const BaseWallet = artifacts.require("BaseWallet");
 const WalletFactory = artifacts.require("WalletFactory");
 const DappRegistry = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
+const MultiCallHelper = artifacts.require("MultiCallHelper");
 
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
@@ -91,6 +92,10 @@ const main = async () => {
   console.log("Deployed DappRegistry at ", DappRegistryWrapper.address);
 
   await DappRegistryWrapper.addDapp(0, config.backend.refundCollector, ethers.constants.AddressZero);
+
+  // Deploy MultiCall Helper
+  const MultiCallHelperWrapper = await MultiCallHelper.new(config.modules.TransferStorage, DappRegistryWrapper.address);
+  console.log("Deployed MultiCallHelper at ", MultiCallHelperWrapper.address);
 
   // //////////////////////////////////
   // Deploy and add filters to Argent Registry
@@ -232,6 +237,7 @@ const main = async () => {
     WalletFactory: WalletFactoryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
     DappRegistry: DappRegistryWrapper.address,
+    MultiCallHelper: MultiCallHelperWrapper.address,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -246,6 +252,7 @@ const main = async () => {
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(DappRegistryWrapper, "contracts"),
+    abiUploader.upload(MultiCallHelperWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////
