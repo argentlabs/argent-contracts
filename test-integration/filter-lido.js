@@ -20,8 +20,8 @@ const LidoFilter = artifacts.require("LidoFilter");
 const ILido = artifacts.require("ILido");
 
 // UniswapV2
-const UniswapV2Factory = artifacts.require("UniswapV2Factory");
-const UniswapV2Router01 = artifacts.require("UniswapV2Router01");
+const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
+const UniswapV2Router01 = artifacts.require("UniswapV2Router01Mock");
 const WETH = artifacts.require("WETH9");
 
 const utils = require("../utils/utilities.js");
