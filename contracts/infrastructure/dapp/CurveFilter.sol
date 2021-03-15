@@ -18,17 +18,19 @@ pragma solidity ^0.6.12;
 
 import "./BaseFilter.sol";
 
-contract LidoFilter is BaseFilter {
-  bytes4 private constant SUBMIT = bytes4(keccak256("submit(address)"));
+contract CurveFilter is BaseFilter {
+  bytes4 private constant EXCHANGE = bytes4(keccak256("exchange(int128,int128,uint256,uint256)"));
+  bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
   function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
-    // Allow sending ETH as well as calls to submit(address)
-    if (_data.length == 0) {
-        return true;
+    if (_data.length < 4) {
+        return false;
     }
-    if(_spender == _to && _data.length >= 4) {
-      bytes4 methodId = getMethod(_data);
-      return (methodId == SUBMIT);
+    bytes4 methodId = getMethod(_data);
+    if(_spender == _to) {
+        return (methodId == EXCHANGE);
+    } else {
+        return (methodId == ERC20_APPROVE);
     }
   }
 }

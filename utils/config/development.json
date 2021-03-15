@@ -101,7 +101,10 @@
       ],
       "wethPools": ["0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7"]
     },
-    "lido": { "contract": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" }
+    "lido": { 
+      "contract": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+      "stETHCurvePool": "0xdc24316b9ae028f1497c275eb9192a3ea0f67022" 
+    }
   },
   "contracts": {
     "MultiSigWallet": "0xACF05e2a9b757e70C2900432c9b4E08Fdc54dD53",
