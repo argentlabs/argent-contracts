@@ -78,6 +78,15 @@
           "properties": {
             "tub": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "pot": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "jug": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "migration": {
+              "$ref": "#/definitions/ethaddress"
             }
           }
         },
@@ -96,6 +105,60 @@
           "type": "object",
           "properties": {
             "comptroller": {
+              "$ref": "#/definitions/ethaddress"
+            }
+          }
+        },
+        "paraswap": {
+          "type": "object",
+          "properties": {
+            "contract": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "authorisedExchanges": {
+              "type": "object",
+              "properties": {
+                "Kyber": {
+                  "$ref": "#/definitions/ethaddress"
+                }
+              }
+            }
+          }
+        },
+        "aave": {
+          "type": "object",
+          "properties": {
+            "contract": {
+              "$ref": "#/definitions/ethaddress"
+            }
+          }
+        },
+        "balancer": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "yearn": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            },
+            "wethpools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "lido": {
+          "type": "object",
+          "properties": {
+            "contract": {
               "$ref": "#/definitions/ethaddress"
             }
           }
