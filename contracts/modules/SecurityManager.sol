@@ -239,9 +239,9 @@ abstract contract SecurityManager is BaseModule {
         require(!_isOwner(_wallet, _guardian), "SM: guardian cannot be owner");
         require(!isGuardian(_wallet, _guardian), "SM: duplicate guardian");
         // Guardians must either be an EOA or a contract with an owner()
-        // method that returns an address with a 5000 gas stipend.
+        // method that returns an address with a 20000 gas stipend.
         // Note that this test is not meant to be strict and can be bypassed by custom malicious contracts.
-        (bool success,) = _guardian.call{gas: 5000}(abi.encodeWithSignature("owner()"));
+        (bool success,) = _guardian.call{gas: 20000}(abi.encodeWithSignature("owner()"));
         require(success, "SM: must be EOA/Argent wallet");
         if (guardianStorage.guardianCount(_wallet) == 0) {
             guardianStorage.addGuardian(_wallet, _guardian);
