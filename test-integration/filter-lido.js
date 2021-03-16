@@ -183,6 +183,7 @@ contract("Lido Filter", (accounts) => {
         0,
         ZERO_ADDRESS,
         ZERO_ADDRESS);
+      console.log("Gas to exchange stETH for ETH", txReceipt.gasUsed);
 
       const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isTrue(success, `exchange failed: "${error}"`);
@@ -197,6 +198,25 @@ contract("Lido Filter", (accounts) => {
       // Check only dust stETH left
       const walletBalance = await lido.balanceOf(wallet.address);
       expect(walletBalance).to.eq.BN(1);
+    });
+
+    it("should not allow exchanging ETH for stETH", async () => {
+      const data = curve.contract.methods.exchange(0, 1, 100, 95).encodeABI();
+      const transaction = encodeTransaction(curve.address, 100, data);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, [transaction]],
+        wallet,
+        [owner],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "TM: call not authorised");
     });
   });
 });

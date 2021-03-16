@@ -28,7 +28,7 @@ contract CurveFilter is BaseFilter {
     }
     bytes4 methodId = getMethod(_data);
     if(_spender == _to) {
-        return (methodId == EXCHANGE);
+        return (methodId == EXCHANGE && abi.decode(_data[4:], (int128)) == 1);
     } else {
         return (methodId == ERC20_APPROVE);
     }
