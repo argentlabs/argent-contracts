@@ -26,6 +26,8 @@ const DaiJoinFilter = artifacts.require("DaiJoinFilter");
 const VatFilter = artifacts.require("VatFilter");
 const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 const UniswapV2Filter = artifacts.require("UniswapV2UniZapFilter");
+const LidoFilter = artifacts.require("LidoFilter");
+const CurveFilter = artifacts.require("CurveFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -178,6 +180,17 @@ const main = async () => {
   const UniswapV2FilterWrapper = await UniswapV2Filter.new();
   console.log(`Deployed UniswapV2Filter at ${UniswapV2FilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.uniswap.unizap, UniswapV2FilterWrapper.address);
+
+  // Lido
+  console.log("Deploying LidoFilter");
+  const LidoFilterWrapper = await LidoFilter.new();
+  console.log(`Deployed LidoFilter at ${LidoFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.lido.contract, LidoFilterWrapper.address);
+  // Curve Pool for stETH -> ETH
+  console.log("Deploying CurveFilter");
+  const CurveFilterWrapper = await CurveFilter.new();
+  console.log(`Deployed CurveFilter at ${CurveFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.lido.stETHCurvePool, CurveFilterWrapper.address);
 
   // Setting timelock
   console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);

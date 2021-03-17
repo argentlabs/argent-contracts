@@ -182,6 +182,8 @@ const utilities = {
   // TODO: The web3 version packaged with truffle is 1.2.1 while the getChainId logic
   // we need here was introduced in 1.2.2
   // Uncomment when https://github.com/trufflesuite/truffle/issues/2688#issuecomment-709879003 is resolved
+  // NOTE: Although the above issue is resolve this is still blocking the truffle upgrade
+  // https://github.com/trufflesuite/ganache-cli/issues/702#issuecomment-723816610
   // const chainId = await web3.eth.getChainId();
   // console.log("chainId", chainId)
   // return chainId;

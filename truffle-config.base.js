@@ -88,6 +88,13 @@ module.exports = {
       gasPrice: _gasPrice,
     },
 
+    prodFork: {
+      host: "localhost",
+      port: 3601,
+      gasPrice: 0,
+      network_id: "1",
+    },
+
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
