@@ -163,6 +163,9 @@
           "properties": {
             "contract": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "stETHCurvePool": {
+              "$ref": "#/definitions/ethaddress"
             }
           }
         }
