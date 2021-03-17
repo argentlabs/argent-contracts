@@ -247,6 +247,8 @@ contract("ArgentModule", (accounts) => {
       assert.isTrue(success, "transfer failed");
       const balanceEnd = await utils.getBalance(wallet.address);
       expect(balanceEnd.sub(balanceStart)).to.be.lt.BN(0);
+
+      console.log("Gas for relaying an ERC20 transfer with refund in ETH:", txReceipt.gasUsed);
     });
 
     it("should refund in ERC20", async () => {
@@ -267,6 +269,8 @@ contract("ArgentModule", (accounts) => {
       assert.isTrue(success, "transfer failed");
       const balanceEnd = await token.balanceOf(relayer);
       expect(balanceEnd.sub(balanceStart)).to.be.gt.BN(0);
+
+      console.log("Gas for relaying an ETH transfer with refund in ERC20:", txReceipt.gasUsed);
     });
 
     it("should emit the Refund event", async () => {
