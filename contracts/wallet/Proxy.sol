@@ -24,7 +24,7 @@ pragma solidity ^0.6.12;
  */
 contract Proxy {
 
-    address implementation;
+    address immutable public implementation;
 
     event Received(uint indexed value, address indexed sender, bytes data);
 
@@ -33,9 +33,9 @@ contract Proxy {
     }
 
     fallback() external payable {
+        address target = implementation;
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            let target := sload(0)
             calldatacopy(0, 0, calldatasize())
             let result := delegatecall(gas(), target, 0, calldatasize(), 0, 0)
             returndatacopy(0, 0, returndatasize())

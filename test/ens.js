@@ -24,8 +24,10 @@ const { ETH_TOKEN, encodeTransaction } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 const WalletFactoryV16Contract = require("../build-legacy/v1.6.0/WalletFactory");
+const BaseWalletV16Contract = require("../build-legacy/v1.6.0/BaseWallet");
 
 const WalletFactoryV16 = TruffleContract(WalletFactoryV16Contract);
+const BaseWalletV16 = TruffleContract(BaseWalletV16Contract);
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -49,6 +51,8 @@ contract("ENS contracts", (accounts) => {
   before(async () => {
     WalletFactoryV16.defaults({ from: accounts[0] });
     WalletFactoryV16.setProvider(web3.currentProvider);
+    BaseWalletV16.defaults({ from: accounts[0] });
+    BaseWalletV16.setProvider(web3.currentProvider);
   });
 
   beforeEach(async () => {
@@ -358,7 +362,8 @@ contract("ENS contracts", (accounts) => {
     });
 
     it("should support registering ens for wallets created using the legacy wallet factory v1.6", async () => {
-      const factory = await WalletFactoryV16.new(registry.address, walletImplementation.address, ensManager.address);
+      const walletImpl = await BaseWalletV16.new();
+      const factory = await WalletFactoryV16.new(registry.address, walletImpl.address, ensManager.address);
       await factory.addManager(infrastructure);
       await ensManager.addManager(factory.address);
       const label = "wallet";
