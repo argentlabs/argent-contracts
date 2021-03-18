@@ -347,11 +347,13 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
             }
             uint256 refundAmount;
             if (_refundToken == ETH_TOKEN) {
-                uint256 gasConsumed = _startGas.sub(gasleft()).add(14000);
+                // 23k as an upper bound to cover the rest of refund logic
+                uint256 gasConsumed = _startGas.sub(gasleft()).add(23000);
                 refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tx.gasprice));
                 invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
             } else {
-                uint256 gasConsumed = _startGas.sub(gasleft()).add(28500);
+                // 37.5k as an upper bound to cover the rest of refund logic
+                uint256 gasConsumed = _startGas.sub(gasleft()).add(37500);
                 uint256 tokenGasPrice = inToken(_refundToken, tx.gasprice);
                 refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tokenGasPrice));
                 bytes memory methodData = abi.encodeWithSelector(ERC20.transfer.selector, refundAddress, refundAmount);

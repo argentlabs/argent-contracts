@@ -31,21 +31,21 @@ async function main() {
 
   // Deploy ArgentWalletDetector contract
   console.log("Deploying ArgentWalletDetector...");
-  const ArgentWalletDetectortWrapper = await ArgentWalletDetector.new(PROXYWALLET_CODEHASH, BASEWALLET_IMPL);
+  const ArgentWalletDetectorWrapper = await ArgentWalletDetector.new(PROXYWALLET_CODEHASH, BASEWALLET_IMPL);
 
   // Transfer ownership to the multisig
   console.log("Transferring ownership to the Multisig...");
-  await ArgentWalletDetectortWrapper.changeOwner(config.contracts.MultiSigWallet);
+  await ArgentWalletDetectorWrapper.changeOwner(config.contracts.MultiSigWallet);
 
   // Update config
   configurator.updateInfrastructureAddresses({
-    ArgentWalletDetector: ArgentWalletDetectortWrapper.contractAddress,
+    ArgentWalletDetector: ArgentWalletDetectorWrapper.contractAddress,
   });
   await configurator.save();
 
   // Upload ABI
   await Promise.all([
-    abiUploader.upload(ArgentWalletDetectortWrapper, "contracts"),
+    abiUploader.upload(ArgentWalletDetectorWrapper, "contracts"),
   ]);
 }
 

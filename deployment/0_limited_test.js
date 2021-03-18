@@ -30,7 +30,7 @@ async function main() {
   const stateValue = await testContractWrapper.state();
   expect(stateValue).to.eq.BN(99);
 
-  console.log("## completed deployment script 7 ##");
+  console.log("## completed deployment script 0 ##");
 }
 
 // For truffle exec

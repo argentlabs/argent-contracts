@@ -7,6 +7,7 @@ const ENSResolver = artifacts.require("ArgentENSResolver");
 const WalletFactory = artifacts.require("WalletFactory");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
+const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
 const deployManager = require("../utils/deploy-manager.js");
 
@@ -20,6 +21,7 @@ async function main() {
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
   const TokenPriceRegistryWrapper = await TokenPriceRegistry.at(config.modules.TokenPriceRegistry);
   const DexRegistryWrapper = await DexRegistry.at(config.contracts.DexRegistry);
+  const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
 
   // Configure DexRegistry
   const authorisedExchanges = Object.values(config.defi.paraswap.authorisedExchanges);
@@ -58,7 +60,8 @@ async function main() {
     WalletFactoryWrapper,
     ModuleRegistryWrapper,
     TokenPriceRegistryWrapper,
-    DexRegistryWrapper];
+    DexRegistryWrapper,
+    ArgentWalletDetectorWrapper];
 
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];

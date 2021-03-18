@@ -12,6 +12,7 @@ const ENS = artifacts.require("ENSRegistryWithFallback");
 const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const WalletFactory = artifacts.require("WalletFactory");
+const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
@@ -62,6 +63,10 @@ async function main() {
   const WalletFactoryWrapper = await WalletFactory.new(
     BaseWalletWrapper.address, GuardianStorageWrapper.address, prevConfig.backend.refundCollector);
 
+  // Deploy ArgentWalletDetector contract
+  console.log("Deploying ArgentWalletDetector...");
+  const ArgentWalletDetectorWrapper = await ArgentWalletDetector.new([], []);
+
   // /////////////////////////////////////////////////
   // Making ENSManager owner of the root wallet ENS
   // /////////////////////////////////////////////////
@@ -100,6 +105,7 @@ async function main() {
   configurator.updateInfrastructureAddresses({
     MultiSigWallet: MultiSigWrapper.address,
     WalletFactory: WalletFactoryWrapper.address,
+    ArgentWalletDetector: ArgentWalletDetectorWrapper.address,
     ENSResolver: ENSResolverWrapper.address,
     ENSManager: ENSManagerWrapper.address,
     ModuleRegistry: ModuleRegistryWrapper.address,
@@ -115,6 +121,7 @@ async function main() {
     abiUploader.upload(TokenPriceRegistryWrapper, "modules"),
     abiUploader.upload(MultiSigWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
+    abiUploader.upload(ArgentWalletDetectorWrapper, "contracts"),
     abiUploader.upload(ENSResolverWrapper, "contracts"),
     abiUploader.upload(ENSManagerWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),

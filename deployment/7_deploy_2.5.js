@@ -13,6 +13,8 @@ const WalletFactory = artifacts.require("WalletFactory");
 const DappRegistry = artifacts.require("DappRegistry");
 const Upgrader = artifacts.require("SimpleUpgrader");
 const MultiCallHelper = artifacts.require("MultiCallHelper");
+const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
+const Proxy = artifacts.require("Proxy");
 
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
@@ -70,7 +72,7 @@ const main = async () => {
   // //////////////////////////////////
 
   const { config } = configurator;
-
+  const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
@@ -82,6 +84,12 @@ const main = async () => {
   // Deploy new BaseWallet
   const BaseWalletWrapper = await BaseWallet.new();
   console.log("Deployed BaseWallet at ", BaseWalletWrapper.address);
+
+  console.log("Adding wallet code");
+  const proxyCode = ethers.utils.keccak256(Proxy.deployedBytecode);
+  await multisigExecutor.executeCall(ArgentWalletDetectorWrapper, "addCode", [proxyCode]);
+  console.log("Adding wallet implementation");
+  await multisigExecutor.executeCall(ArgentWalletDetectorWrapper, "addImplementation", [BaseWalletWrapper.address]);
 
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await WalletFactory.new(
@@ -215,6 +223,8 @@ const main = async () => {
     config.settings.securityWindow || 0,
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0);
+
+  console.log(`Deployed ArgentModule at ${ArgentModuleWrapper.address}`);
 
   newModuleWrappers.push(ArgentModuleWrapper);
 

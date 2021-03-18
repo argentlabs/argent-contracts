@@ -155,7 +155,7 @@ library Utils {
 
     /**
     * @notice Checks if an address is the owner of a guardian contract.
-    * The method does not revert if the call to the owner() method consumes more then 5000 gas.
+    * The method does not revert if the call to the owner() method consumes more then 25000 gas.
     * @param _guardian The guardian contract
     * @param _owner The owner to verify.
     */
@@ -167,7 +167,7 @@ library Utils {
         assembly {
             let ptr := mload(0x40)
             mstore(ptr,sig)
-            let result := staticcall(5000, _guardian, ptr, 0x20, ptr, 0x20)
+            let result := staticcall(25000, _guardian, ptr, 0x20, ptr, 0x20)
             if eq(result, 1) {
                 owner := mload(ptr)
             }
