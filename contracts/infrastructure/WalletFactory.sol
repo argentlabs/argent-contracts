@@ -241,7 +241,7 @@ contract WalletFactory is Managed {
     {
         bytes32 signedHash = keccak256(abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(_refundAmount, _refundToken))
+                keccak256(abi.encodePacked(_wallet, _refundAmount, _refundToken))
             ));
         address signer = Utils.recoverSigner(signedHash, _ownerSignature, 0);
         if (signer == _owner) {
