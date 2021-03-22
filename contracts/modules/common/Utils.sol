@@ -25,10 +25,10 @@ library Utils {
     // ERC20, ERC721 & ERC1155 transfers & approvals
     bytes4 private constant ERC20_TRANSFER = bytes4(keccak256("transfer(address,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
+    bytes4 private constant ERC721_SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
     bytes4 private constant ERC721_TRANSFER_FROM = bytes4(keccak256("transferFrom(address,address,uint256)"));
     bytes4 private constant ERC721_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256)"));
     bytes4 private constant ERC721_SAFE_TRANSFER_FROM_BYTES = bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)"));
-    bytes4 private constant ERC721_SET_APPROVAL_FOR_ALL = bytes4(keccak256("setApprovalForAll(address,bool)"));
     bytes4 private constant ERC1155_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes)"));
 
     /**
@@ -65,7 +65,7 @@ library Utils {
     * @param _to The target contract.
     * @param _data The data payload.
     */
-    function recoverSpender(address _wallet, address _to, bytes memory _data) internal pure returns (address) {
+    function recoverSpender(address _wallet, address _to, bytes memory _data) internal pure returns (address spender) {
         if(_data.length >= 68) {
             bytes4 methodId;
             // solhint-disable-next-line no-inline-assembly
@@ -75,23 +75,29 @@ library Utils {
             if(
                 methodId == ERC20_TRANSFER ||
                 methodId == ERC20_APPROVE ||
+                methodId == ERC721_SET_APPROVAL_FOR_ALL) 
+            {
+                // solhint-disable-next-line no-inline-assembly
+                assembly {
+                    spender := mload(add(_data, 0x24))
+                }
+                return spender;
+            }
+            if(
                 methodId == ERC721_TRANSFER_FROM ||
                 methodId == ERC721_SAFE_TRANSFER_FROM ||
                 methodId == ERC721_SAFE_TRANSFER_FROM_BYTES ||
-                methodId == ERC721_SET_APPROVAL_FOR_ALL ||
-                methodId == ERC1155_SAFE_TRANSFER_FROM) 
+                methodId == ERC1155_SAFE_TRANSFER_FROM)
             {
-                address first;
-                address second;
                 // solhint-disable-next-line no-inline-assembly
                 assembly {
-                    first := mload(add(_data, 0x24))
-                    second := mload(add(_data, 0x44))
+                    spender := mload(add(_data, 0x44))
                 }
-                return first == _wallet ? second : first;
+                return spender;
             }
         }
-        return _to;
+
+        spender = _to;
     }
 
     /**

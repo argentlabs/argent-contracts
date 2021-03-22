@@ -131,7 +131,6 @@ contract("ArgentModule", (accounts) => {
         relayer);
       const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isTrue(success, `sending ETH failed with "${error}"`);
-      console.log({ gas: txReceipt.gasUsed.toString() });
       after = await utils.getBalance(wallet.address);
       expect(after.sub(before)).to.lt.BN(0);
     });
