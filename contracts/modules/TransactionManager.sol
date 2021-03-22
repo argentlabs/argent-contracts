@@ -149,7 +149,7 @@ abstract contract TransactionManager is BaseModule {
     * @notice Clears the active session of a wallet if any.
     * @param _wallet The target wallet.
     */
-    function clearSession(address _wallet) external onlyWalletOwnerOrSelf(_wallet) {
+    function clearSession(address _wallet) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
         emit SessionCleared(_wallet, sessions[_wallet].key);
         _clearSession(_wallet);
     }
@@ -197,7 +197,7 @@ abstract contract TransactionManager is BaseModule {
     * are not available by default for these versions of BaseWallet
     * @param _wallet The target wallet.
     */
-    function enableERC1155TokenReceiver(address _wallet) external onlyWalletOwnerOrSelf(_wallet) {
+    function enableERC1155TokenReceiver(address _wallet) external onlyWalletOwnerOrSelf(_wallet) onlyWhenUnlocked(_wallet) {
         IWallet(_wallet).enableStaticCall(address(this), ERC165_INTERFACE);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_RECEIVED);
         IWallet(_wallet).enableStaticCall(address(this), ERC1155_BATCH_RECEIVED);
