@@ -404,7 +404,7 @@ contract("Authorisation", (accounts) => {
         dappRegistry.addDapp(66, contract2.address, filter.address, { from: nonwhitelisted }), "DR: unknown registry"
       );
     });
-    it("should allow registry owner to remove a dapp", async () => {
+    it("should allow registry owner to remove a dapp (no pending filter update)", async () => {
       await truffleAssert.reverts(
         dappRegistry.removeDapp(0, contract2.address, { from: infrastructure }), "DR: unknown dapp"
       );
@@ -412,6 +412,15 @@ contract("Authorisation", (accounts) => {
       await dappRegistry.removeDapp(0, contract2.address, { from: infrastructure });
       const { validAfter } = await dappRegistry.getAuthorisation(0, contract2.address);
       assert.equal(validAfter.toNumber(), 0);
+    });
+    it("should allow registry owner to remove a dapp (with pending filter update)", async () => {
+      await dappRegistry.addDapp(0, contract2.address, ZERO_ADDRESS, { from: infrastructure });
+      await dappRegistry.requestFilterUpdate(0, contract2.address, filter2.address, { from: infrastructure });
+      await dappRegistry.removeDapp(0, contract2.address, { from: infrastructure });
+      const { validAfter } = await dappRegistry.getAuthorisation(0, contract2.address);
+      assert.equal(validAfter.toNumber(), 0);
+      const pendingAuth = await dappRegistry.pendingFilterUpdates(0, contract2.address);
+      assert.equal(pendingAuth, 0);
     });
   });
 

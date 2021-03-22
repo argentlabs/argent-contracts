@@ -206,6 +206,9 @@ contract DappRegistry is IAuthoriser {
     function removeDapp(uint8 _registryId, address _dapp) external onlyOwner(_registryId) {
         require(authorisations[_registryId][_dapp] != bytes32(0), "DR: unknown dapp");
         delete authorisations[_registryId][_dapp];
+        if(pendingFilterUpdates[_registryId][_dapp] != bytes32(0)) {
+            delete pendingFilterUpdates[_registryId][_dapp];
+        }
         emit DappRemoved(_registryId, _dapp);
     }
 
