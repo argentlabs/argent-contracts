@@ -92,13 +92,14 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
         external
         returns (bool)
     {
-        require(!_isLocked(_wallet) || _gasPrice == 0, "RM: Locked wallet refund");
-
         // initial gas = 21k + non_zero_bytes * 16 + zero_bytes * 4
         //            ~= 21k + calldata.length * [1/3 * 16 + 2/3 * 4]
         uint256 startGas = gasleft() + 21000 + msg.data.length * 8;
         require(startGas >= _gasLimit, "RM: not enough gas provided");
         require(verifyData(_wallet, _data), "RM: Target of _data != _wallet");
+
+        require(!_isLocked(_wallet) || _gasPrice == 0, "RM: Locked wallet refund");
+
         StackExtension memory stack;
         (stack.requiredSignatures, stack.ownerSignatureRequirement) = getRequiredSignatures(_wallet, _data);
 
