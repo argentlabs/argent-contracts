@@ -40,6 +40,7 @@ contract("ArgentModule", (accounts) => {
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const guardian = accounts[2];
   const recipient = accounts[4];
   const relayer = accounts[9];
 
@@ -320,6 +321,37 @@ contract("ArgentModule", (accounts) => {
           token.address,
           relayer)
       );
+    });
+
+    it("should fail when wallet is locked", async () => {
+      await module.addGuardian(wallet.address, guardian, { from: owner });
+      await module.lock(wallet.address, { from: guardian });
+      await truffleAssert.reverts(
+        manager.relay(
+          module,
+          "multiCall",
+          [wallet.address, []],
+          wallet,
+          [owner],
+          1,
+          ETH_TOKEN,
+          relayer),
+        "RM: Locked wallet refund"
+      );
+    });
+
+    it("should succeed when wallet is locked and refund is 0", async () => {
+      await module.addGuardian(wallet.address, guardian, { from: owner });
+      await module.lock(wallet.address, { from: guardian });
+
+      const txReceipt = await manager.relay(
+        module,
+        "revokeGuardian",
+        [wallet.address, guardian],
+        wallet,
+        [owner]);
+      const { success } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success);
     });
   });
 });
