@@ -76,13 +76,7 @@
         "maker": {
           "type": "object",
           "properties": {
-            "tub": {
-              "$ref": "#/definitions/ethaddress"
-            },
             "pot": {
-              "$ref": "#/definitions/ethaddress"
-            },
-            "jug": {
               "$ref": "#/definitions/ethaddress"
             },
             "migration": {
@@ -119,12 +113,7 @@
               "$ref": "#/definitions/ethaddress"
             },
             "authorisedExchanges": {
-              "type": "object",
-              "properties": {
-                "Kyber": {
-                  "$ref": "#/definitions/ethaddress"
-                }
-              }
+              "type": "object"
             }
           }
         },
