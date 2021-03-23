@@ -86,8 +86,16 @@ contract("ArgentModule", (accounts) => {
       transactions.push(encodeTransaction(trustedContact, 10, ZERO_BYTES));
       transactions.push(encodeTransaction(authorisedDapp, 10, ZERO_BYTES));
 
-      const success = await helper.isMultiCallAuthorised(wallet.address, transactions);
-      assert.isTrue(success);
+      const authorised = await helper.isMultiCallAuthorised(wallet.address, transactions);
+      assert.isTrue(authorised);
+    });
+
+    it("should return true when the multicall is authorised for 0 address wallet", async () => {
+      const transactions = [];
+      transactions.push(encodeTransaction(authorisedDapp, 10, ZERO_BYTES));
+
+      const authorised = await helper.isMultiCallAuthorised(ZERO_ADDRESS, transactions);
+      assert.isTrue(authorised);
     });
 
     it("should return false when the multicall is not authorised", async () => {
@@ -95,8 +103,8 @@ contract("ArgentModule", (accounts) => {
       transactions.push(encodeTransaction(trustedContact, 10, ZERO_BYTES));
       transactions.push(encodeTransaction(unknownAddress, 10, ZERO_BYTES));
 
-      const success = await helper.isMultiCallAuthorised(wallet.address, transactions);
-      assert.isFalse(success);
+      const authorised = await helper.isMultiCallAuthorised(wallet.address, transactions);
+      assert.isFalse(authorised);
     });
 
     it("should return the correct registry ID", async () => {

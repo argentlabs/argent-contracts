@@ -252,6 +252,37 @@ contract("ArgentModule sessions", (accounts) => {
         ZERO_ADDRESS,
         ZERO_ADDRESS), "RM: Invalid signatures");
     });
+
+    it("should not be able to clear a session when wallet is locked", async () => {
+      // Start a session for sessionUser with duration 1000s
+      await manager.relay(
+        module,
+        "multiCallWithGuardiansAndStartSession",
+        [wallet.address, [], sessionUser, 1000],
+        wallet,
+        [owner, guardian1],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+
+      // Lock wallet
+      await module.lock(wallet.address, { from: guardian1 });
+
+      // owner clears the session
+      const txReceipt = await manager.relay(
+        module,
+        "clearSession",
+        [wallet.address],
+        wallet,
+        [owner],
+        0,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isFalse(success);
+      assert.equal(error, "BM: wallet locked");
+    });
   });
 
   describe("approved transfer (without using a session)", () => {

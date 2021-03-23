@@ -70,8 +70,9 @@ contract("WalletFactory", (accounts) => {
     modules = [module.address];
   });
 
-  async function signRefund(amount, token, signer) {
+  async function signRefund(wallet, amount, token, signer) {
     const message = `0x${[
+      wallet,
       ethers.utils.hexZeroPad(ethers.utils.hexlify(amount), 32),
       token,
     ].map((hex) => hex.slice(2)).join("")}`;
@@ -208,7 +209,7 @@ contract("WalletFactory", (accounts) => {
       // We send ETH to the address
       await web3.eth.sendTransaction({ from: infrastructure, to: futureAddr, value: refundAmount });
       // we get the owner signature for the refund
-      const ownerSig = await signRefund(refundAmount, ETH_TOKEN, owner);
+      const ownerSig = await signRefund(futureAddr, refundAmount, ETH_TOKEN, owner);
       // we create the wallet
       const balanceBefore = await utils.getBalance(refundAddress);
       const tx = await factory.createCounterfactualWallet(
@@ -234,7 +235,7 @@ contract("WalletFactory", (accounts) => {
       // We create an ERC20 token and give some to the wallet
       const token = await ERC20.new([infrastructure, futureAddr], 10000000, 12);
       // we get the owner signature for the refund
-      const ownerSig = await signRefund(refundAmount, token.address, owner);
+      const ownerSig = await signRefund(futureAddr, refundAmount, token.address, owner);
       // we create the wallet
       const balanceBefore = await token.balanceOf(refundAddress);
       const tx = await factory.createCounterfactualWallet(
@@ -261,7 +262,7 @@ contract("WalletFactory", (accounts) => {
       // We send ETH to the address
       await web3.eth.sendTransaction({ from: infrastructure, to: futureAddr, value: refundAmount });
       // we get the owner signature for the refund
-      const ownerSig = await signRefund(refundAmount, ETH_TOKEN, owner);
+      const ownerSig = await signRefund(futureAddr, refundAmount, ETH_TOKEN, owner);
       // we create the wallet
       const balanceBefore = await utils.getBalance(refundAddress);
       const tx = await factory.createCounterfactualWallet(
@@ -284,7 +285,7 @@ contract("WalletFactory", (accounts) => {
       // We send ETH to the address
       await web3.eth.sendTransaction({ from: infrastructure, to: futureAddr, value: refundAmount });
       // we get the owner signature for the refund
-      const otherSig = await signRefund(refundAmount, ETH_TOKEN, other);
+      const otherSig = await signRefund(futureAddr, refundAmount, ETH_TOKEN, other);
       // we create the wallet
       const balanceBefore = await utils.getBalance(refundAddress);
       const tx = await factory.createCounterfactualWallet(
@@ -295,7 +296,31 @@ contract("WalletFactory", (accounts) => {
       const balanceAfter = await utils.getBalance(refundAddress);
       // we test that the wallet is at the correct address
       assert.equal(futureAddr, walletAddr, "should have the correct address");
-      // we test that the creation was refunded
+      // we test that the creation was not refunded
+      assert.equal(balanceAfter.sub(balanceBefore), 0, "should not have refunded");
+    });
+
+    it("should create but not refund when a replayed owner signature is provided", async () => {
+      const refundAmount = 1000;
+      // Create the signature for the first wallet with owner account
+      const salt1 = generateSaltValue();
+      const futureAddr1 = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt1);
+      const ownerSig = await signRefund(futureAddr1, refundAmount, ETH_TOKEN, owner);
+
+      // Create a second wallet with the same ownerSig
+      const salt2 = generateSaltValue();
+      const futureAddr2 = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt2);
+      await web3.eth.sendTransaction({ from: infrastructure, to: futureAddr2, value: refundAmount });
+
+      const balanceBefore = await utils.getBalance(refundAddress);
+      const tx2 = await factory.createCounterfactualWallet(
+        owner, modules, guardian, salt2, refundAmount, ETH_TOKEN, ownerSig, "0x",
+      );
+      const event = await utils.getEvent(tx2.receipt, factory, "WalletCreated");
+      const walletAddr = event.args.wallet;
+      assert.equal(futureAddr2, walletAddr, "should have the correct address");
+      const balanceAfter = await utils.getBalance(refundAddress);
+      // we test that the creation was not refunded
       assert.equal(balanceAfter.sub(balanceBefore), 0, "should not have refunded");
     });
 
@@ -325,7 +350,7 @@ contract("WalletFactory", (accounts) => {
       await web3.eth.sendTransaction({ from: infrastructure, to: futureAddr, value: 900 });
 
       // we get the owner signature for a refund
-      const ownerSig = await signRefund(refundAmount, ETH_TOKEN, owner);
+      const ownerSig = await signRefund(futureAddr, refundAmount, ETH_TOKEN, owner);
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(owner, modules, guardian, salt, refundAmount, ETH_TOKEN, ownerSig, "0x")
       );

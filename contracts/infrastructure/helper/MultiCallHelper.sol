@@ -59,7 +59,7 @@ contract MultiCallHelper {
      */
     function isMultiCallAuthorised(address _wallet, Call[] calldata _transactions) external view returns (bool) {
         for(uint i = 0; i < _transactions.length; i++) {
-            address spender = Utils.recoverSpender(_wallet, _transactions[i].to, _transactions[i].data);
+            address spender = Utils.recoverSpender(_transactions[i].to, _transactions[i].data);
             if (
                 (spender != _transactions[i].to && _transactions[i].value != 0) ||
                 (!isWhitelisted(_wallet, spender) && isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data) == MAX_UINT)
@@ -82,7 +82,7 @@ contract MultiCallHelper {
     function multiCallAuthorisation(address _wallet, Call[] calldata _transactions) external view returns (uint256[] memory registryIds) {
         registryIds = new uint256[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
-            address spender = Utils.recoverSpender(_wallet, _transactions[i].to, _transactions[i].data);
+            address spender = Utils.recoverSpender(_transactions[i].to, _transactions[i].data);
             if (spender != _transactions[i].to && _transactions[i].value != 0) {
                 registryIds[i] = MAX_UINT;
             } else if (isWhitelisted(_wallet, spender)) {
