@@ -31,6 +31,7 @@ library Utils {
     bytes4 private constant ERC721_SAFE_TRANSFER_FROM_BYTES = bytes4(keccak256("safeTransferFrom(address,address,uint256,bytes)"));
     bytes4 private constant ERC1155_SAFE_TRANSFER_FROM = bytes4(keccak256("safeTransferFrom(address,address,uint256,uint256,bytes)"));
 
+    bytes4 private constant OWNER_SIG = 0x8da5cb5b;
     /**
     * @notice Helper method to recover the signer at a given position from a list of concatenated signatures.
     * @param _signedHash The signed hash
@@ -166,12 +167,11 @@ library Utils {
     */
     function isGuardianOwner(address _guardian, address _owner) internal view returns (bool) {
         address owner = address(0);
-        bytes4 sig = bytes4(keccak256("owner()"));
 
         // solhint-disable-next-line no-inline-assembly
         assembly {
             let ptr := mload(0x40)
-            mstore(ptr,sig)
+            mstore(ptr,OWNER_SIG)
             let result := staticcall(25000, _guardian, ptr, 0x20, ptr, 0x20)
             if eq(result, 1) {
                 owner := mload(ptr)
