@@ -5,7 +5,6 @@ const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { expect } = chai;
 chai.use(bnChai(BN));
 
 // Argent
@@ -122,7 +121,7 @@ contract("Lido Filter", (accounts) => {
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const walletBalance = await lido.balanceOf(wallet.address);
-      expect(walletBalance).to.eq.BN(99);
+      assert.closeTo(walletBalance.toNumber(), 99, 1);
     });
 
     it("should allow staking from wallet via submit", async () => {
@@ -143,7 +142,7 @@ contract("Lido Filter", (accounts) => {
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const walletBalance = await lido.balanceOf(wallet.address);
-      expect(walletBalance).to.eq.BN(99);
+      assert.closeTo(walletBalance.toNumber(), 99, 1);
     });
   });
 
@@ -169,7 +168,7 @@ contract("Lido Filter", (accounts) => {
       let data = lido.contract.methods.approve(curve.address, 99).encodeABI();
       let transaction = encodeTransaction(lido.address, 0, data);
       transactions.push(transaction);
-      data = curve.contract.methods.exchange(1, 0, 99, 95).encodeABI();
+      data = curve.contract.methods.exchange(1, 0, 99, 1).encodeABI();
       transaction = encodeTransaction(curve.address, 0, data);
       transactions.push(transaction);
 
@@ -197,7 +196,7 @@ contract("Lido Filter", (accounts) => {
 
       // Check only dust stETH left
       const walletBalance = await lido.balanceOf(wallet.address);
-      expect(walletBalance).to.eq.BN(1);
+      assert.closeTo(walletBalance.toNumber(), 1, 1);
     });
 
     it("should not allow exchanging ETH for stETH", async () => {
