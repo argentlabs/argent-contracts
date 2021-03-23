@@ -76,7 +76,10 @@
         "maker": {
           "type": "object",
           "properties": {
-            "tub": {
+            "pot": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "migration": {
               "$ref": "#/definitions/ethaddress"
             }
           }
@@ -89,6 +92,9 @@
             },
             "v2Router": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "unizap": {
+              "$ref": "#/definitions/ethaddress"
             }
           }
         },
@@ -96,6 +102,58 @@
           "type": "object",
           "properties": {
             "comptroller": {
+              "$ref": "#/definitions/ethaddress"
+            }
+          }
+        },
+        "paraswap": {
+          "type": "object",
+          "properties": {
+            "contract": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "authorisedExchanges": {
+              "type": "object"
+            }
+          }
+        },
+        "aave": {
+          "type": "object",
+          "properties": {
+            "contract": {
+              "$ref": "#/definitions/ethaddress"
+            }
+          }
+        },
+        "balancer": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "yearn": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            },
+            "wethpools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "lido": {
+          "type": "object",
+          "properties": {
+            "contract": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "stETHCurvePool": {
               "$ref": "#/definitions/ethaddress"
             }
           }

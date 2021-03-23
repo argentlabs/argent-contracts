@@ -23,7 +23,7 @@ const HDWalletProvider = require("@truffle/hdwallet-provider");
 // const deployManager = require("./utils/deploy-manager.js");
 
 const _gasPrice = process.env.DEPLOYER_GAS_PRICE || 20000000000;
-const _gasLimit = 6000000;
+const _gasLimit = 8000000;
 
 function getKeys() {
   // NOTE: While https://github.com/trufflesuite/truffle/issues/1054 is implemented we are using a temporary fix

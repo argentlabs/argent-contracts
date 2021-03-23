@@ -62,7 +62,7 @@ const MODULES_TO_DISABLE = [
 const BACKWARD_COMPATIBILITY = 5;
 
 const main = async () => {
-  const { deploymentAccount, configurator, versionUploader, abiUploader } = await deployManager.getProps();
+  const { deploymentAccount, configurator, versionUploader, abiUploader, network } = await deployManager.getProps();
 
   const newModuleWrappers = [];
   const newVersion = {};
@@ -133,35 +133,49 @@ const main = async () => {
   const AugustusSwapperWrapper = await IAugustusSwapper.at(config.defi.paraswap.contract);
   await DappRegistryWrapper.addDapp(0, await AugustusSwapperWrapper.getTokenTransferProxy(), OnlyApproveFilterWrapper.address);
 
-  // AaveV2
-  console.log("Deploying AaveV2Filter");
-  const AaveV2FilterWrapper = await AaveV2Filter.new();
-  console.log(`Deployed AaveV2Filter at ${AaveV2FilterWrapper.address}`);
-  await DappRegistryWrapper.addDapp(0, config.defi.aave.contract, AaveV2FilterWrapper.address);
+  // The following filters can't be setup on Ropsten due to tha lack of integrations
+  if (network !== "test") {
+    // AaveV2
+    console.log("Deploying AaveV2Filter");
+    const AaveV2FilterWrapper = await AaveV2Filter.new();
+    console.log(`Deployed AaveV2Filter at ${AaveV2FilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.aave.contract, AaveV2FilterWrapper.address);
 
-  // Balancer
-  console.log("Deploying BalancerFilter");
-  const BalancerFilterWrapper = await BalancerFilter.new();
-  console.log(`Deployed BalancerFilter at ${BalancerFilterWrapper.address}`);
-  for (const pool of (config.defi.balancer.pools)) {
-    console.log(`Adding filter for Balancer pool ${pool}`);
-    await DappRegistryWrapper.addDapp(0, pool, BalancerFilterWrapper.address);
-  }
+    // Balancer
+    console.log("Deploying BalancerFilter");
+    const BalancerFilterWrapper = await BalancerFilter.new();
+    console.log(`Deployed BalancerFilter at ${BalancerFilterWrapper.address}`);
+    for (const pool of (config.defi.balancer.pools)) {
+      console.log(`Adding filter for Balancer pool ${pool}`);
+      await DappRegistryWrapper.addDapp(0, pool, BalancerFilterWrapper.address);
+    }
 
-  // yEarn
-  console.log("Deploying YearnFilter (isWeth=false)");
-  const YearnFilterWrapper = await YearnFilter.new(false);
-  console.log(`Deployed YearnFilter (isWeth=false) at ${YearnFilterWrapper.address}`);
-  console.log("Deploying YearnFilter (isWeth=true)");
-  const WethYearnFilterWrapper = await YearnFilter.new(true);
-  console.log(`Deployed YearnFilter (isWeth=true) at ${WethYearnFilterWrapper.address}`);
-  for (const pool of (config.defi.yearn.pools)) {
-    console.log(`Adding filter for Yearn pool ${pool}`);
-    await DappRegistryWrapper.addDapp(0, pool, YearnFilterWrapper.address);
-  }
-  for (const pool of (config.defi.yearn.wethPools)) {
-    console.log(`Adding filter for WETH Yearn pool ${pool}`);
-    await DappRegistryWrapper.addDapp(0, pool, WethYearnFilterWrapper.address);
+    // yEarn
+    console.log("Deploying YearnFilter (isWeth=false)");
+    const YearnFilterWrapper = await YearnFilter.new(false);
+    console.log(`Deployed YearnFilter (isWeth=false) at ${YearnFilterWrapper.address}`);
+    console.log("Deploying YearnFilter (isWeth=true)");
+    const WethYearnFilterWrapper = await YearnFilter.new(true);
+    console.log(`Deployed YearnFilter (isWeth=true) at ${WethYearnFilterWrapper.address}`);
+    for (const pool of (config.defi.yearn.pools)) {
+      console.log(`Adding filter for Yearn pool ${pool}`);
+      await DappRegistryWrapper.addDapp(0, pool, YearnFilterWrapper.address);
+    }
+    for (const pool of (config.defi.yearn.wethPools)) {
+      console.log(`Adding filter for WETH Yearn pool ${pool}`);
+      await DappRegistryWrapper.addDapp(0, pool, WethYearnFilterWrapper.address);
+    }
+
+    // Lido
+    console.log("Deploying LidoFilter");
+    const LidoFilterWrapper = await LidoFilter.new();
+    console.log(`Deployed LidoFilter at ${LidoFilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.lido.contract, LidoFilterWrapper.address);
+    // Curve Pool for stETH -> ETH
+    console.log("Deploying CurveFilter");
+    const CurveFilterWrapper = await CurveFilter.new();
+    console.log(`Deployed CurveFilter at ${CurveFilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.lido.stETHCurvePool, CurveFilterWrapper.address);
   }
 
   // DSR
@@ -188,17 +202,6 @@ const main = async () => {
   const UniswapV2FilterWrapper = await UniswapV2Filter.new();
   console.log(`Deployed UniswapV2Filter at ${UniswapV2FilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.uniswap.unizap, UniswapV2FilterWrapper.address);
-
-  // Lido
-  console.log("Deploying LidoFilter");
-  const LidoFilterWrapper = await LidoFilter.new();
-  console.log(`Deployed LidoFilter at ${LidoFilterWrapper.address}`);
-  await DappRegistryWrapper.addDapp(0, config.defi.lido.contract, LidoFilterWrapper.address);
-  // Curve Pool for stETH -> ETH
-  console.log("Deploying CurveFilter");
-  const CurveFilterWrapper = await CurveFilter.new();
-  console.log(`Deployed CurveFilter at ${CurveFilterWrapper.address}`);
-  await DappRegistryWrapper.addDapp(0, config.defi.lido.stETHCurvePool, CurveFilterWrapper.address);
 
   // Setting timelock
   console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);
