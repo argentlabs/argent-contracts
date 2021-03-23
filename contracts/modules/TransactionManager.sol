@@ -77,7 +77,7 @@ abstract contract TransactionManager is BaseModule {
     {
         bytes[] memory results = new bytes[](_transactions.length);
         for(uint i = 0; i < _transactions.length; i++) {
-            address spender = Utils.recoverSpender(_wallet, _transactions[i].to, _transactions[i].data);
+            address spender = Utils.recoverSpender(_transactions[i].to, _transactions[i].data);
             require(
                 (_transactions[i].value == 0 || spender == _transactions[i].to) &&
                 (isWhitelisted(_wallet, spender) || authoriser.isAuthorised(_wallet, spender, _transactions[i].to, _transactions[i].data)),

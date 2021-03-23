@@ -61,11 +61,10 @@ library Utils {
     * @notice Helper method to recover the spender from a contract call. 
     * The method returns the contract unless the call is to a standard method of a ERC20/ERC721/ERC1155 token
     * in which case the spender is recovered from the data.
-    * @param _wallet The calling wallet.
     * @param _to The target contract.
     * @param _data The data payload.
     */
-    function recoverSpender(address _wallet, address _to, bytes memory _data) internal pure returns (address spender) {
+    function recoverSpender(address _to, bytes memory _data) internal pure returns (address spender) {
         if(_data.length >= 68) {
             bytes4 methodId;
             // solhint-disable-next-line no-inline-assembly
