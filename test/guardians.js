@@ -257,6 +257,22 @@ contract("GuardianManager", (accounts) => {
       assert.equal(count, 1, "the revoked guardian should be removed after the security period");
     });
 
+    it("should revoke a guardian (relayed tx)", async () => {
+      await manager.relay(module, "revokeGuardian", [wallet.address, guardian1], wallet, [owner]);
+      let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
+      let active = await module.isGuardian(wallet.address, guardian1);
+      assert.isTrue(active, "the revoked guardian should still be active during the security period");
+      assert.equal(count, 2, "the revoked guardian should go through a security period");
+
+      await utils.increaseTime(30);
+      await manager.relay(module, "confirmGuardianRevokation", [wallet.address, guardian1], wallet, []);
+
+      count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
+      active = await module.isGuardian(wallet.address, guardian1);
+      assert.isFalse(active, "the revoked guardian should no longer be active after the security period");
+      assert.equal(count, 1, "the revoked guardian should be removed after the security period");
+    });
+
     it("should not be able to revoke a nonexistent guardian", async () => {
       await truffleAssert.reverts(module.revokeGuardian(wallet.address, nonowner, { from: owner }),
         "SM: must be existing guardian");
@@ -356,8 +372,16 @@ contract("GuardianManager", (accounts) => {
         "SM: unknown pending addition");
     });
 
+    it("owner should be able to cancel pending revokation of guardian (relayed)", async () => {
+      await module.revokeGuardian(wallet.address, guardian1, { from: owner });
+      await manager.relay(module, "cancelGuardianRevokation", [wallet.address, guardian1], wallet, [owner]);
+
+      await utils.increaseTime(30);
+      await truffleAssert.reverts(module.confirmGuardianRevokation(wallet.address, guardian1),
+        "SM: unknown pending revoke");
+    });
+
     it("owner should be able to cancel pending revokation of guardian", async () => {
-      // Revoke guardian 1 and cancel its revokation
       await module.revokeGuardian(wallet.address, guardian1, { from: owner });
       await module.cancelGuardianRevokation(wallet.address, guardian1, { from: owner });
       await utils.increaseTime(30);
