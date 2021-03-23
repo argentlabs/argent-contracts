@@ -192,7 +192,7 @@ contract("Lido Filter", (accounts) => {
       assert.closeTo(new BN(event.args.tokens_bought).toNumber(), new BN(96).toNumber(), 1); // Got ETH
       // Check ETH was received
       const after = await utils.getBalance(wallet.address);
-      assert.closeTo(after.sub(before).toNumber(), 96, 1);
+      assert.closeTo(after.sub(before).toNumber(), 96, 3);
 
       // Check only dust stETH left
       const walletBalance = await lido.balanceOf(wallet.address);
