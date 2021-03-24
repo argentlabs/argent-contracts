@@ -29,6 +29,7 @@ import "../infrastructure/storage/IGuardianStorage.sol";
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
 abstract contract RelayerManager is BaseModule, SimpleOracle {
+    using SafeMath for uint256;
 
     uint256 constant internal BLOCKBOUND = 10000;
 

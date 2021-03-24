@@ -23,7 +23,6 @@ contract ArgentModuleTest is ArgentModule {
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
-        public
         ArgentModule(
             _registry,
             _guardianStorage,

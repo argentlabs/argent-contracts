@@ -32,8 +32,6 @@ import "../../../lib_0.5/other/ERC20.sol";
  */
 abstract contract BaseModule is IModule {
 
-    using SafeMath for uint256;
-
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
     // Mock token address for ETH
@@ -122,7 +120,7 @@ abstract contract BaseModule is IModule {
         ITransferStorage _userWhitelist,
         IAuthoriser _authoriser,
         bytes32 _name
-    ) public {
+    ) {
         registry = _registry;
         guardianStorage = _guardianStorage;
         userWhitelist = _userWhitelist;

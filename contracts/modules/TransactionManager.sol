@@ -28,6 +28,7 @@ import "../../lib_0.5/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
+    using SafeMath for uint256;
 
     // Static calls
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
@@ -53,7 +54,7 @@ abstract contract TransactionManager is BaseModule {
     event SessionCleared(address indexed wallet, address sessionKey);
     // *************** Constructor ************************ //
 
-    constructor(uint256 _whitelistPeriod) public {
+    constructor(uint256 _whitelistPeriod) {
         whitelistPeriod = _whitelistPeriod;
     }
 
