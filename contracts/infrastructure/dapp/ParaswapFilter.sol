@@ -46,6 +46,8 @@ interface IParaswap {
         bool useReduxToken;
         Path[] path;
     }
+
+    function getUniswapProxy() external view returns (address);
 }
 
 contract ParaswapFilter is BaseFilter {
@@ -56,6 +58,13 @@ contract ParaswapFilter is BaseFilter {
     bytes4 constant internal SIMPLESWAP = bytes4(keccak256(
         "simpleSwap(address,address,uint256,uint256,uint256,address[],bytes,uint256[],uint256[],address,string,bool)"
     ));
+    bytes4 constant internal SWAP_ON_UNI = bytes4(keccak256(
+        "swapOnUniswap(uint256,uint256,address[],uint8)"
+    ));
+    bytes4 constant internal SWAP_ON_UNI_FORK = bytes4(keccak256(
+        "swapOnUniswapFork(address,bytes32,uint256,uint256,address[],uint8)"
+    ));
+
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // The token registry
@@ -64,11 +73,38 @@ contract ParaswapFilter is BaseFilter {
     address public immutable dexRegistry;
     // The Dapp registry (used to authorise simpleSwap())
     IAuthoriser public immutable authoriser;
+    // Uniswap Proxy used by Paraswap's AugustusSwapper contract
+    address public immutable uniswapProxy;
 
-    constructor(address _tokenRegistry, address _dexRegistry, IAuthoriser _authoriser) public {
+    // Supported Uniswap Fork (factory, initcode) couples.
+    // Note that a `mapping(address => bytes32) public supportedInitCodes;` would be cleaner
+    // but would cost one storage read to authorise each uni fork swap. 
+    address public immutable uniForkFactory1; // sushiswap
+    address public immutable uniForkFactory2; // linkswap
+    address public immutable uniForkFactory3; // defiswap
+    bytes32 public immutable uniForkInitCode1; // sushiswap
+    bytes32 public immutable uniForkInitCode2; // linkswap
+    bytes32 public immutable uniForkInitCode3; // defiswap
+
+    constructor(
+        address _tokenRegistry,
+        address _dexRegistry,
+        IAuthoriser _authoriser,
+        address _uniswapProxy,
+        address[3] memory _uniFactories,
+        bytes32[3] memory _uniInitCodes
+    ) public {
         tokenRegistry = _tokenRegistry;
         dexRegistry = _dexRegistry;
         authoriser = _authoriser;
+        uniswapProxy = _uniswapProxy;
+
+        uniForkFactory1 = _uniFactories[0];
+        uniForkFactory2 = _uniFactories[1];
+        uniForkFactory3 = _uniFactories[2];
+        uniForkInitCode1 = _uniInitCodes[0];
+        uniForkInitCode2 = _uniInitCodes[1];
+        uniForkInitCode3 = _uniInitCodes[2];
     }
 
     function isValid(address _wallet, address /*_spender*/, address _to, bytes calldata _data) external view override returns (bool) {
@@ -82,6 +118,12 @@ contract ParaswapFilter is BaseFilter {
         } 
         if(methodId == SIMPLESWAP) {
             return isValidSimpleSwap(_wallet, _to, _data);
+        }
+        if(methodId == SWAP_ON_UNI) {
+            return isValidUniSwap(_to);
+        }
+        if(methodId == SWAP_ON_UNI_FORK) {
+            return isValidUniForkSwap(_to, _data);
         }
         return false;
     }
@@ -99,7 +141,34 @@ contract ParaswapFilter is BaseFilter {
         return hasValidBeneficiary(_wallet, beneficiary) && hasAuthorisedCallees(_augustus, callees, startIndexes, _data);
     }
 
-    function hasAuthorisedCallees(address _augustus, address[] memory _callees, uint256[] memory _startIndexes, bytes calldata _data) internal returns (bool) {
+    function isValidUniSwap(address _augustus) internal view returns (bool) {
+        return uniswapProxy == IParaswap(_augustus).getUniswapProxy();
+    }
+
+    function isValidUniForkSwap(address _augustus, bytes calldata _data) internal view returns (bool) {
+        if(uniswapProxy != IParaswap(_augustus).getUniswapProxy()) {
+            return false;
+        }
+
+        (address factory, bytes32 initCode) = abi.decode(_data[4:], (address, bytes32));
+
+        return factory != address(0) && initCode != bytes32(0) && (
+            (factory == uniForkFactory1 && initCode == uniForkInitCode1) ||
+            (factory == uniForkFactory2 && initCode == uniForkInitCode2) ||
+            (factory == uniForkFactory3 && initCode == uniForkInitCode3)
+        );
+    }
+
+    function hasAuthorisedCallees(
+        address _augustus,
+        address[] memory _callees,
+        uint256[] memory _startIndexes,
+        bytes calldata _data
+    )
+        internal
+        view
+        returns (bool)
+    {
         // _data = {sig:4}{six params:192}{exchangeDataOffset:32}{...}
         // we add 4+32=36 to the offset to skip the method sig and the size of the exchangeData array
         uint256 exchangeDataOffset = 36 + abi.decode(_data[196:228], (uint256)); 
