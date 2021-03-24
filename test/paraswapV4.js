@@ -184,8 +184,7 @@ contract("Paraswap Filter", (accounts) => {
       module, "multiCall", [wallet.address, transactions], wallet, [owner], 1, ETH_TOKEN, relayer
     );
     const { success, error } = utils.parseRelayReceipt(txReceipt);
-    if (success) console.log("Gas to swap: ", txReceipt.gasUsed);
-    assert.isTrue(success, `transfer failed: "${error}"`);
+    assert.isTrue(success, `multiCall failed: "${error}"`);
   };
 
   function getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary }) {
