@@ -18,7 +18,8 @@ const AugustusSwapper = artifacts.require("AugustusSwapper");
 const Whitelisted = artifacts.require("Whitelisted");
 const PartnerRegistry = artifacts.require("PartnerRegistry");
 const PartnerDeployer = artifacts.require("PartnerDeployer");
-const KyberAdapter = artifacts.require("Kyber");
+const Uniswap = artifacts.require("Uniswap");
+const UniswapProxy = artifacts.require("UniswapProxy");
 
 const utils = require("../utils/utilities.js");
 const deployManager = require("../utils/deploy-manager.js");
@@ -49,19 +50,23 @@ async function deployENSRegistry(owner, domain) {
 }
 
 async function deployParaswap(deploymentAccount) {
-  const whitelist = await Whitelisted.new();
+  const uniswapProxy = await UniswapProxy.new();
+  const paraswapWhitelist = await Whitelisted.new();
   const partnerDeployer = await PartnerDeployer.new();
   const partnerRegistry = await PartnerRegistry.new(partnerDeployer.address);
-  const paraswap = await AugustusSwapper.new(
-    whitelist.address,
-    deploymentAccount,
+  const paraswap = await AugustusSwapper.new();
+  await paraswap.initialize(
+    paraswapWhitelist.address,
+    ZERO_ADDRESS,
     partnerRegistry.address,
     deploymentAccount,
-    deploymentAccount,
+    uniswapProxy.address,
   );
-  const kyberAdapter = await KyberAdapter.new(deploymentAccount);
-  await whitelist.addWhitelisted(kyberAdapter.address);
-  return { paraswap: paraswap.address, kyberAdapter: kyberAdapter.address };
+  const uniAdapter = await Uniswap.new();
+  const wlr = await paraswapWhitelist.WHITELISTED_ROLE();
+  await paraswapWhitelist.grantRole(wlr, uniAdapter.address);
+
+  return { paraswap: paraswap.address, uniAdapter: uniAdapter.address };
 }
 
 async function main() {
@@ -75,8 +80,8 @@ async function main() {
   }
 
   if (config.defi.paraswap.deployOwn) {
-    const { paraswap, kyberAdapter } = await deployParaswap(deploymentAccount);
-    configurator.updateParaswap(paraswap, { Kyber: kyberAdapter });
+    const { paraswap, uniAdapter } = await deployParaswap(deploymentAccount);
+    configurator.updateParaswap(paraswap, { Uniswap: uniAdapter });
   }
 
   if (config.defi.uniswap.deployOwn) {
