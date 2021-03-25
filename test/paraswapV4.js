@@ -198,7 +198,7 @@ contract("Paraswap Filter", (accounts) => {
     assert.isTrue(success, `multiCall failed: "${error}"`);
   };
 
-  function getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary }) {
+  function getPath({ fromToken, toToken, fromAmount, toAmount }) {
     const routes = [{
       exchange: "uniswap",
       percent: "100",
@@ -208,9 +208,27 @@ contract("Paraswap Filter", (accounts) => {
     }];
     const exchanges = { uniswap: uniswapV1Adapter.address };
     const targetExchanges = { uniswap: uniswapV1Factory.address };
-    const path = makePathes(fromToken, toToken, routes, exchanges, targetExchanges, false);
+    return makePathes(fromToken, toToken, routes, exchanges, targetExchanges, false);
+  }
+
+  function getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary }) {
+    const path = getPath({ fromToken, toToken, fromAmount, toAmount });
     return paraswap.contract.methods.multiSwap({
       fromToken, fromAmount, toAmount, expectedAmount: 0, beneficiary, referrer: "abc", useReduxToken: false, path
+    }).encodeABI();
+  }
+
+  function getMegaSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary }) {
+    const path = getPath({ fromToken, toToken, fromAmount, toAmount });
+    return paraswap.contract.methods.megaSwap({
+      fromToken,
+      fromAmount,
+      toAmount,
+      expectedAmount: 0,
+      beneficiary,
+      referrer: "abc",
+      useReduxToken: false,
+      path: [{ fromAmountPercent: 10000, path }]
     }).encodeABI();
   }
 
@@ -278,6 +296,8 @@ contract("Paraswap Filter", (accounts) => {
       swapData = getSwapOnUniswapData({ fromToken, toToken, fromAmount, toAmount });
     } else if (method === "swapOnUniswapFork") {
       swapData = getSwapOnUniswapForkData({ fromToken, toToken, fromAmount, toAmount });
+    } else if (method === "megaSwap") {
+      swapData = getMegaSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary });
     } else {
       throw new Error("Invalid method");
     }
@@ -305,5 +325,5 @@ contract("Paraswap Filter", (accounts) => {
     });
   }
 
-  ["multiSwap", "simpleSwap", "swapOnUniswap", "swapOnUniswapFork"].map(testsForMethod);
+  ["multiSwap", "simpleSwap", "swapOnUniswap", "swapOnUniswapFork", "megaSwap"].map(testsForMethod);
 });

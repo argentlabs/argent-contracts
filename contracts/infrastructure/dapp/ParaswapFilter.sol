@@ -47,6 +47,22 @@ interface IParaswap {
         Path[] path;
     }
 
+    struct MegaSwapPath {
+        uint256 fromAmountPercent;
+        Path[] path;
+    }
+
+    struct MegaSwapSellData {
+        address fromToken;
+        uint256 fromAmount;
+        uint256 toAmount;
+        uint256 expectedAmount;
+        address payable beneficiary;
+        string referrer;
+        bool useReduxToken;
+        MegaSwapPath[] path;
+    }
+
     function getUniswapProxy() external view returns (address);
 }
 
@@ -63,6 +79,9 @@ contract ParaswapFilter is BaseFilter {
     ));
     bytes4 constant internal SWAP_ON_UNI_FORK = bytes4(keccak256(
         "swapOnUniswapFork(address,bytes32,uint256,uint256,address[],uint8)"
+    ));
+    bytes4 constant internal MEGASWAP = bytes4(keccak256(
+        "megaSwap((address,uint256,uint256,uint256,address,string,bool,(uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[])[]))"
     ));
 
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -125,6 +144,9 @@ contract ParaswapFilter is BaseFilter {
         if(methodId == SWAP_ON_UNI_FORK) {
             return isValidUniForkSwap(_to, _data);
         }
+        if(methodId == MEGASWAP) {
+            return isValidMegaSwap(_wallet, _data);
+        }
         return false;
     }
 
@@ -157,6 +179,13 @@ contract ParaswapFilter is BaseFilter {
             (factory == uniForkFactory2 && initCode == uniForkInitCode2) ||
             (factory == uniForkFactory3 && initCode == uniForkInitCode3)
         );
+    }
+
+    function isValidMegaSwap(address _wallet, bytes calldata _data) internal view returns (bool) {
+        (IParaswap.MegaSwapSellData memory sell) = abi.decode(_data[4:], (IParaswap.MegaSwapSellData));
+        return hasValidBeneficiary(_wallet, sell.beneficiary) &&
+            hasTradableToken(sell.path[0].path[sell.path[0].path.length - 1].to) && 
+            hasValidMegaPath(sell.path);
     }
 
     function hasAuthorisedCallees(
@@ -199,5 +228,15 @@ contract ParaswapFilter is BaseFilter {
             abi.encodeWithSignature("verifyExchangeAdapters((address,uint256,(address,address,uint256,bytes,uint256)[])[])", _path)
         );
         return success;
+    }
+
+    function hasValidMegaPath(IParaswap.MegaSwapPath[] memory _megaPath) internal view returns (bool) {
+        for(uint i = 0; i < _megaPath.length; i++) {
+            // TODO: add verifyMegaPath to DexRegistry to reduce number of ext calls 
+            if(!hasValidExchangeAdapters(_megaPath[i].path)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
