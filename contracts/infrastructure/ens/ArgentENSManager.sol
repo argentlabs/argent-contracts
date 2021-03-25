@@ -32,9 +32,10 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
     // The managed root name
     string public rootName;
     // The managed root node
-    bytes32 public rootNode;
-
-    ENS public ensRegistry;
+    bytes32 immutable public rootNode;
+    // The ENS registry
+    ENS immutable public ensRegistry;
+    // The ENS resolver to use
     IENSResolver public ensResolver;
 
     // namehash('addr.reverse')

@@ -32,9 +32,9 @@ contract WalletFactory is Managed {
     address constant internal ETH_TOKEN = address(0);
 
     // The address of the base wallet implementation
-    address public walletImplementation;
+    address immutable public walletImplementation;
     // The address of the GuardianStorage
-    address public guardianStorage;
+    address immutable public guardianStorage;
     // The recipient of the refund
     address public refundAddress; 
 
