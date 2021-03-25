@@ -8,7 +8,7 @@ module.exports = {
   compilers: {
     solc: {
       version: "0.6.12",
-      docker: true,
+      docker: false,
       settings: {
         optimizer: {
           enabled: true,

@@ -325,5 +325,5 @@ contract("Paraswap Filter", (accounts) => {
     });
   }
 
-  ["multiSwap", "simpleSwap", "swapOnUniswap", "swapOnUniswapFork", "megaSwap"].map(testsForMethod);
+  ["multiSwap", "simpleSwap", "swapOnUniswap", "swapOnUniswapFork", "megaSwap"].forEach(testsForMethod);
 });

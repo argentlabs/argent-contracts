@@ -154,7 +154,14 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
                 path
             )
         );
-        require(success, "Call to uniswap proxy failed");
+        // require(success, "Call to uniswap proxy failed");
+        if (!success) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
+            }
+        }
 
     }
 
@@ -229,7 +236,15 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
                 path
             )
         );
-        require(success, "Call to uniswap proxy failed");
+        // require(success, "Call to uniswap proxy failed");
+        if (!success) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
+            }
+        }
+        
 
     }
 
@@ -402,7 +417,14 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
                 startIndexes[i + 1].sub(startIndexes[i]), // length of calldata
                 exchangeData// total calldata
             );
-            require(result, "External call failed");
+            // require(result, "External call failed");
+            if (!result) {
+                // solhint-disable-next-line no-inline-assembly
+                assembly {
+                    returndatacopy(0, 0, returndatasize())
+                    revert(0, returndatasize())
+                }
+            }
         }
 
         receivedAmount = Utils.tokenBalance(
