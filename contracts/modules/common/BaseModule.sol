@@ -187,7 +187,7 @@ abstract contract BaseModule is IModule {
                 revert(0, returndatasize())
             }
         } else if (!success) {
-            revert("VM: wallet invoke reverted");
+            revert("BM: wallet invoke reverted");
         }
     }
 }
