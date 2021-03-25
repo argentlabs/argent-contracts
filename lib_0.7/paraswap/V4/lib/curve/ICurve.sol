@@ -1,6 +1,6 @@
 pragma solidity 0.7.5;
 
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IPool {
   function underlying_coins(int128 index) external view returns (address);
