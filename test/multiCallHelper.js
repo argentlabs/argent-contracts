@@ -15,8 +15,18 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
-const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
+
+// UniswapV2
+const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
+const UniswapV2Router01 = artifacts.require("UniswapV2Router01Mock");
+const WETH = artifacts.require("WETH9");
+
 const MultiCallHelper = artifacts.require("MultiCallHelper");
+
+const AaveV2Filter = artifacts.require("AaveV2Filter");
+const AaveV2LendingPool = artifacts.require("AaveV2LendingPoolMock");
+const ERC20 = artifacts.require("TestERC20");
+const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 const { encodeTransaction, addTrustedContact } = require("../utils/utilities.js");
 
@@ -30,6 +40,7 @@ const RECOVERY_PERIOD = 4;
 const MAX_UINT = (new BN(2)).pow(new BN(256)).sub(new BN(1));
 
 contract("ArgentModule", (accounts) => {
+  const infrastructure = accounts[0];
   const owner = accounts[1];
   const trustedContact = accounts[4];
   const authorisedDapp = accounts[5];
@@ -42,17 +53,31 @@ contract("ArgentModule", (accounts) => {
   let wallet;
   let walletImplementation;
   let dappRegistry;
+  let filter;
   let helper;
+  let tokenA;
+  let aave;
+  let tokenPriceRegistry;
 
   before(async () => {
+    // Deploy test tokens
+    tokenA = await ERC20.new([infrastructure], web3.utils.toWei("1000"), 18);
+
+    // Deploy AaveV2
+    aave = await AaveV2LendingPool.new([tokenA.address]);
+
+    // Deploy and fund UniswapV2
+    const uniswapFactory = await UniswapV2Factory.new(ZERO_ADDRESS);
+    const weth = await WETH.new();
+    const uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
+
+    // deploy Argent
     registry = await Registry.new();
+    tokenPriceRegistry = await TokenPriceRegistry.new();
+    await tokenPriceRegistry.setTradableForTokenList([tokenA.address], [true]);
+    dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
-    dappRegistry = await DappRegistry.new(0);
-    helper = await MultiCallHelper.new(transferStorage.address, dappRegistry.address);
-
-    const uniswapRouter = await UniswapV2Router01.new();
-
     module = await ArgentModule.new(
       registry.address,
       guardianStorage.address,
@@ -63,12 +88,15 @@ contract("ArgentModule", (accounts) => {
       SECURITY_WINDOW,
       RECOVERY_PERIOD,
       LOCK_PERIOD);
-
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
+    filter = await AaveV2Filter.new();
+    await dappRegistry.addDapp(0, aave.address, filter.address);
 
     await dappRegistry.addDapp(0, authorisedDapp, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
+
+    helper = await MultiCallHelper.new(transferStorage.address, dappRegistry.address);
   });
 
   beforeEach(async () => {
@@ -117,6 +145,27 @@ contract("ArgentModule", (accounts) => {
       assert.equal(registryId[0], 256, "should be 256 for trusted contacts");
       assert.equal(registryId[1], 0, "should be the correct registry");
       assert.isTrue(MAX_UINT.eq(registryId[2]), "should be MAX_UINT when not trusted");
+    });
+
+    it("should return true when the multicall is authorised for a registry", async () => {
+      await tokenA.mint(wallet.address, web3.utils.toWei("1000"));
+      const transactions = [];
+      transactions.push(encodeTransaction(tokenA.address, 0, tokenA.contract.methods.approve(aave.address, 100).encodeABI()));
+      transactions.push(encodeTransaction(aave.address, 0, aave.contract.methods.deposit(tokenA.address, 100, wallet.address, "").encodeABI()));
+
+      const authorised = await helper.isAuthorisedInRegistry(wallet.address, transactions, 0);
+      assert.isTrue(authorised);
+    });
+
+    it("should return false when the multicall is not authorised for a registry", async () => {
+      await tokenA.mint(wallet.address, web3.utils.toWei("1000"));
+      const transactions = [];
+      transactions.push(encodeTransaction(tokenA.address, 0, tokenA.contract.methods.approve(aave.address, 100).encodeABI()));
+      transactions.push(encodeTransaction(aave.address, 0, aave.contract.methods.deposit(tokenA.address, 100, wallet.address, "").encodeABI()));
+      transactions.push(encodeTransaction(tokenA.address, 0, tokenA.contract.methods.approve(unknownAddress, 100).encodeABI()));
+
+      const authorised = await helper.isAuthorisedInRegistry(wallet.address, transactions, 0);
+      assert.isFalse(authorised);
     });
   });
 });

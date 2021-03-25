@@ -113,6 +113,25 @@ contract MultiCallHelper {
         return MAX_UINT;
     }
 
+    function isAuthorisedInRegistry(address _wallet, Call[] calldata _transactions, uint8 _registryId) external view returns (bool) {
+        for(uint i = 0; i < _transactions.length; i++) {
+            address spender = Utils.recoverSpender(_transactions[i].to, _transactions[i].data);
+
+            uint auth = uint(dappRegistry.authorisations(_registryId, spender)); 
+            uint validAfter = auth & 0xffffffffffffffff;
+            if (0 < validAfter && validAfter <= block.timestamp) { // if the current time is greater than the validity time
+                address filter = address(uint160(auth >> 64));
+                if(filter != address(0) && !IFilter(filter).isValid(_wallet, spender, _transactions[i].to, _transactions[i].data)) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     function isWhitelisted(address _wallet, address _target) internal view returns (bool _isWhitelisted) {
         uint whitelistAfter = userWhitelist.getWhitelist(_wallet, _target);
         return whitelistAfter > 0 && whitelistAfter < block.timestamp;
