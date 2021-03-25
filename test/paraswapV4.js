@@ -118,14 +118,12 @@ contract("Paraswap Filter", (accounts) => {
       ZERO_ADDRESS,
       partnerRegistry.address,
       infrastructure,
-      uniswapProxy.address,
-    );
+      uniswapProxy.address);
     uniswapV1Adapter = await Uniswap.new();
     const wlr = await paraswapWhitelist.WHITELISTED_ROLE();
     await paraswapWhitelist.grantRole(wlr, uniswapV1Adapter.address);
     await paraswap.initializeAdapter(uniswapV1Adapter.address, web3.eth.abi.encodeParameter(
-      { ParentStruct: { factory: "address" } }, { factory: uniswapV1Factory.address }
-    ));
+      { ParentStruct: { factory: "address" } }, { factory: uniswapV1Factory.address }));
     paraswapProxy = await paraswap.getTokenTransferProxy();
 
     // deploy Argent
@@ -154,8 +152,7 @@ contract("Paraswap Filter", (accounts) => {
       dappRegistry.address,
       uniswapProxy.address,
       [uniswapV2Factory.address, uniswapV2Factory.address, uniswapV2Factory.address],
-      [initCode, initCode, initCode]
-    );
+      [initCode, initCode, initCode]);
     const proxyFilter = await OnlyApproveFilter.new();
     await dappRegistry.addDapp(0, paraswap.address, paraswapFilter.address);
     await dappRegistry.addDapp(0, paraswapProxy, proxyFilter.address);

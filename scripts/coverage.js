@@ -96,7 +96,7 @@ async function coverage(){
       );
 
       config.all = true;
-      config.compilers.solc.settings.optimizer.enabled = false;
+      config.compilers.solc.settings.optimizer.enabled = true;
       config.compilers.solc.docker = false;
 
       // ========
