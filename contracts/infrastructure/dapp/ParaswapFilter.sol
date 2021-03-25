@@ -203,7 +203,7 @@ contract ParaswapFilter is BaseFilter {
         uint256 exchangeDataOffset = 36 + abi.decode(_data[196:228], (uint256)); 
         for(uint256 i = 0; i < _callees.length; i++) {
             bytes calldata slicedExchangeData = _data[exchangeDataOffset+_startIndexes[i] : exchangeDataOffset+_startIndexes[i+1]];
-            address spender = Utils.recoverSpender(_augustus, _callees[i], slicedExchangeData);
+            address spender = Utils.recoverSpender(_callees[i], slicedExchangeData);
             if(!authoriser.isAuthorised(_augustus, spender, _callees[i], slicedExchangeData)) {
                 return false;
             }
