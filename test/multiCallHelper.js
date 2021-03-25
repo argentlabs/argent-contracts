@@ -104,7 +104,7 @@ contract("ArgentModule", (accounts) => {
     await addTrustedContact(wallet, trustedContact, module, SECURITY_PERIOD);
   });
 
-  describe.skip("multicall", () => {
+  describe("multicall helper", () => {
     it("should return true when the multicall is authorised", async () => {
       const transactions = [];
       transactions.push(encodeTransaction(trustedContact, 10, ZERO_BYTES));
