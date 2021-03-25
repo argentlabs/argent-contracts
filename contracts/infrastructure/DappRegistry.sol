@@ -45,7 +45,7 @@ contract DappRegistry is IAuthoriser {
     event FilterUpdateRequested(uint8 indexed registryId, address dapp, address filter, uint256 validAfter);
     event DappAdded(uint8 indexed registryId, address dapp, address filter, uint256 validAfter);
     event DappRemoved(uint8 indexed registryId, address dapp);
-    event ToggledRegistry(address sender, uint8 registryId, bool enabled);
+    event ToggledRegistry(address indexed sender, uint8 registryId, bool enabled);
 
     modifier onlyOwner(uint8 _registryId) {
         validateOwner(_registryId);
