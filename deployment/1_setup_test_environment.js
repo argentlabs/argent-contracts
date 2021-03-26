@@ -14,7 +14,7 @@ const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
 const UniZap = artifacts.require("UniZap");
 
 // Paraswap
-const AugustusSwapper = artifacts.require("AugustusSwapper");
+const AugustusSwapper = artifacts.require("AugustusSwapperMock");
 const Whitelisted = artifacts.require("Whitelisted");
 const PartnerRegistry = artifacts.require("PartnerRegistry");
 const PartnerDeployer = artifacts.require("PartnerDeployer");
