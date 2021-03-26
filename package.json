@@ -23,7 +23,7 @@
     "mainnet-fork": "bash ./scripts/start_mainnet_fork.sh",
     "test": "npx truffle test --compile-none",
     "ctest": "npm run compile && npm run test",
-    "test:integration": "npx truffle test --compile-none --network prodFork test-integration/filter-lido.js",
+    "test:integration": "npx truffle test --compile-none --network prodFork test-integration/*",
     "provision:lib:artefacts": "bash ./scripts/provision_lib_artefacts.sh",
     "test:coverage": "COVERAGE=1 node scripts/coverage.js && istanbul check-coverage --statements 93 --branches 85 --functions 91 --lines 93",
     "lint:js": "eslint .",

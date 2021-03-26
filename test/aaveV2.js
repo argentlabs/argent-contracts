@@ -39,7 +39,7 @@ const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("Aave Filter", (accounts) => {
+contract("AaveV2 Filter", (accounts) => {
   let manager;
 
   const infrastructure = accounts[0];
