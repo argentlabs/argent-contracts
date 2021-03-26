@@ -122,6 +122,12 @@
           "properties": {
             "contract": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "lendingPool": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "aaveToken": {
+              "$ref": "#/definitions/ethaddress"
             }
           }
         },

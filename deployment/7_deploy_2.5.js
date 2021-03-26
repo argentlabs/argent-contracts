@@ -31,6 +31,8 @@ const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 const UniswapV2Filter = artifacts.require("UniswapV2UniZapFilter");
 const LidoFilter = artifacts.require("LidoFilter");
 const CurveFilter = artifacts.require("CurveFilter");
+const AaveV1Filter = artifacts.require("AaveV1Filter");
+const AaveETHTokenFilter = artifacts.require("AaveETHTokenFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -207,6 +209,16 @@ const main = async () => {
   const UniswapV2FilterWrapper = await UniswapV2Filter.new();
   console.log(`Deployed UniswapV2Filter at ${UniswapV2FilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.uniswap.unizap, UniswapV2FilterWrapper.address);
+
+  // Aave V1
+  console.log("Deploying AaveV1");
+  const AaveV1FilterWrapper = await AaveV1Filter.new();
+  console.log(`Deployed AaveV1Filter at ${AaveV1FilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.aave.lendingPool, AaveV1FilterWrapper.address);
+
+  const AaveETHTokenFilterWrapper = await AaveETHTokenFilter.new();
+  console.log(`Deployed AaveETHTokenFilter at ${AaveETHTokenFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.aave.aaveToken, AaveETHTokenFilterWrapper.address);
 
   // Setting timelock
   console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);
