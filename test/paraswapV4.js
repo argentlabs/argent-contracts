@@ -356,7 +356,7 @@ contract("Paraswap Filter", (accounts) => {
       await paraswap.changeUniswapProxy(uniswapProxy.address);
     });
 
-    it("should not allow simpleSwaps via unauthorised callee", async () => {
+    it("should not allow simpleSwap via unauthorised callee", async () => {
       await dappRegistry.removeDapp(0, uniswapV1Exchanges[tokenA.address].address);
       await testTrade({
         method: "simpleSwap", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
@@ -364,7 +364,7 @@ contract("Paraswap Filter", (accounts) => {
       await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenA.address].address, ZERO_ADDRESS);
     });
 
-    it("should not allow megaSwaps via unauthorised adapters", async () => {
+    it("should not allow megaSwap via unauthorised adapter", async () => {
       await dexRegistry.setAuthorised([uniswapV1Adapter.address], [false]);
       await testTrade({
         method: "megaSwap", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
