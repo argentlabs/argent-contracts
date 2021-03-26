@@ -248,57 +248,57 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
 
     }
 
-    function simplBuy(
-        address fromToken,
-        address toToken,
-        uint256 fromAmount,
-        uint256 toAmount,
-        address[] memory callees,
-        bytes memory exchangeData,
-        uint256[] memory startIndexes,
-        uint256[] memory values,
-        address payable beneficiary,
-        string memory referrer,
-        bool useReduxToken
-    )
-        external
-        payable
+    // function simplBuy(
+    //     address fromToken,
+    //     address toToken,
+    //     uint256 fromAmount,
+    //     uint256 toAmount,
+    //     address[] memory callees,
+    //     bytes memory exchangeData,
+    //     uint256[] memory startIndexes,
+    //     uint256[] memory values,
+    //     address payable beneficiary,
+    //     string memory referrer,
+    //     bool useReduxToken
+    // )
+    //     external
+    //     payable
 
-    {
-        uint receivedAmount = performSimpleSwap(
-            fromToken,
-            toToken,
-            fromAmount,
-            toAmount,
-            toAmount,//expected amount and to amount are same in case of buy
-            callees,
-            exchangeData,
-            startIndexes,
-            values,
-            beneficiary,
-            referrer,
-            useReduxToken
-        );
+    // {
+    //     uint receivedAmount = performSimpleSwap(
+    //         fromToken,
+    //         toToken,
+    //         fromAmount,
+    //         toAmount,
+    //         toAmount,//expected amount and to amount are same in case of buy
+    //         callees,
+    //         exchangeData,
+    //         startIndexes,
+    //         values,
+    //         beneficiary,
+    //         referrer,
+    //         useReduxToken
+    //     );
 
-        uint256 remainingAmount = Utils.tokenBalance(
-            fromToken,
-            address(this)
-        );
+    //     uint256 remainingAmount = Utils.tokenBalance(
+    //         fromToken,
+    //         address(this)
+    //     );
 
-        if (remainingAmount > 0) {
-            Utils.transferTokens(address(fromToken), msg.sender, remainingAmount);
-        }
+    //     if (remainingAmount > 0) {
+    //         Utils.transferTokens(address(fromToken), msg.sender, remainingAmount);
+    //     }
 
-        emit Bought(
-            msg.sender,
-            beneficiary == address(0) ? msg.sender:beneficiary,
-            fromToken,
-            toToken,
-            fromAmount,
-            receivedAmount,
-            referrer
-        );
-    }
+    //     emit Bought(
+    //         msg.sender,
+    //         beneficiary == address(0) ? msg.sender:beneficiary,
+    //         fromToken,
+    //         toToken,
+    //         fromAmount,
+    //         receivedAmount,
+    //         referrer
+    //     );
+    // }
 
     function approve(
         address token,
@@ -322,8 +322,8 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
         uint256[] memory startIndexes,
         uint256[] memory values,
         address payable beneficiary,
-        string memory referrer,
-        bool useReduxToken
+        string memory referrer//,
+        // bool useReduxToken
     )
         public
         payable
@@ -342,7 +342,7 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
             values,
             beneficiary,
             referrer,
-            useReduxToken
+            false//useReduxToken
         );
 
         emit Swapped(
