@@ -9,7 +9,8 @@ const { expect, assert } = chai;
 chai.use(bnChai(BN));
 
 // Paraswap
-const AugustusSwapper = artifacts.require("AugustusSwapper");
+const IAugustusSwapper = artifacts.require("IAugustusSwapper");
+const AugustusSwapper = artifacts.require("AugustusSwapperMock");
 const Whitelisted = artifacts.require("Whitelisted");
 const PartnerRegistry = artifacts.require("PartnerRegistry");
 const PartnerDeployer = artifacts.require("PartnerDeployer");
@@ -112,7 +113,7 @@ contract("Paraswap Filter", (accounts) => {
     const paraswapWhitelist = await Whitelisted.new();
     const partnerDeployer = await PartnerDeployer.new();
     const partnerRegistry = await PartnerRegistry.new(partnerDeployer.address);
-    paraswap = await AugustusSwapper.new();
+    paraswap = await IAugustusSwapper.at((await AugustusSwapper.new()).address);
     await paraswap.initialize(
       paraswapWhitelist.address,
       ZERO_ADDRESS,
@@ -259,7 +260,7 @@ contract("Paraswap Filter", (accounts) => {
     }
     const benef = beneficiary === ZERO_ADDRESS ? wallet.address : beneficiary;
     return paraswap.contract.methods.simpleSwap(
-      fromToken, toToken, fromAmount, toAmount, 0, callees, exchangeData, startIndexes, values, benef, "abc", // false,
+      fromToken, toToken, fromAmount, toAmount, 0, callees, exchangeData, startIndexes, values, benef, "abc", false,
     ).encodeABI();
   }
 

@@ -14,7 +14,7 @@ import "./AdapterStorage.sol";
 import "./ITokenTransferProxy.sol";
 
 
-contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
+contract AugustusSwapperMock is AdapterStorage {
     using SafeMath for uint256;
 
     IWhitelisted private _whitelisted;
@@ -36,35 +36,12 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
         string referrer
     );
 
-    event Bought(
-        address initiator,
-        address indexed beneficiary,
-        address indexed srcToken,
-        address indexed destToken,
-        uint256 srcAmount,
-        uint256 receivedAmount,
-        string referrer
-    );
-
-    event FeeTaken(
-        uint256 fee,
-        uint256 partnerShare,
-        uint256 paraswapShare
-    );
-
     event AdapterInitialized(address indexed adapter);
 
-    modifier onlySelf() {
-        require(
-            msg.sender == address(this),
-            "AugustusSwapper: Invalid access"
-        );
-        _;
-    }
 
     receive () payable external {
-
     }
+
 
     function initialize(
         address whitelist,
@@ -82,10 +59,9 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
         _whitelisted = IWhitelisted(whitelist);
         _feeWallet = feeWallet;
         _uniswapProxy = uniswapProxy;
-        _owner = msg.sender;
     }
 
-    function initializeAdapter(address adapter, bytes calldata data) external onlyOwner {
+    function initializeAdapter(address adapter, bytes calldata data) external {
 
         require(
             _whitelisted.hasRole(_whitelisted.WHITELISTED_ROLE(), adapter),
@@ -98,42 +74,6 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
 
     function getUniswapProxy() external view returns(address) {
         return _uniswapProxy;
-    }
-
-    function getVersion() external view returns(string memory) {
-        return "4.0.0";
-    }
-
-    function getPartnerRegistry() external view returns(address) {
-        return address(_partnerRegistry);
-    }
-
-    function getWhitelistAddress() external view returns(address) {
-        return address(_whitelisted);
-    }
-
-    function getFeeWallet() external view returns(address) {
-        return _feeWallet;
-    }
-
-    function changeUniswapProxy(address uniswapProxy) external onlyOwner {
-        require(uniswapProxy != address(0), "Invalid address");
-        _uniswapProxy = uniswapProxy;
-    }
-
-    function setFeeWallet(address payable feeWallet) external onlyOwner {
-        require(feeWallet != address(0), "Invalid address");
-        _feeWallet = feeWallet;
-    }
-
-    function setPartnerRegistry(address partnerRegistry) external onlyOwner {
-        require(partnerRegistry != address(0), "Invalid address");
-        _partnerRegistry = IPartnerRegistry(partnerRegistry);
-    }
-
-    function setWhitelistAddress(address whitelisted) external onlyOwner {
-        require(whitelisted != address(0), "Invalid whitelist address");
-        _whitelisted = IWhitelisted(whitelisted);
     }
 
     function swapOnUniswap(
@@ -162,54 +102,6 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
                 revert(0, returndatasize())
             }
         }
-
-    }
-
-    function buyOnUniswap(
-        uint256 amountInMax,
-        uint256 amountOut,
-        address[] calldata path,
-        uint8 referrer
-    )
-        external
-        payable
-    {
-        //DELEGATING CALL TO THE ADAPTER
-        (bool success, bytes memory result) = _uniswapProxy.delegatecall(
-            abi.encodeWithSelector(
-                IUniswapProxy.buyOnUniswap.selector,
-                amountInMax,
-                amountOut,
-                path
-            )
-        );
-        require(success, "Call to uniswap proxy failed");
-
-    }
-
-    function buyOnUniswapFork(
-        address factory,
-        bytes32 initCode,
-        uint256 amountInMax,
-        uint256 amountOut,
-        address[] calldata path,
-        uint8 referrer
-    )
-        external
-        payable
-    {
-        //DELEGATING CALL TO THE ADAPTER
-        (bool success, bytes memory result) = _uniswapProxy.delegatecall(
-            abi.encodeWithSelector(
-                IUniswapProxy.buyOnUniswapFork.selector,
-                factory,
-                initCode,
-                amountInMax,
-                amountOut,
-                path
-            )
-        );
-        require(success, "Call to uniswap proxy failed");
 
     }
 
@@ -246,117 +138,6 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
         }
         
 
-    }
-
-    // function simplBuy(
-    //     address fromToken,
-    //     address toToken,
-    //     uint256 fromAmount,
-    //     uint256 toAmount,
-    //     address[] memory callees,
-    //     bytes memory exchangeData,
-    //     uint256[] memory startIndexes,
-    //     uint256[] memory values,
-    //     address payable beneficiary,
-    //     string memory referrer,
-    //     bool useReduxToken
-    // )
-    //     external
-    //     payable
-
-    // {
-    //     uint receivedAmount = performSimpleSwap(
-    //         fromToken,
-    //         toToken,
-    //         fromAmount,
-    //         toAmount,
-    //         toAmount,//expected amount and to amount are same in case of buy
-    //         callees,
-    //         exchangeData,
-    //         startIndexes,
-    //         values,
-    //         beneficiary,
-    //         referrer,
-    //         useReduxToken
-    //     );
-
-    //     uint256 remainingAmount = Utils.tokenBalance(
-    //         fromToken,
-    //         address(this)
-    //     );
-
-    //     if (remainingAmount > 0) {
-    //         Utils.transferTokens(address(fromToken), msg.sender, remainingAmount);
-    //     }
-
-    //     emit Bought(
-    //         msg.sender,
-    //         beneficiary == address(0) ? msg.sender:beneficiary,
-    //         fromToken,
-    //         toToken,
-    //         fromAmount,
-    //         receivedAmount,
-    //         referrer
-    //     );
-    // }
-
-    function approve(
-        address token,
-        address to,
-        uint256 amount
-    )
-        external
-        onlySelf
-    {
-        Utils.approve(to, token, amount);
-    }
-
-    function simpleSwap(
-        address fromToken,
-        address toToken,
-        uint256 fromAmount,
-        uint256 toAmount,
-        uint256 expectedAmount,
-        address[] memory callees,
-        bytes memory exchangeData,
-        uint256[] memory startIndexes,
-        uint256[] memory values,
-        address payable beneficiary,
-        string memory referrer//,
-        // bool useReduxToken
-    )
-        public
-        payable
-        returns (uint256 receivedAmount)
-    {
-
-        receivedAmount = performSimpleSwap(
-            fromToken,
-            toToken,
-            fromAmount,
-            toAmount,
-            expectedAmount,
-            callees,
-            exchangeData,
-            startIndexes,
-            values,
-            beneficiary,
-            referrer,
-            false//useReduxToken
-        );
-
-        emit Swapped(
-            msg.sender,
-            beneficiary == address(0)?msg.sender:beneficiary,
-            fromToken,
-            toToken,
-            fromAmount,
-            receivedAmount,
-            expectedAmount,
-            referrer
-        );
-
-        return receivedAmount;
     }
 
     function transferTokensFromProxy(
@@ -630,71 +411,6 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
         return receivedAmount;
     }
 
-    /**
-   * @dev The function which performs the single path buy.
-   * @param data Data required to perform swap.
-   */
-    function buy(
-        Utils.BuyData memory data
-    )
-        public
-        payable
-        returns (uint256)
-    {
-
-        address fromToken = data.fromToken;
-        uint256 fromAmount = data.fromAmount;
-        uint256 toAmount = data.toAmount;
-        address payable beneficiary = data.beneficiary == address(0) ? msg.sender : data.beneficiary;
-        string memory referrer = data.referrer;
-        Utils.BuyRoute[] memory route = data.route;
-        address toToken = data.toToken;
-        bool useReduxToken = data.useReduxToken;
-
-        //Referral id can never be empty
-        require(bytes(referrer).length > 0, "Invalid referrer");
-
-        require(toAmount > 0, "To amount can not be 0");
-
-        uint256 receivedAmount = performBuy(
-            fromToken,
-            toToken,
-            fromAmount,
-            toAmount,
-            route,
-            useReduxToken
-        );
-
-        takeFeeAndTransferTokens(
-            toToken,
-            toAmount,
-            receivedAmount,
-            beneficiary,
-            referrer
-        );
-
-        uint256 remainingAmount = Utils.tokenBalance(
-            fromToken,
-            address(this)
-        );
-
-        if (remainingAmount > 0) {
-            Utils.transferTokens(fromToken, msg.sender, remainingAmount);
-        }
-
-        emit Bought(
-            msg.sender,
-            beneficiary,
-            fromToken,
-            toToken,
-            fromAmount,
-            receivedAmount,
-            referrer
-        );
-
-        return receivedAmount;
-    }
-
     //Helper function to transfer final amount to the beneficiaries
     function takeFeeAndTransferTokens(
         address toToken,
@@ -831,70 +547,6 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
             }
         }
     }
-
-    //Helper function to perform swap
-    function performBuy(
-        address fromToken,
-        address toToken,
-        uint256 fromAmount,
-        uint256 toAmount,
-        Utils.BuyRoute[] memory routes,
-        bool useReduxToken
-    )
-        private
-        returns(uint256)
-    {
-        uint initialGas = gasleft();
-
-        //if fromToken is not ETH then transfer tokens from user to this contract
-        if (fromToken != Utils.ethAddress()) {
-            _tokenTransferProxy.transferFrom(
-                fromToken,
-                msg.sender,
-                address(this),
-                fromAmount
-            );
-        }
-
-        for (uint j = 0; j < routes.length; j++) {
-            Utils.BuyRoute memory route = routes[j];
-
-            //Check if exchange is supported
-            require(
-                _whitelisted.hasRole(_whitelisted.WHITELISTED_ROLE(), route.exchange),
-                "Exchange not whitelisted"
-            );
-
-            //delegate Call to the exchange
-            (bool success,) = route.exchange.delegatecall(
-                abi.encodeWithSelector(
-                    IExchange.buy.selector,
-                    fromToken,
-                    toToken,
-                    route.fromAmount,
-                    route.toAmount,
-                    route.targetExchange,
-                    route.payload
-                )
-            );
-            require(success, "Call to adapter failed");
-        }
-
-        uint256 receivedAmount = Utils.tokenBalance(
-            toToken,
-            address(this)
-        );
-        require(
-            receivedAmount >= toAmount,
-            "Received amount of tokens are less then expected tokens"
-        );
-
-        if (useReduxToken) {
-            Utils.refundGas(msg.sender, address(_tokenTransferProxy), initialGas);
-        }
-        return receivedAmount;
-    }
-
     function _takeFee(
         address toToken,
         uint256 receivedAmount,
@@ -904,52 +556,105 @@ contract AugustusSwapper is AdapterStorage, TokenFetcherAugustus {
         private
         returns(uint256 fee)
     {
-        //If there is no partner associated with the referral id then no fee will be taken
-        if (partnerContract == address(0)) {
-            return (0);
+        return 0;
+    }
+
+    //
+    // HACK TO ALLOW COMPILATION OF SIMPLESWAP WITH NO OPTIMIZATION
+    //
+
+    struct SimpleSwapData {
+        address fromToken;
+        address toToken;
+        uint256 fromAmount;
+        uint256 toAmount;
+        uint256 expectedAmount;
+        address[] callees;
+        bytes exchangeData;
+        uint256[] startIndexes;
+        uint256[] values;
+        address payable beneficiary;
+        string referrer;
+        bool useReduxToken;
+    }
+
+    function simpleSwapWithStruct(
+        SimpleSwapData memory ssd
+    )
+        internal
+        returns (uint256 receivedAmount)
+    {
+        ssd.beneficiary = ssd.beneficiary == address(0) ? msg.sender : ssd.beneficiary;
+        receivedAmount = performSimpleSwap(
+            ssd.fromToken,
+            ssd.toToken,
+            ssd.fromAmount,
+            ssd.toAmount,
+            ssd.expectedAmount,
+            ssd.callees,
+            ssd.exchangeData,
+            ssd.startIndexes,
+            ssd.values,
+            ssd.beneficiary,
+            ssd.referrer,
+            ssd.useReduxToken
+        );
+
+        emit Swapped(
+            msg.sender,
+            ssd.beneficiary == address(0)?msg.sender:ssd.beneficiary,
+            ssd.fromToken,
+            ssd.toToken,
+            ssd.fromAmount,
+            receivedAmount,
+            ssd.expectedAmount,
+            ssd.referrer
+        );
+
+        return receivedAmount;
+    }
+  
+    bytes4 constant internal SIMPLESWAP = bytes4(keccak256(
+        "simpleSwap(address,address,uint256,uint256,uint256,address[],bytes,uint256[],uint256[],address,string,bool)"
+    ));
+
+    function decodeSimpleSwapData1() internal pure returns (address fromToken, address toToken, uint fromAmount, uint toAmount, uint expectedAmount) {
+         (
+            fromToken,
+            toToken,
+            fromAmount,
+            toAmount,
+            expectedAmount
+        ) = abi.decode(msg.data[4:], (address, address, uint, uint, uint));
+    }
+
+    function decodeSimpleSwapData2() internal pure returns (
+        address[] memory callees,
+        bytes memory exchangeData,
+        uint256[] memory startIndexes,
+        uint256[] memory values,
+        address payable beneficiary,
+        string memory referrer,
+        bool useReduxToken
+    ) {
+         (,
+            callees,
+            exchangeData,
+            startIndexes,
+            values,
+            beneficiary,
+            referrer,
+            useReduxToken
+        ) = abi.decode(msg.data[4:], (uint[5], address[], bytes, uint256[], uint256[], address, string, bool));
+    }
+
+    fallback() external payable {
+        if(msg.sig == SIMPLESWAP) {
+            SimpleSwapData memory ssd;
+            (ssd.fromToken, ssd.toToken, ssd.fromAmount, ssd.toAmount, ssd.expectedAmount)  = decodeSimpleSwapData1();
+            (ssd.callees, ssd.exchangeData, ssd.startIndexes, ssd.values,
+                ssd.beneficiary, ssd.referrer, ssd.useReduxToken) = decodeSimpleSwapData2();
+            simpleSwapWithStruct(ssd);
         }
-
-        (
-            address payable partnerFeeWallet,
-            uint256 feePercent,
-            uint256 partnerSharePercent,
-            ,
-            bool positiveSlippageToUser,
-            bool noPositiveSlippage
-        ) = IPartner(partnerContract).getPartnerInfo();
-
-        uint256 partnerShare = 0;
-        uint256 paraswapShare = 0;
-
-        if (!noPositiveSlippage && feePercent <= 50 && receivedAmount > expectedAmount) {
-            uint256 halfPositiveSlippage = receivedAmount.sub(expectedAmount).div(2);
-            //Calculate total fee to be taken
-            fee = expectedAmount.mul(feePercent).div(10000);
-            //Calculate partner's share
-            partnerShare = fee.mul(partnerSharePercent).div(10000);
-            //All remaining fee is paraswap's share
-            paraswapShare = fee.sub(partnerShare);
-            paraswapShare = paraswapShare.add(halfPositiveSlippage);
-
-            fee = fee.add(halfPositiveSlippage);
-
-            if (!positiveSlippageToUser) {
-                partnerShare = partnerShare.add(halfPositiveSlippage);
-                fee = fee.add(halfPositiveSlippage);
-            }
-        }
-        else {
-            //Calculate total fee to be taken
-            fee = receivedAmount.mul(feePercent).div(10000);
-            //Calculate partner's share
-            partnerShare = fee.mul(partnerSharePercent).div(10000);
-            //All remaining fee is paraswap's share
-            paraswapShare = fee.sub(partnerShare);
-        }
-        Utils.transferTokens(toToken, partnerFeeWallet, partnerShare);
-        Utils.transferTokens(toToken, _feeWallet, paraswapShare);
-
-        emit FeeTaken(fee, partnerShare, paraswapShare);
-        return (fee);
     }
 }
