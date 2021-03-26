@@ -41,7 +41,7 @@ const RelayManager = require("../utils/relay-manager");
 const { deployUniswap } = require("../utils/defi-deployer");
 const { makePathes } = require("../utils/paraswap/sell-helper");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce, encodeCalls } = require("../utils/utilities.js");
 
 // Constants
 const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts
@@ -60,6 +60,7 @@ contract("Paraswap Filter", (accounts) => {
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const other = accounts[2];
   const relayer = accounts[4];
 
   let registry;
@@ -81,6 +82,7 @@ contract("Paraswap Filter", (accounts) => {
   let paraswapProxy;
   let tokenPriceRegistry;
   let dexRegistry;
+  let uniswapProxy;
 
   before(async () => {
     // Deploy test tokens
@@ -109,7 +111,7 @@ contract("Paraswap Filter", (accounts) => {
     await uniswapRouter.addLiquidity(tokenA.address, tokenB.address, TOKEN_A_LIQ, TOKEN_B_LIQ, 1, 1, infrastructure, timestamp + 300);
 
     // Deploy Paraswap
-    const uniswapProxy = await UniswapProxy.new(weth.address, uniswapV2Factory.address, initCode);
+    uniswapProxy = await UniswapProxy.new(weth.address, uniswapV2Factory.address, initCode);
     const paraswapWhitelist = await Whitelisted.new();
     const partnerDeployer = await PartnerDeployer.new();
     const partnerRegistry = await PartnerRegistry.new(partnerDeployer.address);
@@ -191,12 +193,17 @@ contract("Paraswap Filter", (accounts) => {
     return balance;
   }
 
-  const multiCall = async (transactions) => {
+  const multiCall = async (transactions, { errorReason = null }) => {
     const txReceipt = await manager.relay(
       module, "multiCall", [wallet.address, transactions], wallet, [owner], 1, ETH_TOKEN, relayer
     );
     const { success, error } = utils.parseRelayReceipt(txReceipt);
-    assert.isTrue(success, `multiCall failed: "${error}"`);
+    if (errorReason) {
+      assert.isFalse(success, "multiCall should have failed");
+      assert.equal(error, errorReason);
+    } else {
+      assert.isTrue(success, `multiCall failed: "${error}"`);
+    }
   };
 
   function getPath({ fromToken, toToken, fromAmount, toAmount }) {
@@ -273,7 +280,7 @@ contract("Paraswap Filter", (accounts) => {
   }
 
   async function testTrade({
-    method, fromToken, toToken, beneficiary = ZERO_ADDRESS, fromAmount = web3.utils.toWei("0.01"), toAmount = 1
+    method, fromToken, toToken, beneficiary = ZERO_ADDRESS, fromAmount = web3.utils.toWei("0.01"), toAmount = 1, errorReason = null
   }) {
     const beforeFrom = await getBalance(fromToken, wallet);
     const beforeTo = await getBalance(toToken, wallet);
@@ -305,15 +312,17 @@ contract("Paraswap Filter", (accounts) => {
     const value = fromToken === PARASWAP_ETH_TOKEN ? fromAmount : 0;
     transactions.push(encodeTransaction(paraswap.address, value, swapData));
 
-    await multiCall(transactions);
-    const afterFrom = await getBalance(fromToken, wallet);
-    const afterTo = await getBalance(toToken, wallet);
-    expect(beforeFrom).to.be.gt.BN(afterFrom);
-    expect(afterTo).to.be.gt.BN(beforeTo);
+    await multiCall(transactions, { errorReason });
+    if (!errorReason) {
+      const afterFrom = await getBalance(fromToken, wallet);
+      const afterTo = await getBalance(toToken, wallet);
+      expect(beforeFrom).to.be.gt.BN(afterFrom);
+      expect(afterTo).to.be.gt.BN(beforeTo);
+    }
   }
 
   function testsForMethod(method) {
-    describe(method, () => {
+    describe(`${method} trades`, () => {
       it("should sell ETH for token A", async () => {
         await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address });
       });
@@ -327,4 +336,40 @@ contract("Paraswap Filter", (accounts) => {
   }
 
   ["multiSwap", "simpleSwap", "swapOnUniswap", "swapOnUniswapFork", "megaSwap"].forEach(testsForMethod);
+
+  describe("unauthorised access", () => {
+    it("should not allow sending ETH without calling an authorised method", async () => {
+      await multiCall([encodeTransaction(paraswap.address, web3.utils.toWei("0.01"), "0x")],
+        { errorReason: "TM: call not authorised" });
+    });
+
+    it("should not allow unsupported method call", async () => {
+      await multiCall(encodeCalls([[paraswap, "getFeeWallet"]]),
+        { errorReason: "TM: call not authorised" });
+    });
+
+    it("should not allow swapOnUniswapFork via unauthorised uniswap proxy", async () => {
+      await paraswap.changeUniswapProxy(other);
+      await testTrade({
+        method: "swapOnUniswapFork", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
+      });
+      await paraswap.changeUniswapProxy(uniswapProxy.address);
+    });
+
+    it("should not allow simpleSwaps via unauthorised callee", async () => {
+      await dappRegistry.removeDapp(0, uniswapV1Exchanges[tokenA.address].address);
+      await testTrade({
+        method: "simpleSwap", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
+      });
+      await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenA.address].address, ZERO_ADDRESS);
+    });
+
+    it("should not allow megaSwaps via unauthorised adapters", async () => {
+      await dexRegistry.setAuthorised([uniswapV1Adapter.address], [false]);
+      await testTrade({
+        method: "megaSwap", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
+      });
+      await dexRegistry.setAuthorised([uniswapV1Adapter.address], [true]);
+    });
+  });
 });

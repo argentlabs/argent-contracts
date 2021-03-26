@@ -76,6 +76,8 @@ interface IAugustusSwapper {
 
     function paused() external view returns (bool);
 
+    function changeUniswapProxy(address uniswapProxy) external;
+
     function initialize(
         address whitelist,
         address reduxToken,

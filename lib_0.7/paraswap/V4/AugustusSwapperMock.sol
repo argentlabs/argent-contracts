@@ -76,6 +76,10 @@ contract AugustusSwapperMock is AdapterStorage {
         return _uniswapProxy;
     }
 
+    function changeUniswapProxy(address uniswapProxy) external {
+        _uniswapProxy = uniswapProxy;
+    }
+
     function swapOnUniswap(
         uint256 amountIn,
         uint256 amountOutMin,
