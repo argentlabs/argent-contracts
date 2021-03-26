@@ -259,7 +259,7 @@ contract("Paraswap Filter", (accounts) => {
     }
     const benef = beneficiary === ZERO_ADDRESS ? wallet.address : beneficiary;
     return paraswap.contract.methods.simpleSwap(
-      fromToken, toToken, fromAmount, toAmount, 0, callees, exchangeData, startIndexes, values, benef, "abc", false,
+      fromToken, toToken, fromAmount, toAmount, 0, callees, exchangeData, startIndexes, values, benef, "abc", // false,
     ).encodeABI();
   }
 
@@ -312,7 +312,7 @@ contract("Paraswap Filter", (accounts) => {
   }
 
   function testsForMethod(method) {
-    describe(method, () => {
+    describe.only(method, () => {
       it("should sell ETH for token A", async () => {
         await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address });
       });
