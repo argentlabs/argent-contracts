@@ -71,8 +71,11 @@ contract ParaswapFilter is BaseFilter {
     bytes4 constant internal MULTISWAP = bytes4(keccak256(
         "multiSwap((address,uint256,uint256,uint256,address,string,bool,(address,uint256,(address,address,uint256,bytes,uint256)[])[]))"
     ));
+    // bytes4 constant internal SIMPLESWAP = bytes4(keccak256(
+    //     "simpleSwap(address,address,uint256,uint256,uint256,address[],bytes,uint256[],uint256[],address,string,bool)"
+    // ));
     bytes4 constant internal SIMPLESWAP = bytes4(keccak256(
-        "simpleSwap(address,address,uint256,uint256,uint256,address[],bytes,uint256[],uint256[],address,string,bool)"
+        "simpleSwap(address,address,uint256,uint256,uint256,address[],bytes,uint256[],uint256[],address,string)"
     ));
     bytes4 constant internal SWAP_ON_UNI = bytes4(keccak256(
         "swapOnUniswap(uint256,uint256,address[],uint8)"
