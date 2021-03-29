@@ -27,6 +27,7 @@ const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const AaveV1ATokenFilter = artifacts.require("AaveV1ATokenFilter");
 const IAaveV1LendingPool = artifacts.require("IAaveV1LendingPool");
 const IAToken = artifacts.require("IAToken");
+const IUSDCToken = artifacts.require("IUSDCToken");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 // Utils
@@ -55,7 +56,7 @@ contract("AaveV1 Filter", (accounts) => {
   let wallet;
   let walletImplementation;
   let filter;
-  let aaveETHTokenFilter;
+  let aTokenFilter;
   let dappRegistry;
 
   let uniswapRouter;
@@ -63,6 +64,8 @@ contract("AaveV1 Filter", (accounts) => {
   let aaveLendingPool;
   let aaveLendingPoolCore;
   let aToken;
+  let usdcToken;
+  let aUSDCToken;
   let tokenPriceRegistry;
 
   before(async () => {
@@ -70,6 +73,8 @@ contract("AaveV1 Filter", (accounts) => {
     aaveLendingPoolCore = "0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3";
     aaveLendingPool = await IAaveV1LendingPool.at("0x398eC7346DcD622eDc5ae82352F02bE94C62d119");
     aToken = await IAToken.at("0x3a3A65aAb0dd2A17E3F1947bA16138cd37d08c04");
+    usdcToken = await IUSDCToken.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+    aUSDCToken = await IAToken.at("0x9ba00d6856a4edf4665bca2c2309936572473b7e");
 
     // Deploy and fund UniswapV2
     const uniswapFactory = await UniswapV2Factory.new(ZERO_ADDRESS);
@@ -94,11 +99,12 @@ contract("AaveV1 Filter", (accounts) => {
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
     filter = await AaveV1LendingPoolFilter.new();
-    aaveETHTokenFilter = await AaveV1ATokenFilter.new();
+    aTokenFilter = await AaveV1ATokenFilter.new();
     const approveFilter = await OnlyApproveFilter.new();
     await dappRegistry.addDapp(0, aaveLendingPoolCore, approveFilter.address);
     await dappRegistry.addDapp(0, aaveLendingPool.address, filter.address);
-    await dappRegistry.addDapp(0, aToken.address, aaveETHTokenFilter.address);
+    await dappRegistry.addDapp(0, aToken.address, aTokenFilter.address);
+    await dappRegistry.addDapp(0, aUSDCToken.address, aTokenFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
     manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
@@ -144,6 +150,41 @@ contract("AaveV1 Filter", (accounts) => {
       expect(balance).to.eq.BN(1000);
     });
 
+    it("should allow deposits of ERC20 on behalf of wallet", async () => {
+      // Fund the wallet with 1000 USDC tokens
+      const masterMinter = "0xe982615d461dd5cd06575bbea87624fda4e3de17";
+      await usdcToken.configureMinter(accounts[0], web3.utils.toWei("10000"), { from: masterMinter });
+      await usdcToken.mint(wallet.address, 1000);
+      const usdcTokenBalance = await usdcToken.balanceOf(wallet.address);
+      expect(usdcTokenBalance).to.eq.BN(1000);
+
+      const transactions = encodeCalls([
+        [usdcToken, "approve", [aaveLendingPoolCore, 1000]],
+        [aaveLendingPool, "deposit", [usdcToken.address, 1000, ""]]
+      ]);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, transactions],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, `deposit failed: "${error}"`);
+
+      const event = await utils.getEvent(txReceipt, aaveLendingPool, "Deposit");
+      assert.equal(event.args._reserve, usdcToken.address);
+      assert.equal(event.args._user, wallet.address);
+      assert.equal(event.args._amount, 1000);
+
+      const balance = await aUSDCToken.balanceOf(wallet.address);
+      expect(balance).to.eq.BN(1000);
+    });
+
     it("should not allow calling forbidden lending pool methods", async () => {
       const transactions = encodeCalls([
         [aaveLendingPool, "borrow", [aToken.address, 10, 0, 0]]
@@ -165,8 +206,9 @@ contract("AaveV1 Filter", (accounts) => {
   });
 
   describe("redeem", () => {
-    beforeEach(async () => {
-      const transactions = encodeCalls([
+    it("should allow redeem of ETH to wallet", async () => {
+      // Fund the wallet with 1000 wei and deposit them to Aave
+      let transactions = encodeCalls([
         [aaveLendingPool, "deposit", [AAVE_ETH_TOKEN, 1000, ""], 1000]
       ]);
       await manager.relay(
@@ -175,10 +217,9 @@ contract("AaveV1 Filter", (accounts) => {
         [wallet.address, transactions],
         wallet,
         [owner]);
-    });
 
-    it("should allow redeem to wallet", async () => {
-      const transactions = encodeCalls([
+      // Redeem the 1000 wei tokens
+      transactions = encodeCalls([
         [aToken, "redeem", [1000], 0]
       ]);
       const txReceipt = await manager.relay(
@@ -195,6 +236,51 @@ contract("AaveV1 Filter", (accounts) => {
       assert.isTrue(success, `redeem failed: "${error}"`);
 
       const event = await utils.getEvent(txReceipt, aToken, "Redeem");
+      assert.equal(event.args._from, wallet.address);
+      assert.equal(event.args._value, 1000);
+    });
+
+    it("should allow redeem of ERC20 to wallet", async () => {
+      // Fund the wallet with 1000 USDC tokens and deposit them to Aave
+      const masterMinter = "0xe982615d461dd5cd06575bbea87624fda4e3de17";
+      await usdcToken.configureMinter(accounts[0], web3.utils.toWei("10000"), { from: masterMinter });
+      await usdcToken.mint(wallet.address, 1000);
+      const usdcTokenBalance = await usdcToken.balanceOf(wallet.address);
+      expect(usdcTokenBalance).to.eq.BN(1000);
+
+      let transactions = encodeCalls([
+        [usdcToken, "approve", [aaveLendingPoolCore, 1000]],
+        [aaveLendingPool, "deposit", [usdcToken.address, 1000, ""]]
+      ]);
+
+      await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, transactions],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+
+      // Redeem the 1000 aUSDC tokens
+      transactions = encodeCalls([
+        [aUSDCToken, "redeem", [1000], 0]
+      ]);
+      const txReceipt = await manager.relay(
+        module,
+        "multiCall",
+        [wallet.address, transactions],
+        wallet,
+        [owner],
+        1,
+        ETH_TOKEN,
+        relayer);
+
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, `redeem failed: "${error}"`);
+
+      const event = await utils.getEvent(txReceipt, aUSDCToken, "Redeem");
       assert.equal(event.args._from, wallet.address);
       assert.equal(event.args._value, 1000);
     });
