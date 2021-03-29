@@ -31,8 +31,8 @@ const ScdMcdMigration = artifacts.require("ScdMcdMigration");
 const UniswapV2Filter = artifacts.require("UniswapV2UniZapFilter");
 const LidoFilter = artifacts.require("LidoFilter");
 const CurveFilter = artifacts.require("CurveFilter");
-const AaveV1Filter = artifacts.require("AaveV1Filter");
-const AaveETHTokenFilter = artifacts.require("AaveETHTokenFilter");
+const AaveV1LendingPoolFilter = artifacts.require("AaveV1LendingPoolFilter");
+const AaveV1ATokenFilter = artifacts.require("AaveV1ATokenFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -212,13 +212,19 @@ const main = async () => {
 
   // Aave V1
   console.log("Deploying AaveV1");
-  const AaveV1FilterWrapper = await AaveV1Filter.new();
-  console.log(`Deployed AaveV1Filter at ${AaveV1FilterWrapper.address}`);
-  await DappRegistryWrapper.addDapp(0, config.defi.aave.lendingPool, AaveV1FilterWrapper.address);
 
-  const AaveETHTokenFilterWrapper = await AaveETHTokenFilter.new();
-  console.log(`Deployed AaveETHTokenFilter at ${AaveETHTokenFilterWrapper.address}`);
-  await DappRegistryWrapper.addDapp(0, config.defi.aave.aaveToken, AaveETHTokenFilterWrapper.address);
+  const AaveV1LendingPoolFilterWrapper = await AaveV1LendingPoolFilter.new();
+  console.log(`Deployed AaveV1LendingPoolFilter at ${AaveV1LendingPoolFilterWrapper.address}`);
+  await DappRegistryWrapper.addDapp(0, config.defi.aave.lendingPool, AaveV1LendingPoolFilterWrapper.address);
+  console.log("Adding OnlyApproveFilter for AavelendingPoolCore");
+  await DappRegistryWrapper.addDapp(0, config.defi.aave.lendingPoolCore, OnlyApproveFilterWrapper.address);
+
+  const AaveV1ATokenFilterWrapper = await AaveV1ATokenFilter.new();
+  console.log(`Deployed AaveV1ATokenFilter at ${AaveV1ATokenFilterWrapper.address}`);
+  for (const aToken of (config.defi.aave.aTokens)) {
+    console.log(`Adding filter for Aave token ${aToken}`);
+    await DappRegistryWrapper.addDapp(0, aToken, AaveV1ATokenFilterWrapper.address);
+  }
 
   // Setting timelock
   console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);

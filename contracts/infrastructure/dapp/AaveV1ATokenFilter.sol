@@ -18,7 +18,7 @@ pragma solidity ^0.6.12;
 
 import "./BaseFilter.sol";
 
-contract AaveETHTokenFilter is BaseFilter {
+contract AaveV1ATokenFilter is BaseFilter {
 
     bytes4 private constant REDEEM = bytes4(keccak256("redeem(uint256)"));
 

@@ -126,8 +126,12 @@
             "lendingPool": {
               "$ref": "#/definitions/ethaddress"
             },
-            "aaveToken": {
+            "lendingPoolCore": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "aTokens": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
             }
           }
         },

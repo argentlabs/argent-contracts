@@ -22,8 +22,9 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
-const AaveV1Filter = artifacts.require("AaveV1Filter");
-const AaveETHTokenFilter = artifacts.require("AaveETHTokenFilter");
+const AaveV1LendingPoolFilter = artifacts.require("AaveV1LendingPoolFilter");
+const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
+const AaveV1ATokenFilter = artifacts.require("AaveV1ATokenFilter");
 const IAaveV1LendingPool = artifacts.require("IAaveV1LendingPool");
 const IAToken = artifacts.require("IAToken");
 const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
@@ -60,11 +61,13 @@ contract("AaveV1 Filter", (accounts) => {
   let uniswapRouter;
 
   let aaveLendingPool;
+  let aaveLendingPoolCore;
   let aToken;
   let tokenPriceRegistry;
 
   before(async () => {
     // Wire up AaveV1
+    aaveLendingPoolCore = "0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3";
     aaveLendingPool = await IAaveV1LendingPool.at("0x398eC7346DcD622eDc5ae82352F02bE94C62d119");
     aToken = await IAToken.at("0x3a3A65aAb0dd2A17E3F1947bA16138cd37d08c04");
 
@@ -90,8 +93,10 @@ contract("AaveV1 Filter", (accounts) => {
       RECOVERY_PERIOD,
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    filter = await AaveV1Filter.new();
-    aaveETHTokenFilter = await AaveETHTokenFilter.new();
+    filter = await AaveV1LendingPoolFilter.new();
+    aaveETHTokenFilter = await AaveV1ATokenFilter.new();
+    const approveFilter = await OnlyApproveFilter.new();
+    await dappRegistry.addDapp(0, aaveLendingPoolCore, approveFilter.address);
     await dappRegistry.addDapp(0, aaveLendingPool.address, filter.address);
     await dappRegistry.addDapp(0, aToken.address, aaveETHTokenFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);

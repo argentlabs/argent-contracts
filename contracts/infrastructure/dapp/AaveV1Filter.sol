@@ -18,7 +18,7 @@ pragma solidity ^0.6.12;
 
 import "./BaseFilter.sol";
 
-contract AaveV1Filter is BaseFilter {
+contract AaveV1LendingPoolFilter is BaseFilter {
 
     bytes4 private constant DEPOSIT = bytes4(keccak256("deposit(address,uint256,uint16)"));
 
