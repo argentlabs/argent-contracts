@@ -262,7 +262,7 @@ const utilities = {
 
   encodeTransaction: (to, value, data) => ({ to, value, data }),
 
-  encodeCalls: (calls) => calls.map(([instance, method, params = [], value = 0]) => utilities.encodeTransaction(
+  encodeCalls: (calls) => (Array.isArray(calls[0]) ? calls : [calls]).map(([instance, method, params = [], value = 0]) => utilities.encodeTransaction(
     instance.address, value, instance.contract.methods[method](...params).encodeABI())
   ),
 

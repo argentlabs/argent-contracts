@@ -23,7 +23,7 @@ const { assert } = require("chai");
 const truffleAssert = require("truffle-assertions");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
+const { ETH_TOKEN, encodeTransaction, initNonce, encodeCalls } = require("../utils/utilities.js");
 
 const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -85,7 +85,6 @@ contract("Authorisation", (accounts) => {
     await dappRegistry.addDapp(CUSTOM_REGISTRY_ID, contract2.address, filter.address, { from: registryOwner });
     await dappRegistry.addDapp(0, recipient, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
-    await dappRegistry.addDapp(0, dappRegistry.address, ZERO_ADDRESS); // authorise "toggleRegistry()"
     await utils.increaseTime(SECURITY_PERIOD + 1);
     module = await ArgentModule.new(
       registry.address,
@@ -130,6 +129,12 @@ contract("Authorisation", (accounts) => {
 
     erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])
     await wallet.send(new BN("1000000000000000000"));
+
+    // authorise "DappRegistry.toggleRegistry()"
+    const txReceipt = await manager.relay(module, "addToWhitelist", [wallet.address, dappRegistry.address], wallet, [owner]);
+    const { success, error } = await utils.parseRelayReceipt(txReceipt);
+    assert.isTrue(success, `adding dapp registry to whitelist failed with "${error}"`);
+    await utils.increaseTime(SECURITY_PERIOD + 1);
 
     await enableCustomRegistry();
   }
@@ -295,8 +300,19 @@ contract("Authorisation", (accounts) => {
       await setupWallet();
     });
 
-    it("should have Argent Registry enabled by default", async () => {
-      assert.equal(await dappRegistry.isEnabledRegistry(wallet.address, 0), true, "Argent Registry isn't enabled");
+    it("should allow disabling the Argent Registry", async () => {
+      const assertToggle = async (enable) => {
+        const toggle = encodeCalls([[dappRegistry, "toggleRegistry", [0, enable]]]);
+        const txReceipt = await manager.relay(
+          module, "multiCall", [wallet.address, toggle], wallet, [owner]);
+        const { success, error } = await utils.parseRelayReceipt(txReceipt);
+        assert.isTrue(success, `toggleRegistry failed with "${error}"`);
+      };
+      assert.equal(await dappRegistry.isEnabledRegistry(wallet.address, 0), true, "Argent Registry should be enabled by default");
+      await assertToggle(false);
+      assert.isFalse(await dappRegistry.isEnabledRegistry(wallet.address, 0), "Argent Registry should be disabled");
+      await assertToggle(true);
+      assert.isTrue(await dappRegistry.isEnabledRegistry(wallet.address, 0), "Argent Registry isn't re-enabled");
     });
 
     // not a test per se, but just a note of something to be aware of
