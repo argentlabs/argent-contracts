@@ -205,14 +205,14 @@ contract ParaswapFilter is BaseFilter {
         // _data = {sig:4}{six params:192}{exchangeDataOffset:32}{...}
         // we add 4+32=36 to the offset to skip the method sig and the size of the exchangeData array
         uint256 exchangeDataOffset = 36 + abi.decode(_data[196:228], (uint256)); 
+        address[] memory spenders = new address[](_callees.length);
+        bytes[] memory allData = new bytes[](_callees.length);
         for(uint256 i = 0; i < _callees.length; i++) {
             bytes calldata slicedExchangeData = _data[exchangeDataOffset+_startIndexes[i] : exchangeDataOffset+_startIndexes[i+1]];
-            address spender = Utils.recoverSpender(_callees[i], slicedExchangeData);
-            if(!authoriser.isAuthorised(_augustus, spender, _callees[i], slicedExchangeData)) {
-                return false;
-            }
+            allData[i] = slicedExchangeData;
+            spenders[i] = Utils.recoverSpender(_callees[i], slicedExchangeData);
         }
-        return true;
+        return authoriser.areAuthorised(_augustus, spenders, _callees, allData);
     }
 
     function hasValidBeneficiary(address _wallet, address _beneficiary) internal pure returns (bool) {

@@ -15,6 +15,7 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "./IAuthoriser.sol";
 import "./dapp/IFilter.sol";
@@ -81,7 +82,7 @@ contract DappRegistry is IAuthoriser {
     * @param _to The target of the transaction
     * @param _data The calldata of the transaction
     */
-    function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+    function isAuthorised(address _wallet, address _spender, address _to, bytes calldata _data) public view override returns (bool) {
         uint registries = uint(enabledRegistryIds[_wallet]);
         // Check Argent Default Registry first. It is enabled by default, implying that a zero 
         // at position 0 of the `registries` bit vector means that the Argent Registry is enabled)
@@ -99,6 +100,32 @@ contract DappRegistry is IAuthoriser {
             }
         }
         return false;
+    }
+
+    /**
+    * @notice Returns whether a collection of (_spender, _to, _data) calls are authorised for a wallet
+    * @param _wallet The wallet
+    * @param _spenders The spenders of the tokens for token approvals, or the targets of the transaction otherwise
+    * @param _to The targets of the transaction
+    * @param _data The calldata of the transaction
+    */
+    function areAuthorised(
+        address _wallet,
+        address[] calldata _spenders,
+        address[] calldata _to,
+        bytes[] calldata _data
+    )
+        external
+        view
+        override
+        returns (bool) 
+    {
+        for(uint i = 0; i < _spenders.length; i++) {
+            if(!isAuthorised(_wallet, _spenders[i], _to[i], _data[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
