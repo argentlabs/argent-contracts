@@ -332,6 +332,9 @@ contract("Paraswap Filter", (accounts) => {
       it("should sell token B for token A", async () => {
         await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address });
       });
+      it("should not sell token A for non-tradable token B", async () => {
+        await testTrade({ method, fromToken: tokenA.address, toToken: tokenB.address, errorReason: "TM: call not authorised" });
+      });
     });
   }
 

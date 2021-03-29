@@ -139,7 +139,7 @@ contract ParaswapFilter is BaseFilter {
             return isValidSimpleSwap(_wallet, _to, _data);
         }
         if(methodId == SWAP_ON_UNI) {
-            return isValidUniSwap(_to);
+            return isValidUniSwap(_to, _data);
         }
         if(methodId == SWAP_ON_UNI_FORK) {
             return isValidUniForkSwap(_to, _data);
@@ -158,23 +158,27 @@ contract ParaswapFilter is BaseFilter {
     }
 
     function isValidSimpleSwap(address _wallet, address _augustus, bytes calldata _data) internal view returns (bool) {
-        (, address[] memory callees,, uint256[] memory startIndexes,, address beneficiary) 
-            = abi.decode(_data[4:], (uint256[5],address[],bytes,uint256[],uint256[],address));
-        return hasValidBeneficiary(_wallet, beneficiary) && hasAuthorisedCallees(_augustus, callees, startIndexes, _data);
+        (,address toToken,, address[] memory callees,, uint256[] memory startIndexes,, address beneficiary) 
+            = abi.decode(_data[4:], (address, address, uint256[3],address[],bytes,uint256[],uint256[],address));
+        return hasValidBeneficiary(_wallet, beneficiary) &&
+            hasTradableToken(toToken) &&
+            hasAuthorisedCallees(_augustus, callees, startIndexes, _data);
     }
 
-    function isValidUniSwap(address _augustus) internal view returns (bool) {
-        return uniswapProxy == IParaswap(_augustus).getUniswapProxy();
+    function isValidUniSwap(address _augustus, bytes calldata _data) internal view returns (bool) {
+        if(uniswapProxy != IParaswap(_augustus).getUniswapProxy()) {
+            return false;
+        }
+        (, address[] memory path) = abi.decode(_data[4:], (uint256[2], address[]));
+        return hasTradableToken(path[path.length - 1]);
     }
 
     function isValidUniForkSwap(address _augustus, bytes calldata _data) internal view returns (bool) {
         if(uniswapProxy != IParaswap(_augustus).getUniswapProxy()) {
             return false;
         }
-
-        (address factory, bytes32 initCode) = abi.decode(_data[4:], (address, bytes32));
-
-        return factory != address(0) && initCode != bytes32(0) && (
+        (address factory, bytes32 initCode,, address[] memory path) = abi.decode(_data[4:], (address, bytes32, uint256[2], address[]));
+        return hasTradableToken(path[path.length - 1]) && factory != address(0) && initCode != bytes32(0) && (
             (factory == uniForkFactory1 && initCode == uniForkInitCode1) ||
             (factory == uniForkFactory2 && initCode == uniForkInitCode2) ||
             (factory == uniForkFactory3 && initCode == uniForkInitCode3)
