@@ -1,4 +1,4 @@
-// Copyright (C) 2018  Argent Labs Ltd. <https://argent.xyz>
+// Copyright (C) 2021  Argent Labs Ltd. <https://argent.xyz>
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,13 +18,9 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "../dapp/IFilter.sol";
+import "./IDappRegistry.sol";
 import "../storage/ITransferStorage.sol";
 import "../../modules/common/Utils.sol";
-
-interface IDappRegistry {
-    function enabledRegistryIds(address _wallet) external view returns (bytes32);
-    function authorisations(uint8 _registryId, address _dapp) external view returns (bytes32);
-}
 
 /**
  * @title MultiCallHelper
