@@ -106,14 +106,14 @@ contract DappRegistry is IAuthoriser {
     * @param _registryId The id of the registry to enable/disable
     * @param _enabled Whether the registry should be enabled (true) or disabled (false)
     */
-    function toggleRegistry(uint8 _registryId, bool _enabled) external returns (bool) {
+    function toggleRegistry(uint8 _registryId, bool _enabled) external {
         require(registryOwners[_registryId] != address(0), "DR: unknown registry");
         uint registries = uint(enabledRegistryIds[msg.sender]);
-        bool current = ((registries >> _registryId) & 1) > 0;
+        bool current = (((registries >> _registryId) & 1) > 0) /* "is bit set for regId?" */ == (_registryId > 0) /* "not Argent registry?" */;
         if(current != _enabled) {
             enabledRegistryIds[msg.sender] = bytes32(registries ^ (uint(1) << _registryId)); // toggle [_registryId]^th bit
+            emit ToggledRegistry(msg.sender, _registryId, _enabled);
         }
-        emit ToggledRegistry(msg.sender, _registryId, _enabled);
     }
 
     /**************  Management of registry list  *****************/
