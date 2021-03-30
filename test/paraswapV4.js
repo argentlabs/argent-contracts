@@ -372,6 +372,16 @@ contract("Paraswap Filter", (accounts) => {
       await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenA.address].address, ZERO_ADDRESS);
     });
 
+    it("should not allow multiSwap via unauthorised adapter", async () => {
+      await testTrade({
+        method: "multiSwap",
+        fromToken: PARASWAP_ETH_TOKEN,
+        toToken: tokenA.address,
+        useUnauthorisedAdapter: true,
+        errorReason: "TM: call not authorised"
+      });
+    });
+
     it("should not allow megaSwap via unauthorised adapter", async () => {
       await testTrade({
         method: "megaSwap",
