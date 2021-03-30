@@ -201,7 +201,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
                     _from,
                     _value,
                     _data,
-                    getChainId(),
+                    block.chainid,
                     _nonce,
                     _gasPrice,
                     _gasLimit,
@@ -378,14 +378,5 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
         require(_data.length >= 36, "RM: Invalid dataWallet");
         address dataWallet = abi.decode(_data[4:], (address));
         return dataWallet == _wallet;
-    }
-
-   /**
-    * @notice Returns the current chainId
-    * @return chainId the chainId
-    */
-    function getChainId() private pure returns (uint256 chainId) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly { chainId := chainid() }
     }
 }
