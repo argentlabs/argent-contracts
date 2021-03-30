@@ -19,6 +19,7 @@ pragma experimental ABIEncoderV2;
 
 import "./BaseFilter.sol";
 import "../IAuthoriser.sol";
+import "../base/Owned.sol";
 import "../../modules/common/Utils.sol";
 
 interface IParaswap {
@@ -66,7 +67,7 @@ interface IParaswap {
     function getUniswapProxy() external view returns (address);
 }
 
-contract ParaswapFilter is BaseFilter {
+contract ParaswapFilter is BaseFilter, Owned {
 
     bytes4 constant internal MULTISWAP = bytes4(keccak256(
         "multiSwap((address,uint256,uint256,uint256,address,string,bool,(address,uint256,(address,address,uint256,bytes,uint256)[])[]))"
@@ -105,6 +106,10 @@ contract ParaswapFilter is BaseFilter {
     bytes32 public immutable uniForkInitCode2; // linkswap
     bytes32 public immutable uniForkInitCode3; // defiswap
 
+    // Events
+    event AdapterAdded(address indexed _adapter);
+    event AdapterRemoved(address indexed _adapter);
+
     constructor(
         address _tokenRegistry,
         IAuthoriser _authoriser,
@@ -123,8 +128,28 @@ contract ParaswapFilter is BaseFilter {
         uniForkInitCode1 = _uniInitCodes[0];
         uniForkInitCode2 = _uniInitCodes[1];
         uniForkInitCode3 = _uniInitCodes[2];
+
         for(uint i = 0; i < _adapters.length; i++) {
             adapters[_adapters[i]] = true;
+            emit AdapterAdded(_adapters[i]); 
+        }
+    }
+
+    /**
+     * @notice Add/Remove a DEX adapter to/from the whitelist.
+     * @param _adapters array of DEX adapters to add to (or remove from) the whitelist
+     * @param _authorised array where each entry is true to add the corresponding DEX to the whitelist, false to remove it
+     */
+    function setAuthorised(address[] calldata _adapters, bool[] calldata _authorised) external onlyOwner {
+        for(uint256 i = 0; i < _adapters.length; i++) {
+            if(adapters[_adapters[i]] != _authorised[i]) {
+                adapters[_adapters[i]] = _authorised[i];
+                if(_authorised[i]) { 
+                    emit AdapterAdded(_adapters[i]); 
+                } else { 
+                    emit AdapterRemoved(_adapters[i]);
+                }
+            }
         }
     }
 
