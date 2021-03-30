@@ -40,11 +40,11 @@ contract ArgentModuleTest is ArgentModule {
         }
     }
     function getPairForSorted(address tokenA, address tokenB) internal override view returns (address pair) {
-        pair = address(uint(keccak256(abi.encodePacked(
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
                 uniswapV2Factory,
                 keccak256(abi.encodePacked(tokenA, tokenB)),
                 creationCode
-            ))));
+            )))));
     }
 }

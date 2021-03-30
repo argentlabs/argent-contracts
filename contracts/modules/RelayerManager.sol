@@ -188,7 +188,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
         address _refundAddress
     )
         internal
-        pure
+        view
         returns (bytes32)
     {
         return keccak256(

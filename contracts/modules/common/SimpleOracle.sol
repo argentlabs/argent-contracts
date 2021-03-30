@@ -46,11 +46,11 @@ contract SimpleOracle {
     }
 
     function getPairForSorted(address tokenA, address tokenB) internal virtual view returns (address pair) {    
-        pair = address(uint(keccak256(abi.encodePacked(
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
                 uniswapV2Factory,
                 keccak256(abi.encodePacked(tokenA, tokenB)),
                 hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f'
-            ))));
+            )))));
     }
 }
