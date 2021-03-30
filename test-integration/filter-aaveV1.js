@@ -28,7 +28,7 @@ const AaveV1ATokenFilter = artifacts.require("AaveV1ATokenFilter");
 const IAaveV1LendingPool = artifacts.require("IAaveV1LendingPool");
 const IAToken = artifacts.require("IAToken");
 const IUSDCToken = artifacts.require("IUSDCToken");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const TokenRegistry = artifacts.require("TokenRegistry");
 
 // Utils
 const utils = require("../utils/utilities.js");
@@ -66,7 +66,7 @@ contract("AaveV1 Filter", (accounts) => {
   let aToken;
   let usdcToken;
   let aUSDCToken;
-  let tokenPriceRegistry;
+  let tokenRegistry;
 
   before(async () => {
     // Wire up AaveV1
@@ -83,7 +83,7 @@ contract("AaveV1 Filter", (accounts) => {
 
     // deploy Argent
     registry = await Registry.new();
-    tokenPriceRegistry = await TokenPriceRegistry.new();
+    tokenRegistry = await TokenRegistry.new();
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -107,7 +107,7 @@ contract("AaveV1 Filter", (accounts) => {
     await dappRegistry.addDapp(0, aUSDCToken.address, aTokenFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
-    manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
+    manager = new RelayManager(guardianStorage.address, tokenRegistry.address);
   });
 
   beforeEach(async () => {
