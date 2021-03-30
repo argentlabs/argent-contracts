@@ -1,17 +1,15 @@
 /* global artifacts */
-const BN = require("bn.js");
 const ethers = require("ethers");
 const { ETH_TOKEN } = require("./utilities.js");
 const utils = require("./utilities.js");
 
-const ITokenPriceRegistry = artifacts.require("ITokenPriceRegistry");
+const TestSimpleOracle = artifacts.require("TestSimpleOracle");
 const IGuardianStorage = artifacts.require("IGuardianStorage");
-// const IFeature = artifacts.require("IFeature");
 
 class RelayManager {
-  constructor(guardianStorage, tokenPriceRegistry) {
+  constructor(guardianStorage, priceOracle) {
     this.guardianStorage = guardianStorage;
-    this.tokenPriceRegistry = tokenPriceRegistry;
+    this.priceOracle = priceOracle;
   }
 
   // Relays without refund by default, unless the gasPrice is explicitely set to be >0
@@ -31,15 +29,7 @@ class RelayManager {
     // When the refund is in token (not ETH), calculate the amount needed for refund
     let gasPrice = _gasPrice;
     if (_refundToken !== ETH_TOKEN) {
-      const tokenPrice = await (await ITokenPriceRegistry.at(this.tokenPriceRegistry)).getTokenPrice(_refundToken);
-
-      // How many tokens to pay per unit of gas spent
-      // refundCost = gasLimit * gasPrice
-      // tokenAmount = refundCost * 10^18 / tokenPrice
-      gasPrice = new BN(10).pow(new BN(18))
-        .muln(_gasPrice)
-        .div(tokenPrice)
-        .toNumber();
+      gasPrice = (await (await TestSimpleOracle.at(this.priceOracle)).ethToToken(_refundToken, _gasPrice)).toNumber();
     }
 
     const signatures = await utils.signOffchain(

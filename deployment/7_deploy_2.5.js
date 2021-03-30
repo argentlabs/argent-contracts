@@ -15,6 +15,7 @@ const Upgrader = artifacts.require("SimpleUpgrader");
 const MultiCallHelper = artifacts.require("MultiCallHelper");
 const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 const Proxy = artifacts.require("Proxy");
+const TokenRegistry = artifacts.require("TokenRegistry");
 
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
@@ -106,6 +107,10 @@ const main = async () => {
   // Deploy MultiCall Helper
   const MultiCallHelperWrapper = await MultiCallHelper.new(config.modules.TransferStorage, DappRegistryWrapper.address);
   console.log("Deployed MultiCallHelper at ", MultiCallHelperWrapper.address);
+
+  // Deploy new TokenRegistry
+  const TokenRegistryWrapper = await TokenRegistry.new();
+  console.log("Deployed TokenRegistry at ", TokenRegistryWrapper.address);
 
   // //////////////////////////////////
   // Deploy and add filters to Argent Registry
@@ -239,6 +244,8 @@ const main = async () => {
     const account = config.backend.accounts[idx];
     console.log(`Setting ${account} as the manager of the WalletFactory`);
     await WalletFactoryWrapper.addManager(account);
+    console.log(`Setting ${account} as the manager of the TokenRegistry`);
+    await TokenRegistryWrapper.addManager(account);
   }
 
   // //////////////////////////////////
@@ -247,6 +254,9 @@ const main = async () => {
 
   console.log("Setting the MultiSig as the owner of WalletFactoryWrapper");
   await WalletFactoryWrapper.changeOwner(config.contracts.MultiSigWallet);
+
+  console.log("Setting the MultiSig as the owner of TokenRegistry");
+  await TokenRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
 
   console.log("Setting the MultiSig as the owner of default registry");
   await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
@@ -264,6 +274,7 @@ const main = async () => {
     BaseWallet: BaseWalletWrapper.address,
     DappRegistry: DappRegistryWrapper.address,
     MultiCallHelper: MultiCallHelperWrapper.address,
+    TokenRegistry: TokenRegistryWrapper.address,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -279,6 +290,7 @@ const main = async () => {
     abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(DappRegistryWrapper, "contracts"),
     abiUploader.upload(MultiCallHelperWrapper, "contracts"),
+    abiUploader.upload(TokenRegistryWrapper, "contracts"),
   ]);
 
   // //////////////////////////////////

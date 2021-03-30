@@ -25,7 +25,6 @@ const Filter = artifacts.require("YearnFilter");
 const Vault = artifacts.require("yVault");
 const Controller = artifacts.require("Controller");
 const Strategy = artifacts.require("StrategyMock");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 // Utils
 const utils = require("../utils/utilities.js");
@@ -60,7 +59,6 @@ contract("yEarn Filter", (accounts) => {
 
   let pool;
   let wethPool;
-  let tokenPriceRegistry;
 
   before(async () => {
     // Deploy test token
@@ -80,7 +78,6 @@ contract("yEarn Filter", (accounts) => {
 
     // deploy Argent
     registry = await Registry.new();
-    tokenPriceRegistry = await TokenPriceRegistry.new();
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -101,7 +98,7 @@ contract("yEarn Filter", (accounts) => {
     await dappRegistry.addDapp(0, wethPool.address, wethFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
-    manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
+    manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {

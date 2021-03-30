@@ -26,7 +26,6 @@ const MultiCallHelper = artifacts.require("MultiCallHelper");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const AaveV2LendingPool = artifacts.require("AaveV2LendingPoolMock");
 const ERC20 = artifacts.require("TestERC20");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 const { encodeTransaction, addTrustedContact } = require("../utils/utilities.js");
 
@@ -57,7 +56,6 @@ contract("ArgentModule", (accounts) => {
   let helper;
   let tokenA;
   let aave;
-  let tokenPriceRegistry;
 
   before(async () => {
     // Deploy test tokens
@@ -73,8 +71,6 @@ contract("ArgentModule", (accounts) => {
 
     // deploy Argent
     registry = await Registry.new();
-    tokenPriceRegistry = await TokenPriceRegistry.new();
-    await tokenPriceRegistry.setTradableForTokenList([tokenA.address], [true]);
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
