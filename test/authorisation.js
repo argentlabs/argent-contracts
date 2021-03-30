@@ -315,18 +315,6 @@ contract("Authorisation", (accounts) => {
       assert.isTrue(await dappRegistry.isEnabledRegistry(wallet.address, 0), "Argent Registry isn't re-enabled");
     });
 
-    // not a test per se, but just a note of something to be aware of
-    it("has isEnabledRegistry return true for _registryId > 255 when isEnabledRegistry(_wallet, _registryId % 256) == true", async () => {
-      const dataWithBadSig = utils.encodeFunctionCall("isEnabledRegistry(address,uint)", [wallet.address, 256 + CUSTOM_REGISTRY_ID]);
-      const correctSig = web3.utils.sha3("isEnabledRegistry(address,uint8)").slice(0, 10);
-      const data = `${correctSig}${dataWithBadSig.slice(10)}`;
-      const output = await web3.eth.call({
-        to: dappRegistry.address,
-        data
-      });
-      assert.equal(output.toString(), "0x0000000000000000000000000000000000000000000000000000000000000001");
-    });
-
     it("should not enable non-existing registry", async () => {
       const data = dappRegistry.contract.methods.toggleRegistry(66, true).encodeABI();
       const transaction = encodeTransaction(dappRegistry.address, 0, data);
