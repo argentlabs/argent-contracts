@@ -5,7 +5,6 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const WalletFactory = artifacts.require("WalletFactory");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
 const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
@@ -19,7 +18,6 @@ async function main() {
   const ENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);
   const WalletFactoryWrapper = await WalletFactory.at(config.contracts.WalletFactory);
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
-  const TokenPriceRegistryWrapper = await TokenPriceRegistry.at(config.modules.TokenPriceRegistry);
   const DexRegistryWrapper = await DexRegistry.at(config.contracts.DexRegistry);
   const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
 
@@ -45,9 +43,6 @@ async function main() {
     const account = config.backend.accounts[idx];
     console.log(`Set ${account} as the manager of the WalletFactory`);
     await WalletFactoryWrapper.addManager(account);
-
-    console.log(`Set ${account} as the manager of the TokenPriceRegistry`);
-    await TokenPriceRegistryWrapper.addManager(account);
   }
 
   // //////////////////////////////////
@@ -59,7 +54,6 @@ async function main() {
     ENSManagerWrapper,
     WalletFactoryWrapper,
     ModuleRegistryWrapper,
-    TokenPriceRegistryWrapper,
     DexRegistryWrapper,
     ArgentWalletDetectorWrapper];
 

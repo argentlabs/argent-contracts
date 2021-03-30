@@ -14,7 +14,6 @@ const ENSResolver = artifacts.require("ArgentENSResolver");
 const WalletFactory = artifacts.require("WalletFactory");
 const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 const DexRegistry = artifacts.require("DexRegistry");
 
 const utils = require("../utils/utilities.js");
@@ -46,8 +45,6 @@ async function main() {
   // Deploy the MultiSig
   const MultiSigWrapper = await MultiSig.new(newConfig.multisig.threshold, newConfig.multisig.owners);
 
-  // Deploy the new TokenPriceRegistry
-  const TokenPriceRegistryWrapper = await TokenPriceRegistry.new();
   // Deploy the DexRegistry
   const DexRegistryWrapper = await DexRegistry.new();
 
@@ -99,7 +96,6 @@ async function main() {
   configurator.updateModuleAddresses({
     GuardianStorage: GuardianStorageWrapper.address,
     TransferStorage: TransferStorageWrapper.address,
-    TokenPriceRegistry: TokenPriceRegistryWrapper.address,
   });
 
   configurator.updateInfrastructureAddresses({
@@ -118,7 +114,6 @@ async function main() {
   await Promise.all([
     abiUploader.upload(GuardianStorageWrapper, "modules"),
     abiUploader.upload(TransferStorageWrapper, "modules"),
-    abiUploader.upload(TokenPriceRegistryWrapper, "modules"),
     abiUploader.upload(MultiSigWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(ArgentWalletDetectorWrapper, "contracts"),

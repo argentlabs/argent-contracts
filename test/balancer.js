@@ -24,7 +24,6 @@ const DappRegistry = artifacts.require("DappRegistry");
 const Filter = artifacts.require("BalancerFilter");
 const BPool = artifacts.require("BPool");
 const ERC20 = artifacts.require("TestERC20");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
 
 // Utils
 const utils = require("../utils/utilities.js");
@@ -60,7 +59,6 @@ contract("Balancer Filter", (accounts) => {
   let tokenA;
   let tokenB;
   let pool;
-  let tokenPriceRegistry;
 
   before(async () => {
     // Deploy Balancer Pool
@@ -84,8 +82,6 @@ contract("Balancer Filter", (accounts) => {
 
     // deploy Argent
     registry = await Registry.new();
-    tokenPriceRegistry = await TokenPriceRegistry.new();
-    await tokenPriceRegistry.setTradableForTokenList([tokenA.address], [true]);
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -104,7 +100,7 @@ contract("Balancer Filter", (accounts) => {
     await dappRegistry.addDapp(0, pool.address, filter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
-    manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
+    manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {

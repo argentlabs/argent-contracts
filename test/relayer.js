@@ -20,7 +20,7 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModuleTest");
 const DappRegistry = artifacts.require("DappRegistry");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const PriceOracle = artifacts.require("TestSimpleOracle");
 const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
@@ -52,7 +52,7 @@ contract("ArgentModule", (accounts) => {
   let walletImplementation;
   let token;
   let dappRegistry;
-  let tokenPriceRegistry;
+  let priceOracle;
 
   before(async () => {
     // deploy Uniswap V2
@@ -94,12 +94,8 @@ contract("ArgentModule", (accounts) => {
 
     walletImplementation = await BaseWallet.new();
 
-    tokenPriceRegistry = await TokenPriceRegistry.new();
-    await tokenPriceRegistry.addManager(infrastructure);
-    const tokenRate = new BN(10).pow(new BN(18)).div(new BN(2));
-    await tokenPriceRegistry.setPriceForTokenList([token.address], [tokenRate]);
-
-    manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
+    priceOracle = await PriceOracle.new(uniswapRouter.address);
+    manager = new RelayManager(guardianStorage.address, priceOracle.address);
   });
 
   beforeEach(async () => {

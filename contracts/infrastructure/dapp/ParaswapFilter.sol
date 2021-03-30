@@ -40,13 +40,13 @@ contract ParaswapFilter is BaseFilter {
     bytes4 constant internal MULTISWAP = 0xcbd1603e; // bytes4(keccak256("multiSwap(...)"))
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    // The token price registry
-    address public immutable tokenPriceRegistry;
+    // The token registry
+    address public immutable tokenRegistry;
     // The DEX registry
     address public immutable dexRegistry;
 
-    constructor(address _tokenPriceRegistry, address _dexRegistry) public {
-        tokenPriceRegistry = _tokenPriceRegistry;
+    constructor(address _tokenRegistry, address _dexRegistry) public {
+        tokenRegistry = _tokenRegistry;
         dexRegistry = _dexRegistry;
     }
 
@@ -72,7 +72,7 @@ contract ParaswapFilter is BaseFilter {
         if(_destToken == ETH_TOKEN) {
             return true;
         }
-        (bool success, bytes memory res) = tokenPriceRegistry.staticcall(abi.encodeWithSignature("isTokenTradable(address)", _destToken));
+        (bool success, bytes memory res) = tokenRegistry.staticcall(abi.encodeWithSignature("isTokenTradable(address)", _destToken));
         return success && abi.decode(res, (bool));
     }
 

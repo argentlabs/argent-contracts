@@ -25,8 +25,6 @@ const PotFilter = artifacts.require("PotFilter");
 const VatFilter = artifacts.require("VatFilter");
 const DaiJoinFilter = artifacts.require("DaiJoinFilter");
 
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
-
 // Utils
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, initNonce, encodeCalls, encodeTransaction } = require("../utils/utilities.js");
@@ -55,7 +53,6 @@ contract("DSR Filter", (accounts) => {
   let wallet;
   let walletImplementation;
   let dappRegistry;
-  let tokenPriceRegistry;
   let uniswapRouter;
   let pot;
   let dai;
@@ -74,7 +71,6 @@ contract("DSR Filter", (accounts) => {
 
     // deploy Argent
     registry = await Registry.new();
-    tokenPriceRegistry = await TokenPriceRegistry.new();
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -95,7 +91,7 @@ contract("DSR Filter", (accounts) => {
     await dappRegistry.addDapp(0, vat.address, (await VatFilter.new(daiJoin.address, pot.address)).address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
-    manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
+    manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
