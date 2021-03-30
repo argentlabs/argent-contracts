@@ -327,7 +327,7 @@ contract("Paraswap Filter", (accounts) => {
   }
 
   function testsForMethod(method) {
-    describe.only(`${method} trades`, () => {
+    describe(`${method} trades`, () => {
       it("should sell ETH for token A", async () => {
         await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address });
       });
