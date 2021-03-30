@@ -27,7 +27,6 @@ import "../../lib_0.5/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>
  */
 abstract contract TransactionManager is BaseModule {
-    using SafeMath for uint256;
 
     // Static calls
     bytes4 private constant ERC1271_IS_VALID_SIGNATURE = bytes4(keccak256("isValidSignature(bytes32,bytes)"));
@@ -164,7 +163,7 @@ abstract contract TransactionManager is BaseModule {
         require(!registry.isRegisteredModule(_target), "TM: Cannot whitelist module");
         require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
 
-        uint256 whitelistAfter = block.timestamp.add(whitelistPeriod);
+        uint256 whitelistAfter = block.timestamp + whitelistPeriod;
         setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }

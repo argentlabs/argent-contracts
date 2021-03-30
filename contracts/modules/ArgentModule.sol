@@ -104,7 +104,7 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         {
             // owner + majority of guardians
             uint majorityGuardians = _majorityOfGuardians(_wallet);
-            uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
+            uint numberOfSignaturesRequired = majorityGuardians + 1;
             return (numberOfSignaturesRequired, OwnerSignature.Required);
         }
         if (methodId == SecurityManager.finalizeRecovery.selector ||

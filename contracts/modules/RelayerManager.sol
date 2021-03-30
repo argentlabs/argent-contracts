@@ -28,7 +28,6 @@ import "../infrastructure/storage/IGuardianStorage.sol";
  * @author Julien Niset <julien@argent.xyz>, Olivier VDB <olivier@argent.xyz>
  */
 abstract contract RelayerManager is BaseModule, SimpleOracle {
-    using SafeMath for uint256;
 
     uint256 constant internal BLOCKBOUND = 10000;
 
@@ -351,14 +350,14 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
             uint256 refundAmount;
             if (_refundToken == ETH_TOKEN) {
                 // 23k as an upper bound to cover the rest of refund logic
-                uint256 gasConsumed = _startGas.sub(gasleft()).add(23000);
-                refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tx.gasprice));
+                uint256 gasConsumed = _startGas - gasleft() + 23000;
+                refundAmount = Math.min(gasConsumed, _gasLimit) * (Math.min(_gasPrice, tx.gasprice));
                 invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
             } else {
                 // 37.5k as an upper bound to cover the rest of refund logic
-                uint256 gasConsumed = _startGas.sub(gasleft()).add(37500);
+                uint256 gasConsumed = _startGas - gasleft() + 37500;
                 uint256 tokenGasPrice = inToken(_refundToken, tx.gasprice);
-                refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tokenGasPrice));
+                refundAmount = Math.min(gasConsumed, _gasLimit) * (Math.min(_gasPrice, tokenGasPrice));
                 bytes memory methodData = abi.encodeWithSelector(ERC20.transfer.selector, refundAddress, refundAmount);
                 bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
                 // Check token refund is successful, when `transfer` returns a success bool result

@@ -18,11 +18,8 @@ pragma solidity ^0.8.3;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract SimpleOracle {
-
-    using SafeMath for uint256;
 
     address internal immutable weth;
     address internal immutable uniswapV2Factory;
@@ -34,7 +31,7 @@ contract SimpleOracle {
 
     function inToken(address _token, uint256 _ethAmount) internal view returns (uint256) {
         (uint256 wethReserve, uint256 tokenReserve) = getReservesForTokenPool(_token);
-        return _ethAmount.mul(tokenReserve) / wethReserve;
+        return _ethAmount * tokenReserve / wethReserve;
     }
 
     function getReservesForTokenPool(address _token) internal view returns (uint256 wethReserve, uint256 tokenReserve) {

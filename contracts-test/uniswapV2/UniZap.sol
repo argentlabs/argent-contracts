@@ -7,13 +7,11 @@ import "@uniswap/v2-periphery/contracts/interfaces/IERC20.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./UniswapV2LibraryMock.sol";
-import "./libraries/SafeMath.sol";
 
 // enables adding and removing liquidity with a single token to/from a pair
 // adds liquidity via a single token of the pair, by first swapping against the pair and then adding liquidity
 // removes liquidity in a single token, by removing liquidity and then immediately swapping
 contract UniZap {
-    using SafeMath for uint;
 
     IUniswapV2Factory public factory;
     IUniswapV2Router01 public router;
@@ -42,7 +40,7 @@ contract UniZap {
     // note this depends only on the number of tokens the caller wishes to swap and the current reserves of that token,
     // and not the current reserves of the other token
     function calculateSwapInAmount(uint reserveIn, uint userIn) public pure returns (uint) {
-        return Babylonian.sqrt(reserveIn.mul(userIn.mul(3988000) + reserveIn.mul(3988009))).sub(reserveIn.mul(1997)) / 1994;
+        return Babylonian.sqrt((reserveIn * userIn * 3988000 + reserveIn * 3988009) - (reserveIn * 1997)) / 1994;
     }
 
     // internal function shared by the ETH/non-ETH versions
@@ -85,7 +83,7 @@ contract UniZap {
 
         // approve the other token for the add liquidity call
         approveRouter(otherToken, amountTokenOther);
-        amountTokenIn = amountIn.sub(swapInAmount);
+        amountTokenIn = amountIn - swapInAmount;
 
         // no need to check that we transferred everything because minimums == total balance of this contract
         (,,liquidity) = router.addLiquidity(
