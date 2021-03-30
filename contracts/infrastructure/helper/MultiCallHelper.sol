@@ -28,7 +28,7 @@ import "../../modules/common/Utils.sol";
  */
 contract MultiCallHelper {
 
-    uint256 private constant MAX_UINT = 2**256 - 1;
+    uint256 private constant MAX_UINT = type(uint256).max;
 
     struct Call {
         address to;
