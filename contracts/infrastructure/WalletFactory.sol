@@ -95,7 +95,7 @@ contract WalletFactory is Managed {
     {
         validateInputs(_owner, _modules, _guardian);
         bytes32 newsalt = newSalt(_salt, _owner, _modules, _guardian);
-        address payable wallet = address(new Proxy{salt: newsalt}(walletImplementation));
+        address payable wallet = payable(new Proxy{salt: newsalt}(walletImplementation));
         validateAuthorisedCreation(wallet, _managerSignature);
         configureWallet(BaseWallet(wallet), _owner, _modules, _guardian);
         if (_refundAmount > 0 && _ownerSignature.length == 65) {
@@ -130,7 +130,7 @@ contract WalletFactory is Managed {
     {
         validateInputs(_owner, _modules, _guardian);
         bytes32 newsalt = newSalt(_salt, _owner, _modules, _guardian);
-        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(uint160(walletImplementation)));
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _wallet = address(uint160(uint256(hash)));
     }
@@ -215,7 +215,7 @@ contract WalletFactory is Managed {
         if(_managerSignature.length != 65) {
             manager = msg.sender;
         } else {
-            bytes32 signedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", bytes32(uint256(_wallet))));
+            bytes32 signedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", bytes32(uint256(uint160(_wallet)))));
             manager = Utils.recoverSigner(signedHash, _managerSignature, 0);
         }
         require(managers[manager], "WF: unauthorised wallet creation");
