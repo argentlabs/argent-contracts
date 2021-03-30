@@ -196,8 +196,8 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
                 keccak256(abi.encodePacked(
-                    byte(0x19),
-                    byte(0),
+                    bytes1(0x19),
+                    bytes1(0),
                     _from,
                     _value,
                     _data,
