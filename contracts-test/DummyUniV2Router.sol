@@ -1,4 +1,4 @@
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.3;
 
 contract DummyUniV2Router {
     address public WETH;

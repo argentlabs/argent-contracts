@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.3;
 
 interface IAuthoriser {
     function isAuthorised(address _sender, address _spender, address _to, bytes calldata _data) external view returns (bool);
