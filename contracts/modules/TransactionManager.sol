@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.3;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./common/Utils.sol";

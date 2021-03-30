@@ -1,5 +1,4 @@
 pragma solidity ^0.8.3;
-pragma experimental ABIEncoderV2;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
 import "./ArgentModule.sol";

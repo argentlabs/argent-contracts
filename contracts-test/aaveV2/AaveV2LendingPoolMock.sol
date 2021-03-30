@@ -1,5 +1,4 @@
 pragma solidity 0.8.3;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./AaveV2ATokenMock.sol";
