@@ -58,7 +58,7 @@ contract UniswapV2PairMock is UniswapV2ERC20Mock {
     );
     event Sync(uint112 reserve0, uint112 reserve1);
 
-    constructor() public {
+    constructor() {
         factory = msg.sender;
     }
 

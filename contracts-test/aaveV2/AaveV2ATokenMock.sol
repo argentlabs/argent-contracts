@@ -7,7 +7,7 @@ contract AaveV2ATokenMock is ERC20("aToken", "AERC20") {
     address asset;
     address lendingPool;
 
-    constructor(address _asset) public {
+    constructor(address _asset) {
         asset = _asset;
         lendingPool = msg.sender;
     }

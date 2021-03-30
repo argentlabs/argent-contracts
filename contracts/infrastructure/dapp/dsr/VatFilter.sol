@@ -25,7 +25,7 @@ contract VatFilter is BaseFilter {
     address public immutable daiJoin;
     address public immutable pot;
 
-    constructor(address _daiJoin, address _pot) public {
+    constructor(address _daiJoin, address _pot) {
         daiJoin = _daiJoin;
         pot = _pot;
     }

@@ -54,7 +54,7 @@ contract ArgentWalletDetector is Owned {
     // emits when a new accepted implementation is added 
     event ImplementationAdded(address indexed implementation);
 
-    constructor(bytes32[] memory _codes, address[] memory _implementations) public {
+    constructor(bytes32[] memory _codes, address[] memory _implementations) {
         for(uint i = 0; i < _codes.length; i++) {
             addCode(_codes[i]);
         }

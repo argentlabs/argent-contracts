@@ -25,7 +25,7 @@ contract CompoundCTokenFilter is BaseFilter {
 
     address public immutable underlying;
 
-    constructor (address _underlying) public {
+    constructor (address _underlying) {
         underlying = _underlying;
     }
 

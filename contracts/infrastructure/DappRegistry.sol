@@ -52,7 +52,7 @@ contract DappRegistry is IAuthoriser {
         _;
     }
     
-    constructor(uint64 _timelockPeriod) public {
+    constructor(uint64 _timelockPeriod) {
         // set the timelock period
         timelockPeriod = _timelockPeriod;
         // set the owner of the Argent Registry (registryId = 0)

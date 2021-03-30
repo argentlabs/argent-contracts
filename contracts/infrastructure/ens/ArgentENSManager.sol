@@ -56,7 +56,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
      * @param _ensRegistry The address of the ENS registry
      * @param _ensResolver The address of the ENS resolver
      */
-    constructor(string memory _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) public {
+    constructor(string memory _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) {
         rootName = _rootName;
         rootNode = _rootNode;
         ensRegistry = ENS(_ensRegistry);

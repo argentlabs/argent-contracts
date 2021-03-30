@@ -111,7 +111,7 @@ contract ParaswapFilter is BaseFilter {
         address[3] memory _uniFactories,
         bytes32[3] memory _uniInitCodes,
         address[] memory _adapters
-    ) public {
+    ) {
         tokenRegistry = _tokenRegistry;
         authoriser = _authoriser;
         uniswapProxy = _uniswapProxy;

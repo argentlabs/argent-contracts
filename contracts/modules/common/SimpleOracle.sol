@@ -27,7 +27,7 @@ contract SimpleOracle {
     address internal immutable weth;
     address internal immutable uniswapV2Factory;
 
-    constructor(address _uniswapRouter) public {
+    constructor(address _uniswapRouter) {
         weth = IUniswapV2Router01(_uniswapRouter).WETH();
         uniswapV2Factory = IUniswapV2Router01(_uniswapRouter).factory();
     }

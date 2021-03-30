@@ -19,7 +19,7 @@ contract UniZap {
     IUniswapV2Router01 public router;
     IWETH public weth;
 
-    constructor(IUniswapV2Factory factory_, IUniswapV2Router01 router_, IWETH weth_) public {
+    constructor(IUniswapV2Factory factory_, IUniswapV2Router01 router_, IWETH weth_) {
         factory = factory_;
         router = router_;
         weth = weth_;

@@ -31,7 +31,7 @@ contract YearnFilter is BaseFilter {
 
     bool public immutable isWeth;
 
-    constructor (bool _isWeth) public {
+    constructor (bool _isWeth) {
         isWeth = _isWeth;
     }
 

@@ -41,7 +41,7 @@ contract MultiCallHelper {
     // The dapp registry contract
     IDappRegistry internal immutable dappRegistry;
 
-    constructor(ITransferStorage _userWhitelist, IDappRegistry _dappRegistry) public {
+    constructor(ITransferStorage _userWhitelist, IDappRegistry _dappRegistry) {
         userWhitelist = _userWhitelist;
         dappRegistry = _dappRegistry;
     }
