@@ -86,10 +86,10 @@ contract ParaswapFilter is BaseFilter {
 
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    // The token registry
+    // The token price registry
     address public immutable tokenRegistry;
-    // The DEX registry
-    address public immutable dexRegistry;
+    // Supported Paraswap adapters
+    mapping(address => bool) public adapters;
     // The Dapp registry (used to authorise simpleSwap())
     IAuthoriser public immutable authoriser;
     // Uniswap Proxy used by Paraswap's AugustusSwapper contract
@@ -107,14 +107,13 @@ contract ParaswapFilter is BaseFilter {
 
     constructor(
         address _tokenRegistry,
-        address _dexRegistry,
         IAuthoriser _authoriser,
         address _uniswapProxy,
         address[3] memory _uniFactories,
-        bytes32[3] memory _uniInitCodes
+        bytes32[3] memory _uniInitCodes,
+        address[] memory _adapters
     ) public {
         tokenRegistry = _tokenRegistry;
-        dexRegistry = _dexRegistry;
         authoriser = _authoriser;
         uniswapProxy = _uniswapProxy;
 
@@ -124,6 +123,9 @@ contract ParaswapFilter is BaseFilter {
         uniForkInitCode1 = _uniInitCodes[0];
         uniForkInitCode2 = _uniInitCodes[1];
         uniForkInitCode3 = _uniInitCodes[2];
+        for(uint i = 0; i < _adapters.length; i++) {
+            adapters[_adapters[i]] = true;
+        }
     }
 
     function isValid(address _wallet, address /*_spender*/, address _to, bytes calldata _data) external view override returns (bool) {
@@ -228,15 +230,18 @@ contract ParaswapFilter is BaseFilter {
     }
 
     function hasValidExchangeAdapters(IParaswap.Path[] memory _path) internal view returns (bool) {
-        (bool success,) = dexRegistry.staticcall(
-            abi.encodeWithSignature("verifyExchangeAdapters((address,uint256,(address,address,uint256,bytes,uint256)[])[])", _path)
-        );
-        return success;
+        for (uint i = 0; i < _path.length; i++) {
+            for (uint j = 0; j < _path[i].routes.length; j++) {
+                if(!adapters[_path[i].routes[j].exchange]) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     function hasValidMegaPath(IParaswap.MegaSwapPath[] memory _megaPath) internal view returns (bool) {
         for(uint i = 0; i < _megaPath.length; i++) {
-            // TODO: add verifyMegaPath to DexRegistry to reduce number of ext calls 
             if(!hasValidExchangeAdapters(_megaPath[i].path)) {
                 return false;
             }

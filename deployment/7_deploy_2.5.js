@@ -131,11 +131,11 @@ const main = async () => {
   console.log("Deploying ParaswapFilter");
   const ParaswapFilterWrapper = await ParaswapFilter.new(
     config.modules.TokenPriceRegistry,
-    config.contracts.DexRegistry,
     DappRegistryWrapper.address,
     config.defi.paraswap.uniswapProxy,
     config.defi.paraswap.uniswapForks.map((f) => f.factory),
     config.defi.paraswap.uniswapForks.map((f) => f.initCode),
+    Object.values(config.defi.paraswap.authorisedExchanges)
   );
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
