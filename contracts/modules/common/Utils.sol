@@ -65,7 +65,7 @@ library Utils {
     * @param _to The target contract.
     * @param _data The data payload.
     */
-    function recoverSpender(address _to, bytes memory _data) internal pure returns (address spender) {
+    function recoverSpender(address _to, bytes memory _data) public pure returns (address spender) {
         if(_data.length >= 68) {
             bytes4 methodId;
             // solhint-disable-next-line no-inline-assembly
@@ -131,7 +131,7 @@ library Utils {
     * @param _guardian the address to test
     * @return true and the list of guardians minus the found guardian upon success, false and the original list of guardians if not found.
     */
-    function isGuardianOrGuardianSigner(address[] memory _guardians, address _guardian) internal view returns (bool, address[] memory) {
+    function isGuardianOrGuardianSigner(address[] memory _guardians, address _guardian) public view returns (bool, address[] memory) {
         if (_guardians.length == 0 || _guardian == address(0)) {
             return (false, _guardians);
         }

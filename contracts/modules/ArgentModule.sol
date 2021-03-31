@@ -16,6 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.3;
 
+import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "./RelayerManager.sol";
 import "./SecurityManager.sol";

@@ -25,8 +25,7 @@ library UniswapV2LibraryMock {
         (bool success, bytes memory _res) = factory.staticcall(abi.encodeWithSignature("getKeccakOfPairCreationCode()"));
         if (success) {
             bytes32 initCode = abi.decode(_res, (bytes32));
-            pair = address(
-                uint256(
+            pair = address(uint160(uint256(
                     keccak256(
                         abi.encodePacked(
                             hex'ff',
@@ -35,8 +34,7 @@ library UniswapV2LibraryMock {
                             initCode
                         )
                     )
-                )
-            );
+                )));
         }
     }
 

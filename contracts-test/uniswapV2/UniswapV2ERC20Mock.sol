@@ -67,7 +67,7 @@ contract UniswapV2ERC20Mock {
     }
 
     function transferFrom(address from, address to, uint value) external returns (bool) {
-        if (allowance[from][msg.sender] != uint(-1)) {
+        if (allowance[from][msg.sender] != uint(int256(int8(-1)))) {
             allowance[from][msg.sender] = allowance[from][msg.sender] - value;
         }
         _transfer(from, to, value);

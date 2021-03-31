@@ -7,8 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * ERC20 test contract.
  */
 contract TestERC20 is ERC20("ArgentToken", "AGT") {
+    uint8 internal tokenDecimals;
+
     constructor (address[] memory _initialAccounts, uint _supply, uint8 _decimals) {
-        _setupDecimals(_decimals);
+        tokenDecimals = _decimals;
         for (uint i = 0; i < _initialAccounts.length; i++) {
             _mint(_initialAccounts[i], _supply * 10**uint(_decimals));
         }
@@ -20,5 +22,9 @@ contract TestERC20 is ERC20("ArgentToken", "AGT") {
 
     function burn(address account, uint256 amount) public {
         _burn(account, amount);
+    }
+
+    function decimals() public view override returns (uint8) {
+        return tokenDecimals;
     }
 }

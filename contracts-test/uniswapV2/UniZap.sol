@@ -31,7 +31,7 @@ contract UniZap {
                 // clear the existing allowance
                 TransferHelper.safeApprove(_token, address(router), 0);
             }
-            TransferHelper.safeApprove(_token, address(router), uint256(-1));
+            TransferHelper.safeApprove(_token, address(router), uint256(int256(int8(-1))));
         }
     }
 

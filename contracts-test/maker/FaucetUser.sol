@@ -14,6 +14,6 @@ contract FaucetUser {
         // for the same token recipient.
         _faucet.gulp(address(_gem));
         _gem.transfer(msg.sender, _gem.balanceOf(address(this)));
-        selfdestruct(msg.sender);
+        selfdestruct(payable(msg.sender));
     }
 }

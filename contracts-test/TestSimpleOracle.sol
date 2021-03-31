@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "../contracts/modules/common/SimpleOracle.sol";
 
@@ -22,7 +22,7 @@ contract TestSimpleOracle is SimpleOracle {
 
     bytes32 internal creationCode;
 
-    constructor(address _uniswapRouter) SimpleOracle(_uniswapRouter) public {
+    constructor(address _uniswapRouter) SimpleOracle(_uniswapRouter) {
         address uniswapV2Factory = IUniswapV2Router01(_uniswapRouter).factory();
         (bool success, bytes memory _res) = uniswapV2Factory.staticcall(abi.encodeWithSignature("getKeccakOfPairCreationCode()"));
         if (success) {
@@ -35,11 +35,11 @@ contract TestSimpleOracle is SimpleOracle {
     }
 
     function getPairForSorted(address tokenA, address tokenB) internal override view returns (address pair) {
-        pair = address(uint(keccak256(abi.encodePacked(
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
                 uniswapV2Factory,
                 keccak256(abi.encodePacked(tokenA, tokenB)),
                 creationCode
-            ))));
+            )))));
     }
 }
