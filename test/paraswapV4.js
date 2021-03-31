@@ -73,6 +73,7 @@ contract("Paraswap Filter", (accounts) => {
   let uniswapV1Factory;
   let uniswapV1Exchanges;
   let uniswapV1Adapter;
+  let unauthorisedAdapter;
   let uniswapV2Factory;
   let initCode;
   let tokenA;
@@ -81,7 +82,6 @@ contract("Paraswap Filter", (accounts) => {
   let paraswapProxy;
   let tokenRegistry;
   let uniswapProxy;
-  let paraswapFilter;
 
   before(async () => {
     // Deploy test tokens
@@ -122,6 +122,7 @@ contract("Paraswap Filter", (accounts) => {
       infrastructure,
       uniswapProxy.address);
     uniswapV1Adapter = await Uniswap.new();
+    unauthorisedAdapter = await Uniswap.new();
     const wlr = await paraswapWhitelist.WHITELISTED_ROLE();
     await paraswapWhitelist.grantRole(wlr, uniswapV1Adapter.address);
     await paraswap.initializeAdapter(uniswapV1Adapter.address, web3.eth.abi.encodeParameter(
@@ -146,7 +147,7 @@ contract("Paraswap Filter", (accounts) => {
       RECOVERY_PERIOD,
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    paraswapFilter = await ParaswapFilter.new(
+    const paraswapFilter = await ParaswapFilter.new(
       tokenRegistry.address,
       dappRegistry.address,
       uniswapProxy.address,
@@ -203,7 +204,7 @@ contract("Paraswap Filter", (accounts) => {
     }
   };
 
-  function getPath({ fromToken, toToken, fromAmount, toAmount }) {
+  function getPath({ fromToken, toToken, fromAmount, toAmount, useUnauthorisedAdapter }) {
     const routes = [{
       exchange: "uniswap",
       percent: "100",
@@ -211,20 +212,20 @@ contract("Paraswap Filter", (accounts) => {
       destAmount: toAmount.toString(),
       data: { tokenFrom: fromToken, tokenTo: toToken },
     }];
-    const exchanges = { uniswap: uniswapV1Adapter.address };
+    const exchanges = { uniswap: useUnauthorisedAdapter ? unauthorisedAdapter.address : uniswapV1Adapter.address };
     const targetExchanges = { uniswap: uniswapV1Factory.address };
     return makePathes(fromToken, toToken, routes, exchanges, targetExchanges, false);
   }
 
-  function getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary }) {
-    const path = getPath({ fromToken, toToken, fromAmount, toAmount });
+  function getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, useUnauthorisedAdapter }) {
+    const path = getPath({ fromToken, toToken, fromAmount, toAmount, useUnauthorisedAdapter });
     return paraswap.contract.methods.multiSwap({
       fromToken, fromAmount, toAmount, expectedAmount: 0, beneficiary, referrer: "abc", useReduxToken: false, path
     }).encodeABI();
   }
 
-  function getMegaSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary }) {
-    const path = getPath({ fromToken, toToken, fromAmount, toAmount });
+  function getMegaSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, useUnauthorisedAdapter }) {
+    const path = getPath({ fromToken, toToken, fromAmount, toAmount, useUnauthorisedAdapter });
     return paraswap.contract.methods.megaSwap({
       fromToken,
       fromAmount,
@@ -283,6 +284,7 @@ contract("Paraswap Filter", (accounts) => {
     beneficiary = ZERO_ADDRESS,
     fromAmount = web3.utils.toWei("0.01"),
     toAmount = 1,
+    useUnauthorisedAdapter = false,
     errorReason = null
   }) {
     const beforeFrom = await getBalance(fromToken, wallet);
@@ -300,7 +302,7 @@ contract("Paraswap Filter", (accounts) => {
     // token swap
     let swapData;
     if (method === "multiSwap") {
-      swapData = getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary });
+      swapData = getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, useUnauthorisedAdapter });
     } else if (method === "simpleSwap") {
       swapData = getSimpleSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary });
     } else if (method === "swapOnUniswap") {
@@ -308,7 +310,7 @@ contract("Paraswap Filter", (accounts) => {
     } else if (method === "swapOnUniswapFork") {
       swapData = getSwapOnUniswapForkData({ fromToken, toToken, fromAmount, toAmount });
     } else if (method === "megaSwap") {
-      swapData = getMegaSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary });
+      swapData = getMegaSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, useUnauthorisedAdapter });
     } else {
       throw new Error("Invalid method");
     }
@@ -371,14 +373,13 @@ contract("Paraswap Filter", (accounts) => {
     });
 
     async function testUnauthorisedAdapter(method) {
-      await paraswapFilter.setAuthorised([uniswapV1Adapter.address], [false]);
       await testTrade({
         method,
         fromToken: PARASWAP_ETH_TOKEN,
         toToken: tokenA.address,
+        useUnauthorisedAdapter: true,
         errorReason: "TM: call not authorised"
       });
-      await paraswapFilter.setAuthorised([uniswapV1Adapter.address], [true]);
     }
 
     it("should not allow multiSwap via unauthorised adapter", async () => {
