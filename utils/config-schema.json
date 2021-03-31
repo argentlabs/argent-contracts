@@ -224,7 +224,7 @@
         "GuardianStorage": {
           "$ref": "#/definitions/ethaddress"
         },
-        "TokenPriceRegistry": {
+        "TokenRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
         "TransferStorage": {

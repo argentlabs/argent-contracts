@@ -130,7 +130,7 @@ const main = async () => {
   // Paraswap
   console.log("Deploying ParaswapFilter");
   const ParaswapFilterWrapper = await ParaswapFilter.new(
-    config.modules.TokenPriceRegistry,
+    config.modules.TokenRegistry,
     DappRegistryWrapper.address,
     config.defi.paraswap.uniswapProxy,
     config.defi.paraswap.uniswapForks.map((f) => f.factory),

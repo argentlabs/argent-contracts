@@ -33,7 +33,7 @@ const DappRegistry = artifacts.require("DappRegistry");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const ERC20 = artifacts.require("TestERC20");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const TokenRegistry = artifacts.require("TokenRegistry");
 
 // Utils
 const RelayManager = require("../utils/relay-manager");
@@ -79,7 +79,7 @@ contract("Paraswap Filter", (accounts) => {
   let tokenB;
   let paraswap;
   let paraswapProxy;
-  let tokenPriceRegistry;
+  let tokenRegistry;
   let uniswapProxy;
   let paraswapFilter;
 
@@ -130,8 +130,8 @@ contract("Paraswap Filter", (accounts) => {
 
     // deploy Argent
     registry = await Registry.new();
-    tokenPriceRegistry = await TokenPriceRegistry.new();
-    await tokenPriceRegistry.setTradableForTokenList([tokenA.address], [true]);
+    tokenRegistry = await TokenRegistry.new();
+    await tokenRegistry.setTradableForTokenList([tokenA.address], [true]);
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -147,7 +147,7 @@ contract("Paraswap Filter", (accounts) => {
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
     paraswapFilter = await ParaswapFilter.new(
-      tokenPriceRegistry.address,
+      tokenRegistry.address,
       dappRegistry.address,
       uniswapProxy.address,
       [uniswapV2Factory.address, uniswapV2Factory.address, uniswapV2Factory.address],
@@ -161,7 +161,7 @@ contract("Paraswap Filter", (accounts) => {
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenB.address].address, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
 
-    manager = new RelayManager(guardianStorage.address, tokenPriceRegistry.address);
+    manager = new RelayManager(guardianStorage.address, tokenRegistry.address);
   });
 
   beforeEach(async () => {
