@@ -286,9 +286,6 @@ const main = async () => {
   console.log("Setting the MultiSig as the owner of default registry");
   await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
 
-  console.log("Setting the MultiSig as the owner of the ParaswapFilter");
-  await ParaswapFilterWrapper.changeOwner(config.contracts.MultiSigWallet);
-
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
@@ -302,8 +299,7 @@ const main = async () => {
     BaseWallet: BaseWalletWrapper.address,
     DappRegistry: DappRegistryWrapper.address,
     MultiCallHelper: MultiCallHelperWrapper.address,
-    TokenRegistry: TokenRegistryWrapper.address,
-    ParaswapFilter: ParaswapFilterWrapper.address,
+    TokenRegistry: TokenRegistryWrapper.address
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
