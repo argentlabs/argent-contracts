@@ -241,18 +241,14 @@ abstract contract SecurityManager is BaseModule {
         // Note that this test is not meant to be strict and can be bypassed by custom malicious contracts.
         (bool success,) = _guardian.call{gas: 25000}(abi.encodeWithSignature("owner()"));
         require(success, "SM: must be EOA/Argent wallet");
-        if (guardianStorage.guardianCount(_wallet) == 0) {
-            guardianStorage.addGuardian(_wallet, _guardian);
-            emit GuardianAdded(_wallet, _guardian);
-        } else {
-            bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
-            GuardianManagerConfig storage config = guardianConfigs[_wallet];
-            require(
-                config.pending[id] == 0 || block.timestamp > config.pending[id] + securityWindow,
-                "SM: duplicate pending addition");
-            config.pending[id] = block.timestamp + securityPeriod;
-            emit GuardianAdditionRequested(_wallet, _guardian, block.timestamp + securityPeriod);
-        }
+
+        bytes32 id = keccak256(abi.encodePacked(_wallet, _guardian, "addition"));
+        GuardianManagerConfig storage config = guardianConfigs[_wallet];
+        require(
+            config.pending[id] == 0 || block.timestamp > config.pending[id] + securityWindow,
+            "SM: duplicate pending addition");
+        config.pending[id] = block.timestamp + securityPeriod;
+        emit GuardianAdditionRequested(_wallet, _guardian, block.timestamp + securityPeriod);
     }
 
     /**
