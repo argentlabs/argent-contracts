@@ -205,7 +205,7 @@ abstract contract TransactionManager is BaseModule {
     /**
      * @inheritdoc IModule
      */
-    function supportsStaticCall(bytes4 _methodId) external view override returns (bool _isSupported) {
+    function supportsStaticCall(bytes4 _methodId) external pure override returns (bool _isSupported) {
         return _methodId == ERC1271_IS_VALID_SIGNATURE ||
                _methodId == ERC721_RECEIVED ||
                _methodId == ERC165_INTERFACE ||
@@ -219,7 +219,7 @@ abstract contract TransactionManager is BaseModule {
      * @notice Returns true if this contract implements the interface defined by
      * `interfaceId` (see https://eips.ethereum.org/EIPS/eip-165).
      */
-    function supportsInterface(bytes4 _interfaceID) external view returns (bool) {
+    function supportsInterface(bytes4 _interfaceID) external pure returns (bool) {
         return  _interfaceID == ERC165_INTERFACE || _interfaceID == (ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED);          
     }
 
