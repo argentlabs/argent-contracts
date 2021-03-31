@@ -122,6 +122,16 @@
           "properties": {
             "contract": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "lendingPool": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "lendingPoolCore": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "aTokens": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
             }
           }
         },
