@@ -22,7 +22,7 @@ contract CurveFilter is BaseFilter {
   bytes4 private constant EXCHANGE = bytes4(keccak256("exchange(int128,int128,uint256,uint256)"));
   bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
-  function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+  function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external pure override returns (bool) {
     if (_data.length < 4) {
         return false;
     }

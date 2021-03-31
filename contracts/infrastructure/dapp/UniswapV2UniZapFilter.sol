@@ -34,7 +34,7 @@ contract UniswapV2UniZapFilter is BaseFilter {
             )
         );
 
-    function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+    function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external pure override returns (bool) {
         // not needed but detects failure early
         if (_data.length < 4) {
             return false;
