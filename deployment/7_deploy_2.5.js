@@ -287,7 +287,7 @@ const main = async () => {
   await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
 
   console.log("Setting the MultiSig as the owner of the ParaswapFilter");
-  await ParaswapFilterWrapper.changeOwner(0, config.contracts.MultiSigWallet);
+  await ParaswapFilterWrapper.changeOwner(config.contracts.MultiSigWallet);
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
