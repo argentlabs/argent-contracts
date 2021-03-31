@@ -2,7 +2,7 @@
 pragma solidity ^0.8.3;
 import "./TokenConsumer.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/introspection/IERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title TestContract
