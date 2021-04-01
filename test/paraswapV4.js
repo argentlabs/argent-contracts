@@ -146,12 +146,13 @@ contract("Paraswap Filter", (accounts) => {
     // deploy Argent
     registry = await Registry.new();
     tokenRegistry = await TokenRegistry.new();
-    const pairs = [];
-    pairs.push(await uniswapV2Factory.allPairs(0)); // tokenA-weth uniV2
-    pairs.push(await uniswapV2Factory.allPairs(1)); // tokenB-weth uniV2
-    pairs.push(await uniswapV2Factory.allPairs(2)); // tokenA-tokenB uniV2
-    pairs.push(uniswapExchanges[tokenA.address].address); // tokenA-eth uniV1
-    pairs.push(uniswapExchanges[tokenB.address].address); // tokenB-eth uniV1
+    const pairs = [
+      await uniswapV2Factory.allPairs(0), // tokenA-weth uniV2
+      await uniswapV2Factory.allPairs(1), // tokenB-weth uniV2
+      await uniswapV2Factory.allPairs(2), // tokenA-tokenB uniV2
+      uniswapExchanges[tokenA.address].address, // tokenA-eth uniV1
+      uniswapExchanges[tokenB.address].address // tokenB-eth uniV1
+    ];
     await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, ...pairs], Array(2 + pairs.length).fill(true));
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
@@ -174,6 +175,9 @@ contract("Paraswap Filter", (accounts) => {
       [uniswapV2Factory.address, uniswapV2Factory.address, uniswapV2Factory.address],
       [initCode, initCode, initCode],
       uniswapV1Adapter.address,
+      uniswapV2Adapter.address,
+      uniswapV2Adapter.address,
+      uniswapV2Adapter.address,
       uniswapV2Adapter.address,
       [uniswapV1Factory.address]);
     const proxyFilter = await OnlyApproveFilter.new();
