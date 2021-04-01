@@ -52,6 +52,7 @@ const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 const TOKEN_A_LIQ = web3.utils.toWei("300");
 const TOKEN_B_LIQ = web3.utils.toWei("300");
+const TOKEN_C_LIQ = web3.utils.toWei("300");
 const WETH_LIQ = web3.utils.toWei("1");
 
 contract("Paraswap Filter", (accounts) => {
@@ -78,6 +79,7 @@ contract("Paraswap Filter", (accounts) => {
   let initCode;
   let tokenA;
   let tokenB;
+  let tokenC;
   let paraswap;
   let paraswapProxy;
   let tokenRegistry;
@@ -87,10 +89,12 @@ contract("Paraswap Filter", (accounts) => {
     // Deploy test tokens
     tokenA = await ERC20.new([infrastructure], new BN(TOKEN_A_LIQ).muln(3), DECIMALS);
     tokenB = await ERC20.new([infrastructure], new BN(TOKEN_B_LIQ).muln(3), DECIMALS);
+    tokenC = await ERC20.new([infrastructure], new BN(TOKEN_C_LIQ).muln(3), DECIMALS);
 
     // Deploy Uniswap
+    const ethPerToken = new BN(10).pow(new BN(16));
     const { uniswapFactory, uniswapExchanges } = (await deployUniswap(
-      infrastructure, [tokenA, tokenB], [new BN(10).pow(new BN(16)), new BN(10).pow(new BN(16))]
+      infrastructure, [tokenA, tokenB, tokenC], [ethPerToken, ethPerToken, ethPerToken]
     ));
     uniswapV1Factory = uniswapFactory;
     uniswapV1Exchanges = uniswapExchanges;
@@ -100,14 +104,16 @@ contract("Paraswap Filter", (accounts) => {
     const weth = await WETH.new();
     const uniswapRouter = await UniswapV2Router01.new(uniswapV2Factory.address, weth.address);
     initCode = await uniswapV2Factory.getKeccakOfPairCreationCode();
-    await weth.deposit({ value: new BN(WETH_LIQ).muln(2) });
-    await weth.approve(uniswapRouter.address, new BN(WETH_LIQ).muln(2));
+    await weth.deposit({ value: new BN(WETH_LIQ).muln(3) });
+    await weth.approve(uniswapRouter.address, new BN(WETH_LIQ).muln(3));
     await tokenA.approve(uniswapRouter.address, new BN(TOKEN_A_LIQ).muln(2));
     await tokenB.approve(uniswapRouter.address, new BN(TOKEN_B_LIQ).muln(2));
+    await tokenC.approve(uniswapRouter.address, new BN(TOKEN_C_LIQ));
     const timestamp = await utils.getTimestamp();
     await uniswapRouter.addLiquidity(tokenA.address, weth.address, TOKEN_A_LIQ, WETH_LIQ, 1, 1, infrastructure, timestamp + 300);
     await uniswapRouter.addLiquidity(tokenB.address, weth.address, TOKEN_B_LIQ, WETH_LIQ, 1, 1, infrastructure, timestamp + 300);
     await uniswapRouter.addLiquidity(tokenA.address, tokenB.address, TOKEN_A_LIQ, TOKEN_B_LIQ, 1, 1, infrastructure, timestamp + 300);
+    await uniswapRouter.addLiquidity(tokenC.address, weth.address, TOKEN_C_LIQ, WETH_LIQ, 1, 1, infrastructure, timestamp + 300);
 
     // Deploy Paraswap
     uniswapProxy = await UniswapProxy.new(weth.address, uniswapV2Factory.address, initCode);
@@ -132,7 +138,12 @@ contract("Paraswap Filter", (accounts) => {
     // deploy Argent
     registry = await Registry.new();
     tokenRegistry = await TokenRegistry.new();
-    await tokenRegistry.setTradableForTokenList([tokenA.address], [true]);
+    const pairs = [];
+    const numPairs = (await uniswapV2Factory.allPairsLength()).toNumber();
+    for (let p = 0; p < numPairs - 1; p += 1) {
+      pairs.push(await uniswapV2Factory.allPairs(p)); // exclude last pair (tokenC-weth)
+    }
+    await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, ...pairs], Array(1 + numPairs).fill(true));
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -160,6 +171,7 @@ contract("Paraswap Filter", (accounts) => {
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenA.address].address, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenB.address].address, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenC.address].address, ZERO_ADDRESS);
     walletImplementation = await BaseWallet.new();
 
     manager = new RelayManager(guardianStorage.address, tokenRegistry.address);
@@ -175,6 +187,7 @@ contract("Paraswap Filter", (accounts) => {
     await wallet.send(web3.utils.toWei("1"));
     await tokenA.mint(wallet.address, web3.utils.toWei("1000"));
     await tokenB.mint(wallet.address, web3.utils.toWei("1000"));
+    await tokenC.mint(wallet.address, web3.utils.toWei("1000"));
 
     await initNonce(wallet, module, manager, SECURITY_PERIOD);
   });
@@ -185,8 +198,10 @@ contract("Paraswap Filter", (accounts) => {
       balance = await utils.getBalance(_wallet.address);
     } else if (tokenAddress === tokenA.address) {
       balance = await tokenA.balanceOf(_wallet.address);
-    } else {
+    } else if (tokenAddress === tokenB.address) {
       balance = await tokenB.balanceOf(_wallet.address);
+    } else {
+      balance = await tokenC.balanceOf(_wallet.address);
     }
     return balance;
   }
@@ -294,7 +309,11 @@ contract("Paraswap Filter", (accounts) => {
 
     // token approval if necessary
     if (fromToken !== PARASWAP_ETH_TOKEN) {
-      const token = ((fromToken === tokenA.address) ? tokenA : tokenB);
+      let token;
+      if (fromToken === tokenA.address) token = tokenA;
+      else if (fromToken === tokenB.address) token = tokenB;
+      else token = tokenC;
+
       const approveData = token.contract.methods.approve(paraswapProxy, fromAmount).encodeABI();
       transactions.push(encodeTransaction(fromToken, 0, approveData));
     }
@@ -337,8 +356,8 @@ contract("Paraswap Filter", (accounts) => {
       it("should sell token B for token A", async () => {
         await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address });
       });
-      it("should not sell token A for non-tradable token B", async () => {
-        await testTrade({ method, fromToken: tokenA.address, toToken: tokenB.address, errorReason: "TM: call not authorised" });
+      it("should not sell ETH for non-tradable token C", async () => {
+        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenC.address, errorReason: "TM: call not authorised" });
       });
     });
   }
