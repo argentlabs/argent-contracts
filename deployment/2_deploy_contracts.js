@@ -1,5 +1,6 @@
 /* global artifacts */
 global.web3 = web3;
+global.artifacts = artifacts;
 
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransferStorage = artifacts.require("TransferStorage");

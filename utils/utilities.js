@@ -1,4 +1,5 @@
 /* global artifacts */
+
 const readline = require("readline");
 const ethers = require("ethers");
 const BN = require("bn.js");
