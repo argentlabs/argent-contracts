@@ -67,7 +67,7 @@ async function deployParaswap(deploymentAccount) {
   const wlr = await paraswapWhitelist.WHITELISTED_ROLE();
   await paraswapWhitelist.grantRole(wlr, uniAdapter.address);
 
-  return { paraswap: paraswap.address, uniAdapter: uniAdapter.address };
+  return { contract: paraswap.address, uniswapProxy: uniswapProxy.address, uniAdapter: uniAdapter.address };
 }
 
 async function main() {
@@ -81,8 +81,8 @@ async function main() {
   }
 
   if (config.defi.paraswap.deployOwn) {
-    const { paraswap, uniAdapter } = await deployParaswap(deploymentAccount);
-    configurator.updateParaswap(paraswap, { Uniswap: uniAdapter });
+    const { contract, uniswapProxy, uniAdapter } = await deployParaswap(deploymentAccount);
+    configurator.updateParaswap(contract, uniswapProxy, { uniswap: uniAdapter }, []);
   }
 
   if (config.defi.uniswap.deployOwn) {

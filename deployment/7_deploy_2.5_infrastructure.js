@@ -106,7 +106,12 @@ const main = async () => {
     config.defi.paraswap.uniswapProxy,
     config.defi.paraswap.uniswapForks.map((f) => f.factory),
     config.defi.paraswap.uniswapForks.map((f) => f.initCode),
-    Object.values(config.defi.paraswap.authorisedExchanges)
+    config.defi.paraswap.adapters.uniswap || ethers.constants.AddressZero,
+    config.defi.paraswap.adapters.uniswapV2 || ethers.constants.AddressZero,
+    config.defi.paraswap.adapters.sushiswap || ethers.constants.AddressZero,
+    config.defi.paraswap.adapters.linkswap || ethers.constants.AddressZero,
+    config.defi.paraswap.adapters.defiswap || ethers.constants.AddressZero,
+    config.defi.paraswap.targetExchanges || []
   );
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
