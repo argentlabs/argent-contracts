@@ -200,9 +200,6 @@
         "BaseWallet": {
           "$ref": "#/definitions/ethaddress"
         },
-        "DexRegistry": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "ArgentWalletDetector": {
           "$ref": "#/definitions/ethaddress"
         },
@@ -217,8 +214,7 @@
         "ENSManager",
         "TokenPriceProvider",
         "ModuleRegistry",
-        "BaseWallet",
-        "DexRegistry"
+        "BaseWallet"
       ],
       "additionalProperties": true
     },
@@ -228,7 +224,7 @@
         "GuardianStorage": {
           "$ref": "#/definitions/ethaddress"
         },
-        "TokenPriceRegistry": {
+        "TokenRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
         "TransferStorage": {
@@ -238,10 +234,7 @@
           "$ref": "#/definitions/ethaddress"
         }
       },
-      "required": [
-        "GuardianStorage",
-        "TransferStorage"
-      ],
+      "required": ["GuardianStorage", "TransferStorage"],
       "additionalProperties": true
     },
     "backend": {

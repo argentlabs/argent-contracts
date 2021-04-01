@@ -15,7 +15,17 @@
 
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 interface IAuthoriser {
     function isAuthorised(address _sender, address _spender, address _to, bytes calldata _data) external view returns (bool);
+    function areAuthorised(
+        address _spender,
+        address[] calldata _spenders,
+        address[] calldata _to,
+        bytes[] calldata _data
+    )
+        external
+        view
+        returns (bool);
 }

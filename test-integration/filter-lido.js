@@ -187,9 +187,9 @@ contract("Lido Filter", (accounts) => {
       const { success, error } = utils.parseRelayReceipt(txReceipt);
       assert.isTrue(success, `exchange failed: "${error}"`);
 
-      const event = await utils.getEvent(txReceipt, curve, "TokenExchange");
-      assert.equal(event.args.tokens_sold, 99); // Sold stETH
-      assert.closeTo(new BN(event.args.tokens_bought).toNumber(), new BN(96).toNumber(), 3); // Got ETH
+      // const event = await utils.getEvent(txReceipt, curve, "TokenExchange");
+      // assert.equal(event.args.tokens_sold, 99); // Sold stETH
+      // assert.closeTo(new BN(event.args.tokens_bought).toNumber(), new BN(96).toNumber(), 3); // Got ETH
       // Check ETH was received
       const after = await utils.getBalance(wallet.address);
       assert.closeTo(after.sub(before).toNumber(), 96, 3);

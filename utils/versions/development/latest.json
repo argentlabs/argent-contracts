@@ -1,5 +1,11 @@
-<<<<<<< HEAD
-{"version":"2.5.0","createdAt":1617098647,"modules":[{"address":"0x50eb4b78BCEf5130A6eb66c267f4112560A9D647","name":"ArgentModule"}],"fingerprint":"0x3780805d"}
-=======
-{"version":"2.5.0","createdAt":1617091870,"modules":[{"address":"0x3b8847C03D86FF38E79f915b23f6531DF3bA01e1","name":"ArgentModule"}],"fingerprint":"0x066c77c5"}
->>>>>>> 06c43bdf... Fix deployment scripts test
+{
+  "version": "2.5.0",
+  "createdAt": 1617098647,
+  "modules": [
+    {
+      "address": "0x50eb4b78BCEf5130A6eb66c267f4112560A9D647",
+      "name": "ArgentModule"
+    }
+  ],
+  "fingerprint": "0x3780805d"
+}

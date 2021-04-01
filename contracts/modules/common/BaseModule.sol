@@ -23,7 +23,7 @@ import "../../infrastructure/storage/IGuardianStorage.sol";
 import "../../infrastructure/IAuthoriser.sol";
 import "../../infrastructure/storage/ITransferStorage.sol";
 import "./IModule.sol";
-import "../../../lib/other/ERC20.sol";
+import "../../../lib_0.5/other/ERC20.sol";
 
 /**
  * @title BaseModule
@@ -187,7 +187,7 @@ abstract contract BaseModule is IModule {
                 revert(0, returndatasize())
             }
         } else if (!success) {
-            revert("VM: wallet invoke reverted");
+            revert("BM: wallet invoke reverted");
         }
     }
 }

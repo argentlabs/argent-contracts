@@ -16,7 +16,7 @@ global.web3 = web3;
 const fs = require("fs");
 
 const MultiSig = artifacts.require("MultiSigWallet");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
+const TokenRegistry = artifacts.require("TokenRegistry");
 
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 const deployManager = require("../utils/deploy-manager.js");
@@ -34,14 +34,14 @@ async function main() {
   const accounts = await web3.eth.getAccounts();
   const deploymentAccount = accounts[0];
 
-  const TokenPriceRegistryWrapper = await TokenPriceRegistry.at(config.modules.TokenPriceRegistry);
+  const TokenRegistryWrapper = await TokenRegistry.at(config.modules.TokenRegistry);
 
   const data = JSON.parse(fs.readFileSync(input, "utf8"));
   const addresses = Object.keys(data);
   console.log(`${addresses.length} tokens provided in ${input}`);
 
-  const tradableStatus = await TokenPriceRegistryWrapper.getTradableForTokenList(addresses);
-  const priceStatus = await TokenPriceRegistryWrapper.getPriceForTokenList(addresses);
+  const tradableStatus = await TokenRegistryWrapper.getTradableForTokenList(addresses);
+  const priceStatus = await TokenRegistryWrapper.getPriceForTokenList(addresses);
 
   // we only update tokens meeting those two conditions:
   // (1) tradable flag is different than the one on chain
@@ -60,7 +60,7 @@ async function main() {
 
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
-  const receipt = await multisigExecutor.executeCall(TokenPriceRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
+  const receipt = await multisigExecutor.executeCall(TokenRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
 
   console.log(receipt.transactionHash);
 }

@@ -26,7 +26,8 @@ async function coverage(){
     // Configs
     // =======
     const configs = [
-      "truffle-config-lib.js",
+      "truffle-config-lib-0.5.js",
+      "truffle-config-lib-0.7.js",
       "truffle-config-infrastructure-0.5.js",
       "truffle-config-infrastructure.js",
       "truffle-config-modules.js",
@@ -122,8 +123,8 @@ async function coverage(){
     );
 
     // Copy Uniswap pre-compiles into temp build folder
-    const exchangePath = path.join(process.cwd(), 'lib/uniswap/UniswapExchange.json')
-    const factoryPath = path.join(process.cwd(), 'lib/uniswap/UniswapFactory.json')
+    const exchangePath = path.join(process.cwd(), 'lib_0.5/uniswap/UniswapExchange.json')
+    const factoryPath = path.join(process.cwd(), 'lib_0.5/uniswap/UniswapFactory.json')
     shell.cp(exchangePath, config.contracts_build_directory);
     shell.cp(factoryPath, config.contracts_build_directory);
 

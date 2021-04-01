@@ -5,7 +5,6 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const WalletFactory = artifacts.require("WalletFactory");
-const DexRegistry = artifacts.require("DexRegistry");
 const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
 const deployManager = require("../utils/deploy-manager.js");
@@ -18,13 +17,7 @@ async function main() {
   const ENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);
   const WalletFactoryWrapper = await WalletFactory.at(config.contracts.WalletFactory);
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
-  const DexRegistryWrapper = await DexRegistry.at(config.contracts.DexRegistry);
   const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
-
-  // Configure DexRegistry
-  const authorisedExchanges = Object.values(config.defi.paraswap.authorisedExchanges);
-  console.log("Setting up DexRegistry");
-  await DexRegistryWrapper.setAuthorised(authorisedExchanges, Array(authorisedExchanges.length).fill(true));
 
   // //////////////////////////////////
   // Set contracts' managers
@@ -54,7 +47,6 @@ async function main() {
     ENSManagerWrapper,
     WalletFactoryWrapper,
     ModuleRegistryWrapper,
-    DexRegistryWrapper,
     ArgentWalletDetectorWrapper];
 
   for (let idx = 0; idx < wrappers.length; idx += 1) {

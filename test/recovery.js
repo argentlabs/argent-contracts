@@ -461,7 +461,7 @@ contract("RecoveryManager", (accounts) => {
         "multiCallWithGuardiansAndStartSession",
         [wallet.address, [], accounts[6], 1000],
         wallet,
-        [owner, guardian1, guardian2],
+        [owner, ...utils.sortWalletByAddress([guardian1, guardian2])],
         0,
         ZERO_ADDRESS,
         ZERO_ADDRESS);

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pragma solidity ^0.6.12;
-import "../../../lib/ens/ENS.sol";
+import "../../../lib_0.5/ens/ENS.sol";
 import "../../modules/common/Utils.sol";
 import "./IENSManager.sol";
 import "./IENSResolver.sol";
