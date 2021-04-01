@@ -10,9 +10,10 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
-
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
+
+const utils = require("../utils/utilities.js");
 
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
@@ -21,8 +22,10 @@ const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 
 contract("BaseModule", (accounts) => {
+  const infrastructure = accounts[0];
   const owner = accounts[1];
-  const guardian = accounts[2];
+  const guardian1 = accounts[2];
+  const refundAddress = accounts[7];
   const relayer = accounts[9];
 
   let registry;
@@ -32,6 +35,7 @@ contract("BaseModule", (accounts) => {
   let dappRegistry;
   let token;
   let wallet;
+  let factory;
 
   beforeEach(async () => {
     registry = await Registry.new();
@@ -56,10 +60,15 @@ contract("BaseModule", (accounts) => {
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
     const walletImplementation = await BaseWallet.new();
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
-    await module.addGuardian(wallet.address, guardian, { from: owner });
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
+
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
 
     token = await ERC20.new([owner], 10, 18);
   });
@@ -70,14 +79,14 @@ contract("BaseModule", (accounts) => {
     });
 
     it("should not be able to unlock module which is not locked", async () => {
-      await truffleAssert.reverts(module.unlock(wallet.address, { from: guardian }), "BM: wallet must be locked");
+      await truffleAssert.reverts(module.unlock(wallet.address, { from: guardian1 }), "BM: wallet must be locked");
     });
 
     it("should not be able to interact with module which is locked", async () => {
-      await module.lock(wallet.address, { from: guardian });
+      await module.lock(wallet.address, { from: guardian1 });
 
       await truffleAssert.reverts(module.addModule(wallet.address, ZERO_ADDRESS, { from: owner }), "BM: wallet locked");
-      await truffleAssert.reverts(module.lock(wallet.address, { from: guardian }), "BM: wallet locked");
+      await truffleAssert.reverts(module.lock(wallet.address, { from: guardian1 }), "BM: wallet locked");
       await truffleAssert.reverts(module.addGuardian(wallet.address, ZERO_ADDRESS, { from: owner }), "BM: wallet locked");
       await truffleAssert.reverts(module.confirmGuardianAddition(wallet.address, ZERO_ADDRESS), "BM: wallet locked");
       await truffleAssert.reverts(module.cancelGuardianAddition(wallet.address, ZERO_ADDRESS, { from: owner }), "BM: wallet locked");

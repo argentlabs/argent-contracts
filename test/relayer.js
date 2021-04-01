@@ -13,7 +13,7 @@ const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
 const UniswapV2Router01 = artifacts.require("UniswapV2Router01Mock");
 const WETH = artifacts.require("WETH9");
 
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -35,13 +35,14 @@ const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("ArgentModule", (accounts) => {
+contract("ArgentModule - Relayer", (accounts) => {
   let manager;
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
-  const guardian = accounts[2];
+  const guardian1 = accounts[2];
   const recipient = accounts[4];
+  const refundAddress = accounts[7];
   const relayer = accounts[9];
 
   let registry;
@@ -49,7 +50,7 @@ contract("ArgentModule", (accounts) => {
   let guardianStorage;
   let module;
   let wallet;
-  let walletImplementation;
+  let factory;
   let token;
   let dappRegistry;
   let priceOracle;
@@ -92,16 +93,21 @@ contract("ArgentModule", (accounts) => {
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     priceOracle = await PriceOracle.new(uniswapRouter.address);
     manager = new RelayManager(guardianStorage.address, priceOracle.address);
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
     await wallet.send(web3.utils.toWei("1"));
     await token.transfer(wallet.address, web3.utils.toWei("1"));
   });
@@ -320,8 +326,7 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should fail when wallet is locked", async () => {
-      await module.addGuardian(wallet.address, guardian, { from: owner });
-      await module.lock(wallet.address, { from: guardian });
+      await module.lock(wallet.address, { from: guardian1 });
       await truffleAssert.reverts(
         manager.relay(
           module,
@@ -337,13 +342,12 @@ contract("ArgentModule", (accounts) => {
     });
 
     it("should succeed when wallet is locked and refund is 0", async () => {
-      await module.addGuardian(wallet.address, guardian, { from: owner });
-      await module.lock(wallet.address, { from: guardian });
+      await module.lock(wallet.address, { from: guardian1 });
 
       const txReceipt = await manager.relay(
         module,
         "revokeGuardian",
-        [wallet.address, guardian],
+        [wallet.address, guardian1],
         wallet,
         [owner]);
       const { success } = utils.parseRelayReceipt(txReceipt);

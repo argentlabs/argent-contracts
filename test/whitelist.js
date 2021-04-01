@@ -8,7 +8,7 @@ const bnChai = require("bn-chai");
 const { assert } = chai;
 chai.use(bnChai(BN));
 
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -37,7 +37,9 @@ contract("ArgentModule", (accounts) => {
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const guardian1 = accounts[2];
   const recipient = accounts[4];
+  const refundAddress = accounts[7];
   const relayer = accounts[9];
 
   let registry;
@@ -45,7 +47,7 @@ contract("ArgentModule", (accounts) => {
   let guardianStorage;
   let module;
   let wallet;
-  let walletImplementation;
+  let factory;
   let erc20;
   let dappRegistry;
 
@@ -71,15 +73,20 @@ contract("ArgentModule", (accounts) => {
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
 
     const decimals = 12; // number of decimal for TOKN contract
     erc20 = await ERC20.new([infrastructure, wallet.address], 10000000, decimals); // TOKN contract with 10M tokens (5M TOKN for wallet and 5M TOKN for account[0])

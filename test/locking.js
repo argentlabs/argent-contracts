@@ -2,7 +2,7 @@
 const ethers = require("ethers");
 const truffleAssert = require("truffle-assertions");
 
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -15,16 +15,19 @@ const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const utilities = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 const { expect } = chai;
 chai.use(bnChai(BN));
 
 contract("Locking", (accounts) => {
+  const infrastructure = accounts[0];
   const owner = accounts[1];
   const guardian1 = accounts[2];
-  const nonguardian = accounts[3];
+  const guardian2 = accounts[3];
+  const nonguardian = accounts[4];
+  const refundAddress = accounts[7];
 
   const ZERO_ADDRESS = ethers.constants.AddressZero;
   const SECURITY_PERIOD = 24;
@@ -35,7 +38,7 @@ contract("Locking", (accounts) => {
   let manager;
   let module;
   let wallet;
-  let walletImplementation;
+  let factory;
   let guardianStorage;
 
   before(async () => {
@@ -57,21 +60,23 @@ contract("Locking", (accounts) => {
       LOCK_PERIOD);
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
+
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
   });
 
   describe("(Un)Lock by EOA guardians", () => {
-    beforeEach(async () => {
-      await module.addGuardian(wallet.address, guardian1, { from: owner });
-    });
-
     it("should be locked/unlocked by EOA guardians (blockchain transaction)", async () => {
       // lock
       await module.lock(wallet.address, { from: guardian1 });
@@ -113,11 +118,8 @@ contract("Locking", (accounts) => {
 
   describe("(Un)Lock by Smart Contract guardians", () => {
     beforeEach(async () => {
-      const proxy = await Proxy.new(walletImplementation.address);
-      const guardianWallet = await BaseWallet.at(proxy.address);
-
-      await guardianWallet.init(guardian1, [module.address]);
-      await module.addGuardian(wallet.address, guardianWallet.address, { from: owner });
+      const guardianWalletAddress = await utils.createWallet(factory.address, guardian1, [module.address], guardian2);
+      await module.addGuardian(wallet.address, guardianWalletAddress, { from: owner });
     });
 
     it("should be locked/unlocked by Smart Contract guardians (relayed transaction)", async () => {
@@ -137,10 +139,9 @@ contract("Locking", (accounts) => {
 
   describe("Auto-unlock", () => {
     it("should auto-unlock after lock period", async () => {
-      await module.addGuardian(wallet.address, guardian1, { from: owner });
       await module.lock(wallet.address, { from: guardian1 });
 
-      await utilities.increaseTime(125); // 24 * 5 + 5
+      await utils.increaseTime(125); // 24 * 5 + 5
       const state = await module.isLocked(wallet.address);
       assert.isFalse(state);
       const releaseTime = await module.getLock(wallet.address);
@@ -149,10 +150,6 @@ contract("Locking", (accounts) => {
   });
 
   describe("Unlocking wallets", () => {
-    beforeEach(async () => {
-      await module.addGuardian(wallet.address, guardian1, { from: owner });
-    });
-
     it("should not be able to unlock, an already unlocked wallet", async () => {
       // lock
       await module.lock(wallet.address, { from: guardian1 });

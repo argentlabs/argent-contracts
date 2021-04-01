@@ -38,11 +38,6 @@ contract("WalletFactory", (accounts) => {
   let registry;
 
   before(async () => {
-    registry = await Registry.new();
-
-    guardianStorage = await GuardianStorage.new();
-    transferStorage = await TransferStorage.new();
-
     const uniswapRouter = await UniswapV2Router01.new();
 
     implementation = await BaseWallet.new();
@@ -52,6 +47,8 @@ contract("WalletFactory", (accounts) => {
       guardianStorage.address,
       refundAddress);
     await factory.addManager(infrastructure);
+
+    registry = await Registry.new();
     transferStorage = await TransferStorage.new();
 
     module = await ArgentModule.new(
@@ -78,13 +75,6 @@ contract("WalletFactory", (accounts) => {
     ].map((hex) => hex.slice(2)).join("")}`;
     const sig = await utils.signMessage(ethers.utils.keccak256(message), signer);
     return sig;
-  }
-
-  function generateSaltValue() {
-    return ethers.utils.hexZeroPad(
-      ethers.BigNumber.from(ethers.utils.randomBytes(20)).toHexString(),
-      20,
-    );
   }
 
   beforeEach(async () => {
@@ -133,7 +123,7 @@ contract("WalletFactory", (accounts) => {
 
   describe("Create wallets with CREATE2", () => {
     it("should let a manager create a wallet with the correct (owner, modules, guardian) properties", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
 
@@ -162,7 +152,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should let anyone (possessing the right signature) create a wallet with the correct (owner, modules, guardian) properties", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
 
@@ -180,7 +170,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should create with the correct static calls", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
 
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
 
@@ -203,7 +193,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should create and refund in ETH when a valid signature is provided", async () => {
       const refundAmount = 1000;
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
       // We send ETH to the address
@@ -229,7 +219,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should create and refund in ERC20 token when a valid signature is provided", async () => {
       const refundAmount = 1000;
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
       // We create an ERC20 token and give some to the wallet
@@ -256,7 +246,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should create but not refund when an invalid refund amount is provided", async () => {
       const refundAmount = 1000;
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
       // We send ETH to the address
@@ -279,7 +269,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should create but not refund when an invalid signature is provided", async () => {
       const refundAmount = 1000;
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
       // We send ETH to the address
@@ -303,12 +293,12 @@ contract("WalletFactory", (accounts) => {
     it("should create but not refund when a replayed owner signature is provided", async () => {
       const refundAmount = 1000;
       // Create the signature for the first wallet with owner account
-      const salt1 = generateSaltValue();
+      const salt1 = utils.generateSaltValue();
       const futureAddr1 = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt1);
       const ownerSig = await signRefund(futureAddr1, refundAmount, ETH_TOKEN, owner);
 
       // Create a second wallet with the same ownerSig
-      const salt2 = generateSaltValue();
+      const salt2 = utils.generateSaltValue();
       const futureAddr2 = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt2);
       await web3.eth.sendTransaction({ from: infrastructure, to: futureAddr2, value: refundAmount });
 
@@ -325,7 +315,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should fail to create a wallet at an existing address", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
       // we create the first wallet
@@ -343,7 +333,7 @@ contract("WalletFactory", (accounts) => {
 
     it("should fail to create when there is not enough for the refund", async () => {
       const refundAmount = 1000;
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
 
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
       // Send less ETH than the refund
@@ -357,7 +347,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should fail to create counterfactually when there are no modules (with guardian)", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(
           owner, [ethers.constants.AddressZero], guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"
@@ -365,7 +355,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should fail to create when the owner is empty", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(ZERO_ADDRESS, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"),
         "WF: empty owner address",
@@ -373,7 +363,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should fail to create when the guardian is empty", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(owner, modules, ZERO_ADDRESS, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"),
         "WF: empty guardian",
@@ -381,7 +371,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should fail to create when the owner is the guardian", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(owner, modules, owner, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x"),
         "WF: owner cannot be guardian",
@@ -389,7 +379,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should fail to create by a non-manager without a manager's signature", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       await truffleAssert.reverts(
         factory.createCounterfactualWallet(owner, modules, guardian, salt, 0, ZERO_ADDRESS, ZERO_BYTES, "0x", { from: other }),
         "WF: unauthorised wallet creation",
@@ -397,7 +387,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should emit and event when the balance is non zero at creation", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       const amount = 10000000000000;
       // we get the future address
       const futureAddr = await factory.getAddressForCounterfactualWallet(owner, modules, guardian, salt);
@@ -414,7 +404,7 @@ contract("WalletFactory", (accounts) => {
     });
 
     it("should fail to get an address when the guardian is empty", async () => {
-      const salt = generateSaltValue();
+      const salt = utils.generateSaltValue();
       await truffleAssert.reverts(
         factory.getAddressForCounterfactualWallet(owner, modules, ZERO_ADDRESS, salt),
         "WF: empty guardian",

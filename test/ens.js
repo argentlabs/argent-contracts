@@ -8,7 +8,7 @@ const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const ENSReverseRegistrar = artifacts.require("ReverseRegistrar");
 
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -19,7 +19,7 @@ const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 const Filter = artifacts.require("TestFilter");
 
 const truffleAssert = require("truffle-assertions");
-const utilities = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction } = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
@@ -35,9 +35,11 @@ const ZERO_ADDRESS = ethers.constants.AddressZero;
 contract("ENS contracts", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
-  const amanager = accounts[2];
-  const anonmanager = accounts[3];
-  const recipient = accounts[3];
+  const guardian1 = accounts[2];
+  const amanager = accounts[3];
+  const anonmanager = accounts[4];
+  const recipient = accounts[5];
+  const refundAddress = accounts[7];
 
   const root = "xyz";
   const subnameWallet = "argent";
@@ -47,6 +49,7 @@ contract("ENS contracts", (accounts) => {
   let ensResolver;
   let ensReverse;
   let ensManager;
+  let factory;
 
   before(async () => {
     WalletFactoryV16.defaults({ from: accounts[0] });
@@ -124,7 +127,7 @@ contract("ENS contracts", (accounts) => {
         owner,
         ethers.utils.hexlify(ethers.utils.toUtf8Bytes(label)),
       ].map((hex) => hex.slice(2)).join("")}`;
-      const managerSig = await utilities.signMessage(ethers.utils.keccak256(message), infrastructure);
+      const managerSig = await utils.signMessage(ethers.utils.keccak256(message), infrastructure);
 
       const data = await ensManager.contract.methods["register(string,address,bytes)"](label, owner, managerSig).encodeABI();
       await ensManager.sendTransaction({ data, from: anonmanager });
@@ -154,7 +157,7 @@ contract("ENS contracts", (accounts) => {
         owner,
         ethers.utils.hexlify(ethers.utils.toUtf8Bytes(label)),
       ].map((hex) => hex.slice(2)).join("")}`;
-      const managerSig = await utilities.signMessage(ethers.utils.keccak256(message), infrastructure);
+      const managerSig = await utils.signMessage(ethers.utils.keccak256(message), infrastructure);
 
       const data = await ensManager.contract.methods["register(string,address,bytes)"](label, owner, managerSig).encodeABI();
       await ensManager.sendTransaction({ data, from: anonmanager });
@@ -210,26 +213,26 @@ contract("ENS contracts", (accounts) => {
     });
 
     it("should be able to change the root node owner", async () => {
-      const randomAddress = await utilities.getRandomAddress();
+      const randomAddress = await utils.getRandomAddress();
       await ensManager.changeRootnodeOwner(randomAddress);
       const rootNodeOwner = await ensRegistry.owner(walletNode);
       assert.equal(rootNodeOwner, randomAddress);
     });
 
     it("should not be able to change the root node owner if not the owner", async () => {
-      const randomAddress = await utilities.getRandomAddress();
+      const randomAddress = await utils.getRandomAddress();
       await truffleAssert.reverts(ensManager.changeRootnodeOwner(randomAddress, { from: amanager }), "Must be owner");
     });
 
     it("should be able to change the ens resolver", async () => {
-      const randomAddress = await utilities.getRandomAddress();
+      const randomAddress = await utils.getRandomAddress();
       await ensManager.changeENSResolver(randomAddress);
       const resolver = await ensManager.ensResolver();
       assert.equal(resolver, randomAddress);
     });
 
     it("should not be able to change the ens resolver if not owner", async () => {
-      const randomAddress = await utilities.getRandomAddress();
+      const randomAddress = await utils.getRandomAddress();
       await truffleAssert.reverts(ensManager.changeENSResolver(randomAddress, { from: amanager }), "Must be owner");
     });
 
@@ -271,7 +274,6 @@ contract("ENS contracts", (accounts) => {
 
   describe("ENS Integrations", () => {
     let registry;
-    let walletImplementation;
     let wallet;
     let module;
     let manager;
@@ -308,10 +310,16 @@ contract("ENS contracts", (accounts) => {
 
       await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
-      walletImplementation = await BaseWallet.new();
-      const proxy = await Proxy.new(walletImplementation.address);
-      wallet = await BaseWallet.at(proxy.address);
-      await wallet.init(owner, [module.address]);
+      const walletImplementation = await BaseWallet.new();
+      factory = await WalletFactory.new(
+        walletImplementation.address,
+        guardianStorage.address,
+        refundAddress);
+      await factory.addManager(infrastructure);
+
+      // create wallet
+      const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+      wallet = await BaseWallet.at(walletAddress);
       await wallet.send(web3.utils.toWei("1"));
     });
 
@@ -328,7 +336,7 @@ contract("ENS contracts", (accounts) => {
         wallet.address,
         ethers.utils.hexlify(ethers.utils.toUtf8Bytes(label)),
       ].map((hex) => hex.slice(2)).join("")}`;
-      const managerSig = await utilities.signMessage(ethers.utils.keccak256(message), infrastructure);
+      const managerSig = await utils.signMessage(ethers.utils.keccak256(message), infrastructure);
       data = ensManager.contract.methods.register(label, wallet.address, managerSig).encodeABI();
       transaction = encodeTransaction(ensManager.address, 0, data, false);
       transactions.push(transaction);
@@ -342,7 +350,7 @@ contract("ENS contracts", (accounts) => {
         1,
         ETH_TOKEN,
         recipient);
-      const success = await utilities.parseRelayReceipt(txReceipt).success;
+      const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "call failed");
 
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
@@ -363,12 +371,12 @@ contract("ENS contracts", (accounts) => {
 
     it("should support registering ens for wallets created using the legacy wallet factory v1.6", async () => {
       const walletImpl = await BaseWalletV16.new();
-      const factory = await WalletFactoryV16.new(registry.address, walletImpl.address, ensManager.address);
-      await factory.addManager(infrastructure);
-      await ensManager.addManager(factory.address);
+      const factoryV16 = await WalletFactoryV16.new(registry.address, walletImpl.address, ensManager.address);
+      await factoryV16.addManager(infrastructure);
+      await ensManager.addManager(factoryV16.address);
       const label = "wallet";
-      const tx = await factory.createWallet(owner, [module.address], label, { from: infrastructure });
-      const event = await utilities.getEvent(tx.receipt, factory, "WalletCreated");
+      const tx = await factoryV16.createWallet(owner, [module.address], label, { from: infrastructure });
+      const event = await utils.getEvent(tx.receipt, factoryV16, "WalletCreated");
       const walletAddr = event.args.wallet;
 
       const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);

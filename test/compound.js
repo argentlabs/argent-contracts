@@ -9,7 +9,7 @@ const { formatBytes32String } = require("ethers").utils;
 const { expect, assert } = chai;
 chai.use(bnChai(BN));
 
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -44,17 +44,19 @@ const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("ArgentModule", (accounts) => {
+contract("Compound V2", (accounts) => {
   let manager;
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
-  const liquidityProvider = accounts[2];
-  const borrower = accounts[3];
+  const guardian1 = accounts[2];
+  const liquidityProvider = accounts[3];
+  const borrower = accounts[4];
   const relayer = accounts[5];
+  const refundAddress = accounts[7];
 
   let wallet;
-  let walletImplementation;
+  let factory;
   let registry;
   let transferStorage;
   let guardianStorage;
@@ -150,15 +152,21 @@ contract("ArgentModule", (accounts) => {
     await dappRegistry.addDapp(0, cEther.address, cEtherFilter.address);
     await dappRegistry.addDapp(0, cToken.address, cErc20Filter.address);
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
+
     await wallet.send(web3.utils.toWei("1"));
     await token.transfer(wallet.address, web3.utils.toWei("1"));
   });

@@ -13,6 +13,7 @@ const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
+const WalletFactory = artifacts.require("WalletFactory");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
@@ -40,6 +41,7 @@ contract("RecoveryManager", (accounts) => {
   const guardian3 = accounts[4];
   const newowner = accounts[5];
   const nonowner = accounts[6];
+  const refundAddress = accounts[7];
   const relayer = accounts[9];
 
   let registry;
@@ -49,13 +51,12 @@ contract("RecoveryManager", (accounts) => {
   let wallet;
   let walletImplementation;
   let dappRegistry;
+  let factory;
 
   before(async () => {
     registry = await Registry.new();
-
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
-
     dappRegistry = await DappRegistry.new(0);
 
     const uniswapRouter = await UniswapV2Router01.new();
@@ -75,14 +76,18 @@ contract("RecoveryManager", (accounts) => {
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
 
     await wallet.send(new BN("1000000000000000000"));
   });
@@ -92,13 +97,10 @@ contract("RecoveryManager", (accounts) => {
     for (const guardian of guardians) {
       await module.addGuardian(wallet.address, guardian, { from: owner });
     }
-
     await utils.increaseTime(30);
-    for (let i = 1; i < guardians.length; i += 1) {
+    for (let i = 0; i < guardians.length; i += 1) {
       await module.confirmGuardianAddition(wallet.address, guardians[i]);
     }
-    const count = (await module.guardianCount(wallet.address)).toNumber();
-    assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
   }
 
   async function createSmartContractGuardians(guardians) {
@@ -313,6 +315,12 @@ contract("RecoveryManager", (accounts) => {
   describe("Execute Recovery", () => {
     it("should not allow recovery to be executed with no guardians", async () => {
       const noGuardians = [];
+
+      // Revoke the only guardian added at wallet creation
+      await module.revokeGuardian(wallet.address, guardian1, { from: owner });
+      await utils.increaseTime(30);
+      await module.confirmGuardianRevokation(wallet.address, guardian1);
+
       await truffleAssert.reverts(manager.relay(
         module,
         "executeRecovery",
@@ -330,7 +338,7 @@ contract("RecoveryManager", (accounts) => {
 
     describe("EOA Guardians: G = 2", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2]);
+        await addGuardians([guardian2]);
       });
 
       testExecuteRecovery([guardian1, guardian2]);
@@ -338,7 +346,7 @@ contract("RecoveryManager", (accounts) => {
 
     describe("EOA Guardians: G = 3", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2, guardian3]);
+        await addGuardians([guardian2, guardian3]);
       });
 
       testExecuteRecovery([guardian1, guardian2, guardian3]);
@@ -360,7 +368,7 @@ contract("RecoveryManager", (accounts) => {
     describe("Smart Contract Guardians: G = 2", () => {
       let guardians;
       beforeEach(async () => {
-        guardians = await createSmartContractGuardians([guardian1, guardian2]);
+        guardians = await createSmartContractGuardians([guardian2]);
         await addGuardians(guardians);
       });
 
@@ -370,7 +378,7 @@ contract("RecoveryManager", (accounts) => {
     describe("Smart Contract Guardians: G = 3", () => {
       let guardians;
       beforeEach(async () => {
-        guardians = await createSmartContractGuardians([guardian1, guardian2, guardian3]);
+        guardians = await createSmartContractGuardians([guardian2, guardian3]);
         await addGuardians(guardians);
       });
 
@@ -378,10 +386,6 @@ contract("RecoveryManager", (accounts) => {
     });
 
     describe("Safety checks", () => {
-      beforeEach(async () => {
-        await addGuardians([guardian1]);
-      });
-
       it("should not be able to call executeRecovery with an empty recovery address", async () => {
         const txReceipt = await manager.relay(module, "executeRecovery",
           [wallet.address, ethers.constants.AddressZero], wallet, [guardian1]);
@@ -413,7 +417,7 @@ contract("RecoveryManager", (accounts) => {
 
   describe("Finalize Recovery", () => {
     beforeEach(async () => {
-      await addGuardians([guardian1, guardian2, guardian3]);
+      await addGuardians([guardian2, guardian3]);
     });
 
     it("should let anyone finalize the recovery procedure after the recovery period", async () => {
@@ -489,7 +493,7 @@ contract("RecoveryManager", (accounts) => {
   describe("Cancel Recovery with 3 guardians", () => {
     describe("EOA Guardians", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2, guardian3]);
+        await addGuardians([guardian2, guardian3]);
         await manager.relay(
           module,
           "executeRecovery",
@@ -503,7 +507,7 @@ contract("RecoveryManager", (accounts) => {
     });
     describe("Smart Contract Guardians", () => {
       beforeEach(async () => {
-        const scGuardians = await createSmartContractGuardians([guardian1, guardian2, guardian3]);
+        const scGuardians = await createSmartContractGuardians([guardian2, guardian3]);
         await addGuardians(scGuardians);
         await manager.relay(
           module,
@@ -520,7 +524,6 @@ contract("RecoveryManager", (accounts) => {
 
   describe("Ownership Transfer", () => {
     it("should not allow transfer to an empty address", async () => {
-      await addGuardians([guardian1]);
       const txReceipt = await manager.relay(
         module,
         "transferOwnership",
@@ -532,7 +535,6 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not allow transfer to a guardian address", async () => {
-      await addGuardians([guardian1]);
       const txReceipt = await manager.relay(
         module,
         "transferOwnership",
@@ -544,6 +546,11 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("when no guardians, owner should be able to transfer alone", async () => {
+      // Revoke the only guardian added at wallet creation
+      await module.revokeGuardian(wallet.address, guardian1, { from: owner });
+      await utils.increaseTime(30);
+      await module.confirmGuardianRevokation(wallet.address, guardian1);
+
       const txReceipt = await manager.relay(
         module,
         "transferOwnership",
@@ -556,7 +563,6 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not allow owner not signing", async () => {
-      await addGuardians([guardian1]);
       await truffleAssert.reverts(
         manager.relay(
           module,
@@ -569,7 +575,6 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not allow duplicate owner signatures", async () => {
-      await addGuardians([guardian1]);
       await truffleAssert.reverts(
         manager.relay(
           module,
@@ -582,7 +587,7 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not allow duplicate guardian signatures", async () => {
-      await addGuardians([guardian1, guardian2, guardian3]);
+      await addGuardians([guardian2, guardian3]);
       await truffleAssert.reverts(
         manager.relay(
           module,
@@ -595,7 +600,6 @@ contract("RecoveryManager", (accounts) => {
     });
 
     it("should not allow non guardian signatures", async () => {
-      await addGuardians([guardian1]);
       await truffleAssert.reverts(
         manager.relay(
           module,
@@ -608,16 +612,12 @@ contract("RecoveryManager", (accounts) => {
     });
 
     describe("Guardians: G = 1", () => {
-      beforeEach(async () => {
-        await addGuardians([guardian1]);
-      });
-
       testOwnershipTransfer([guardian1]);
     });
 
     describe("Guardians: G = 2", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2]);
+        await addGuardians([guardian2]);
       });
 
       testOwnershipTransfer([guardian1, guardian2]);
@@ -625,7 +625,7 @@ contract("RecoveryManager", (accounts) => {
 
     describe("Guardians: G = 3", () => {
       beforeEach(async () => {
-        await addGuardians([guardian1, guardian2, guardian3]);
+        await addGuardians([guardian2, guardian3]);
       });
 
       testOwnershipTransfer([guardian1, guardian2, guardian3]);
@@ -634,8 +634,6 @@ contract("RecoveryManager", (accounts) => {
 
   describe("benchmark", () => {
     it("should recover wallet with 1 guardian", async () => {
-      await addGuardians([guardian1]);
-
       const txReceipt = await manager.relay(
         module,
         "executeRecovery",

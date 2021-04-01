@@ -8,7 +8,7 @@ const bnChai = require("bn-chai");
 const { assert } = chai;
 chai.use(bnChai(BN));
 
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -27,7 +27,7 @@ const AaveV2Filter = artifacts.require("AaveV2Filter");
 const AaveV2LendingPool = artifacts.require("AaveV2LendingPoolMock");
 const ERC20 = artifacts.require("TestERC20");
 
-const { encodeTransaction, addTrustedContact } = require("../utils/utilities.js");
+const { encodeTransaction, addTrustedContact, createWallet } = require("../utils/utilities.js");
 
 const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -38,19 +38,21 @@ const RECOVERY_PERIOD = 4;
 
 const MAX_UINT = (new BN(2)).pow(new BN(256)).sub(new BN(1));
 
-contract("ArgentModule", (accounts) => {
+contract("MultiCallHelper", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const guardian1 = accounts[2];
   const trustedContact = accounts[4];
   const authorisedDapp = accounts[5];
   const unknownAddress = accounts[6];
+  const refundAddress = accounts[7];
 
   let registry;
   let transferStorage;
   let guardianStorage;
   let module;
   let wallet;
-  let walletImplementation;
+  let factory;
   let dappRegistry;
   let filter;
   let helper;
@@ -90,15 +92,20 @@ contract("ArgentModule", (accounts) => {
 
     await dappRegistry.addDapp(0, authorisedDapp, ZERO_ADDRESS);
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     helper = await MultiCallHelper.new(transferStorage.address, dappRegistry.address);
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
     await wallet.send(new BN("1000000000000000000"));
 
     await addTrustedContact(wallet, trustedContact, module, SECURITY_PERIOD);
