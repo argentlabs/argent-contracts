@@ -20,6 +20,10 @@ import "./BaseFilter.sol";
 import "../IAuthoriser.sol";
 import "../../modules/common/Utils.sol";
 
+interface IUniswapV1Factory {
+    function getExchange(address token) external view returns (address);
+}
+
 interface IParaswapUniswapProxy {
     function UNISWAP_FACTORY() external view returns (address);
     function UNISWAP_INIT_CODE() external view returns (bytes32);
@@ -93,8 +97,11 @@ contract ParaswapFilter is BaseFilter {
 
     // The token price registry
     address public immutable tokenRegistry;
-    // Supported Paraswap adapters
-    mapping(address => bool) public adapters;
+    // Supported Paraswap targetExchanges
+    mapping(address => bool) public targetExchanges;
+    // The supported adapters
+    address public immutable uniV1Adapter;
+    address public immutable uniV2Adapter;
     // The Dapp registry (used to authorise simpleSwap())
     IAuthoriser public immutable authoriser;
     // Uniswap Proxy used by Paraswap's AugustusSwapper contract
@@ -120,8 +127,10 @@ contract ParaswapFilter is BaseFilter {
         address _uniswapProxy,
         address[3] memory _uniFactories,
         bytes32[3] memory _uniInitCodes,
-        address[] memory _adapters
-    ) {
+        address _uniV1Adapter,
+        address _uniV2Adapter,
+        address[] memory _targetExchanges
+    ) public {
         tokenRegistry = _tokenRegistry;
         authoriser = _authoriser;
         uniswapProxy = _uniswapProxy;
@@ -134,8 +143,10 @@ contract ParaswapFilter is BaseFilter {
         uniForkInitCode1 = _uniInitCodes[0];
         uniForkInitCode2 = _uniInitCodes[1];
         uniForkInitCode3 = _uniInitCodes[2];
-        for(uint i = 0; i < _adapters.length; i++) {
-            adapters[_adapters[i]] = true;
+        uniV1Adapter = _uniV1Adapter;
+        uniV2Adapter = _uniV2Adapter;
+        for(uint i = 0; i < _targetExchanges.length; i++) {
+            targetExchanges[_targetExchanges[i]] = true;
         }
     }
 
@@ -167,7 +178,7 @@ contract ParaswapFilter is BaseFilter {
         (IParaswap.SellData memory sell) = abi.decode(_data[4:], (IParaswap.SellData));
         return hasValidBeneficiary(_wallet, sell.beneficiary) &&
             hasTradableToken(sell.path[sell.path.length - 1].to) && 
-            hasValidExchangeAdapters(sell.path);
+            hasValidPath(sell.fromToken, sell.path);
     }
 
     function isValidSimpleSwap(address _wallet, address _augustus, bytes calldata _data) internal view returns (bool) {
@@ -183,7 +194,7 @@ contract ParaswapFilter is BaseFilter {
             return false;
         }
         (, address[] memory path) = abi.decode(_data[4:], (uint256[2], address[]));
-        return hasValidUniPath(path, uniFactory, uniInitCode);
+        return hasValidUniV2Path(path, uniFactory, uniInitCode);
     }
 
     function isValidUniForkSwap(address _augustus, bytes calldata _data) internal view returns (bool) {
@@ -192,9 +203,9 @@ contract ParaswapFilter is BaseFilter {
         }
         (address factory, bytes32 initCode,, address[] memory path) = abi.decode(_data[4:], (address, bytes32, uint256[2], address[]));
         return factory != address(0) && initCode != bytes32(0) && (
-            (factory == uniForkFactory1 && initCode == uniForkInitCode1 && hasValidUniPath(path, uniForkFactory1, uniForkInitCode1)) ||
-            (factory == uniForkFactory2 && initCode == uniForkInitCode2 && hasValidUniPath(path, uniForkFactory2, uniForkInitCode2)) ||
-            (factory == uniForkFactory3 && initCode == uniForkInitCode3 && hasValidUniPath(path, uniForkFactory3, uniForkInitCode3))
+            (factory == uniForkFactory1 && initCode == uniForkInitCode1 && hasValidUniV2Path(path, uniForkFactory1, uniForkInitCode1)) ||
+            (factory == uniForkFactory2 && initCode == uniForkInitCode2 && hasValidUniV2Path(path, uniForkFactory2, uniForkInitCode2)) ||
+            (factory == uniForkFactory3 && initCode == uniForkInitCode3 && hasValidUniV2Path(path, uniForkFactory3, uniForkInitCode3))
         );
     }
 
@@ -202,7 +213,7 @@ contract ParaswapFilter is BaseFilter {
         (IParaswap.MegaSwapSellData memory sell) = abi.decode(_data[4:], (IParaswap.MegaSwapSellData));
         return hasValidBeneficiary(_wallet, sell.beneficiary) &&
             hasTradableToken(sell.path[0].path[sell.path[0].path.length - 1].to) && 
-            hasValidMegaPath(sell.path);
+            hasValidMegaPath(sell.fromToken, sell.path);
     }
 
     function hasAuthorisedCallees(
@@ -232,7 +243,7 @@ contract ParaswapFilter is BaseFilter {
         return (_beneficiary == address(0) || _beneficiary == _wallet);
     }
 
-    function hasValidUniPath(address[] memory _path, address _factory, bytes32 _initCode) internal view returns (bool) {
+    function hasValidUniV2Path(address[] memory _path, address _factory, bytes32 _initCode) internal view returns (bool) {
         address[] memory lpTokens = new address[](_path.length - 1);
         for(uint i = 0; i < lpTokens.length; i++) {
             lpTokens[i] = pairFor(_path[i], _path[i+1], _factory, _initCode);
@@ -264,20 +275,42 @@ contract ParaswapFilter is BaseFilter {
         return success && abi.decode(res, (bool));
     }
 
-    function hasValidExchangeAdapters(IParaswap.Path[] memory _path) internal view returns (bool) {
+    function hasValidPath(address _fromToken, IParaswap.Path[] memory _path) internal view returns (bool) {
         for (uint i = 0; i < _path.length; i++) {
             for (uint j = 0; j < _path[i].routes.length; j++) {
-                if(!adapters[_path[i].routes[j].exchange]) {
+                IParaswap.Route memory route = _path[i].routes[j];
+                if(!targetExchanges[route.targetExchange]) {
                     return false;
                 }
+                if(route.exchange == uniV2Adapter) { 
+                    if(!hasValidUniV2Route(route.payload)) {
+                        return false;
+                    }
+                } else if(route.exchange == uniV1Adapter) { 
+                    if(!hasValidUniV1Route(route.targetExchange, (i == 0) ? _fromToken : _path[i-1].to, _path[i].to)) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }                
             }
         }
         return true;
     }
 
-    function hasValidMegaPath(IParaswap.MegaSwapPath[] memory _megaPath) internal view returns (bool) {
+    function hasValidUniV2Route(bytes memory payload) internal view returns (bool) {
+        // TODO
+        return true;
+    }
+
+    function hasValidUniV1Route(address _uniV1Factory, address _fromToken, address _toToken) internal view returns (bool) {
+        address pool = IUniswapV1Factory(_uniV1Factory).getExchange(_fromToken == ETH_TOKEN ? _toToken : _fromToken);
+        return hasTradableToken(pool);
+    }
+
+    function hasValidMegaPath(address _fromToken, IParaswap.MegaSwapPath[] memory _megaPath) internal view returns (bool) {
         for(uint i = 0; i < _megaPath.length; i++) {
-            if(!hasValidExchangeAdapters(_megaPath[i].path)) {
+            if(!hasValidPath(_fromToken, _megaPath[i].path)) {
                 return false;
             }
         }

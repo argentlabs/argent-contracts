@@ -15,6 +15,7 @@ const Whitelisted = artifacts.require("Whitelisted");
 const PartnerRegistry = artifacts.require("PartnerRegistry");
 const PartnerDeployer = artifacts.require("PartnerDeployer");
 const Uniswap = artifacts.require("Uniswap");
+const UniswapV2 = artifacts.require("UniswapV2");
 const UniswapProxy = artifacts.require("UniswapProxyTest");
 
 // UniswapV2
@@ -74,6 +75,7 @@ contract("Paraswap Filter", (accounts) => {
   let uniswapV1Factory;
   let uniswapV1Exchanges;
   let uniswapV1Adapter;
+  let uniswapV2Adapter;
   let unauthorisedAdapter;
   let uniswapV2Factory;
   let initCode;
@@ -128,22 +130,29 @@ contract("Paraswap Filter", (accounts) => {
       infrastructure,
       uniswapProxy.address);
     uniswapV1Adapter = await Uniswap.new();
+    uniswapV2Adapter = await UniswapV2.new();
     unauthorisedAdapter = await Uniswap.new();
     const wlr = await paraswapWhitelist.WHITELISTED_ROLE();
     await paraswapWhitelist.grantRole(wlr, uniswapV1Adapter.address);
+    await paraswapWhitelist.grantRole(wlr, uniswapV2Adapter.address);
     await paraswap.initializeAdapter(uniswapV1Adapter.address, web3.eth.abi.encodeParameter(
-      { ParentStruct: { factory: "address" } }, { factory: uniswapV1Factory.address }));
+      { ParentStruct: { factory: "address" } },
+      { factory: uniswapV1Factory.address }));
+    await paraswap.initializeAdapter(uniswapV2Adapter.address, web3.eth.abi.encodeParameter(
+      { ParentStruct: { uinswapV2Router: "address", factory: "address", initCode: "bytes32", } },
+      { uinswapV2Router: uniswapRouter.address, factory: uniswapV2Factory.address, initCode }));
     paraswapProxy = await paraswap.getTokenTransferProxy();
 
     // deploy Argent
     registry = await Registry.new();
     tokenRegistry = await TokenRegistry.new();
     const pairs = [];
-    const numPairs = (await uniswapV2Factory.allPairsLength()).toNumber();
-    for (let p = 0; p < numPairs - 1; p += 1) {
-      pairs.push(await uniswapV2Factory.allPairs(p)); // exclude last pair (tokenC-weth)
-    }
-    await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, ...pairs], Array(1 + numPairs).fill(true));
+    pairs.push(await uniswapV2Factory.allPairs(0)); // tokenA-weth uniV2
+    pairs.push(await uniswapV2Factory.allPairs(1)); // tokenB-weth uniV2
+    pairs.push(await uniswapV2Factory.allPairs(2)); // tokenA-tokenB uniV2
+    pairs.push(uniswapExchanges[tokenA.address].address); // tokenA-eth uniV1
+    pairs.push(uniswapExchanges[tokenB.address].address); // tokenB-eth uniV1
+    await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, ...pairs], Array(2 + pairs.length).fill(true));
     dappRegistry = await DappRegistry.new(0);
     guardianStorage = await GuardianStorage.new();
     transferStorage = await TransferStorage.new();
@@ -164,7 +173,9 @@ contract("Paraswap Filter", (accounts) => {
       uniswapProxy.address,
       [uniswapV2Factory.address, uniswapV2Factory.address, uniswapV2Factory.address],
       [initCode, initCode, initCode],
-      [uniswapV1Adapter.address]);
+      uniswapV1Adapter.address,
+      uniswapV2Adapter.address,
+      [uniswapV1Factory.address]);
     const proxyFilter = await OnlyApproveFilter.new();
     await dappRegistry.addDapp(0, paraswap.address, paraswapFilter.address);
     await dappRegistry.addDapp(0, paraswapProxy, proxyFilter.address);
