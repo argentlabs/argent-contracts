@@ -4,7 +4,7 @@ import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
 
 import "./ITokenTransferProxy.sol";
 import './lib/UniswapV3Lib.sol';
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import './IWETH.sol';
 import "./AdapterStorage.sol";
 

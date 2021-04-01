@@ -1,7 +1,7 @@
 pragma solidity >=0.5.0;
 
 import "./IUniswapV2Pair.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 
 library UniswapV3Lib {

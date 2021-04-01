@@ -1,7 +1,7 @@
 pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import "./IKyberNetwork.sol";
 import "../IExchange.sol";

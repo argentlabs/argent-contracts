@@ -1,17 +1,16 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.7.5;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/utils/Address.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
 import "./interfaces/IController.sol";
 import "./interfaces/IWETH.sol";
 
-contract yVault is ERC20, ERC20Detailed {
+contract yVault is ERC20 {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -26,10 +25,9 @@ contract yVault is ERC20, ERC20Detailed {
 
     constructor(address _token, address _controller)
         public
-        ERC20Detailed(
-            string(abi.encodePacked("yearn ", ERC20Detailed(_token).name())),
-            string(abi.encodePacked("y", ERC20Detailed(_token).symbol())),
-            ERC20Detailed(_token).decimals()
+        ERC20(
+            string(abi.encodePacked("yearn ", ERC20(_token).name())),
+            string(abi.encodePacked("y", ERC20(_token).symbol()))
         )
     {
         token = IERC20(_token);
@@ -128,7 +126,7 @@ contract yVault is ERC20, ERC20Detailed {
         uint _pool = balance();
         uint _before = token.balanceOf(address(this));
         uint _amount = msg.value;
-        IWETH(address(token)).deposit.value(_amount)();
+        IWETH(address(token)).deposit{value: _amount}();
         uint _after = token.balanceOf(address(this));
         _amount = _after.sub(_before); // Additional check for deflationary tokens
         uint shares = 0;
@@ -158,14 +156,14 @@ contract yVault is ERC20, ERC20Detailed {
         }
 
         IWETH(address(token)).withdraw(r);
-        address(msg.sender).transfer(r);
+        payable(msg.sender).transfer(r);
     }
 
     function withdrawAllETH() external {
         withdrawETH(balanceOf(msg.sender));
     }
 
-    function () external payable {
+    fallback () external payable {
         if (msg.sender != address(token)) {
             depositETH();
         }

@@ -1,6 +1,6 @@
 pragma solidity 0.7.5;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "openzeppelin-solidity/contracts/access/AccessControl.sol";
 
 
 contract Whitelisted is AccessControl {
