@@ -34,27 +34,62 @@ contract UniswapV2UniZapFilter is BaseFilter {
             )
         );
 
-    function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external pure override returns (bool valid) {
+    // Token registry
+    address public immutable tokenRegistry;
+    // Uniswap V2 factory
+    address public immutable uniFactory;
+    // Uniswap v2 pair init code
+    bytes32 public immutable uniInitCode;
+    // WETH address
+    address public immutable weth;
+
+    constructor (address _tokenRegistry, address _uniFactory, bytes32 _uniInitCode, address _weth) {
+        tokenRegistry = _tokenRegistry;
+        uniFactory = _uniFactory;
+        uniInitCode = _uniInitCode;
+        weth = _weth;
+    }
+
+    function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
         // not needed but detects failure early
         if (_data.length < 4) {
             return false;
         }
         bytes4 method = getMethod(_data);
-        // UniZap method: check that recipient is the wallet
+        // UniZap method: check that pair is valid and recipient is the wallet
         if (_spender == _to) {
             if (method == ADD_LIQUIDITY_WITH_TOKEN || method == REMOVE_LIQUIDITY_TO_TOKEN) {
-                return (_wallet == abi.decode(_data[132:], (address)));
+                (address tokenA, address tokenB, , , address recipient) = abi.decode(_data[4:], (address, address, uint256, uint256, address));
+                return isValidPair(tokenA, tokenB) && recipient == _wallet;
             }
             if (method == ADD_LIQUIDITY_WITH_ETH) {
-                return (_wallet == abi.decode(_data[68:], (address)));
+                (address token, , address recipient) = abi.decode(_data[4:], (address, uint256, address));
+                return isValidPair(token, weth) && recipient == _wallet;
             }
             if (method == REMOVE_LIQUIDITY_TO_ETH) {
-                return (_wallet == abi.decode(_data[100:], (address)));
+                (address token, , , address recipient) = abi.decode(_data[4:], (address, uint256, uint256, address));
+                return isValidPair(token, weth) && recipient == _wallet;
             }
          // ERC20 methods
         } else {
             // only allow approve
             return (method == ERC20_APPROVE);
         }
+    }
+
+    function isValidPair(address _tokenA, address _tokenB) internal view returns (bool) {
+        address pair = pairFor(_tokenA, _tokenB);
+        (bool success, bytes memory res) = tokenRegistry.staticcall(abi.encodeWithSignature("isTokenTradable(address)", pair));
+        return success && abi.decode(res, (bool));
+    }
+
+    function pairFor(address _tokenA, address _tokenB) internal view returns (address) {
+        (address token0, address token1) = _tokenA < _tokenB ? (_tokenA, _tokenB) : (_tokenB, _tokenA);
+        return(address(uint160(uint256(keccak256(abi.encodePacked(
+            hex"ff",
+            uniFactory,
+            keccak256(abi.encodePacked(token0, token1)),
+            uniInitCode
+        ))))));
     }
 }
