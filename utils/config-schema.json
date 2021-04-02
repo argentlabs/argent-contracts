@@ -90,8 +90,14 @@
             "factory": {
               "$ref": "#/definitions/ethaddress"
             },
+            "factoryV2": {
+              "$ref": "#/definitions/ethaddress"
+            },
             "v2Router": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "initCodeV2": {
+              "type": "string"
             },
             "unizap": {
               "$ref": "#/definitions/ethaddress"

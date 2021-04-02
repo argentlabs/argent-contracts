@@ -44,12 +44,11 @@ class Configurator {
     this._config.defi.uniswap.factory = address;
   }
 
-  updateUniswapV2Router(address) {
-    this._config.defi.uniswap.v2Router = address;
-  }
-
-  updateUniswapV2Zap(address) {
-    this._config.defi.uniswap.unizap = address;
+  updateUniswapV2(factory, router, zap, initCode) {
+    this._config.defi.uniswap.factoryV2 = factory;
+    this._config.defi.uniswap.v2Router = router;
+    this._config.defi.uniswap.unizap = zap;
+    this._config.defi.uniswap.initCodeV2 = initCode;
   }
 
   updateBackendAccounts(accounts) {

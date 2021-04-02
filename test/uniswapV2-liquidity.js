@@ -121,12 +121,12 @@ contract("ArgentModule", (accounts) => {
     await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
-    
+
     // make LP token tradable
     tokenRegistry = await TokenRegistry.new();
     await tokenRegistry.setTradableForTokenList([lpToken.address], [true]);
     // deploy unizap filter
-    let uniInitCode = await uniswapFactory.getKeccakOfPairCreationCode();
+    const uniInitCode = await uniswapFactory.getKeccakOfPairCreationCode();
     filter = await UniZapFilter.new(tokenRegistry.address, uniswapFactory.address, uniInitCode, weth.address);
 
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);

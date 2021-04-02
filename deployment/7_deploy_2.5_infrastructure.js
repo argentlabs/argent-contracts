@@ -3,16 +3,12 @@ global.web3 = web3;
 global.artifacts = artifacts;
 
 const ethers = require("ethers");
-const semver = require("semver");
 const childProcess = require("child_process");
 
+const DappRegistry = artifacts.require("DappRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
-const ModuleRegistry = artifacts.require("ModuleRegistry");
-const ArgentModule = artifacts.require("ArgentModule");
 const BaseWallet = artifacts.require("BaseWallet");
 const WalletFactory = artifacts.require("WalletFactory");
-const DappRegistry = artifacts.require("DappRegistry");
-const Upgrader = artifacts.require("SimpleUpgrader");
 const MultiCallHelper = artifacts.require("MultiCallHelper");
 const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 const Proxy = artifacts.require("Proxy");
@@ -38,38 +34,8 @@ const AaveV1ATokenFilter = artifacts.require("AaveV1ATokenFilter");
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
-const utils = require("../utils/utilities.js");
-
-const TARGET_VERSION = "2.5.0";
-const MODULES_TO_ENABLE = [
-  "ArgentModule",
-];
-const MODULES_TO_DISABLE = [
-  "VersionManager",
-  "MakerV2Manager",
-  "TokenExchanger",
-  "LockManager",
-  "RecoveryManager",
-  "TransferManager",
-  "NftTransfer",
-  "RelayerManager",
-  "CompoundManager",
-  "GuardianManager",
-  "ApprovedTransfer",
-  "UniswapManager",
-  "MakerManager",
-  "DappManager",
-  "ModuleManager",
-  "TokenTransfer"
-];
-
-const BACKWARD_COMPATIBILITY = 5;
-
 const main = async () => {
-  const { deploymentAccount, configurator, versionUploader, abiUploader, network } = await deployManager.getProps();
-
-  const newModuleWrappers = [];
-  const newVersion = {};
+  const { deploymentAccount, configurator, abiUploader, network } = await deployManager.getProps();
 
   // //////////////////////////////////
   // Setup
@@ -77,7 +43,6 @@ const main = async () => {
 
   const { config } = configurator;
   const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
-  const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
@@ -105,8 +70,6 @@ const main = async () => {
   const DappRegistryWrapper = await DappRegistry.new(0);
   console.log("Deployed DappRegistry at ", DappRegistryWrapper.address);
 
-  await DappRegistryWrapper.addDapp(0, config.backend.refundCollector, ethers.constants.AddressZero);
-
   // Deploy MultiCall Helper
   const MultiCallHelperWrapper = await MultiCallHelper.new(config.modules.TransferStorage, DappRegistryWrapper.address);
   console.log("Deployed MultiCallHelper at ", MultiCallHelperWrapper.address);
@@ -118,6 +81,9 @@ const main = async () => {
   // //////////////////////////////////
   // Deploy and add filters to Argent Registry
   // //////////////////////////////////
+
+  // refund collector
+  await DappRegistryWrapper.addDapp(0, config.backend.refundCollector, ethers.constants.AddressZero);
 
   // Compound
   for (const [underlying, cToken] of Object.entries(config.defi.compound.markets)) {
@@ -214,7 +180,12 @@ const main = async () => {
 
   // Uniswap V2
   console.log("Deploying UniswapV2Filter");
-  const UniswapV2FilterWrapper = await UniswapV2Filter.new();
+  const UniswapV2FilterWrapper = await UniswapV2Filter.new(
+    TokenRegistryWrapper.address,
+    config.defi.uniswap.factoryV2,
+    config.defi.uniswap.initCodeV2,
+    config.defi.weth
+  );
   console.log(`Deployed UniswapV2Filter at ${UniswapV2FilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.uniswap.unizap, UniswapV2FilterWrapper.address);
 
@@ -239,28 +210,6 @@ const main = async () => {
   await DappRegistryWrapper.requestTimelockChange(config.settings.timelockPeriod);
   await DappRegistryWrapper.confirmTimelockChange();
   console.log("Timelock changed.");
-
-  // //////////////////////////////////
-  // Deploy modules
-  // //////////////////////////////////
-
-  console.log("Deploying modules");
-
-  // Deploy ArgentModule
-  const ArgentModuleWrapper = await ArgentModule.new(
-    config.contracts.ModuleRegistry,
-    config.modules.GuardianStorage,
-    config.modules.TransferStorage,
-    DappRegistryWrapper.address,
-    config.defi.uniswap.v2Router,
-    config.settings.securityPeriod || 0,
-    config.settings.securityWindow || 0,
-    config.settings.recoveryPeriod || 0,
-    config.settings.lockPeriod || 0);
-
-  console.log(`Deployed ArgentModule at ${ArgentModuleWrapper.address}`);
-
-  newModuleWrappers.push(ArgentModuleWrapper);
 
   // //////////////////////////////////
   // Set contracts' managers
@@ -291,16 +240,12 @@ const main = async () => {
   // Update config and Upload ABIs
   // /////////////////////////////////////////////////
 
-  configurator.updateModuleAddresses({
-    ArgentModule: ArgentModuleWrapper.address,
-  });
-
   configurator.updateInfrastructureAddresses({
+    DappRegistry: DappRegistryWrapper.address,
     WalletFactory: WalletFactoryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
-    DappRegistry: DappRegistryWrapper.address,
     MultiCallHelper: MultiCallHelperWrapper.address,
-    TokenRegistry: TokenRegistryWrapper.address
+    TokenRegistry: TokenRegistryWrapper.address,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
@@ -311,79 +256,12 @@ const main = async () => {
 
   console.log("Uploading ABIs");
   await Promise.all([
-    abiUploader.upload(ArgentModuleWrapper, "modules"),
+    abiUploader.upload(DappRegistryWrapper, "contracts"),
     abiUploader.upload(WalletFactoryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
-    abiUploader.upload(DappRegistryWrapper, "contracts"),
     abiUploader.upload(MultiCallHelperWrapper, "contracts"),
     abiUploader.upload(TokenRegistryWrapper, "contracts"),
   ]);
-
-  // //////////////////////////////////
-  // Register new modules
-  // //////////////////////////////////
-
-  for (let idx = 0; idx < newModuleWrappers.length; idx += 1) {
-    const wrapper = newModuleWrappers[idx];
-    console.log(`Registering module ${wrapper.constructor.contractName}`);
-    await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
-      [wrapper.address, utils.asciiToBytes32(wrapper.constructor.contractName)]);
-  }
-
-  // //////////////////////////////////
-  // Deploy and Register upgraders
-  // //////////////////////////////////
-
-  let fingerprint;
-  console.log(`Loading last ${BACKWARD_COMPATIBILITY} versions`);
-  const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
-  for (let idx = 0; idx < versions.length; idx += 1) {
-    const version = versions[idx];
-    let toAdd; let toRemove;
-    if (idx === 0) {
-      const moduleNamesToRemove = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
-      toRemove = version.modules.filter((module) => moduleNamesToRemove.includes(module.name));
-      toAdd = newModuleWrappers.map((wrapper) => ({
-        address: wrapper.address,
-        name: wrapper.constructor.contractName,
-      }));
-      const toKeep = version.modules.filter((module) => !moduleNamesToRemove.includes(module.name));
-      const modulesInNewVersion = toKeep.concat(toAdd);
-      fingerprint = utils.versionFingerprint(modulesInNewVersion);
-      newVersion.version = semver.lt(version.version, TARGET_VERSION) ? TARGET_VERSION : semver.inc(version.version, "patch");
-      newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
-      newVersion.modules = modulesInNewVersion;
-      newVersion.fingerprint = fingerprint;
-    } else {
-      // add all modules present in newVersion that are not present in version
-      toAdd = newVersion.modules.filter((module) => !version.modules.map((m) => m.address).includes(module.address));
-      // remove all modules from version that are no longer present in newVersion
-      toRemove = version.modules.filter((module) => !newVersion.modules.map((m) => m.address).includes(module.address));
-    }
-
-    const upgraderName = `${version.fingerprint}_${fingerprint}`;
-
-    console.log(`Deploying upgrader ${upgraderName}`);
-    const UpgraderWrapper = await Upgrader.new(
-      config.contracts.ModuleRegistry,
-      toRemove.map((module) => module.address),
-      toAdd.map((module) => module.address)
-    );
-
-    console.log(`Registering ${upgraderName} as a module`);
-    await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
-      [UpgraderWrapper.address, utils.asciiToBytes32(upgraderName)]);
-
-    console.log(`Registering ${upgraderName} as an upgrader`);
-    await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader",
-      [UpgraderWrapper.address, utils.asciiToBytes32(upgraderName)]);
-  }
-
-  // //////////////////////////////////
-  // Upload Version
-  // //////////////////////////////////
-
-  await versionUploader.upload(newVersion);
 };
 
 // For truffle exec

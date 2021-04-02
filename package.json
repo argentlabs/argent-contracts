@@ -26,7 +26,7 @@
     "test:coverage": "COVERAGE=1 node scripts/coverage.js && istanbul check-coverage --statements 93 --branches 85 --functions 91 --lines 93",
     "lint:js": "eslint .",
     "lint:contracts": "npx solhint contracts/**/*.sol && npx solhint contracts/**/**/*.sol",
-    "test:deployment": "./scripts/deploy.sh --no-compile development `seq 1 7`",
+    "test:deployment": "./scripts/deploy.sh --no-compile development `seq 1 8`",
     "validate:erc20": "bash ./scripts/validate_erc20.sh",
     "security:slither": "npm run security:slither:infrastructure_0.5 && npm run security:slither:infrastructure && npm run security:slither:modules && npm run security:slither:wallet",
     "security:slither:infrastructure_0.5": "rm -rf build && npm run compile:infrastructure_0.5 && slither .",
