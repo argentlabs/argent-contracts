@@ -21,7 +21,7 @@
     "compile:test": "npx truffle compile --config truffle-config-contracts-test.js",
     "compile": "npm run compile:infrastructure && npm run compile:modules && npm run compile:wallet",
     "cc": "rm -rf build && rm -rf build-legacy && npm run compile:lib && npm run compile && npm run compile:legacy && npm run compile:test && npm run provision:lib:artefacts",
-    "ganache": "npx ganache-cli --chainId 1895 --networkId 1597649375983 --gasLimit=20700000 -e 10000 --acctKeys=\"./ganache-accounts.json\" --deterministic",
+    "ganache": "npx ganache-cli --chainId 1895 --networkId 1597649375983 --gasLimit=20700000 --gasPrice 0 -e 10000 --acctKeys=\"./ganache-accounts.json\" --deterministic",
     "mainnet-fork": "bash ./scripts/start_mainnet_fork.sh",
     "test": "npx truffle test --compile-none",
     "ctest": "npm run compile && npm run test",
