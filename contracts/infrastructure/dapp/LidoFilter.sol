@@ -14,14 +14,14 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "./BaseFilter.sol";
 
 contract LidoFilter is BaseFilter {
   bytes4 private constant SUBMIT = bytes4(keccak256("submit(address)"));
 
-  function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+  function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external pure override returns (bool) {
     // Allow sending ETH as well as calls to submit(address)
     if (_data.length == 0) {
         return true;

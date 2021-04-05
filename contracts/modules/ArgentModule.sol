@@ -14,10 +14,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.3;
 
-
+import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "./RelayerManager.sol";
 import "./SecurityManager.sol";
@@ -43,7 +42,6 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
-        public
         BaseModule(_registry, _guardianStorage, _userWhitelist, _authoriser, NAME)
         SecurityManager(_recoveryPeriod, _securityPeriod, _securityWindow, _lockPeriod)
         TransactionManager(_securityPeriod)
@@ -107,7 +105,7 @@ contract ArgentModule is BaseModule, RelayerManager, SecurityManager, Transactio
         {
             // owner + majority of guardians
             uint majorityGuardians = _majorityOfGuardians(_wallet);
-            uint numberOfSignaturesRequired = SafeMath.add(majorityGuardians, 1);
+            uint numberOfSignaturesRequired = majorityGuardians + 1;
             return (numberOfSignaturesRequired, OwnerSignature.Required);
         }
         if (methodId == SecurityManager.finalizeRecovery.selector ||

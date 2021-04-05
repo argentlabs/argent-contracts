@@ -14,10 +14,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.3;
 
-import "@openzeppelin/contracts/utils/SafeCast.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "../../lib_0.5/other/ERC20.sol";
@@ -53,7 +52,7 @@ abstract contract TransactionManager is BaseModule {
     event SessionCleared(address indexed wallet, address sessionKey);
     // *************** Constructor ************************ //
 
-    constructor(uint256 _whitelistPeriod) public {
+    constructor(uint256 _whitelistPeriod) {
         whitelistPeriod = _whitelistPeriod;
     }
 
@@ -164,7 +163,7 @@ abstract contract TransactionManager is BaseModule {
         require(!registry.isRegisteredModule(_target), "TM: Cannot whitelist module");
         require(!isWhitelisted(_wallet, _target), "TM: target already whitelisted");
 
-        uint256 whitelistAfter = block.timestamp.add(whitelistPeriod);
+        uint256 whitelistAfter = block.timestamp + whitelistPeriod;
         setWhitelist(_wallet, _target, whitelistAfter);
         emit AddedToWhitelist(_wallet, _target, uint64(whitelistAfter));
     }
@@ -206,7 +205,7 @@ abstract contract TransactionManager is BaseModule {
     /**
      * @inheritdoc IModule
      */
-    function supportsStaticCall(bytes4 _methodId) external view override returns (bool _isSupported) {
+    function supportsStaticCall(bytes4 _methodId) external pure override returns (bool _isSupported) {
         return _methodId == ERC1271_IS_VALID_SIGNATURE ||
                _methodId == ERC721_RECEIVED ||
                _methodId == ERC165_INTERFACE ||
@@ -220,7 +219,7 @@ abstract contract TransactionManager is BaseModule {
      * @notice Returns true if this contract implements the interface defined by
      * `interfaceId` (see https://eips.ethereum.org/EIPS/eip-165).
      */
-    function supportsInterface(bytes4 _interfaceID) external view returns (bool) {
+    function supportsInterface(bytes4 _interfaceID) external pure returns (bool) {
         return  _interfaceID == ERC165_INTERFACE || _interfaceID == (ERC1155_RECEIVED ^ ERC1155_BATCH_RECEIVED);          
     }
 

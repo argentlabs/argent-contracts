@@ -8,7 +8,7 @@ const bnChai = require("bn-chai");
 const { assert } = chai;
 chai.use(bnChai(BN));
 
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -26,14 +26,16 @@ const SECURITY_WINDOW = 2;
 const LOCK_PERIOD = 4;
 const RECOVERY_PERIOD = 4;
 
+const utils = require("../utils/utilities.js");
 const RelayManager = require("../utils/relay-manager");
 
 contract("TransactionManager", (accounts) => {
   let manager;
 
-  // const infrastructure = accounts[0];
+  const infrastructure = accounts[0];
   const owner = accounts[1];
-  // const recipient = accounts[4];
+  const guardian1 = accounts[2];
+  const refundAddress = accounts[7];
   const relayer = accounts[9];
 
   let registry;
@@ -46,7 +48,7 @@ contract("TransactionManager", (accounts) => {
   let dappRegistry;
 
   let wallet;
-  let walletImplementation;
+  let factory;
 
   before(async () => {
     registry = await Registry.new();
@@ -91,15 +93,20 @@ contract("TransactionManager", (accounts) => {
 
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
     await wallet.send(new BN("1000000000000000000"));
   });
 

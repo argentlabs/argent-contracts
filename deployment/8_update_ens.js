@@ -1,5 +1,6 @@
 /* global artifacts */
 global.web3 = web3;
+global.artifacts = artifacts;
 
 const TruffleContract = require("@truffle/contract");
 

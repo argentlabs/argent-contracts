@@ -14,27 +14,24 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract SimpleOracle {
-
-    using SafeMath for uint256;
 
     address internal immutable weth;
     address internal immutable uniswapV2Factory;
 
-    constructor(address _uniswapRouter) public {
+    constructor(address _uniswapRouter) {
         weth = IUniswapV2Router01(_uniswapRouter).WETH();
         uniswapV2Factory = IUniswapV2Router01(_uniswapRouter).factory();
     }
 
     function inToken(address _token, uint256 _ethAmount) internal view returns (uint256) {
         (uint256 wethReserve, uint256 tokenReserve) = getReservesForTokenPool(_token);
-        return _ethAmount.mul(tokenReserve) / wethReserve;
+        return _ethAmount * tokenReserve / wethReserve;
     }
 
     function getReservesForTokenPool(address _token) internal view returns (uint256 wethReserve, uint256 tokenReserve) {
@@ -49,11 +46,11 @@ contract SimpleOracle {
     }
 
     function getPairForSorted(address tokenA, address tokenB) internal virtual view returns (address pair) {    
-        pair = address(uint(keccak256(abi.encodePacked(
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
                 uniswapV2Factory,
                 keccak256(abi.encodePacked(tokenA, tokenB)),
                 hex'96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f'
-            ))));
+            )))));
     }
 }

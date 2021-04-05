@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 import "../../../lib_0.5/ens/ENS.sol";
 import "../../modules/common/Utils.sol";
 import "./IENSManager.sol";
@@ -56,7 +56,7 @@ contract ArgentENSManager is IENSManager, Owned, Managed {
      * @param _ensRegistry The address of the ENS registry
      * @param _ensResolver The address of the ENS resolver
      */
-    constructor(string memory _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) public {
+    constructor(string memory _rootName, bytes32 _rootNode, address _ensRegistry, address _ensResolver) {
         rootName = _rootName;
         rootNode = _rootNode;
         ensRegistry = ENS(_ensRegistry);

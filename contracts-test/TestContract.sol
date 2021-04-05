@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 import "./TokenConsumer.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/introspection/IERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
  * @title TestContract
@@ -17,7 +17,7 @@ contract TestContract {
     event StateSet(uint256 indexed _state, uint256 indexed _value);
     event GasUsed(uint _gas);
 
-    constructor() public {
+    constructor() {
         tokenConsumer = new TokenConsumer();
     }
 

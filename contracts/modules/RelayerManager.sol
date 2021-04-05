@@ -14,10 +14,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.3;
 
-import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./common/Utils.sol";
 import "./common/BaseModule.sol";
 import "./common/SimpleOracle.sol";
@@ -53,7 +52,7 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
 
     // *************** Constructor ************************ //
 
-    constructor(address _uniswapRouter) public SimpleOracle(_uniswapRouter) {
+    constructor(address _uniswapRouter) SimpleOracle(_uniswapRouter) {
 
     }
 
@@ -189,19 +188,19 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
         address _refundAddress
     )
         internal
-        pure
+        view
         returns (bytes32)
     {
         return keccak256(
             abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
                 keccak256(abi.encodePacked(
-                    byte(0x19),
-                    byte(0),
+                    bytes1(0x19),
+                    bytes1(0),
                     _from,
                     _value,
                     _data,
-                    getChainId(),
+                    block.chainid,
                     _nonce,
                     _gasPrice,
                     _gasLimit,
@@ -351,14 +350,14 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
             uint256 refundAmount;
             if (_refundToken == ETH_TOKEN) {
                 // 23k as an upper bound to cover the rest of refund logic
-                uint256 gasConsumed = _startGas.sub(gasleft()).add(23000);
-                refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tx.gasprice));
+                uint256 gasConsumed = _startGas - gasleft() + 23000;
+                refundAmount = Math.min(gasConsumed, _gasLimit) * (Math.min(_gasPrice, tx.gasprice));
                 invokeWallet(_wallet, refundAddress, refundAmount, EMPTY_BYTES);
             } else {
                 // 37.5k as an upper bound to cover the rest of refund logic
-                uint256 gasConsumed = _startGas.sub(gasleft()).add(37500);
+                uint256 gasConsumed = _startGas - gasleft() + 37500;
                 uint256 tokenGasPrice = inToken(_refundToken, tx.gasprice);
-                refundAmount = Math.min(gasConsumed, _gasLimit).mul(Math.min(_gasPrice, tokenGasPrice));
+                refundAmount = Math.min(gasConsumed, _gasLimit) * (Math.min(_gasPrice, tokenGasPrice));
                 bytes memory methodData = abi.encodeWithSelector(ERC20.transfer.selector, refundAddress, refundAmount);
                 bytes memory transferSuccessBytes = invokeWallet(_wallet, _refundToken, 0, methodData);
                 // Check token refund is successful, when `transfer` returns a success bool result
@@ -378,14 +377,5 @@ abstract contract RelayerManager is BaseModule, SimpleOracle {
         require(_data.length >= 36, "RM: Invalid dataWallet");
         address dataWallet = abi.decode(_data[4:], (address));
         return dataWallet == _wallet;
-    }
-
-   /**
-    * @notice Returns the current chainId
-    * @return chainId the chainId
-    */
-    function getChainId() private pure returns (uint256 chainId) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly { chainId := chainid() }
     }
 }

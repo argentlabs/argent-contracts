@@ -14,9 +14,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../wallet/IWallet.sol";
 import "../../infrastructure/IModuleRegistry.sol";
 import "../../infrastructure/storage/IGuardianStorage.sol";
@@ -31,8 +30,6 @@ import "../../../lib_0.5/other/ERC20.sol";
  * @author Julien Niset - <julien@argent.xyz>, Olivier VDB - <olivier@argent.xyz>
  */
 abstract contract BaseModule is IModule {
-
-    using SafeMath for uint256;
 
     // Empty calldata
     bytes constant internal EMPTY_BYTES = "";
@@ -122,7 +119,7 @@ abstract contract BaseModule is IModule {
         ITransferStorage _userWhitelist,
         IAuthoriser _authoriser,
         bytes32 _name
-    ) public {
+    ) {
         registry = _registry;
         guardianStorage = _guardianStorage;
         userWhitelist = _userWhitelist;

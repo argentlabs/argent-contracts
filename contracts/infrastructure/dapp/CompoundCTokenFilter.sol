@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "./BaseFilter.sol";
 
@@ -25,7 +25,7 @@ contract CompoundCTokenFilter is BaseFilter {
 
     address public immutable underlying;
 
-    constructor (address _underlying) public {
+    constructor (address _underlying) {
         underlying = _underlying;
     }
 

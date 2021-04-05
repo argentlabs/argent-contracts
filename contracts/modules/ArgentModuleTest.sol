@@ -1,5 +1,4 @@
-pragma solidity ^0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.3;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
 import "./ArgentModule.sol";
@@ -23,7 +22,6 @@ contract ArgentModuleTest is ArgentModule {
         uint256 _recoveryPeriod,
         uint256 _lockPeriod
     )
-        public
         ArgentModule(
             _registry,
             _guardianStorage,
@@ -42,11 +40,11 @@ contract ArgentModuleTest is ArgentModule {
         }
     }
     function getPairForSorted(address tokenA, address tokenB) internal override view returns (address pair) {
-        pair = address(uint(keccak256(abi.encodePacked(
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
                 hex'ff',
                 uniswapV2Factory,
                 keccak256(abi.encodePacked(tokenA, tokenB)),
                 creationCode
-            ))));
+            )))));
     }
 }

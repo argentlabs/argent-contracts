@@ -15,7 +15,7 @@ const WETH = artifacts.require("WETH9");
 const UniZap = artifacts.require("UniZap");
 
 // Argent
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -43,7 +43,9 @@ contract("ArgentModule", (accounts) => {
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const guardian1 = accounts[2];
   const recipient = accounts[4];
+  const refundAddress = accounts[7];
   const relayer = accounts[9];
 
   let registry;
@@ -51,7 +53,7 @@ contract("ArgentModule", (accounts) => {
   let guardianStorage;
   let module;
   let wallet;
-  let walletImplementation;
+  let factory;
   let filter;
   let dappRegistry;
   let uniswapRouter;
@@ -110,7 +112,12 @@ contract("ArgentModule", (accounts) => {
 
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
 
@@ -121,9 +128,8 @@ contract("ArgentModule", (accounts) => {
 
   beforeEach(async () => {
     // create wallet
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
 
     // fund wallet
     await wallet.send(web3.utils.toWei("1"));

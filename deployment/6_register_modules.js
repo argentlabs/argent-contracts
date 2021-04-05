@@ -1,6 +1,7 @@
 /* global artifacts */
 
 global.web3 = web3;
+global.artifacts = artifacts;
 
 const ModuleRegistry = artifacts.require("ModuleRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");

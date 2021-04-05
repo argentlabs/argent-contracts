@@ -10,6 +10,7 @@ const bnChai = require("bn-chai");
 const { assert } = chai;
 chai.use(bnChai(BN));
 
+const WalletFactory = artifacts.require("WalletFactory");
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const BaseWalletV24Contract = require("../build-legacy/v2.4.0/BaseWallet");
@@ -39,6 +40,8 @@ contract("Static Calls", (accounts) => {
 
   const infrastructure = accounts[0];
   const owner = accounts[1];
+  const guardian1 = accounts[2];
+  const refundAddress = accounts[7];
   const relayer = accounts[9];
 
   const msg = "0x1234";
@@ -49,9 +52,9 @@ contract("Static Calls", (accounts) => {
   let transferStorage;
   let guardianStorage;
   let module;
+  let factory;
   let wallet;
   let oldWallet;
-  let walletImplementation;
   let oldWalletImplementation;
 
   let dappRegistry;
@@ -81,7 +84,13 @@ contract("Static Calls", (accounts) => {
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
+
     oldWalletImplementation = await BaseWalletV24.new();
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
@@ -89,9 +98,9 @@ contract("Static Calls", (accounts) => {
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
 
     const proxy2 = await Proxy.new(oldWalletImplementation.address);
     oldWallet = await BaseWalletV24.at(proxy2.address);

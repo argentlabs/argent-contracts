@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "./common/IModule.sol";
 import "../infrastructure/IModuleRegistry.sol";
@@ -38,7 +38,6 @@ contract SimpleUpgrader is IModule {
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        public
     {
         registry = _registry;
         toDisable = _toDisable;

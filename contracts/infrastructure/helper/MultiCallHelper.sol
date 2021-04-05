@@ -14,8 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.3;
 
 import "../dapp/IFilter.sol";
 import "./IDappRegistry.sol";
@@ -29,7 +28,7 @@ import "../../modules/common/Utils.sol";
  */
 contract MultiCallHelper {
 
-    uint256 private constant MAX_UINT = 2**256 - 1;
+    uint256 private constant MAX_UINT = type(uint256).max;
 
     struct Call {
         address to;
@@ -42,7 +41,7 @@ contract MultiCallHelper {
     // The dapp registry contract
     IDappRegistry internal immutable dappRegistry;
 
-    constructor(ITransferStorage _userWhitelist, IDappRegistry _dappRegistry) public {
+    constructor(ITransferStorage _userWhitelist, IDappRegistry _dappRegistry) {
         userWhitelist = _userWhitelist;
         dappRegistry = _dappRegistry;
     }

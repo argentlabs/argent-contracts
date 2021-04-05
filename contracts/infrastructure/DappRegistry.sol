@@ -14,8 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.3;
 
 import "./IAuthoriser.sol";
 import "./dapp/IFilter.sol";
@@ -53,7 +52,7 @@ contract DappRegistry is IAuthoriser {
         _;
     }
     
-    constructor(uint64 _timelockPeriod) public {
+    constructor(uint64 _timelockPeriod) {
         // set the timelock period
         timelockPeriod = _timelockPeriod;
         // set the owner of the Argent Registry (registryId = 0)

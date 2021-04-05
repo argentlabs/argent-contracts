@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.7.5;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
@@ -9,7 +9,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
  * https://etherscan.io/address/0x3a3A65aAb0dd2A17E3F1947bA16138cd37d08c04#code
  * @author Aave
  */
- contract IAToken is IERC20 {
+ abstract contract IAToken is IERC20 {
     /**
     * @dev emitted after the redeem action
     * @param _from the address performing the redeem
@@ -28,5 +28,5 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
     * @dev redeems aToken for the underlying asset
     * @param _amount the amount being redeemed
     **/
-    function redeem(uint256 _amount) external;
+    function redeem(uint256 _amount) external virtual;
 }

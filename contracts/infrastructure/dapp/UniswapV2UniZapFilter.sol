@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "./BaseFilter.sol";
 
@@ -34,7 +34,7 @@ contract UniswapV2UniZapFilter is BaseFilter {
             )
         );
 
-    function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+    function isValid(address _wallet, address _spender, address _to, bytes calldata _data) external pure override returns (bool) {
         // not needed but detects failure early
         if (_data.length < 4) {
             return false;

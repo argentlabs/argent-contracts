@@ -10,7 +10,6 @@ chai.use(bnChai(BN));
 
 const truffleAssert = require("truffle-assertions");
 
-const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -19,6 +18,7 @@ const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const ERC20 = artifacts.require("TestERC20");
 const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
+const WalletFactory = artifacts.require("WalletFactory");
 
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction, initNonce } = require("../utils/utilities.js");
@@ -41,6 +41,7 @@ contract("ArgentModule sessions", (accounts) => {
   const recipient = accounts[4];
   const sessionUser = accounts[6];
   const sessionUser2 = accounts[7];
+  const refundAddress = accounts[8];
   const relayer = accounts[9];
 
   let registry;
@@ -48,9 +49,9 @@ contract("ArgentModule sessions", (accounts) => {
   let guardianStorage;
   let module;
   let wallet;
-  let walletImplementation;
   let dappRegistry;
   let token;
+  let factory;
 
   before(async () => {
     registry = await Registry.new();
@@ -76,35 +77,22 @@ contract("ArgentModule sessions", (accounts) => {
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
-
     token = await ERC20.new([infrastructure], web3.utils.toWei("10000"), 19);
   });
 
-  async function addGuardians(guardians) {
-    // guardians can be BaseWallet or ContractWrapper objects
-    for (const guardian of guardians) {
-      await module.addGuardian(wallet.address, guardian, { from: owner });
-    }
-
-    await utils.increaseTime(30);
-    for (let i = 1; i < guardians.length; i += 1) {
-      await module.confirmGuardianAddition(wallet.address, guardians[i]);
-    }
-    const count = (await module.guardianCount(wallet.address)).toNumber();
-    assert.equal(count, guardians.length, `${guardians.length} guardians should be added`);
-  }
-
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
 
     await wallet.send(new BN("1000000000000000000"));
-
-    await addGuardians([guardian1]);
 
     await initNonce(wallet, module, manager, SECURITY_PERIOD);
   });

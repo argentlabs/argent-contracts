@@ -1,6 +1,7 @@
 /* global artifacts */
 
 global.web3 = web3;
+global.artifacts = artifacts;
 
 const ENSRegistry = artifacts.require("ENSRegistry");
 const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
@@ -21,7 +22,7 @@ const PartnerDeployer = artifacts.require("PartnerDeployer");
 const Uniswap = artifacts.require("Uniswap");
 const UniswapProxy = artifacts.require("UniswapProxy");
 
-const utils = require("../utils/utilities.js");
+const { namehash, sha3 } = require("../utils/utilities.js");
 const deployManager = require("../utils/deploy-manager.js");
 
 const BYTES32_NULL = "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -40,11 +41,11 @@ async function deployENSRegistry(owner, domain) {
 
   // Create the 'eth' and 'xyz' namespaces
   console.log(`Setting Subnode Owner for ${extension}`);
-  await ENSWrapper.setSubnodeOwner(BYTES32_NULL, utils.sha3(extension), owner);
+  await ENSWrapper.setSubnodeOwner(BYTES32_NULL, sha3(extension), owner);
 
   // Create the 'argentx.xyz' wallet ENS namespace
   console.log(`Setting Subnode Owner for ${domainName}.${extension}`);
-  await ENSWrapper.setSubnodeOwner(utils.namehash(extension), utils.sha3(domainName), owner);
+  await ENSWrapper.setSubnodeOwner(namehash(extension), sha3(domainName), owner);
 
   return ENSWrapper.address;
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.7.5;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
@@ -8,14 +8,14 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
  * @dev Interface for the USDC token
  * https://etherscan.io/address/0xb7277a6e95992041568d9391d09d0122023778a2#code
  */
- contract IUSDCToken is IERC20 {
+ abstract contract IUSDCToken is IERC20 {
     /**
      * @dev Function to add/update a new minter
      * @param minter The address of the minter
      * @param minterAllowedAmount The minting amount allowed for the minter
      * @return True if the operation was successful.
      */
-    function configureMinter(address minter, uint256 minterAllowedAmount) external returns (bool);
+    function configureMinter(address minter, uint256 minterAllowedAmount) external virtual returns (bool);
 
     /**
      * @dev Function to mint tokens
@@ -24,5 +24,5 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
      * to the minterAllowance of the caller.
      * @return A boolean that indicates if the operation was successful.
      */
-    function mint(address _to, uint256 _amount) external returns (bool);
+    function mint(address _to, uint256 _amount) external virtual returns (bool);
 }

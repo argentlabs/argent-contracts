@@ -8,6 +8,7 @@ const bnChai = require("bn-chai");
 const { assert } = chai;
 chai.use(bnChai(BN));
 
+const WalletFactory = artifacts.require("WalletFactory");
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
@@ -31,6 +32,7 @@ const RelayManager = require("../utils/relay-manager");
 contract("GuardianManager", (accounts) => {
   let manager;
 
+  const infrastructure = accounts[0];
   const owner = accounts[1];
   const guardian1 = accounts[2];
   const guardian2 = accounts[3];
@@ -38,6 +40,7 @@ contract("GuardianManager", (accounts) => {
   const guardian4 = accounts[5];
   const guardian5 = accounts[6];
   const nonowner = accounts[7];
+  const refundAddress = accounts[8];
   const relayer = accounts[9];
 
   let registry;
@@ -46,6 +49,7 @@ contract("GuardianManager", (accounts) => {
   let module;
   let wallet;
   let walletImplementation;
+  let factory;
   let dappRegistry;
 
   before(async () => {
@@ -73,14 +77,19 @@ contract("GuardianManager", (accounts) => {
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
     walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
 
     await wallet.send(new BN("1000000000000000000"));
   });
@@ -88,31 +97,33 @@ contract("GuardianManager", (accounts) => {
   describe("Adding Guardians", () => {
     describe("EOA Guardians", () => {
       it("should let the owner add EOA Guardians", async () => {
-        await module.addGuardian(wallet.address, guardian1, { from: owner });
-        let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
-        let active = await module.isGuardian(wallet.address, guardian1);
-        assert.isTrue(active, "first guardian should be active");
-        assert.equal(count, 1, "1 guardian should be active");
-
         await module.addGuardian(wallet.address, guardian2, { from: owner });
-        count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
-        active = await module.isGuardian(wallet.address, guardian2);
-        assert.isFalse(active, "second guardian should not yet be active");
-        assert.equal(count, 1, "second guardian should be pending during security period");
-
         await utils.increaseTime(30);
         await module.confirmGuardianAddition(wallet.address, guardian2);
+        let count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
+        let active = await module.isGuardian(wallet.address, guardian2);
+        assert.isTrue(active, "second guardian should be active");
+        assert.equal(count, 2, "2 guardians should be active");
+
+        await module.addGuardian(wallet.address, guardian3, { from: owner });
         count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
-        active = await module.isGuardian(wallet.address, guardian2);
+        active = await module.isGuardian(wallet.address, guardian3);
+        assert.isFalse(active, "third guardian should not yet be active");
+        assert.equal(count, 2, "third guardian should be pending during security period");
+
+        await utils.increaseTime(30);
+        await module.confirmGuardianAddition(wallet.address, guardian3);
+        count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
+        active = await module.isGuardian(wallet.address, guardian3);
         const guardians = await module.getGuardians(wallet.address);
         assert.isTrue(active, "second guardian should be active");
-        assert.equal(count, 2, "2 guardians should be active after security period");
+        assert.equal(count, 3, "3 guardians should be active after security period");
         assert.equal(guardian1, guardians[0], "should return first guardian address");
         assert.equal(guardian2, guardians[1], "should return second guardian address");
+        assert.equal(guardian3, guardians[2], "should return third guardian address");
       });
 
       it("should not let the owner add EOA Guardians after two security periods (blockchain transaction)", async () => {
-        await module.addGuardian(wallet.address, guardian1, { from: owner });
         await module.addGuardian(wallet.address, guardian2, { from: owner });
 
         await utils.increaseTime(48); // 42 == 2 * security_period
@@ -126,15 +137,12 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should not allow confirming too early", async () => {
-        await module.addGuardian(wallet.address, guardian1, { from: owner });
         await module.addGuardian(wallet.address, guardian2, { from: owner });
         await truffleAssert.reverts(module.confirmGuardianAddition(wallet.address, guardian2),
           "SM: pending addition not over");
       });
 
       it("should let the owner re-add EOA Guardians after missing the confirmation window", async () => {
-        await module.addGuardian(wallet.address, guardian1, { from: owner });
-
         // first time
         await module.addGuardian(wallet.address, guardian2, { from: owner });
 
@@ -158,7 +166,7 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should only let the owner add an EOA guardian", async () => {
-        await truffleAssert.reverts(module.addGuardian(wallet.address, guardian1, { from: nonowner }),
+        await truffleAssert.reverts(module.addGuardian(wallet.address, guardian2, { from: nonowner }),
           "BM: must be wallet owner/self");
       });
 
@@ -168,13 +176,11 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should not allow adding an existing guardian twice", async () => {
-        await module.addGuardian(wallet.address, guardian1, { from: owner });
         await truffleAssert.reverts(module.addGuardian(wallet.address, guardian1, { from: owner }),
           "SM: duplicate guardian");
       });
 
       it("should not allow adding a duplicate request to add a guardian to the request queue", async () => {
-        await module.addGuardian(wallet.address, guardian1, { from: owner });
         await module.addGuardian(wallet.address, guardian2, { from: owner });
         await truffleAssert.reverts(module.addGuardian(wallet.address, guardian2, { from: owner }),
           "SM: duplicate pending addition");
@@ -184,7 +190,7 @@ contract("GuardianManager", (accounts) => {
         const guardians = [guardian1, guardian2, guardian3, guardian4, guardian5];
         let count;
         let active;
-        for (let i = 1; i <= 3; i += 1) {
+        for (let i = 2; i <= 3; i += 1) {
           await manager.relay(module, "addGuardian", [wallet.address, guardians[i - 1]], wallet, [owner]);
           if (i > 1) {
             await utils.increaseTime(30);
@@ -199,15 +205,10 @@ contract("GuardianManager", (accounts) => {
     });
 
     describe("Smart Contract Guardians", () => {
-      let guardianWallet1;
       let guardianWallet2;
       let nonCompliantGuardian;
 
       beforeEach(async () => {
-        const proxy1 = await Proxy.new(walletImplementation.address);
-        guardianWallet1 = await BaseWallet.at(proxy1.address);
-        await guardianWallet1.init(guardian1, [module.address]);
-
         const proxy2 = await Proxy.new(walletImplementation.address);
         guardianWallet2 = await BaseWallet.at(proxy2.address);
         await guardianWallet2.init(guardian2, [module.address]);
@@ -215,17 +216,16 @@ contract("GuardianManager", (accounts) => {
       });
 
       it("should let the owner add a Smart Contract guardian", async () => {
-        await manager.relay(module, "addGuardian", [wallet.address, guardianWallet1.address], wallet, [owner]);
+        await manager.relay(module, "addGuardian", [wallet.address, guardianWallet2.address], wallet, [owner]);
+        await utils.increaseTime(30);
+        await module.confirmGuardianAddition(wallet.address, guardianWallet2.address);
         const count = (await guardianStorage.guardianCount(wallet.address)).toNumber();
-        let active = await module.isGuardian(wallet.address, guardianWallet1.address);
-        assert.isTrue(active, "first guardian should be active");
-        active = await module.isGuardianOrGuardianSigner(wallet.address, guardian1);
-        assert.isTrue(active, "first guardian owner should be active");
-        assert.equal(count, 1, "1 guardian should be active");
+        const active = await module.isGuardianOrGuardianSigner(wallet.address, guardian2);
+        assert.isTrue(active, "second guardian owner should be active");
+        assert.equal(count, 2, "2 guardians should be active");
       });
 
       it("it should fail to add a non-compliant guardian", async () => {
-        await module.addGuardian(wallet.address, guardian1, { from: owner });
         await truffleAssert.reverts(module.addGuardian(wallet.address, nonCompliantGuardian.address, { from: owner }),
           "SM: must be EOA/Argent wallet");
       });
@@ -234,7 +234,6 @@ contract("GuardianManager", (accounts) => {
 
   describe("Revoking Guardians", () => {
     beforeEach(async () => {
-      await module.addGuardian(wallet.address, guardian1, { from: owner });
       await module.addGuardian(wallet.address, guardian2, { from: owner });
       await utils.increaseTime(30);
       await module.confirmGuardianAddition(wallet.address, guardian2);
@@ -352,12 +351,6 @@ contract("GuardianManager", (accounts) => {
   });
 
   describe("Cancelling Pending Guardians", () => {
-    beforeEach(async () => {
-      await module.addGuardian(wallet.address, guardian1, { from: owner });
-      const count = (await module.guardianCount(wallet.address)).toNumber();
-      assert.equal(count, 1, "1 guardian should be added");
-    });
-
     it("owner should be able to cancel pending addition of guardian", async () => {
       // Add guardian 2 and cancel its addition
       await module.addGuardian(wallet.address, guardian2, { from: owner });

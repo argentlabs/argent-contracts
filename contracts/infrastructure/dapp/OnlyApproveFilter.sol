@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "./BaseFilter.sol";
 
@@ -22,7 +22,7 @@ contract OnlyApproveFilter is BaseFilter {
 
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
-    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external pure override returns (bool) {
         return (_spender != _to && _data.length >= 4 && getMethod(_data) == ERC20_APPROVE);
     }
 }

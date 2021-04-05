@@ -34,6 +34,8 @@ step_pull_solc_docker: &step_pull_solc_docker
     command: |
       docker pull ethereum/solc:0.5.4
       docker pull ethereum/solc:0.6.12
+      docker pull ethereum/solc:0.7.5
+      docker pull ethereum/solc:0.8.3
 step_setup_slither: &step_setup_slither
   run:
     name: "Setup slither analyser https://github.com/crytic/slither"
@@ -46,7 +48,7 @@ step_setup_solc_select: &step_setup_solc_select
     command: |
       sudo pip3 install solc-select
       solc-select install 0.5.4
-      solc-select install 0.6.12
+      solc-select install 0.8.3
 jobs:
   unit-test:
     <<: *job_common

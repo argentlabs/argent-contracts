@@ -1,7 +1,11 @@
+/* global artifacts */
+
 const readline = require("readline");
 const ethers = require("ethers");
 const BN = require("bn.js");
 const chai = require("chai");
+
+const WalletFactory = artifacts.require("WalletFactory");
 
 const { assert, expect } = chai;
 const ETH_TOKEN = ethers.constants.AddressZero;
@@ -294,6 +298,20 @@ const utilities = {
     const { success, error } = utilities.parseRelayReceipt(txReceipt);
     assert.isFalse(success);
     assert.equal(error, msg);
+  },
+
+  generateSaltValue: () => ethers.utils.hexZeroPad(ethers.BigNumber.from(ethers.utils.randomBytes(20)).toHexString(), 20),
+
+  createWallet: async (factoryAddress, owner, modules, guardian) => {
+    const salt = utilities.generateSaltValue();
+    const managerSig = "0x";
+    const factory = await WalletFactory.at(factoryAddress);
+
+    const tx = await factory.createCounterfactualWallet(
+      owner, modules, guardian, salt, 0, ethers.constants.AddressZero, ZERO_BYTES, managerSig);
+
+    const event = await utilities.getEvent(tx.receipt, factory, "WalletCreated");
+    return event.args.wallet;
   }
 };
 

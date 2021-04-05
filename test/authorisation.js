@@ -7,7 +7,7 @@ const bnChai = require("bn-chai");
 
 chai.use(bnChai(BN));
 
-const Proxy = artifacts.require("Proxy");
+const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
@@ -42,8 +42,10 @@ contract("Authorisation", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const nonwhitelisted = accounts[2];
-  const recipient = accounts[3];
+  const guardian1 = accounts[3];
+  const recipient = accounts[4];
   const registryOwner = accounts[5];
+  const refundAddress = accounts[7];
   const relayer = accounts[9];
 
   let registry;
@@ -51,7 +53,7 @@ contract("Authorisation", (accounts) => {
   let guardianStorage;
   let module;
   let wallet;
-  let walletImplementation;
+  let factory;
   let erc20;
   let filter;
   let filter2;
@@ -73,7 +75,12 @@ contract("Authorisation", (accounts) => {
     filter = await Filter.new();
     filter2 = await Filter.new();
 
-    walletImplementation = await BaseWallet.new();
+    const walletImplementation = await BaseWallet.new();
+    factory = await WalletFactory.new(
+      walletImplementation.address,
+      guardianStorage.address,
+      refundAddress);
+    await factory.addManager(infrastructure);
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
@@ -121,9 +128,9 @@ contract("Authorisation", (accounts) => {
   }
 
   async function setupWallet() {
-    const proxy = await Proxy.new(walletImplementation.address);
-    wallet = await BaseWallet.at(proxy.address);
-    await wallet.init(owner, [module.address]);
+    // create wallet
+    const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
+    wallet = await BaseWallet.at(walletAddress);
 
     const decimals = 12; // number of decimal for TOKN contract
 

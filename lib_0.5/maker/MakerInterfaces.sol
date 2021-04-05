@@ -1,4 +1,4 @@
-pragma solidity >=0.5.4 <0.7.0;
+pragma solidity >=0.5.4 <0.9.0;
 
 interface GemLike {
     function balanceOf(address) external view returns (uint);

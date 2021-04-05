@@ -1,5 +1,4 @@
-pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.3;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./AaveV2ATokenMock.sol";
@@ -7,7 +6,7 @@ import "./AaveV2ATokenMock.sol";
 contract AaveV2LendingPoolMock {
     mapping (address => address) public aTokens;
 
-    constructor(address[] memory _assets) public {
+    constructor(address[] memory _assets) {
         for(uint i = 0; i < _assets.length; i++) {
             aTokens[_assets[i]] = address(new AaveV2ATokenMock(_assets[i]));
         }

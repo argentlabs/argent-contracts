@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
-
-import "@openzeppelin/contracts/math/SafeMath.sol";
+pragma solidity ^0.8.3;
 
 /**
  * NonCompliantERC20 test contract.
@@ -12,7 +10,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
  */
 
 contract BasicToken {
-    using SafeMath for uint;
 
     mapping(address => uint) balances;
 
@@ -36,8 +33,8 @@ contract BasicToken {
     * @param _value The amount to be transferred.
     */
     function transfer(address _to, uint _value) public onlyPayloadSize(2 * 32) {
-        balances[msg.sender] = balances[msg.sender].sub(_value);
-        balances[_to] = balances[_to].add(_value);
+        balances[msg.sender] = balances[msg.sender] - _value;
+        balances[_to] = balances[_to] + _value;
         emit Transfer(msg.sender, _to, _value);
     }
 
@@ -52,7 +49,6 @@ contract BasicToken {
 }
 
 contract StandardToken is BasicToken {
-
     mapping (address => mapping (address => uint)) allowed;
 
     /**
@@ -64,12 +60,12 @@ contract StandardToken is BasicToken {
     function transferFrom(address _from, address _to, uint _value) public onlyPayloadSize(3 * 32) {
         uint _allowance = allowed[_from][msg.sender];
 
-        // Check is not needed because sub(_allowance, _value) will already throw if this condition is not met
+        // Check is not needed because (_allowance - _value) will already throw if this condition is not met
         // if (_value > _allowance) throw;
 
-        balances[_to] = balances[_to].add(_value);
-        balances[_from] = balances[_from].sub(_value);
-        allowed[_from][msg.sender] = _allowance.sub(_value);
+        balances[_to] = balances[_to] + _value;
+        balances[_from] = balances[_from] - _value;
+        allowed[_from][msg.sender] = _allowance - _value;
         emit Transfer(_from, _to, _value);
     }
 
@@ -124,8 +120,8 @@ contract MintableToken is StandardToken {
     * @return A boolean that indicates if the operation was successful.
     */
     function mint(address _to, uint _amount) public canMint returns (bool) {
-        totalSupply = totalSupply.add(_amount);
-        balances[_to] = balances[_to].add(_amount);
+        totalSupply = totalSupply + _amount;
+        balances[_to] = balances[_to] + _amount;
         emit Mint(_to, _amount);
         return true;
     }
