@@ -2,7 +2,6 @@ module.exports = {
   client: require('ganache-cli'),
   skipFiles: [
     "../contracts-test",
-    "../contracts-legacy",
     "../lib_0.5",
     "../lib_0.7"
   ],
