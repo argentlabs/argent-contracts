@@ -1,7 +1,7 @@
 pragma solidity ^0.8.3;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
-import "./ArgentModule.sol";
+import "../ArgentModule.sol";
 
 /**
  * @notice Extends the ArgentModule to get the creation code of uniswap pairs locally
