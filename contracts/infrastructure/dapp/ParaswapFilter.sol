@@ -127,7 +127,7 @@ contract ParaswapFilter is BaseFilter {
         }
     }
 
-    function isValid(address _wallet, address /*_spender*/, address _to, bytes calldata _data) external view override returns (bool) {
+    function isValid(address _wallet, address /*_spender*/, address _to, bytes calldata _data) external view override returns (bool valid) {
         // disable ETH transfer
         if (_data.length < 4) {
             return false;

@@ -22,7 +22,7 @@ contract AaveV1ATokenFilter is BaseFilter {
 
     bytes4 private constant REDEEM = bytes4(keccak256("redeem(uint256)"));
 
-    function isValid(address /*_wallet*/, address /*_spender*/, address /*_to*/, bytes calldata _data) external view override returns (bool) {
+    function isValid(address /*_wallet*/, address /*_spender*/, address /*_to*/, bytes calldata _data) external pure override returns (bool valid) {
         bytes4 method = getMethod(_data);
 
         return (method == REDEEM);

@@ -21,7 +21,7 @@ import "./BaseFilter.sol";
 contract LidoFilter is BaseFilter {
   bytes4 private constant SUBMIT = bytes4(keccak256("submit(address)"));
 
-  function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external pure override returns (bool) {
+  function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external pure override returns (bool valid) {
     // Allow sending ETH as well as calls to submit(address)
     if (_data.length == 0) {
         return true;
