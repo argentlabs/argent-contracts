@@ -47,7 +47,7 @@ async function main() {
   // Set the backend accounts as a manager of the new ENSManager
   for (const idx in config.backend.accounts) {
     const account = config.backend.accounts[idx];
-    console.log(`Set ${account} as the manager of the WalletFactory`);
+    console.log(`Set ${account} as the manager of the new ENSManager`);
     await NewENSManagerWrapper.addManager(account);
   }
 
