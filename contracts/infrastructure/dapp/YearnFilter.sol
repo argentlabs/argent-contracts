@@ -35,7 +35,7 @@ contract YearnFilter is BaseFilter {
         isWeth = _isWeth;
     }
 
-    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool) {
+    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
         // disable ETH transfer, except for WETH vault
         if (_data.length < 4) {
             return (_data.length == 0) && isWeth;

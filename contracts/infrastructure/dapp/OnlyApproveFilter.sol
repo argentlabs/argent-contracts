@@ -22,7 +22,7 @@ contract OnlyApproveFilter is BaseFilter {
 
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
-    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external pure override returns (bool) {
+    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external pure override returns (bool valid) {
         return (_spender != _to && _data.length >= 4 && getMethod(_data) == ERC20_APPROVE);
     }
 }

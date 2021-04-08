@@ -28,14 +28,6 @@ step_setup_global_packages: &step_setup_global_packages
     name: "Set up global packages"
     command: |
       npm install
-step_pull_solc_docker: &step_pull_solc_docker
-  run:
-    name: "Pull solc docker images"
-    command: |
-      docker pull ethereum/solc:0.5.4
-      docker pull ethereum/solc:0.6.12
-      docker pull ethereum/solc:0.7.5
-      docker pull ethereum/solc:0.8.3
 step_setup_slither: &step_setup_slither
   run:
     name: "Setup slither analyser https://github.com/crytic/slither"
@@ -55,9 +47,6 @@ jobs:
     steps:
       - checkout
       - <<: *step_restore_cache
-      - setup_remote_docker:
-          version: 19.03.13
-      - <<: *step_pull_solc_docker
       - <<: *step_setup_global_packages
       - run:
           name: "Lint JavaScript"
@@ -68,9 +57,6 @@ jobs:
       - run:
           name: "Compiling external library contracts"
           command: npm run compile:lib
-      - run:
-          name: "Compiling legacy contracts"
-          command: npm run compile:legacy
       - run:
           name: "Compiling contracts"
           command: npm run compile
@@ -111,9 +97,6 @@ jobs:
     steps:
       - checkout
       - <<: *step_restore_cache
-      - setup_remote_docker:
-          version: 19.03.13
-      - <<: *step_pull_solc_docker
       - <<: *step_setup_global_packages
       - <<: *step_setup_slither
       - <<: *step_setup_solc_select
@@ -124,10 +107,10 @@ jobs:
             npm run security:slither:infrastructure_0.5
           when: always
       - run:
-          name: "Run slither on infrastructure contracts based on solc 0.6"
+          name: "Run slither on infrastructure contracts based on solc 0.8"
           command:  |
             export PATH=/home/circleci/.solc-select:$PATH
-            npm run security:slither:infrastructure_0.6
+            npm run security:slither:infrastructure
           when: always
       - run:
           name: "Run slither on wallet modules contracts"

@@ -24,7 +24,7 @@ contract PotFilter is BaseFilter {
     bytes4 private constant WITHDRAW = bytes4(keccak256("exit(uint256)"));
     bytes4 private constant DRIP = bytes4(keccak256("drip()"));
 
-    function isValid(address /*_wallet*/, address /*_spender*/, address /*_to*/, bytes calldata _data) external pure override returns (bool) {
+    function isValid(address /*_wallet*/, address /*_spender*/, address /*_to*/, bytes calldata _data) external pure override returns (bool valid) {
         // disable ETH transfer
         if (_data.length < 4) {
             return false;
