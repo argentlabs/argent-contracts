@@ -18,6 +18,7 @@ const UniZap = artifacts.require("UniZap");
 const WalletFactory = artifacts.require("WalletFactory");
 const BaseWallet = artifacts.require("BaseWallet");
 const Registry = artifacts.require("ModuleRegistry");
+const TokenRegistry = artifacts.require("TokenRegistry");
 const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
@@ -56,6 +57,7 @@ contract("ArgentModule", (accounts) => {
   let factory;
   let filter;
   let dappRegistry;
+  let tokenRegistry;
   let uniswapRouter;
   let token;
   let weth;
@@ -71,10 +73,10 @@ contract("ArgentModule", (accounts) => {
     // Deploy and fund UniswapV2
     const uniswapFactory = await UniswapV2Factory.new(ZERO_ADDRESS);
     uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
+    // create token pool
     await token.approve(uniswapRouter.address, web3.utils.toWei("3"));
     await weth.approve(uniswapRouter.address, web3.utils.toWei("1"));
     const timestamp = await utils.getTimestamp();
-    // add liquidity
     await uniswapRouter.addLiquidity(
       token.address,
       weth.address,
@@ -85,6 +87,7 @@ contract("ArgentModule", (accounts) => {
       infrastructure,
       timestamp + 300,
     );
+
     // get LP Token address
     lpToken = await ERC20.at(await uniswapFactory.getPair(weth.address, token.address));
 
@@ -93,7 +96,6 @@ contract("ArgentModule", (accounts) => {
 
     // deploy Argent
     registry = await Registry.new();
-
     dappRegistry = await DappRegistry.new(0);
 
     guardianStorage = await GuardianStorage.new();
@@ -109,7 +111,6 @@ contract("ArgentModule", (accounts) => {
       SECURITY_WINDOW,
       RECOVERY_PERIOD,
       LOCK_PERIOD);
-
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
 
     const walletImplementation = await BaseWallet.new();
@@ -121,7 +122,13 @@ contract("ArgentModule", (accounts) => {
 
     manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
 
-    filter = await UniZapFilter.new();
+    // make LP token tradable
+    tokenRegistry = await TokenRegistry.new();
+    await tokenRegistry.setTradableForTokenList([lpToken.address], [true]);
+    // deploy unizap filter
+    const uniInitCode = await uniswapFactory.getKeccakOfPairCreationCode();
+    filter = await UniZapFilter.new(tokenRegistry.address, uniswapFactory.address, uniInitCode, weth.address);
+
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniZap.address, filter.address);
   });
@@ -242,6 +249,13 @@ contract("ArgentModule", (accounts) => {
       assertFailedWithError(txReceipt, "TM: call not authorised");
     });
 
+    it("should block adding liquidity when the pair is not valid", async () => {
+      await tokenRegistry.setTradableForTokenList([lpToken.address], [false]);
+      const txReceipt = await addLiquidity(token, web3.utils.toWei("1", "finney"), wallet.address);
+      await tokenRegistry.setTradableForTokenList([lpToken.address], [true]);
+      assertFailedWithError(txReceipt, "TM: call not authorised");
+    });
+
     it("should remove liquidity to ETH", async () => {
       await addLiquidity(ETH_TOKEN, web3.utils.toWei("1", "finney"), wallet.address);
       const lpBalance = await lpToken.balanceOf(wallet.address);
@@ -258,6 +272,15 @@ contract("ArgentModule", (accounts) => {
       await addLiquidity(ETH_TOKEN, web3.utils.toWei("1", "finney"), wallet.address);
       const lpBalance = await lpToken.balanceOf(wallet.address);
       const txReceipt = await removeLiquidity(token.address, lpBalance.div(new BN(2)).toString(), recipient);
+      assertFailedWithError(txReceipt, "TM: call not authorised");
+    });
+
+    it("should block removing liquidity when the pair is not valid", async () => {
+      await tokenRegistry.setTradableForTokenList([lpToken.address], [false]);
+      await addLiquidity(ETH_TOKEN, web3.utils.toWei("1", "finney"), wallet.address);
+      const lpBalance = await lpToken.balanceOf(wallet.address);
+      const txReceipt = await removeLiquidity(token.address, lpBalance.div(new BN(2)).toString(), wallet.address);
+      await tokenRegistry.setTradableForTokenList([lpToken.address], [true]);
       assertFailedWithError(txReceipt, "TM: call not authorised");
     });
   });

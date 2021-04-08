@@ -94,9 +94,9 @@ async function main() {
     // Uniswap V2
     const UniswapV2FactoryWrapper = await UniswapV2Factory.new(ZERO_ADDRESS);
     const UniswapV2RouterWrapper = await UniswapV2Router01.new(UniswapV2FactoryWrapper.address, ZERO_ADDRESS);
-    configurator.updateUniswapV2Router(UniswapV2RouterWrapper.address);
     const UniZapWrapper = await UniZap.new(UniswapV2FactoryWrapper.address, UniswapV2RouterWrapper.address, ZERO_ADDRESS);
-    configurator.updateUniswapV2Zap(UniZapWrapper.address);
+    const initCode = await UniswapV2FactoryWrapper.getKeccakOfPairCreationCode();
+    configurator.updateUniswapV2(UniswapV2FactoryWrapper.address, UniswapV2RouterWrapper.address, UniZapWrapper.address, initCode);
   }
 
   if (config.defi.maker.deployOwn) {

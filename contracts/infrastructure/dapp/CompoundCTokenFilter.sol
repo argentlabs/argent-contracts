@@ -20,7 +20,13 @@ import "./BaseFilter.sol";
 
 contract CompoundCTokenFilter is BaseFilter {
 
-    bytes4 private constant CTOKEN_REPAY_BORROW_BEHALF = bytes4(keccak256("repayBorrowBehalf(address,uint256)"));
+    bytes4 private constant CETH_MINT = bytes4(keccak256("mint()"));
+    bytes4 private constant CERC20_MINT = bytes4(keccak256("mint(uint256)"));
+    bytes4 private constant CTOKEN_REDEEM = bytes4(keccak256("redeem(uint256)"));
+    bytes4 private constant CTOKEN_REDEEM_UNDERLYING = bytes4(keccak256("redeemUnderlying(uint256)"));
+    bytes4 private constant CTOKEN_BORROW = bytes4(keccak256("borrow(uint256)"));
+    bytes4 private constant CETH_REPAY_BORROW = bytes4(keccak256("repayBorrow()"));
+    bytes4 private constant CERC20_REPAY_BORROW = bytes4(keccak256("repayBorrow(uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
     address public immutable underlying;
@@ -37,8 +43,21 @@ contract CompoundCTokenFilter is BaseFilter {
         bytes4 method = getMethod(_data);
         // cToken methods
         if (_spender == _to) {
-            // block repayBorrowBehalf
-            return (method != CTOKEN_REPAY_BORROW_BEHALF);
+            if (underlying == address(0)) {
+                return (
+                    method == CETH_MINT ||
+                    method == CTOKEN_REDEEM ||
+                    method == CTOKEN_REDEEM_UNDERLYING ||
+                    method == CTOKEN_BORROW ||
+                    method == CETH_REPAY_BORROW);
+            } else {
+                return (
+                    method == CERC20_MINT ||
+                    method == CTOKEN_REDEEM ||
+                    method == CTOKEN_REDEEM_UNDERLYING ||
+                    method == CTOKEN_BORROW ||
+                    method == CERC20_REPAY_BORROW);
+            }
         // ERC20 methods
         } else {
             // only allow an approve on the underlying 
