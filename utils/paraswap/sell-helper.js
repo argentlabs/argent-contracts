@@ -60,4 +60,5 @@ const makePathes = (srcToken, destToken, priceRoute, exchanges, targetExchanges,
 
 module.exports = {
   makePathes,
+  getRouteParams
 };

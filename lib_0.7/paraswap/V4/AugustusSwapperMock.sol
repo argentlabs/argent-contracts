@@ -547,7 +547,14 @@ contract AugustusSwapperMock is AdapterStorage {
                     )
                 );
 
-                require(success, "Call to adapter failed");
+                // require(success, "Call to adapter failed");
+                if (!success) {
+                    // solhint-disable-next-line no-inline-assembly
+                    assembly {
+                        returndatacopy(0, 0, returndatasize())
+                        revert(0, returndatasize())
+                    }
+                }
             }
         }
     }

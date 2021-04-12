@@ -15,7 +15,7 @@ const Whitelisted = artifacts.require("Whitelisted");
 const PartnerRegistry = artifacts.require("PartnerRegistry");
 const PartnerDeployer = artifacts.require("PartnerDeployer");
 const Uniswap = artifacts.require("Uniswap");
-const UniswapV2 = artifacts.require("UniswapV2");
+const UniswapV2 = artifacts.require("UniswapV2Mock");
 const UniswapProxy = artifacts.require("UniswapProxyTest");
 
 // UniswapV2
@@ -39,7 +39,7 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 // Utils
 const RelayManager = require("../utils/relay-manager");
 const { deployUniswap } = require("../utils/defi-deployer");
-const { makePathes } = require("../utils/paraswap/sell-helper");
+const { getRouteParams } = require("../utils/paraswap/sell-helper");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction, initNonce, encodeCalls } = require("../utils/utilities.js");
 
@@ -130,7 +130,7 @@ contract("Paraswap Filter", (accounts) => {
       infrastructure,
       uniswapProxy.address);
     uniswapV1Adapter = await Uniswap.new();
-    uniswapV2Adapter = await UniswapV2.new();
+    uniswapV2Adapter = await UniswapV2.new(weth.address);
     unauthorisedAdapter = await Uniswap.new();
     const wlr = await paraswapWhitelist.WHITELISTED_ROLE();
     await paraswapWhitelist.grantRole(wlr, uniswapV1Adapter.address);
@@ -234,28 +234,40 @@ contract("Paraswap Filter", (accounts) => {
     }
   };
 
-  function getPath({ fromToken, toToken, fromAmount, toAmount, useUnauthorisedAdapter }) {
+  function getPath({ fromToken, toToken, useUnauthorisedAdapter }) {
     const routes = [{
       exchange: "uniswap",
-      percent: "100",
-      srcAmount: fromAmount.toString(),
-      destAmount: toAmount.toString(),
+      percent: "50",
       data: { tokenFrom: fromToken, tokenTo: toToken },
+    }, {
+      exchange: "uniswapv2",
+      percent: "50",
+      data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
     }];
-    const exchanges = { uniswap: useUnauthorisedAdapter ? unauthorisedAdapter.address : uniswapV1Adapter.address };
-    const targetExchanges = { uniswap: uniswapV1Factory.address };
-    return makePathes(fromToken, toToken, routes, exchanges, targetExchanges, false);
+    const exchanges = {
+      uniswap: useUnauthorisedAdapter ? unauthorisedAdapter.address : uniswapV1Adapter.address,
+      uniswapv2: useUnauthorisedAdapter ? unauthorisedAdapter.address : uniswapV2Adapter.address
+    };
+    const targetExchanges = {
+      uniswap: uniswapV1Factory.address,
+      uniswapv2: ethers.constants.AddressZero
+    };
+    return [{
+      to: toToken,
+      totalNetworkFee: 0,
+      routes: routes.map((route) => getRouteParams(fromToken, toToken, route, exchanges, targetExchanges)),
+    }];
   }
 
   function getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, useUnauthorisedAdapter }) {
-    const path = getPath({ fromToken, toToken, fromAmount, toAmount, useUnauthorisedAdapter });
+    const path = getPath({ fromToken, toToken, useUnauthorisedAdapter });
     return paraswap.contract.methods.multiSwap({
       fromToken, fromAmount, toAmount, expectedAmount: 0, beneficiary, referrer: "abc", useReduxToken: false, path
     }).encodeABI();
   }
 
   function getMegaSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, useUnauthorisedAdapter }) {
-    const path = getPath({ fromToken, toToken, fromAmount, toAmount, useUnauthorisedAdapter });
+    const path = getPath({ fromToken, toToken, useUnauthorisedAdapter });
     return paraswap.contract.methods.megaSwap({
       fromToken,
       fromAmount,
