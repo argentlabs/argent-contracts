@@ -49,10 +49,10 @@
     },
     "paraswap": {
       "deployOwn": true,
-      "contract": "0xaA1f8e31B722D63CE89882f5141E79b688b554eE",
-      "adapters": { "uniswap": "0xF19A7E86c8432Cf11E6De91452E281769987AB88" },
+      "contract": "0xf7471A88b95cA0fA5aD10D93E1a9ef873971A180",
+      "adapters": { "uniswap": "0x5d6d48b51626447020E3DA0F40732BC2AE323B15" },
       "targetExchanges": [],
-      "uniswapProxy": "0x888a25540175885b65812e487bAD25655449588B",
+      "uniswapProxy": "0xD931B5Ef6Afb7995d01BE71F69a7FcbBeBe4f41F",
       "uniswapForks": [
         {
           "factory": "0x0000000000000000000000000000000000000001",
