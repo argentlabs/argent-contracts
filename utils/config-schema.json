@@ -254,6 +254,9 @@
         },
         "refundCollector": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "tradeCommissionCollector": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": ["accounts"],

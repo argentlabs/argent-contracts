@@ -84,6 +84,10 @@ const main = async () => {
 
   // refund collector
   await DappRegistryWrapper.addDapp(0, config.backend.refundCollector, ethers.constants.AddressZero);
+  if (network !== "test") {
+    // trade commision collector. In Test the refundCollector account is used
+    await DappRegistryWrapper.addDapp(0, config.backend.tradeCommissionCollector, ethers.constants.AddressZero);
+  }
 
   // Compound
   for (const [underlying, cToken] of Object.entries(config.defi.compound.markets)) {
