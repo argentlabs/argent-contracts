@@ -1,0 +1,61 @@
+{
+  "contractName": "Proxy",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "name": "_implementation",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "payable": true,
+      "stateMutability": "payable",
+      "type": "fallback"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "Received",
+      "type": "event"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b506040516020806101478339810180604052602081101561003057600080fd5b505160008054600160a060020a03909216600160a060020a031990921691909117905560e6806100616000396000f3fe60806040523615801560115750600034115b156092573373ffffffffffffffffffffffffffffffffffffffff16347f606834f57405380c4fb88d1f4850326ad3885f014bab3b568dfbf7a041eef73860003660405180806020018281038252848482818152602001925080828437600083820152604051601f909101601f19169092018290039550909350505050a360b8565b6000543660008037600080366000845af43d6000803e80801560b3573d6000f35b3d6000fd5b00fea165627a7a72305820016c3f8808001d8a7dd22460d6a5ad8141dac31725bd1d1bd6127b0638562cbd0029",
+  "deployedBytecode": "0x60806040523615801560115750600034115b156092573373ffffffffffffffffffffffffffffffffffffffff16347f606834f57405380c4fb88d1f4850326ad3885f014bab3b568dfbf7a041eef73860003660405180806020018281038252848482818152602001925080828437600083820152604051601f909101601f19169092018290039550909350505050a360b8565b6000543660008037600080366000845af43d6000803e80801560b3573d6000f35b3d6000fd5b00fea165627a7a72305820016c3f8808001d8a7dd22460d6a5ad8141dac31725bd1d1bd6127b0638562cbd0029",
+  "compiler": {
+    "name": "solc",
+    "version": "0.5.4+commit.9549d8ff.Emscripten.clang"
+  },
+  "networks": {},
+  "schemaVersion": "3.3.0",
+  "updatedAt": "2021-04-07T14:54:55.326Z",
+  "devdoc": {
+    "author": "Julien Niset - <julien@argent.xyz>",
+    "details": "Basic proxy that delegates all calls to a fixed implementing contract. The implementing contract cannot be upgraded.",
+    "methods": {},
+    "title": "Proxy"
+  },
+  "userdoc": {
+    "methods": {}
+  }
+}
