@@ -84,6 +84,10 @@ const main = async () => {
 
   // refund collector
   await DappRegistryWrapper.addDapp(0, config.backend.refundCollector, ethers.constants.AddressZero);
+  if (network !== "test") {
+    // trade commision collector. In Test the refundCollector account is used
+    await DappRegistryWrapper.addDapp(0, config.backend.tradeCommissionCollector, ethers.constants.AddressZero);
+  }
 
   // Compound
   for (const [underlying, cToken] of Object.entries(config.defi.compound.markets)) {
@@ -97,7 +101,7 @@ const main = async () => {
   // Paraswap
   console.log("Deploying ParaswapFilter");
   const ParaswapFilterWrapper = await ParaswapFilter.new(
-    config.modules.TokenRegistry,
+    TokenRegistryWrapper.address,
     DappRegistryWrapper.address,
     config.defi.paraswap.uniswapProxy,
     config.defi.paraswap.uniswapForks.map((f) => f.factory),
