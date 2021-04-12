@@ -1,11 +1,1 @@
-{
-  "modules": [
-    {
-      "address": "0x4bf3A7dFB3b76b5B3E169ACE65f888A4b4FCa5Ee",
-      "name": "ArgentModule"
-    }
-  ],
-  "fingerprint": "0x835f265f",
-  "version": "1.0.0",
-  "createdAt": 1618223457
-}
+{"modules":[{"address":"0xf19Ec74F6E2A0fF26DbB6a7854d13835f075c7f9","name":"ArgentModule"}],"fingerprint":"0x9c09a94d","version":"1.0.0","createdAt":1618229234}

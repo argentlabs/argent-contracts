@@ -140,7 +140,7 @@ contract ParaswapFilter is BaseFilter {
         address _linkswapAdapter,
         address _defiswapAdapter,
         address[] memory _targetExchanges
-    ) public {
+    ) {
         tokenRegistry = _tokenRegistry;
         authoriser = _authoriser;
         uniswapProxy = _uniswapProxy;
@@ -263,12 +263,12 @@ contract ParaswapFilter is BaseFilter {
     function pairFor(address _tokenA, address _tokenB, address _factory, bytes32 _initCode) internal view returns (address) {
         (address tokenA, address tokenB) = (_tokenA == ETH_TOKEN ? weth : _tokenA, _tokenB == ETH_TOKEN ? weth : _tokenB);
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        return(address(uint(keccak256(abi.encodePacked(
+        return(address(uint160(uint(keccak256(abi.encodePacked(
             hex"ff",
             _factory,
             keccak256(abi.encodePacked(token0, token1)),
             _initCode
-        )))));
+        ))))));
     }
 
     function hasTradableToken(address _destToken) internal view returns (bool) {
