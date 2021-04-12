@@ -131,6 +131,10 @@
             "targetExchanges": {
               "type": "array",
               "items": { "$ref": "#/definitions/ethaddress" }
+            },
+            "marketMakers": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
             }
           }
         },

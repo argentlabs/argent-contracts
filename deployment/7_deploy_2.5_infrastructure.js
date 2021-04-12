@@ -103,15 +103,21 @@ const main = async () => {
   const ParaswapFilterWrapper = await ParaswapFilter.new(
     TokenRegistryWrapper.address,
     DappRegistryWrapper.address,
+    config.defi.paraswap.contract,
     config.defi.paraswap.uniswapProxy,
     config.defi.paraswap.uniswapForks.map((f) => f.factory),
     config.defi.paraswap.uniswapForks.map((f) => f.initCode),
-    config.defi.paraswap.adapters.uniswap || ethers.constants.AddressZero,
-    config.defi.paraswap.adapters.uniswapV2 || ethers.constants.AddressZero,
-    config.defi.paraswap.adapters.sushiswap || ethers.constants.AddressZero,
-    config.defi.paraswap.adapters.linkswap || ethers.constants.AddressZero,
-    config.defi.paraswap.adapters.defiswap || ethers.constants.AddressZero,
-    config.defi.paraswap.targetExchanges || []
+    [
+      config.defi.paraswap.adapters.uniswap || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.uniswapV2 || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.sushiswap || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.linkswap || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.defiswap || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.zeroexV2 || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.zeroexV4 || ethers.constants.AddressZero
+    ],
+    config.defi.paraswap.targetExchanges || [],
+    config.defi.paraswap.marketMakers || [],
   );
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);

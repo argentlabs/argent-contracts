@@ -84,6 +84,7 @@ contract("Paraswap Filter", (accounts) => {
   let tokenC;
   let paraswap;
   let paraswapProxy;
+  let paraswapFilter;
   let tokenRegistry;
   let uniswapProxy;
 
@@ -168,18 +169,24 @@ contract("Paraswap Filter", (accounts) => {
       RECOVERY_PERIOD,
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    const paraswapFilter = await ParaswapFilter.new(
+    paraswapFilter = await ParaswapFilter.new(
       tokenRegistry.address,
       dappRegistry.address,
+      paraswap.address,
       uniswapProxy.address,
       [uniswapV2Factory.address, uniswapV2Factory.address, uniswapV2Factory.address],
       [initCode, initCode, initCode],
-      uniswapV1Adapter.address,
-      uniswapV2Adapter.address,
-      uniswapV2Adapter.address,
-      uniswapV2Adapter.address,
-      uniswapV2Adapter.address,
-      [uniswapV1Factory.address]);
+      [
+        uniswapV1Adapter.address, // uniV1
+        uniswapV2Adapter.address, // uniV2
+        uniswapV2Adapter.address, // sushiswap
+        uniswapV2Adapter.address, // linkswap
+        uniswapV2Adapter.address, // defiswap
+        ZERO_ADDRESS, // 0xV2
+        ZERO_ADDRESS, // 0xV4
+      ],
+      [uniswapV1Factory.address],
+      []);
     const proxyFilter = await OnlyApproveFilter.new();
     await dappRegistry.addDapp(0, paraswap.address, paraswapFilter.address);
     await dappRegistry.addDapp(0, paraswapProxy, proxyFilter.address);
@@ -404,10 +411,12 @@ contract("Paraswap Filter", (accounts) => {
 
     it("should not allow swapOnUniswapFork via unauthorised uniswap proxy", async () => {
       await paraswap.changeUniswapProxy(other);
+      await paraswapFilter.updateIsValidUniswapProxy();
       await testTrade({
         method: "swapOnUniswapFork", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
       });
       await paraswap.changeUniswapProxy(uniswapProxy.address);
+      await paraswapFilter.updateIsValidUniswapProxy();
     });
 
     it("should not allow simpleSwap via unauthorised callee", async () => {
