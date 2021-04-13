@@ -20,4 +20,5 @@ pragma solidity ^0.8.3;
  */
 interface ITokenRegistry {
     function isTokenTradable(address _token) external view returns (bool _isTradable);
+    function areTokensTradable(address[] calldata _tokens) external view returns (bool _areTradable);
 }
