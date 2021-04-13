@@ -72,6 +72,6 @@ interface IExchange {
     /**
     * @dev Returns unique identifier for the adapter
     */
-    function getKey() external pure returns(bytes32);
+    function getKey() external view returns(bytes32);
 }
 

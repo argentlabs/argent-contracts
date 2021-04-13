@@ -2,15 +2,15 @@ pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
+import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
-import '../UniswapV3Lib.sol';
+import "../UniswapV3Lib.sol";
 
 import "../IExchange.sol";
 import "../Utils.sol";
 
 import "../../AdapterStorage.sol";
-import '../../IWETH.sol';
+import "../../IWETH.sol";
 
 
 contract UniswapV2Mock is IExchange, AdapterStorage {
@@ -28,9 +28,11 @@ contract UniswapV2Mock is IExchange, AdapterStorage {
 
     ////// Argent addition /////////////////
     address public immutable weth;
+    bytes32 public immutable exchangeName;
     function wethAddress() internal view returns (address) { return weth; }
-    constructor(address _weth) {
+    constructor(address _weth, bytes32 _exchangeName) {
         weth = _weth;
+        exchangeName = _exchangeName;
     }
     ////////////////////////////////////////
 
@@ -119,8 +121,8 @@ contract UniswapV2Mock is IExchange, AdapterStorage {
         );*/
     }
 
-    function getKey() public override pure returns(bytes32) {
-      return keccak256(abi.encodePacked("UniswapV2", "1.0.0"));
+    function getKey() public override view returns(bytes32) {
+      return keccak256(abi.encodePacked(exchangeName, "1.0.0"));
     }
 
     function _buy(
