@@ -33,6 +33,15 @@ contract TokenRegistry is ITokenRegistry, Managed {
         _isTradable = isTradable[_token];
     }
 
+    function areTokensTradable(address[] calldata _tokens) external override view returns (bool _areTradable) {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            if(!isTradable[_tokens[i]]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     function getTradableForTokenList(address[] calldata _tokens) external view returns (bool[] memory _tradable) {
         _tradable = new bool[](_tokens.length);
         for (uint256 i = 0; i < _tokens.length; i++) {
