@@ -68,7 +68,14 @@ contract AugustusSwapperMock is AdapterStorage {
             "Exchange not whitelisted"
         );
         (bool success,) = adapter.delegatecall(abi.encodeWithSelector(IExchange.initialize.selector, data));
-        require(success, "Failed to initialize adapter");
+        // require(success, "Failed to initialize adapter");
+        if (!success) {
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
+            }
+        }
         emit AdapterInitialized(adapter);
     }
 
@@ -547,7 +554,14 @@ contract AugustusSwapperMock is AdapterStorage {
                     )
                 );
 
-                require(success, "Call to adapter failed");
+                // require(success, "Call to adapter failed");
+                if (!success) {
+                    // solhint-disable-next-line no-inline-assembly
+                    assembly {
+                        returndatacopy(0, 0, returndatasize())
+                        revert(0, returndatasize())
+                    }
+                }
             }
         }
     }

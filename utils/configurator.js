@@ -31,9 +31,11 @@ class Configurator {
     this._config.ENS.ensRegistry = address;
   }
 
-  updateParaswap(address, authorisedExchanges) {
+  updateParaswap(address, uniswapProxy, adapters, targetExchanges) {
     this._config.defi.paraswap.contract = address;
-    this._config.defi.paraswap.authorisedExchanges = { ...authorisedExchanges };
+    this._config.defi.paraswap.uniswapProxy = uniswapProxy;
+    this._config.defi.paraswap.adapters = { ...adapters };
+    this._config.defi.paraswap.targetExchanges = [...targetExchanges];
   }
 
   updateMakerMigration(address) {

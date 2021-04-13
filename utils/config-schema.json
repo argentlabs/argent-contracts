@@ -118,8 +118,23 @@
             "contract": {
               "$ref": "#/definitions/ethaddress"
             },
-            "authorisedExchanges": {
+            "paraswapProxy": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "adapters": {
               "type": "object"
+            },
+            "uniswapForks": {
+              "type": "array",
+              "items": { "type": "object" }
+            },
+            "targetExchanges": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            },
+            "marketMakers": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
             }
           }
         },
