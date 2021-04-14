@@ -23,6 +23,51 @@ pragma solidity ^0.8.3;
 library ParaswapUtils {
     address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    struct ZeroExV2Order {
+        address makerAddress;
+        address takerAddress;
+        address feeRecipientAddress;
+        address senderAddress;
+        uint256 makerAssetAmount;
+        uint256 takerAssetAmount;
+        uint256 makerFee;
+        uint256 takerFee;
+        uint256 expirationTimeSeconds;
+        uint256 salt;
+        bytes makerAssetData;
+        bytes takerAssetData;
+    }
+
+    struct ZeroExV2Data {
+        ZeroExV2Order[] orders;
+        bytes[] signatures;
+    }
+
+    struct ZeroExV4Order {
+        address makerToken;
+        address takerToken;
+        uint128 makerAmount;
+        uint128 takerAmount;
+        address maker;
+        address taker;
+        address txOrigin;
+        bytes32 pool;
+        uint64 expiry;
+        uint256 salt;
+    }
+
+    struct ZeroExV4Signature {
+        uint8 signatureType;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
+    struct ZeroExV4Data {
+        ZeroExV4Order order;
+        ZeroExV4Signature signature;
+    }
+
     function hasValidUniV2Path(
         address[] memory _path,
         address _tokenRegistry,

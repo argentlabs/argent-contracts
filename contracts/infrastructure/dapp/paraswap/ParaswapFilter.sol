@@ -77,58 +77,6 @@ interface IParaswap {
         address[] path;
     }
 
-    struct ZeroExV2Order {
-        address makerAddress;
-        address takerAddress;
-        address feeRecipientAddress;
-        address senderAddress;
-        uint256 makerAssetAmount;
-        uint256 takerAssetAmount;
-        uint256 makerFee;
-        uint256 takerFee;
-        uint256 expirationTimeSeconds;
-        uint256 salt;
-        bytes makerAssetData;
-        bytes takerAssetData;
-    }
-
-    struct ZeroExV2Data {
-        ZeroExV2Order[] orders;
-        bytes[] signatures;
-    }
-
-    struct ZeroExV4Order {
-        address makerToken;
-        address takerToken;
-        uint128 makerAmount;
-        uint128 takerAmount;
-        address maker;
-        address taker;
-        address txOrigin;
-        bytes32 pool;
-        uint64 expiry;
-        uint256 salt;
-    }
-
-    enum ZeroExV4SignatureType {
-        ILLEGAL,
-        INVALID,
-        EIP712,
-        ETHSIGN
-    }
-
-    struct ZeroExV4Signature {
-        ZeroExV4SignatureType signatureType;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-
-    struct ZeroExV4Data {
-        ZeroExV4Order order;
-        ZeroExV4Signature signature;
-    }
-
     function getUniswapProxy() external view returns (address);
 }
 
@@ -387,12 +335,12 @@ contract ParaswapFilter is BaseFilter {
     }
 
     function hasValidZeroExV4Route(bytes memory _payload) internal view returns (bool) {
-        IParaswap.ZeroExV4Data memory data = abi.decode(_payload, (IParaswap.ZeroExV4Data));
+        ParaswapUtils.ZeroExV4Data memory data = abi.decode(_payload, (ParaswapUtils.ZeroExV4Data));
         return marketMakers[data.order.maker];
     }
 
     function hasValidZeroExV2Route(bytes memory _payload) internal view returns (bool) {
-        IParaswap.ZeroExV2Data memory data = abi.decode(_payload, (IParaswap.ZeroExV2Data));
+        ParaswapUtils.ZeroExV2Data memory data = abi.decode(_payload, (ParaswapUtils.ZeroExV2Data));
         for(uint i = 0; i < data.orders.length; i++) {
             if(!marketMakers[data.orders[i].makerAddress]) {
                 return false;
