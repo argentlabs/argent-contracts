@@ -17,6 +17,7 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
+const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const BalancerFilter = artifacts.require("BalancerFilter");
@@ -121,6 +122,21 @@ const main = async () => {
   );
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
+
+  console.log("Deploying ParaswapUniV2RouterFilter");
+  const factories = [config.defi.uniswap.factoryV2, ...config.defi.paraswap.uniswapForks.map((f) => f.factory)];
+  const initCodes = [config.defi.uniswap.initCodeV2, ...config.defi.paraswap.uniswapForks.map((f) => f.initCode)];
+  const routers = [config.defi.uniswap.paraswapUniV2Router, ...config.defi.paraswap.uniswapForks.map((f) => f.paraswapUniV2Router)];
+  for (let i = 0; i < routers.length; i += 1) {
+    const ParaswapUniV2RouterFilterWrapper = await ParaswapUniV2RouterFilter.new(
+      TokenRegistryWrapper.address,
+      factories[i],
+      initCodes[i],
+      config.defi.weth
+    );
+    console.log(`Deployed ParaswapUniV2RouterFilter #${i} at ${ParaswapUniV2RouterFilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, routers[i], ParaswapUniV2RouterFilterWrapper.address);
+  }
 
   // Paraswap Proxy
   console.log("Deploying OnlyApproveFilter");
