@@ -1,0 +1,59 @@
+// Copyright (C) 2020  Argent Labs Ltd. <https://argent.xyz>
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+// SPDX-License-Identifier: GPL-3.0-only
+pragma solidity ^0.8.3;
+
+/**
+ * @title ParaswapUtils
+ * @notice Common methods used by Paraswap filters
+ */
+library ParaswapUtils {
+    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    function hasValidUniV2Path(
+        address[] memory _path,
+        address _tokenRegistry,
+        address _factory,
+        bytes32 _initCode,
+        address _weth
+    )
+        internal
+        view
+        returns (bool)
+    {
+        address[] memory lpTokens = new address[](_path.length - 1);
+        for(uint i = 0; i < lpTokens.length; i++) {
+            lpTokens[i] = pairFor(_path[i], _path[i+1], _factory, _initCode, _weth);
+        }
+        return hasTradableTokens(_tokenRegistry, lpTokens);
+    }
+
+    function pairFor(address _tokenA, address _tokenB, address _factory, bytes32 _initCode, address _weth) internal view returns (address) {
+        (address tokenA, address tokenB) = (_tokenA == ETH_TOKEN ? _weth : _tokenA, _tokenB == ETH_TOKEN ? _weth : _tokenB);
+        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+        return(address(uint160(uint(keccak256(abi.encodePacked(
+            hex"ff",
+            _factory,
+            keccak256(abi.encodePacked(token0, token1)),
+            _initCode
+        ))))));
+    }
+
+    function hasTradableTokens(address _tokenRegistry, address[] memory _tokens) internal view returns (bool) {
+        (bool success, bytes memory res) = _tokenRegistry.staticcall(abi.encodeWithSignature("areTokensTradable(address[])", _tokens));
+        return success && abi.decode(res, (bool));
+    }
+}

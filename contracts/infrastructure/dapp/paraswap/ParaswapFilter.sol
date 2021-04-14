@@ -16,9 +16,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.3;
 
-import "./BaseFilter.sol";
-import "../IAuthoriser.sol";
-import "../../modules/common/Utils.sol";
+import "../BaseFilter.sol";
+import "./ParaswapUtils.sol";
+import "../../IAuthoriser.sol";
+import "../../../modules/common/Utils.sol";
 
 interface IUniswapV1Factory {
     function getExchange(address token) external view returns (address);
@@ -149,9 +150,7 @@ contract ParaswapFilter is BaseFilter {
         "megaSwap((address,uint256,uint256,uint256,address,string,bool,(uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[])[]))"
     ));
 
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
-    // The token price registry
+    // The token registry
     address public immutable tokenRegistry;
     // Paraswap entrypoint
     address public immutable augustus;
@@ -273,7 +272,7 @@ contract ParaswapFilter is BaseFilter {
             return false;
         }
         (, address[] memory path) = abi.decode(_data[4:], (uint256[2], address[]));
-        return hasValidUniV2Path(path, uniFactory, uniInitCode);
+        return ParaswapUtils.hasValidUniV2Path(path, tokenRegistry, uniFactory, uniInitCode, weth);
     }
 
     function isValidUniForkSwap(bytes calldata _data) internal view returns (bool) {
@@ -282,9 +281,19 @@ contract ParaswapFilter is BaseFilter {
         }
         (address factory, bytes32 initCode,, address[] memory path) = abi.decode(_data[4:], (address, bytes32, uint256[2], address[]));
         return factory != address(0) && initCode != bytes32(0) && (
-            (factory == uniForkFactory1 && initCode == uniForkInitCode1 && hasValidUniV2Path(path, uniForkFactory1, uniForkInitCode1)) ||
-            (factory == uniForkFactory2 && initCode == uniForkInitCode2 && hasValidUniV2Path(path, uniForkFactory2, uniForkInitCode2)) ||
-            (factory == uniForkFactory3 && initCode == uniForkInitCode3 && hasValidUniV2Path(path, uniForkFactory3, uniForkInitCode3))
+            (
+                factory == uniForkFactory1 &&
+                initCode == uniForkInitCode1 &&
+                ParaswapUtils.hasValidUniV2Path(path, tokenRegistry, uniForkFactory1, uniForkInitCode1, weth)
+            ) || (
+                factory == uniForkFactory2 &&
+                initCode == uniForkInitCode2 &&
+                ParaswapUtils.hasValidUniV2Path(path, tokenRegistry, uniForkFactory2, uniForkInitCode2, weth)
+            ) || (
+                factory == uniForkFactory3 &&
+                initCode == uniForkInitCode3 &&
+                ParaswapUtils.hasValidUniV2Path(path, tokenRegistry, uniForkFactory3, uniForkInitCode3, weth)
+            )
         );
     }
 
@@ -320,35 +329,11 @@ contract ParaswapFilter is BaseFilter {
         return (_beneficiary == address(0) || _beneficiary == _wallet);
     }
 
-    function hasValidUniV2Path(address[] memory _path, address _factory, bytes32 _initCode) internal view returns (bool) {
-        address[] memory lpTokens = new address[](_path.length - 1);
-        for(uint i = 0; i < lpTokens.length; i++) {
-            lpTokens[i] = pairFor(_path[i], _path[i+1], _factory, _initCode);
-        }
-        return hasTradableTokens(lpTokens);
-    }
-
-    function pairFor(address _tokenA, address _tokenB, address _factory, bytes32 _initCode) internal view returns (address) {
-        (address tokenA, address tokenB) = (_tokenA == ETH_TOKEN ? weth : _tokenA, _tokenB == ETH_TOKEN ? weth : _tokenB);
-        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        return(address(uint160(uint(keccak256(abi.encodePacked(
-            hex"ff",
-            _factory,
-            keccak256(abi.encodePacked(token0, token1)),
-            _initCode
-        ))))));
-    }
-
     function hasTradableToken(address _destToken) internal view returns (bool) {
-        if(_destToken == ETH_TOKEN) {
+        if(_destToken == ParaswapUtils.ETH_TOKEN) {
             return true;
         }
         (bool success, bytes memory res) = tokenRegistry.staticcall(abi.encodeWithSignature("isTokenTradable(address)", _destToken));
-        return success && abi.decode(res, (bool));
-    }
-
-    function hasTradableTokens(address[] memory _tokens) internal view returns (bool) {
-        (bool success, bytes memory res) = tokenRegistry.staticcall(abi.encodeWithSignature("areTokensTradable(address[])", _tokens));
         return success && abi.decode(res, (bool));
     }
 
@@ -393,11 +378,11 @@ contract ParaswapFilter is BaseFilter {
 
     function hasValidUniV2Route(bytes memory _payload, address _factory, bytes32 _initCode) internal view returns (bool) {
         IParaswap.UniswapV2Data memory data = abi.decode(_payload, (IParaswap.UniswapV2Data));
-        return hasValidUniV2Path(data.path, _factory, _initCode);
+        return ParaswapUtils.hasValidUniV2Path(data.path, tokenRegistry, _factory, _initCode, weth);
     }
 
     function hasValidUniV1Route(address _uniV1Factory, address _fromToken, address _toToken) internal view returns (bool) {
-        address pool = IUniswapV1Factory(_uniV1Factory).getExchange(_fromToken == ETH_TOKEN ? _toToken : _fromToken);
+        address pool = IUniswapV1Factory(_uniV1Factory).getExchange(_fromToken == ParaswapUtils.ETH_TOKEN ? _toToken : _fromToken);
         return hasTradableToken(pool);
     }
 
