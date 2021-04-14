@@ -17,6 +17,7 @@ const PartnerDeployer = artifacts.require("PartnerDeployer");
 const Uniswap = artifacts.require("Uniswap");
 const UniswapV2 = artifacts.require("UniswapV2Mock");
 const UniswapProxy = artifacts.require("UniswapProxyTest");
+const UniswapV3Router = artifacts.require("UniswapV3Router");
 
 // UniswapV2
 const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
@@ -32,6 +33,7 @@ const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
+const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const ERC20 = artifacts.require("TestERC20");
 const TokenRegistry = artifacts.require("TokenRegistry");
@@ -98,6 +100,7 @@ contract("Paraswap Filter", (accounts) => {
   let paraswapFilter;
   let tokenRegistry;
   let uniswapProxy;
+  let uniV3Router;
 
   before(async () => {
     // Deploy test tokens
@@ -163,6 +166,7 @@ contract("Paraswap Filter", (accounts) => {
         { uinswapV2Router: uniswapRouter.address, factory: uniswapV2Factory.address, initCode }));
     }
     paraswapProxy = await paraswap.getTokenTransferProxy();
+    uniV3Router = await UniswapV3Router.new(uniswapV2Factory.address, weth.address, initCode);
 
     // deploy Argent
     registry = await Registry.new();
@@ -208,12 +212,14 @@ contract("Paraswap Filter", (accounts) => {
       [uniswapV1Factory.address, zeroExV2TargetExchange.address, zeroExV4TargetExchange.address],
       [marketMaker]);
     const proxyFilter = await OnlyApproveFilter.new();
+    const paraswapUniV2RouterFilter = await ParaswapUniV2RouterFilter.new(tokenRegistry.address, uniswapV2Factory.address, initCode, weth.address);
     await dappRegistry.addDapp(0, paraswap.address, paraswapFilter.address);
     await dappRegistry.addDapp(0, paraswapProxy, proxyFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenA.address].address, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenB.address].address, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenC.address].address, ZERO_ADDRESS);
+    await dappRegistry.addDapp(0, uniV3Router.address, paraswapUniV2RouterFilter.address);
     walletImplementation = await BaseWallet.new();
 
     manager = new RelayManager(guardianStorage.address, tokenRegistry.address);
@@ -401,7 +407,7 @@ contract("Paraswap Filter", (accounts) => {
     }).encodeABI();
   }
 
-  function getSimpleSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary }) {
+  function getUniV1SimpleSwapData({ fromToken, toToken, fromAmount }) {
     let exchangeData;
     const callees = [];
     const startIndexes = [];
@@ -426,6 +432,35 @@ contract("Paraswap Filter", (accounts) => {
       }
       startIndexes.push(exchangeData.length / 2 - 1);
     }
+    return { exchangeData, callees, startIndexes, values };
+  }
+
+  function getUniV2SimpleSwapData({ fromToken, toToken, fromAmount, toAmount }) {
+    let exchangeData = "0x";
+    const callees = [];
+    const startIndexes = [];
+    const values = [];
+    const path = [fromToken, toToken];
+
+    startIndexes.push(0);
+    if (fromToken !== PARASWAP_ETH_TOKEN) {
+      callees.push(fromToken);
+      values.push(0, 0);
+      const token = ((fromToken === tokenA.address) ? tokenA : tokenB);
+      exchangeData += token.contract.methods.approve(uniV3Router.address, fromAmount).encodeABI().slice(2);
+      startIndexes.push(exchangeData.length / 2 - 1);
+    } else {
+      values.push(fromAmount);
+    }
+    callees.push(uniV3Router.address);
+    exchangeData += uniV3Router.contract.methods.swap(fromAmount, toAmount, path).encodeABI().slice(2);
+    startIndexes.push(exchangeData.length / 2 - 1);
+    return { exchangeData, callees, startIndexes, values };
+  }
+
+  function getSimpleSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, exchange }) {
+    const getSimpleSwapDataMethod = { uniswap: getUniV1SimpleSwapData, uniswapv2: getUniV2SimpleSwapData };
+    const { exchangeData, callees, startIndexes, values } = getSimpleSwapDataMethod[exchange]({ fromToken, toToken, fromAmount, toAmount });
     const benef = beneficiary === ZERO_ADDRESS ? wallet.address : beneficiary;
     return paraswap.contract.methods.simpleSwap(
       fromToken, toToken, fromAmount, toAmount, 0, callees, exchangeData, startIndexes, values, benef, "abc", false,
@@ -449,7 +484,8 @@ contract("Paraswap Filter", (accounts) => {
     toAmount = 1,
     useUnauthorisedAdapter = false,
     useUnauthorisedTargetExchange = false,
-    errorReason = null
+    errorReason = null,
+    exchange = "uniswap"
   }) {
     const beforeFrom = await getBalance(fromToken, wallet);
     const beforeTo = await getBalance(toToken, wallet);
@@ -472,7 +508,7 @@ contract("Paraswap Filter", (accounts) => {
     if (method === "multiSwap") {
       swapData = getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, useUnauthorisedAdapter, useUnauthorisedTargetExchange });
     } else if (method === "simpleSwap") {
-      swapData = getSimpleSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary });
+      swapData = getSimpleSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, exchange });
     } else if (method === "swapOnUniswap") {
       swapData = getSwapOnUniswapData({ fromToken, toToken, fromAmount, toAmount });
     } else if (method === "swapOnUniswapFork") {
@@ -511,7 +547,28 @@ contract("Paraswap Filter", (accounts) => {
     });
   }
 
-  ["multiSwap", "simpleSwap", "swapOnUniswap", "swapOnUniswapFork", "megaSwap"].forEach(testsForMethod);
+  ["multiSwap", "swapOnUniswap", "swapOnUniswapFork", "megaSwap"].forEach(testsForMethod);
+
+  function simpleSwapTradesViaExchange(exchange) {
+    const method = "simpleSwap";
+    describe(`simpleSwap trades via ${exchange}`, () => {
+      it("should sell ETH for token A", async () => {
+        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, exchange });
+      });
+      it("should sell token B for ETH", async () => {
+        await testTrade({ method, fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN, exchange });
+      });
+      it("should sell token B for token A", async () => {
+        await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address, exchange });
+      });
+      it("should not sell ETH for non-tradable token C", async () => {
+        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenC.address, errorReason: "TM: call not authorised", exchange
+        });
+      });
+    });
+  }
+
+  ["uniswap", "uniswapv2"].forEach(simpleSwapTradesViaExchange);
 
   describe("unauthorised access", () => {
     it("should not allow sending ETH without calling an authorised method", async () => {

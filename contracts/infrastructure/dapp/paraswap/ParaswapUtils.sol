@@ -41,7 +41,7 @@ library ParaswapUtils {
         return hasTradableTokens(_tokenRegistry, lpTokens);
     }
 
-    function pairFor(address _tokenA, address _tokenB, address _factory, bytes32 _initCode, address _weth) internal view returns (address) {
+    function pairFor(address _tokenA, address _tokenB, address _factory, bytes32 _initCode, address _weth) internal pure returns (address) {
         (address tokenA, address tokenB) = (_tokenA == ETH_TOKEN ? _weth : _tokenA, _tokenB == ETH_TOKEN ? _weth : _tokenB);
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         return(address(uint160(uint(keccak256(abi.encodePacked(
