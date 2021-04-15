@@ -18,6 +18,8 @@ const Uniswap = artifacts.require("Uniswap");
 const UniswapV2 = artifacts.require("UniswapV2Mock");
 const UniswapProxy = artifacts.require("UniswapProxyTest");
 const UniswapV3Router = artifacts.require("UniswapV3Router");
+const ZeroxV2TargetExchange = artifacts.require("ZeroxV2TargetExchangeMock");
+const ZeroxV4TargetExchange = artifacts.require("ZeroxV4TargetExchangeMock");
 
 // UniswapV2
 const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
@@ -34,6 +36,8 @@ const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
 const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
+const ZeroExV2Filter = artifacts.require("ZeroExV2Filter");
+const ZeroExV4Filter = artifacts.require("ZeroExV4Filter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const ERC20 = artifacts.require("TestERC20");
 const TokenRegistry = artifacts.require("TokenRegistry");
@@ -41,7 +45,7 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 // Utils
 const RelayManager = require("../utils/relay-manager");
 const { deployUniswap } = require("../utils/defi-deployer");
-const { getRouteParams } = require("../utils/paraswap/sell-helper");
+const { getRouteParams, getParaswappoolData, getSimpleSwapParams } = require("../utils/paraswap/sell-helper");
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction, initNonce, encodeCalls, asciiToBytes32 } = require("../utils/utilities.js");
 
@@ -49,7 +53,6 @@ const { ETH_TOKEN, encodeTransaction, initNonce, encodeCalls, asciiToBytes32 } =
 const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts
 const PARASWAP_ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
-const ZERO_BYTES32 = ethers.constants.HashZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
 const LOCK_PERIOD = 4;
@@ -109,8 +112,10 @@ contract("Paraswap Filter", (accounts) => {
     tokenC = await ERC20.new([infrastructure], new BN(TOKEN_C_LIQ).muln(3), DECIMALS);
 
     // Fake Paraswappool/ZeroEx
-    [zeroExV2Adapter, zeroExV2TargetExchange] = Array(2).fill({ address: zeroExV2 });
-    [zeroExV4Adapter, zeroExV4TargetExchange] = Array(2).fill({ address: zeroExV4 });
+    zeroExV2Adapter = { address: zeroExV2 };
+    zeroExV4Adapter = { address: zeroExV4 };
+    zeroExV2TargetExchange = await ZeroxV2TargetExchange.new();
+    zeroExV4TargetExchange = await ZeroxV4TargetExchange.new();
 
     // Deploy Uniswap
     const ethPerToken = new BN(10).pow(new BN(16));
@@ -213,6 +218,8 @@ contract("Paraswap Filter", (accounts) => {
       [marketMaker]);
     const proxyFilter = await OnlyApproveFilter.new();
     const paraswapUniV2RouterFilter = await ParaswapUniV2RouterFilter.new(tokenRegistry.address, uniswapV2Factory.address, initCode, weth.address);
+    const zeroExV2Filter = await ZeroExV2Filter.new([marketMaker]);
+    const zeroExV4Filter = await ZeroExV4Filter.new([marketMaker]);
     await dappRegistry.addDapp(0, paraswap.address, paraswapFilter.address);
     await dappRegistry.addDapp(0, paraswapProxy, proxyFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
@@ -220,6 +227,8 @@ contract("Paraswap Filter", (accounts) => {
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenB.address].address, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenC.address].address, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniV3Router.address, paraswapUniV2RouterFilter.address);
+    await dappRegistry.addDapp(0, zeroExV2TargetExchange.address, zeroExV2Filter.address);
+    await dappRegistry.addDapp(0, zeroExV4TargetExchange.address, zeroExV4Filter.address);
     walletImplementation = await BaseWallet.new();
 
     manager = new RelayManager(guardianStorage.address, tokenRegistry.address);
@@ -274,21 +283,7 @@ contract("Paraswap Filter", (accounts) => {
       data: {
         tokenFrom: fromToken,
         tokenTo: toToken,
-        signatures: [],
-        orders: [{
-          makerAddress: maker,
-          takerAddress: ZERO_ADDRESS,
-          feeRecipientAddress: ZERO_ADDRESS,
-          senderAddress: ZERO_ADDRESS,
-          makerAssetAmount: 0,
-          takerAssetAmount: 0,
-          makerFee: 0,
-          takerFee: 0,
-          expirationTimeSeconds: 0,
-          salt: 0,
-          makerAssetData: "0x",
-          takerAssetData: "0x"
-        }]
+        ...getParaswappoolData({ maker, version: 2 })
       },
     }, {
       exchange: "paraswappoolv4",
@@ -296,19 +291,7 @@ contract("Paraswap Filter", (accounts) => {
       data: {
         tokenFrom: fromToken,
         tokenTo: toToken,
-        signature: { signatureType: 0, v: 0, r: ZERO_BYTES32, s: ZERO_BYTES32 },
-        order: {
-          makerToken: toToken,
-          takerToken: fromToken,
-          makerAmount: 0,
-          takerAmount: 0,
-          maker: marketMaker,
-          taker: ZERO_ADDRESS,
-          txOrigin: ZERO_ADDRESS,
-          pool: ZERO_BYTES32,
-          expiry: 0,
-          salt: 0,
-        }
+        ...getParaswappoolData({ fromToken, toToken, maker, version: 4 })
       }
     }];
   }
@@ -407,64 +390,69 @@ contract("Paraswap Filter", (accounts) => {
     }).encodeABI();
   }
 
-  function getUniV1SimpleSwapData({ fromToken, toToken, fromAmount }) {
-    let exchangeData;
-    const callees = [];
-    const startIndexes = [];
-    const values = [];
-    if (fromToken === PARASWAP_ETH_TOKEN) {
-      exchangeData = uniswapV1Exchanges[toToken].contract.methods.ethToTokenSwapInput(1, 99999999999).encodeABI();
-      startIndexes.push(0, exchangeData.length / 2 - 1);
-      callees.push(uniswapV1Exchanges[toToken].address);
-      values.push(fromAmount);
-    } else {
-      const token = ((fromToken === tokenA.address) ? tokenA : tokenB);
-      callees.push(fromToken, uniswapV1Exchanges[fromToken].address);
-      values.push(0, 0);
-      exchangeData = token.contract.methods.approve(uniswapV1Exchanges[fromToken].address, fromAmount).encodeABI();
-      startIndexes.push(0, exchangeData.length / 2 - 1);
-      if (toToken === PARASWAP_ETH_TOKEN) {
-        exchangeData += uniswapV1Exchanges[fromToken].contract.methods.tokenToEthSwapInput(
-          fromAmount, 1, 99999999999).encodeABI().slice(2);
+  function getSimpleSwapExchangeCallParams({ exchange, fromToken, toToken, fromAmount, toAmount }) {
+    let targetExchange;
+    let swapMethod;
+    let swapParams;
+
+    if (exchange === "uniswapv2") {
+      targetExchange = uniV3Router;
+      swapMethod = "swap";
+      swapParams = [fromAmount, toAmount, [fromToken, toToken]];
+    } else if (exchange === "uniswap") {
+      if (fromToken === PARASWAP_ETH_TOKEN) {
+        targetExchange = uniswapV1Exchanges[toToken];
+        swapMethod = "ethToTokenSwapInput";
+        swapParams = [1, 99999999999];
       } else {
-        exchangeData += uniswapV1Exchanges[fromToken].contract.methods.tokenToTokenSwapInput(
-          fromAmount, 1, 1, 99999999999, toToken).encodeABI().slice(2);
+        targetExchange = uniswapV1Exchanges[fromToken];
+        if (toToken === PARASWAP_ETH_TOKEN) {
+          swapMethod = "tokenToEthSwapInput";
+          swapParams = [fromAmount, 1, 99999999999];
+        } else {
+          swapMethod = "tokenToTokenSwapInput";
+          swapParams = [fromAmount, 1, 1, 99999999999, toToken];
+        }
       }
-      startIndexes.push(exchangeData.length / 2 - 1);
+    } else if (exchange === "zeroexv2") {
+      targetExchange = zeroExV2TargetExchange;
+      swapMethod = "marketSellOrdersNoThrow";
+      const { orders, signatures } = getParaswappoolData({ maker: marketMaker, version: 2 });
+      swapParams = [orders, 0, signatures];
+    } else if (exchange === "zeroexv4") {
+      targetExchange = zeroExV4TargetExchange;
+      swapMethod = "fillRfqOrder";
+      const { order, signature } = getParaswappoolData({ fromToken, toToken, maker: marketMaker, version: 4 });
+      swapParams = [order, signature, 0];
     }
-    return { exchangeData, callees, startIndexes, values };
+
+    return { targetExchange, swapMethod, swapParams };
   }
 
-  function getUniV2SimpleSwapData({ fromToken, toToken, fromAmount, toAmount }) {
-    let exchangeData = "0x";
-    const callees = [];
-    const startIndexes = [];
-    const values = [];
-    const path = [fromToken, toToken];
-
-    startIndexes.push(0);
-    if (fromToken !== PARASWAP_ETH_TOKEN) {
-      callees.push(fromToken);
-      values.push(0, 0);
-      const token = ((fromToken === tokenA.address) ? tokenA : tokenB);
-      exchangeData += token.contract.methods.approve(uniV3Router.address, fromAmount).encodeABI().slice(2);
-      startIndexes.push(exchangeData.length / 2 - 1);
+  function getTokenContract(tokenAddress) {
+    let tokenContract;
+    if (tokenAddress === tokenA.address) {
+      tokenContract = tokenA;
+    } else if (tokenAddress === tokenB.address) {
+      tokenContract = tokenB;
+    } else if (tokenAddress === tokenC.address) {
+      tokenContract = tokenC;
     } else {
-      values.push(fromAmount);
+      tokenContract = { address: PARASWAP_ETH_TOKEN };
     }
-    callees.push(uniV3Router.address);
-    exchangeData += uniV3Router.contract.methods.swap(fromAmount, toAmount, path).encodeABI().slice(2);
-    startIndexes.push(exchangeData.length / 2 - 1);
-    return { exchangeData, callees, startIndexes, values };
+    return tokenContract;
   }
 
-  function getSimpleSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, exchange }) {
-    const getSimpleSwapDataMethod = { uniswap: getUniV1SimpleSwapData, uniswapv2: getUniV2SimpleSwapData };
-    const { exchangeData, callees, startIndexes, values } = getSimpleSwapDataMethod[exchange]({ fromToken, toToken, fromAmount, toAmount });
-    const benef = beneficiary === ZERO_ADDRESS ? wallet.address : beneficiary;
-    return paraswap.contract.methods.simpleSwap(
-      fromToken, toToken, fromAmount, toAmount, 0, callees, exchangeData, startIndexes, values, benef, "abc", false,
-    ).encodeABI();
+  function getSimpleSwapData({ fromToken, toToken, fromAmount, toAmount, exchange, beneficiary }) {
+    const simpleSwapParams = getSimpleSwapParams({
+      ...getSimpleSwapExchangeCallParams({ exchange, fromToken, toToken, fromAmount, toAmount }),
+      fromTokenContract: getTokenContract(fromToken),
+      toTokenContract: getTokenContract(toToken),
+      fromAmount,
+      toAmount,
+      beneficiary
+    });
+    return paraswap.contract.methods.simpleSwap(...simpleSwapParams).encodeABI();
   }
 
   function getSwapOnUniswapData({ fromToken, toToken, fromAmount, toAmount }) {
@@ -549,7 +537,7 @@ contract("Paraswap Filter", (accounts) => {
 
   ["multiSwap", "swapOnUniswap", "swapOnUniswapFork", "megaSwap"].forEach(testsForMethod);
 
-  function simpleSwapTradesViaExchange(exchange) {
+  function testSimpleSwapTradesViaExchange(exchange) {
     const method = "simpleSwap";
     describe(`simpleSwap trades via ${exchange}`, () => {
       it("should sell ETH for token A", async () => {
@@ -568,7 +556,7 @@ contract("Paraswap Filter", (accounts) => {
     });
   }
 
-  ["uniswap", "uniswapv2"].forEach(simpleSwapTradesViaExchange);
+  ["uniswap", "uniswapv2"].forEach(testSimpleSwapTradesViaExchange);
 
   describe("unauthorised access", () => {
     it("should not allow sending ETH without calling an authorised method", async () => {
@@ -640,32 +628,59 @@ contract("Paraswap Filter", (accounts) => {
   });
 
   describe("authorisations", () => {
-    async function testMultiSwapAuthorisation({
-      fromToken,
-      toToken,
-      routes,
-      expectValid = true,
-      beneficiary = ZERO_ADDRESS,
-      fromAmount = web3.utils.toWei("0.01"),
-      toAmount = 1,
-    }) {
-      const swapData = getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, routes });
-      const isValid = await paraswapFilter.isValid(wallet.address, paraswap.address, paraswap.address, swapData);
-      assert.equal(isValid, expectValid, "authorisation should have been granted for multiSwap");
-    }
+    describe("multiswap", () => {
+      async function testMultiSwapAuthorisation({
+        fromToken,
+        toToken,
+        routes,
+        expectValid = true,
+        beneficiary = ZERO_ADDRESS,
+        fromAmount = web3.utils.toWei("0.01"),
+        toAmount = 1,
+      }) {
+        const swapData = getMultiSwapData({ fromToken, toToken, fromAmount, toAmount, beneficiary, routes });
+        const isValid = await paraswapFilter.isValid(wallet.address, paraswap.address, paraswap.address, swapData);
+        assert.equal(isValid, expectValid, `authorisation should  ${expectValid ? "" : "not"} have been granted for multiSwap`);
+      }
 
-    it("authorises a paraswappool trade", async () => {
-      const fromToken = PARASWAP_ETH_TOKEN;
-      const toToken = tokenA.address;
-      const routes = getParaswappoolRoutes({ fromToken, toToken, maker: marketMaker });
-      await testMultiSwapAuthorisation({ fromToken, toToken, routes, expectValid: true });
+      it("authorises a multiswap paraswappool trade", async () => {
+        const fromToken = PARASWAP_ETH_TOKEN;
+        const toToken = tokenA.address;
+        const routes = getParaswappoolRoutes({ fromToken, toToken, maker: marketMaker });
+        await testMultiSwapAuthorisation({ fromToken, toToken, routes, expectValid: true });
+      });
+
+      it("denies a multiswap paraswappool trade with non-whitelisted maker", async () => {
+        const fromToken = PARASWAP_ETH_TOKEN;
+        const toToken = tokenA.address;
+        const routes = getParaswappoolRoutes({ fromToken, toToken, maker: other });
+        await testMultiSwapAuthorisation({ fromToken, toToken, routes, expectValid: false });
+      });
     });
 
-    it("denies a paraswappool trade with non-whitelisted maker", async () => {
-      const fromToken = PARASWAP_ETH_TOKEN;
-      const toToken = tokenA.address;
-      const routes = getParaswappoolRoutes({ fromToken, toToken, maker: other });
-      await testMultiSwapAuthorisation({ fromToken, toToken, routes, expectValid: false });
+    describe("simpleswap", () => {
+      async function testSimpleSwapAuthorisation({
+        exchange, fromToken, toToken, expectValid = true, fromAmount = web3.utils.toWei("0.01"), toAmount = 1
+      }) {
+        const swapData = getSimpleSwapData({ fromToken, toToken, fromAmount, toAmount, exchange });
+        const isValid = await paraswapFilter.isValid(wallet.address, paraswap.address, paraswap.address, swapData);
+        assert.equal(isValid, expectValid, `authorisation should ${expectValid ? "" : "not"} have been granted for simpleswap`);
+      }
+      function testSimpleSwapAuthorisationViaExchange(exchange) {
+        describe(`simpleSwap authorisation via ${exchange}`, () => {
+          it("should allow selling ETH for token A", async () => {
+            await testSimpleSwapAuthorisation({ exchange, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address });
+          });
+          it("should allow selling token B for ETH", async () => {
+            await testSimpleSwapAuthorisation({ exchange, fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN });
+          });
+          it("should allow selling token B for token A", async () => {
+            await testSimpleSwapAuthorisation({ exchange, fromToken: tokenB.address, toToken: tokenA.address });
+          });
+        });
+      }
+
+      ["zeroexv2", "zeroexv4"].forEach(testSimpleSwapAuthorisationViaExchange);
     });
   });
 });

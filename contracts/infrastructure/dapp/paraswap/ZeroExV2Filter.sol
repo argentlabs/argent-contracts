@@ -44,14 +44,14 @@ contract ZeroExV2Filter is BaseFilter {
         bytes4 methodId = getMethod(_data);
 
         if(methodId == SELL) {
-            (ParaswapUtils.ZeroExV2Order[] memory orders) = abi.decode(_data, (ParaswapUtils.ZeroExV2Order[]));
+            ParaswapUtils.ZeroExV2Order[] memory orders = abi.decode(_data[4:], (ParaswapUtils.ZeroExV2Order[]));
             for(uint i = 0; i < orders.length; i++) {
                 if(!marketMakers[orders[i].makerAddress]) {
                     return false;
                 }
             }
             return true;
-        } 
+        }
         
         return methodId == ERC20_APPROVE;
     }

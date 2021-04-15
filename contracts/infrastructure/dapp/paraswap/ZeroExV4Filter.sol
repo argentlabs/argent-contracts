@@ -44,7 +44,7 @@ contract ZeroExV4Filter is BaseFilter {
         bytes4 methodId = getMethod(_data);
 
         if(methodId == FILL) {
-            (ParaswapUtils.ZeroExV4Order memory order) = abi.decode(_data, (ParaswapUtils.ZeroExV4Order));
+            ParaswapUtils.ZeroExV4Order memory order = abi.decode(_data[4:], (ParaswapUtils.ZeroExV4Order));
             return marketMakers[order.maker];
         } 
         
