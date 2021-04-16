@@ -18,6 +18,8 @@ const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
 const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
+const ZeroExV2Filter = artifacts.require("ZeroExV2Filter");
+const ZeroExV4Filter = artifacts.require("ZeroExV4Filter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const BalancerFilter = artifacts.require("BalancerFilter");
@@ -99,7 +101,9 @@ const main = async () => {
     await DappRegistryWrapper.addDapp(0, cToken, CompoundFilterWrapper.address);
   }
 
+  //
   // Paraswap
+  //
   console.log("Deploying ParaswapFilter");
   const ParaswapFilterWrapper = await ParaswapFilter.new(
     TokenRegistryWrapper.address,
@@ -117,7 +121,7 @@ const main = async () => {
       config.defi.paraswap.adapters.zeroexV2 || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.zeroexV4 || ethers.constants.AddressZero
     ],
-    config.defi.paraswap.targetExchanges || [],
+    Object.values(config.defi.paraswap.targetExchanges || {}),
     config.defi.paraswap.marketMakers || [],
   );
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
@@ -144,6 +148,20 @@ const main = async () => {
   console.log(`Deployed OnlyApproveFilter at ${OnlyApproveFilterWrapper.address}`);
   const AugustusSwapperWrapper = await IAugustusSwapper.at(config.defi.paraswap.contract);
   await DappRegistryWrapper.addDapp(0, await AugustusSwapperWrapper.getTokenTransferProxy(), OnlyApproveFilterWrapper.address);
+
+  // Paraswap ZeroEx filters
+  if (config.defi.paraswap.targetExchanges.zeroexv2) {
+    console.log("Deploying ZeroExV2Filter");
+    const ZeroExV2FilterWrapper = await ZeroExV2Filter.new(config.defi.paraswap.marketMakers);
+    console.log(`Deployed ZeroExV2Filter at ${ZeroExV2FilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv2, ZeroExV2FilterWrapper.address);
+  }
+  if (config.defi.paraswap.targetExchanges.zeroexv4) {
+    console.log("Deploying ZeroExV4Filter");
+    const ZeroExV4FilterWrapper = await ZeroExV4Filter.new(config.defi.paraswap.marketMakers);
+    console.log(`Deployed ZeroExV4Filter at ${ZeroExV4FilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv4, ZeroExV4FilterWrapper.address);
+  }
 
   // The following filters can't be setup on Ropsten due to tha lack of integrations
   if (network !== "test") {
@@ -277,6 +295,7 @@ const main = async () => {
     BaseWallet: BaseWalletWrapper.address,
     MultiCallHelper: MultiCallHelperWrapper.address,
     TokenRegistry: TokenRegistryWrapper.address,
+    OnlyApproveFilter: OnlyApproveFilterWrapper.address,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");

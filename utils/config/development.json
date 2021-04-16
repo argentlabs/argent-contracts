@@ -1,7 +1,7 @@
 {
   "ENS": {
     "deployOwnRegistry": true,
-    "ensRegistry": "0x5dAD1D01B1f6e7Df01f8A08cadcbAC7dB4D94DA4",
+    "ensRegistry": "0xd517fA80Ed2Aa312cB3e8FDD32CB3BBE7D28f5BC",
     "domain": "argent.xyz"
   },
   "backend": {
@@ -17,7 +17,7 @@
   "settings": {
     "deployer": { "type": "ganache" },
     "lockPeriod": 480,
-    "timelockPeriod": 480,
+    "timelockPeriod": 2,
     "recoveryPeriod": 480,
     "securityPeriod": 240,
     "securityWindow": 240
@@ -30,14 +30,14 @@
       "tub": "0x0000000000000000000000000000000000000000",
       "pot": "0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7",
       "jug": "0x0000000000000000000000000000000000000000",
-      "migration": "0x2Db571AaE45A253A7b0b2Dc13E1876d76aFa41cf"
+      "migration": "0x45F97e4bEe19580807501C32a71D06f7F7c72f4f"
     },
     "uniswap": {
       "deployOwn": true,
-      "factory": "0x3484A6C6E5ecf01E13bb047259079c196AD6627D",
-      "v2Router": "0x71C9fA0b0a2937986442Cd379738cfbDE3409959",
-      "unizap": "0x9ec49dDA4C78ea89E618Bc39FA74093d6000dDEd",
-      "factoryV2": "0xA27DE6b0Af7228a31B6860161cFB7e59070887f8",
+      "factory": "0xd3bfB856c417Ad968B245d3f98aeC598f03F7270",
+      "v2Router": "0x1a8b7FD8EC04ab1586753cB1614E54De2269104F",
+      "unizap": "0x67d190D787AE46c50503Dd796bAd09E85d712C3E",
+      "factoryV2": "0x3A125bE5bB8A3E1C171947c384795B4a488B74A0",
       "initCode": "0x505fef446e85683f8d469f9a29612718156edbc931150eb74e2f3ffae9b35392",
       "initCodeV2": "0xe72aaebeb0e8262e90854f8e0767fe9e988cf6a05a826b919d1f07b1c092715d",
       "paraswapUniV2Router": "0x86d3579b043585A97532514016dCF0C2d6C4b6a1"
@@ -50,11 +50,11 @@
     },
     "paraswap": {
       "deployOwn": true,
-      "contract": "0xfEcA109e97f6d06a17Eb0C90a452bd28c7a970A7",
-      "adapters": { "uniswap": "0xd7f043bda1a26FDEa33AE7EB04b0b868c6C62065" },
-      "targetExchanges": [],
+      "contract": "0xAE3b465F19Bf5B0B2ef94A1acFd41b412b1D36b2",
+      "adapters": { "uniswap": "0x7B08143e8B24F98Bc48D432f52C29b3cE15Ba78A" },
+      "targetExchanges": {},
       "marketMakers": [],
-      "uniswapProxy": "0xaD2e8eE502c3a18aF1041B89fE7f8B58E502dCFf",
+      "uniswapProxy": "0xE9809Eb4231EE76963842A4cd8c89bD06dF5F09E",
       "uniswapForks": [
         {
           "factory": "0x0000000000000000000000000000000000000001",
@@ -136,22 +136,23 @@
     }
   },
   "contracts": {
-    "MultiSigWallet": "0xD662801Ca03B6e92dF4c398a3CFdD91fdea0081E",
-    "WalletFactory": "0xB614b1720e23936fFF2Be5588E1fb935F91161CC",
-    "ENSResolver": "0xEC91C12c9D1d649961B8e9A79fba6a85F3F6F53a",
-    "ENSManager": "0x1Fe1faa41b172B42eE06ddd8eEa07ab20B789e54",
+    "MultiSigWallet": "0x24eB97E328d7D513a9eb4AA91206d0cF2Ab78Ee0",
+    "WalletFactory": "0xFb31e95D1C3B96cf8822b943A928AFfC7598F4Fb",
+    "ENSResolver": "0x17Bbbb7A533E78a92096597451dd54887CcB2C58",
+    "ENSManager": "0x2B9b7E41652d7cd3038a6531AB081805c58870E7",
     "TokenPriceProvider": "0xE09C322B745434Fbb2D18c107c13795D4bDF3657",
-    "ModuleRegistry": "0xc58EdE0F1F53d4aB7363CA725325918e61cAFFc7",
-    "BaseWallet": "0x265ba47672C50e03c2C3DC756d625C3fde6D912c",
-    "DappRegistry": "0x4EcdCaCB1afedbA0F154a214225751069f61ad59",
-    "ArgentWalletDetector": "0x65B11dccb031faBf489798a1c48D464Be240704b",
-    "MultiCallHelper": "0x09F3B36b27117fE2c86C4f6e921DF5295A463219",
-    "TokenRegistry": "0x22f82A89f39955d3db6634D486aBA5ce3B47584d"
+    "ModuleRegistry": "0xEdbb3C98DC9A226518c75E8F641cD0C3F8e3a364",
+    "BaseWallet": "0xeB028ecD162aAEccEe0632c3bb170a723C9712e2",
+    "DappRegistry": "0x9c74E8a6b4D8026666A0A0C8BAD7259B1FE49B2B",
+    "ArgentWalletDetector": "0xc6a5Da387E927c8dd3cDF783004a85Eed2A052B1",
+    "MultiCallHelper": "0xEce13B7059ea8daB58BcD789302d838FC2676CeF",
+    "TokenRegistry": "0xbA465b9b7859eec9De880991bBdEB2CB4a41D9a6",
+    "OnlyApproveFilter": "0x9C9848fDd94812445E250230aCf271FF9642DeC2"
   },
   "modules": {
-    "GuardianStorage": "0x8ADC1FE8B1562c7105fBb3110c9F85B1333c56aB",
-    "TransferStorage": "0xfaE007bE4AB56E051C929e2560A371e0a79293AC",
-    "ArgentModule": "0xcE037e60A154BfCbCe53dE506b606518D2859495"
+    "GuardianStorage": "0x05b02F6d3d0a602f12212E04dc9a13336e2e6D39",
+    "TransferStorage": "0x12F2df43A6385B8D5D6730822A09a2D6c42b61c0",
+    "ArgentModule": "0x807DECABe91c3C93396605D0DEA49c6cE67Dc59d"
   },
-  "gitCommit": "b4655ad9a3ebf028d6e3d572191c89d07dd2fb6e"
+  "gitCommit": "fb9fcac72514841b4cc602f16671849301c13e07"
 }
