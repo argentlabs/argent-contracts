@@ -31,12 +31,12 @@ const main = async () => {
   const idx = process.argv.indexOf("--force");
   const force = (idx !== -1);
 
-  const installFilter = async (deployNewFilter, dapp, dappName = "Dapp", filterName = "Filter", registryId = 0) => {
+  const installFilter = async ({ filterDeployer, dapp, dappName = "Dapp", filterName = "Filter", registryId = 0 }) => {
     const timelock = 1000 * parseInt((await DappRegistryWrapper.timelockPeriod()).toString(16), 16);
     const { filter } = await DappRegistryWrapper.getAuthorisation(registryId, dapp);
     const [filterStr, dappStr] = [`${filterName}@${filter}`, `${dappName}@${dapp}`];
     if (filter === ethers.constants.AddressZero) {
-      const newFilter = await deployNewFilter();
+      const newFilter = await filterDeployer();
       console.log(`Adding ${filterName}@${newFilter} for ${dappStr}`);
       await multisigExecutor.executeCall(DappRegistryWrapper, "addDapp", [registryId, dapp, newFilter]);
       console.log(`Done. Filter will be active on ${(new Date(Date.now() + timelock)).toLocaleString()}\n`);
@@ -46,7 +46,7 @@ const main = async () => {
       const pendingUpdateFilterAddress = `0x${pendingUpdate.slice(10, 50)}`;
       if (pendingUpdate === ethers.constants.HashZero) {
         if (force) {
-          const newFilter = await deployNewFilter();
+          const newFilter = await filterDeployer();
           console.log(`Requesting replacement of ${filterStr} by ${filterName}@${newFilter} for ${dappStr}`);
           await multisigExecutor.executeCall(DappRegistryWrapper, "requestFilterUpdate", [registryId, dapp, newFilter]);
           console.log(
@@ -87,16 +87,16 @@ const main = async () => {
 
   // Paraswap Proxy
   const AugustusSwapperWrapper = await IAugustusSwapper.at(config.defi.paraswap.contract);
-  await installFilter(
-    async () => getFilterFromConfigOrDeployNew(OnlyApproveFilter),
-    await AugustusSwapperWrapper.getTokenTransferProxy(),
-    "ParaswapTokenTransferProxy",
-    "OnlyApproveFilter"
-  );
+  await installFilter({
+    filterDeployer: async () => getFilterFromConfigOrDeployNew(OnlyApproveFilter),
+    dapp: await AugustusSwapperWrapper.getTokenTransferProxy(),
+    dappName: "ParaswapTokenTransferProxy",
+    filterName: "OnlyApproveFilter"
+  });
 
   // Paraswap
-  await installFilter(
-    async () => {
+  await installFilter({
+    filterDeployer: async () => {
       console.log("Deploying ParaswapFilter");
       const ParaswapFilterWrapper = await ParaswapFilter.new(
         config.contracts.TokenRegistry,
@@ -120,10 +120,10 @@ const main = async () => {
       console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
       return ParaswapFilterWrapper.address;
     },
-    config.defi.paraswap.contract,
-    "Augustus",
-    "ParaswapFilter"
-  );
+    dapp: config.defi.paraswap.contract,
+    dappName: "Augustus",
+    filterName: "ParaswapFilter"
+  });
 
   // ParaswapUniV2RouterFilter
   if (config.defi.uniswap.paraswapUniV2Router) {
@@ -131,8 +131,8 @@ const main = async () => {
     const initCodes = [config.defi.uniswap.initCodeV2, ...config.defi.paraswap.uniswapForks.map((f) => f.initCode)];
     const routers = [config.defi.uniswap.paraswapUniV2Router, ...config.defi.paraswap.uniswapForks.map((f) => f.paraswapUniV2Router)];
     for (let i = 0; i < routers.length; i += 1) {
-      await installFilter(
-        async () => {
+      await installFilter({
+        filterDeployer: async () => {
           console.log(`Deploying ParaswapUniV2RouterFilter#${i}`);
           const ParaswapUniV2RouterFilterWrapper = await ParaswapUniV2RouterFilter.new(
             config.contracts.TokenRegistry,
@@ -143,10 +143,10 @@ const main = async () => {
           console.log(`Deployed ParaswapUniV2RouterFilter#${i} at ${ParaswapUniV2RouterFilterWrapper.address}`);
           return ParaswapUniV2RouterFilterWrapper.address;
         },
-        routers[i],
-        `ParaswapUniV2Router#${i}`,
-        `ParaswapUniV2RouterFilter#${i}`
-      );
+        dapp: routers[i],
+        dappName: `ParaswapUniV2Router#${i}`,
+        filterName: `ParaswapUniV2RouterFilter#${i}`
+      });
     }
   }
 };
