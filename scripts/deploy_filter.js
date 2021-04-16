@@ -70,7 +70,6 @@ const main = async () => {
 
   const getFilterFromConfigOrDeployNew = async (filterArtifact) => {
     const { contractName } = filterArtifact._json;
-
     if (!config.contracts[contractName] || config.contracts[contractName] === ethers.constants.AddressZero) {
       console.log(`Deploying ${contractName}`);
       const wrapper = await filterArtifact.new();
@@ -87,7 +86,6 @@ const main = async () => {
   // //////////////////////////////////
 
   // Paraswap Proxy
-
   const AugustusSwapperWrapper = await IAugustusSwapper.at(config.defi.paraswap.contract);
   await installFilter(
     async () => getFilterFromConfigOrDeployNew(OnlyApproveFilter),
