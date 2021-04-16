@@ -137,7 +137,10 @@ const getParaswappoolData = ({ fromToken, toToken, maker, version = 2 }) => {
 };
 
 function getSimpleSwapParams({
-  targetExchange, swapMethod, swapParams, fromTokenContract, toTokenContract, fromAmount, toAmount, beneficiary = ZERO_ADDRESS
+  targetExchange, swapMethod, swapParams,
+  fromTokenContract = { address: PARASWAP_ETH_TOKEN }, toTokenContract = { address: PARASWAP_ETH_TOKEN },
+  fromAmount = 1, toAmount = 1,
+  beneficiary = ZERO_ADDRESS
 }) {
   let exchangeData = "0x";
   const callees = [];
@@ -154,7 +157,9 @@ function getSimpleSwapParams({
     values.push(fromAmount);
   }
   callees.push(targetExchange.address);
-  exchangeData += targetExchange.contract.methods[swapMethod](...swapParams).encodeABI().slice(2);
+  if (swapMethod) {
+    exchangeData += targetExchange.contract.methods[swapMethod](...(swapParams || [])).encodeABI().slice(2);
+  }
   startIndexes.push(exchangeData.length / 2 - 1);
   return [
     fromTokenContract.address, toTokenContract.address,
