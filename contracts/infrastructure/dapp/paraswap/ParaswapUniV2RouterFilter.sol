@@ -19,6 +19,16 @@ pragma solidity ^0.8.3;
 import "../BaseFilter.sol";
 import "./ParaswapUtils.sol";
 
+/**
+ * @title ParaswapUniV2RouterFilter
+ * @notice Filter used for calls to Paraswap's "UniswapV3Router", which is Paraswap's custom UniswapV2 router.
+    UniswapV3Router is deployed at:
+    - 0x86d3579b043585A97532514016dCF0C2d6C4b6a1 for UniswapV2
+    - 0xBc1315CD2671BC498fDAb42aE1214068003DC51e for SushiSwap
+    - 0xEC4c8110E5B5Bf0ad8aa89e3371d9C3b8CdCD778 for LinkSwap
+    - 0xF806F9972F9A34FC05394cA6CF2cc606297Ca6D5 for DefiSwap
+ * @author Olivier VDB - <olivier@argent.xyz>
+ */
 contract ParaswapUniV2RouterFilter is BaseFilter {
 
     bytes4 private constant SWAP = bytes4(keccak256("swap(uint256,uint256,address[])"));
@@ -40,7 +50,7 @@ contract ParaswapUniV2RouterFilter is BaseFilter {
         weth = _weth;
     }
 
-    function isValid(address /*_wallet*/, address /*_spender*/, address /*_to*/, bytes calldata _data) external view override returns (bool valid) {
+    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
         // disable ETH transfer
         if (_data.length < 4) {
             return false;
@@ -49,10 +59,10 @@ contract ParaswapUniV2RouterFilter is BaseFilter {
         bytes4 methodId = getMethod(_data);
 
         if(methodId == SWAP) {
-            (, address[] memory path) = abi.decode(_data[4:], (uint256[2], address[]));
+            (,, address[] memory path) = abi.decode(_data[4:], (uint256, uint256, address[]));
             return ParaswapUtils.hasValidUniV2Path(path, tokenRegistry, factory, initCode, weth);
         } 
         
-        return methodId == ERC20_APPROVE;
+        return methodId == ERC20_APPROVE && _spender != _to;
     }
 }

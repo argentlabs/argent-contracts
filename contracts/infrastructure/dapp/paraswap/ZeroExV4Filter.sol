@@ -19,6 +19,12 @@ pragma solidity ^0.8.3;
 import "../BaseFilter.sol";
 import "./ParaswapUtils.sol";
 
+/**
+ * @title ZeroExV4Filter
+ * @notice Filter used for calls to the ZeroExV4 exchange at 0xdef1c0ded9bec7f1a1670819833240f027b25eff.
+ * Only trades with whitelisted market makers are allowed. Currently deployed to work with Paraswap's market makers only.
+ * @author Olivier VDB - <olivier@argent.xyz>
+ */
 contract ZeroExV4Filter is BaseFilter {
 
     bytes4 private constant FILL = bytes4(keccak256(
@@ -35,7 +41,7 @@ contract ZeroExV4Filter is BaseFilter {
         }
     }
 
-    function isValid(address /*_wallet*/, address /*_spender*/, address /*_to*/, bytes calldata _data) external view override returns (bool valid) {
+    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
         // disable ETH transfer
         if (_data.length < 4) {
             return false;
@@ -48,6 +54,6 @@ contract ZeroExV4Filter is BaseFilter {
             return marketMakers[order.maker];
         } 
         
-        return methodId == ERC20_APPROVE;
+        return methodId == ERC20_APPROVE && _spender != _to;
     }
 }

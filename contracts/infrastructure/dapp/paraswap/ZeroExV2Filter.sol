@@ -19,12 +19,17 @@ pragma solidity ^0.8.3;
 import "../BaseFilter.sol";
 import "./ParaswapUtils.sol";
 
+/**
+ * @title ZeroExV2Filter
+ * @notice Filter used for calls to the ZeroExV2 exchange at 0x080bf510fcbf18b91105470639e9561022937712.
+ * Only trades with whitelisted market makers are allowed. Currently deployed to work with Paraswap's market makers only.
+ * @author Olivier VDB - <olivier@argent.xyz>
+ */
 contract ZeroExV2Filter is BaseFilter {
 
     bytes4 private constant SELL = bytes4(keccak256(
         "marketSellOrdersNoThrow((address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,bytes,bytes)[],uint256,bytes[])"
     ));
-    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
     // Supported ParaswapPool market makers
     mapping(address => bool) public marketMakers;
@@ -53,6 +58,6 @@ contract ZeroExV2Filter is BaseFilter {
             return true;
         }
         
-        return methodId == ERC20_APPROVE;
+        return false;
     }
 }

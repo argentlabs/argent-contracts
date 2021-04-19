@@ -119,7 +119,8 @@ const main = async () => {
       config.defi.paraswap.adapters.linkswap || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.defiswap || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.zeroexV2 || ethers.constants.AddressZero,
-      config.defi.paraswap.adapters.zeroexV4 || ethers.constants.AddressZero
+      config.defi.paraswap.adapters.zeroexV4 || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.curve || ethers.constants.AddressZero
     ],
     Object.values(config.defi.paraswap.targetExchanges || {}),
     config.defi.paraswap.marketMakers || [],
@@ -147,7 +148,11 @@ const main = async () => {
   const OnlyApproveFilterWrapper = await OnlyApproveFilter.new();
   console.log(`Deployed OnlyApproveFilter at ${OnlyApproveFilterWrapper.address}`);
   const AugustusSwapperWrapper = await IAugustusSwapper.at(config.defi.paraswap.contract);
-  await DappRegistryWrapper.addDapp(0, await AugustusSwapperWrapper.getTokenTransferProxy(), OnlyApproveFilterWrapper.address);
+  const proxies = [await AugustusSwapperWrapper.getTokenTransferProxy(), ...Object.values(config.defi.paraswap.proxies || {})];
+  for (const proxy of proxies) {
+    console.log(`Adding OnlyApproveFilter for proxy ${proxy}`);
+    await DappRegistryWrapper.addDapp(0, proxy, OnlyApproveFilterWrapper.address);
+  }
 
   // Paraswap ZeroEx filters
   if (config.defi.paraswap.targetExchanges.zeroexv2) {

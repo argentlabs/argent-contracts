@@ -18,13 +18,18 @@ pragma solidity ^0.8.3;
 
 import "../BaseFilter.sol";
 
+/**
+ * @title CurveFilter
+ * @notice Filter used for calls to every supported Curve exchange (pool), e.g. 0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51
+ * @author Olivier VDB - <olivier@argent.xyz>
+ */
 contract CurveFilter is BaseFilter {
 
     bytes4 private constant EXCHANGE = bytes4(keccak256("exchange(int128,int128,uint256,uint256)"));
     bytes4 private constant EXCHANGE_UNDERLYING = bytes4(keccak256("exchange_underlying(int128,int128,uint256,uint256)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
-    function isValid(address /*_wallet*/, address /*_spender*/, address /*_to*/, bytes calldata _data) external view override returns (bool valid) {
+    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
         // disable ETH transfer
         if (_data.length < 4) {
             return false;
@@ -32,6 +37,6 @@ contract CurveFilter is BaseFilter {
 
         bytes4 methodId = getMethod(_data);
 
-        return methodId == ERC20_APPROVE || methodId == EXCHANGE || methodId == EXCHANGE_UNDERLYING;
+        return (methodId == ERC20_APPROVE && _spender != _to) || methodId == EXCHANGE || methodId == EXCHANGE_UNDERLYING;
     }
 }
