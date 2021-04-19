@@ -20,6 +20,8 @@ const UniswapProxy = artifacts.require("UniswapProxyTest");
 const UniswapV3Router = artifacts.require("UniswapV3Router");
 const ZeroxV2TargetExchange = artifacts.require("ZeroxV2TargetExchangeMock");
 const ZeroxV4TargetExchange = artifacts.require("ZeroxV4TargetExchangeMock");
+const CurvePool = artifacts.require("CurvePoolMock");
+const Curve = artifacts.require("Curve");
 
 // UniswapV2
 const UniswapV2Factory = artifacts.require("UniswapV2FactoryMock");
@@ -38,6 +40,7 @@ const ParaswapFilter = artifacts.require("ParaswapFilter");
 const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
 const ZeroExV2Filter = artifacts.require("ZeroExV2Filter");
 const ZeroExV4Filter = artifacts.require("ZeroExV4Filter");
+const CurveFilter = artifacts.require("CurveFilter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const ERC20 = artifacts.require("TestERC20");
 const TokenRegistry = artifacts.require("TokenRegistry");
@@ -86,6 +89,7 @@ contract("Paraswap Filter", (accounts) => {
   let uniswapV2Factory;
   let zeroExV2TargetExchange;
   let zeroExV4TargetExchange;
+  let curvePool;
   let uniswapV1Adapter;
   let uniswapV2Adapter;
   let sushiswapAdapter;
@@ -93,6 +97,7 @@ contract("Paraswap Filter", (accounts) => {
   let defiswapAdapter;
   let zeroExV2Adapter;
   let zeroExV4Adapter;
+  let curveAdapter;
   let unauthorisedAdapter;
   let initCode;
   let tokenA;
@@ -111,11 +116,12 @@ contract("Paraswap Filter", (accounts) => {
     tokenB = await ERC20.new([infrastructure], new BN(TOKEN_B_LIQ).muln(3), DECIMALS);
     tokenC = await ERC20.new([infrastructure], new BN(TOKEN_C_LIQ).muln(3), DECIMALS);
 
-    // Fake Paraswappool/ZeroEx
+    // Fake Adapters/TargetExchanges
     zeroExV2Adapter = { address: zeroExV2 };
     zeroExV4Adapter = { address: zeroExV4 };
     zeroExV2TargetExchange = await ZeroxV2TargetExchange.new();
     zeroExV4TargetExchange = await ZeroxV4TargetExchange.new();
+    curvePool = await CurvePool.new();
 
     // Deploy Uniswap
     const ethPerToken = new BN(10).pow(new BN(16));
@@ -158,6 +164,7 @@ contract("Paraswap Filter", (accounts) => {
     sushiswapAdapter = await UniswapV2.new(weth.address, asciiToBytes32("Sushiswap"));
     linkswapAdapter = await UniswapV2.new(weth.address, asciiToBytes32("Linkswap"));
     defiswapAdapter = await UniswapV2.new(weth.address, asciiToBytes32("Defiswap"));
+    curveAdapter = await Curve.new();
     unauthorisedAdapter = await Uniswap.new();
     const wlr = await paraswapWhitelist.WHITELISTED_ROLE();
     await paraswapWhitelist.grantRole(wlr, uniswapV1Adapter.address);
@@ -213,13 +220,15 @@ contract("Paraswap Filter", (accounts) => {
         defiswapAdapter.address,
         zeroExV2Adapter.address,
         zeroExV4Adapter.address,
+        curveAdapter.address,
       ],
-      [uniswapV1Factory.address, zeroExV2TargetExchange.address, zeroExV4TargetExchange.address],
+      [uniswapV1Factory.address, zeroExV2TargetExchange.address, zeroExV4TargetExchange.address, curvePool.address],
       [marketMaker]);
     const proxyFilter = await OnlyApproveFilter.new();
     const paraswapUniV2RouterFilter = await ParaswapUniV2RouterFilter.new(tokenRegistry.address, uniswapV2Factory.address, initCode, weth.address);
     const zeroExV2Filter = await ZeroExV2Filter.new([marketMaker]);
     const zeroExV4Filter = await ZeroExV4Filter.new([marketMaker]);
+    const curveFilter = await CurveFilter.new();
     await dappRegistry.addDapp(0, paraswap.address, paraswapFilter.address);
     await dappRegistry.addDapp(0, paraswapProxy, proxyFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
@@ -229,6 +238,7 @@ contract("Paraswap Filter", (accounts) => {
     await dappRegistry.addDapp(0, uniV3Router.address, paraswapUniV2RouterFilter.address);
     await dappRegistry.addDapp(0, zeroExV2TargetExchange.address, zeroExV2Filter.address);
     await dappRegistry.addDapp(0, zeroExV4TargetExchange.address, zeroExV4Filter.address);
+    await dappRegistry.addDapp(0, curvePool.address, curveFilter.address);
     walletImplementation = await BaseWallet.new();
 
     manager = new RelayManager(guardianStorage.address, tokenRegistry.address);
@@ -325,6 +335,14 @@ contract("Paraswap Filter", (accounts) => {
     ];
   }
 
+  function getCurveRoutes({ fromToken, toToken }) {
+    return [{
+      exchange: "curve",
+      percent: "100",
+      data: { tokenFrom: fromToken, tokenTo: toToken },
+    }];
+  }
+
   function getPath({ fromToken, toToken, routes, useUnauthorisedAdapter = false, useUnauthorisedTargetExchange = false }) {
     const exchanges = {
       uniswap: useUnauthorisedAdapter ? unauthorisedAdapter.address : uniswapV1Adapter.address,
@@ -334,6 +352,7 @@ contract("Paraswap Filter", (accounts) => {
       defiswap: useUnauthorisedAdapter ? unauthorisedAdapter.address : defiswapAdapter.address,
       paraswappoolv2: useUnauthorisedAdapter ? unauthorisedAdapter.address : zeroExV2Adapter.address,
       paraswappoolv4: useUnauthorisedAdapter ? unauthorisedAdapter.address : zeroExV4Adapter.address,
+      curve: useUnauthorisedAdapter ? unauthorisedAdapter.address : curveAdapter.address,
     };
     const targetExchanges = {
       uniswap: useUnauthorisedTargetExchange ? other : uniswapV1Factory.address,
@@ -343,6 +362,7 @@ contract("Paraswap Filter", (accounts) => {
       defiswap: ZERO_ADDRESS,
       paraswappoolv2: useUnauthorisedTargetExchange ? other : zeroExV2TargetExchange.address,
       paraswappoolv4: useUnauthorisedTargetExchange ? other : zeroExV4TargetExchange.address,
+      curve: useUnauthorisedTargetExchange ? other : curvePool.address,
     };
     return [{
       to: toToken,
@@ -424,6 +444,10 @@ contract("Paraswap Filter", (accounts) => {
       swapMethod = "fillRfqOrder";
       const { order, signature } = getParaswappoolData({ fromToken, toToken, maker, version: 4 });
       swapParams = [order, signature, 0];
+    } else if (exchange === "curve") {
+      targetExchange = curvePool;
+      swapMethod = "exchange";
+      swapParams = [0, 1, fromAmount, toAmount];
     }
 
     return { targetExchange, swapMethod, swapParams };
@@ -656,6 +680,13 @@ contract("Paraswap Filter", (accounts) => {
         const routes = getParaswappoolRoutes({ fromToken, toToken, maker: other });
         await testMultiSwapAuthorisation({ fromToken, toToken, routes, expectValid: false });
       });
+
+      it("authorises a multiswap curve trade", async () => {
+        const fromToken = PARASWAP_ETH_TOKEN;
+        const toToken = tokenA.address;
+        const routes = getCurveRoutes({ fromToken, toToken });
+        await testMultiSwapAuthorisation({ fromToken, toToken, routes, expectValid: true });
+      });
     });
 
     describe("simpleswap", () => {
@@ -692,7 +723,7 @@ contract("Paraswap Filter", (accounts) => {
         });
       }
 
-      ["uniswapv2", "zeroexv2", "zeroexv4"].forEach(testSimpleSwapAuthorisationViaExchange);
+      ["uniswapv2", "zeroexv2", "zeroexv4", "curve"].forEach(testSimpleSwapAuthorisationViaExchange);
     });
   });
 });

@@ -22,6 +22,18 @@ const getPayLoad = (fromToken, toToken, exchange, data) => {
         },
         { path },
       );
+    case "curve":
+      return web3Coder.encodeParameter(
+        {
+          ParentStruct: {
+            i: "int128",
+            j: "int128",
+            deadline: "uint256",
+            underlyingSwap: "bool"
+          }
+        },
+        { i: 0, j: 1, deadline: 4102444800, underlyingSwap: false }
+      );
 
     case "paraswappoolv4":
       return web3Coder.encodeParameter(
