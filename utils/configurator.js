@@ -35,7 +35,7 @@ class Configurator {
     this._config.defi.paraswap.contract = address;
     this._config.defi.paraswap.uniswapProxy = uniswapProxy;
     this._config.defi.paraswap.adapters = { ...adapters };
-    this._config.defi.paraswap.targetExchanges = [...targetExchanges];
+    this._config.defi.paraswap.targetExchanges = { ...targetExchanges };
   }
 
   updateMakerMigration(address) {

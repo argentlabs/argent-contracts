@@ -206,24 +206,5 @@ contract("Lido Filter", (accounts) => {
       const walletBalance = await lido.balanceOf(wallet.address);
       assert.closeTo(walletBalance.toNumber(), 1, 1);
     });
-
-    it("should not allow exchanging ETH for stETH", async () => {
-      const data = curve.contract.methods.exchange(0, 1, 100, 95).encodeABI();
-      const transaction = encodeTransaction(curve.address, 100, data);
-
-      const txReceipt = await manager.relay(
-        module,
-        "multiCall",
-        [wallet.address, [transaction]],
-        wallet,
-        [owner],
-        0,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS);
-
-      const { success, error } = utils.parseRelayReceipt(txReceipt);
-      assert.isFalse(success);
-      assert.equal(error, "TM: call not authorised");
-    });
   });
 });

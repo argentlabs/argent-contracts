@@ -129,8 +129,10 @@
               "items": { "type": "object" }
             },
             "targetExchanges": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/ethaddress" }
+              "type": "object"
+            },
+            "proxies": {
+              "type": "object"
             },
             "marketMakers": {
               "type": "array",

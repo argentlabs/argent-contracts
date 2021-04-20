@@ -17,6 +17,9 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
+const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
+const WhitelistedZeroExV2Filter = artifacts.require("WhitelistedZeroExV2Filter");
+const WhitelistedZeroExV4Filter = artifacts.require("WhitelistedZeroExV4Filter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const BalancerFilter = artifacts.require("BalancerFilter");
@@ -98,7 +101,9 @@ const main = async () => {
     await DappRegistryWrapper.addDapp(0, cToken, CompoundFilterWrapper.address);
   }
 
+  //
   // Paraswap
+  //
   console.log("Deploying ParaswapFilter");
   const ParaswapFilterWrapper = await ParaswapFilter.new(
     TokenRegistryWrapper.address,
@@ -114,20 +119,54 @@ const main = async () => {
       config.defi.paraswap.adapters.linkswap || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.defiswap || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.zeroexV2 || ethers.constants.AddressZero,
-      config.defi.paraswap.adapters.zeroexV4 || ethers.constants.AddressZero
+      config.defi.paraswap.adapters.zeroexV4 || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.curve || ethers.constants.AddressZero
     ],
-    config.defi.paraswap.targetExchanges || [],
+    Object.values(config.defi.paraswap.targetExchanges || {}),
     config.defi.paraswap.marketMakers || [],
   );
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
   await DappRegistryWrapper.addDapp(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
+
+  console.log("Deploying ParaswapUniV2RouterFilter");
+  const factories = [config.defi.uniswap.factoryV2, ...config.defi.paraswap.uniswapForks.map((f) => f.factory)];
+  const initCodes = [config.defi.uniswap.initCodeV2, ...config.defi.paraswap.uniswapForks.map((f) => f.initCode)];
+  const routers = [config.defi.uniswap.paraswapUniV2Router, ...config.defi.paraswap.uniswapForks.map((f) => f.paraswapUniV2Router)];
+  for (let i = 0; i < routers.length; i += 1) {
+    const ParaswapUniV2RouterFilterWrapper = await ParaswapUniV2RouterFilter.new(
+      TokenRegistryWrapper.address,
+      factories[i],
+      initCodes[i],
+      config.defi.weth
+    );
+    console.log(`Deployed ParaswapUniV2RouterFilter #${i} at ${ParaswapUniV2RouterFilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, routers[i], ParaswapUniV2RouterFilterWrapper.address);
+  }
 
   // Paraswap Proxy
   console.log("Deploying OnlyApproveFilter");
   const OnlyApproveFilterWrapper = await OnlyApproveFilter.new();
   console.log(`Deployed OnlyApproveFilter at ${OnlyApproveFilterWrapper.address}`);
   const AugustusSwapperWrapper = await IAugustusSwapper.at(config.defi.paraswap.contract);
-  await DappRegistryWrapper.addDapp(0, await AugustusSwapperWrapper.getTokenTransferProxy(), OnlyApproveFilterWrapper.address);
+  const proxies = [await AugustusSwapperWrapper.getTokenTransferProxy(), ...Object.values(config.defi.paraswap.proxies || {})];
+  for (const proxy of proxies) {
+    console.log(`Adding OnlyApproveFilter for proxy ${proxy}`);
+    await DappRegistryWrapper.addDapp(0, proxy, OnlyApproveFilterWrapper.address);
+  }
+
+  // Paraswap ZeroEx filters
+  if (config.defi.paraswap.targetExchanges.zeroexv2) {
+    console.log("Deploying WhitelistedZeroExV2Filter");
+    const WhitelistedZeroExV2FilterWrapper = await WhitelistedZeroExV2Filter.new(config.defi.paraswap.marketMakers);
+    console.log(`Deployed WhitelistedZeroExV2Filter at ${WhitelistedZeroExV2FilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv2, WhitelistedZeroExV2FilterWrapper.address);
+  }
+  if (config.defi.paraswap.targetExchanges.zeroexv4) {
+    console.log("Deploying WhitelistedZeroExV4Filter");
+    const WhitelistedZeroExV4FilterWrapper = await WhitelistedZeroExV4Filter.new(config.defi.paraswap.marketMakers);
+    console.log(`Deployed WhitelistedZeroExV4Filter at ${WhitelistedZeroExV4FilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv4, WhitelistedZeroExV4FilterWrapper.address);
+  }
 
   // The following filters can't be setup on Ropsten due to tha lack of integrations
   if (network !== "test") {
@@ -261,6 +300,7 @@ const main = async () => {
     BaseWallet: BaseWalletWrapper.address,
     MultiCallHelper: MultiCallHelperWrapper.address,
     TokenRegistry: TokenRegistryWrapper.address,
+    OnlyApproveFilter: OnlyApproveFilterWrapper.address,
   });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
