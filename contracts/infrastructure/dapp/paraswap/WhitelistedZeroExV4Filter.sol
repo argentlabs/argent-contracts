@@ -20,12 +20,12 @@ import "../BaseFilter.sol";
 import "./ParaswapUtils.sol";
 
 /**
- * @title ZeroExV4Filter
+ * @title WhitelistedZeroExV4Filter
  * @notice Filter used for calls to the ZeroExV4 exchange at 0xdef1c0ded9bec7f1a1670819833240f027b25eff.
  * Only trades with whitelisted market makers are allowed. Currently deployed to work with Paraswap's market makers only.
  * @author Olivier VDB - <olivier@argent.xyz>
  */
-contract ZeroExV4Filter is BaseFilter {
+contract WhitelistedZeroExV4Filter is BaseFilter {
 
     bytes4 private constant FILL = bytes4(keccak256(
         "fillRfqOrder((address,address,uint128,uint128,address,address,address,bytes32,uint64,uint256),(uint8,uint8,bytes32,bytes32),uint128)"

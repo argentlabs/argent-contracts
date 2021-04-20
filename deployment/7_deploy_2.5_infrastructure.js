@@ -18,8 +18,8 @@ const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
 const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
-const ZeroExV2Filter = artifacts.require("ZeroExV2Filter");
-const ZeroExV4Filter = artifacts.require("ZeroExV4Filter");
+const WhitelistedZeroExV2Filter = artifacts.require("WhitelistedZeroExV2Filter");
+const WhitelistedZeroExV4Filter = artifacts.require("WhitelistedZeroExV4Filter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const BalancerFilter = artifacts.require("BalancerFilter");
@@ -156,16 +156,16 @@ const main = async () => {
 
   // Paraswap ZeroEx filters
   if (config.defi.paraswap.targetExchanges.zeroexv2) {
-    console.log("Deploying ZeroExV2Filter");
-    const ZeroExV2FilterWrapper = await ZeroExV2Filter.new(config.defi.paraswap.marketMakers);
-    console.log(`Deployed ZeroExV2Filter at ${ZeroExV2FilterWrapper.address}`);
-    await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv2, ZeroExV2FilterWrapper.address);
+    console.log("Deploying WhitelistedZeroExV2Filter");
+    const WhitelistedZeroExV2FilterWrapper = await WhitelistedZeroExV2Filter.new(config.defi.paraswap.marketMakers);
+    console.log(`Deployed WhitelistedZeroExV2Filter at ${WhitelistedZeroExV2FilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv2, WhitelistedZeroExV2FilterWrapper.address);
   }
   if (config.defi.paraswap.targetExchanges.zeroexv4) {
-    console.log("Deploying ZeroExV4Filter");
-    const ZeroExV4FilterWrapper = await ZeroExV4Filter.new(config.defi.paraswap.marketMakers);
-    console.log(`Deployed ZeroExV4Filter at ${ZeroExV4FilterWrapper.address}`);
-    await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv4, ZeroExV4FilterWrapper.address);
+    console.log("Deploying WhitelistedZeroExV4Filter");
+    const WhitelistedZeroExV4FilterWrapper = await WhitelistedZeroExV4Filter.new(config.defi.paraswap.marketMakers);
+    console.log(`Deployed WhitelistedZeroExV4Filter at ${WhitelistedZeroExV4FilterWrapper.address}`);
+    await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv4, WhitelistedZeroExV4FilterWrapper.address);
   }
 
   // The following filters can't be setup on Ropsten due to tha lack of integrations
