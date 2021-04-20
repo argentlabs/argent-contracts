@@ -51,9 +51,16 @@ contract TokenRegistry is ITokenRegistry, Managed {
 
     function setTradableForTokenList(address[] calldata _tokens, bool[] calldata _tradable) external {
         require(_tokens.length == _tradable.length, "TR: Array length mismatch");
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            require(msg.sender == owner || (!_tradable[i] && managers[msg.sender]), "TR: Unauthorised");
-            isTradable[_tokens[i]] = _tradable[i];
+        if(msg.sender == owner) {
+            for (uint256 i = 0; i < _tokens.length; i++) {
+                isTradable[_tokens[i]] = _tradable[i];
+            }
+        } else {
+            require(managers[msg.sender], "TR: Unauthorised");
+            for (uint256 i = 0; i < _tokens.length; i++) {
+                require(_tradable[i] == false, "TR: Unauthorised operation");
+                isTradable[_tokens[i]] = _tradable[i];
+            }
         }
     }
 }
