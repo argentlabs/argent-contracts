@@ -17,7 +17,6 @@
 pragma solidity ^0.8.3;
 
 import "../BaseFilter.sol";
-import "./ParaswapUtils.sol";
 
 /**
  * @title WhitelistedZeroExV2Filter
