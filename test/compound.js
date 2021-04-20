@@ -311,7 +311,7 @@ contract("Compound V2", (accounts) => {
       const amount = web3.utils.toWei("1", "finney");
       await addInvestment(ETH_TOKEN, amount);
       const cTokenBalance = await cEther.balanceOf(wallet.address);
-      const txReceipt = await removeInvestment(ETH_TOKEN, cTokenBalance / 2);
+      const txReceipt = await removeInvestment(ETH_TOKEN, cTokenBalance.divn(2).toNumber());
       console.log("Gas to redeem cETH: ", txReceipt.gasUsed);
     });
 
@@ -319,7 +319,7 @@ contract("Compound V2", (accounts) => {
       const amount = web3.utils.toWei("1", "finney");
       await addInvestment(token.address, amount);
       const cTokenBalance = await cToken.balanceOf(wallet.address);
-      const txReceipt = await removeInvestment(token.address, cTokenBalance / 2);
+      const txReceipt = await removeInvestment(token.address, cTokenBalance.divn(2).toNumber());
       console.log("Gas to redeem cErc20: ", txReceipt.gasUsed);
     });
 

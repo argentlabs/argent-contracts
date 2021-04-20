@@ -142,7 +142,7 @@ contract CEther is CToken {
 
     function doTransferOut(address payable to, uint amount) internal returns (Error) {
         /* Send the Ether, with minimal gas and revert on failure */
-        to.transfer(amount);
+        to.call.value(amount)("");
         return Error.NO_ERROR;
     }
 

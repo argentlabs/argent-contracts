@@ -182,7 +182,7 @@ contract("yEarn Filter", (accounts) => {
   });
 
   it("should allow withdrawals (withdrawAllETH())", async () => {
-    await deposit();
+    await depositETH();
     const { success, error } = await withdrawETH({ all: true });
     assert.isTrue(success, `withdrawAllETH() failed: "${error}"`);
   });

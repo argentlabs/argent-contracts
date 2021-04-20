@@ -156,7 +156,7 @@ contract yVault is ERC20 {
         }
 
         IWETH(address(token)).withdraw(r);
-        payable(msg.sender).transfer(r);
+        payable(msg.sender).call{value: r}("");
     }
 
     function withdrawAllETH() external {
