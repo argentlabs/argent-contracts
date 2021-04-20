@@ -47,7 +47,7 @@ contract("TokenRegistry", (accounts) => {
       await tokenRegistry.setTradableForTokenList([tokenAddress], [false], { from: manager });
       const tradable = await tokenRegistry.isTokenTradable(tokenAddress);
       assert.isFalse(tradable);
-      await truffleAssert.reverts(tokenRegistry.setTradableForTokenList([tokenAddress], [true], { from: manager }), "TR: Unauthorised");
+      await truffleAssert.reverts(tokenRegistry.setTradableForTokenList([tokenAddress], [true], { from: manager }), "TR: Unauthorised operation");
     });
 
     it("does not let managers change tradable with invalid array lengths", async () => {
