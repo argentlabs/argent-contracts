@@ -16,21 +16,30 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.3;
 
-import "./BaseFilter.sol";
+import "../BaseFilter.sol";
 
+/**
+ * @title CurveFilter
+ * @notice Filter used for calls to every supported Curve exchange (pool), e.g. 0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51
+ * @author Olivier VDB - <olivier@argent.xyz>
+ */
 contract CurveFilter is BaseFilter {
-  bytes4 private constant EXCHANGE = bytes4(keccak256("exchange(int128,int128,uint256,uint256)"));
-  bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
-  function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external pure override returns (bool valid) {
-    if (_data.length < 4) {
-        return false;
+    bytes4 private constant EXCHANGE = bytes4(keccak256("exchange(int128,int128,uint256,uint256)"));
+    bytes4 private constant EXCHANGE_UNDERLYING = bytes4(keccak256("exchange_underlying(int128,int128,uint256,uint256)"));
+    bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
+
+    function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
+        // disable ETH transfer
+        if (_data.length < 4) {
+            return false;
+        }
+
+        bytes4 methodId = getMethod(_data);
+        if(_spender == _to) {
+            return (methodId == EXCHANGE || methodId == EXCHANGE_UNDERLYING);
+        } else {
+            return (methodId == ERC20_APPROVE);
+        }
     }
-    bytes4 methodId = getMethod(_data);
-    if(_spender == _to) {
-        return (methodId == EXCHANGE && abi.decode(_data[4:], (int128)) == 1);
-    } else {
-        return (methodId == ERC20_APPROVE);
-    }
-  }
 }
