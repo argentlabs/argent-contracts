@@ -123,7 +123,7 @@ const main = async () => {
       config.defi.paraswap.adapters.curve || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.weth || ethers.constants.AddressZero,
     ],
-    Object.values(config.defi.paraswap.targetExchanges || {}).flat(),
+    [].concat(...Object.values(config.defi.paraswap.targetExchanges || {})), // flattened targetExchanges values
     config.defi.paraswap.marketMakers || [],
   );
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
