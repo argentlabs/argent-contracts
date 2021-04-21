@@ -115,6 +115,7 @@ contract ParaswapFilter is BaseFilter {
     address public immutable zeroExV2Adapter;
     address public immutable zeroExV4Adapter;
     address public immutable curveAdapter;
+    address public immutable wethAdapter;
     // The Dapp registry (used to authorise simpleSwap())
     IAuthoriser public immutable authoriser;
     // Uniswap Proxy used by Paraswap's AugustusSwapper contract
@@ -143,7 +144,7 @@ contract ParaswapFilter is BaseFilter {
         address _uniswapProxy,
         address[3] memory _uniFactories,
         bytes32[3] memory _uniInitCodes,
-        address[8] memory _adapters,
+        address[9] memory _adapters,
         address[] memory _targetExchanges,
         address[] memory _marketMakers
     ) {
@@ -168,6 +169,7 @@ contract ParaswapFilter is BaseFilter {
         zeroExV2Adapter = _adapters[5];
         zeroExV4Adapter = _adapters[6];
         curveAdapter = _adapters[7];
+        wethAdapter = _adapters[8];
         for(uint i = 0; i < _targetExchanges.length; i++) {
             targetExchanges[_targetExchanges[i]] = true;
         }
@@ -301,6 +303,9 @@ contract ParaswapFilter is BaseFilter {
     function hasValidRoute(IParaswap.Route memory _route, address _fromToken, address _toToken) internal view returns (bool) {
         if(_route.targetExchange != address(0) && !targetExchanges[_route.targetExchange]) {
             return false;
+        }
+        if(_route.exchange == wethAdapter) { 
+            return true;
         }
         if(_route.exchange == uniV2Adapter) { 
             return hasValidUniV2Route(_route.payload, uniFactory, uniInitCode);

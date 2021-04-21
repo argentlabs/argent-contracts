@@ -120,9 +120,10 @@ const main = async () => {
       config.defi.paraswap.adapters.defiswap || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.zeroexV2 || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.zeroexV4 || ethers.constants.AddressZero,
-      config.defi.paraswap.adapters.curve || ethers.constants.AddressZero
+      config.defi.paraswap.adapters.curve || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.weth || ethers.constants.AddressZero,
     ],
-    Object.values(config.defi.paraswap.targetExchanges || {}),
+    Object.values(config.defi.paraswap.targetExchanges || {}).flat(),
     config.defi.paraswap.marketMakers || [],
   );
   console.log(`Deployed ParaswapFilter at ${ParaswapFilterWrapper.address}`);
@@ -143,7 +144,7 @@ const main = async () => {
     await DappRegistryWrapper.addDapp(0, routers[i], ParaswapUniV2RouterFilterWrapper.address);
   }
 
-  // Paraswap Proxy
+  // Paraswap Proxies
   console.log("Deploying OnlyApproveFilter");
   const OnlyApproveFilterWrapper = await OnlyApproveFilter.new();
   console.log(`Deployed OnlyApproveFilter at ${OnlyApproveFilterWrapper.address}`);
@@ -166,6 +167,15 @@ const main = async () => {
     const WhitelistedZeroExV4FilterWrapper = await WhitelistedZeroExV4Filter.new(config.defi.paraswap.marketMakers);
     console.log(`Deployed WhitelistedZeroExV4Filter at ${WhitelistedZeroExV4FilterWrapper.address}`);
     await DappRegistryWrapper.addDapp(0, config.defi.paraswap.targetExchanges.zeroexv4, WhitelistedZeroExV4FilterWrapper.address);
+  }
+
+  // Curve filters
+  console.log("Deploying CurveFilter");
+  const CurveFilterWrapper = await CurveFilter.new();
+  console.log(`Deployed CurveFilter at ${CurveFilterWrapper.address}`);
+  for (const pool of config.defi.paraswap.targetExchanges.curve || []) {
+    console.log(`Adding CurveFilter for pool ${pool}`);
+    await DappRegistryWrapper.addDapp(0, pool, CurveFilterWrapper.address);
   }
 
   // The following filters can't be setup on Ropsten due to tha lack of integrations
@@ -206,11 +216,7 @@ const main = async () => {
     const LidoFilterWrapper = await LidoFilter.new();
     console.log(`Deployed LidoFilter at ${LidoFilterWrapper.address}`);
     await DappRegistryWrapper.addDapp(0, config.defi.lido.contract, LidoFilterWrapper.address);
-    // Curve Pool for stETH -> ETH
-    console.log("Deploying CurveFilter");
-    const CurveFilterWrapper = await CurveFilter.new();
-    console.log(`Deployed CurveFilter at ${CurveFilterWrapper.address}`);
-    await DappRegistryWrapper.addDapp(0, config.defi.lido.stETHCurvePool, CurveFilterWrapper.address);
+    // Note: The filter for the stETH -> ETH curve Pool was deployed in the Curve section
   }
 
   // DSR

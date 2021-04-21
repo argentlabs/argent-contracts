@@ -148,6 +148,83 @@ const getParaswappoolData = ({ fromToken, toToken, maker, version = 2 }) => {
   return getParaswappoolV4Data({ fromToken, toToken, maker });
 };
 
+const getParaswappoolRoutes = ({ fromToken, toToken, maker }) => [{
+  exchange: "paraswappoolv2",
+  percent: "50",
+  data: {
+    tokenFrom: fromToken,
+    tokenTo: toToken,
+    ...getParaswappoolData({ maker, version: 2 })
+  },
+}, {
+  exchange: "paraswappoolv4",
+  percent: "50",
+  data: {
+    tokenFrom: fromToken,
+    tokenTo: toToken,
+    ...getParaswappoolData({ fromToken, toToken, maker, version: 4 })
+  }
+}];
+
+const getUniswapRoutes = ({ fromToken, toToken }) => [{
+  exchange: "uniswap",
+  percent: "20",
+  data: { tokenFrom: fromToken, tokenTo: toToken },
+},
+{
+  exchange: "uniswapv2",
+  percent: "20",
+  data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
+},
+{
+  exchange: "sushiswap",
+  percent: "20",
+  data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
+},
+{
+  exchange: "linkswap",
+  percent: "20",
+  data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
+},
+{
+  exchange: "defiswap",
+  percent: "20",
+  data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
+},
+];
+
+const getCurveRoutes = ({ fromToken, toToken }) => [{
+  exchange: "curve",
+  percent: "100",
+  data: { tokenFrom: fromToken, tokenTo: toToken },
+}];
+
+const getWethRoutes = ({ fromToken, toToken }) => [{
+  exchange: "weth",
+  percent: "100",
+  data: { tokenFrom: fromToken, tokenTo: toToken },
+}];
+
+const getRoutesForExchange = ({ fromToken, toToken, maker, exchange }) => {
+  switch (exchange) {
+    case "paraswappoolv2":
+    case "paraswappoolv4":
+      return getParaswappoolRoutes({ fromToken, toToken, maker });
+    case "uniswap":
+    case "uniswapv2":
+    case "sushiswap":
+    case "linkswap":
+    case "defiswap":
+      return getUniswapRoutes({ fromToken, toToken });
+    case "curve":
+      return getCurveRoutes({ fromToken, toToken });
+    case "weth":
+      return getWethRoutes({ fromToken, toToken });
+    default:
+      throw new Error(`unknown exchange "${exchange}"`);
+  }
+};
+
 function getSimpleSwapParams({
   targetExchange, swapMethod, swapParams,
   fromTokenContract = { address: PARASWAP_ETH_TOKEN }, toTokenContract = { address: PARASWAP_ETH_TOKEN },
@@ -186,4 +263,5 @@ module.exports = {
   getRouteParams,
   getParaswappoolData,
   getSimpleSwapParams,
+  getRoutesForExchange
 };
