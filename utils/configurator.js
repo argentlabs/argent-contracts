@@ -22,6 +22,11 @@ class Configurator {
     Object.assign(this._config.contracts, contracts);
   }
 
+  updateFilterAddresses(filters) {
+    if (!this._config.filters) this._config.filters = {};
+    Object.assign(this._config.filters, filters);
+  }
+
   updateModuleAddresses(modules) {
     if (!this._config.modules) this._config.modules = {};
     Object.assign(this._config.modules, modules);
