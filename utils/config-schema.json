@@ -238,6 +238,23 @@
       ],
       "additionalProperties": true
     },
+    "filters": {
+      "type": "object",
+      "patternProperties": {
+        "\\w+Filter$": {
+          "oneOf": [
+            { "$ref": "#/definitions/ethaddress" },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ethaddress"
+              }
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "modules": {
       "type": "object",
       "properties": {

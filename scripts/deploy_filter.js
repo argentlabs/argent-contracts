@@ -70,15 +70,15 @@ const main = async () => {
 
   const getFilterFromConfigOrDeployNew = async (filterArtifact) => {
     const { contractName } = filterArtifact._json;
-    if (!config.contracts[contractName] || config.contracts[contractName] === ethers.constants.AddressZero) {
+    if (!config.filters[contractName] || config.filters[contractName] === ethers.constants.AddressZero) {
       console.log(`Deploying ${contractName}`);
       const wrapper = await filterArtifact.new();
       console.log(`Deployed ${contractName} at ${wrapper.address}\n`);
-      configurator.updateInfrastructureAddresses({ [contractName]: wrapper.address });
+      configurator.updateFilterAddresses({ [contractName]: wrapper.address });
       await configurator.save();
       return wrapper.address;
     }
-    return config.contracts[contractName];
+    return config.filters[contractName];
   };
 
   // //////////////////////////////////

@@ -45,6 +45,14 @@ async function main() {
     await execVerify(contractName, contractAddress, network);
   }
 
+  for (const [contractName, value] of Object.entries(configuration.filters)) {
+    const contractAddresses = [].concat(...[value]); // value can be an address or array of addresses
+    for (const addr of contractAddresses) {
+      console.log(`Verifying ${contractName} at ${addr} ...`);
+      await execVerify(contractName, addr, network);
+    }
+  }
+
   for (const [moduleName, moduleAddress] of Object.entries(configuration.modules)) {
     await execVerify(moduleName, moduleAddress, network);
   }
