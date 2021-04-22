@@ -41,8 +41,17 @@ async function main() {
   await configurator.load(false);
   const configuration = configurator.copyConfig();
 
+  console.log({ configuration });
+
   for (const [contractName, contractAddress] of Object.entries(configuration.contracts)) {
     await execVerify(contractName, contractAddress, network);
+  }
+
+  for (const [contractName, value] of Object.entries(configuration.filters)) {
+    const contractAddresses = [].concat(...[value]); // value can be an address or array of addresses
+    for (const addr of contractAddresses) {
+      await execVerify(contractName, addr, network);
+    }
   }
 
   for (const [moduleName, moduleAddress] of Object.entries(configuration.modules)) {
