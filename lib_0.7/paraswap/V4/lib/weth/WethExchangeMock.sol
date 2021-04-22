@@ -8,7 +8,12 @@ import "../IExchange.sol";
 
 
 
-contract WethExchange is IExchange {
+contract WethExchangeMock is IExchange {
+
+    address public immutable weth;
+    constructor(address _weth) {
+        weth = _weth;
+    }
 
     function initialize(bytes calldata data) external override {
         revert("METHOD NOT IMPLEMENTED");
@@ -90,8 +95,6 @@ contract WethExchange is IExchange {
     )
         private
     {
-        address weth = Utils.wethAddress();
-
         if (address(fromToken) == weth){
             require(address(toToken) == Utils.ethAddress(), "Destination token should be ETH");
             IWETH(weth).withdraw(fromAmount);
