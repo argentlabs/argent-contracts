@@ -185,8 +185,7 @@ Our architecture is made up of multiple contracts. A first group of contracts fo
     \item \textbf{ENS Manager:} The ENS Manager is responsible for registering ENS subdomains (e.g. mike.argent.xyz) and assigning them to wallets.
     \item \textbf{ENS Resolver:} The ENS Resolver keeps links between ENS subdomains and wallet addresses and allows to resolve them in both directions.
     \item \textbf{Module Registry:} The Module Registry maintains a list of the registered \emph{Module} contracts that can be used with user wallets. It also maintains a list of registered \emph{Upgrader} contracts that a user can use to migrate the module(s) used with their wallet (see Section~\ref{sec:upgradability}).
-    \item \textbf{Token Price Registry:} Legacy on-chain price oracle for ERC20 tokens. Still used by wallets as a list of ERC20 tokens that can be safely traded.  
-    \item \textbf{Dex Registry:} Registry of DEXes compatible with the Argent security model. Only the exchanges listed in this registry can be used to trade tokens through Paraswap.
+    \item \textbf{Token Registry:} On-chain registry of ERC20 tokens that can be safely traded.  
     \item \textbf{Dapp Registry:} Registries of dapps authorised by Argent. The \emph{DappRegistry} currently supports 2 registries.
 \end{itemize}
 
@@ -270,7 +269,17 @@ Filters are smart-contracts that expose a single method that validates:
 Some example of filters added to registry Id[0]:
 
 \subsubsection{CompoundCTokenFilter}
-The CompoundCTokenFilter accepts all contract calls to a CToken with the exception of \textit{repayBorrowBehalf} and the \textit{fallback} method when the cToken is not cEther. In particular it accepts calls to \textit{mint()}/\textit{mint(uint256)}, \textit{redeem(uint256)}, \textit{redeemUnderlying(uint256)} and \textit{repayBorrowBehalf}.
-The CompoundCTokenFilter blocks all contract calls to ERC20/ERC721/ERC1155 token where the spender is the cToken to prevent e.g. transfering DAI to the cEther contract. The only exception is an ERC20 approve on the underlying of the cToken.
+The CompoundCTokenFilter applies to all cTokens but there must be one filter per cToken as defined by its underlying. It only accepts contract calls to a cToken to \textit{mint}, \textit{redeem}, \textit{redeemUnderlying}, \textit{borrow}, and \textit{repayBorrow}. All other methods are blocked.
+The CompoundCTokenFilter blocks all contract calls to ERC20/ERC721/ERC1155 tokens where the spender is the cToken to prevent e.g. transfering DAI to the cEther contract. The only exception is an ERC20 approve on the underlying of the cToken.
+
+\subsubsection{UniswapV2UniZapFilter}
+The UniswapV2UniZapFilter lets a wallet add/remove liquidity to Uniswap V2 pools via the UniZap contract deployed at 0xbCc492DF37bD4ec651D46d72230E340c9ec1950c. It will only allow adding/removing liquidity to pools that have been flagged as tradable in the \textit{TokenRegistry} based on their underlying tokens and liquidity. It also checks that the beneficiary of the resulting tokens is the calling wallet.
+The UniswapV2UniZapFilter lets a wallet approve the UniZap contract as the spender of ERC20 tokens to enable adding liquidity from a token or removing liquidity by burning LP tokens. All other standard ERC20/ERC721/ERC1155 methods are blocked.
+
+\subsubsection{LidoFilter}
+The LidoFilter lets a wallet swap ETH for stETH by allowing calls to the \textit{submit} method of the Lido contract. All other methods calls are disabled.
+
+\subsubsection{AaveV2Filter}
+The AaveV2Filter lets a wallet add/remove liquidity to the V2 version of the Aave protocol provided that the beneficiary of the resulting tokens is the calling wallet. 
 
 \end{document}
