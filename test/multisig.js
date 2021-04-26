@@ -243,7 +243,7 @@ contract("MultiSigWallet", (accounts) => {
 
     it("should fail with the wrong nonce", async () => {
       const nonceOffset = 1;
-      await executeSendFailure([owner1, owner2], nonceOffset, true, false, "MSW: Badly ordered signatures");
+      await executeSendFailure([owner1, owner2], nonceOffset, true, false, "MSW");
     });
 
     it("should fail with the wrong signature", async () => {

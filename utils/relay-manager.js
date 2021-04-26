@@ -1,55 +1,40 @@
 /* global artifacts */
-const BN = require("bn.js");
 const ethers = require("ethers");
 const { ETH_TOKEN } = require("./utilities.js");
 const utils = require("./utilities.js");
 
-const ITokenPriceRegistry = artifacts.require("ITokenPriceRegistry");
+const TestSimpleOracle = artifacts.require("TestSimpleOracle");
 const IGuardianStorage = artifacts.require("IGuardianStorage");
-const IFeature = artifacts.require("IFeature");
 
 class RelayManager {
-  async setRelayerManager(relayerManager) {
-    this.relayerManager = relayerManager;
-
-    const guardianStorageAddress = await relayerManager.guardianStorage();
-    this.guardianStorage = await IGuardianStorage.at(guardianStorageAddress);
+  constructor(guardianStorage, priceOracle) {
+    this.guardianStorage = guardianStorage;
+    this.priceOracle = priceOracle;
   }
 
   // Relays without refund by default, unless the gasPrice is explicitely set to be >0
-  async relay(_feature, _method, _params, _wallet, _signers,
+  async relay(_module, _method, _params, _wallet, _signers,
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero) {
     const relayerAccount = await utils.getAccount(9);
     const nonce = await utils.getNonceForRelay();
     const chainId = await utils.getChainId();
-    const methodData = _feature.contract.methods[_method](..._params).encodeABI();
+    const methodData = _module.contract.methods[_method](..._params).encodeABI();
 
-    const gasLimit = await this.getGasLimitRefund(_feature, _method, _params, _wallet, _signers, _gasPrice);
+    const gasLimit = await RelayManager.getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice);
     // Uncomment when debugging gas limits
-    // await this.debugGasLimits(_feature, _method, _params, _wallet, _signers);
+    // await this.debugGasLimits(_module, _method, _params, _wallet, _signers);
 
     // When the refund is in token (not ETH), calculate the amount needed for refund
     let gasPrice = _gasPrice;
     if (_refundToken !== ETH_TOKEN) {
-      const tokenPriceRegistryAddress = await this.relayerManager.tokenPriceRegistry();
-      const tokenPriceRegistry = await ITokenPriceRegistry.at(tokenPriceRegistryAddress);
-      const tokenPrice = await tokenPriceRegistry.getTokenPrice(_refundToken);
-
-      // How many tokens to pay per unit of gas spent
-      // refundCost = gasLimit * gasPrice
-      // tokenAmount = refundCost * 10^18 / tokenPrice
-      gasPrice = new BN(10).pow(new BN(18))
-        .muln(_gasPrice)
-        .div(tokenPrice)
-        .toNumber();
+      gasPrice = (await (await TestSimpleOracle.at(this.priceOracle)).ethToToken(_refundToken, _gasPrice)).toNumber();
     }
 
     const signatures = await utils.signOffchain(
       _signers,
-      this.relayerManager.address,
-      _feature.address,
+      _module.address,
       0,
       methodData,
       chainId,
@@ -60,9 +45,8 @@ class RelayManager {
       _refundAddress,
     );
 
-    const executeData = this.relayerManager.contract.methods.execute(
+    const executeData = _module.contract.methods.execute(
       _wallet.address,
-      _feature.address,
       methodData,
       nonce,
       signatures,
@@ -88,9 +72,9 @@ class RelayManager {
     if (process.env.COVERAGE) {
       gas += 50000;
     }
-    const tx = await this.relayerManager.execute(
+
+    const tx = await _module.execute(
       _wallet.address,
-      _feature.address,
       methodData,
       nonce,
       signatures,
@@ -109,7 +93,8 @@ class RelayManager {
     return tx.receipt;
   }
 
-  /* Returns the gas limit to use as gasLimit parameter in execute function
+  /* NEEDS TO BE UPDATED
+    Returns the gas limit to use as gasLimit parameter in execute function
     + 5200  (isFeatureAuthorisedInVersionManager check)
     + 0 / 1000 / 4800 based on which contract implements getRequiredSignatures()
     + 2052 (getSignHash call)
@@ -121,14 +106,8 @@ class RelayManager {
 
     Ignoring multiplication and comparison as that is <10 gas per operation
   */
-  async getGasLimitRefund(_feature, _method, _params, _wallet, _signers, _gasPrice) {
-    let requiredSigsGas = 0;
-    const { contractName } = _feature.constructor;
-    if (contractName === "ApprovedTransfer" || contractName === "RecoveryManager") {
-      requiredSigsGas = 4800;
-    } else if (contractName === "GuardianManager") {
-      requiredSigsGas = 1000;
-    }
+  static async getGasLimitRefund(_module, _method, _params, _wallet, _signers, _gasPrice) {
+    const requiredSigsGas = 4800;
 
     // Estimate cost of checkAndUpdateUniqueness call
     let nonceCheckGas = 0;
@@ -143,7 +122,7 @@ class RelayManager {
 
     let gasEstimateFeatureCall = 0;
     try {
-      gasEstimateFeatureCall = await _feature.contract.methods[_method](..._params).estimateGas({ from: this.relayerManager.address });
+      gasEstimateFeatureCall = await _module.contract.methods[_method](..._params).estimateGas({ from: _module.address });
       gasEstimateFeatureCall -= 21000;
     } catch (err) { // eslint-disable-line no-empty
     } finally {
@@ -158,8 +137,8 @@ class RelayManager {
     }
 
     let refundGas = 0;
-    const methodData = _feature.contract.methods[_method](..._params).encodeABI();
-    const requiredSignatures = await _feature.getRequiredSignatures(_wallet.address, methodData);
+    const methodData = _module.contract.methods[_method](..._params).encodeABI();
+    const requiredSignatures = await _module.getRequiredSignatures(_wallet.address, methodData);
 
     // Relayer only refund when gasPrice > 0 and the owner is signing
     if (_gasPrice > 0 && requiredSignatures[1].toNumber() === 1) {
@@ -169,7 +148,7 @@ class RelayManager {
         refundGas = 40000;
       }
 
-      // We can achieve better overall estimate if instead of adding a 50K buffer in gas calculation for relayer.execute
+      // We can achieve better overall estimate if instead of adding a 72k buffer in gas calculation for relayer.execute
       // we add token transfer cost selectively for token refunds.
       // In tests we are using a simple ERC20 transfer cost, however this varies by supported token, e.g. ZRX, BAT, DAI, USDC, or USDT
       // if (_refundToken !== ETH_TOKEN) {
@@ -183,12 +162,11 @@ class RelayManager {
     return gasLimit;
   }
 
-  async debugGasLimits(_feature, _method, _params, _wallet, _signers) {
+  async debugGasLimits(_module, _method, _params, _wallet, _signers) {
     let requiredSigsGas = 0;
     // Get the owner signature requirements
-    const feature = await IFeature.at(_feature.address);
-    const methodData = _feature.contract.methods[_method](..._params).encodeABI();
-    requiredSigsGas = await feature.getRequiredSignatures.estimateGas(_wallet.address, methodData);
+    const methodData = _module.contract.methods[_method](..._params).encodeABI();
+    requiredSigsGas = await _module.getRequiredSignatures.estimateGas(_wallet.address, methodData);
     requiredSigsGas -= 21000;
 
     let ownerSigner = 0;
@@ -198,7 +176,7 @@ class RelayManager {
 
     for (let index = 0; index < _signers.length; index += 1) {
       const signer = _signers[index];
-      const isGuardian = await this.guardianStorage.isGuardian(_wallet.address, signer);
+      const isGuardian = await (await IGuardianStorage.at(this.guardianStorage)).isGuardian(_wallet.address, signer);
       if (signer === walletOwner) {
         ownerSigner += 1;
       } else if (isGuardian) {

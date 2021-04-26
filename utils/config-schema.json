@@ -76,7 +76,10 @@
         "maker": {
           "type": "object",
           "properties": {
-            "tub": {
+            "pot": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "migration": {
               "$ref": "#/definitions/ethaddress"
             }
           }
@@ -86,6 +89,18 @@
           "properties": {
             "factory": {
               "$ref": "#/definitions/ethaddress"
+            },
+            "factoryV2": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "v2Router": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "initCodeV2": {
+              "type": "string"
+            },
+            "unizap": {
+              "$ref": "#/definitions/ethaddress"
             }
           }
         },
@@ -93,6 +108,82 @@
           "type": "object",
           "properties": {
             "comptroller": {
+              "$ref": "#/definitions/ethaddress"
+            }
+          }
+        },
+        "paraswap": {
+          "type": "object",
+          "properties": {
+            "contract": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "paraswapProxy": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "adapters": {
+              "type": "object"
+            },
+            "uniswapForks": {
+              "type": "array",
+              "items": { "type": "object" }
+            },
+            "targetExchanges": {
+              "type": "object"
+            },
+            "proxies": {
+              "type": "object"
+            },
+            "marketMakers": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "aave": {
+          "type": "object",
+          "properties": {
+            "contract": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "lendingPool": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "lendingPoolCore": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "aTokens": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "balancer": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "yearn": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            },
+            "wethpools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "lido": {
+          "type": "object",
+          "properties": {
+            "contract": {
               "$ref": "#/definitions/ethaddress"
             }
           }
@@ -108,6 +199,9 @@
         "WalletFactory": {
           "$ref": "#/definitions/ethaddress"
         },
+        "WalletFactory16": {
+          "$ref": "#/definitions/ethaddress"
+        },
         "ENSResolver": {
           "$ref": "#/definitions/ethaddress"
         },
@@ -120,19 +214,16 @@
         "ModuleRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
+        "DappRegistry": {
+          "$ref": "#/definitions/ethaddress"
+        },
         "BaseWallet": {
           "$ref": "#/definitions/ethaddress"
         },
-        "CompoundRegistry": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "MakerRegistry": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "DexRegistry": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "ArgentWalletDetector": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "MultiCallHelper": {
           "$ref": "#/definitions/ethaddress"
         }
       },
@@ -143,85 +234,44 @@
         "ENSManager",
         "TokenPriceProvider",
         "ModuleRegistry",
-        "BaseWallet",
-        "CompoundRegistry",
-        "MakerRegistry",
-        "DexRegistry"
+        "BaseWallet"
       ],
+      "additionalProperties": true
+    },
+    "filters": {
+      "type": "object",
+      "patternProperties": {
+        "\\w+Filter$": {
+          "oneOf": [
+            { "$ref": "#/definitions/ethaddress" },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ethaddress"
+              }
+            }
+          ]
+        }
+      },
       "additionalProperties": false
     },
     "modules": {
       "type": "object",
       "properties": {
-        "ModuleManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "GuardianManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "GuardianStorage": {
           "$ref": "#/definitions/ethaddress"
         },
-        "LimitStorage": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "TokenPriceStorage": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "TokenPriceRegistry": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "LockManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "RecoveryManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "ApprovedTransfer": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "TransferManager": {
+        "TokenRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
         "TransferStorage": {
           "$ref": "#/definitions/ethaddress"
         },
-        "TokenExchanger": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "NftTransfer": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "CompoundManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "MakerManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "MakerV2Manager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "RelayerManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "VersionManager": {
+        "ArgentModule": {
           "$ref": "#/definitions/ethaddress"
         }
       },
-      "required": [
-        "GuardianManager",
-        "GuardianStorage",
-        "LockManager",
-        "RecoveryManager",
-        "ApprovedTransfer",
-        "TransferManager",
-        "TransferStorage",
-        "TokenExchanger",
-        "NftTransfer",
-        "CompoundManager",
-        "MakerManager",
-        "MakerV2Manager"
-      ],
+      "required": ["GuardianStorage", "TransferStorage"],
       "additionalProperties": true
     },
     "backend": {
@@ -234,6 +284,9 @@
           }
         },
         "refundCollector": {
+          "$ref": "#/definitions/ethaddress"
+        },
+        "tradeCommissionCollector": {
           "$ref": "#/definitions/ethaddress"
         }
       },
@@ -326,10 +379,7 @@
         "securityWindow": {
           "type": "integer"
         },
-        "defaultLimit": {
-          "type": "string"
-        },
-        "feeRatio": {
+        "timelockPeriod": {
           "type": "integer"
         }
       },

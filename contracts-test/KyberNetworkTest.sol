@@ -1,12 +1,9 @@
-pragma solidity ^0.6.12;
-import "../lib/other/ERC20.sol";
-import "../lib/other/KyberNetwork.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+pragma solidity ^0.8.3;
+import "../lib_0.5/other/ERC20.sol";
+import "../lib_0.5/other/KyberNetwork.sol";
 
 // SPDX-License-Identifier: GPL-3.0-only
 contract KyberNetworkTest is KyberNetwork {
-
-    using SafeMath for uint256;
 
     // Mock token address for ETH
     address constant internal ETH_TOKEN_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -20,7 +17,7 @@ contract KyberNetworkTest is KyberNetwork {
     mapping (address => Token) public tokens;
     address owner;
 
-    constructor() public {
+    constructor() {
         owner = msg.sender;
     }
 
@@ -76,10 +73,10 @@ contract KyberNetworkTest is KyberNetwork {
         uint srcAmount;
         if (address(_src) == ETH_TOKEN_ADDRESS) {
             expectedRate = 10**36 / tokens[address(_dest)].rate;
-            destAmount = expectedRate.mul(_srcAmount).div(10**(36 - tokens[address(_dest)].decimals));
+            destAmount = expectedRate * _srcAmount / 10**(36 - tokens[address(_dest)].decimals);
             if (destAmount > _maxDestAmount) {
                 destAmount = _maxDestAmount;
-                srcAmount = _maxDestAmount.mul(10**(36 - tokens[address(_dest)].decimals)).div(expectedRate);
+                srcAmount = _maxDestAmount * 10**(36 - tokens[address(_dest)].decimals) / expectedRate;
             } else {
                 srcAmount = _srcAmount;
             }
@@ -92,10 +89,10 @@ contract KyberNetworkTest is KyberNetwork {
             require(ERC20(_dest).transfer(_destAddress, destAmount), "KyberNetwork: ERC20 transfer failed");
         } else if (address(_dest) == ETH_TOKEN_ADDRESS) {
             expectedRate = tokens[address(_src)].rate;
-            destAmount = expectedRate.mul(_srcAmount).div(10**tokens[address(_src)].decimals);
+            destAmount = expectedRate * _srcAmount / 10**tokens[address(_src)].decimals;
             if (destAmount > _maxDestAmount) {
                 destAmount = _maxDestAmount;
-                srcAmount = _maxDestAmount.mul(10**tokens[address(_src)].decimals).div(expectedRate);
+                srcAmount = _maxDestAmount * 10**tokens[address(_src)].decimals / expectedRate;
             } else {
                 srcAmount = _srcAmount;
             }

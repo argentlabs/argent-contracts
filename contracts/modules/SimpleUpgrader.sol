@@ -14,11 +14,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "./common/IModule.sol";
 import "../infrastructure/IModuleRegistry.sol";
-import "../infrastructure/storage/ILockStorage.sol";
 import "../wallet/IWallet.sol";
 
 /**
@@ -29,7 +28,6 @@ import "../wallet/IWallet.sol";
 contract SimpleUpgrader is IModule {
 
     IModuleRegistry private registry;
-    ILockStorage private lockStorage;
     address[] public toDisable;
     address[] public toEnable;
 
@@ -37,14 +35,11 @@ contract SimpleUpgrader is IModule {
 
     constructor(
         IModuleRegistry _registry,
-        ILockStorage _lockStorage,
         address[] memory _toDisable,
         address[] memory _toEnable
     )
-        public
     {
         registry = _registry;
-        lockStorage = _lockStorage;
         toDisable = _toDisable;
         toEnable = _toEnable;
     }
@@ -57,8 +52,7 @@ contract SimpleUpgrader is IModule {
      */
     function init(address _wallet) external override {
         require(msg.sender == _wallet, "SU: only wallet can call init");
-        require(!lockStorage.isLocked(_wallet), "SU: wallet locked");
-        require(registry.isRegisteredModule(toEnable), "SU: Not all modules are registered");
+        require(registry.isRegisteredModule(toEnable), "SU: module not registered");
 
         uint256 i = 0;
         //add new modules
@@ -76,5 +70,14 @@ contract SimpleUpgrader is IModule {
     /**
      * @inheritdoc IModule
      */
-    function addModule(address _wallet, address _module) external override {}
+    function addModule(address /*_wallet*/, address /*_module*/) external pure override {
+        revert("SU: method not implemented");
+    }
+
+    /**
+     * @inheritdoc IModule
+     */
+    function supportsStaticCall(bytes4 /*_methodId*/) external pure override returns (bool _isSupported) { 
+        return false;
+    }
 }

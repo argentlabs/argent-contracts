@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 /**
  * @title Proxy
@@ -24,18 +24,18 @@ pragma solidity ^0.6.12;
  */
 contract Proxy {
 
-    address implementation;
+    address immutable public implementation;
 
     event Received(uint indexed value, address indexed sender, bytes data);
 
-    constructor(address _implementation) public {
+    constructor(address _implementation) {
         implementation = _implementation;
     }
 
     fallback() external payable {
+        address target = implementation;
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            let target := sload(0)
             calldatacopy(0, 0, calldatasize())
             let result := delegatecall(gas(), target, 0, calldatasize(), 0, 0)
             returndatacopy(0, 0, returndatasize())
@@ -46,6 +46,6 @@ contract Proxy {
     }
 
     receive() external payable {
-        emit Received(msg.value, msg.sender, msg.data);
+        emit Received(msg.value, msg.sender, "");
     }
 }

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 import "./base/Owned.sol";
 
 interface IArgentWallet {
@@ -54,7 +54,7 @@ contract ArgentWalletDetector is Owned {
     // emits when a new accepted implementation is added 
     event ImplementationAdded(address indexed implementation);
 
-    constructor(bytes32[] memory _codes, address[] memory _implementations) public {
+    constructor(bytes32[] memory _codes, address[] memory _implementations) {
         for(uint i = 0; i < _codes.length; i++) {
             addCode(_codes[i]);
         }

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 import "../contracts/modules/common/IModule.sol";
 import "../contracts/wallet/IWallet.sol";
 
@@ -28,7 +28,7 @@ contract FakeWallet is IWallet {
     address target;
     uint value;
     bytes data;
-    constructor(bool _targetIsModule, address _target, uint _value, bytes memory _data) public {
+    constructor(bool _targetIsModule, address _target, uint _value, bytes memory _data) {
         targetIsModule = _targetIsModule;
         target = _target;
         value = _value;

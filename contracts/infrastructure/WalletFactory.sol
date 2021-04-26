@@ -14,38 +14,32 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.6.12;
+pragma solidity ^0.8.3;
 
 import "../wallet/Proxy.sol";
 import "../wallet/BaseWallet.sol";
-import "./base/Owned.sol";
 import "./base/Managed.sol";
 import "./storage/IGuardianStorage.sol";
-import "./IModuleRegistry.sol";
-import "../modules/common/IVersionManager.sol";
 import "../modules/common/Utils.sol";
 
 /**
  * @title WalletFactory
  * @notice The WalletFactory contract creates and assigns wallets to accounts.
- * @author Julien Niset - <julien@argent.xyz>
+ * @author Julien Niset, Olivier VDB - <julien@argent.xyz>, <olivier@argent.xyz>
  */
-contract WalletFactory is Owned, Managed {
+contract WalletFactory is Managed {
 
-    address constant internal ETH_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address constant internal ETH_TOKEN = address(0);
 
-    // The address of the module dregistry
-    address public moduleRegistry;
     // The address of the base wallet implementation
-    address public walletImplementation;
+    address immutable public walletImplementation;
     // The address of the GuardianStorage
-    address public guardianStorage;
+    address immutable public guardianStorage;
     // The recipient of the refund
     address public refundAddress; 
 
     // *************** Events *************************** //
 
-    event ModuleRegistryChanged(address addr);
     event RefundAddressChanged(address addr);
     event WalletCreated(address indexed wallet, address indexed owner, address indexed guardian, address refundToken, uint256 refundAmount);
 
@@ -54,48 +48,56 @@ contract WalletFactory is Owned, Managed {
     /**
      * @notice Default constructor.
      */
-    constructor(address _moduleRegistry, address _walletImplementation, address _guardianStorage, address _refundAddress) public {
-        require(_moduleRegistry != address(0), "WF: ModuleRegistry address not defined");
-        require(_walletImplementation != address(0), "WF: WalletImplementation address not defined");
-        require(_guardianStorage != address(0), "WF: GuardianStorage address not defined");
-        require(_refundAddress != address(0), "WF: refund address not defined");
-        moduleRegistry = _moduleRegistry;
+    constructor(address _walletImplementation, address _guardianStorage, address _refundAddress) {
+        require(_walletImplementation != address(0), "WF: empty wallet implementation");
+        require(_guardianStorage != address(0), "WF: empty guardian storage");
+        require(_refundAddress != address(0), "WF: empty refund address");
         walletImplementation = _walletImplementation;
         guardianStorage = _guardianStorage;
         refundAddress = _refundAddress;
     }
 
     // *************** External Functions ********************* //
+
+    /**
+    * @notice Disables the ability for the owner of the factory to revoke a manager.
+    */
+    function revokeManager(address /*_manager*/) override external pure {
+        revert("WF: managers can't be revoked");
+    }
      
     /**
-     * @notice Lets the manager create a wallet for an owner account at a specific address.
-     * The wallet is initialised with the version manager module, the version number and a first guardian.
-     * The wallet is created using the CREATE2 opcode.
+     * @notice Creates a wallet for an owner account at a specific address.
+     * The wallet is initialised with the target modules and a first guardian by default.
+     * The wallet is created using the CREATE2 opcode and must have been approved 
+     * by a manager of the factory.
      * @param _owner The account address.
-     * @param _versionManager The version manager module
+     * @param _modules The list of modules for the wallet.
      * @param _guardian The guardian address.
      * @param _salt The salt.
-     * @param _version The version of the feature bundle.
+     * @param _refundAmount The amount to refund to the relayer.
+     * @param _refundToken The token to use to refund the relayer.
+     * @param _ownerSignature The owner signature on the refund info.
+     * @param _managerSignature The manager signature on the wallet address.
      */
     function createCounterfactualWallet(
         address _owner,
-        address _versionManager,
+        address[] calldata _modules,
         address _guardian,
-        bytes32 _salt,
-        uint256 _version,
+        bytes20 _salt,
         uint256 _refundAmount,
         address _refundToken,
-        bytes calldata _ownerSignature
+        bytes calldata _ownerSignature,
+        bytes calldata _managerSignature
     )
         external
-        onlyManager
         returns (address _wallet)
     {
-        validateInputs(_owner, _versionManager, _guardian, _version);
-        bytes32 newsalt = newSalt(_salt, _owner, _versionManager, _guardian, _version);
-        Proxy proxy = new Proxy{salt: newsalt}(walletImplementation);
-        address payable wallet = address(proxy);
-        configureWallet(BaseWallet(wallet), _owner, _versionManager, _guardian, _version);
+        validateInputs(_owner, _modules, _guardian);
+        bytes32 newsalt = newSalt(_salt, _owner, _modules, _guardian);
+        address payable wallet = payable(new Proxy{salt: newsalt}(walletImplementation));
+        validateAuthorisedCreation(wallet, _managerSignature);
+        configureWallet(BaseWallet(wallet), _owner, _modules, _guardian);
         if (_refundAmount > 0 && _ownerSignature.length == 65) {
             validateAndRefund(wallet, _owner, _refundAmount, _refundToken, _ownerSignature);
         }
@@ -111,53 +113,41 @@ contract WalletFactory is Owned, Managed {
     /**
      * @notice Gets the address of a counterfactual wallet with a first default guardian.
      * @param _owner The account address.
-     * @param _versionManager The version manager module
+     * @param _modules The list of modules for wallet.
      * @param _guardian The guardian address.
      * @param _salt The salt.
-     * @param _version The version of feature bundle.
      * @return _wallet The address that the wallet will have when created using CREATE2 and the same input parameters.
      */
     function getAddressForCounterfactualWallet(
         address _owner,
-        address _versionManager,
+        address[] calldata _modules,
         address _guardian,
-        bytes32 _salt,
-        uint256 _version
+        bytes20 _salt
     )
         external
         view
         returns (address _wallet)
     {
-        validateInputs(_owner, _versionManager, _guardian, _version);
-        bytes32 newsalt = newSalt(_salt, _owner, _versionManager, _guardian, _version);
-        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(walletImplementation));
+        validateInputs(_owner, _modules, _guardian);
+        bytes32 newsalt = newSalt(_salt, _owner, _modules, _guardian);
+        bytes memory code = abi.encodePacked(type(Proxy).creationCode, uint256(uint160(walletImplementation)));
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), address(this), newsalt, keccak256(code)));
         _wallet = address(uint160(uint256(hash)));
     }
 
     /**
-     * @notice Lets the owner change the address of the module registry contract.
-     * @param _moduleRegistry The address of the module registry contract.
-     */
-    function changeModuleRegistry(address _moduleRegistry) external onlyOwner {
-        require(_moduleRegistry != address(0), "WF: address cannot be null");
-        moduleRegistry = _moduleRegistry;
-        emit ModuleRegistryChanged(_moduleRegistry);
-    }
-
-    /**
-     * @notice Lets the owner change the refund address.
+     * @notice Lets the owner of the factory change the refund address.
      * @param _refundAddress The address to use for refunds.
      */
     function changeRefundAddress(address _refundAddress) external onlyOwner {
-        require(_refundAddress != address(0), "WF: address cannot be null");
+        require(_refundAddress != address(0), "WF: cannot set to empty");
         refundAddress = _refundAddress;
         emit RefundAddressChanged(_refundAddress);
     }
 
     /**
-     * @notice Inits the module for a wallet by doing nothing.
-     * The method can only be called by the wallet itself.
+     * @notice Required to make the factory a module during the 
+     * initialisation of the wallet. 
      * @param _wallet The wallet.
      */
     function init(BaseWallet _wallet) external pure {
@@ -169,59 +159,66 @@ contract WalletFactory is Owned, Managed {
     /**
      * @notice Helper method to configure a wallet for a set of input parameters.
      * @param _wallet The target wallet
-     * @param _owner The account address.
-     * @param _versionManager The version manager module
-     * @param _guardian The guardian address.
-     * @param _version The version of the feature bundle.
+     * @param _owner The owner address.
+     * @param _modules The list of modules.
+     * @param _guardian The guardian.
      */
-    function configureWallet(
-        BaseWallet _wallet,
-        address _owner,
-        address _versionManager,
-        address _guardian,
-        uint256 _version
-    )
-        internal
-    {
-        // add the factory to modules so it can add a guardian and upgrade the wallet to the required version
-        address[] memory extendedModules = new address[](2);
-        extendedModules[0] = _versionManager;
-        extendedModules[1] = address(this);
+    function configureWallet(BaseWallet _wallet, address _owner, address[] calldata _modules, address _guardian) internal {
+        // add the factory to modules so it can add the first guardian and trigger the refund
+        address[] memory extendedModules = new address[](_modules.length + 1);
+        extendedModules[0] = address(this);
+        for (uint i = 0; i < _modules.length; i++) {
+            extendedModules[i + 1] = _modules[i];
+        }
 
         // initialise the wallet with the owner and the extended modules
         _wallet.init(_owner, extendedModules);
 
-        // add guardian
+        // add the first guardian
         IGuardianStorage(guardianStorage).addGuardian(address(_wallet), _guardian);
-
-        // upgrade the wallet
-        IVersionManager(_versionManager).upgradeWallet(address(_wallet), _version);
     }
 
     /**
      * @notice Generates a new salt based on a provided salt, an owner, a list of modules and an optional guardian.
-     * @param _salt The slat provided.
+     * The extra parameters are pre-hashed to be compatible with zk-sync CREATE2 API (!! the order of the parameters 
+     * assumes https://github.com/matter-labs/zksync/pull/259 has been merged !!).
+     * @param _salt The salt provided. In practice the hash of the L2 public key.
      * @param _owner The owner address.
-     * @param _versionManager The version manager module
+     * @param _modules The list of modules for wallet.
      * @param _guardian The guardian address.
-     * @param _version The version of feature bundle
      */
-    function newSalt(bytes32 _salt, address _owner, address _versionManager, address _guardian, uint256 _version) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(_salt, _owner, _versionManager, _guardian, _version));
+    function newSalt(bytes20 _salt, address _owner, address[] calldata _modules, address _guardian) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(keccak256(abi.encodePacked(_owner, _modules, _guardian)), _salt));
     }
 
     /**
-     * @notice Throws if the owner, guardian, version or version manager is invalid.
+     * @notice Throws if the owner, guardian, or module array is invalid.
      * @param _owner The owner address.
-     * @param _versionManager The version manager module
-     * @param _guardian The guardian address
-     * @param _version The version of feature bundle
+     * @param _modules The list of modules for the wallet.
+     * @param _guardian The guardian address.
      */
-    function validateInputs(address _owner, address _versionManager, address _guardian, uint256 _version) internal view {
-        require(_owner != address(0), "WF: owner cannot be null");
-        require(IModuleRegistry(moduleRegistry).isRegisteredModule(_versionManager), "WF: invalid _versionManager");
-        require(_guardian != (address(0)), "WF: guardian cannot be null");
-        require(_version > 0, "WF: invalid _version");
+    function validateInputs(address _owner, address[] calldata _modules, address _guardian) internal pure {
+        require(_owner != address(0), "WF: empty owner address");
+        require(_owner != _guardian, "WF: owner cannot be guardian");
+        require(_modules.length > 0, "WF: empty modules");
+        require(_guardian != (address(0)), "WF: empty guardian");        
+    }
+
+    /**
+     * @notice Throws if the sender is not a manager and the manager's signature for the
+     * creation of the new wallet is invalid.
+     * @param _wallet The wallet address
+     * @param _managerSignature The manager's signature
+     */
+    function validateAuthorisedCreation(address _wallet, bytes memory _managerSignature) internal view {
+        address manager;
+        if(_managerSignature.length != 65) {
+            manager = msg.sender;
+        } else {
+            bytes32 signedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", bytes32(uint256(uint160(_wallet)))));
+            manager = Utils.recoverSigner(signedHash, _managerSignature, 0);
+        }
+        require(managers[manager], "WF: unauthorised wallet creation");
     }
 
     /**
@@ -243,7 +240,7 @@ contract WalletFactory is Owned, Managed {
     {
         bytes32 signedHash = keccak256(abi.encodePacked(
                 "\x19Ethereum Signed Message:\n32",
-                keccak256(abi.encodePacked(_refundAmount, _refundToken))
+                keccak256(abi.encodePacked(_wallet, _refundAmount, _refundToken))
             ));
         address signer = Utils.recoverSigner(signedHash, _ownerSignature, 0);
         if (signer == _owner) {

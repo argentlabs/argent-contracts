@@ -1,5 +1,5 @@
 // ///////////////////////////////////////////////////////////////////
-// Script to register and deregister DEXes in the DexRegistry contract
+// Script to register and deregister DEXes in the ParaswapFilter contract
 //
 // Can be executed as:
 // ./execute_script.sh update_dex_registry.js <network> --dex <dex address>=<dex status>
@@ -13,7 +13,7 @@
 global.web3 = web3;
 
 const MultiSig = artifacts.require("MultiSigWallet");
-const DexRegistry = artifacts.require("DexRegistry");
+const ParaswapFilter = artifacts.require("ParaswapFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -39,12 +39,12 @@ async function main() {
   const { deploymentAccount, configurator } = await deployManager.getProps();
   const { config } = configurator;
 
-  const DexRegistryWrapper = await DexRegistry.at(config.contracts.DexRegistry);
+  const ParaswapFilterWrapper = await ParaswapFilter.at(config.contracts.ParaswapFilter);
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   console.log(`Updating registry for dex [${dexAddress}] with value [${dexStatus}]`);
-  await multisigExecutor.executeCall(DexRegistryWrapper, "setAuthorised", [dexAddress, dexStatus]);
+  await multisigExecutor.executeCall(ParaswapFilterWrapper, "setAuthorised", [dexAddress, dexStatus]);
 }
 
 module.exports = (cb) => main().then(cb).catch(cb);

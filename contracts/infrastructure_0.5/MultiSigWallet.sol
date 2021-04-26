@@ -80,7 +80,7 @@ contract MultiSigWallet {
         bytes32 s;
         uint256 count = _signatures.length / 65;
         require(count >= threshold, "MSW: Not enough signatures");
-        bytes32 txHash = keccak256(abi.encodePacked(byte(0x19), byte(0), address(this), _to, _value, _data, nonce));
+        bytes32 txHash = keccak256(abi.encodePacked(bytes1(0x19), bytes1(0), address(this), _to, _value, _data, nonce));
         nonce += 1;
         uint256 valid = 0;
         address lastSigner = address(0);

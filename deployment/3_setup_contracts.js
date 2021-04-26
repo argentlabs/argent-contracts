@@ -5,9 +5,7 @@ const ModuleRegistry = artifacts.require("ModuleRegistry");
 const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const WalletFactory = artifacts.require("WalletFactory");
-const TokenPriceRegistry = artifacts.require("TokenPriceRegistry");
-const CompoundRegistry = artifacts.require("CompoundRegistry");
-const DexRegistry = artifacts.require("DexRegistry");
+const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
 const deployManager = require("../utils/deploy-manager.js");
 
@@ -19,14 +17,7 @@ async function main() {
   const ENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);
   const WalletFactoryWrapper = await WalletFactory.at(config.contracts.WalletFactory);
   const ModuleRegistryWrapper = await ModuleRegistry.at(config.contracts.ModuleRegistry);
-  const CompoundRegistryWrapper = await CompoundRegistry.at(config.contracts.CompoundRegistry);
-  const TokenPriceRegistryWrapper = await TokenPriceRegistry.at(config.modules.TokenPriceRegistry);
-  const DexRegistryWrapper = await DexRegistry.at(config.contracts.DexRegistry);
-
-  // Configure DexRegistry
-  const authorisedExchanges = Object.values(config.defi.paraswap.authorisedExchanges);
-  console.log("Setting up DexRegistry");
-  await DexRegistryWrapper.setAuthorised(authorisedExchanges, Array(authorisedExchanges.length).fill(true));
+  const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
 
   // //////////////////////////////////
   // Set contracts' managers
@@ -45,9 +36,6 @@ async function main() {
     const account = config.backend.accounts[idx];
     console.log(`Set ${account} as the manager of the WalletFactory`);
     await WalletFactoryWrapper.addManager(account);
-
-    console.log(`Set ${account} as the manager of the TokenPriceRegistry`);
-    await TokenPriceRegistryWrapper.addManager(account);
   }
 
   // //////////////////////////////////
@@ -59,9 +47,7 @@ async function main() {
     ENSManagerWrapper,
     WalletFactoryWrapper,
     ModuleRegistryWrapper,
-    CompoundRegistryWrapper,
-    TokenPriceRegistryWrapper,
-    DexRegistryWrapper];
+    ArgentWalletDetectorWrapper];
 
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];

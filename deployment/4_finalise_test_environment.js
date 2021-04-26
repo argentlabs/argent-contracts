@@ -1,6 +1,7 @@
 /* global artifacts */
 
 global.web3 = web3;
+global.artifacts = artifacts;
 
 const ENS = artifacts.require("ENSRegistryWithFallback");
 const ENSReverseRegistrar = artifacts.require("ReverseRegistrar");

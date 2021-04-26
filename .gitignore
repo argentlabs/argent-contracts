@@ -1,6 +1,5 @@
 node_modules
 build
-build-legacy
 tmp
 bin
 .outputParameter
@@ -30,8 +29,6 @@ flat
 .env
 utils/config/*.json
 !utils/config/development.json
-!utils/config/kovan.json
-!utils/config/kovan-fork.json
 ganache-accounts.json
 
 ## solidity-coverage

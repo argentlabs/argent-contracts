@@ -22,6 +22,11 @@ class Configurator {
     Object.assign(this._config.contracts, contracts);
   }
 
+  updateFilterAddresses(filters) {
+    if (!this._config.filters) this._config.filters = {};
+    Object.assign(this._config.filters, filters);
+  }
+
   updateModuleAddresses(modules) {
     if (!this._config.modules) this._config.modules = {};
     Object.assign(this._config.modules, modules);
@@ -31,9 +36,11 @@ class Configurator {
     this._config.ENS.ensRegistry = address;
   }
 
-  updateParaswap(address, authorisedExchanges) {
+  updateParaswap(address, uniswapProxy, adapters, targetExchanges) {
     this._config.defi.paraswap.contract = address;
-    this._config.defi.paraswap.authorisedExchanges = { ...authorisedExchanges };
+    this._config.defi.paraswap.uniswapProxy = uniswapProxy;
+    this._config.defi.paraswap.adapters = { ...adapters };
+    this._config.defi.paraswap.targetExchanges = { ...targetExchanges };
   }
 
   updateMakerMigration(address) {
@@ -42,6 +49,13 @@ class Configurator {
 
   updateUniswapFactory(address) {
     this._config.defi.uniswap.factory = address;
+  }
+
+  updateUniswapV2(factory, router, zap, initCode) {
+    this._config.defi.uniswap.factoryV2 = factory;
+    this._config.defi.uniswap.v2Router = router;
+    this._config.defi.uniswap.unizap = zap;
+    this._config.defi.uniswap.initCodeV2 = initCode;
   }
 
   updateBackendAccounts(accounts) {

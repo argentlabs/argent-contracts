@@ -6,12 +6,12 @@ module.exports = {
 
   compilers: {
     solc: {
-      version: "0.6.12",
-      docker: true,
+      version: "0.8.3",
+      docker: false,
       settings: {
         optimizer: {
           enabled: true,
-          runs: 999,
+          runs: 300,
         },
       },
     },

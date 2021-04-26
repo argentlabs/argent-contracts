@@ -1,29 +1,40 @@
 /* global artifacts */
 const ethers = require("ethers");
+
 const truffleAssert = require("truffle-assertions");
 const TruffleContract = require("@truffle/contract");
 
-const OldWalletV13Contract = require("../build-legacy/v1.3.0/BaseWallet");
-const OldWalletV16Contract = require("../build-legacy/v1.6.0/BaseWallet");
+const LegacyWalletV16Contract = require("../build-legacy/v1.6.0/BaseWallet");
+const LegacyWalletV13Contract = require("../build-legacy/v1.3.0/BaseWallet");
 
-const OldWalletV13 = TruffleContract(OldWalletV13Contract);
-const OldWalletV16 = TruffleContract(OldWalletV16Contract);
+const LegacyWalletV16 = TruffleContract(LegacyWalletV16Contract);
+const LegacyWalletV13 = TruffleContract(LegacyWalletV13Contract);
 
 const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 
-const VersionManager = artifacts.require("VersionManager");
 const Registry = artifacts.require("ModuleRegistry");
-const SimpleUpgrader = artifacts.require("SimpleUpgrader");
 const GuardianStorage = artifacts.require("GuardianStorage");
-const LockStorage = artifacts.require("LockStorage");
-const TestFeature = artifacts.require("TestFeature");
+const TransferStorage = artifacts.require("TransferStorage");
+const ArgentModule = artifacts.require("ArgentModule");
+const DappRegistry = artifacts.require("DappRegistry");
+const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
+const ERC20 = artifacts.require("TestERC20");
 
-const { getBalance } = require("../utils/utilities.js");
+const utils = require("../utils/utilities.js");
+
+const SECURITY_PERIOD = 2;
+const SECURITY_WINDOW = 2;
+const LOCK_PERIOD = 4;
+const RECOVERY_PERIOD = 4;
+
+const RelayManager = require("../utils/relay-manager");
 
 contract("BaseWallet", (accounts) => {
   const owner = accounts[1];
-  const nonowner = accounts[2];
+  const recipient = accounts[7];
+
+  const ZERO_ADDRESS = ethers.constants.AddressZero;
 
   let wallet;
   let walletImplementation;
@@ -31,39 +42,50 @@ contract("BaseWallet", (accounts) => {
   let module1;
   let module2;
   let module3;
-  let feature1;
   let guardianStorage;
-  let lockStorage;
+  let transferStorage;
+  let dappRegistry;
+  let uniswapRouter;
+  let token;
+  let manager;
 
   async function deployTestModule() {
-    const module = await VersionManager.new(
+    const _module = await ArgentModule.new(
       registry.address,
-      lockStorage.address,
       guardianStorage.address,
-      ethers.constants.AddressZero,
-      ethers.constants.AddressZero);
-    const feature = await TestFeature.new(
-      lockStorage.address,
-      module.address,
-      42);
-    await module.addVersion([feature.address], []);
-    return { module, feature };
+      transferStorage.address,
+      dappRegistry.address,
+      uniswapRouter.address,
+      SECURITY_PERIOD,
+      SECURITY_WINDOW,
+      RECOVERY_PERIOD,
+      LOCK_PERIOD);
+
+    return _module;
   }
 
   before(async () => {
-    OldWalletV13.defaults({ from: accounts[0] });
-    OldWalletV13.setProvider(web3.currentProvider);
-    OldWalletV16.defaults({ from: accounts[0] });
-    OldWalletV16.setProvider(web3.currentProvider);
+    LegacyWalletV16.defaults({ from: accounts[0] });
+    LegacyWalletV16.setProvider(web3.currentProvider);
+    LegacyWalletV13.defaults({ from: accounts[0] });
+    LegacyWalletV13.setProvider(web3.currentProvider);
 
     registry = await Registry.new();
     guardianStorage = await GuardianStorage.new();
-    lockStorage = await LockStorage.new();
-    const mod = await deployTestModule();
-    [module1, feature1] = [mod.module, mod.feature];
-    module2 = (await deployTestModule()).module;
-    module3 = (await deployTestModule()).module;
+    transferStorage = await TransferStorage.new();
+    dappRegistry = await DappRegistry.new(0);
+    uniswapRouter = await UniswapV2Router01.new();
+
+    module1 = await deployTestModule();
+    module2 = await deployTestModule();
+    module3 = await deployTestModule();
     walletImplementation = await BaseWallet.new();
+
+    await registry.registerModule(module1.address, ethers.utils.formatBytes32String("ArgentModule"));
+
+    token = await ERC20.new([accounts[0]], web3.utils.toWei("1000"), 18);
+
+    manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
   });
 
   beforeEach(async () => {
@@ -74,166 +96,137 @@ contract("BaseWallet", (accounts) => {
   describe("Registering modules", () => {
     it("should register a module with the correct info", async () => {
       const name = ethers.utils.formatBytes32String("module1");
-      await registry.registerModule(module1.address, name);
-      const isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module1.address).call();
-      assert.isTrue(isRegistered, "module should be registered");
-      const info = await registry.moduleInfo(module1.address);
-      assert.equal(name, info, "name should be correct");
+      await registry.registerModule(module2.address, name);
+      const isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module2.address).call();
+      assert.isTrue(isRegistered);
+      const info = await registry.moduleInfo(module2.address);
+      assert.equal(name, info);
     });
 
     it("should deregister a module", async () => {
       const name = ethers.utils.formatBytes32String("module2");
-      await registry.registerModule(module2.address, name);
-      let isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module2.address).call();
-      assert.isTrue(isRegistered, "module should be registered");
-      await registry.deregisterModule(module2.address);
-      isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module2.address).call();
-      assert.isFalse(isRegistered, "module should be deregistered");
+      await registry.registerModule(module3.address, name);
+      await registry.deregisterModule(module3.address);
+      const isRegistered = await registry.contract.methods["isRegisteredModule(address)"](module3.address).call();
+      assert.isFalse(isRegistered);
     });
 
     it("should register an upgrader with the correct info", async () => {
       const name = ethers.utils.formatBytes32String("upgrader1");
       await registry.registerUpgrader(module1.address, name);
       const isRegistered = await registry.isRegisteredUpgrader(module1.address);
-      assert.isTrue(isRegistered, "module should be registered");
+      assert.isTrue(isRegistered);
       const info = await registry.upgraderInfo(module1.address);
-      assert.equal(name, info, "name should be correct");
+      assert.equal(name, info);
     });
 
     it("should deregister an upgrader", async () => {
       const name = ethers.utils.formatBytes32String("upgrader2");
       await registry.registerUpgrader(module2.address, name);
-      let isRegistered = await registry.isRegisteredUpgrader(module2.address);
-      assert.isTrue(isRegistered, "upgrader should be registered");
+
       await registry.deregisterUpgrader(module2.address);
-      isRegistered = await registry.isRegisteredUpgrader(module2.address);
+      const isRegistered = await registry.isRegisteredUpgrader(module2.address);
       assert.isFalse(isRegistered, "upgrader should be deregistered");
+    });
+
+    it("should not let a non-module deauthorise a module", async () => {
+      await wallet.init(owner, [module1.address]);
+      await truffleAssert.reverts(wallet.authoriseModule(module1.address, false), "BW: sender not authorized");
     });
   });
 
   describe("Initialize Wallets", () => {
-    describe("wallet init", () => {
-      it("should create a wallet with the correct owner", async () => {
-        let walletOwner = await wallet.owner();
-        assert.equal(walletOwner, "0x0000000000000000000000000000000000000000", "owner should be null before init");
-        await wallet.init(owner, [module1.address]);
-        await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-        walletOwner = await wallet.owner();
-        assert.equal(walletOwner, owner, "owner should be the owner after init");
-      });
-
-      it("should create a wallet with the correct modules", async () => {
-        await wallet.init(owner, [module1.address, module2.address]);
-        await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-        await module2.upgradeWallet(wallet.address, await module2.lastVersion(), { from: owner });
-        const module1IsAuthorised = await wallet.authorised(module1.address);
-        const module2IsAuthorised = await wallet.authorised(module2.address);
-        const module3IsAuthorised = await wallet.authorised(module3.address);
-        assert.equal(module1IsAuthorised, true, "module1 should be authorised");
-        assert.equal(module2IsAuthorised, true, "module2 should be authorised");
-        assert.equal(module3IsAuthorised, false, "module3 should not be authorised");
-      });
-
-      it("should not reinitialize a wallet", async () => {
-        await wallet.init(owner, [module1.address]);
-        await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-        await truffleAssert.reverts(wallet.init(owner, [module1.address]), "BW: wallet already initialised");
-      });
-
-      it("should not initialize a wallet with no module", async () => {
-        await truffleAssert.reverts(wallet.init(owner, []), "BW: construction requires at least 1 module");
-      });
-
-      it("should not initialize a wallet with duplicate modules", async () => {
-        await truffleAssert.reverts(wallet.init(owner, [module1.address, module1.address]), "BW: module is already added");
-      });
+    it("should create a wallet with the correct owner", async () => {
+      let walletOwner = await wallet.owner();
+      assert.equal(walletOwner, "0x0000000000000000000000000000000000000000");
+      await wallet.init(owner, [module1.address]);
+      walletOwner = await wallet.owner();
+      assert.equal(walletOwner, owner);
     });
 
-    describe("Receiving ETH", () => {
-      it("should accept ETH", async () => {
-        const before = await getBalance(wallet.address);
-        await wallet.send(50000000);
-        const after = await getBalance(wallet.address);
-        assert.equal(after.sub(before).toNumber(), 50000000, "should have received ETH");
-      });
-
-      it("should accept ETH with data", async () => {
-        const before = await getBalance(wallet.address);
-        await web3.eth.sendTransaction({ from: accounts[0], to: wallet.address, data: "0x1234", value: 50000000 });
-        const after = await getBalance(wallet.address);
-        assert.equal(after.sub(before).toNumber(), 50000000, "should have received ETH");
-      });
+    it("should create a wallet with the correct modules", async () => {
+      await wallet.init(owner, [module1.address, module2.address]);
+      const module1IsAuthorised = await wallet.authorised(module1.address);
+      const module2IsAuthorised = await wallet.authorised(module2.address);
+      const module3IsAuthorised = await wallet.authorised(module3.address);
+      assert.equal(module1IsAuthorised, true);
+      assert.equal(module2IsAuthorised, true);
+      assert.equal(module3IsAuthorised, false);
     });
 
-    describe("Authorisations", () => {
-      it("should not let a non-module deauthorise a module", async () => {
-        await wallet.init(owner, [module1.address]);
-        await truffleAssert.reverts(wallet.authoriseModule(module1.address, false), "BW: msg.sender not an authorized module");
-      });
-
-      it("should not let a feature set the owner to address(0)", async () => {
-        await wallet.init(owner, [module1.address]);
-        await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-
-        await truffleAssert.reverts(feature1.invalidOwnerChange(wallet.address), "BW: address cannot be null");
-      });
+    it("should not reinitialize a wallet", async () => {
+      await wallet.init(owner, [module1.address]);
+      await truffleAssert.reverts(wallet.init(owner, [module1.address]), "BW: wallet already initialised");
     });
 
-    describe("Static calls", () => {
-      it("should delegate static calls to the modules", async () => {
-        await wallet.init(owner, [module1.address]);
-        await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-        const module1IsAuthorised = await wallet.authorised(module1.address);
-        assert.equal(module1IsAuthorised, true, "module1 should be authorised");
-        const walletAsFeature = await TestFeature.at(wallet.address);
-        const boolVal = await walletAsFeature.getBoolean();
-        const uintVal = await walletAsFeature.getUint();
-        const addressVal = await walletAsFeature.getAddress(nonowner);
-        assert.equal(boolVal, true, "should have the correct bool");
-        assert.equal(uintVal, 42, "should have the correct uint");
-        assert.equal(addressVal, nonowner, "should have the address");
-      });
+    it("should not initialize a wallet with no module", async () => {
+      await truffleAssert.reverts(wallet.init(owner, []), "BW: empty modules");
+    });
 
-      it("should not delegate static calls to no longer authorised modules ", async () => {
-        await wallet.init(owner, [module1.address, module2.address]);
-        await module1.upgradeWallet(wallet.address, await module1.lastVersion(), { from: owner });
-        let module1IsAuthorised = await wallet.authorised(module1.address);
-        assert.equal(module1IsAuthorised, true, "module1 should be authorised");
-
-        // removing module 1
-        const upgrader = await SimpleUpgrader.new(
-          registry.address, lockStorage.address, [module1.address], []);
-        await registry.registerModule(upgrader.address, ethers.utils.formatBytes32String("Removing module1"));
-        await module1.addModule(wallet.address, upgrader.address, { from: owner });
-        module1IsAuthorised = await wallet.authorised(module1.address);
-        assert.equal(module1IsAuthorised, false, "module1 should not be authorised");
-
-        // trying to execute static call delegated to module1 (it should fail)
-        const walletAsModule = await TestFeature.at(wallet.address);
-        await truffleAssert.reverts(walletAsModule.getBoolean(), "BW: must be an authorised module for static call");
-      });
+    it("should not initialize a wallet with duplicate modules", async () => {
+      await truffleAssert.reverts(wallet.init(owner, [module1.address, module1.address]), "BW: module is already added");
     });
   });
 
-  describe("Old BaseWallet V1.3", () => {
-    it("should work with new modules", async () => {
-      const oldWallet = await OldWalletV13.new();
-      await oldWallet.init(owner, [module1.address]);
-      await module1.upgradeWallet(oldWallet.address, await module1.lastVersion(), { from: owner });
-      await feature1.callDapp(oldWallet.address);
-      await feature1.callDapp2(oldWallet.address, 2, false);
-      await truffleAssert.reverts(feature1.fail(oldWallet.address, "just because"));
+  describe("Receiving ETH", () => {
+    it("should accept ETH", async () => {
+      const before = await utils.getBalance(wallet.address);
+      await wallet.send(50000000);
+      const after = await utils.getBalance(wallet.address);
+      assert.equal(after.sub(before).toNumber(), 50000000, "should have received ETH");
+    });
+
+    it("should accept ETH with data", async () => {
+      const before = await utils.getBalance(wallet.address);
+      await web3.eth.sendTransaction({ from: accounts[0], to: wallet.address, data: "0x1234", value: 50000000 });
+      const after = await utils.getBalance(wallet.address);
+      assert.equal(after.sub(before).toNumber(), 50000000, "should have received ETH");
     });
   });
 
-  describe("Old BaseWallet V1.6", () => {
-    it("should work with new modules", async () => {
-      const oldWallet = await OldWalletV16.new();
-      await oldWallet.init(owner, [module1.address]);
-      await module1.upgradeWallet(oldWallet.address, await module1.lastVersion(), { from: owner });
-      await feature1.callDapp(oldWallet.address);
-      await feature1.callDapp2(oldWallet.address, 2, true);
-      await truffleAssert.reverts(feature1.fail(oldWallet.address, "just because"));
+  describe("Should support legacy wallets", () => {
+    it("should work with v1.6", async () => {
+      const walletV16 = await LegacyWalletV16.new();
+      await walletV16.init(owner, [module1.address]);
+      // Fund wallet with 100 tokens
+      await token.transfer(walletV16.address, 100);
+      // Make trusted the recipient account
+      await utils.addTrustedContact(walletV16, recipient, module1, SECURITY_PERIOD);
+
+      // Test relaying an ERC20 transfer with refund in ETH using new `multiCall`
+      const data = token.contract.methods.transfer(recipient, 100).encodeABI();
+      const transaction = utils.encodeTransaction(token.address, 0, data);
+
+      const txReceipt = await manager.relay(
+        module1,
+        "multiCall",
+        [walletV16.address, [transaction]],
+        walletV16,
+        [owner]);
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, `ERC20 transfer failed with "${error}"`);
+    });
+
+    it("should work with v1.3", async () => {
+      const walletV13 = await LegacyWalletV13.new();
+      await walletV13.init(owner, [module1.address]);
+      // Fund wallet with 100 tokens
+      await token.transfer(walletV13.address, 100);
+      // Make trusted the recipient account
+      await utils.addTrustedContact(walletV13, recipient, module1, SECURITY_PERIOD);
+
+      // Test relaying an ERC20 transfer with refund in ETH using new `multiCall`
+      const data = token.contract.methods.transfer(recipient, 100).encodeABI();
+      const transaction = utils.encodeTransaction(token.address, 0, data);
+
+      const txReceipt = await manager.relay(
+        module1,
+        "multiCall",
+        [walletV13.address, [transaction]],
+        walletV13,
+        [owner]);
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, `ERC20 transfer failed with "${error}"`);
     });
   });
 });

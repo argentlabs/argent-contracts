@@ -40,19 +40,20 @@ module.exports = {
     const uniswapFactory = await UniswapFactory.new();
     const uniswapTemplateExchange = await UniswapExchange.new();
     await uniswapFactory.initializeFactory(uniswapTemplateExchange.address);
+    const uniswapExchanges = {};
     for (let i = 0; i < tokens.length; i += 1) {
       const token = tokens[i];
       await uniswapFactory.createExchange(token.address, { from: infrastructure });
       const uniswapExchangeAddress = await uniswapFactory.getExchange(token.address);
       const tokenExchange = await UniswapExchange.at(uniswapExchangeAddress);
-
+      uniswapExchanges[token.address] = tokenExchange;
       const tokenLiquidity = new BN(ethLiquidity).mul(WAD).div(ethPerToken[i]);
       await token.mint(infrastructure, tokenLiquidity);
       await token.approve(tokenExchange.address, tokenLiquidity, { from: infrastructure });
       const { timestamp } = await web3.eth.getBlock("latest");
       await tokenExchange.addLiquidity(1, tokenLiquidity, timestamp + 300, { value: ethLiquidity, gasLimit: 150000, from: infrastructure });
     }
-    return { uniswapFactory };
+    return { uniswapFactory, uniswapExchanges };
   },
 
   deployMaker: async (infrastructure) => {
@@ -170,6 +171,7 @@ module.exports = {
       bat,
       weth,
       vat,
+      daiJoin,
       batJoin,
       wethJoin,
       tub,
