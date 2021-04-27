@@ -292,9 +292,9 @@ contract ParaswapFilter is BaseFilter {
                 uint newLength = _callees.length - 1;
                 // solhint-disable-next-line no-inline-assembly
                 assembly {
+                    mstore(_callees, newLength)
                     mstore(spenders, newLength)
                     mstore(allData, newLength)
-                    mstore(_callees, newLength)
                 }
                 continue;
             }
