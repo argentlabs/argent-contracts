@@ -97,6 +97,8 @@ contract ParaswapFilter is BaseFilter {
     bytes4 constant internal MEGASWAP = bytes4(keccak256(
         "megaSwap((address,uint256,uint256,uint256,address,string,bool,(uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[])[]))"
     ));
+    bytes4 constant internal APPROVE = bytes4(keccak256("approve(address,address,uint256)"));
+    bytes4 constant internal WITHDRAW_ALL_WETH = bytes4(keccak256("withdrawAllWETH(address)"));
 
     // The token registry
     address public immutable tokenRegistry;
@@ -136,6 +138,15 @@ contract ParaswapFilter is BaseFilter {
     bytes32 public immutable uniForkInitCode1; // sushiswap
     bytes32 public immutable uniForkInitCode2; // linkswap
     bytes32 public immutable uniForkInitCode3; // defiswap
+
+    
+    // Stack Extension for hasAuthorisedCallees()
+    struct CalleeInfo {
+        address to;
+        address spender;
+        bytes data;
+        bool isValid;
+    }
 
     constructor(
         address _tokenRegistry,
@@ -269,12 +280,61 @@ contract ParaswapFilter is BaseFilter {
         uint256 exchangeDataOffset = 36 + abi.decode(_data[196:228], (uint256)); 
         address[] memory spenders = new address[](_callees.length);
         bytes[] memory allData = new bytes[](_callees.length);
-        for(uint256 i = 0; i < _callees.length; i++) {
+        uint256 i;
+        for(; i < _callees.length;) {
             bytes calldata slicedExchangeData = _data[exchangeDataOffset+_startIndexes[i] : exchangeDataOffset+_startIndexes[i+1]];
-            allData[i] = slicedExchangeData;
-            spenders[i] = Utils.recoverSpender(_callees[i], slicedExchangeData);
+            CalleeInfo memory c; // stack extension
+            (c.to, c.spender, c.data, c.isValid) = decodeCalleeData(_augustus, _callees[i], slicedExchangeData);
+            if(!c.isValid) {
+                return false;
+            }
+            if(c.to == address(0)) { // skip callee
+                uint newLength = _callees.length - 1;
+                // solhint-disable-next-line no-inline-assembly
+                assembly {
+                    mstore(spenders, newLength)
+                    mstore(allData, newLength)
+                    mstore(_callees, newLength)
+                }
+                continue;
+            }
+            _callees[i] = c.to;
+            spenders[i] = c.spender;
+            allData[i] = c.data;
+            i++;
         }
         return authoriser.areAuthorised(_augustus, spenders, _callees, allData);
+    }
+
+    function decodeCalleeData(address _augustus, address _callee, bytes calldata _exchangeData)
+        internal
+        pure
+        returns (address to, address spender, bytes memory data, bool isValid) 
+    {
+         if(_callee == _augustus) {
+            if(_exchangeData.length >= 4) {
+                bytes4 methodId;
+                bytes memory exchangeData = _exchangeData;
+                // solhint-disable-next-line no-inline-assembly
+                assembly {
+                    methodId := mload(add(exchangeData, 0x20))
+                }
+                if(methodId == APPROVE) {
+                    uint256 amount;
+                    // data to decode: approve(address token, address to, uint256 amount)
+                    (to, spender, amount) = abi.decode(_exchangeData[4:], (address, address, uint256));
+                    data = abi.encodeWithSignature("approve(address,uint256)", spender, amount);
+                    isValid = true;
+                } else if(methodId == WITHDRAW_ALL_WETH) {
+                    isValid = true;
+                }
+            }
+        } else {
+            spender = Utils.recoverSpender(_callee, _exchangeData);
+            data = _exchangeData;
+            to = _callee;
+            isValid = true;
+        }
     }
 
     function hasValidBeneficiary(address _wallet, address _beneficiary) internal pure returns (bool) {
