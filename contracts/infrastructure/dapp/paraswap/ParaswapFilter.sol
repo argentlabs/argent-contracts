@@ -281,7 +281,7 @@ contract ParaswapFilter is BaseFilter {
         address[] memory spenders = new address[](_callees.length);
         bytes[] memory allData = new bytes[](_callees.length);
         uint256 i;
-        for(; i < _callees.length;) {
+        while(i < _callees.length) {
             bytes calldata slicedExchangeData = _data[exchangeDataOffset+_startIndexes[i] : exchangeDataOffset+_startIndexes[i+1]];
             CalleeInfo memory c; // stack extension
             (c.to, c.spender, c.data, c.isValid) = decodeCalleeData(_augustus, _callees[i], slicedExchangeData);
