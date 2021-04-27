@@ -312,22 +312,8 @@ contract ParaswapFilter is BaseFilter {
         returns (address to, address spender, bytes memory data, bool isValid) 
     {
          if(_callee == _augustus) {
-            if(_exchangeData.length >= 4) {
-                bytes4 methodId;
-                bytes memory exchangeData = _exchangeData;
-                // solhint-disable-next-line no-inline-assembly
-                assembly {
-                    methodId := mload(add(exchangeData, 0x20))
-                }
-                if(methodId == APPROVE) {
-                    uint256 amount;
-                    // data to decode: approve(address token, address to, uint256 amount)
-                    (to, spender, amount) = abi.decode(_exchangeData[4:], (address, address, uint256));
-                    data = abi.encodeWithSignature("approve(address,uint256)", spender, amount);
-                    isValid = true;
-                } else if(methodId == WITHDRAW_ALL_WETH) {
-                    isValid = true;
-                }
+            if(_exchangeData.length >= 4 && getMethod(_exchangeData) == WITHDRAW_ALL_WETH) {
+                isValid = true;
             }
         } else {
             spender = Utils.recoverSpender(_callee, _exchangeData);
