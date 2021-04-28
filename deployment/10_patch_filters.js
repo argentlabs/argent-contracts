@@ -12,12 +12,14 @@ const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
 const UniswapV2Filter = artifacts.require("UniswapV2UniZapFilter");
 const WethFilter = artifacts.require("WethFilter");
+const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
+const TokenRegistry = artifacts.require("TokenRegistry");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const main = async () => {
-  const { deploymentAccount, configurator} = await deployManager.getProps();
+  const { deploymentAccount, configurator } = await deployManager.getProps();
 
   // //////////////////////////////////
   // Setup
@@ -25,6 +27,7 @@ const main = async () => {
 
   const { config } = configurator;
   const DappRegistryWrapper = await DappRegistry.at(config.contracts.DappRegistry);
+  const TokenRegistryWrapper = await TokenRegistry.at(config.contracts.TokenRegistry);
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
@@ -49,9 +52,7 @@ const main = async () => {
       // remove SAI and REP filter
       console.log(`Removing filter for Compound Underlying ${underlying}`);
       await DappRegistryWrapper.removeDapp(0, cToken);
-      continue;
-    }
-    if (underlying === "0xdAC17F958D2ee523a2206206994597C13D831ec7" || underlying === "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984") {
+    } else if (underlying === "0xdAC17F958D2ee523a2206206994597C13D831ec7" || underlying === "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984") {
       // add USDT and UNI filter
       console.log(`Deploying filter for Compound Underlying ${underlying}`);
       const CompoundFilterWrapper = await CompoundFilter.new(underlying);
@@ -59,7 +60,6 @@ const main = async () => {
       filters.CompoundFilter.push(CompoundFilterWrapper.address);
       console.log(`Adding filter for Compound Underlying ${underlying}`);
       await DappRegistryWrapper.addDapp(0, cToken, CompoundFilterWrapper.address);
-      continue;
     }
   }
 
