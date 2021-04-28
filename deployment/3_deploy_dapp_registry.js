@@ -7,12 +7,7 @@ const childProcess = require("child_process");
 
 const DappRegistry = artifacts.require("DappRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
-const BaseWallet = artifacts.require("BaseWallet");
-const WalletFactory = artifacts.require("WalletFactory");
 const MultiCallHelper = artifacts.require("MultiCallHelper");
-const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
-const Proxy = artifacts.require("Proxy");
-const TokenRegistry = artifacts.require("TokenRegistry");
 
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
@@ -46,29 +41,10 @@ const main = async () => {
   // //////////////////////////////////
 
   const { config } = configurator;
-  const ArgentWalletDetectorWrapper = await ArgentWalletDetector.at(config.contracts.ArgentWalletDetector);
-  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
 
   // //////////////////////////////////
   // Deploy infrastructure
   // //////////////////////////////////
-
-  // Deploy new BaseWallet
-  const BaseWalletWrapper = await BaseWallet.new();
-  console.log("Deployed BaseWallet at ", BaseWalletWrapper.address);
-
-  console.log("Adding wallet code");
-  const proxyCode = ethers.utils.keccak256(Proxy.deployedBytecode);
-  await multisigExecutor.executeCall(ArgentWalletDetectorWrapper, "addCode", [proxyCode]);
-  console.log("Adding wallet implementation");
-  await multisigExecutor.executeCall(ArgentWalletDetectorWrapper, "addImplementation", [BaseWalletWrapper.address]);
-
-  // Deploy the Wallet Factory
-  const WalletFactoryWrapper = await WalletFactory.new(
-    BaseWalletWrapper.address, config.modules.GuardianStorage, config.backend.refundCollector
-  );
-  console.log("Deployed WalletFactory at ", WalletFactoryWrapper.address);
 
   // Deploy DappRegistry (initial timelock of 0 to enable immediate addition to Argent Registry)
   const DappRegistryWrapper = await DappRegistry.new(0);
@@ -78,18 +54,13 @@ const main = async () => {
   const MultiCallHelperWrapper = await MultiCallHelper.new(config.modules.TransferStorage, DappRegistryWrapper.address);
   console.log("Deployed MultiCallHelper at ", MultiCallHelperWrapper.address);
 
-  // Deploy new TokenRegistry
-  const TokenRegistryWrapper = await TokenRegistry.new();
-  console.log("Deployed TokenRegistry at ", TokenRegistryWrapper.address);
-
   // //////////////////////////////////
   // Deploy and add filters to Argent Registry
   // //////////////////////////////////
 
   // refund collector
   await DappRegistryWrapper.addDapp(0, config.backend.refundCollector, ethers.constants.AddressZero);
-  if (network !== "test") {
-    // trade commision collector. In Test the refundCollector account is used
+  if (config.backend.tradeCommissionCollector !== config.backend.refundCollector) {
     await DappRegistryWrapper.addDapp(0, config.backend.tradeCommissionCollector, ethers.constants.AddressZero);
   }
 
@@ -296,34 +267,16 @@ const main = async () => {
     await DappRegistryWrapper.addDapp(0, aToken, AaveV1ATokenFilterWrapper.address);
   }
 
+  // //////////////////////////////////
+  // Setup DappRegistry
+  // //////////////////////////////////
+
   // Setting timelock
   console.log(`Setting Timelock to ${config.settings.timelockPeriod}`);
   await DappRegistryWrapper.requestTimelockChange(config.settings.timelockPeriod);
   await DappRegistryWrapper.confirmTimelockChange();
   console.log("Timelock changed.");
-
-  // //////////////////////////////////
-  // Set contracts' managers
-  // //////////////////////////////////
-
-  for (const idx in config.backend.accounts) {
-    const account = config.backend.accounts[idx];
-    console.log(`Setting ${account} as the manager of the WalletFactory`);
-    await WalletFactoryWrapper.addManager(account);
-    console.log(`Setting ${account} as the manager of the TokenRegistry`);
-    await TokenRegistryWrapper.addManager(account);
-  }
-
-  // //////////////////////////////////
-  // Set contracts' owners
-  // //////////////////////////////////
-
-  console.log("Setting the MultiSig as the owner of WalletFactoryWrapper");
-  await WalletFactoryWrapper.changeOwner(config.contracts.MultiSigWallet);
-
-  console.log("Setting the MultiSig as the owner of TokenRegistry");
-  await TokenRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
-
+  // Setting ownership
   console.log("Setting the MultiSig as the owner of default registry");
   await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
 
@@ -333,17 +286,10 @@ const main = async () => {
 
   configurator.updateInfrastructureAddresses({
     DappRegistry: DappRegistryWrapper.address,
-    WalletFactory: WalletFactoryWrapper.address,
-    BaseWallet: BaseWalletWrapper.address,
     MultiCallHelper: MultiCallHelperWrapper.address,
-    TokenRegistry: TokenRegistryWrapper.address,
   });
 
   configurator.updateFilterAddresses(filters);
-
-  configurator.updateFilterAddresses({
-    OnlyApproveFilter: OnlyApproveFilterWrapper.address,
-  });
 
   const gitHash = childProcess.execSync("git rev-parse HEAD").toString("utf8").replace(/\n$/, "");
   configurator.updateGitHash(gitHash);
@@ -354,10 +300,7 @@ const main = async () => {
   console.log("Uploading ABIs");
   await Promise.all([
     abiUploader.upload(DappRegistryWrapper, "contracts"),
-    abiUploader.upload(WalletFactoryWrapper, "contracts"),
-    abiUploader.upload(BaseWalletWrapper, "contracts"),
     abiUploader.upload(MultiCallHelperWrapper, "contracts"),
-    abiUploader.upload(TokenRegistryWrapper, "contracts"),
   ]);
 };
 

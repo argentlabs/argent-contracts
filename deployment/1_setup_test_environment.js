@@ -7,7 +7,6 @@ const ENSRegistry = artifacts.require("ENSRegistry");
 const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
 const UniswapFactory = artifacts.require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = artifacts.require("../lib/uniswap/UniswapExchange");
-const MakerMigration = artifacts.require("MockScdMcdMigration");
 
 // Uniswap V2
 const UniswapV2Router01 = artifacts.require("UniswapV2Router01Mock");
@@ -97,18 +96,6 @@ async function main() {
     const UniZapWrapper = await UniZap.new(UniswapV2FactoryWrapper.address, UniswapV2RouterWrapper.address, ZERO_ADDRESS);
     const initCode = await UniswapV2FactoryWrapper.getKeccakOfPairCreationCode();
     configurator.updateUniswapV2(UniswapV2FactoryWrapper.address, UniswapV2RouterWrapper.address, UniZapWrapper.address, initCode);
-  }
-
-  if (config.defi.maker.deployOwn) {
-    // Deploy Maker's mock Migration contract if needed
-    const MakerMigrationWrapper = await MakerMigration.new(
-      config.defi.maker.vat || "0x0000000000000000000000000000000000000000",
-      config.defi.maker.daiJoin || "0x0000000000000000000000000000000000000000",
-      config.defi.maker.wethJoin || "0x0000000000000000000000000000000000000000",
-      config.defi.maker.tub || "0x0000000000000000000000000000000000000000",
-      config.defi.maker.cdpManager || "0x0000000000000000000000000000000000000000",
-    );
-    configurator.updateMakerMigration(MakerMigrationWrapper.address);
   }
 
   // save configuration
