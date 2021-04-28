@@ -230,7 +230,10 @@ function getSimpleSwapParams({
   fromTokenContract = { address: PARASWAP_ETH_TOKEN }, toTokenContract = { address: PARASWAP_ETH_TOKEN },
   proxy = null,
   fromAmount = 1, toAmount = 1,
-  beneficiary = ZERO_ADDRESS
+  beneficiary = ZERO_ADDRESS,
+  convertWeth = false,
+  augustus = null,
+  weth = null
 }) {
   let exchangeData = "0x";
   const callees = [];
@@ -238,7 +241,7 @@ function getSimpleSwapParams({
   const values = [];
 
   startIndexes.push(0);
-  if (fromTokenContract.address !== PARASWAP_ETH_TOKEN) {
+  if (fromTokenContract.address !== PARASWAP_ETH_TOKEN && targetExchange !== fromTokenContract) {
     callees.push(fromTokenContract.address);
     values.push(0, 0);
     exchangeData += fromTokenContract.contract.methods.approve((proxy || targetExchange).address, fromAmount).encodeABI().slice(2);
@@ -246,11 +249,22 @@ function getSimpleSwapParams({
   } else {
     values.push(fromAmount);
   }
+
   callees.push(targetExchange.address);
   if (swapMethod) {
     exchangeData += targetExchange.contract.methods[swapMethod](...(swapParams || [])).encodeABI().slice(2);
   }
   startIndexes.push(exchangeData.length / 2 - 1);
+
+  if (convertWeth) {
+    if (!augustus) throw new Error("convertWeth=true requires non-null augustus");
+    if (!weth) throw new Error("convertWeth=true requires non-null weth");
+    callees.push(augustus.address);
+    values.push(0);
+    exchangeData += augustus.contract.methods.withdrawAllWETH(weth.address).encodeABI().slice(2);
+    startIndexes.push(exchangeData.length / 2 - 1);
+  }
+
   return [
     fromTokenContract.address, toTokenContract.address,
     fromAmount, toAmount,

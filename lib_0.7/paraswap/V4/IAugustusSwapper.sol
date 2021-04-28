@@ -78,6 +78,8 @@ interface IAugustusSwapper {
 
     function changeUniswapProxy(address uniswapProxy) external;
 
+    function withdrawAllWETH(address) external;
+    
     function initialize(
         address whitelist,
         address reduxToken,

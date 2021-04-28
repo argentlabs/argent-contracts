@@ -21,6 +21,7 @@ const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter")
 const WhitelistedZeroExV2Filter = artifacts.require("WhitelistedZeroExV2Filter");
 const WhitelistedZeroExV4Filter = artifacts.require("WhitelistedZeroExV4Filter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
+const WethFilter = artifacts.require("WethFilter");
 const AaveV2Filter = artifacts.require("AaveV2Filter");
 const BalancerFilter = artifacts.require("BalancerFilter");
 const YearnFilter = artifacts.require("YearnFilter");
@@ -188,6 +189,13 @@ const main = async () => {
     console.log(`Adding CurveFilter for pool ${pool}`);
     await DappRegistryWrapper.addDapp(0, pool, CurveFilterWrapper.address);
   }
+
+  // WETH filter
+  console.log("Deploying WethFilter");
+  const WethFilterWrapper = await WethFilter.new();
+  console.log(`Deployed WethFilter at ${WethFilterWrapper.address}`);
+  filters.WethFilter = WethFilterWrapper.address;
+  await DappRegistryWrapper.addDapp(0, config.defi.weth, WethFilterWrapper.address);
 
   // The following filters can't be setup on Ropsten due to tha lack of integrations
   if (network !== "test") {

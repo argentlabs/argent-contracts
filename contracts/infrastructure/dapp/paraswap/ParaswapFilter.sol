@@ -97,6 +97,7 @@ contract ParaswapFilter is BaseFilter {
     bytes4 constant internal MEGASWAP = bytes4(keccak256(
         "megaSwap((address,uint256,uint256,uint256,address,string,bool,(uint256,(address,uint256,(address,address,uint256,bytes,uint256)[])[])[]))"
     ));
+    bytes4 constant internal WITHDRAW_ALL_WETH = bytes4(keccak256("withdrawAllWETH(address)"));
 
     // The token registry
     address public immutable tokenRegistry;
@@ -267,14 +268,32 @@ contract ParaswapFilter is BaseFilter {
         // _data = {sig:4}{six params:192}{exchangeDataOffset:32}{...}
         // we add 4+32=36 to the offset to skip the method sig and the size of the exchangeData array
         uint256 exchangeDataOffset = 36 + abi.decode(_data[196:228], (uint256)); 
+        address[] memory to = new address[](_callees.length);
         address[] memory spenders = new address[](_callees.length);
         bytes[] memory allData = new bytes[](_callees.length);
-        for(uint256 i = 0; i < _callees.length; i++) {
+        uint256 j; // index pointing to the last elements added to the output arrays `to`, `spenders` and `allData`
+        for(uint256 i; i < _callees.length; i++) {
             bytes calldata slicedExchangeData = _data[exchangeDataOffset+_startIndexes[i] : exchangeDataOffset+_startIndexes[i+1]];
-            allData[i] = slicedExchangeData;
-            spenders[i] = Utils.recoverSpender(_callees[i], slicedExchangeData);
+            if(_callees[i] == _augustus) {
+                if(slicedExchangeData.length >= 4 && getMethod(slicedExchangeData) == WITHDRAW_ALL_WETH) {
+                    uint newLength = _callees.length - 1;
+                    // solhint-disable-next-line no-inline-assembly
+                    assembly {
+                        mstore(to, newLength)
+                        mstore(spenders, newLength)
+                        mstore(allData, newLength)
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                to[j] = _callees[i];
+                allData[j] = slicedExchangeData;
+                spenders[j] = Utils.recoverSpender(_callees[i], slicedExchangeData);
+                j++;
+            }
         }
-        return authoriser.areAuthorised(_augustus, spenders, _callees, allData);
+        return authoriser.areAuthorised(_augustus, spenders, to, allData);
     }
 
     function hasValidBeneficiary(address _wallet, address _beneficiary) internal pure returns (bool) {
