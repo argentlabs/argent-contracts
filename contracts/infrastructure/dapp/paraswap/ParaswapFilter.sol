@@ -138,15 +138,6 @@ contract ParaswapFilter is BaseFilter {
     bytes32 public immutable uniForkInitCode2; // linkswap
     bytes32 public immutable uniForkInitCode3; // defiswap
 
-    
-    // Stack Extension for hasAuthorisedCallees()
-    struct CalleeInfo {
-        address to;
-        address spender;
-        bytes data;
-        bool isValid;
-    }
-
     constructor(
         address _tokenRegistry,
         IAuthoriser _authoriser,
