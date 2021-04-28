@@ -21,7 +21,8 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
-const Filter = artifacts.require("BalancerFilter");
+const BalancerFilter = artifacts.require("BalancerFilter");
+const WethFilter = artifacts.require("WethFilter");
 const BPool = artifacts.require("BPool");
 const ERC20 = artifacts.require("TestERC20");
 
@@ -53,32 +54,43 @@ contract("Balancer Filter", (accounts) => {
   let module;
   let wallet;
   let factory;
-  let filter;
+  let balFilter;
   let dappRegistry;
 
   let uniswapRouter;
 
   let tokenA;
   let tokenB;
+  let weth;
   let pool;
+  let wethPool;
 
   before(async () => {
-    // Deploy Balancer Pool
+    // Deploy Balancer Pools
     pool = await BPool.new();
+    wethPool = await BPool.new();
 
     // Deploy test tokens
-    tokenA = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
+    weth = await WETH.new();
+    await weth.deposit({ value: web3.utils.toWei("1"), from: infrastructure });
+    tokenA = await ERC20.new([infrastructure], web3.utils.toWei("2000"), DECIMALS);
     tokenB = await ERC20.new([infrastructure], web3.utils.toWei("1000"), DECIMALS);
 
-    // Setup Balancer Pool
+    // Setup Balancer Pools
     await tokenA.approve(pool.address, web3.utils.toWei("1000"));
     await tokenB.approve(pool.address, web3.utils.toWei("1000"));
     await pool.bind(tokenA.address, web3.utils.toWei("1000"), web3.utils.toWei("1"));
     await pool.bind(tokenB.address, web3.utils.toWei("1000"), web3.utils.toWei("1"));
     await pool.finalize();
 
+    await tokenA.approve(wethPool.address, web3.utils.toWei("1000"));
+    await weth.approve(wethPool.address, web3.utils.toWei("0.1"));
+    await wethPool.bind(tokenA.address, web3.utils.toWei("1000"), web3.utils.toWei("1"));
+    await wethPool.bind(weth.address, web3.utils.toWei("0.1"), web3.utils.toWei("1"));
+    await wethPool.finalize();
+
     // Deploy and fund UniswapV2
-    const weth = await WETH.new();
+
     const uniswapFactory = await UniswapV2Factory.new(ZERO_ADDRESS);
     uniswapRouter = await UniswapV2Router01.new(uniswapFactory.address, weth.address);
 
@@ -98,8 +110,11 @@ contract("Balancer Filter", (accounts) => {
       RECOVERY_PERIOD,
       LOCK_PERIOD);
     await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    filter = await Filter.new();
-    await dappRegistry.addDapp(0, pool.address, filter.address);
+    balFilter = await BalancerFilter.new();
+    const wethFilter = await WethFilter.new();
+    await dappRegistry.addDapp(0, pool.address, balFilter.address);
+    await dappRegistry.addDapp(0, wethPool.address, balFilter.address);
+    await dappRegistry.addDapp(0, weth.address, wethFilter.address);
     await dappRegistry.addDapp(0, relayer, ZERO_ADDRESS);
 
     const walletImplementation = await BaseWallet.new();
@@ -119,12 +134,15 @@ contract("Balancer Filter", (accounts) => {
 
     // fund wallet
     await wallet.send(web3.utils.toWei("0.1"));
+    await weth.deposit({ value: web3.utils.toWei("0.1") });
+    await weth.transfer(wallet.address, web3.utils.toWei("0.1"));
     await tokenA.mint(wallet.address, web3.utils.toWei("1000"));
 
     await initNonce(wallet, module, manager, SECURITY_PERIOD);
   });
 
   const amount = web3.utils.toWei("1");
+  const ethAmount = web3.utils.toWei("0.01");
 
   const multiCall = async (transactions) => {
     const txReceipt = await manager.relay(
@@ -144,6 +162,12 @@ contract("Balancer Filter", (accounts) => {
     [pool, "joinswapExternAmountIn", [tokenA.address, amount, 1]]
   ]));
 
+  const depositETH = async () => multiCall(encodeCalls([
+    [weth, "deposit", [], ethAmount],
+    [weth, "approve", [wethPool.address, ethAmount]],
+    [wethPool, "joinswapExternAmountIn", [weth.address, ethAmount, 1]]
+  ]));
+
   const withdraw = async ({ fixedOutAmount }) => {
     const bpt = await pool.balanceOf(wallet.address);
     return multiCall(encodeCalls([
@@ -158,6 +182,11 @@ contract("Balancer Filter", (accounts) => {
 
   it("should allow deposits", async () => {
     const { success, error } = await deposit();
+    assert.isTrue(success, `joinswapExternAmountIn failed: "${error}"`);
+  });
+
+  it("should allow deposits from ETH", async () => {
+    const { success, error } = await depositETH();
     assert.isTrue(success, `joinswapExternAmountIn failed: "${error}"`);
   });
 
