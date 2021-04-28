@@ -280,6 +280,7 @@ contract ParaswapFilter is BaseFilter {
         address[] memory to = new address[](_callees.length);
         address[] memory spenders = new address[](_callees.length);
         bytes[] memory allData = new bytes[](_callees.length);
+        uint256 j; // index pointing to the last elements added to the output arrays `to`, `spenders` and `allData`
         for(uint256 i; i < _callees.length; i++) {
             bytes calldata slicedExchangeData = _data[exchangeDataOffset+_startIndexes[i] : exchangeDataOffset+_startIndexes[i+1]];
             if(_callees[i] == _augustus) {
@@ -295,9 +296,10 @@ contract ParaswapFilter is BaseFilter {
                     return false;
                 }
             } else {
-                to[i] = _callees[i];
-                allData[i] = slicedExchangeData;
-                spenders[i] = Utils.recoverSpender(_callees[i], slicedExchangeData);
+                to[j] = _callees[i];
+                allData[j] = slicedExchangeData;
+                spenders[j] = Utils.recoverSpender(_callees[i], slicedExchangeData);
+                j++;
             }
         }
         return authoriser.areAuthorised(_augustus, spenders, to, allData);
