@@ -29,12 +29,12 @@ contract WethFilter is BaseFilter {
     bytes4 private constant WITHDRAW = bytes4(keccak256("withdraw(uint256)"));
 
     function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
-        // disable ETH transfer
-        if (_data.length < 4) {
-            return false;
+        if (_data.length == 0) {
+            return true;
         }
-
-        bytes4 methodId = getMethod(_data);
-        return (_spender == _to && methodId == DEPOSIT || methodId == WITHDRAW);
+        if (_data.length >= 4) {
+            bytes4 methodId = getMethod(_data);
+            return (_spender == _to && methodId == DEPOSIT || methodId == WITHDRAW);
+        }
     }
 }
