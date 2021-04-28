@@ -7,17 +7,17 @@ const childProcess = require("child_process");
 
 const DappRegistry = artifacts.require("DappRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
-const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
 
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
 const UniswapV2Filter = artifacts.require("UniswapV2UniZapFilter");
+const WethFilter = artifacts.require("WethFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const main = async () => {
-  const { deploymentAccount, configurator, abiUploader, network } = await deployManager.getProps();
+  const { deploymentAccount, configurator} = await deployManager.getProps();
 
   // //////////////////////////////////
   // Setup
@@ -45,8 +45,8 @@ const main = async () => {
   // Compound
   //
   for (const [underlying, cToken] of Object.entries(config.defi.compound.markets)) {
-    if (underlying === "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359") {
-      // remove SAI filter
+    if (underlying === "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359" || underlying === "0x1985365e9f78359a9B6AD760e32412f4a445E862") {
+      // remove SAI and REP filter
       console.log(`Removing filter for Compound Underlying ${underlying}`);
       await DappRegistryWrapper.removeDapp(0, cToken);
       continue;
@@ -115,6 +115,17 @@ const main = async () => {
   filters.ParaswapFilter = ParaswapFilterWrapper.address;
   await DappRegistryWrapper.requestFilterUpdate(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
 
+  console.log("Deploying ParaswapUniV2RouterFilter");
+  filters.ParaswapUniV2RouterFilter = [];
+  const ParaswapUniV2RouterFilterWrapper = await ParaswapUniV2RouterFilter.new(
+    TokenRegistryWrapper.address,
+    config.defi.uniswap.factoryV2,
+    config.defi.uniswap.initCodeV2,
+    config.defi.weth
+  );
+  console.log(`Deployed ParaswapUniV2RouterFilter at ${ParaswapUniV2RouterFilterWrapper.address}`);
+  filters.ParaswapUniV2RouterFilter.push(ParaswapUniV2RouterFilterWrapper.address);
+  await DappRegistryWrapper.requestFilterUpdate(0, config.defi.uniswap.paraswapUniV2Router, ParaswapUniV2RouterFilterWrapper.address);
 
   // //////////////////////////////////
   // Change DappREgistry ownership
