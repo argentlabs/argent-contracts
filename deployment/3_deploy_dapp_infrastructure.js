@@ -6,8 +6,8 @@ const ethers = require("ethers");
 const childProcess = require("child_process");
 
 const DappRegistry = artifacts.require("DappRegistry");
-const MultiSig = artifacts.require("MultiSigWallet");
 const MultiCallHelper = artifacts.require("MultiCallHelper");
+const TokenRegistry = artifacts.require("TokenRegistry");
 
 const CompoundFilter = artifacts.require("CompoundCTokenFilter");
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
@@ -31,19 +31,14 @@ const AaveV1LendingPoolFilter = artifacts.require("AaveV1LendingPoolFilter");
 const AaveV1ATokenFilter = artifacts.require("AaveV1ATokenFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
-const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 const main = async () => {
-  const { deploymentAccount, configurator, abiUploader, network } = await deployManager.getProps();
-
-  // //////////////////////////////////
-  // Setup
-  // //////////////////////////////////
+  const { configurator, abiUploader, network } = await deployManager.getProps();
 
   const { config } = configurator;
 
   // //////////////////////////////////
-  // Deploy infrastructure
+  // Deploy infrastructure contracts
   // //////////////////////////////////
 
   // Deploy DappRegistry (initial timelock of 0 to enable immediate addition to Argent Registry)
@@ -53,6 +48,10 @@ const main = async () => {
   // Deploy MultiCall Helper
   const MultiCallHelperWrapper = await MultiCallHelper.new(config.modules.TransferStorage, DappRegistryWrapper.address);
   console.log("Deployed MultiCallHelper at ", MultiCallHelperWrapper.address);
+
+  // Deploy new TokenRegistry
+  const TokenRegistryWrapper = await TokenRegistry.new();
+  console.log("Deployed TokenRegistry at ", TokenRegistryWrapper.address);
 
   // //////////////////////////////////
   // Deploy and add filters to Argent Registry
@@ -268,7 +267,7 @@ const main = async () => {
   }
 
   // //////////////////////////////////
-  // Setup DappRegistry
+  // Setup infrastructure contracts
   // //////////////////////////////////
 
   // Setting timelock
@@ -276,9 +275,19 @@ const main = async () => {
   await DappRegistryWrapper.requestTimelockChange(config.settings.timelockPeriod);
   await DappRegistryWrapper.confirmTimelockChange();
   console.log("Timelock changed.");
-  // Setting ownership
-  console.log("Setting the MultiSig as the owner of default registry");
-  await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
+
+  // Setting managers on the TokenRegistry
+  for (const idx in config.backend.accounts) {
+    const account = config.backend.accounts[idx];
+    console.log(`Setting ${account} as the manager of the TokenRegistry`);
+    await TokenRegistryWrapper.addManager(account);
+  }
+
+    // Setting ownership
+    console.log("Setting the MultiSig as the owner of default registry");
+    await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
+    console.log("Setting the MultiSig as the owner of the token registry");
+    await TokenRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
@@ -287,6 +296,7 @@ const main = async () => {
   configurator.updateInfrastructureAddresses({
     DappRegistry: DappRegistryWrapper.address,
     MultiCallHelper: MultiCallHelperWrapper.address,
+    TokenRegistry: TokenRegistryWrapper.address,
   });
 
   configurator.updateFilterAddresses(filters);
@@ -301,6 +311,7 @@ const main = async () => {
   await Promise.all([
     abiUploader.upload(DappRegistryWrapper, "contracts"),
     abiUploader.upload(MultiCallHelperWrapper, "contracts"),
+    abiUploader.upload(TokenRegistryWrapper, "contracts"),
   ]);
 };
 

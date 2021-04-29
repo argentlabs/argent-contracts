@@ -2,6 +2,8 @@
 global.web3 = web3;
 global.artifacts = artifacts;
 
+const ethers = require("ethers");
+
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransferStorage = artifacts.require("TransferStorage");
 const Proxy = artifacts.require("Proxy");
@@ -61,9 +63,6 @@ async function main() {
   // Deploy ArgentWalletDetector contract
   console.log("Deploying ArgentWalletDetector...");
   const ArgentWalletDetectorWrapper = await ArgentWalletDetector.new([], []);
-  // Deploy new TokenRegistry
-  const TokenRegistryWrapper = await TokenRegistry.new();
-  console.log("Deployed TokenRegistry at ", TokenRegistryWrapper.address);
 
   // /////////////////////////////////////////////////
   // Making ENSManager owner of the root wallet ENS
@@ -111,12 +110,10 @@ async function main() {
   console.log("Set the Multisig as the manager of the ENS Resolver");
   await ENSResolverWrapper.addManager(MultiSigWrapper.address);
 
-  for (const idx in config.backend.accounts) {
-    const account = config.backend.accounts[idx];
+  for (const idx in newConfig.backend.accounts) {
+    const account = newConfig.backend.accounts[idx];
     console.log(`Set ${account} as the manager of the WalletFactory`);
     await WalletFactoryWrapper.addManager(account);
-    console.log(`Setting ${account} as the manager of the TokenRegistry`);
-    await TokenRegistryWrapper.addManager(account);
   }
 
   // //////////////////////////////////
@@ -128,13 +125,12 @@ async function main() {
     ENSManagerWrapper,
     WalletFactoryWrapper,
     ModuleRegistryWrapper,
-    ArgentWalletDetectorWrapper,
-    TokenRegistryWrapper];
+    ArgentWalletDetectorWrapper];
 
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     console.log(`Set the MultiSig as the owner of ${wrapper.constructor.contractName}`);
-    await wrapper.changeOwner(config.contracts.MultiSigWallet);
+    await wrapper.changeOwner(newConfig.contracts.MultiSigWallet);
   }
 
   // /////////////////////////////////////////////////
@@ -152,7 +148,6 @@ async function main() {
     ENSResolver: ENSResolverWrapper.address,
     ENSManager: ENSManagerWrapper.address,
     ModuleRegistry: ModuleRegistryWrapper.address,
-    TokenRegistry: TokenRegistryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
   });
   await configurator.save();
@@ -166,7 +161,6 @@ async function main() {
     abiUploader.upload(ENSResolverWrapper, "contracts"),
     abiUploader.upload(ENSManagerWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
-    abiUploader.upload(TokenRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);
 
