@@ -80,7 +80,7 @@ const main = async () => {
     TokenRegistryWrapper.address,
     config.defi.uniswap.factoryV2,
     config.defi.uniswap.initCodeV2,
-    config.defi.weth
+    config.defi.weth,
   );
   console.log(`Deployed UniswapV2Filter at ${UniswapV2FilterWrapper.address}`);
   filters.UniswapV2UniZapFilter = UniswapV2FilterWrapper.address;
@@ -116,7 +116,6 @@ const main = async () => {
   await DappRegistryWrapper.requestFilterUpdate(0, config.defi.paraswap.contract, ParaswapFilterWrapper.address);
 
   console.log("Deploying ParaswapUniV2RouterFilter");
-  filters.ParaswapUniV2RouterFilter = [];
   const ParaswapUniV2RouterFilterWrapper = await ParaswapUniV2RouterFilter.new(
     TokenRegistryWrapper.address,
     config.defi.uniswap.factoryV2,
