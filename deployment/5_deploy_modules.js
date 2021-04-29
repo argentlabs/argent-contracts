@@ -17,7 +17,7 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 // ///////////////////////////////////////////////////////
 
 async function main() {
-  const { deploymentAccount, configurator, versionUploader } = await deployManager.getProps();
+  const { deploymentAccount, configurator, abiUploader, versionUploader } = await deployManager.getProps();
   const { config } = configurator;
 
   const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);

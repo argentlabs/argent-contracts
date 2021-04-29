@@ -283,11 +283,11 @@ const main = async () => {
     await TokenRegistryWrapper.addManager(account);
   }
 
-    // Setting ownership
-    console.log("Setting the MultiSig as the owner of default registry");
-    await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
-    console.log("Setting the MultiSig as the owner of the token registry");
-    await TokenRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
+  // Setting ownership
+  console.log("Setting the MultiSig as the owner of default registry");
+  await DappRegistryWrapper.changeOwner(0, config.contracts.MultiSigWallet);
+  console.log("Setting the MultiSig as the owner of the token registry");
+  await TokenRegistryWrapper.changeOwner(config.contracts.MultiSigWallet);
 
   // /////////////////////////////////////////////////
   // Update config and Upload ABIs
