@@ -42,7 +42,7 @@ const main = async () => {
   // Update existing filters to Argent Registry
   // //////////////////////////////////
 
-  const filters = {...config.filters};
+  const filters = { ...config.filters };
 
   //
   // Compound
