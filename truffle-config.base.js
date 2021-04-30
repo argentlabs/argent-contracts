@@ -58,6 +58,11 @@ module.exports = {
       network_id: "1597649375983",
     },
 
+    private: {
+      provider: () => new HDWalletProvider(process.env.PRIVATE_NETWORK_MNEMONIC, process.env.PRIVATE_NETWORK_URL),
+      network_id: process.env.PRIVATE_NETWORK_ID
+    },
+
     test: {
       provider: () => {
         const { pkey, infuraKey } = getKeys();

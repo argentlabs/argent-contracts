@@ -15,6 +15,7 @@ module.exports = {
 
     const env = process.env.CONFIG_ENVIRONMENT;
     const remotelyManagedNetworks = (process.env.S3_BUCKET_SUFFIXES || "").split(":");
+    const configLocalPath = process.env.CONFIG_LOCAL_PATH;
 
     const accounts = await web3.eth.getAccounts();
     const deploymentAccount = accounts[0];
@@ -25,6 +26,8 @@ module.exports = {
       const bucket = `${process.env.S3_BUCKET_PREFIX}-${network}`;
       const key = process.env.S3_CONFIG_KEY;
       configLoader = new ConfiguratorLoader.S3(bucket, key);
+    } else if (configLocalPath) {
+      configLoader = new ConfiguratorLoader.Local(configLocalPath);
     } else {
       const fileName = env ? `${network}.${env}.json` : `${network}.json`;
       const filePath = path.join(__dirname, "./config", fileName);
