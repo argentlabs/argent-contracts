@@ -17,7 +17,6 @@ if [ $NOCOMPILE != "--no-compile" ]; then
     rm -rf build
     npm run compile:lib
     npm run compile
-    npm run compile:legacy
     npm run provision:lib:artefacts
     NETWORK=$NOCOMPILE
 else
@@ -45,7 +44,12 @@ do
         echo "ganache running on port 8545"
         npx truffle exec $FILE --network $NETWORK
     else
-        AWS_PROFILE=argent-$PROFILE AWS_SDK_LOAD_CONFIG=true npx truffle exec $FILE --network $NETWORK
+        if ! command -v aws-vault &> /dev/null
+        then
+            AWS_PROFILE=argent-$PROFILE AWS_SDK_LOAD_CONFIG=true npx truffle exec $FILE --network $NETWORK
+        else
+            aws-vault exec argent-$PROFILE -- npx truffle exec $FILE --network $NETWORK
+        fi
     fi
     if [ $? -ne 0 ]; then
         exit 1 # exit with failure status
