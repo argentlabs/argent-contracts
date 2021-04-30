@@ -44,7 +44,7 @@ do
         echo "ganache running on port 8545"
         npx truffle exec $FILE --network $NETWORK
     else
-        if ! command -v aws-vault &> /dev/null
+        if ! command -v "aws-vault argent-$PROFILE" &> /dev/null
         then
             AWS_PROFILE=argent-$PROFILE AWS_SDK_LOAD_CONFIG=true npx truffle exec $FILE --network $NETWORK
         else

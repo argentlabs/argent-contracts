@@ -12,7 +12,7 @@ shift
 NETWORK=$1
 shift
 
-if ! command -v aws-vault &> /dev/null
+if ! command -v "aws-vault argent-$NETWORK" &> /dev/null
 then
     AWS_PROFILE=argent-$NETWORK AWS_SDK_LOAD_CONFIG=true npx truffle exec $FILE --network $NETWORK "$@"
 else
