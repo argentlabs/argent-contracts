@@ -65,7 +65,6 @@ async function main() {
   // //////////////////////////////////
 
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
-  const owner = await ModuleRegistryWrapper.owner();
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",

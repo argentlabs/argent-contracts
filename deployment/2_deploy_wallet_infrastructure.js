@@ -22,7 +22,7 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
   const { deploymentAccount, configurator, abiUploader } = await deployManager.getProps();
-  const config = configurator.config;
+  const { config } = configurator;
 
   const walletRootEns = config.ENS.domain;
 

@@ -116,7 +116,6 @@ async function main() {
     configurator.updateMakerMigration(MakerMigrationWrapper.address);
   }
 
-
   // save configuration
   await configurator.save();
 
