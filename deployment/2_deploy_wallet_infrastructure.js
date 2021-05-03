@@ -2,12 +2,13 @@
 global.web3 = web3;
 global.artifacts = artifacts;
 
+const ethers = require("ethers");
+
 const GuardianStorage = artifacts.require("GuardianStorage");
 const TransferStorage = artifacts.require("TransferStorage");
-
+const Proxy = artifacts.require("Proxy");
 const BaseWallet = artifacts.require("BaseWallet");
 const ModuleRegistry = artifacts.require("ModuleRegistry");
-const DappRegistry = artifacts.require("DappRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 const ENS = artifacts.require("ENSRegistryWithFallback");
 const ENSManager = artifacts.require("ArgentENSManager");
@@ -21,10 +22,9 @@ const MultisigExecutor = require("../utils/multisigexecutor.js");
 
 async function main() {
   const { deploymentAccount, configurator, abiUploader } = await deployManager.getProps();
-  const newConfig = configurator.config;
-  const prevConfig = configurator.copyConfig();
+  const { config } = configurator;
 
-  const walletRootEns = prevConfig.ENS.domain;
+  const walletRootEns = config.ENS.domain;
 
   // //////////////////////////////////
   // Deploy Storage
@@ -41,30 +41,33 @@ async function main() {
 
   // Deploy the Base Wallet Library
   const BaseWalletWrapper = await BaseWallet.new();
+  console.log("Deployed BaseWallet at ", BaseWalletWrapper.address);
   // Deploy the MultiSig
-  const MultiSigWrapper = await MultiSig.new(newConfig.multisig.threshold, newConfig.multisig.owners);
-
+  const MultiSigWrapper = await MultiSig.new(config.multisig.threshold, config.multisig.owners);
+  console.log("Deployed MultiSig at ", MultiSigWrapper.address);
   // Deploy Module Registry
   const ModuleRegistryWrapper = await ModuleRegistry.new();
-  const DappRegistryWrapper = await DappRegistry.new(newConfig.settings.timelockPeriod);
+  console.log("Deployed ModuleRegistry at ", ModuleRegistryWrapper.address);
   // Deploy the ENS Resolver
   const ENSResolverWrapper = await ENSResolver.new();
+  console.log("Deployed ENSResolver at ", ENSResolverWrapper.address);
   // Deploy the ENS Manager
   const ENSManagerWrapper = await ENSManager.new(
-    walletRootEns, utils.namehash(walletRootEns), newConfig.ENS.ensRegistry, ENSResolverWrapper.address);
+    walletRootEns, utils.namehash(walletRootEns), config.ENS.ensRegistry, ENSResolverWrapper.address);
+  console.log("Deployed ENSManager at ", ENSManagerWrapper.address);
   // Deploy the Wallet Factory
   const WalletFactoryWrapper = await WalletFactory.new(
-    BaseWalletWrapper.address, GuardianStorageWrapper.address, prevConfig.backend.refundCollector);
-
+    BaseWalletWrapper.address, GuardianStorageWrapper.address, config.backend.refundCollector);
+  console.log("Deployed WalletFactory at ", WalletFactoryWrapper.address);
   // Deploy ArgentWalletDetector contract
-  console.log("Deploying ArgentWalletDetector...");
   const ArgentWalletDetectorWrapper = await ArgentWalletDetector.new([], []);
+  console.log("Deployed ArgentWalletDetector at ", ArgentWalletDetectorWrapper.address);
 
   // /////////////////////////////////////////////////
   // Making ENSManager owner of the root wallet ENS
   // /////////////////////////////////////////////////
 
-  const ENSRegistryWrapper = await ENS.at(newConfig.ENS.ensRegistry);
+  const ENSRegistryWrapper = await ENS.at(config.ENS.ensRegistry);
 
   // Get the address of the previous owner of the root wallet ENS (e.g. argent.xyz)
   const previousWalletEnsOwner = await ENSRegistryWrapper.owner(utils.namehash(walletRootEns));
@@ -73,17 +76,60 @@ async function main() {
     // newly registered name -> change its owner from deploymentAccount to ENSManager address
     console.log("Replace deployment account by ENSManager as new owner of walletENS");
     await ENSRegistryWrapper.setOwner(utils.namehash(walletRootEns), ENSManagerWrapper.address);
-  } else if (previousWalletEnsOwner.toLowerCase() === prevConfig.contracts.ENSManager.toLowerCase()) {
+  } else if (previousWalletEnsOwner.toLowerCase() === config.contracts.ENSManager.toLowerCase()) {
     // change the owner from the previous ENSManager.address to the new one
     console.log("change the owner from the previous ENSManager to the new one");
-    const previousMultiSigWrapper = await MultiSig.at(prevConfig.contracts.MultiSigWallet);
-    const previousENSManagerWrapper = await ENSManager.at(prevConfig.contracts.ENSManager);
+    const previousMultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+    const previousENSManagerWrapper = await ENSManager.at(config.contracts.ENSManager);
 
-    const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentAccount, prevConfig.multisig.autosign);
+    const multisigExecutor = new MultisigExecutor(previousMultiSigWrapper, deploymentAccount, config.multisig.autosign);
     console.log(`Owner of ${walletRootEns} changed from old ENSManager to new ENSManager...`);
     await multisigExecutor.executeCall(previousENSManagerWrapper, "changeRootnodeOwner", [ENSManagerWrapper.address]);
   } else {
     throw new Error(`Ownership of ${walletRootEns} not changed`);
+  }
+
+  // //////////////////////////////////
+  // Add new wallet to ArgentWalletDetector
+  // //////////////////////////////////
+
+  console.log("Adding wallet code to detector");
+  const proxyCode = ethers.utils.keccak256(Proxy.deployedBytecode);
+  await ArgentWalletDetectorWrapper.addCode(proxyCode);
+  console.log("Adding wallet implementation to detector");
+  await ArgentWalletDetectorWrapper.addImplementation(BaseWalletWrapper.address);
+
+  // //////////////////////////////////
+  // Set contracts' managers
+  // //////////////////////////////////
+
+  console.log("Set the ENS Manager as the manager of the ENS Resolver");
+  await ENSResolverWrapper.addManager(ENSManagerWrapper.address);
+
+  console.log("Set the Multisig as the manager of the ENS Resolver");
+  await ENSResolverWrapper.addManager(MultiSigWrapper.address);
+
+  for (const idx in config.backend.accounts) {
+    const account = config.backend.accounts[idx];
+    console.log(`Set ${account} as the manager of the WalletFactory`);
+    await WalletFactoryWrapper.addManager(account);
+  }
+
+  // //////////////////////////////////
+  // Set contracts' owners
+  // //////////////////////////////////
+
+  const wrappers = [
+    ENSResolverWrapper,
+    ENSManagerWrapper,
+    WalletFactoryWrapper,
+    ModuleRegistryWrapper,
+    ArgentWalletDetectorWrapper];
+
+  for (let idx = 0; idx < wrappers.length; idx += 1) {
+    const wrapper = wrappers[idx];
+    console.log(`Set the MultiSig as the owner of ${wrapper.constructor.contractName}`);
+    await wrapper.changeOwner(MultiSigWrapper.address);
   }
 
   // /////////////////////////////////////////////////
@@ -101,7 +147,6 @@ async function main() {
     ENSResolver: ENSResolverWrapper.address,
     ENSManager: ENSManagerWrapper.address,
     ModuleRegistry: ModuleRegistryWrapper.address,
-    DappRegistry: DappRegistryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
   });
   await configurator.save();
@@ -115,7 +160,6 @@ async function main() {
     abiUploader.upload(ENSResolverWrapper, "contracts"),
     abiUploader.upload(ENSManagerWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
-    abiUploader.upload(DappRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
   ]);
 

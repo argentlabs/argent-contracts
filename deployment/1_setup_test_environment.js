@@ -1,5 +1,4 @@
 /* global artifacts */
-
 global.web3 = web3;
 global.artifacts = artifacts;
 
@@ -7,7 +6,6 @@ const ENSRegistry = artifacts.require("ENSRegistry");
 const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
 const UniswapFactory = artifacts.require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = artifacts.require("../lib/uniswap/UniswapExchange");
-const MakerMigration = artifacts.require("MockScdMcdMigration");
 
 // Uniswap V2
 const UniswapV2Router01 = artifacts.require("UniswapV2Router01Mock");
@@ -22,6 +20,9 @@ const PartnerDeployer = artifacts.require("PartnerDeployer");
 const Uniswap = artifacts.require("Uniswap");
 const UniswapProxy = artifacts.require("UniswapProxy");
 
+// Maker
+const MakerMigration = artifacts.require("MockScdMcdMigration");
+
 const { namehash, sha3 } = require("../utils/utilities.js");
 const deployManager = require("../utils/deploy-manager.js");
 
@@ -33,7 +34,7 @@ async function deployENSRegistry(owner, domain) {
   // Deploy the public ENS registry
   const ensRegistryWithoutFallback = await ENSRegistry.new();
   const ENSWrapper = await ENSRegistryWithFallback.new(ensRegistryWithoutFallback.address);
-
+  console.log("Deployed local ENSRegistry at ", ENSWrapper.address);
   // ENS domain
   const parts = domain.split(".");
   const extension = parts[1];
@@ -66,6 +67,7 @@ async function deployParaswap(deploymentAccount) {
   const uniAdapter = await Uniswap.new();
   const wlr = await paraswapWhitelist.WHITELISTED_ROLE();
   await paraswapWhitelist.grantRole(wlr, uniAdapter.address);
+  console.log("Deployed local AugustusSwapper at ", paraswap.address);
 
   return { contract: paraswap.address, uniswapProxy: uniswapProxy.address, uniAdapter: uniAdapter.address };
 }
@@ -91,12 +93,14 @@ async function main() {
     configurator.updateUniswapFactory(UniswapFactoryWrapper.address);
     const UniswapExchangeTemplateWrapper = await UniswapExchange.new();
     await UniswapFactoryWrapper.initializeFactory(UniswapExchangeTemplateWrapper.address);
+    console.log("Deployed local UniswapFactory V1 at ", UniswapFactoryWrapper.address);
     // Uniswap V2
     const UniswapV2FactoryWrapper = await UniswapV2Factory.new(ZERO_ADDRESS);
     const UniswapV2RouterWrapper = await UniswapV2Router01.new(UniswapV2FactoryWrapper.address, ZERO_ADDRESS);
     const UniZapWrapper = await UniZap.new(UniswapV2FactoryWrapper.address, UniswapV2RouterWrapper.address, ZERO_ADDRESS);
     const initCode = await UniswapV2FactoryWrapper.getKeccakOfPairCreationCode();
     configurator.updateUniswapV2(UniswapV2FactoryWrapper.address, UniswapV2RouterWrapper.address, UniZapWrapper.address, initCode);
+    console.log("Deployed local UniswapFactory V2 at ", UniswapV2FactoryWrapper.address);
   }
 
   if (config.defi.maker.deployOwn) {
@@ -108,6 +112,7 @@ async function main() {
       config.defi.maker.tub || "0x0000000000000000000000000000000000000000",
       config.defi.maker.cdpManager || "0x0000000000000000000000000000000000000000",
     );
+    console.log("Deployed local MakerMigration at ", MakerMigrationWrapper.address);
     configurator.updateMakerMigration(MakerMigrationWrapper.address);
   }
 
