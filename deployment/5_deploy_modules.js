@@ -1,6 +1,6 @@
 /* global artifacts */
-
 global.web3 = web3;
+global.artifacts = artifacts;
 
 const childProcess = require("child_process");
 
@@ -40,7 +40,7 @@ async function main() {
     config.settings.securityWindow || 0,
     config.settings.recoveryPeriod || 0,
     config.settings.lockPeriod || 0);
-
+  console.log("Deployed ArgentModule at ", ArgentModuleWrapper.address);
   wrappers.push(ArgentModuleWrapper);
 
   // /////////////////////////////////////////////////
@@ -65,7 +65,7 @@ async function main() {
   // //////////////////////////////////
 
   const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
-
+  const owner = await ModuleRegistryWrapper.owner();
   for (let idx = 0; idx < wrappers.length; idx += 1) {
     const wrapper = wrappers[idx];
     await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule",
