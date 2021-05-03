@@ -12,8 +12,10 @@
 
 /* global artifacts */
 global.web3 = web3;
+global.artifacts = artifacts;
 
 const fs = require("fs");
+const inquirer = require("inquirer");
 
 const MultiSig = artifacts.require("MultiSigWallet");
 const TokenRegistry = artifacts.require("TokenRegistry");
@@ -34,19 +36,17 @@ async function main() {
   const accounts = await web3.eth.getAccounts();
   const deploymentAccount = accounts[0];
 
-  const TokenRegistryWrapper = await TokenRegistry.at(config.modules.TokenRegistry);
+  const TokenRegistryWrapper = await TokenRegistry.at(config.contracts.TokenRegistry);
 
   const data = JSON.parse(fs.readFileSync(input, "utf8"));
   const addresses = Object.keys(data);
   console.log(`${addresses.length} tokens provided in ${input}`);
 
   const tradableStatus = await TokenRegistryWrapper.getTradableForTokenList(addresses);
-  const priceStatus = await TokenRegistryWrapper.getPriceForTokenList(addresses);
 
-  // we only update tokens meeting those two conditions:
+  // we only update tokens meeting this condition:
   // (1) tradable flag is different than the one on chain
-  // (2) on chain price is not zero
-  const filteredData = Object.entries(data).filter((item, index) => (tradableStatus[index] !== item[1]) && (priceStatus[index].isZero() === false));
+  const filteredData = Object.entries(data).filter((item, index) => (tradableStatus[index] !== item[1]));
 
   console.log(`${filteredData.length} tokens need update:`);
   for (const item of filteredData) {
@@ -58,11 +58,35 @@ async function main() {
   const tokens = filteredData.map((item) => item[0]);
   const tradable = filteredData.map((item) => item[1]);
 
-  const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
-  const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign);
-  const receipt = await multisigExecutor.executeCall(TokenRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
+  const owner = await TokenRegistryWrapper.owner();
 
-  console.log(receipt.transactionHash);
+  if (owner.toLowerCase() === config.contracts.MultiSigWallet.toLowerCase()) {
+    const MultiSigWrapper = await MultiSig.at(config.contracts.MultiSigWallet);
+    const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deploymentAccount, config.multisig.autosign, true);
+    const receipt = await multisigExecutor.executeCall(TokenRegistryWrapper, "setTradableForTokenList", [tokens, tradable]);
+    console.log(receipt.transactionHash);
+  } else if (owner.toLowerCase() === deploymentAccount.toLowerCase()) {
+    const estimateGas = await TokenRegistryWrapper.setTradableForTokenList.estimateGas(tokens, tradable, { gas: 10000000 });
+
+    const { gasPriceGwei, gasLimit } = await inquirer.prompt([{
+      type: "number",
+      name: "gasLimit",
+      message: "Gas Limit",
+      default: estimateGas.toString(),
+    }, {
+      type: "number",
+      name: "gasPriceGwei",
+      message: "Gas Price (gwei)",
+      default: 50,
+    }]);
+
+    const options = {
+      gas: parseInt(gasLimit, 10),
+      gasPrice: web3.utils.toWei(String(gasPriceGwei), "gwei")
+    };
+    const receipt = await TokenRegistryWrapper.setTradableForTokenList(tokens, tradable, options);
+    console.log(receipt.transactionHash);
+  }
 }
 
 module.exports = (callback) => {

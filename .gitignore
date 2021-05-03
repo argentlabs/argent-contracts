@@ -40,3 +40,5 @@ coverage.json
 
 crytic-export
 gas-usage-report.log
+
+token-registry/
