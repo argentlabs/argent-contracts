@@ -44,6 +44,7 @@ class VersionUploaderLocal {
   }
 
   async upload(version) {
+    if (fs.existsSync(this._path()) === false) return;
     fs.writeFileSync(this._path(), JSON.stringify(version));
   }
 
