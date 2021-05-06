@@ -21,7 +21,9 @@ const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
 const ERC20 = artifacts.require("TestERC20");
 
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, encodeTransaction, addTrustedContact, initNonce } = require("../utils/utilities.js");
+const {
+  ETH_TOKEN, encodeTransaction, encodeCalls, addTrustedContact, initNonce, getNonceForRelay, getChainId, signOffchain
+} = require("../utils/utilities.js");
 
 const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -97,6 +99,7 @@ contract("ArgentModule", (accounts) => {
     beforeEach(async () => {
       await initNonce(wallet, module, manager, SECURITY_PERIOD);
     });
+
     it("should whitelist an address", async () => {
       const target = accounts[6];
       const txReceipt = await manager.relay(
@@ -107,6 +110,33 @@ contract("ArgentModule", (accounts) => {
         [owner]);
       const success = await utils.parseRelayReceipt(txReceipt).success;
       assert.isTrue(success, "transfer failed");
+      await utils.increaseTime(3);
+      const isTrusted = await module.isWhitelisted(wallet.address, target);
+      assert.isTrue(isTrusted, "should be trusted after the security period");
+      console.log(`Gas for whitelisting: ${txReceipt.gasUsed}`);
+    });
+
+    it("should whitelist an address via a multicall", async () => {
+      const target = accounts[6];
+      const nonce = await getNonceForRelay();
+      const payload = module.contract.methods.addToWhitelist(wallet.address, target).encodeABI();
+      const sigs = await signOffchain(
+        [owner], module.address, 0, payload, await getChainId(), nonce, 0, 150000, ETH_TOKEN, ZERO_ADDRESS,
+      );
+      const transactions = encodeCalls([module, "execute", [
+        wallet.address, payload, nonce, sigs, 0, 150000, ETH_TOKEN, ZERO_ADDRESS
+      ]]);
+
+      const txReceipt = await manager.relay(
+        module,
+        "multiCallWithGuardians",
+        [wallet.address, transactions],
+        wallet,
+        [owner, guardian1],
+        1);
+      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      assert.isTrue(success, `multicall failed: ${error}`);
+
       await utils.increaseTime(3);
       const isTrusted = await module.isWhitelisted(wallet.address, target);
       assert.isTrue(isTrusted, "should be trusted after the security period");
