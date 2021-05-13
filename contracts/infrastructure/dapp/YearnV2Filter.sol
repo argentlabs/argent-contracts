@@ -20,7 +20,8 @@ import "./BaseFilter.sol";
 
 /**
  * @title YearnV2Filter
- * @notice Filter used for deposits & withdrawals into/from YearnV2
+ * @notice Filter used for deposits & withdrawals into/from YearnV2 vaults
+ * such as the WETH vault at 0xa9fE4601811213c340e850ea305481afF02f5b28
  * @author Olivier VDB - <olivier@argent.xyz>
  */
 contract YearnV2Filter is BaseFilter {
@@ -35,7 +36,6 @@ contract YearnV2Filter is BaseFilter {
    
     bytes4 private constant WITHDRAW0 = bytes4(keccak256("withdraw()"));
     bytes4 private constant WITHDRAW1 = bytes4(keccak256("withdraw(uint256)"));
-    bytes4 private constant WITHDRAW3 = bytes4(keccak256("withdraw(uint256,address,uint256)"));
 
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
@@ -52,11 +52,6 @@ contract YearnV2Filter is BaseFilter {
 
         if(method == DEPOSIT0 || method == DEPOSIT1 || method == WITHDRAW0 || method == WITHDRAW1) {
             return true;
-        }
-
-        if(method == WITHDRAW3) {
-            // only allow wallet as recipient
-            return _wallet == abi.decode(_data[36:], (address));
         }
 
         return false;

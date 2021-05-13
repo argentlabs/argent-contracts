@@ -46,7 +46,6 @@ contract("yEarnV2 Filter", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
   const guardian1 = accounts[2];
-  const other = accounts[3];
   const relayer = accounts[4];
   const refundAddress = accounts[7];
 
@@ -161,10 +160,6 @@ contract("yEarnV2 Filter", (accounts) => {
     [pool, "withdraw", [AMOUNT]]
   ]));
 
-  const withdraw3 = async (recipient = wallet.address) => multiCall(encodeCalls([
-    [pool, "withdraw", [AMOUNT, recipient, 2]]
-  ]));
-
   const withdrawETH1 = async () => multiCall(encodeCalls([
     [pool, "withdraw", [AMOUNT]],
     [weth, "withdraw", [AMOUNT]],
@@ -204,23 +199,10 @@ contract("yEarnV2 Filter", (accounts) => {
       assert.isTrue(success, `withdraw1 failed: "${error}"`);
     });
 
-    it("should allow withdrawals (3 param)", async () => {
-      await deposit1();
-      const { success, error } = await withdraw3();
-      assert.isTrue(success, `withdraw3 failed: "${error}"`);
-    });
-
     it("should allow ETH withdrawals (1 param)", async () => {
       await depositETH1();
       const { success, error } = await withdrawETH1();
-      assert.isTrue(success, `withdraw3 failed: "${error}"`);
-    });
-
-    it("should NOT allow withdrawals to non-wallet ", async () => {
-      await deposit0();
-      const { success, error } = await withdraw3(other);
-      assert.isFalse(success, "withdraw3 should have failed");
-      assert.equal(error, "TM: call not authorised");
+      assert.isTrue(success, `withdrawETH1 failed: "${error}"`);
     });
   });
 

@@ -180,6 +180,15 @@
             }
           }
         },
+        "yearnV2": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
         "lido": {
           "type": "object",
           "properties": {
