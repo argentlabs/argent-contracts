@@ -27,6 +27,17 @@ contract CurveFilter is BaseFilter {
 
     bytes4 private constant EXCHANGE = bytes4(keccak256("exchange(int128,int128,uint256,uint256)"));
     bytes4 private constant EXCHANGE_UNDERLYING = bytes4(keccak256("exchange_underlying(int128,int128,uint256,uint256)"));
+   
+    // Note: Curve pools may contain 2, 3 or 4 different tokens. Depending on the number of tokens,
+    // a different version of the add_liquidity/remove_liquidity functions need to be approved.
+    // For simplicity, we chose to use a single Curve filter that enables all 3 versions of these functions for each pool.
+    bytes4 private constant ADD_LIQUIDITY2 = bytes4(keccak256("add_liquidity(uint256[2],uint256)"));
+    bytes4 private constant ADD_LIQUIDITY3 = bytes4(keccak256("add_liquidity(uint256[3],uint256)"));
+    bytes4 private constant ADD_LIQUIDITY4 = bytes4(keccak256("add_liquidity(uint256[4],uint256)"));
+    bytes4 private constant REMOVE_LIQUIDITY2 = bytes4(keccak256("remove_liquidity(uint256,uint256[2])"));
+    bytes4 private constant REMOVE_LIQUIDITY3 = bytes4(keccak256("remove_liquidity(uint256,uint256[3])"));
+    bytes4 private constant REMOVE_LIQUIDITY4 = bytes4(keccak256("remove_liquidity(uint256,uint256[4])"));
+    
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
     function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
@@ -35,11 +46,15 @@ contract CurveFilter is BaseFilter {
             return false;
         }
 
-        bytes4 methodId = getMethod(_data);
+        bytes4 method = getMethod(_data);
         if(_spender == _to) {
-            return (methodId == EXCHANGE || methodId == EXCHANGE_UNDERLYING);
+            return (
+                method == EXCHANGE || method == EXCHANGE_UNDERLYING ||
+                method == ADD_LIQUIDITY2 || method == ADD_LIQUIDITY3 || method == ADD_LIQUIDITY4 ||
+                method == REMOVE_LIQUIDITY2 || method == REMOVE_LIQUIDITY3 || method == REMOVE_LIQUIDITY4
+            );
         } else {
-            return (methodId == ERC20_APPROVE);
+            return (method == ERC20_APPROVE);
         }
     }
 }
