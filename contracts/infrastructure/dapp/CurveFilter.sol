@@ -28,10 +28,12 @@ contract CurveFilter is BaseFilter {
     bytes4 private constant EXCHANGE = bytes4(keccak256("exchange(int128,int128,uint256,uint256)"));
     bytes4 private constant EXCHANGE_UNDERLYING = bytes4(keccak256("exchange_underlying(int128,int128,uint256,uint256)"));
    
+    // Note: Curve pools may contain 2, 3 or 4 different tokens. Depending on the number of tokens,
+    // a different version of the add_liquidity/remove_liquidity functions need to be approved.
+    // For simplicity, we chose to use a single Curve filter that enables all 3 versions of these functions for each pool.
     bytes4 private constant ADD_LIQUIDITY2 = bytes4(keccak256("add_liquidity(uint256[2],uint256)"));
     bytes4 private constant ADD_LIQUIDITY3 = bytes4(keccak256("add_liquidity(uint256[3],uint256)"));
     bytes4 private constant ADD_LIQUIDITY4 = bytes4(keccak256("add_liquidity(uint256[4],uint256)"));
-    
     bytes4 private constant REMOVE_LIQUIDITY2 = bytes4(keccak256("remove_liquidity(uint256,uint256[2])"));
     bytes4 private constant REMOVE_LIQUIDITY3 = bytes4(keccak256("remove_liquidity(uint256,uint256[3])"));
     bytes4 private constant REMOVE_LIQUIDITY4 = bytes4(keccak256("remove_liquidity(uint256,uint256[4])"));
