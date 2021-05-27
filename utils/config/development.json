@@ -132,10 +132,12 @@
       "wethPools": ["0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7"]
     },
     "yearnV2": { "pools": ["0xa9fE4601811213c340e850ea305481afF02f5b28"] },
-    "curve": {
-      "pools": ["0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51"]
-    },
-    "lido": { "contract": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" }
+    "curve": { "pools": ["0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51"] },
+    "lido": { "contract": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" },
+    "gro": {
+      "depositHandler": "0xFbe33d436Feb07ff78Dc5Bb1AC6FDD069A7b997e",
+      "withdrawHandler": "0xd5cCda0C1E2900fD4B57c782bE4C72A85Ff3cD35"
+    }
   },
   "contracts": {
     "MultiSigWallet": "0x5f8e26fAcC23FA4cbd87b8d9Dbbd33D5047abDE1",
@@ -176,12 +178,14 @@
     "AaveV1LendingPoolFilter": "0x49455287eBCC42a875B40724C62519D03e2EDcff",
     "AaveV1ATokenFilter": "0xACF05e2a9b757e70C2900432c9b4E08Fdc54dD53",
     "WethFilter": "0x2c5f3c004878923f55A2a255F89Fe29393177509",
-    "YearnV2Filter": "0x01c4052ac7EEF0cbDdc83F3780149D52D4174776"
+    "YearnV2Filter": "0x01c4052ac7EEF0cbDdc83F3780149D52D4174776",
+    "GroWithdrawFilter": "0x01c4052ac7EEF0cbDdc83F3780149D52D4174776",
+    "GroDepositFilter": "0x29fa1c214B7242b704063F2Ec52494f4639A9cc3"
   },
   "modules": {
     "GuardianStorage": "0x6eD79Aa1c71FD7BdBC515EfdA3Bd4e26394435cC",
     "TransferStorage": "0xb09bCc172050fBd4562da8b229Cf3E45Dc3045A6",
     "ArgentModule": "0x8c634b72fF5d6A9F6a0281EEF36365E4db8bDF8d"
   },
-  "gitCommit": "95a663164ab9df3f2d6b1da8f24fa6dfdd3dbe70"
+  "gitCommit": "b1f66bba411fc694f6df96fdf43e793f1e741b7c"
 }

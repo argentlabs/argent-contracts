@@ -8,7 +8,8 @@ const BN = require("bn.js");
 const DappRegistry = artifacts.require("DappRegistry");
 const MultiSig = artifacts.require("MultiSigWallet");
 
-const CurveFilter = artifacts.require("CurveFilter");
+const GroWithdrawFilter = artifacts.require("GroWithdrawFilter");
+const GroDepositFilter = artifacts.require("GroDepositFilter");
 
 const deployManager = require("../utils/deploy-manager.js");
 const MultisigExecutor = require("../utils/multisigexecutor.js");
@@ -82,14 +83,19 @@ const main = async () => {
   // Deploy and add filters to Argent Registry
   // //////////////////////////////////
 
-  for (const pool of config.defi.curve.pools) {
-    await installFilter({
-      filterDeployer: async () => getFilterFromConfigOrDeployNew(CurveFilter),
-      dapp: pool,
-      dappName: `Curve pool ${pool}`,
-      filterName: "CurveFilter"
-    });
-  }
+  await installFilter({
+    filterDeployer: async () => getFilterFromConfigOrDeployNew(GroWithdrawFilter),
+    dapp: config.defi.gro.withdrawHandler,
+    dappName: "Gro WithdrawHandler",
+    filterName: "GroWithdrawFilter"
+  });
+
+  await installFilter({
+    filterDeployer: async () => getFilterFromConfigOrDeployNew(GroDepositFilter),
+    dapp: config.defi.gro.depositHandler,
+    dappName: "Gro DepositHandler",
+    filterName: "GroDepositFilter"
+  });
 };
 
 // For truffle exec
