@@ -68,7 +68,7 @@ const main = async () => {
 
   const getFilterFromConfigOrDeployNew = async (filterArtifact) => {
     const { contractName } = filterArtifact._json;
-    if (!config.filters[contractName] || config.filters[contractName] === ethers.constants.AddressZero) {
+    if (!config.filters || !config.filters[contractName] || config.filters[contractName] === ethers.constants.AddressZero) {
       console.log(`Deploying ${contractName}`);
       const wrapper = await filterArtifact.new();
       console.log(`Deployed ${contractName} at ${wrapper.address}\n`);
