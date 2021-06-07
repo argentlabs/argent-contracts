@@ -44,6 +44,7 @@ const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const ParaswapFilter = artifacts.require("ParaswapFilter");
 const ParaswapUniV2RouterFilter = artifacts.require("ParaswapUniV2RouterFilter");
+const UniswapV3RouterFilter = artifacts.require("UniswapV3RouterFilter");
 const ZeroExV2Filter = artifacts.require("WhitelistedZeroExV2Filter");
 const ZeroExV4Filter = artifacts.require("WhitelistedZeroExV4Filter");
 const CurveFilter = artifacts.require("CurveFilter");
@@ -167,10 +168,14 @@ contract("Paraswap Filter", (accounts) => {
 
     // Deploy UniswapV3
     uniswapV3Factory = await UniswapV3Factory.new();
-    const uniV3PoolCreationTxReceipt = await uniswapV3Factory.createPool(weth.address, tokenA.address, UNIV3_FEE);
-    const uniV3PoolAddress = uniV3PoolCreationTxReceipt.logs.find((e) => e.event === "PoolCreated").args.pool;
-    uniswapV3Pools = { [tokenA.address]: { address: uniV3PoolAddress } };
     uniswapV3Router = await UniswapV3Router.new(uniswapV3Factory.address, weth.address);
+    uniswapV3Pools = [];
+    const uniV3PoolTokens = [[weth.address, tokenA.address], [weth.address, tokenB.address], [tokenA.address, tokenB.address]];
+    for (const [token1, token2] of uniV3PoolTokens) {
+      const uniV3PoolCreationTxReceipt = await uniswapV3Factory.createPool(token1, token2, UNIV3_FEE);
+      const uniV3PoolAddress = uniV3PoolCreationTxReceipt.logs.find((e) => e.event === "PoolCreated").args.pool;
+      uniswapV3Pools.push(uniV3PoolAddress);
+    }
 
     // Deploy Paraswap
     uniswapProxy = await UniswapProxy.new(weth.address, uniswapV2Factory.address, initCode);
@@ -218,7 +223,7 @@ contract("Paraswap Filter", (accounts) => {
       await uniswapV2Factory.allPairs(2), // tokenA-tokenB uniV2
       uniswapExchanges[tokenA.address].address, // tokenA-eth uniV1
       uniswapExchanges[tokenB.address].address, // tokenB-eth uniV1
-      uniswapV3Pools[tokenA.address].address // tokenA-eth uniV3
+      ...uniswapV3Pools // uniV3 pools
     ];
     await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, weth.address, ...pairs], Array(3 + pairs.length).fill(true));
     dappRegistry = await DappRegistry.new(0);
@@ -258,6 +263,7 @@ contract("Paraswap Filter", (accounts) => {
       [marketMaker]);
     const proxyFilter = await OnlyApproveFilter.new();
     const paraswapUniV2RouterFilter = await ParaswapUniV2RouterFilter.new(tokenRegistry.address, uniswapV2Factory.address, initCode, weth.address);
+    const uniV3RouterFilter = await UniswapV3RouterFilter.new(tokenRegistry.address, uniswapV3Factory.address, UNIV3_INIT_CODE, weth.address);
     const zeroExV2Filter = await ZeroExV2Filter.new([marketMaker]);
     const zeroExV4Filter = await ZeroExV4Filter.new([marketMaker]);
     const curveFilter = await CurveFilter.new();
@@ -269,6 +275,7 @@ contract("Paraswap Filter", (accounts) => {
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenB.address].address, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenC.address].address, ZERO_ADDRESS);
     await dappRegistry.addDapp(0, paraswapUniV2Router.address, paraswapUniV2RouterFilter.address);
+    await dappRegistry.addDapp(0, uniswapV3Router.address, uniV3RouterFilter.address);
     await dappRegistry.addDapp(0, zeroExV2Proxy.address, proxyFilter.address);
     await dappRegistry.addDapp(0, zeroExV2TargetExchange.address, zeroExV2Filter.address);
     await dappRegistry.addDapp(0, zeroExV4TargetExchange.address, zeroExV4Filter.address);
@@ -415,6 +422,19 @@ contract("Paraswap Filter", (accounts) => {
       targetExchange = paraswapUniV2Router;
       swapMethod = "swap";
       swapParams = [fromAmount, toAmount, [fromToken, toToken]];
+    } else if (exchange === "uniswapv3") {
+      targetExchange = uniswapV3Router;
+      swapMethod = "exactInputSingle";
+      swapParams = [{
+        tokenIn: fromToken,
+        tokenOut: toToken,
+        fee: UNIV3_FEE,
+        recipient: paraswap.address,
+        deadline: 99999999999,
+        amountIn: fromAmount,
+        amountOutMinimum: toAmount,
+        sqrtPriceLimitX96: 0
+      }];
     } else if (exchange === "uniswap") {
       if (fromToken === PARASWAP_ETH_TOKEN) {
         targetExchange = uniswapV1Exchanges[toToken];
@@ -733,7 +753,7 @@ contract("Paraswap Filter", (accounts) => {
         });
       }
 
-      ["uniswapv2", "zeroexv2", "zeroexv4", "curve"].forEach(testSimpleSwapAuthorisationViaExchange);
+      ["uniswapv2", "zeroexv2", "zeroexv4", "curve", "uniswapv3"].forEach(testSimpleSwapAuthorisationViaExchange);
 
       describe("simpleSwap authorisation via weth", () => {
         const exchange = "weth";
