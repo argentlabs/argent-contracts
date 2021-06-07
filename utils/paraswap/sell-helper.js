@@ -8,7 +8,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 const getTargetExchange = (tokenFrom, exchangeName, exchangeAddress, targetExchanges) => targetExchanges[exchangeName];
 
 const getPayLoad = (fromToken, toToken, exchange, data) => {
-  const { path, orders, order, signatures, signature } = data;
+  const { path, orders, order, signatures, signature, fee } = data;
   switch (exchange.toLowerCase()) {
     case "uniswapv2":
     case "sushiswap":
@@ -21,6 +21,17 @@ const getPayLoad = (fromToken, toToken, exchange, data) => {
           },
         },
         { path },
+      );
+    case "uniswapv3":
+      return web3Coder.encodeParameter(
+        {
+          ParentStruct: {
+            fee: "uint24",
+            deadline: "uint256",
+            sqrtPriceLimitX96: "uint160"
+          },
+        },
+        { fee, deadline: 2000000000, sqrtPriceLimitX96: 0 },
       );
     case "curve":
       return web3Coder.encodeParameter(
@@ -205,7 +216,13 @@ const getWethRoutes = ({ fromToken, toToken }) => [{
   data: { tokenFrom: fromToken, tokenTo: toToken },
 }];
 
-const getRoutesForExchange = ({ fromToken, toToken, maker, exchange }) => {
+const getUniV3Routes = ({ fromToken, toToken, fee }) => [{
+  exchange: "uniswapV3",
+  percent: "100",
+  data: { tokenFrom: fromToken, tokenTo: toToken, fee },
+}];
+
+const getRoutesForExchange = ({ fromToken, toToken, maker, fee, exchange }) => {
   switch (exchange) {
     case "paraswappoolv2":
     case "paraswappoolv4":
@@ -220,6 +237,8 @@ const getRoutesForExchange = ({ fromToken, toToken, maker, exchange }) => {
       return getCurveRoutes({ fromToken, toToken });
     case "weth":
       return getWethRoutes({ fromToken, toToken });
+    case "uniswapV3":
+      return getUniV3Routes({ fromToken, toToken, fee });
     default:
       throw new Error(`unknown exchange "${exchange}"`);
   }
