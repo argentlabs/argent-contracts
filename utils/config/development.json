@@ -40,8 +40,12 @@
       "factoryV2": "0x630589690929E9cdEFDeF0734717a9eF3Ec7Fcfe",
       "initCode": "0x505fef446e85683f8d469f9a29612718156edbc931150eb74e2f3ffae9b35392",
       "initCodeV2": "0x0ad8b7ff6edc3a70462a8fcc2940b2697bf6c62471db0f6b7e88838f9f6a762d",
-      "paraswapUniV2Router": "0x86d3579b043585A97532514016dCF0C2d6C4b6a1"
+      "paraswapUniV2Router": "0x86d3579b043585A97532514016dCF0C2d6C4b6a1",
+      "v3Router": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+      "initCodeV3": "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54",
+      "factoryV3": "0x1F98431c8aD98523631AE4a59f267346ea31F984"
     },
+
     "compound": {
       "comptroller": "0x0000000000000000000000000000000000000000",
       "markets": {
@@ -51,8 +55,13 @@
     "paraswap": {
       "deployOwn": true,
       "contract": "0x59d3631c86BbE35EF041872d502F218A39FBa150",
-      "adapters": { "uniswap": "0x9b1f7F645351AF3631a656421eD2e40f2802E6c0" },
-      "targetExchanges": {},
+      "adapters": {
+        "uniswap": "0x9b1f7F645351AF3631a656421eD2e40f2802E6c0",
+        "uniswapV3": "0xbfBFf2938E3bE0fE588FbF6007F1fdE73C5a9A4E"
+      },
+      "targetExchanges": {
+        "uniswapV3": "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+      },
       "marketMakers": [],
       "proxies": { "zeroexv2": "0x95e6f48254609a6ee006f7d493c8e5fb97094cef" },
       "uniswapProxy": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550",
