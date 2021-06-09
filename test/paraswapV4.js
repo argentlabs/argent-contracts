@@ -636,6 +636,16 @@ contract("Paraswap Filter", (accounts) => {
       await dappRegistry.addDapp(0, uniswapV1Exchanges[tokenA.address].address, ZERO_ADDRESS);
     });
 
+    it("should not allow simpleSwap via unauthorised Augustus method", async () => {
+      const methodData = paraswap.contract.methods.paused().encodeABI(); // unauthorised method on Augustus contract
+      const simpleSwapParams = [
+        PARASWAP_ETH_TOKEN, tokenA.address, 1, 1, 0, [paraswap.address], methodData, [0, 4], [0], wallet.address, "abc", false
+      ];
+      const swapData = paraswap.contract.methods.simpleSwap(...simpleSwapParams).encodeABI();
+      const isValid = await paraswapFilter.isValid(wallet.address, paraswap.address, paraswap.address, swapData);
+      assert.equal(isValid, false, "authorisation should not have been granted for simpleSwap call to invalid Augustus method");
+    });
+
     async function testUnauthorisedAdapter(method) {
       await testTrade({
         method,
