@@ -16,4 +16,6 @@ contract ZeroxV2TargetExchangeMock is IZeroxV2 {
     {
         // empty mock
     }
+
+    function unauthorisedMethod() external {}
 }
