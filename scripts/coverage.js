@@ -124,8 +124,12 @@ async function coverage(){
     // Copy Uniswap pre-compiles into temp build folder
     const exchangePath = path.join(process.cwd(), 'lib_0.5/uniswap/UniswapExchange.json')
     const factoryPath = path.join(process.cwd(), 'lib_0.5/uniswap/UniswapFactory.json')
+    const factoryV3Path = path.join(process.cwd(), 'lib_0.7/uniV3/UniswapV3Factory.json')
+    const routerV3Path = path.join(process.cwd(), 'lib_0.7/uniV3/SwapRouter.json')
     shell.cp(exchangePath, config.contracts_build_directory);
     shell.cp(factoryPath, config.contracts_build_directory);
+    shell.cp(factoryV3Path, config.contracts_build_directory);
+    shell.cp(routerV3Path, config.contracts_build_directory);
 
     config.compileNone = true;     // Do *not* let Truffle compile anything else.
     config.network = 'development' // Use regular test network (8545)

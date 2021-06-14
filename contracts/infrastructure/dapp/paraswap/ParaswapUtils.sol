@@ -68,6 +68,23 @@ library ParaswapUtils {
         ZeroExV4Signature signature;
     }
 
+    function hasValidUniV3Pool(
+        address _fromToken,
+        address _toToken,
+        uint24 _fee,
+        address _tokenRegistry,
+        address _factory,
+        bytes32 _initCode,
+        address _weth
+    )
+        internal
+        view
+        returns (bool)
+    {
+        address poolToken = uniV3PoolFor(_fromToken, _toToken, _fee, _factory, _initCode, _weth);
+        return hasTradableToken(_tokenRegistry, poolToken);
+    }
+
     function hasValidUniV2Path(
         address[] memory _path,
         address _tokenRegistry,
@@ -81,12 +98,34 @@ library ParaswapUtils {
     {
         address[] memory lpTokens = new address[](_path.length - 1);
         for(uint i = 0; i < lpTokens.length; i++) {
-            lpTokens[i] = pairFor(_path[i], _path[i+1], _factory, _initCode, _weth);
+            lpTokens[i] = uniV2PairFor(_path[i], _path[i+1], _factory, _initCode, _weth);
         }
         return hasTradableTokens(_tokenRegistry, lpTokens);
     }
 
-    function pairFor(address _tokenA, address _tokenB, address _factory, bytes32 _initCode, address _weth) internal pure returns (address) {
+    function uniV3PoolFor(
+        address _tokenA,
+        address _tokenB,
+        uint24 _fee,
+        address _factory,
+        bytes32 _initCode,
+        address _weth
+    )
+        internal
+        pure
+        returns (address)
+    {
+        (address tokenA, address tokenB) = (_tokenA == ETH_TOKEN ? _weth : _tokenA, _tokenB == ETH_TOKEN ? _weth : _tokenB);
+        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+        return(address(uint160(uint(keccak256(abi.encodePacked(
+            hex"ff",
+            _factory,
+            keccak256(abi.encode(token0, token1, _fee)),
+            _initCode
+        ))))));
+    }
+
+    function uniV2PairFor(address _tokenA, address _tokenB, address _factory, bytes32 _initCode, address _weth) internal pure returns (address) {
         (address tokenA, address tokenB) = (_tokenA == ETH_TOKEN ? _weth : _tokenA, _tokenB == ETH_TOKEN ? _weth : _tokenB);
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         return(address(uint160(uint(keccak256(abi.encodePacked(
@@ -99,6 +138,11 @@ library ParaswapUtils {
 
     function hasTradableTokens(address _tokenRegistry, address[] memory _tokens) internal view returns (bool) {
         (bool success, bytes memory res) = _tokenRegistry.staticcall(abi.encodeWithSignature("areTokensTradable(address[])", _tokens));
+        return success && abi.decode(res, (bool));
+    
+    }
+    function hasTradableToken(address _tokenRegistry, address _token) internal view returns (bool) {
+        (bool success, bytes memory res) = _tokenRegistry.staticcall(abi.encodeWithSignature("isTokenTradable(address)", _token));
         return success && abi.decode(res, (bool));
     }
 }
