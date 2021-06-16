@@ -59,7 +59,7 @@ A recovery can be cancelled before finalisation. The number of signatures (owner
 \end{equation*}
 where $n$ is the total number of guardians when the recovery was executed.
 
-Once a recovery is started the wallet is automatically locked. The wallet can only be unlock by finalising or cancelling the ongoing procedure, i.e. guardians cannot unlock during a recovery.
+Once a recovery is started the wallet is automatically locked. The wallet can only be unlocked by finalising or cancelling the ongoing procedure, i.e. guardians cannot unlock during a recovery.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ownership Transfer}
@@ -105,7 +105,7 @@ The first registry is enabled by default (opt-out) for all wallets and contains 
 
 Each registry entry is a mapping between an authorised address and a filter containing the set of conditions that a transaction from a wallet to the authorised address must satisfy.
 Adding or removing an entry in a registry is a timelocked operation that can only be initiated by the Argent multisig.
-The timelock is set to 7 days to give enough time for a user to disable the correspoding registry should they not approve the new addition.
+The timelock is set to 7 days to give enough time for a user to disable the corresponding registry should they not approve the new addition.
 
 Enabling or disabling a registry for a wallet is achieved via a multicall and requires guardian approvals. The number of required signatures is given by
 \begin{equation*}
@@ -211,7 +211,7 @@ Argent maintains an evolving set of registered \emph{Module} contracts. A subset
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Modules}
-All the functionalities of the Argent wallet are currently implemented in a single module. To structure the code, the \emph{ArgentModule} inherits from several abstract modules that each implements a coherent subset of the logic.
+All the functionalities of the Argent wallet are currently implemented in a single module. To structure the code, the \emph{ArgentModule} inherits from several abstract modules that each implement a coherent subset of the logic.
 
 \subsubsection{RelayerManager}\label{RelayerManager}
 
@@ -243,7 +243,7 @@ The current version of the wallet uses two storage contracts:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Meta-Transactions}
 \label{sec:meta-transactions}
-Meta-Transactions are implemented in the abstract \emph{RelayerManager} from which the \emph{ArgentModule} inherit. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding feature methods to do so.
+Meta-Transactions are implemented in the abstract \emph{RelayerManager} from which the \emph{ArgentModule} inherits. It implements a permissionless method \emph{execute()} that is meant to be called by a relayer account. The relayer must pass to the \emph{execute()} function an intention and the signature(s) of this intention by the originator(s) of that intention. As described in Section~\ref{sec:eth-less-account}, this pattern allows ether-less accounts to perform operations on the wallet without the need to directly call the corresponding feature methods to do so.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Dapp Registry}
