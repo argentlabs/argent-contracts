@@ -32,6 +32,8 @@ async function main() {
     const multisigExecutor = new MultisigExecutor(MultiSigWrapper, deployer.signer, config.multisig.autosign);
 
     const walletOwnershipManagerWrapper = await deployer.wrapDeployedContract(WalletOwnershipManager, config.modules.WalletOwnershipManager);
+
+    // Multisig wallet should be the owner of the wallet
     await multisigExecutor.executeCall(walletOwnershipManagerWrapper, "setOwner", [walletAddress, newOwner]);
 }
 
