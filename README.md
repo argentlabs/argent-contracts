@@ -32,6 +32,12 @@ Compile the test contracts:
 npm run compile:test
 ```
 
+Copy the precompiled artefacts to the build directory:
+```
+npm run provision:lib:artefacts
+```
+
+
 ## Test
 
 Launch ganache:
