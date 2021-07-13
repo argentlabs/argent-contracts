@@ -1,11 +1,11 @@
-require("chai");
+const { expect } = require("chai");
 const utils = require("../utils/utilities.js");
 const ArgentContext = require("../utils/argent-context.js");
 
-const WethFilter = artifacts.require("WethFilter")
+const WethFilter = artifacts.require("WethFilter");
 const WETH = artifacts.require("WETH9");
 
-contract("WETH Filter", accounts => {
+contract("WETH Filter", (accounts) => {
   let argent;
   let wallet;
   let weth;
@@ -30,7 +30,7 @@ contract("WETH Filter", accounts => {
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const walletBalance = await weth.balanceOf(wallet.address);
-      expect(walletBalance .toString()).to.equal("100");
+      expect(walletBalance.toString()).to.equal("100");
     });
 
     it("should allow deposit using fallback", async () => {
@@ -39,7 +39,7 @@ contract("WETH Filter", accounts => {
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const walletBalance = await weth.balanceOf(wallet.address);
-      expect(walletBalance .toString()).to.equal("100");
+      expect(walletBalance.toString()).to.equal("100");
     });
 
     it("should allow withdrawals", async () => {
@@ -50,7 +50,7 @@ contract("WETH Filter", accounts => {
       assert.isTrue(success, `deposit/withdrawal failed: "${error}"`);
 
       const walletBalance = await weth.balanceOf(wallet.address);
-      expect(walletBalance .toString()).to.equal("25");
+      expect(walletBalance.toString()).to.equal("25");
     });
   });
 });
