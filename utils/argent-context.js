@@ -1,3 +1,5 @@
+/* global artifacts */
+
 const ethers = require("ethers");
 
 const utils = require("./utilities.js");
@@ -20,11 +22,16 @@ const LOCK_PERIOD = 4;
 
 class ArgentContext {
   constructor(accounts) {
-    this.infrastructure = accounts[0];
-    this.owner = accounts[1];
-    this.guardian1 = accounts[2];
-    this.relayer = accounts[4];
-    this.refundAddress = accounts[7];
+    [
+      this.infrastructure,
+      this.owner,
+      this.guardian1,
+      , // eslint-disable-line
+      this.relayer, // 4
+      , // eslint-disable-line
+      , // eslint-disable-line
+      this.refundAddress, // 7
+    ] = accounts;
   }
 
   async initialize() {
