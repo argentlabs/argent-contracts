@@ -204,7 +204,7 @@ const utilities = {
     const client = await utilities.web3GetClient();
     const p = new Promise((resolve, reject) => {
       if (client.indexOf("TestRPC") === -1) {
-        console.warning("Client is not ganache-cli and cannot forward time");
+        console.warning?.("Client is not ganache-cli and cannot forward time");
       } else {
         web3.currentProvider.send(
           {
