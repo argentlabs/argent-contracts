@@ -1,3 +1,5 @@
+/* global artifacts */
+
 const { expect } = require("chai");
 const utils = require("../utils/utilities.js");
 const ArgentContext = require("../utils/argent-context.js");

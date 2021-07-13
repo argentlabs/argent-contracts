@@ -1,3 +1,5 @@
+/* global artifacts */
+
 require("chai");
 const ethers = require("ethers");
 const utils = require("../utils/utilities.js");
