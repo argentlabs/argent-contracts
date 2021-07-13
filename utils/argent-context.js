@@ -74,11 +74,11 @@ class ArgentContext {
     await utils.initNonce(wallet, this.module, this.manager, SECURITY_PERIOD);
 
     return wallet;
-  };
+  }
 
   async multiCall(wallet, calls) {
     const encodedCalls = utils.encodeCalls(calls);
-    return await this.multiCallRaw(wallet, encodedCalls);
+    return this.multiCallRaw(wallet, encodedCalls);
   }
 
   async multiCallRaw(wallet, calls) {

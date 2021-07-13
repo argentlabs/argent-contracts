@@ -57,7 +57,7 @@ contract("Lido Filter", (accounts) => {
       // Stake some funds to use to test selling
       await argent.multiCall(wallet, [
         [lido, "submit", [accounts[5]], 100]
-      ]);;
+      ]);
     });
 
     it("should allow selling stETH via Curve", async () => {
