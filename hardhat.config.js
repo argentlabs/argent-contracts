@@ -2,6 +2,13 @@
 
 require("dotenv").config();
 require("@nomiclabs/hardhat-truffle5");
+const BN = require("bn.js");
+const ganacheAccounts = require("./ganache-accounts.json");
+
+const hardhatAccounts = Object.values(ganacheAccounts.addresses).map(({ address, account }) => ({
+  privateKey: ganacheAccounts.private_keys[address],
+  balance: new BN(account.balance.slice(2), "hex").toString()
+}));
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -28,7 +35,8 @@ module.exports = {
       forking: {
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
         enabled: true,
-      }
+      },
+      accounts: hardhatAccounts,
     }
   },
 };
