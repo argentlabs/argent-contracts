@@ -1,3 +1,5 @@
+/* global task */
+
 require("dotenv").config();
 require("@nomiclabs/hardhat-truffle5");
 
