@@ -7,7 +7,7 @@ const ArgentContext = require("../utils/argent-context.js");
 const CurvePool = artifacts.require("CurvePoolMock");
 const CurveFilter = artifacts.require("CurveFilter");
 
-contract("WETH Filter", (accounts) => {
+contract("Curve Filter", (accounts) => {
   let argent, wallet;
   let curve2, curve3, curve4;
 
