@@ -95,7 +95,7 @@ module.exports = {
       host: "localhost",
       port: 3601,
       gasPrice: 0,
-      network_id: "1",
+      network_id: "1895",
     },
 
     // Another network with more advanced options...
