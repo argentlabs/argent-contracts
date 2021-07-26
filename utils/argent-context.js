@@ -65,7 +65,7 @@ class ArgentContext {
     return this;
   }
 
-  async createFundedWallet(valueInEth = "0.1") {
+  async createFundedWallet(valueInEth = "1") {
     // create wallet
     const walletAddress = await utils.createWallet(
       this.factory.address,
