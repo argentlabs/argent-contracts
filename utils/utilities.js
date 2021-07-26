@@ -103,8 +103,7 @@ const utilities = {
         const errorBytesArray = ethers.utils.defaultAbiCoder.decode(["bytes"], noErrorSelector);
         errorBytes = errorBytesArray[0]; // eslint-disable-line prefer-destructuring
       } else {
-        errorBytes = args.returnData;
-        console.log(errorBytes);
+        errorBytes = args.returnData; console.log(errorBytes);
       }
       error = ethers.utils.toUtf8String(errorBytes);
     }
@@ -204,10 +203,8 @@ const utilities = {
   increaseTime: async (seconds) => {
     const client = await utilities.web3GetClient();
     const p = new Promise((resolve, reject) => {
-      const isGanacheCli = client.includes("TestRPC");
-      const isHardHat = client.toLowerCase().includes("hardhat");
-      if (!isGanacheCli && !isHardHat) {
-        console.log("Client cannot forward time");
+      if (client.indexOf("TestRPC") === -1) {
+        console.warning("Client is not ganache-cli and cannot forward time");
       } else {
         web3.currentProvider.send(
           {
