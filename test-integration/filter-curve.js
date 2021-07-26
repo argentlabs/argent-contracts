@@ -1,7 +1,5 @@
 /* global artifacts */
 
-const { expect } = require("chai");
-const utils = require("../utils/utilities.js");
 const ArgentContext = require("../utils/argent-context.js");
 
 const CurvePool = artifacts.require("CurvePoolMock");
@@ -23,11 +21,11 @@ contract("Curve Filter", (accounts) => {
     await argent.dappRegistry.addDapp(0, curve4.address, curveFilter.address);
   });
 
-  beforeEach(async () => {
-    wallet = await argent.createFundedWallet();
-  });
-
   describe("Testing filter for 2 token pool (stEth)", () => {
+    before(async () => {
+      wallet = await argent.createFundedWallet();
+    });
+
     it("should swap", async () => {
       const amount = web3.utils.toWei("0.01");
       const { success, error } = await argent.multiCall(wallet, [
@@ -37,23 +35,33 @@ contract("Curve Filter", (accounts) => {
     });
   });
 
-  /*
   describe("Testing filter for 3 token pool (DAI/USDC/USDT)", () => {
+    before(async () => {
+      wallet = await argent.createFundedWallet({ DAI: "10" });
+    });
+
     it("should swap", async () => {
+      const amount = web3.utils.toWei("10");
       const { success, error } = await argent.multiCall(wallet, [
-        [curve3, "exchange", [1, 0, 99, 1]]
+        [argent.DAI, "approve", [curve3.address, amount]],
+        [curve3, "exchange", [0, 1, amount, 1]]
       ]);
       assert.isTrue(success, `exchange failed: "${error}"`);
     });
   });
 
   describe("Testing filter for 4 token pool (sUsd v2)", () => {
+    before(async () => {
+      wallet = await argent.createFundedWallet({ DAI: "10" });
+    });
+
     it("should swap", async () => {
+      const amount = web3.utils.toWei("10");
       const { success, error } = await argent.multiCall(wallet, [
-        [curve4, "exchange", [1, 0, 99, 1]]
+        [argent.DAI, "approve", [curve4.address, amount]],
+        [curve4, "exchange", [0, 1, amount, 1]]
       ]);
       assert.isTrue(success, `exchange failed: "${error}"`);
     });
   });
-  */
 });

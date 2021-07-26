@@ -12,6 +12,7 @@ const TransferStorage = artifacts.require("TransferStorage");
 const GuardianStorage = artifacts.require("GuardianStorage");
 const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
+const ERC20 = artifacts.require("TestERC20");
 
 const { ETH_TOKEN } = utils;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -19,6 +20,8 @@ const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
 const RECOVERY_PERIOD = 4;
 const LOCK_PERIOD = 4;
+
+let erc20sTransferred = false;
 
 class ArgentContext {
   constructor(accounts) {
@@ -29,7 +32,7 @@ class ArgentContext {
       , // eslint-disable-line
       this.relayer, // 4
       , // eslint-disable-line
-      , // eslint-disable-line
+      this.erc20sAddress, // 6
       this.refundAddress, // 7
     ] = accounts;
   }
@@ -62,10 +65,18 @@ class ArgentContext {
     );
     await this.factory.addManager(this.infrastructure);
     this.manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
+
+    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
+    if (!erc20sTransferred) {
+      this.transferERC20s();
+      erc20sTransferred = true;
+    }
     return this;
   }
 
-  async createFundedWallet(valueInEth = "1") {
+  async createFundedWallet(tokens) {
+    tokens = tokens || {};
+
     // create wallet
     const walletAddress = await utils.createWallet(
       this.factory.address,
@@ -76,10 +87,13 @@ class ArgentContext {
     const wallet = await BaseWallet.at(walletAddress);
 
     // fund wallet
-    await wallet.send(web3.utils.toWei(valueInEth));
+    await wallet.send(web3.utils.toWei(tokens.ETH || "0.1"));
 
     await utils.initNonce(wallet, this.module, this.manager, SECURITY_PERIOD);
 
+    if (tokens.DAI) {
+      await this.DAI.transfer(walletAddress, web3.utils.toWei(tokens.DAI), { from: this.erc20sAddress });
+    }
     return wallet;
   }
 
@@ -100,6 +114,10 @@ class ArgentContext {
       this.relayer,
     );
     return utils.parseRelayReceipt(txReceipt);
+  }
+
+  async transferERC20s() {
+    await this.DAI.transfer(this.erc20sAddress, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
   }
 }
 
