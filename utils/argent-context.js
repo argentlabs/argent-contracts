@@ -86,11 +86,12 @@ class ArgentContext {
     );
     const wallet = await BaseWallet.at(walletAddress);
 
-    // fund wallet
+    // fund wallet in ETH
     await wallet.send(web3.utils.toWei(tokens.ETH || "0.1"));
 
     await utils.initNonce(wallet, this.module, this.manager, SECURITY_PERIOD);
 
+    // optionally fund wallet in ERC-20's
     if (tokens.DAI) {
       await this.DAI.transfer(walletAddress, web3.utils.toWei(tokens.DAI), { from: this.erc20sAddress });
     }
