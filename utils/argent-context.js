@@ -21,7 +21,7 @@ const SECURITY_WINDOW = 2;
 const RECOVERY_PERIOD = 4;
 const LOCK_PERIOD = 4;
 
-let erc20sTransferred = false;
+let tokensInitialized = false;
 
 class ArgentContext {
   constructor(accounts) {
@@ -32,7 +32,7 @@ class ArgentContext {
       , // eslint-disable-line
       this.relayer, // 4
       , // eslint-disable-line
-      this.erc20sAddress, // 6
+      this.tokensAddress, // 6
       this.refundAddress, // 7
     ] = accounts;
   }
@@ -66,16 +66,12 @@ class ArgentContext {
     await this.factory.addManager(this.infrastructure);
     this.manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
 
-    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
-    if (!erc20sTransferred) {
-      this.transferERC20s();
-      erc20sTransferred = true;
-    }
+    this.initializeTokens();
     return this;
   }
 
-  async createFundedWallet(tokens) {
-    tokens = tokens || {};
+  async createFundedWallet(amounts) {
+    amounts = amounts || {};
 
     // create wallet
     const walletAddress = await utils.createWallet(
@@ -87,13 +83,17 @@ class ArgentContext {
     const wallet = await BaseWallet.at(walletAddress);
 
     // fund wallet in ETH
-    await wallet.send(web3.utils.toWei(tokens.ETH || "0.1"));
+    await wallet.send(web3.utils.toWei(amounts.ETH || "0.1"));
 
     await utils.initNonce(wallet, this.module, this.manager, SECURITY_PERIOD);
 
     // optionally fund wallet in ERC-20's
-    if (tokens.DAI) {
-      await this.DAI.transfer(walletAddress, web3.utils.toWei(tokens.DAI), { from: this.erc20sAddress });
+    const tickers = ["DAI", "WETH"];
+    for (const ticker of tickers) {
+      const amount = amounts[ticker];
+      if (amount) {
+        await this[ticker].transfer(walletAddress, web3.utils.toWei(amount), { from: this.tokensAddress });
+      }
     }
     return wallet;
   }
@@ -117,8 +117,19 @@ class ArgentContext {
     return utils.parseRelayReceipt(txReceipt);
   }
 
-  async transferERC20s() {
-    await this.DAI.transfer(this.erc20sAddress, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
+  // transfer tokens from mainnet whale addresses to a test address we control
+  async initializeTokens() {
+    if (tokensInitialized) {
+      return;
+    }
+
+    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
+    await this.DAI.transfer(this.tokensAddress, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
+
+    this.WETH = await ERC20.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+    await this.WETH.transfer(this.tokensAddress, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
+
+    tokensInitialized = true;
   }
 }
 
