@@ -1,6 +1,7 @@
 /* global artifacts */
 
 const ethers = require("ethers");
+const BN = require("bn.js");
 
 const utils = require("./utilities.js");
 const RelayManager = require("./relay-manager");
@@ -70,7 +71,24 @@ class ArgentContext {
     return this;
   }
 
-  // amounts: tokens amounts in 'ether' units
+  // transfer tokens from mainnet whale addresses to a test address we control
+  async initializeTokens() {
+    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
+    this.WETH = await ERC20.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+    this.USDC = await ERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); 
+
+    if (tokensInitialized) {
+      return;
+    }
+
+    await this.DAI.transfer(this.tokensAddress, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
+    await this.WETH.transfer(this.tokensAddress, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
+    await this.USDC.transfer(this.tokensAddress, "10000000000", { from: "0x39AA39c021dfbaE8faC545936693aC917d5E7563" });
+
+    tokensInitialized = true;
+  }
+
+  // amounts: tokens amounts in natural units
   async createFundedWallet(amounts) {
     amounts = amounts || {};
 
@@ -89,8 +107,11 @@ class ArgentContext {
     await utils.initNonce(wallet, this.module, this.manager, SECURITY_PERIOD);
 
     // optionally fund wallet in ERC-20's
-    const tickers = ["DAI", "WETH"];
-    for (const ticker of tickers) {
+    if (amounts.USDC) {
+      const amount = new BN(amounts.USDC).mul(new BN(1e6)).toString();
+      await this.USDC.transfer(walletAddress, amount, { from: this.tokensAddress });
+    }
+    for (const ticker of ["DAI", "WETH"]) {
       const amount = amounts[ticker];
       if (amount) {
         await this[ticker].transfer(walletAddress, web3.utils.toWei(amount), { from: this.tokensAddress });
@@ -101,11 +122,12 @@ class ArgentContext {
 
   async multiCall(wallet, calls) {
     const encodedCalls = utils.encodeCalls(calls);
-    return this.multiCallRaw(wallet, encodedCalls);
+    const receipt = await this.multiCallRaw(wallet, encodedCalls);
+    return utils.parseRelayReceipt(receipt);
   }
 
   async multiCallRaw(wallet, calls) {
-    const txReceipt = await this.manager.relay(
+    return await this.manager.relay(
       this.module,
       "multiCall",
       [wallet.address, calls],
@@ -115,22 +137,6 @@ class ArgentContext {
       ETH_TOKEN,
       this.relayer,
     );
-    return utils.parseRelayReceipt(txReceipt);
-  }
-
-  // transfer tokens from mainnet whale addresses to a test address we control
-  async initializeTokens() {
-    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
-    this.WETH = await ERC20.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
-
-    if (tokensInitialized) {
-      return;
-    }
-
-    await this.DAI.transfer(this.tokensAddress, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
-    await this.WETH.transfer(this.tokensAddress, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
-
-    tokensInitialized = true;
   }
 }
 

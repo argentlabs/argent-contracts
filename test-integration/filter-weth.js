@@ -37,7 +37,9 @@ contract("WETH Filter", (accounts) => {
 
     it("should allow deposit using fallback", async () => {
       const transaction = utils.encodeTransaction(weth.address, 100, "0x");
-      const { success, error } = await argent.multiCallRaw(wallet, [transaction]);
+
+      const receipt = await argent.multiCallRaw(wallet, [transaction]);
+      const { success, error } = utils.parseRelayReceipt(receipt);
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const walletBalance = await weth.balanceOf(wallet.address);

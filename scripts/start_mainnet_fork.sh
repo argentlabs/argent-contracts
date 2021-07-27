@@ -14,6 +14,6 @@ node_modules/.bin/ganache-cli \
     --gasPrice 0  \
     --deterministic \
     --fork https://mainnet.infura.io/v3/"$INFURA_KEY" \
-    --unlock "0xe982615d461dd5cd06575bbea87624fda4e3de17" `# USDC whale` \
+    --unlock "0x39AA39c021dfbaE8faC545936693aC917d5E7563" `# USDC whale` \
     --unlock "0x6B175474E89094C44Da98b954EedeAC495271d0F" `# DAI whale` \
     --unlock "0x2F0b23f53734252Bda2277357e97e1517d6B042A" `# WETH whale` \
