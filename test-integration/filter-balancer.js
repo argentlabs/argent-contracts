@@ -16,8 +16,8 @@ contract("Balancer Filter", (accounts) => {
 
     pool = await BPool.at("0x1eff8af5d577060ba4ac8a29a13525bb0ee2a3d5");
 
-    const balancerFilter = await BalancerFilter.new();
-    await argent.dappRegistry.addDapp(0, pool.address, balancerFilter.address);
+    const filter = await BalancerFilter.new();
+    await argent.dappRegistry.addDapp(0, pool.address, filter.address);
   });
 
   beforeEach(async () => {

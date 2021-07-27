@@ -15,10 +15,10 @@ contract("Curve Filter", (accounts) => {
     curve2 = await CurvePool.at("0xDC24316b9AE028F1497c275EB9192a3Ea0f67022");
     curve3 = await CurvePool.at("0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7");
     curve4 = await CurvePool.at("0xA5407eAE9Ba41422680e2e00537571bcC53efBfD");
-    const curveFilter = await CurveFilter.new();
-    await argent.dappRegistry.addDapp(0, curve2.address, curveFilter.address);
-    await argent.dappRegistry.addDapp(0, curve3.address, curveFilter.address);
-    await argent.dappRegistry.addDapp(0, curve4.address, curveFilter.address);
+    const filter = await CurveFilter.new();
+    await argent.dappRegistry.addDapp(0, curve2.address, filter.address);
+    await argent.dappRegistry.addDapp(0, curve3.address, filter.address);
+    await argent.dappRegistry.addDapp(0, curve4.address, filter.address);
   });
 
   describe("Testing filter for 2 token pool (stEth)", () => {

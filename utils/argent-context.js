@@ -70,6 +70,7 @@ class ArgentContext {
     return this;
   }
 
+  // amounts: tokens amounts in 'ether' units
   async createFundedWallet(amounts) {
     amounts = amounts || {};
 
@@ -119,14 +120,14 @@ class ArgentContext {
 
   // transfer tokens from mainnet whale addresses to a test address we control
   async initializeTokens() {
+    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
+    this.WETH = await ERC20.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+
     if (tokensInitialized) {
       return;
     }
 
-    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
     await this.DAI.transfer(this.tokensAddress, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
-
-    this.WETH = await ERC20.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
     await this.WETH.transfer(this.tokensAddress, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
 
     tokensInitialized = true;

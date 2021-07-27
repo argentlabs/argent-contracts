@@ -8,16 +8,16 @@ const WethFilter = artifacts.require("WethFilter");
 const WETH = artifacts.require("WETH9");
 
 contract("WETH Filter", (accounts) => {
-  let argent;
-  let wallet;
+  let argent, wallet;
   let weth;
 
   before(async () => {
     argent = await new ArgentContext(accounts).initialize();
 
     weth = await WETH.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
-    const wethFilter = await WethFilter.new();
-    await argent.dappRegistry.addDapp(0, weth.address, wethFilter.address);
+
+    const filter = await WethFilter.new();
+    await argent.dappRegistry.addDapp(0, weth.address, filter.address);
   });
 
   beforeEach(async () => {

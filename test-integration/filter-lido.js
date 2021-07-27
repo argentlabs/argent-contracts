@@ -11,10 +11,8 @@ const ILido = artifacts.require("ILido");
 const ICurvePool = artifacts.require("ICurvePool");
 
 contract("Lido Filter", (accounts) => {
-  let argent;
-  let wallet;
-  let lido;
-  let curve;
+  let argent, wallet;
+  let lido, curve;
 
   before(async () => {
     argent = await new ArgentContext(accounts).initialize();
