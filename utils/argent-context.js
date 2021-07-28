@@ -67,7 +67,7 @@ class ArgentContext {
     await this.factory.addManager(this.infrastructure);
     this.manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
 
-    this.initializeTokens();
+    await this.initializeTokens();
     return this;
   }
 
