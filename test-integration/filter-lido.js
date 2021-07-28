@@ -81,11 +81,6 @@ contract("Lido Filter", (accounts) => {
       console.log("Gas to exchange stETH for ETH", txReceipt.gasUsed);
 
       const { success, error } = utils.parseRelayReceipt(txReceipt);
-      // const { success, error } = await argent.multiCall(wallet, [
-      //   [lido, "approve", [curve.address, 99]],
-      //   [curve, "exchange", [1, 0, 99, 1]],
-      // ])
-
       assert.isTrue(success, `exchange failed: "${error}"`);
 
       // const event = await utils.getEvent(txReceipt, curve, "TokenExchange");
