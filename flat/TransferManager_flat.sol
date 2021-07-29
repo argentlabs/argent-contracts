@@ -1698,7 +1698,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         onlyWhenUnlocked(_wallet)
     {
         // Make sure we don't call a module, the wallet itself, or an ERC20 method
-        authoriseContractCall(_wallet, _contract, _data);
+        authoriseContractCall(_wallet, _contract);
 
         if(isWhitelisted(_wallet, _contract)) {
             // call to whitelist
@@ -1732,7 +1732,7 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
         onlyWhenUnlocked(_wallet)
     {
         // Make sure we don't call a module, the wallet itself, or an ERC20 method
-        authoriseContractCall(_wallet, _contract, _data);
+        authoriseContractCall(_wallet, _contract);
 
         if(isWhitelisted(_wallet, _contract)) {
             doApproveToken(_wallet, _token, _contract, _amount);
@@ -1938,12 +1938,9 @@ contract TransferManager is BaseModule, RelayerModule, OnlyOwnerModule, BaseTran
     * @dev Make sure a contract call is not trying to call a module, the wallet itself, or an ERC20 method.
     * @param _wallet The target wallet.
     * @param _contract The address of the contract.
-    * @param _data The encoded method data
      */
-    function authoriseContractCall(BaseWallet _wallet, address _contract, bytes memory _data) internal view {
+    function authoriseContractCall(BaseWallet _wallet, address _contract) internal view {
         require(!_wallet.authorised(_contract) && _contract != address(_wallet), "TM: Forbidden contract");
-        bytes4 methodId = functionPrefix(_data);
-        require(methodId != ERC20_TRANSFER && methodId != ERC20_APPROVE, "TM: Forbidden method");
     }
 
     // *************** Implementation of RelayerModule methods ********************* //

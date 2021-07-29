@@ -1,18 +1,16 @@
+const TransferManager = require('../build/TransferManager');
 const ModuleRegistry = require('../build/ModuleRegistry');
 const MultiSig = require('../build/MultiSigWallet');
 const Upgrader = require('../build/SimpleUpgrader');
-const MakerV2Manager = require('../build/MakerV2Manager');
 
 const utils = require('../utils/utilities.js');
 const DeployManager = require('../utils/deploy-manager.js');
 const MultisigExecutor = require('../utils/multisigexecutor.js');
-const semver = require('semver');
-
+const semver = require('semver')
 const TARGET_VERSION = "1.5.0";
-const MODULES_TO_ENABLE = ["MakerV2Manager"];
+const MODULES_TO_ENABLE = ["TransferManager"];
 const MODULES_TO_DISABLE = [];
-
-const BACKWARD_COMPATIBILITY = 5;
+const BACKWARD_COMPATIBILITY = 1;
 
 const deploy = async (network) => {
 
@@ -28,7 +26,6 @@ const deploy = async (network) => {
 
     const configurator = manager.configurator;
     const deployer = manager.deployer;
-    const abiUploader = manager.abiUploader;
     const versionUploader = manager.versionUploader;
     const deploymentWallet = deployer.signer;
     const config = configurator.config;
@@ -43,31 +40,32 @@ const deploy = async (network) => {
     // Deploy new modules
     ////////////////////////////////////
 
-    const MakerV2ManagerWrapper = await deployer.deploy(
-        MakerV2Manager,
-        {},
-        config.contracts.ModuleRegistry,
-        config.modules.GuardianStorage,
-        config.defi.maker.migration,
-        config.defi.maker.pot
-    );
-    newModuleWrappers.push(MakerV2ManagerWrapper);
+    const TransferManagerWrapper = await deployer.deploy(
+      TransferManager,
+      {},
+      config.contracts.ModuleRegistry,
+      config.modules.TransferStorage,
+      config.modules.GuardianStorage,
+      config.contracts.TokenPriceProvider,
+      config.settings.securityPeriod || 0,
+      config.settings.securityWindow || 0,
+      config.settings.defaultLimit || '1000000000000000000',
+      '0x0000000000000000000000000000000000000000'
+  );
+
+    newModuleWrappers.push(TransferManagerWrapper);
 
     ///////////////////////////////////////////////////
     // Update config and Upload new module ABIs
     ///////////////////////////////////////////////////
 
     configurator.updateModuleAddresses({
-        MakerV2Manager: MakerV2ManagerWrapper.contractAddress
+        TransferManager: TransferManagerWrapper.contractAddress
     });
 
     const gitHash = require('child_process').execSync('git rev-parse HEAD').toString('utf8').replace(/\n$/, '');
     configurator.updateGitHash(gitHash);
     await configurator.save();
-
-    await Promise.all([
-        abiUploader.upload(MakerV2ManagerWrapper, "modules")
-    ]);
 
     ////////////////////////////////////
     // Register new modules
@@ -82,13 +80,14 @@ const deploy = async (network) => {
     // Deploy and Register upgraders
     ////////////////////////////////////
 
-
     let fingerprint;
+
     const versions = await versionUploader.load(BACKWARD_COMPATIBILITY);
+
     for (let idx = 0; idx < versions.length; idx++) {
         const version = versions[idx];
-        let toAdd, toRemove;
-        if (idx === 0) {
+        let toRemove, toAdd;
+        if (idx == 0) {
             const moduleNamesToRemove = MODULES_TO_DISABLE.concat(MODULES_TO_ENABLE);
             toRemove = version.modules.filter(module => moduleNamesToRemove.includes(module.name));
             toAdd = newModuleWrappers.map((wrapper) => {
@@ -104,7 +103,7 @@ const deploy = async (network) => {
             newVersion.createdAt = Math.floor((new Date()).getTime() / 1000);
             newVersion.modules = modulesInNewVersion;
             newVersion.fingerprint = fingerprint;
-
+            console.log({ toRemove })
             ////////////////////////////////////
             // Deregister old modules
             ////////////////////////////////////
@@ -113,45 +112,28 @@ const deploy = async (network) => {
                 await multisigExecutor.executeCall(ModuleRegistryWrapper, "deregisterModule", [toRemove[i].address]);
             }
         } else {
-            // add all modules present in newVersion that are not present in version
+    //         // add all modules present in newVersion that are not present in version
             toAdd = newVersion.modules.filter(module => !version.modules.map(m => m.address).includes(module.address));
-            // remove all modules from version that are no longer present in newVersion
+    //         // remove all modules from version that are no longer present in newVersion
             toRemove = version.modules.filter(module => !newVersion.modules.map(m => m.address).includes(module.address));
         }
-
-
-        let UpgraderWrapper;
-        if (idx > 0 && ['test', 'staging', 'prod'].includes(network)) {
-            // make sure ModuleManager is always the last to be removed if it needs to be removed
-            toRemove.push(toRemove.splice(toRemove.findIndex(({ name }) => name === 'ModuleManager'), 1)[0]);
-            // this is an "old-style" Upgrader (to be used with ModuleManager)
-            UpgraderWrapper = await deployer.deploy(
-                LegacyUpgrader,
-                {},
-                toRemove.map(module => module.address),
-                toAdd.map(module => module.address)
-            );
-        } else {
-            // this is a "new-style" Upgrader Module (to be used with the addModule method of TransferManager or any module deployed after it)
-            UpgraderWrapper = await deployer.deploy(
-                Upgrader,
-                {},
-                config.contracts.ModuleRegistry,
-                toRemove.map(module => module.address),
-                toAdd.map(module => module.address)
-            );
-            await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
-        }
+        const UpgraderWrapper = await deployer.deploy(
+            Upgrader,
+            {},
+            config.contracts.ModuleRegistry,
+            toRemove.map(module => module.address),
+            toAdd.map(module => module.address)
+        );
+        const upgraderName = version.fingerprint + '_' + fingerprint;
+        await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerModule", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
         await multisigExecutor.executeCall(ModuleRegistryWrapper, "registerUpgrader", [UpgraderWrapper.contractAddress, utils.asciiToBytes32(upgraderName)]);
+        
+        ////////////////////////////////////
+        // Upload Version
+        ////////////////////////////////////
 
+        await versionUploader.upload(newVersion);
     };
-
-    ////////////////////////////////////
-    // Upload Version
-    ////////////////////////////////////
-
-    await versionUploader.upload(newVersion);
-
 }
 
 module.exports = {

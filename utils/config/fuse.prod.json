@@ -1,7 +1,5 @@
 {
-  "CryptoKitties": {
-    "contract": "0x0000000000000000000000000000000000000000"
-  },
+  "CryptoKitties": { "contract": "0x0000000000000000000000000000000000000000" },
   "ENS": {
     "deployOwnRegistry": true,
     "domain": "fuse.eth",
@@ -45,11 +43,9 @@
       "pot": "0x3d9afbed6ee2c2d17749b003875eaa38c0ce0c7f",
       "tub": "0xa71937147b55deb8a530c7229c442fd3f31b7db2"
     },
-    "uniswap": {
-      "factory": "0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30"
-    }
+    "uniswap": { "factory": "0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30" }
   },
-  "gitCommit": "79c2b5b10861e4b4a2aa9e8d8398600328134e37",
+  "gitCommit": "1fafa40781784589b76137f46f9bc97d71a4521f",
   "modules": {
     "ApprovedTransfer": "0x2cbE5fE3d259313F25Ac2Dd10FAB8B851561F366",
     "CommunityManager": "0x0D4926876ba1ada6E9b542e018eBeD517FFc8050",
@@ -66,7 +62,7 @@
     "RecoveryManager": "0xcB4606396746Cd62Ac9ea9Cc0fCc5B16BE73E7aF",
     "TokenExchanger": "0xaA556969CB2782052A2eADEA32e660d40f4C4281",
     "TokenTransfer": "0xb81eC49d93Ed336771C1bC6448bFB262403fEef4",
-    "TransferManager": "0xBC4eFE38e1C6172d587efCDE0f5B98a24f145911",
+    "TransferManager": "0x2B3113B752645dfAFCe690706b5eCAd9d83977CF",
     "TransferStorage": "0x12AF4f9e5b2Db10F60AFD9D64339F1667C71F592",
     "UniswapManager": "0x14B2983611BffE8FE32430732a2Dd3e812530Dec",
     "WalletOwnershipManager": "0x0134652f44006eE54f1E86d6a5786a28b9dCcD0b"
@@ -86,11 +82,9 @@
   "settings": {
     "daiAddress": "0x0000000000000000000000000000000000000000",
     "daiPointsAddress": "0x0000000000000000000000000000000000000000",
-    "defaultLimit": "1000000000000000000",
+    "defaultLimit": "340282366920938463463374607431768211455",
     "deployer": {
-      "options": {
-        "url": "https://rpc.fuse.io"
-      },
+      "options": { "url": "https://rpc.fuse.io" },
       "type": "jsonrpc"
     },
     "feeRatio": 15,

@@ -1,55 +1,47 @@
 {
   "version": "1.4.2",
-  "createdAt": 1575538348,
+  "createdAt": 1627388587,
   "modules": [
     {
-      "address": "0xb2c9B85a41830655C0f21CAe43F552B6D76A709E",
+      "address": "0x3879F0446E8F0ed428CCDAc5C373c163E9540D32",
       "name": "GuardianManager"
     },
     {
-      "address": "0xf8C62698F6D2322E04C8bDC386e7B640773715b7",
+      "address": "0xf132640136FF929e5a1D067f21030ec079bfa239",
       "name": "LockManager"
     },
     {
-      "address": "0xAC4F70025d0671F88309Db0E588E0565bEFd1f35",
+      "address": "0xD201b3e96d6794fBB4Dc20A37e1a3757DEA971fD",
       "name": "RecoveryManager"
     },
     {
-      "address": "0x16127Bbec8d9A24a0801f7B945A18D077f2c629b",
+      "address": "0xB8c17dDA33b331CA94B82f63f03a60f736cF5Cd7",
       "name": "TokenExchanger"
     },
     {
-      "address": "0x275b3F6742F78BEDaAA29F37212624beaeabFFC3",
+      "address": "0x018a00bae1A104eFA9926B84034Aa8EB4FA4529e",
       "name": "NftTransfer"
     },
     {
-      "address": "0xDdF4b4Da0346e39B5D0c01347f9Fb7eFbbeB776E",
+      "address": "0xD79efF89dEcC300b19D9ee2AAc713da2D2253620",
       "name": "MakerManager"
     },
     {
-      "address": "0x2B2972E40261c335EaB47C176c94681785289280",
-      "name": "CompoundManager"
-    },
-    {
-      "address": "0x88F552609e96a7413f76E5992065043E49c2d8D3",
-      "name": "UniswapManager"
-    },
-    {
-      "address": "0x8527a2d3d5aC0411933d663b4dcE275a5b7f39D8",
+      "address": "0x6D04DC125227fCDABcC18EFE3De89eAde15e4eE8",
       "name": "TransferManager"
     },
     {
-      "address": "0x04E92d2ffBb51d53379b4754b3b92f879838902A",
+      "address": "0x15eAEE837143D5509d4A3c1Bb1388225e689E830",
       "name": "ApprovedTransfer"
     },
     {
-      "address": "0x42616C787e3D75aC29b9dCAB35131b585Eaa9837",
+      "address": "0xC85ee948605f3AF743D27D2A57bA0f0FB9805F0F",
       "name": "CommunityManager"
     },
     {
-      "address": "0x7C38a5E6c0822623392847f6B827E8ADd75130ae",
+      "address": "0xc81a757c05F42e299E5c66CA1e28b3c10b0594Bb",
       "name": "WalletOwnershipManager"
     }
   ],
-  "fingerprint": "0x20b57452"
+  "fingerprint": "0x3dbd402d"
 }

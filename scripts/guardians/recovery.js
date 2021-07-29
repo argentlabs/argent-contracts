@@ -1,5 +1,7 @@
 // Example Usage:
-// node recovery.js finalize --network fuse.dev -waller $walletAddress --guardianPk $pk -- newOwner $newOwner
+// node recovery.js finalize --network fuse.dev -wallet $walletAddress --guardianPk $pk
+// node recovery.js execute --network fuse.dev -wallet $walletAddress --guardianPk $pk -- newOwner $newOwner
+
 const GuardianManager = require('../../build/GuardianManager');
 const RecoveryManager = require("../../build/RecoveryManager");
 const Wallet = require("../../build/BaseWallet");
@@ -29,7 +31,6 @@ async function main() {
     const configurator = deployManager.configurator;
     const deployer = deployManager.deployer;
     const manager = deployer.signer;
-    console.log(manager.privateKey)
    
     const config = configurator.config;
     console.log('Config:', config);
