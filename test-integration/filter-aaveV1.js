@@ -1,8 +1,6 @@
 /* global artifacts */
 
-const chai = require("chai");
-const BN = require("bn.js");
-const bnChai = require("bn-chai");
+const { assert, expect } = require("chai");
 const ArgentContext = require("../utils/argent-context.js");
 const utils = require("../utils/utilities.js");
 
@@ -11,9 +9,6 @@ const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const AaveV1ATokenFilter = artifacts.require("AaveV1ATokenFilter");
 const IAaveV1LendingPool = artifacts.require("IAaveV1LendingPool");
 const IAToken = artifacts.require("IAToken");
-
-const { assert, expect } = chai;
-chai.use(bnChai(BN));
 
 const AAVE_ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -44,18 +39,14 @@ contract("AaveV1 Filter", (accounts) => {
   });
 
   beforeEach(async () => {
-    wallet = await argent.createFundedWallet({ USDC: "100" });
+    wallet = await argent.createFundedWallet({ USDC: "1000000" }); // 1 USDC
   });
 
   describe("deposit", () => {
     it("should allow deposits of ETH on behalf of wallet", async () => {
-      const transactions = utils.encodeCalls([
+      const { success, error, receipt } = await argent.multiCall(wallet, [
         [aaveLendingPool, "deposit", [AAVE_ETH_TOKEN, 1000, ""], 1000]
       ]);
-
-      const receipt = await argent.multiCallRaw(wallet, transactions);
-
-      const { success, error } = utils.parseRelayReceipt(receipt);
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const event = await utils.getEvent(receipt, aaveLendingPool, "Deposit");
@@ -64,20 +55,16 @@ contract("AaveV1 Filter", (accounts) => {
       assert.equal(event.args._amount, 1000);
 
       const balance = await aToken.balanceOf(wallet.address);
-      expect(balance).to.eq.BN(1000);
+      expect(balance).to.be.eq.BN(1000);
     });
 
     it("should allow deposits of ERC20 on behalf of wallet", async () => {
-      expect(await argent.USDC.balanceOf(wallet.address)).to.gte.BN(1000);
+      expect(await argent.USDC.balanceOf(wallet.address)).to.be.gte.BN(1000);
 
-      const transactions = utils.encodeCalls([
+      const { success, error, receipt } = await argent.multiCall(wallet, [
         [argent.USDC, "approve", [aaveLendingPoolCore, 1000]],
         [aaveLendingPool, "deposit", [argent.USDC.address, 1000, ""]]
       ]);
-
-      const receipt = await argent.multiCallRaw(wallet, transactions);
-
-      const { success, error } = utils.parseRelayReceipt(receipt);
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const event = await utils.getEvent(receipt, aaveLendingPool, "Deposit");
@@ -86,17 +73,13 @@ contract("AaveV1 Filter", (accounts) => {
       assert.equal(event.args._amount, 1000);
 
       const balance = await aUSDCToken.balanceOf(wallet.address);
-      expect(balance).to.eq.BN(1000);
+      expect(balance).to.be.eq.BN(1000);
     });
 
     it("should not allow calling forbidden lending pool methods", async () => {
-      const transactions = utils.encodeCalls([
+      const { success, error } = await argent.multiCall(wallet, [
         [aaveLendingPool, "borrow", [aToken.address, 10, 0, 0]]
       ]);
-
-      const receipt = await argent.multiCallRaw(wallet, transactions);
-
-      const { success, error } = utils.parseRelayReceipt(receipt);
       assert.isFalse(success, "borrow should have failed");
       assert.equal(error, "TM: call not authorised");
     });
@@ -109,14 +92,9 @@ contract("AaveV1 Filter", (accounts) => {
         [aaveLendingPool, "deposit", [AAVE_ETH_TOKEN, 1000, ""], 1000]
       ]);
 
-      // Redeem the 1000 wei tokens
-      const transactions = utils.encodeCalls([
+      const { success, error, receipt } = await argent.multiCall(wallet, [
         [aToken, "redeem", [1000], 0]
       ]);
-
-      const receipt = await argent.multiCallRaw(wallet, transactions);
-
-      const { success, error } = utils.parseRelayReceipt(receipt);
       assert.isTrue(success, `redeem failed: "${error}"`);
 
       const event = await utils.getEvent(receipt, aToken, "Redeem");
@@ -125,21 +103,16 @@ contract("AaveV1 Filter", (accounts) => {
     });
 
     it("should allow redeem of ERC20 to wallet", async () => {
-      expect(await argent.USDC.balanceOf(wallet.address)).to.gte.BN(1000);
+      expect(await argent.USDC.balanceOf(wallet.address)).to.be.gte.BN(1000);
 
       await argent.multiCall(wallet, [
         [argent.USDC, "approve", [aaveLendingPoolCore, 1000]],
         [aaveLendingPool, "deposit", [argent.USDC.address, 1000, ""]]
       ]);
 
-      // Redeem the 1000 aUSDC tokens
-      const transactions = utils.encodeCalls([
+      const { success, error, receipt } = await argent.multiCall(wallet, [
         [aUSDCToken, "redeem", [1000], 0]
       ]);
-
-      const receipt = await argent.multiCallRaw(wallet, transactions);
-
-      const { success, error } = utils.parseRelayReceipt(receipt);
       assert.isTrue(success, `redeem failed: "${error}"`);
 
       const event = await utils.getEvent(receipt, aUSDCToken, "Redeem");

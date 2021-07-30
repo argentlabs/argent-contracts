@@ -1,7 +1,5 @@
 /* global artifacts */
 
-require("chai");
-const ethers = require("ethers");
 const utils = require("../utils/utilities.js");
 const ArgentContext = require("../utils/argent-context.js");
 
@@ -34,8 +32,7 @@ contract("Lido Filter", (accounts) => {
     it("should allow staking from wallet via fallback", async () => {
       const transaction = utils.encodeTransaction(lido.address, 100, "0x");
 
-      const receipt = await argent.multiCallRaw(wallet, [transaction]);
-      const { success, error } = utils.parseRelayReceipt(receipt);
+      const { success, error } = await argent.multiCall(wallet, [transaction], { encode: false });
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const walletBalance = await lido.balanceOf(wallet.address);
@@ -62,30 +59,17 @@ contract("Lido Filter", (accounts) => {
     });
 
     it("should allow selling stETH via Curve", async () => {
-      let data = lido.contract.methods.approve(curve.address, 99).encodeABI();
-      const lidoTransaction = utils.encodeTransaction(lido.address, 0, data);
-      data = curve.contract.methods.exchange(1, 0, 99, 1).encodeABI();
-      const curveTransaction = utils.encodeTransaction(curve.address, 0, data);
-      const transactions = [lidoTransaction, curveTransaction];
-
       const before = await utils.getBalance(wallet.address);
-      const txReceipt = await argent.manager.relay(
-        argent.module,
-        "multiCall",
-        [wallet.address, transactions],
-        wallet,
-        [argent.owner],
-        0,
-        ethers.constants.AddressZero,
-        ethers.constants.AddressZero);
-      console.log("Gas to exchange stETH for ETH", txReceipt.gasUsed);
 
-      const { success, error } = utils.parseRelayReceipt(txReceipt);
+      const transactions = [
+        [lido, "approve", [curve.address, 99]],
+        [curve, "exchange", [1, 0, 99, 1]],
+      ];
+      const { success, error, receipt } =  await argent.multiCall(wallet, transactions, { gasPrice: 0 });
+
+      console.log("Gas to exchange stETH for ETH", receipt.gasUsed);
       assert.isTrue(success, `exchange failed: "${error}"`);
 
-      // const event = await utils.getEvent(txReceipt, curve, "TokenExchange");
-      // assert.equal(event.args.tokens_sold, 99); // Sold stETH
-      // assert.closeTo(new BN(event.args.tokens_bought).toNumber(), new BN(96).toNumber(), 3); // Got ETH
       // Check ETH was received
       const after = await utils.getBalance(wallet.address);
       assert.closeTo(after.sub(before).toNumber(), 96, 3);

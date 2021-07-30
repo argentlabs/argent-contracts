@@ -21,7 +21,7 @@ contract("Yearn V2 Filter", (accounts) => {
   });
 
   beforeEach(async () => {
-    wallet = await argent.createFundedWallet({ DAI: "1" });
+    wallet = await argent.createFundedWallet({ DAI: amount });
   });
 
   const deposit = async () => argent.multiCall(wallet, [

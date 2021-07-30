@@ -21,7 +21,7 @@ contract("Balancer Filter", (accounts) => {
   });
 
   beforeEach(async () => {
-    wallet = await argent.createFundedWallet({ WETH: "1" });
+    wallet = await argent.createFundedWallet({ WETH: amount });
   });
 
   const deposit = async () => argent.multiCall(wallet, [

@@ -5,6 +5,8 @@ const ArgentContext = require("../utils/argent-context.js");
 const CurvePool = artifacts.require("CurvePoolMock");
 const CurveFilter = artifacts.require("CurveFilter");
 
+const amount = web3.utils.toWei("0.01");
+
 contract("Curve Filter", (accounts) => {
   let argent, wallet;
   let curve2, curve3, curve4;
@@ -27,7 +29,6 @@ contract("Curve Filter", (accounts) => {
     });
 
     it("should swap", async () => {
-      const amount = web3.utils.toWei("0.01");
       const { success, error } = await argent.multiCall(wallet, [
         [curve2, "exchange", [0, 1, amount, 1], amount]
       ]);
@@ -37,11 +38,10 @@ contract("Curve Filter", (accounts) => {
 
   describe("Testing filter for 3 token pool (DAI/USDC/USDT)", () => {
     before(async () => {
-      wallet = await argent.createFundedWallet({ DAI: "1" });
+      wallet = await argent.createFundedWallet({ DAI: amount });
     });
 
     it("should swap", async () => {
-      const amount = web3.utils.toWei("1");
       const { success, error } = await argent.multiCall(wallet, [
         [argent.DAI, "approve", [curve3.address, amount]],
         [curve3, "exchange", [0, 1, amount, 1]]
@@ -52,11 +52,10 @@ contract("Curve Filter", (accounts) => {
 
   describe("Testing filter for 4 token pool (sUsd v2)", () => {
     before(async () => {
-      wallet = await argent.createFundedWallet({ DAI: "1" });
+      wallet = await argent.createFundedWallet({ DAI: amount });
     });
 
     it("should swap", async () => {
-      const amount = web3.utils.toWei("1");
       const { success, error } = await argent.multiCall(wallet, [
         [argent.DAI, "approve", [curve4.address, amount]],
         [curve4, "exchange", [0, 1, amount, 1]]
