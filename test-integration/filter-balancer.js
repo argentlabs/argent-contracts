@@ -8,7 +8,8 @@ const BalancerFilter = artifacts.require("BalancerFilter");
 const amount = web3.utils.toWei("1");
 
 contract("Balancer Filter", (accounts) => {
-  let argent, wallet;
+  let argent;
+  let wallet;
   let pool;
 
   before(async () => {

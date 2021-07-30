@@ -13,7 +13,8 @@ const IAToken = artifacts.require("IAToken");
 const AAVE_ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 contract("AaveV1 Filter", (accounts) => {
-  let argent, wallet;
+  let argent;
+  let wallet;
 
   let aaveLendingPoolCore;
   let aaveLendingPool;

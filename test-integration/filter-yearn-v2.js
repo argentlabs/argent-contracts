@@ -8,7 +8,8 @@ const YearnV2Filter = artifacts.require("YearnV2Filter");
 const amount = web3.utils.toWei("1");
 
 contract("Yearn V2 Filter", (accounts) => {
-  let argent, wallet;
+  let argent;
+  let wallet;
   let vault;
 
   before(async () => {

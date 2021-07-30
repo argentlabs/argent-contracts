@@ -8,8 +8,11 @@ const CurveFilter = artifacts.require("CurveFilter");
 const amount = web3.utils.toWei("0.01");
 
 contract("Curve Filter", (accounts) => {
-  let argent, wallet;
-  let curve2, curve3, curve4;
+  let argent;
+  let wallet;
+  let curve2;
+  let curve3;
+  let curve4;
 
   before(async () => {
     argent = await new ArgentContext(accounts).initialize();

@@ -77,7 +77,7 @@ class ArgentContext {
   async initializeTokens() {
     this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
     this.WETH = await WETH.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
-    this.USDC = await ERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"); 
+    this.USDC = await ERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
 
     if (tokensTransferred) {
       return;
@@ -116,14 +116,12 @@ class ArgentContext {
     return wallet;
   }
 
-  async multiCall(wallet, calls, {encode = true, gasPrice = 1} = {}) {
-    if (encode) {
-      calls = utils.encodeCalls(calls);
-    }
+  async multiCall(wallet, calls, { encode = true, gasPrice = 1 } = {}) {
+    const encodedCalls = encode ? utils.encodeCalls(calls) : calls;
     const receipt = await this.manager.relay(
       this.module,
       "multiCall",
-      [wallet.address, calls],
+      [wallet.address, encodedCalls],
       wallet,
       [this.owner],
       gasPrice,

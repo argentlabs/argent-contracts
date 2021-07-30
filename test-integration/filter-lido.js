@@ -9,8 +9,10 @@ const ILido = artifacts.require("ILido");
 const ICurvePool = artifacts.require("ICurvePool");
 
 contract("Lido Filter", (accounts) => {
-  let argent, wallet;
-  let lido, curve;
+  let argent;
+  let wallet;
+  let lido;
+  let curve;
 
   before(async () => {
     argent = await new ArgentContext(accounts).initialize();
@@ -65,7 +67,7 @@ contract("Lido Filter", (accounts) => {
         [lido, "approve", [curve.address, 99]],
         [curve, "exchange", [1, 0, 99, 1]],
       ];
-      const { success, error, receipt } =  await argent.multiCall(wallet, transactions, { gasPrice: 0 });
+      const { success, error, receipt } = await argent.multiCall(wallet, transactions, { gasPrice: 0 });
 
       console.log("Gas to exchange stETH for ETH", receipt.gasUsed);
       assert.isTrue(success, `exchange failed: "${error}"`);

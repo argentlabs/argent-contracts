@@ -7,7 +7,8 @@ const ArgentContext = require("../utils/argent-context.js");
 const WethFilter = artifacts.require("WethFilter");
 
 contract("WETH Filter", (accounts) => {
-  let argent, wallet;
+  let argent;
+  let wallet;
 
   before(async () => {
     argent = await new ArgentContext(accounts).initialize();
