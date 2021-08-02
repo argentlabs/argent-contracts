@@ -1,7 +1,6 @@
 /* global artifacts */
 
 const { assert, expect } = require("chai");
-const ethers = require("ethers");
 const ArgentContext = require("../utils/argent-context.js");
 const utils = require("../utils/utilities.js");
 
@@ -19,7 +18,7 @@ contract("Compound Filter", (accounts) => {
     argent = await new ArgentContext(accounts).initialize();
 
     cEther = await CEther.at("0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5");
-    const cEtherFilter = await CompoundCTokenFilter.new(ethers.constants.AddressZero);
+    const cEtherFilter = await CompoundCTokenFilter.new(utils.ZERO_ADDRESS);
     await argent.dappRegistry.addDapp(0, cEther.address, cEtherFilter.address);
 
     cDai = await CErc20.at("0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643");
