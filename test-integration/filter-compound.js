@@ -6,18 +6,19 @@ const ArgentContext = require("../utils/argent-context.js");
 const utils = require("../utils/utilities.js");
 
 const CErc20 = artifacts.require("CErc20");
+const CEther = artifacts.require("CEther");
 const CompoundCTokenFilter = artifacts.require("CompoundCTokenFilter");
 
-const amount = web3.utils.toWei("1");
-
 contract("Compound Filter", (accounts) => {
-  let argent, wallet;
-  let cEther, cDai;
+  let argent
+  let wallet;
+  let cEther;
+  let cDai;
 
   before(async () => {
     argent = await new ArgentContext(accounts).initialize();
 
-    cEther = await CErc20.at("0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5");
+    cEther = await CEther.at("0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5");
     const cEtherFilter = await CompoundCTokenFilter.new(ethers.constants.AddressZero);
     await argent.dappRegistry.addDapp(0, cEther.address, cEtherFilter.address);
 
@@ -27,6 +28,8 @@ contract("Compound Filter", (accounts) => {
   });
 
   describe("Testing cETH", function () {
+    const amount = web3.utils.toWei("0.01");
+
     beforeEach(async () => {
       wallet = await argent.createFundedWallet();
     });
@@ -36,7 +39,7 @@ contract("Compound Filter", (accounts) => {
       const cTokenBefore = await cEther.balanceOf(wallet.address);
 
       const { success, error, receipt } = await argent.multiCall(wallet, [
-        [cEther, "mint", [amount]]
+        [cEther, "mint", [], amount]
       ]);
       assert.isTrue(success, `mint failed: "${error}"`);
 
@@ -55,14 +58,27 @@ contract("Compound Filter", (accounts) => {
 
     it("should allow redeeming", async () => {
       await mint();
-      const { success, error } = await argent.multiCall(wallet, [
-        [cDai, "redeem", [amount]]
+
+      const tokenBefore = await utils.getBalance(wallet.address);
+      const cTokenBefore = await cEther.balanceOf(wallet.address);
+
+      const { success, error, receipt } = await argent.multiCall(wallet, [
+        [cEther, "redeem", [amount]]
       ]);
       assert.isTrue(success, `withdrawal failed: "${error}"`);
+
+      await utils.hasEvent(receipt, cEther, "Redeem");  // TODO: check why this fails
+      const tokenAfter = await utils.getBalance(wallet.address);
+      const cTokenAfter = await cEther.balanceOf(wallet.address);
+
+      expect(tokenAfter.sub(tokenBefore)).to.gt.BN(0);
+      expect(cTokenBefore.sub(cTokenAfter)).to.gt.BN(0);;
     });
   });
 
   describe("Testing cDAI", function () {
+    const amount = web3.utils.toWei("1");
+
     beforeEach(async () => {
       wallet = await argent.createFundedWallet({ DAI: amount });
     });
@@ -89,12 +105,23 @@ contract("Compound Filter", (accounts) => {
       await mint();
     });
 
-    it("should allow redeems", async () => {
+    it("should allow redeem", async () => {
       await mint();
-      const { success, error } = await argent.multiCall(wallet, [
+
+      const tokenBefore = await argent.DAI.balanceOf(wallet.address);
+      const cTokenBefore = await cDai.balanceOf(wallet.address);
+
+      const { success, error, receipt } = await argent.multiCall(wallet, [
         [cDai, "redeem", [amount]]
       ]);
       assert.isTrue(success, `redeem failed: "${error}"`);
+
+      await utils.hasEvent(receipt, cDai, "Redeem");
+      const tokenAfter = await argent.DAI.balanceOf(wallet.address);
+      const cTokenAfter = await cDai.balanceOf(wallet.address);
+
+      expect(tokenAfter.sub(tokenBefore)).to.gt.BN(0);
+      expect(cTokenBefore.sub(cTokenAfter)).to.gt.BN(0);
     });
   });
 });

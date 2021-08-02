@@ -112,7 +112,7 @@ const utilities = {
 
   hasEvent: async (txReceipt, emitter, eventName) => {
     const event = await utilities.getEvent(txReceipt, emitter, eventName);
-    return expect(event, "Event does not exist in recept").to.exist;
+    return expect(event, "Event does not exist in receipt").to.exist;
   },
 
   getEvent: async (txReceipt, emitter, eventName) => {
