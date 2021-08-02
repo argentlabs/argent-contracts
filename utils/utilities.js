@@ -9,11 +9,12 @@ const WalletFactory = artifacts.require("WalletFactory");
 
 const { assert, expect } = chai;
 const ETH_TOKEN = ethers.constants.AddressZero;
+const ZERO_ADDRESS = ethers.constants.AddressZero;
 const ZERO_BYTES = "0x";
 
 const utilities = {
-
   ETH_TOKEN,
+  ZERO_ADDRESS,
 
   namehash: (name) => ethers.utils.namehash(name),
 

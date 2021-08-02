@@ -17,7 +17,6 @@ const DappRegistry = artifacts.require("DappRegistry");
 const ERC20 = artifacts.require("TestERC20");
 const WETH = artifacts.require("WETH9");
 
-const ZERO_ADDRESS = ethers.constants.AddressZero;
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
 const RECOVERY_PERIOD = 4;
@@ -59,7 +58,7 @@ class ArgentContext {
       LOCK_PERIOD,
     );
     await moduleRegistry.registerModule(this.module.address, ethers.utils.formatBytes32String("ArgentModule"));
-    await this.dappRegistry.addDapp(0, this.relayer, ZERO_ADDRESS);
+    await this.dappRegistry.addDapp(0, this.relayer, utils.ZERO_ADDRESS);
 
     const walletImplementation = await BaseWallet.new();
     this.factory = await WalletFactory.new(
@@ -68,7 +67,7 @@ class ArgentContext {
       this.refundAddress,
     );
     await this.factory.addManager(this.infrastructure);
-    this.manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
+    this.manager = new RelayManager(guardianStorage.address, utils.ZERO_ADDRESS);
 
     await this.initializeTokens();
     return this;
