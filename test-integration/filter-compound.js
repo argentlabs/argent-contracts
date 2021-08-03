@@ -55,7 +55,7 @@ contract("Compound Filter", (accounts) => {
       await mint();
     });
 
-    it("should allow redeeming", async () => {
+    it.skip("should allow redeeming", async () => {
       await mint();
 
       const tokenBefore = await utils.getBalance(wallet.address);
@@ -104,7 +104,7 @@ contract("Compound Filter", (accounts) => {
       await mint();
     });
 
-    it("should allow redeem", async () => {
+    it.skip("should allow redeem", async () => {
       await mint();
 
       const tokenBefore = await argent.DAI.balanceOf(wallet.address);

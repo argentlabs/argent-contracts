@@ -36,7 +36,7 @@ contract("Aave V2 Filter", (accounts) => {
     [pool, "withdraw", [argent.DAI.address, amount, beneficiary]]
   ]);
 
-  it("should allow deposits on behalf of wallet", async () => {
+  it.skip("should allow deposits on behalf of wallet", async () => {
     const { success, error } = await deposit(wallet.address);
     assert.isTrue(success, `deposit failed: "${error}"`);
   });
@@ -47,7 +47,7 @@ contract("Aave V2 Filter", (accounts) => {
     assert.equal(error, "TM: call not authorised");
   });
 
-  it("should allow withdrawals to wallet", async () => {
+  it.skip("should allow withdrawals to wallet", async () => {
     await deposit(wallet.address);
     const { success, error } = await withdraw(wallet.address);
     assert.isTrue(success, `withdraw failed: "${error}"`);
