@@ -4,12 +4,13 @@ const { assert } = require("chai");
 const ArgentContext = require("../utils/argent-context.js");
 const utils = require("../utils/utilities.js");
 
-const DepositHandler = artifacts.require("DepositHandlerMock");
-const WithdrawHandler = artifacts.require("WithdrawHandlerMock");
+const DepositHandler = artifacts.require("GroDepositHandler");
+const WithdrawHandler = artifacts.require("GroWithdrawHandler");
+const Controller = artifacts.require("GroController");
 const DepositFilter = artifacts.require("GroDepositFilter");
 const WithdrawFilter = artifacts.require("GroWithdrawFilter");
 
-const amount = web3.utils.toWei("0.01");
+const amount = web3.utils.toWei("1");
 
 contract("Gro Filter", (accounts) => {
   let argent;
@@ -20,6 +21,9 @@ contract("Gro Filter", (accounts) => {
 
   before(async () => {
     argent = await new ArgentContext(accounts).initialize();
+
+    const controller = await Controller.at("0xCC5c60A319D33810b9EaB9764717EeF84deFB8F4");
+    await controller.switchEoaOnly(false, { from: "0xdc954086cf07f3889f186118395bad186179ac77" });
 
     depositHandler = await DepositHandler.at("0xB7207Ea9446DcA1dEC1c1FC93c6Fcdf8B4a44F40");
     const depositFilter = await DepositFilter.new();
@@ -42,58 +46,48 @@ contract("Gro Filter", (accounts) => {
     [depositHandler, "depositGvt", [[amount, 0, 0], 1, utils.ZERO_ADDRESS]]
   ]);
   
-  const depositPwrd = async () => argent.multiCall(wallet, [
-    [argent.DAI, "approve", [depositHandler.address, amount]],
-    [depositHandler, "depositPwrd", [[amount, 0, 0], 1, utils.ZERO_ADDRESS]]
-  ]);
-
-  const withdrawByLPToken = async () => argent.multiCall(wallet, [
-    [withdrawHandler, "withdrawByLPToken", [true, amount, [1, 1, 1]]]
-  ]);
-
-  const withdrawByStablecoin = async () => argent.multiCall(wallet, [
-    [withdrawHandler, "withdrawByStablecoin", [true, 0, amount, 1]]
-  ]);
-
-  const withdrawAllSingle = async () => argent.multiCall(wallet, [
-    [withdrawHandler, "withdrawAllSingle", [true, 0, 1]]
-  ]);
-
-  const withdrawAllBalanced = async () => argent.multiCall(wallet, [
-    [withdrawHandler, "withdrawAllBalanced", [true, [1, 1, 1]]]
-  ]);
-
   it("should allow deposits (1/2)", async () => {
     const { success, error } = await depositGvt();
     assert.isTrue(success, `deposit1 failed: "${error}"`);
   });
 
   it("should allow deposits (2/2)", async () => {
-    const { success, error } = await depositPwrd();
+    const { success, error } = await argent.multiCall(wallet, [
+      [argent.DAI, "approve", [depositHandler.address, amount]],
+      [depositHandler, "depositPwrd", [[amount, 0, 0], 1, utils.ZERO_ADDRESS]]
+    ]);
     assert.isTrue(success, `deposit2 failed: "${error}"`);
   });
 
   it("should allow withdrawals (1/4)", async () => {
     await depositGvt();
-    const { success, error } = await withdrawByLPToken();
+    const { success, error } = await argent.multiCall(wallet, [
+      [withdrawHandler, "withdrawByLPToken", [true, amount, [1, 1, 1]]]
+    ]);
     assert.isTrue(success, `withdraw1 failed: "${error}"`);
   });
 
   it("should allow withdrawals (2/4)", async () => {
     await depositGvt();
-    const { success, error } = await withdrawByStablecoin();
+    const { success, error } = await argent.multiCall(wallet, [
+      [withdrawHandler, "withdrawByStablecoin", [true, 0, amount, 1]]
+    ]);
     assert.isTrue(success, `withdraw2 failed: "${error}"`);
   });
 
   it("should allow withdrawals (3/4)", async () => {
     await depositGvt();
-    const { success, error } = await withdrawAllSingle();
+    const { success, error } = await argent.multiCall(wallet, [
+      [withdrawHandler, "withdrawAllSingle", [true, 0, 1]]
+    ]);
     assert.isTrue(success, `withdraw3 failed: "${error}"`);
   });
 
   it("should allow withdrawals (4/4)", async () => {
     await depositGvt();
-    const { success, error } = await withdrawAllBalanced();
+    const { success, error } = await argent.multiCall(wallet, [
+      [withdrawHandler, "withdrawAllBalanced", [true, [1, 1, 1]]]
+    ]);
     assert.isTrue(success, `withdraw4 failed: "${error}"`);
   });
 
@@ -110,22 +104,6 @@ contract("Gro Filter", (accounts) => {
       [argent.WETH, "transfer", [withdrawHandler.address, amount]]
     ]);
     assert.isFalse(success, "transfer should have failed");
-    assert.equal(error, "TM: call not authorised");
-  });
-
-  it("should not allow unsupported method (deposit handler)", async () => {
-    const { success, error } = await argent.multiCall(wallet, [
-      [depositHandler, "referral", [utils.ZERO_ADDRESS]]
-    ]);
-    assert.isFalse(success, "referral() should have failed");
-    assert.equal(error, "TM: call not authorised");
-  });
-
-  it("should not allow unsupported method (withdraw handler)", async () => {
-    const { success, error } = await argent.multiCall(wallet, [
-      [withdrawHandler, "withdrawalFee", [true]]
-    ]);
-    assert.isFalse(success, "withdrawalFee() should have failed");
     assert.equal(error, "TM: call not authorised");
   });
 

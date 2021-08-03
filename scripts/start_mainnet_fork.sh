@@ -17,3 +17,4 @@ node_modules/.bin/ganache-cli \
     --unlock "0x39AA39c021dfbaE8faC545936693aC917d5E7563" `# USDC whale` \
     --unlock "0x6B175474E89094C44Da98b954EedeAC495271d0F" `# DAI whale` \
     --unlock "0x2F0b23f53734252Bda2277357e97e1517d6B042A" `# WETH whale` \
+    --unlock "0xdc954086cf07f3889f186118395bad186179ac77" `# Gro Controller` \
