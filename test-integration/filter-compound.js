@@ -70,8 +70,8 @@ contract("Compound Filter", (accounts) => {
       const tokenAfter = await utils.getBalance(wallet.address);
       const cTokenAfter = await cEther.balanceOf(wallet.address);
 
-      expect(tokenAfter.sub(tokenBefore)).to.gt.BN(0);
-      expect(cTokenBefore.sub(cTokenAfter)).to.gt.BN(0);;
+      expect(tokenAfter.sub(tokenBefore)).to.be.gt.BN(0);
+      expect(cTokenBefore.sub(cTokenAfter)).to.be.gt.BN(0);;
     });
   });
 
@@ -119,8 +119,8 @@ contract("Compound Filter", (accounts) => {
       const tokenAfter = await argent.DAI.balanceOf(wallet.address);
       const cTokenAfter = await cDai.balanceOf(wallet.address);
 
-      expect(tokenAfter.sub(tokenBefore)).to.gt.BN(0);
-      expect(cTokenBefore.sub(cTokenAfter)).to.gt.BN(0);
+      expect(tokenAfter.sub(tokenBefore)).to.be.gt.BN(0);
+      expect(cTokenBefore.sub(cTokenAfter)).to.be.gt.BN(0);
     });
   });
 });

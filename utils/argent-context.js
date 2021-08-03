@@ -74,8 +74,8 @@ class ArgentContext {
   }
 
   async initializeTokens() {
-    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
     this.WETH = await WETH.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+    this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
     this.USDC = await ERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
 
     if (tokensTransferred) {
@@ -83,8 +83,8 @@ class ArgentContext {
     }
 
     // transfer tokens from mainnet whale addresses to a test address we control
-    await this.DAI.transfer(this.tokenHolder, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
     await this.WETH.transfer(this.tokenHolder, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
+    await this.DAI.transfer(this.tokenHolder, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
     await this.USDC.transfer(this.tokenHolder, "10000000000", { from: "0x39AA39c021dfbaE8faC545936693aC917d5E7563" });
 
     tokensTransferred = true;
@@ -106,7 +106,7 @@ class ArgentContext {
     await utils.initNonce(wallet, this.module, this.manager, SECURITY_PERIOD);
 
     // optionally fund wallet in ERC-20's
-    for (const ticker of ["DAI", "WETH", "USDC"]) {
+    for (const ticker of ["WETH", "DAI", "USDC"]) {
       const amount = amounts[ticker];
       if (amount) {
         await this[ticker].transfer(walletAddress, amount, { from: this.tokenHolder });
