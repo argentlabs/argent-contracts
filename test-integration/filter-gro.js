@@ -21,11 +21,11 @@ contract("Gro Filter", (accounts) => {
   before(async () => {
     argent = await new ArgentContext(accounts).initialize();
 
-    depositHandler = await DepositHandler.at("0x79b14d909381D79B655C0700d0fdc2C7054635b9");
+    depositHandler = await DepositHandler.at("0xB7207Ea9446DcA1dEC1c1FC93c6Fcdf8B4a44F40");
     const depositFilter = await DepositFilter.new();
     await argent.dappRegistry.addDapp(0, depositHandler.address, depositFilter.address);
 
-    withdrawHandler = await WithdrawHandler.at("0xd89512Bdf570476310DE854Ef69D715E0e85B09F");
+    withdrawHandler = await WithdrawHandler.at("0x641bEFA4dB601578A64F0Fc1f4E89E9869268Fe7");
     const withdrawFilter = await WithdrawFilter.new();
     await argent.dappRegistry.addDapp(0, withdrawHandler.address, withdrawFilter.address);
   });
