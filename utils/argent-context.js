@@ -132,9 +132,9 @@ class ArgentContext {
 }
 
 // transfer tokens during global setup otherwise they get reverted by snapshots between tests
-before(async () => {  
+before(async () => {
   const accounts = await web3.eth.getAccounts();
   await new ArgentContext(accounts).initializeTokens();
-})
+});
 
 module.exports = ArgentContext;

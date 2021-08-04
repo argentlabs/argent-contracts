@@ -53,8 +53,8 @@ contract("Yearn V2 Filter", (accounts) => {
   it("should allow withdrawals (0 params)", async () => {
     await deposit0();
 
-    const { success, error } = await utils.checkBalances(wallet, yvDai, argent.DAI, async () => ( 
-      await argent.multiCall(wallet, [[vault, "withdraw", []]])
+    const { success, error } = await utils.checkBalances(wallet, yvDai, argent.DAI, () => (
+      argent.multiCall(wallet, [[vault, "withdraw", []]])
     ));
 
     assert.isTrue(success, `withdrawal failed: "${error}"`);
@@ -63,8 +63,8 @@ contract("Yearn V2 Filter", (accounts) => {
   it("should allow withdrawals (1 param)", async () => {
     await deposit1();
 
-    const { success, error } = await utils.checkBalances(wallet, yvDai, argent.DAI, async () => ( 
-      await argent.multiCall(wallet, [[vault, "withdraw", [1]]])
+    const { success, error } = await utils.checkBalances(wallet, yvDai, argent.DAI, () => (
+      argent.multiCall(wallet, [[vault, "withdraw", [1]]])
     ));
 
     assert.isTrue(success, `withdrawal failed: "${error}"`);

@@ -9,7 +9,7 @@ const CEther = artifacts.require("CEther");
 const CompoundCTokenFilter = artifacts.require("CompoundCTokenFilter");
 
 contract("Compound Filter", (accounts) => {
-  let argent
+  let argent;
   let wallet;
   let cEther;
   let cDai;
@@ -26,7 +26,7 @@ contract("Compound Filter", (accounts) => {
     await argent.dappRegistry.addDapp(0, cDai.address, cDaiFilter.address);
   });
 
-  describe("Testing cETH", function () {
+  describe("Testing cETH", () => {
     const amount = web3.utils.toWei("0.01");
 
     beforeEach(async () => {
@@ -66,16 +66,16 @@ contract("Compound Filter", (accounts) => {
       ]);
       assert.isTrue(success, `withdrawal failed: "${error}"`);
 
-      await utils.hasEvent(receipt, cEther, "Redeem");  // TODO: check why this fails
+      await utils.hasEvent(receipt, cEther, "Redeem"); // TODO: check why this fails
       const tokenAfter = await utils.getBalance(wallet.address);
       const cTokenAfter = await cEther.balanceOf(wallet.address);
 
       expect(tokenAfter.sub(tokenBefore)).to.be.gt.BN(0);
-      expect(cTokenBefore.sub(cTokenAfter)).to.be.gt.BN(0);;
+      expect(cTokenBefore.sub(cTokenAfter)).to.be.gt.BN(0);
     });
   });
 
-  describe("Testing cDAI", function () {
+  describe("Testing cDAI", () => {
     const amount = web3.utils.toWei("1");
 
     beforeEach(async () => {

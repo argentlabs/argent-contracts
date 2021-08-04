@@ -38,7 +38,7 @@ contract("Maker DSR Filter", (accounts) => {
   });
 
   beforeEach(async () => {
-    wallet = await argent.createFundedWallet({ DAI: web3.utils.toWei("1")});
+    wallet = await argent.createFundedWallet({ DAI: web3.utils.toWei("1") });
   });
 
   const deposit = async () => argent.multiCall(wallet, [

@@ -268,7 +268,7 @@ const utilities = {
   encodeTransaction: (to, value, data) => ({ to, value, data }),
 
   /**
-   * @param {Array<Transaction | [TruffleContract, string, any[], NumberLike?]} calls 
+   * @param {Array<Transaction | [TruffleContract, string, any[], NumberLike?]} calls
    * @returns {Array<Transaction>}
    */
   encodeCalls: (calls) => calls.map((call) => {
