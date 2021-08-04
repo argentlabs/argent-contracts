@@ -108,15 +108,13 @@ contract("Yearn V1 Filter", (accounts) => {
   });
 
   it("should not allow sending ETH to non-weth pool", async () => {
-    const transaction = utils.encodeTransaction(daiVault.address, amount, "0x");
-    const { success, error } = await argent.multiCall(wallet, [transaction], { encode: false });
+    const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(daiVault.address, amount, "0x")]);
     assert.isFalse(success, "sending ETH should have failed");
     assert.equal(error, "TM: call not authorised");
   });
 
   it("should allow sending ETH to weth pool", async () => {
-    const transaction = utils.encodeTransaction(wethVault.address, amount, "0x");
-    const { success, error } = await argent.multiCall(wallet, [transaction], { encode: false });
+    const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(wethVault.address, amount, "0x")]);
     assert.isTrue(success, `sending ETH failed: "${error}"`);
   });
 });

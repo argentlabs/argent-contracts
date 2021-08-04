@@ -87,8 +87,7 @@ contract("Maker DSR Filter", (accounts) => {
 
   it("should not allow sending ETH to pot, vat or daiJoin", async () => {
     for (const to of [pot.address, vat.address, daiJoin.address]) {
-      const transaction = utils.encodeTransaction(to, web3.utils.toWei("0.01"), "0x");
-      const { success, error } = await argent.multiCall(wallet, [transaction], { encode: false });
+      const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(to, web3.utils.toWei("0.01"), "0x")]);
       assert.isFalse(success, "sending ETH should have failed");
       assert.equal(error, "TM: call not authorised");
     }

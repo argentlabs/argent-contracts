@@ -115,12 +115,11 @@ class ArgentContext {
     return wallet;
   }
 
-  async multiCall(wallet, calls, { encode = true, gasPrice = 1 } = {}) {
-    const encodedCalls = encode ? utils.encodeCalls(calls) : calls;
+  async multiCall(wallet, calls, { gasPrice = 1 } = {}) {
     const receipt = await this.manager.relay(
       this.module,
       "multiCall",
-      [wallet.address, encodedCalls],
+      [wallet.address, utils.encodeCalls(calls)],
       wallet,
       [this.owner],
       gasPrice,

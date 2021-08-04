@@ -77,8 +77,7 @@ contract("Aave V2 Filter", (accounts) => {
   });
 
   it("should not allow sending ETH to lending pool", async () => {
-    const transaction = utils.encodeTransaction(pool.address, web3.utils.toWei("0.01"), "0x");
-    const { success, error } = await argent.multiCall(wallet, [transaction], { encode: false });
+    const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(pool.address, web3.utils.toWei("0.01"), "0x")]);
     assert.isFalse(success, "sending ETH should have failed");
     assert.equal(error, "TM: call not authorised");
   });

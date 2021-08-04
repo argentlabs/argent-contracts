@@ -32,9 +32,7 @@ contract("Lido Filter", (accounts) => {
 
   describe("Lido staking", () => {
     it("should allow staking from wallet via fallback", async () => {
-      const transaction = utils.encodeTransaction(lido.address, 100, "0x");
-
-      const { success, error } = await argent.multiCall(wallet, [transaction], { encode: false });
+      const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(lido.address, 100, "0x")]);
       assert.isTrue(success, `deposit failed: "${error}"`);
 
       const walletBalance = await lido.balanceOf(wallet.address);

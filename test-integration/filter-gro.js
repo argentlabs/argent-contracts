@@ -145,15 +145,13 @@ contract("Gro Filter", (accounts) => {
   });
 
   it("should not allow sending ETH to deposit handler", async () => {
-    const transaction = utils.encodeTransaction(depositHandler.address, amount, "0x");
-    const { success, error } = await argent.multiCall(wallet, [transaction], { encode: false });
+    const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(depositHandler.address, amount, "0x")]);
     assert.isFalse(success, "sending ETH to deposit handler should have failed");
     assert.equal(error, "TM: call not authorised");
   });
 
   it("should not allow sending ETH to withdraw handler", async () => {
-    const transaction = utils.encodeTransaction(withdrawHandler.address, amount, "0x");
-    const { success, error } = await argent.multiCall(wallet, [transaction], { encode: false });
+    const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(withdrawHandler.address, amount, "0x")]);
     assert.isFalse(success, "sending ETH to withdrawal handler should have failed");
     assert.equal(error, "TM: call not authorised");
   });

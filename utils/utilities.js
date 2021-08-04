@@ -267,9 +267,18 @@ const utilities = {
 
   encodeTransaction: (to, value, data) => ({ to, value, data }),
 
-  encodeCalls: (calls) => (Array.isArray(calls[0]) ? calls : [calls]).map(([instance, method, params = [], value = 0]) => utilities.encodeTransaction(
-    instance.address, value, instance.contract.methods[method](...params).encodeABI())
-  ),
+  /**
+   * @param {Array<Transaction | [TruffleContract, string, any[], NumberLike?]} calls 
+   * @returns {Array<Transaction>}
+   */
+  encodeCalls: (calls) => calls.map((call) => {
+    if (!Array.isArray(call)) {
+      return call;
+    }
+    const [instance, method, params = [], value = 0] = call;
+    const data = instance.contract.methods[method](...params).encodeABI();
+    return utilities.encodeTransaction(instance.address, value, data);
+  }),
 
   addTrustedContact: async (wallet, target, module, securityPeriod) => {
     const owner = await wallet.owner();
