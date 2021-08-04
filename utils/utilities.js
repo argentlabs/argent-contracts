@@ -322,6 +322,22 @@ const utilities = {
 
     const event = await utilities.getEvent(tx.receipt, factory, "WalletCreated");
     return event.args.wallet;
+  },
+
+  checkBalances: async (wallet, providedToken, receivedToken, body) => {
+    const getBalances = async () => [
+      await providedToken.balanceOf(wallet.address),
+      await receivedToken.balanceOf(wallet.address),
+    ];
+
+    const [providedTokenBefore, receivedTokenBefore] = await getBalances();
+    const result = await body();
+    const [providedTokenAfter, receivedTokenAfter] = await getBalances();
+
+    expect(providedTokenBefore.sub(providedTokenAfter)).to.be.gt.BN(0);
+    expect(receivedTokenAfter.sub(receivedTokenBefore)).to.be.gt.BN(0);
+
+    return result;
   }
 };
 
