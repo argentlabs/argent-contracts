@@ -12,6 +12,7 @@ node_modules/.bin/ganache-cli \
     --chainId 1895 \
     --port 3601 \
     --gasPrice 0  \
+    --gasLimit 20700000 \
     --deterministic \
     --fork https://mainnet.infura.io/v3/"$INFURA_KEY" \
     --unlock "0x39AA39c021dfbaE8faC545936693aC917d5E7563" `# USDC whale` \
