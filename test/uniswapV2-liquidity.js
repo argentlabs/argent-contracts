@@ -5,7 +5,7 @@ const chai = require("chai");
 const BN = require("bn.js");
 const bnChai = require("bn-chai");
 
-const { expect, assert } = chai;
+const { assert } = chai;
 chai.use(bnChai(BN));
 
 // UniswapV2
@@ -29,6 +29,7 @@ const UniZapFilter = artifacts.require("UniswapV2UniZapFilter");
 // Utils
 const utils = require("../utils/utilities.js");
 const { ETH_TOKEN, encodeTransaction, assertFailedWithError } = require("../utils/utilities.js");
+const { makeUniswapMethods } = require("../utils/uniswap.js");
 
 const ZERO_BYTES = "0x";
 const ZERO_ADDRESS = ethers.constants.AddressZero;
@@ -39,7 +40,7 @@ const RECOVERY_PERIOD = 4;
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("ArgentModule", (accounts) => {
+contract("Uniswap V2", (accounts) => {
   let manager;
 
   const infrastructure = accounts[0];
@@ -63,6 +64,9 @@ contract("ArgentModule", (accounts) => {
   let weth;
   let lpToken;
   let uniZap;
+
+  let addLiquidity;
+  let removeLiquidity;
 
   before(async () => {
     // Deploy and mint test tokens
@@ -141,99 +145,9 @@ contract("ArgentModule", (accounts) => {
     // fund wallet
     await wallet.send(web3.utils.toWei("1"));
     await token.mint(wallet.address, web3.utils.toWei("10"));
+
+    ({ addLiquidity, removeLiquidity } = makeUniswapMethods({ manager, module, owner, WETH: weth }, wallet, uniZap, token, lpToken));
   });
-
-  async function getBalance(tokenAddress, _wallet) {
-    let balance;
-    if (tokenAddress === ETH_TOKEN) {
-      balance = await utils.getBalance(_wallet.address);
-    } else if (tokenAddress === token.address) {
-      balance = await token.balanceOf(_wallet.address);
-    } else {
-      balance = await lpToken.balanceOf(_wallet.address);
-    }
-    return balance;
-  }
-
-  async function addLiquidity(tokenAddress, amount, to) {
-    const transactions = [];
-    const balancesBefore = [];
-    const balancesAfter = [];
-    const deadline = (await utils.getTimestamp()) + 10;
-
-    if (tokenAddress === ETH_TOKEN) {
-      const data = uniZap.contract.methods.swapExactETHAndAddLiquidity(token.address, 0, to, deadline).encodeABI();
-      transactions.push(encodeTransaction(uniZap.address, amount, data));
-      balancesBefore.push(await getBalance(ETH_TOKEN, wallet));
-    } else {
-      let data = token.contract.methods.approve(uniZap.address, amount).encodeABI();
-      transactions.push(encodeTransaction(token.address, 0, data));
-      data = uniZap.contract.methods.swapExactTokensAndAddLiquidity(token.address, weth.address, amount, 0, to, deadline).encodeABI();
-      transactions.push(encodeTransaction(uniZap.address, 0, data));
-      balancesBefore.push(await getBalance(token.address, wallet));
-    }
-
-    balancesBefore.push(await getBalance(lpToken.address, wallet));
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, transactions],
-      wallet,
-      [owner]);
-    const { success } = await utils.parseRelayReceipt(txReceipt);
-    if (success) {
-      if (tokenAddress === ETH_TOKEN) {
-        balancesAfter.push(await getBalance(ETH_TOKEN, wallet));
-      } else {
-        balancesAfter.push(await getBalance(token.address, wallet));
-      }
-      balancesAfter.push(await getBalance(lpToken.address, wallet));
-      expect(balancesBefore[0].sub(balancesAfter[0])).to.gt.BN(0); // should have send weth/token
-      expect(balancesBefore[1].sub(balancesAfter[1])).to.lt.BN(0); // should have received lp token
-    }
-
-    return txReceipt;
-  }
-
-  async function removeLiquidity(tokenAddress, amount, to) {
-    const transactions = [];
-    const balancesBefore = [];
-    const balancesAfter = [];
-    const deadline = (await utils.getTimestamp()) + 10;
-
-    let data = lpToken.contract.methods.approve(uniZap.address, amount).encodeABI();
-    transactions.push(encodeTransaction(lpToken.address, 0, data));
-    if (tokenAddress === ETH_TOKEN) {
-      data = uniZap.contract.methods.removeLiquidityAndSwapToETH(token.address, amount, 0, to, deadline).encodeABI();
-      transactions.push(encodeTransaction(uniZap.address, 0, data));
-      balancesBefore.push(await getBalance(ETH_TOKEN, wallet));
-    } else {
-      data = uniZap.contract.methods.removeLiquidityAndSwapToToken(weth.address, token.address, amount, 0, to, deadline).encodeABI();
-      transactions.push(encodeTransaction(uniZap.address, 0, data));
-      balancesBefore.push(await getBalance(token.address, wallet));
-    }
-
-    balancesBefore.push(await getBalance(lpToken.address, wallet));
-    const txReceipt = await manager.relay(
-      module,
-      "multiCall",
-      [wallet.address, transactions],
-      wallet,
-      [owner]);
-    const { success } = await utils.parseRelayReceipt(txReceipt);
-    if (success) {
-      if (tokenAddress === ETH_TOKEN) {
-        balancesAfter.push(await getBalance(ETH_TOKEN, wallet));
-      } else {
-        balancesAfter.push(await getBalance(token.address, wallet));
-      }
-      balancesAfter.push(await getBalance(lpToken.address, wallet));
-      expect(balancesBefore[0].sub(balancesAfter[0])).to.lt.BN(0); // should have received weth/token
-      expect(balancesBefore[1].sub(balancesAfter[1])).to.gt.BN(0); // should have burn lp tokens
-    }
-
-    return txReceipt;
-  }
 
   describe("UniZap methods", () => {
     it("should add liquidity with ETH", async () => {
