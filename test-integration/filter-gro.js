@@ -10,7 +10,7 @@ const Controller = artifacts.require("GroController");
 const DepositFilter = artifacts.require("GroDepositFilter");
 const WithdrawFilter = artifacts.require("GroWithdrawFilter");
 
-const amount = web3.utils.toWei("1");
+const amount = web3.utils.toWei("0.01");
 
 contract("Gro Filter", (accounts) => {
   let argent;
@@ -37,58 +37,95 @@ contract("Gro Filter", (accounts) => {
   beforeEach(async () => {
     wallet = await argent.createFundedWallet({
       DAI: web3.utils.toWei("1"),
-      WETH: web3.utils.toWei("0.01"),
+      WETH: amount,
     });
   });
 
-  const depositGvt = async () => argent.multiCall(wallet, [
+  const deposit = async (isPwrd) => argent.multiCall(wallet, [
     [argent.DAI, "approve", [depositHandler.address, amount]],
-    [depositHandler, "depositGvt", [[amount, 0, 0], 1, utils.ZERO_ADDRESS]]
+    [depositHandler, isPwrd ? "depositPwrd" : "depositGvt", [[amount, 0, 0], 1, utils.ZERO_ADDRESS]]
   ]);
-  
-  it("should allow deposits (1/2)", async () => {
-    const { success, error } = await depositGvt();
-    assert.isTrue(success, `deposit1 failed: "${error}"`);
+
+  const withdrawByLPToken = async (isPwrd, withdrawAmount) => argent.multiCall(wallet, [
+    [withdrawHandler, "withdrawByLPToken", [isPwrd, withdrawAmount, [1, 1, 1]]]
+  ]);
+
+  const withdrawByStablecoin = async (isPwrd, withdrawAmount) => argent.multiCall(wallet, [
+    [withdrawHandler, "withdrawByStablecoin", [isPwrd, 0, withdrawAmount, 1]]
+  ]);
+
+  const withdrawAllSingle = async (isPwrd) => argent.multiCall(wallet, [
+    [withdrawHandler, "withdrawAllSingle", [isPwrd, 0, 1]]
+  ]);
+
+  const withdrawAllBalanced = async (isPwrd) => argent.multiCall(wallet, [
+    [withdrawHandler, "withdrawAllBalanced", [isPwrd, [1, 1, 1]]]
+  ]);
+
+  describe("Gvt", () => {
+    const isPwrd = false;
+
+    it("should allow deposits", async () => {
+      const { success, error } = await deposit(isPwrd);
+      assert.isTrue(success, `depositGvt failed: "${error}"`);
+    });
+
+    it.skip("should allow withdrawals (1/4)", async () => {
+      await deposit(isPwrd);
+      const { success, error } = await withdrawByLPToken(isPwrd, 10);
+      assert.isTrue(success, `withdrawByLPToken failed: "${error}"`);
+    });
+
+    it("should allow withdrawals (2/4)", async () => {
+      await deposit(isPwrd);
+      const { success, error } = await withdrawByStablecoin(isPwrd, 10);
+      assert.isTrue(success, `withdrawByStablecoin failed: "${error}"`);
+    });
+
+    it("should allow withdrawals (3/4)", async () => {
+      await deposit(isPwrd);
+      const { success, error } = await withdrawAllSingle(isPwrd);
+      assert.isTrue(success, `withdrawAllSingle failed: "${error}"`);
+    });
+
+    it("should allow withdrawals (4/4)", async () => {
+      await deposit(isPwrd);
+      const { success, error } = await withdrawAllBalanced(isPwrd);
+      assert.isTrue(success, `withdrawAllBalanced failed: "${error}"`);
+    });
   });
 
-  it("should allow deposits (2/2)", async () => {
-    const { success, error } = await argent.multiCall(wallet, [
-      [argent.DAI, "approve", [depositHandler.address, amount]],
-      [depositHandler, "depositPwrd", [[amount, 0, 0], 1, utils.ZERO_ADDRESS]]
-    ]);
-    assert.isTrue(success, `deposit2 failed: "${error}"`);
-  });
+  describe("Pwrd", () => {
+    const isPwrd = true;
 
-  it.skip("should allow withdrawals (1/4)", async () => {
-    await depositGvt();
-    const { success, error } = await argent.multiCall(wallet, [
-      [withdrawHandler, "withdrawByLPToken", [true, amount, [1, 1, 1]]]
-    ]);
-    assert.isTrue(success, `withdraw1 failed: "${error}"`);
-  });
+    it("should allow deposits", async () => {
+      const { success, error } = await deposit(isPwrd);
+      assert.isTrue(success, `depositPwrd failed: "${error}"`);
+    });
 
-  it.skip("should allow withdrawals (2/4)", async () => {
-    await depositGvt();
-    const { success, error } = await argent.multiCall(wallet, [
-      [withdrawHandler, "withdrawByStablecoin", [true, 0, amount, 1]]
-    ]);
-    assert.isTrue(success, `withdraw2 failed: "${error}"`);
-  });
+    it.skip("should allow withdrawals (1/4)", async () => {
+      await deposit(isPwrd);
+      const { success, error } = await withdrawByLPToken(isPwrd, 10);
+      assert.isTrue(success, `withdrawByLPToken failed: "${error}"`);
+    });
 
-  it.skip("should allow withdrawals (3/4)", async () => {
-    await depositGvt();
-    const { success, error } = await argent.multiCall(wallet, [
-      [withdrawHandler, "withdrawAllSingle", [true, 0, 1]]
-    ]);
-    assert.isTrue(success, `withdraw3 failed: "${error}"`);
-  });
+    it("should allow withdrawals (2/4)", async () => {
+      await deposit(isPwrd);
+      const { success, error } = await withdrawByStablecoin(isPwrd, 10);
+      assert.isTrue(success, `withdrawByStablecoin failed: "${error}"`);
+    });
 
-  it.skip("should allow withdrawals (4/4)", async () => {
-    await depositGvt();
-    const { success, error } = await argent.multiCall(wallet, [
-      [withdrawHandler, "withdrawAllBalanced", [true, [1, 1, 1]]]
-    ]);
-    assert.isTrue(success, `withdraw4 failed: "${error}"`);
+    it("should allow withdrawals (3/4)", async () => {
+      await deposit(isPwrd);
+      const { success, error } = await withdrawAllSingle(isPwrd);
+      assert.isTrue(success, `withdrawAllSingle failed: "${error}"`);
+    });
+
+    it("should allow withdrawals (4/4)", async () => {
+      await deposit(isPwrd);
+      const { success, error } = await withdrawAllBalanced(isPwrd);
+      assert.isTrue(success, `withdrawAllBalanced failed: "${error}"`);
+    });
   });
 
   it("should not allow direct transfers to deposit handler", async () => {
