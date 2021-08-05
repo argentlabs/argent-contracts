@@ -123,9 +123,9 @@ contract("ArgentModule", (accounts) => {
       const sigs = await signOffchain(
         [owner], module.address, 0, payload, await getChainId(), nonce, 0, 150000, ETH_TOKEN, ZERO_ADDRESS,
       );
-      const transactions = encodeCalls([module, "execute", [
+      const transactions = encodeCalls([[module, "execute", [
         wallet.address, payload, nonce, sigs, 0, 150000, ETH_TOKEN, ZERO_ADDRESS
-      ]]);
+      ]]]);
 
       const txReceipt = await manager.relay(
         module,
