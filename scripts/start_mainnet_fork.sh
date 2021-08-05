@@ -20,4 +20,6 @@ node_modules/.bin/ganache-cli \
     --unlock "0x2F0b23f53734252Bda2277357e97e1517d6B042A" `# WETH whale` \
     --unlock "0xdc954086cf07f3889f186118395bad186179ac77" `# Gro Controller` \
     --unlock "0xe6B692dcC972b9a5C3C414ac75dDc420B9eDC92d" `# Paraswap owner` \
+    --unlock "0xa5c603e1C27a96171487aea0649b01c56248d2e8" `# Argent ENS owner` \
+
 
