@@ -15,14 +15,15 @@ contract("Lido Filter", (accounts) => {
   let curve;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     lido = await ILido.at("0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84");
-    const lidoFilter = await LidoFilter.new();
-    await argent.dappRegistry.addDapp(0, lido.address, lidoFilter.address);
-
     curve = await ICurvePool.at("0xdc24316b9ae028f1497c275eb9192a3ea0f67022");
+
+    const lidoFilter = await LidoFilter.new();
     const curveFilter = await CurveFilter.new();
+
+    await argent.dappRegistry.addDapp(0, lido.address, lidoFilter.address);
     await argent.dappRegistry.addDapp(0, curve.address, curveFilter.address);
   });
 

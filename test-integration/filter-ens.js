@@ -18,11 +18,12 @@ const { ZERO_ADDRESS } = utils;
 
 contract("ENS contracts", (accounts) => {
   let infrastructure;
-  let owner; 
+  let owner;
   const amanager = accounts[3];
   const anonmanager = accounts[5];
   const recipient = accounts[8];
 
+  let argent;
   const root = "xyz";
   const subnameWallet = "argent";
   const walletNode = ethers.utils.namehash(`${subnameWallet}.${root}`);
@@ -34,7 +35,7 @@ contract("ENS contracts", (accounts) => {
   let argentEnsManager;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
     ({ infrastructure, owner } = argent);
 
     argentEnsManager = await ArgentENSManager.at(ARGENT_ENS_ADDRESS);
@@ -47,8 +48,6 @@ contract("ENS contracts", (accounts) => {
     const filter = await Filter.new();
     await argent.dappRegistry.addDapp(0, argentEnsManager.address, filter.address);
     await argent.dappRegistry.addDapp(0, recipient, ZERO_ADDRESS);
-
-    wallet = await argent.createFundedWallet({ ETH: "1" });
   });
 
   describe("ENS Manager", () => {
@@ -183,7 +182,8 @@ contract("ENS contracts", (accounts) => {
     });
 
     it("should not be able to change the ens resolver to an empty address", async () => {
-      await truffleAssert.reverts(argentEnsManager.changeENSResolver(ethers.constants.AddressZero, { from: ARGENT_ENS_OWNER_ADDRESS }), "AEM: cannot set empty resolver");
+      await truffleAssert.reverts(
+        argentEnsManager.changeENSResolver(ethers.constants.AddressZero, { from: ARGENT_ENS_OWNER_ADDRESS }), "AEM: cannot set empty resolver");
     });
   });
 });

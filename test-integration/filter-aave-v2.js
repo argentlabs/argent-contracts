@@ -15,10 +15,9 @@ contract("Aave V2 Filter", (accounts) => {
   let pool;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     pool = await AaveV2LendingPool.at("0xC6845a5C768BF8D7681249f8927877Efda425baf");
-
     const filter = await AaveV2Filter.new();
     await argent.dappRegistry.addDapp(0, pool.address, filter.address);
   });

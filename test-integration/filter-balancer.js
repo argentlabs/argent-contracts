@@ -13,10 +13,9 @@ contract("Balancer Filter", (accounts) => {
   let pool;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     pool = await BPool.at("0x1eff8af5d577060ba4ac8a29a13525bb0ee2a3d5");
-
     const filter = await BalancerFilter.new();
     await argent.dappRegistry.addDapp(0, pool.address, filter.address);
   });

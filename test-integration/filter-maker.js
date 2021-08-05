@@ -25,7 +25,7 @@ contract("Maker DSR Filter", (accounts) => {
   let pot;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     dai = argent.DAI;
     daiJoin = await DaiJoin.at("0x9759A6Ac90977b93B58547b4A71c78317f391A28");

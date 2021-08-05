@@ -97,8 +97,9 @@ const TARGET_EXCHANGES = {
 };
 const MARKET_MAKERS = ["0x56178a0d5f301baf6cf3e1cd53d9863437345bf9"];
 const ZEROEXV2_PROXY = "0x95e6f48254609a6ee006f7d493c8e5fb97094cef";
+const PARASWAP_OWNER = "0xe6B692dcC972b9a5C3C414ac75dDc420B9eDC92d";
 
-contract("Paraswap Filter", (accounts) => {
+contract.skip("Paraswap Filter", (accounts) => {
   let argent;
   let wallet;
 
@@ -122,11 +123,10 @@ contract("Paraswap Filter", (accounts) => {
   let paraswapUniV2Router;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     tokenA = argent.DAI;
     tokenB = argent.USDC;
-    tokenC = argent.WETH;
     weth = argent.WETH;
 
     paraswap = await IAugustusSwapper.at(AUGUSTUS);
@@ -157,7 +157,7 @@ contract("Paraswap Filter", (accounts) => {
       UNIV1_DAI_ETH_POOL,
       UNIV1_USDC_ETH_POOL,
     ];
-    await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, tokenC.address, ...pairs], Array(3 + pairs.length).fill(true));
+    await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, ...pairs], Array(2 + pairs.length).fill(true));
 
     paraswapFilter = await ParaswapFilter.new(
       tokenRegistry.address,
@@ -525,7 +525,7 @@ contract("Paraswap Filter", (accounts) => {
     });
 
     it("should not allow swapOnUniswap[Fork] via unauthorised uniswap proxy", async () => {
-      await paraswap.changeUniswapProxy(other);
+      await paraswap.changeUniswapProxy(other, { from: PARASWAP_OWNER });
       await paraswapFilter.updateIsValidUniswapProxy();
       await testTrade({
         method: "swapOnUniswap", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
@@ -533,7 +533,7 @@ contract("Paraswap Filter", (accounts) => {
       await testTrade({
         method: "swapOnUniswapFork", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
       });
-      await paraswap.changeUniswapProxy(UNISWAP_PROXY);
+      await paraswap.changeUniswapProxy(UNISWAP_PROXY, { from: PARASWAP_OWNER });
       await paraswapFilter.updateIsValidUniswapProxy();
     });
 

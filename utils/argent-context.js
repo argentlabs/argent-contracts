@@ -40,7 +40,7 @@ class ArgentContext {
     ] = accounts;
   }
 
-  async initialize() {
+  async initialise() {
     const moduleRegistry = await ModuleRegistry.new();
     const guardianStorage = await GuardianStorage.new();
     const transferStorage = await TransferStorage.new();
@@ -69,11 +69,11 @@ class ArgentContext {
     await this.factory.addManager(this.infrastructure);
     this.manager = new RelayManager(guardianStorage.address, utils.ZERO_ADDRESS);
 
-    await this.initializeTokens();
+    await this.initialiseTokens();
     return this;
   }
 
-  async initializeTokens() {
+  async initialiseTokens() {
     this.WETH = await WETH.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
     this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
     this.USDC = await ERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
@@ -134,7 +134,7 @@ class ArgentContext {
 // transfer tokens during global setup otherwise they get reverted by snapshots between tests
 before(async () => {
   const accounts = await web3.eth.getAccounts();
-  await new ArgentContext(accounts).initializeTokens();
+  await new ArgentContext(accounts).initialiseTokens();
 });
 
 module.exports = ArgentContext;

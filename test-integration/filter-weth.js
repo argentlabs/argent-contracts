@@ -11,7 +11,7 @@ contract("WETH Filter", (accounts) => {
   let wallet;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     const filter = await WethFilter.new();
     await argent.dappRegistry.addDapp(0, argent.WETH.address, filter.address);

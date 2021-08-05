@@ -22,7 +22,7 @@ contract("Aave V1 Filter", (accounts) => {
   let aUSDCToken;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     // Wire up AaveV1
     aaveLendingPoolCore = "0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3";
@@ -33,6 +33,7 @@ contract("Aave V1 Filter", (accounts) => {
     const filter = await AaveV1LendingPoolFilter.new();
     const aTokenFilter = await AaveV1ATokenFilter.new();
     const approveFilter = await OnlyApproveFilter.new();
+
     await argent.dappRegistry.addDapp(0, aaveLendingPoolCore, approveFilter.address);
     await argent.dappRegistry.addDapp(0, aaveLendingPool.address, filter.address);
     await argent.dappRegistry.addDapp(0, aToken.address, aTokenFilter.address);

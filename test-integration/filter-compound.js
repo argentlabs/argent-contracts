@@ -15,14 +15,15 @@ contract("Compound Filter", (accounts) => {
   let cDai;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     cEther = await CEther.at("0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5");
-    const cEtherFilter = await CompoundCTokenFilter.new(utils.ZERO_ADDRESS);
-    await argent.dappRegistry.addDapp(0, cEther.address, cEtherFilter.address);
-
     cDai = await CErc20.at("0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643");
+
+    const cEtherFilter = await CompoundCTokenFilter.new(utils.ZERO_ADDRESS);
     const cDaiFilter = await CompoundCTokenFilter.new(argent.DAI.address);
+
+    await argent.dappRegistry.addDapp(0, cEther.address, cEtherFilter.address);
     await argent.dappRegistry.addDapp(0, cDai.address, cDaiFilter.address);
   });
 

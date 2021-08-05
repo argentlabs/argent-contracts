@@ -15,12 +15,14 @@ contract("Curve Filter", (accounts) => {
   let curve4;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     curve2 = await CurvePool.at("0xDC24316b9AE028F1497c275EB9192a3Ea0f67022");
     curve3 = await CurvePool.at("0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7");
     curve4 = await CurvePool.at("0xA5407eAE9Ba41422680e2e00537571bcC53efBfD");
+
     const filter = await CurveFilter.new();
+
     await argent.dappRegistry.addDapp(0, curve2.address, filter.address);
     await argent.dappRegistry.addDapp(0, curve3.address, filter.address);
     await argent.dappRegistry.addDapp(0, curve4.address, filter.address);

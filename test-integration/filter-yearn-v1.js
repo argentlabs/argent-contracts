@@ -16,14 +16,15 @@ contract("Yearn V1 Filter", (accounts) => {
   let wethVault;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialize();
+    argent = await new ArgentContext(accounts).initialise();
 
     daiVault = await Vault.at("0xACd43E627e64355f1861cEC6d3a6688B31a6F952");
-    const daiFilter = await YearnFilter.new(false);
-    await argent.dappRegistry.addDapp(0, daiVault.address, daiFilter.address);
-
     wethVault = await Vault.at("0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7");
+
+    const daiFilter = await YearnFilter.new(false);
     const wethFilter = await YearnFilter.new(true);
+
+    await argent.dappRegistry.addDapp(0, daiVault.address, daiFilter.address);
     await argent.dappRegistry.addDapp(0, wethVault.address, wethFilter.address);
   });
 
