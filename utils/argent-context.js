@@ -84,8 +84,8 @@ class ArgentContext {
 
     // transfer tokens from mainnet whale addresses to a test address we control
     await this.WETH.transfer(this.tokenHolder, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
-    await this.DAI.transfer(this.tokenHolder, web3.utils.toWei("10000"), { from: "0x6B175474E89094C44Da98b954EedeAC495271d0F" });
-    await this.USDC.transfer(this.tokenHolder, "10000000000", { from: "0x39AA39c021dfbaE8faC545936693aC917d5E7563" });
+    await this.DAI.transfer(this.tokenHolder, web3.utils.toWei("1000000"), { from: "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" });
+    await this.USDC.transfer(this.tokenHolder, "1000000" + "000000", { from: "0x39AA39c021dfbaE8faC545936693aC917d5E7563" });
 
     tokensTransferred = true;
   }
