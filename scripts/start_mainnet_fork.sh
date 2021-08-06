@@ -15,7 +15,7 @@ node_modules/.bin/ganache-cli \
     --gasLimit 20700000 \
     --deterministic \
     --fork https://mainnet.infura.io/v3/"$INFURA_KEY" \
-    --unlock "0x39AA39c021dfbaE8faC545936693aC917d5E7563" `# USDC whale` \
+    --unlock "0xe982615d461dd5cd06575bbea87624fda4e3de17" `# USDC minter` \
     --unlock "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" `# DAI whale` \
     --unlock "0x2F0b23f53734252Bda2277357e97e1517d6B042A" `# WETH whale` \
     --unlock "0xdc954086cf07f3889f186118395bad186179ac77" `# Gro Controller` \

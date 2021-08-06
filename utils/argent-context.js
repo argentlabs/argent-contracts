@@ -16,6 +16,7 @@ const ArgentModule = artifacts.require("ArgentModule");
 const DappRegistry = artifacts.require("DappRegistry");
 const ERC20 = artifacts.require("TestERC20");
 const WETH = artifacts.require("WETH9");
+const IUSDCToken = artifacts.require("IUSDCToken");
 
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -24,7 +25,7 @@ const LOCK_PERIOD = 4;
 
 chai.use(bnChai(BN));
 
-let tokensTransferred = false;
+let tokensFunded = false;
 
 class ArgentContext {
   constructor(accounts) {
@@ -76,18 +77,31 @@ class ArgentContext {
   async initialiseTokens() {
     this.WETH = await WETH.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
     this.DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
-    this.USDC = await ERC20.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+    this.USDC = await IUSDCToken.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
 
-    if (tokensTransferred) {
+    if (tokensFunded) {
       return;
     }
 
     // transfer tokens from mainnet whale addresses to a test address we control
-    await this.WETH.transfer(this.tokenHolder, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
-    await this.DAI.transfer(this.tokenHolder, web3.utils.toWei("1000000"), { from: "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" });
-    await this.USDC.transfer(this.tokenHolder, "1000000" + "000000", { from: "0x39AA39c021dfbaE8faC545936693aC917d5E7563" }); // eslint-disable-line
+    try {
+      await this.WETH.transfer(this.tokenHolder, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
+      await this.DAI.transfer(this.tokenHolder, web3.utils.toWei("1000000"), { from: "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" });
+    } catch (error) {
+      if (error.toString().includes("transfer amount exceeds balance")) {
+        console.error("!!!!!!!!!!!!!!!!!!!!!");
+        console.error("One of the ERC-20 whales doesn't have enough balance on mainnet to use their tokens.");
+        console.error("Either find another whale with enough funds, or use the token's minter.");
+        console.error("!!!!!!!!!!!!!!!!!!!!!");
+        console.error("");
+      }
+    }
 
-    tokensTransferred = true;
+    // mint $1b USDC
+    await this.USDC.configureMinter(this.infrastructure, web3.utils.toWei("10000000"), { from: "0xe982615d461dd5cd06575bbea87624fda4e3de17" });
+    await this.USDC.mint(this.tokenHolder, web3.utils.toWei("10000000"));
+
+    tokensFunded = true;
   }
 
   async createFundedWallet(amounts = {}) {
@@ -128,6 +142,14 @@ class ArgentContext {
     );
     const result = utils.parseRelayReceipt(receipt);
     return { ...result, receipt };
+  }
+
+  async tokenBalances() {
+    return {
+      WETH: web3.utils.fromWei(await this.WETH.balanceOf(this.tokenHolder)),
+      DAI: web3.utils.fromWei(await this.DAI.balanceOf(this.tokenHolder)),
+      USDC: (await this.USDC.balanceOf(this.tokenHolder)).toString().slice(0, -6),
+    };
   }
 }
 
