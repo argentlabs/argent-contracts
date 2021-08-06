@@ -34,45 +34,38 @@ contract("Compound Filter", (accounts) => {
       wallet = await argent.createFundedWallet();
     });
 
-    const mint = async () => {
-      const tokenBefore = await utils.getBalance(wallet.address);
-      const cTokenBefore = await cEther.balanceOf(wallet.address);
-
-      const { success, error, receipt } = await argent.multiCall(wallet, [
-        [cEther, "mint", [], amount]
-      ]);
-      assert.isTrue(success, `mint failed: "${error}"`);
-
-      await utils.hasEvent(receipt, cEther, "Mint");
-
-      const tokenAfter = await utils.getBalance(wallet.address);
-      const cTokenAfter = await cEther.balanceOf(wallet.address);
-
-      expect(tokenBefore.sub(tokenAfter)).to.be.gt.BN(0);
-      expect(cTokenAfter.sub(cTokenBefore)).to.be.gt.BN(0);
-    };
+    const mint = async (useFallback) => argent.multiCall(wallet, [
+      useFallback
+        ? utils.encodeTransaction(cEther.address, amount, "0x")
+        : [cEther, "mint", [], amount]
+    ]);
 
     it("should allow minting", async () => {
-      await mint();
+      const { success, error, receipt } = await utils.checkBalances(wallet, utils.ETH_TOKEN, cEther, mint);
+
+      assert.isTrue(success, `mint failed: "${error}"`);
+      await utils.hasEvent(receipt, cEther, "Mint");
     });
 
-    it.skip("should allow redeeming", async () => {
+    it("should allow minting using fallback", async () => {
+      const { success, error, receipt } = await utils.checkBalances(wallet, utils.ETH_TOKEN, cEther, () => mint(true));
+
+      assert.isTrue(success, `mint failed: "${error}"`);
+      await utils.hasEvent(receipt, cEther, "Mint");
+    });
+
+    it("should allow redeeming", async () => {
       await mint();
 
-      const tokenBefore = await utils.getBalance(wallet.address);
-      const cTokenBefore = await cEther.balanceOf(wallet.address);
+      const redeemAmount = await cEther.balanceOf(wallet.address);
+      const { success, error, receipt } = await utils.checkBalances(wallet, cEther, utils.ETH_TOKEN, () => (
+        argent.multiCall(wallet, [
+          [cEther, "redeem", [redeemAmount.toString()]]
+        ])
+      ));
 
-      const { success, error, receipt } = await argent.multiCall(wallet, [
-        [cEther, "redeem", [amount]]
-      ]);
       assert.isTrue(success, `withdrawal failed: "${error}"`);
-
-      await utils.hasEvent(receipt, cEther, "Redeem"); // TODO: check why this fails
-      const tokenAfter = await utils.getBalance(wallet.address);
-      const cTokenAfter = await cEther.balanceOf(wallet.address);
-
-      expect(tokenAfter.sub(tokenBefore)).to.be.gt.BN(0);
-      expect(cTokenBefore.sub(cTokenAfter)).to.be.gt.BN(0);
+      await utils.hasEvent(receipt, cEther, "Redeem");
     });
   });
 
@@ -83,45 +76,30 @@ contract("Compound Filter", (accounts) => {
       wallet = await argent.createFundedWallet({ DAI: amount });
     });
 
-    const mint = async () => {
-      const tokenBefore = await argent.DAI.balanceOf(wallet.address);
-      const cTokenBefore = await cDai.balanceOf(wallet.address);
-
-      const { success, error, receipt } = await argent.multiCall(wallet, [
-        [argent.DAI, "approve", [cDai.address, amount]],
-        [cDai, "mint", [amount]]
-      ]);
-      assert.isTrue(success, `mint failed: "${error}"`);
-
-      await utils.hasEvent(receipt, cDai, "Mint");
-      const tokenAfter = await argent.DAI.balanceOf(wallet.address);
-      const cTokenAfter = await cDai.balanceOf(wallet.address);
-
-      expect(tokenBefore.sub(tokenAfter)).to.be.gt.BN(0);
-      expect(cTokenAfter.sub(cTokenBefore)).to.be.gt.BN(0);
-    };
+    const mint = async () => argent.multiCall(wallet, [
+      [argent.DAI, "approve", [cDai.address, amount]],
+      [cDai, "mint", [amount]]
+    ]);
 
     it("should allow minting", async () => {
-      await mint();
+      const { success, error, receipt } = await utils.checkBalances(wallet, argent.DAI, cDai, mint);
+
+      assert.isTrue(success, `mint failed: "${error}"`);
+      await utils.hasEvent(receipt, cDai, "Mint");
     });
 
-    it.skip("should allow redeem", async () => {
+    it("should allow redeeming", async () => {
       await mint();
 
-      const tokenBefore = await argent.DAI.balanceOf(wallet.address);
-      const cTokenBefore = await cDai.balanceOf(wallet.address);
+      const redeemAmount = await cDai.balanceOf(wallet.address);
+      const { success, error, receipt } = await utils.checkBalances(wallet, cDai, argent.DAI, () => (
+        argent.multiCall(wallet, [
+          [cDai, "redeem", [redeemAmount.toString()]]
+        ])
+      ));
 
-      const { success, error, receipt } = await argent.multiCall(wallet, [
-        [cDai, "redeem", [amount]]
-      ]);
       assert.isTrue(success, `redeem failed: "${error}"`);
-
       await utils.hasEvent(receipt, cDai, "Redeem");
-      const tokenAfter = await argent.DAI.balanceOf(wallet.address);
-      const cTokenAfter = await cDai.balanceOf(wallet.address);
-
-      expect(tokenAfter.sub(tokenBefore)).to.be.gt.BN(0);
-      expect(cTokenBefore.sub(cTokenAfter)).to.be.gt.BN(0);
     });
   });
 });

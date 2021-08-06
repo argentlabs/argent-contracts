@@ -41,12 +41,12 @@ contract("Yearn V2 Filter", (accounts) => {
   ]);
 
   it("should allow deposits (0 params)", async () => {
-    const { success, error } = await utils.checkBalances(wallet, argent.DAI, yvDai, () => deposit0());
+    const { success, error } = await utils.checkBalances(wallet, argent.DAI, yvDai, deposit0);
     assert.isTrue(success, `deposit failed: "${error}"`);
   });
 
   it("should allow deposits (1 param)", async () => {
-    const { success, error } = await utils.checkBalances(wallet, argent.DAI, yvDai, () => deposit1());
+    const { success, error } = await utils.checkBalances(wallet, argent.DAI, yvDai, deposit1);
     assert.isTrue(success, `deposit failed: "${error}"`);
   });
 

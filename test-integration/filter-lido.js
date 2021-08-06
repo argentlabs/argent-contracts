@@ -66,9 +66,8 @@ contract("Lido Filter", (accounts) => {
         [lido, "approve", [curve.address, 99]],
         [curve, "exchange", [1, 0, 99, 1]],
       ];
-      const { success, error, receipt } = await argent.multiCall(wallet, transactions, { gasPrice: 0 });
+      const { success, error } = await argent.multiCall(wallet, transactions, { gasPrice: 0 });
 
-      console.log("Gas to exchange stETH for ETH", receipt.gasUsed);
       assert.isTrue(success, `exchange failed: "${error}"`);
 
       // Check ETH was received

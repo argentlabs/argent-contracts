@@ -325,17 +325,15 @@ const utilities = {
   },
 
   checkBalances: async (wallet, providedToken, receivedToken, body) => {
-    const getBalances = async () => [
-      await providedToken.balanceOf(wallet.address),
-      await receivedToken.balanceOf(wallet.address),
-    ];
+    const balanceOf = (token) => (token === ETH_TOKEN ? utilities.getBalance : token.balanceOf)(wallet.address);
+    const getBalances = async () => [await balanceOf(providedToken), await balanceOf(receivedToken)];
 
-    const [providedTokenBefore, receivedTokenBefore] = await getBalances();
+    const [providedBefore, receivedBefore] = await getBalances();
     const result = await body();
-    const [providedTokenAfter, receivedTokenAfter] = await getBalances();
+    const [providedAfter, receivedAfter] = await getBalances();
 
-    expect(providedTokenBefore.sub(providedTokenAfter)).to.be.gt.BN(0);
-    expect(receivedTokenAfter.sub(receivedTokenBefore)).to.be.gt.BN(0);
+    expect(providedBefore.sub(providedAfter)).to.be.gt.BN(0);
+    expect(receivedAfter.sub(receivedBefore)).to.be.gt.BN(0);
 
     return result;
   }
