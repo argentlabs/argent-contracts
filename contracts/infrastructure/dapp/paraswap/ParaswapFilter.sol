@@ -77,6 +77,12 @@ interface IParaswap {
         address[] path;
     }
 
+    struct UniswapV3Data {
+        uint24 fee;
+        uint256 deadline;
+        uint160 sqrtPriceLimitX96;
+    }
+
     function getUniswapProxy() external view returns (address);
 }
 
@@ -117,6 +123,7 @@ contract ParaswapFilter is BaseFilter {
     address public immutable zeroExV4Adapter;
     address public immutable curveAdapter;
     address public immutable wethAdapter;
+    address public immutable uniV3Adapter;
     // The Dapp registry (used to authorise simpleSwap())
     IAuthoriser public immutable authoriser;
     // Uniswap Proxy used by Paraswap's AugustusSwapper contract
@@ -133,19 +140,21 @@ contract ParaswapFilter is BaseFilter {
     address public immutable uniForkFactory1; // sushiswap
     address public immutable uniForkFactory2; // linkswap
     address public immutable uniForkFactory3; // defiswap
+    address public immutable uniV3Factory; // uniV3
     bytes32 public immutable uniInitCode; // uniswap
     bytes32 public immutable uniForkInitCode1; // sushiswap
     bytes32 public immutable uniForkInitCode2; // linkswap
     bytes32 public immutable uniForkInitCode3; // defiswap
+    bytes32 public immutable uniV3InitCode; // uniV3
 
     constructor(
         address _tokenRegistry,
         IAuthoriser _authoriser,
         address _augustus,
         address _uniswapProxy,
-        address[3] memory _uniFactories,
-        bytes32[3] memory _uniInitCodes,
-        address[9] memory _adapters,
+        address[4] memory _uniFactories,
+        bytes32[4] memory _uniInitCodes,
+        address[10] memory _adapters,
         address[] memory _targetExchanges,
         address[] memory _marketMakers
     ) {
@@ -159,9 +168,11 @@ contract ParaswapFilter is BaseFilter {
         uniForkFactory1 = _uniFactories[0];
         uniForkFactory2 = _uniFactories[1];
         uniForkFactory3 = _uniFactories[2];
+        uniV3Factory = _uniFactories[3];
         uniForkInitCode1 = _uniInitCodes[0];
         uniForkInitCode2 = _uniInitCodes[1];
         uniForkInitCode3 = _uniInitCodes[2];
+        uniV3InitCode = _uniInitCodes[3];
         uniV1Adapter = _adapters[0];
         uniV2Adapter = _adapters[1];
         sushiswapAdapter = _adapters[2];
@@ -171,6 +182,7 @@ contract ParaswapFilter is BaseFilter {
         zeroExV4Adapter = _adapters[6];
         curveAdapter = _adapters[7];
         wethAdapter = _adapters[8];
+        uniV3Adapter = _adapters[9];
         for(uint i = 0; i < _targetExchanges.length; i++) {
             targetExchanges[_targetExchanges[i]] = true;
         }
@@ -338,6 +350,9 @@ contract ParaswapFilter is BaseFilter {
         if(_route.exchange == zeroExV2Adapter) { 
             return hasValidZeroExV2Route(_route.payload);
         }
+        if(_route.exchange == uniV3Adapter) { 
+            return hasValidUniV3Route(_route.payload, _fromToken, _toToken);
+        }
         if(_route.exchange == curveAdapter) { 
             return true;
         }
@@ -351,6 +366,11 @@ contract ParaswapFilter is BaseFilter {
             return hasValidUniV1Route(_route.targetExchange, _fromToken, _toToken);
         }
         return false;  
+    }
+
+    function hasValidUniV3Route(bytes memory _payload, address _fromToken, address _toToken) internal view returns (bool) {
+        IParaswap.UniswapV3Data memory data = abi.decode(_payload, (IParaswap.UniswapV3Data));
+        return ParaswapUtils.hasValidUniV3Pool(_fromToken, _toToken, data.fee, tokenRegistry, uniV3Factory, uniV3InitCode, weth);
     }
 
     function hasValidUniV2Route(bytes memory _payload, address _factory, bytes32 _initCode) internal view returns (bool) {

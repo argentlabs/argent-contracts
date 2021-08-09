@@ -180,10 +180,39 @@
             }
           }
         },
+        "yearnV2": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
+        "curve": {
+          "type": "object",
+          "properties": {
+            "pools": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ethaddress" }
+            }
+          }
+        },
         "lido": {
           "type": "object",
           "properties": {
             "contract": {
+              "$ref": "#/definitions/ethaddress"
+            }
+          }
+        },
+        "gro": {
+          "type": "object",
+          "properties": {
+            "depositHandler": {
+              "$ref": "#/definitions/ethaddress"
+            },
+            "withdrawHandler": {
               "$ref": "#/definitions/ethaddress"
             }
           }

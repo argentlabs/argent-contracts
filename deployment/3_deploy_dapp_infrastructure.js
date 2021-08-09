@@ -85,8 +85,8 @@ const main = async () => {
     DappRegistryWrapper.address,
     config.defi.paraswap.contract,
     config.defi.paraswap.uniswapProxy,
-    config.defi.paraswap.uniswapForks.map((f) => f.factory),
-    config.defi.paraswap.uniswapForks.map((f) => f.initCode),
+    [...config.defi.paraswap.uniswapForks.map((f) => f.factory), config.defi.uniswap.factoryV3],
+    [...config.defi.paraswap.uniswapForks.map((f) => f.initCode), config.defi.uniswap.initCodeV3],
     [
       config.defi.paraswap.adapters.uniswap || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.uniswapV2 || ethers.constants.AddressZero,
@@ -97,6 +97,7 @@ const main = async () => {
       config.defi.paraswap.adapters.zeroexV4 || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.curve || ethers.constants.AddressZero,
       config.defi.paraswap.adapters.weth || ethers.constants.AddressZero,
+      config.defi.paraswap.adapters.uniswapV3 || ethers.constants.AddressZero,
     ],
     [].concat(...Object.values(config.defi.paraswap.targetExchanges || {})), // flattened targetExchanges values
     config.defi.paraswap.marketMakers || [],
