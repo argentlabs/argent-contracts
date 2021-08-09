@@ -7,7 +7,7 @@ contract WithdrawHandlerMock {
     function withdrawByLPToken(
         bool pwrd,
         uint256 lpAmount,
-        uint256[] calldata minAmounts
+        uint256[3] calldata minAmounts
     ) external {}
 
     function withdrawByStablecoin(
