@@ -165,9 +165,6 @@ contract("Paraswap Filter", (accounts) => {
       argent.dappRegistry.address,
       AUGUSTUS,
       UNISWAP_PROXY,
-      // TODO: use the commented version
-      // [...UNIV2_FORKS.map((f) => f.factory), UNIV3_FACTORY],
-      // [...UNIV2_FORKS.map((f) => f.initCode), UNIV3_INIT_CODE],
       [UNIV2_FORKS[0].factory, UNIV2_FORKS[0].factory, UNIV2_FORKS[0].factory, UNIV3_FACTORY],
       [UNIV2_FORKS[0].initCode, UNIV2_FORKS[0].initCode, UNIV2_FORKS[0].initCode, UNIV3_INIT_CODE],
       [

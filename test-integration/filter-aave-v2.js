@@ -17,7 +17,7 @@ contract("Aave V2 Filter", (accounts) => {
   before(async () => {
     argent = await new ArgentContext(accounts).initialise();
 
-    pool = await AaveV2LendingPool.at("0xC6845a5C768BF8D7681249f8927877Efda425baf");
+    pool = await AaveV2LendingPool.at("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9");
     const filter = await AaveV2Filter.new();
     await argent.dappRegistry.addDapp(0, pool.address, filter.address);
   });
@@ -35,7 +35,7 @@ contract("Aave V2 Filter", (accounts) => {
     [pool, "withdraw", [argent.DAI.address, amount, beneficiary]]
   ]);
 
-  it.skip("should allow deposits on behalf of wallet", async () => {
+  it("should allow deposits on behalf of wallet", async () => {
     const { success, error } = await deposit(wallet.address);
     assert.isTrue(success, `deposit failed: "${error}"`);
   });
@@ -46,7 +46,7 @@ contract("Aave V2 Filter", (accounts) => {
     assert.equal(error, "TM: call not authorised");
   });
 
-  it.skip("should allow withdrawals to wallet", async () => {
+  it("should allow withdrawals to wallet", async () => {
     await deposit(wallet.address);
     const { success, error } = await withdraw(wallet.address);
     assert.isTrue(success, `withdraw failed: "${error}"`);

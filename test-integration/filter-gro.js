@@ -1,5 +1,6 @@
 /* global artifacts */
 
+const { BN } = require("bn.js");
 const { assert } = require("chai");
 const ArgentContext = require("../utils/argent-context.js");
 const utils = require("../utils/utilities.js");
@@ -9,6 +10,7 @@ const WithdrawHandler = artifacts.require("GroWithdrawHandler");
 const Controller = artifacts.require("GroController");
 const DepositFilter = artifacts.require("GroDepositFilter");
 const WithdrawFilter = artifacts.require("GroWithdrawFilter");
+const ERC20 = artifacts.require("TestERC20");
 
 const amount = web3.utils.toWei("0.01");
 
@@ -16,11 +18,16 @@ contract("Gro Filter", (accounts) => {
   let argent;
   let wallet;
 
+  let gvt;
+  let pwrd;
   let depositHandler;
   let withdrawHandler;
 
   before(async () => {
     argent = await new ArgentContext(accounts).initialise();
+
+    gvt = await ERC20.at("0x3ADb04E127b9C0a5D36094125669d4603AC52a0c");
+    pwrd = await ERC20.at("0xf0a93d4994b3d98fb5e3a2f90dbc2d69073cb86b");
 
     const controller = await Controller.at("0xCC5c60A319D33810b9EaB9764717EeF84deFB8F4");
     await controller.switchEoaOnly(false, { from: "0xdc954086cf07f3889f186118395bad186179ac77" });
@@ -71,15 +78,17 @@ contract("Gro Filter", (accounts) => {
       assert.isTrue(success, `depositGvt failed: "${error}"`);
     });
 
-    it.skip("should allow withdrawals (1/4)", async () => {
+    it("should allow withdrawals (1/4)", async () => {
       await deposit(isPwrd);
-      const { success, error } = await withdrawByLPToken(isPwrd, 10);
+      const lpAmount = (await gvt.balanceOf(wallet.address)).divn(new BN(2)).toString();
+      const { success, error } = await withdrawByLPToken(isPwrd, lpAmount);
       assert.isTrue(success, `withdrawByLPToken failed: "${error}"`);
     });
 
     it("should allow withdrawals (2/4)", async () => {
       await deposit(isPwrd);
-      const { success, error } = await withdrawByStablecoin(isPwrd, 10);
+      const lpAmount = (await gvt.balanceOf(wallet.address)).divn(new BN(2)).toString();
+      const { success, error } = await withdrawByStablecoin(isPwrd, lpAmount);
       assert.isTrue(success, `withdrawByStablecoin failed: "${error}"`);
     });
 
@@ -104,15 +113,17 @@ contract("Gro Filter", (accounts) => {
       assert.isTrue(success, `depositPwrd failed: "${error}"`);
     });
 
-    it.skip("should allow withdrawals (1/4)", async () => {
+    it("should allow withdrawals (1/4)", async () => {
       await deposit(isPwrd);
-      const { success, error } = await withdrawByLPToken(isPwrd, 10);
+      const lpAmount = (await pwrd.balanceOf(wallet.address)).divn(new BN(2)).toString();
+      const { success, error } = await withdrawByLPToken(isPwrd, lpAmount);
       assert.isTrue(success, `withdrawByLPToken failed: "${error}"`);
     });
 
     it("should allow withdrawals (2/4)", async () => {
       await deposit(isPwrd);
-      const { success, error } = await withdrawByStablecoin(isPwrd, 10);
+      const lpAmount = (await pwrd.balanceOf(wallet.address)).divn(new BN(2)).toString();
+      const { success, error } = await withdrawByStablecoin(isPwrd, lpAmount);
       assert.isTrue(success, `withdrawByStablecoin failed: "${error}"`);
     });
 

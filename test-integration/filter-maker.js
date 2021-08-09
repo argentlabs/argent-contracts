@@ -14,6 +14,7 @@ const Vat = artifacts.require("Vat");
 const Pot = artifacts.require("Pot");
 
 const DAI_SENT = WAD.div(new BN(100000000)).toString();
+const DAI_FUNDED = WAD.div(new BN(100000000)).muln(20).toString();
 
 contract("Maker DSR Filter", (accounts) => {
   let argent;
@@ -38,7 +39,7 @@ contract("Maker DSR Filter", (accounts) => {
   });
 
   beforeEach(async () => {
-    wallet = await argent.createFundedWallet({ DAI: web3.utils.toWei("1") });
+    wallet = await argent.createFundedWallet({ DAI: DAI_FUNDED });
   });
 
   const deposit = async () => argent.multiCall(wallet, [
