@@ -22,15 +22,10 @@ require("dotenv").config();
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 // const deployManager = require("./utils/deploy-manager.js");
 
+const AWSWalletProvider = require("./utils/aws-wallet-provider.js");
+
 const _gasPrice = process.env.DEPLOYER_GAS_PRICE || 20000000000;
 const _gasLimit = 8000000;
-
-function getKeys() {
-  // NOTE: While https://github.com/trufflesuite/truffle/issues/1054 is implemented we are using a temporary fix
-  // const { pkey, infuraKey } = await deployManager.getProps();
-  // return (pkey, infuraKey);
-  return { pkey: process.env.PKEY_TEST, infuraKey: process.env.INFURA_KEY };
-}
 
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
@@ -64,30 +59,33 @@ module.exports = {
     },
 
     test: {
-      provider: () => {
-        const { pkey, infuraKey } = getKeys();
-        return new HDWalletProvider(pkey, `https://ropsten.infura.io/v3/${infuraKey}`);
-      },
+      provider: () => new AWSWalletProvider(
+        `https://ropsten.infura.io/v3/${process.env.INFURA_KEY}`,
+        "argent-smartcontracts-test",
+        "backend/deploy.key"
+      ),
       network_id: 3, // ropsten
       gas: _gasLimit,
       gasPrice: _gasPrice
     },
 
     staging: {
-      provider: () => {
-        const { pkey, infuraKey } = getKeys();
-        return new HDWalletProvider(pkey, `https://mainnet.infura.io/v3/${infuraKey}`);
-      },
+      provider: () => new AWSWalletProvider(
+        `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+        "argent-smartcontracts-staging",
+        "backend/deploy.key"
+      ),
       network_id: 1, // mainnet
       gas: _gasLimit,
       gasPrice: _gasPrice,
     },
 
     prod: {
-      provider: () => {
-        const { pkey, infuraKey } = getKeys();
-        return new HDWalletProvider(pkey, `https://mainnet.infura.io/v3/${infuraKey}`);
-      },
+      provider: () => new AWSWalletProvider(
+        `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+        "argent-smartcontracts-prod",
+        "backend/deploy.key"
+      ),
       network_id: 1, // mainnet
       gas: _gasLimit,
       gasPrice: _gasPrice,
