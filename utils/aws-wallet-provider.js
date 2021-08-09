@@ -19,41 +19,42 @@ function AWSWalletProvider(providerUrl, s3Bucket, s3Key) {
   this.engine = new ProviderEngine();
 
   this.engine.addProvider(new HookedWalletEthTxSubprovider({
-    getAccounts: function(cb) { 
-      if (self.address) { return cb(null, [self.address]) };
-      s3.getObject({ Bucket: s3Bucket, Key: s3Key }, function(err, object) {
-        if (err) return cb(err);
-        kms.decrypt({ CiphertextBlob: object.Body }, function(err, data) {
-            if (err) return cb(err);
-            let pkey = data.Plaintext.toString('utf8');
-            self.wallet = ethereumjsWallet.fromPrivateKey(new Buffer(pkey, "hex"));
-            self.address = "0x" + self.wallet.getAddress().toString("hex");
-            cb(null, [self.address]);
+    getAccounts(cb) {
+      if (self.address) { return cb(null, [self.address]); }
+      return s3.getObject({ Bucket: s3Bucket, Key: s3Key }, (error, object) => {
+        if (error) { return cb(error); }
+        return kms.decrypt({ CiphertextBlob: object.Body }, (err, data) => {
+          if (err) { return cb(err); }
+          const pkey = data.Plaintext.toString("utf8");
+          self.wallet = ethereumjsWallet.fromPrivateKey(Buffer.from(pkey, "hex"));
+          self.address = `0x${self.wallet.getAddress().toString("hex")}`;
+          return cb(null, [self.address]);
         });
       });
     },
-    getPrivateKey: function(address, cb) {
-      if (self.address == address) { cb(null, self.wallet.getPrivateKey()); }
-      else { cb('Account not found'); }
+    getPrivateKey(address, cb) {
+      if (self.address === address) {
+        cb(null, self.wallet.getPrivateKey());
+      } else { cb("Account not found"); }
     }
   }));
 
   this.engine.addProvider(new FiltersSubprovider());
 
-  //this.engine.addProvider(new InfuraSubprovider({ network: "ropsten" }));
+  // this.engine.addProvider(new InfuraSubprovider({ network: "ropsten" }));
   // Required to not get 'specified provider does not have a sendAsync method' for HttpProvider
   Web3.providers.HttpProvider.prototype.sendAsync = Web3.providers.HttpProvider.prototype.send;
   this.engine.addProvider(new ProviderSubprovider(new Web3.providers.HttpProvider(providerUrl)));
 
   this.engine.start(); // Required by the provider engine.
+}
+
+AWSWalletProvider.prototype.sendAsync = function sendAsync(...args) {
+  this.engine.sendAsync(...args);
 };
 
-AWSWalletProvider.prototype.sendAsync = function() {
-  this.engine.sendAsync.apply(this.engine, arguments);
-};
-
-AWSWalletProvider.prototype.send = function() {
-  return this.engine.send.apply(this.engine, arguments);
+AWSWalletProvider.prototype.send = function send(...args) {
+  return this.engine.send(...args);
 };
 
 module.exports = AWSWalletProvider;
