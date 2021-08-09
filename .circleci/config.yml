@@ -2,7 +2,7 @@ version: 2
 
 job_common: &job_common
   docker:
-    - image: circleci/node:10.21-stretch
+    - image: circleci/node:14.17.3-stretch
       auth:
           username: argentcircleci
           password: $DOCKERHUB_PASSWORD
