@@ -5,7 +5,7 @@ contract DepositHandlerMock {
     function referral(address referee) external view returns (address) {}
     
     function depositGvt(
-        uint256[] calldata inAmounts,
+        uint256[3] calldata inAmounts,
         uint256 minAmount,
         address referral
     ) external {}

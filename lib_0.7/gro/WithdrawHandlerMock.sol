@@ -23,5 +23,5 @@ contract WithdrawHandlerMock {
         uint256 minAmount
     ) external {}
 
-    function withdrawAllBalanced(bool pwrd, uint256[] calldata minAmounts) external {}
+    function withdrawAllBalanced(bool pwrd, uint256[3] calldata minAmounts) external {}
 }
