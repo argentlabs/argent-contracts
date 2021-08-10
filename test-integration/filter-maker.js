@@ -47,22 +47,22 @@ contract("Maker DSR Filter", (accounts) => {
     [dai, "approve", [daiJoin.address, DAI_SENT]],
     [daiJoin, "join", [wallet.address, DAI_SENT]],
     [vat, "hope", [pot.address]],
-    [pot, "join", [DAI_SENT]],
+    [pot, "join", [new BN(DAI_SENT).divn(2).toString()]],
   ]);
 
   const withdraw = async () => argent.multiCall(wallet, [
     [pot, "drip"],
-    [pot, "exit", [DAI_SENT]],
+    [pot, "exit", [new BN(DAI_SENT).divn(3).toString()]],
     [vat, "hope", [daiJoin.address]],
-    [daiJoin, "exit", [wallet.address, DAI_SENT]],
+    [daiJoin, "exit", [wallet.address, new BN(DAI_SENT).divn(3).toString()]],
   ]);
 
-  it.skip("should allow deposits", async () => {
+  it("should allow deposits", async () => {
     const { success, error } = await deposit();
     assert.isTrue(success, `deposit failed: "${error}"`);
   });
 
-  it.skip("should allow withdrawals", async () => {
+  it("should allow withdrawals", async () => {
     await deposit();
     const { success, error } = await withdraw({ all: false });
     assert.isTrue(success, `withdraw failed: "${error}"`);
