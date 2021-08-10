@@ -177,32 +177,35 @@ const getParaswappoolRoutes = ({ fromToken, toToken, maker }) => [{
   }
 }];
 
-const getUniswapRoutes = ({ fromToken, toToken }) => [{
+const getUniswapRoutes = ({ fromToken, toToken, percent = "100" }) => [{
   exchange: "uniswap",
-  percent: "20",
+  percent,
   data: { tokenFrom: fromToken, tokenTo: toToken },
-},
-{
+}];
+
+const getUniswapV2Routes = ({ fromToken, toToken, percent = "100" }) => [{
   exchange: "uniswapv2",
-  percent: "20",
+  percent,
   data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
-},
-{
+}];
+
+const getSushiswapRoutes = ({ fromToken, toToken, percent = "100" }) => [{
   exchange: "sushiswap",
-  percent: "20",
+  percent,
   data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
-},
-{
+}];
+
+const getLinkswapRoutes = ({ fromToken, toToken, percent = "100" }) => [{
   exchange: "linkswap",
-  percent: "20",
+  percent,
   data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
-},
-{
+}];
+
+const getDefiswapRoutes = ({ fromToken, toToken, percent = "100" }) => [{
   exchange: "defiswap",
-  percent: "20",
+  percent,
   data: { tokenFrom: fromToken, tokenTo: toToken, path: [fromToken, toToken] },
-},
-];
+}];
 
 const getCurveRoutes = ({ fromToken, toToken }) => [{
   exchange: "curve",
@@ -228,11 +231,23 @@ const getRoutesForExchange = ({ fromToken, toToken, maker, fee, exchange }) => {
     case "paraswappoolv4":
       return getParaswappoolRoutes({ fromToken, toToken, maker });
     case "uniswap":
-    case "uniswapv2":
-    case "sushiswap":
-    case "linkswap":
-    case "defiswap":
       return getUniswapRoutes({ fromToken, toToken });
+    case "uniswapv2":
+      return getUniswapV2Routes({ fromToken, toToken });
+    case "sushiswap":
+      return getSushiswapRoutes({ fromToken, toToken });
+    case "linkswap":
+      return getLinkswapRoutes({ fromToken, toToken });
+    case "defiswap":
+      return getDefiswapRoutes({ fromToken, toToken });
+    case "uniswapLike":
+      return [
+        getUniswapRoutes({ fromToken, toToken, percent: "20" }),
+        getUniswapV2Routes({ fromToken, toToken, percent: "20" }),
+        getSushiswapRoutes({ fromToken, toToken, percent: "20" }),
+        getLinkswapRoutes({ fromToken, toToken, percent: "20" }),
+        getDefiswapRoutes({ fromToken, toToken, percent: "20" }),
+      ].flat();
     case "curve":
       return getCurveRoutes({ fromToken, toToken });
     case "weth":

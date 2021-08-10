@@ -553,18 +553,20 @@ contract("Paraswap Filter", (accounts) => {
   }
 
   function testsForMethod(method) {
+    const exchange = "uniswapLike";
+
     describe(`${method} trades`, () => {
       it("should sell ETH for token A", async () => {
-        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address });
+        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, exchange });
       });
       it("should sell token B for ETH", async () => {
-        await testTrade({ method, fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN });
+        await testTrade({ method, fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN, exchange });
       });
       it("should sell token B for token A", async () => {
-        await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address });
+        await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address, exchange });
       });
       it("should not sell ETH for non-tradable token C", async () => {
-        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenC.address, errorReason: "TM: call not authorised" });
+        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenC.address, exchange, errorReason: "TM: call not authorised" });
       });
     });
   }
