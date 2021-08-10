@@ -435,7 +435,7 @@ contract("Paraswap Filter", (accounts) => {
         amountOutMinimum: toAmount,
         sqrtPriceLimitX96: 0
       }];
-    } else if (exchange === "uniswap") {
+    } else if (exchange === "uniswap" || exchange === "uniswapLike") {
       if (fromToken === PARASWAP_ETH_TOKEN) {
         targetExchange = uniswapV1Exchanges[toToken];
         swapMethod = "ethToTokenSwapInput";
@@ -506,7 +506,7 @@ contract("Paraswap Filter", (accounts) => {
     useUnauthorisedAdapter = false,
     useUnauthorisedTargetExchange = false,
     errorReason = null,
-    exchange = "uniswap"
+    exchange = "uniswapLike"
   }) {
     const beforeFrom = await getBalance(fromToken, wallet);
     const beforeTo = await getBalance(toToken, wallet);
@@ -553,20 +553,18 @@ contract("Paraswap Filter", (accounts) => {
   }
 
   function testsForMethod(method) {
-    const exchange = "uniswapLike";
-
     describe(`${method} trades`, () => {
       it("should sell ETH for token A", async () => {
-        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, exchange });
+        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address });
       });
       it("should sell token B for ETH", async () => {
-        await testTrade({ method, fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN, exchange });
+        await testTrade({ method, fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN });
       });
       it("should sell token B for token A", async () => {
-        await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address, exchange });
+        await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address });
       });
       it("should not sell ETH for non-tradable token C", async () => {
-        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenC.address, exchange, errorReason: "TM: call not authorised" });
+        await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenC.address, errorReason: "TM: call not authorised" });
       });
     });
   }

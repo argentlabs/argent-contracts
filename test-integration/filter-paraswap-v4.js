@@ -23,6 +23,7 @@ const CurveFilter = artifacts.require("CurveFilter");
 const WethFilter = artifacts.require("WethFilter");
 const OnlyApproveFilter = artifacts.require("OnlyApproveFilter");
 const TokenRegistry = artifacts.require("TokenRegistry");
+const ERC20 = artifacts.require("TestERC20");
 
 const UNIV3_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
 const UNIV3_INIT_CODE = "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54";
@@ -48,6 +49,7 @@ const DAI_USDC_SUSHI_PAIR = "0xAaF5110db6e744ff70fB339DE037B990A20bdace";
 const UNIV1_FACTORY = "0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95";
 const UNIV1_DAI_ETH_POOL = "0x2a1530C4C41db0B0b2bB646CB5Eb1A67b7158667";
 const UNIV1_USDC_ETH_POOL = "0x97deC872013f6B5fB443861090ad931542878126";
+const UNIV1_ETHMOON_ETH_POOL = "0x0D4b73d58869f5c33f267d3401204489874f8968";
 
 // Paraswap
 const PARASWAP_ETH_TOKEN = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
@@ -96,6 +98,7 @@ const TARGET_EXCHANGES = {
 const MARKET_MAKERS = ["0x56178a0d5f301baf6cf3e1cd53d9863437345bf9"];
 const ZEROEXV2_PROXY = "0x95e6f48254609a6ee006f7d493c8e5fb97094cef";
 const PARASWAP_OWNER = "0xe6B692dcC972b9a5C3C414ac75dDc420B9eDC92d";
+const ETHMOON_TOKEN = "0x5dcfa62f81b43ce7a3632454d327dee1f1d93b28";
 
 const { ZERO_ADDRESS, encodeTransaction, encodeCalls } = utils;
 
@@ -127,7 +130,7 @@ contract("Paraswap Filter", (accounts) => {
 
     tokenA = argent.DAI;
     tokenB = argent.USDC;
-    tokenC = argent.USDC;
+    tokenC = await ERC20.at(ETHMOON_TOKEN);
     weth = argent.WETH;
 
     paraswap = await IAugustusSwapper.at(AUGUSTUS);
@@ -137,8 +140,9 @@ contract("Paraswap Filter", (accounts) => {
     zeroExV4TargetExchange = await ZeroxV4TargetExchange.at(TARGET_EXCHANGES.zeroexV4);
     paraswapUniV2Router = await ParaswapUniswapV2Router.at(TARGET_EXCHANGES.uniswapV2);
     uniswapV1Exchanges = {
-      [argent.DAI.address]: await UniswapExchange.at(UNIV1_DAI_ETH_POOL),
-      [argent.USDC.address]: await UniswapExchange.at(UNIV1_USDC_ETH_POOL),
+      [tokenA.address]: await UniswapExchange.at(UNIV1_DAI_ETH_POOL),
+      [tokenB.address]: await UniswapExchange.at(UNIV1_USDC_ETH_POOL),
+      [tokenC.address]: await UniswapExchange.at(UNIV1_ETHMOON_ETH_POOL),
     };
     uniswapV3Router = await UniswapV3Router.at(TARGET_EXCHANGES.uniswapV3);
     curvePool = await CurvePool.at(TARGET_EXCHANGES.curve[0]);
@@ -158,7 +162,7 @@ contract("Paraswap Filter", (accounts) => {
       UNIV1_DAI_ETH_POOL,
       UNIV1_USDC_ETH_POOL,
     ];
-    await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, ...pairs], Array(2 + pairs.length).fill(true));
+    await tokenRegistry.setTradableForTokenList([tokenA.address, tokenB.address, weth.address, ...pairs], Array(3 + pairs.length).fill(true));
 
     paraswapFilter = await ParaswapFilter.new(
       tokenRegistry.address,
@@ -344,7 +348,7 @@ contract("Paraswap Filter", (accounts) => {
         amountOutMinimum: toAmount,
         sqrtPriceLimitX96: 0
       }];
-    } else if (exchange === "uniswap") {
+    } else if (exchange === "uniswap" || exchange === "uniswapLike") {
       if (fromToken === PARASWAP_ETH_TOKEN) {
         targetExchange = uniswapV1Exchanges[toToken];
         swapMethod = "ethToTokenSwapInput";
@@ -403,7 +407,7 @@ contract("Paraswap Filter", (accounts) => {
 
   function getSwapOnUniswapForkData({ fromToken, toToken, fromAmount, toAmount }) {
     return paraswap.contract.methods.swapOnUniswapFork(
-      ZERO_ADDRESS, UNIV2_FORKS[0].initCode, fromAmount, toAmount, [fromToken, toToken], 0
+      UNIV2_FORKS[0].factory, UNIV2_FORKS[0].initCode, fromAmount, toAmount, [fromToken, toToken], 0
     ).encodeABI();
   }
 
@@ -464,17 +468,20 @@ contract("Paraswap Filter", (accounts) => {
   }
 
   function testsForMethod(method) {
-    describe.skip(`${method} trades`, () => {
+    describe(`${method} trades`, () => {
       it("should sell ETH for DAI", async () => {
         await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address });
       });
+
       it("should sell USDC for ETH", async () => {
         await testTrade({ method, fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN });
       });
+
       it("should sell USDC for DAI", async () => {
         await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address });
       });
-      it.skip("should not sell ETH for non-tradable token C", async () => {
+
+      it("should not sell ETH for non-tradable token C", async () => {
         await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenC.address, errorReason: "TM: call not authorised" });
       });
     });
@@ -496,17 +503,21 @@ contract("Paraswap Filter", (accounts) => {
 
   function testSimpleSwapTradesViaExchange(exchange) {
     const method = "simpleSwap";
+
     describe(`simpleSwap trades via ${exchange}`, () => {
       it("should sell ETH for DAI", async () => {
         await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, exchange });
       });
+
       it("should sell USDC for ETH", async () => {
         await testTrade({ method, fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN, exchange });
       });
+
       it("should sell USDC for DAI", async () => {
         await testTrade({ method, fromToken: tokenB.address, toToken: tokenA.address, exchange });
       });
-      it.skip("should not sell ETH for non-tradable token C", async () => {
+
+      it("should not sell ETH for non-tradable token C", async () => {
         await testTrade({ method, fromToken: PARASWAP_ETH_TOKEN, toToken: tokenC.address, errorReason: "TM: call not authorised", exchange });
       });
     });
@@ -525,17 +536,28 @@ contract("Paraswap Filter", (accounts) => {
         { errorReason: "TM: call not authorised" });
     });
 
-    it.skip("should not allow swapOnUniswap[Fork] via unauthorised uniswap proxy", async () => {
-      await paraswap.changeUniswapProxy(other, { from: PARASWAP_OWNER });
-      await paraswapFilter.updateIsValidUniswapProxy();
+    it("should not allow swapOnUniswap[Fork] via unauthorised uniswap proxy", async () => {
+      const timelock = (await paraswap.getTimeLock()).toNumber();
+
+      const changeUniswapProxy = async (address) => {
+        await paraswap.changeUniswapProxy(address, { from: PARASWAP_OWNER });
+        for (let i = 0; i < timelock; i++) {
+          await utils.evmMine();
+        }
+        await paraswap.confirmUniswapProxyChange({ from: PARASWAP_OWNER });
+        await paraswapFilter.updateIsValidUniswapProxy();
+      }
+
+      await changeUniswapProxy(other);
+
       await testTrade({
         method: "swapOnUniswap", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
       });
       await testTrade({
         method: "swapOnUniswapFork", fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, errorReason: "TM: call not authorised"
       });
-      await paraswap.changeUniswapProxy(UNISWAP_PROXY, { from: PARASWAP_OWNER });
-      await paraswapFilter.updateIsValidUniswapProxy();
+
+      await changeUniswapProxy(UNISWAP_PROXY);
     });
 
     it("should not allow simpleSwap via unauthorised callee", async () => {
@@ -662,17 +684,21 @@ contract("Paraswap Filter", (accounts) => {
           it("should allow selling ETH for DAI", async () => {
             await testSimpleSwapAuthorisation({ fromToken: PARASWAP_ETH_TOKEN, toToken: tokenA.address, exchange });
           });
+
           it("should allow selling USDC for ETH", async () => {
             await testSimpleSwapAuthorisation({ fromToken: tokenB.address, toToken: PARASWAP_ETH_TOKEN, exchange });
           });
+
           it("should allow selling USDC for DAI", async () => {
             await testSimpleSwapAuthorisation({ fromToken: tokenB.address, toToken: tokenA.address, exchange });
           });
+
           if (["zeroexv2", "zeroexv4"].includes(exchange)) {
             it("should not allow selling USDC for DAI via invalid market maker", async () => {
               await testSimpleSwapAuthorisation({ fromToken: tokenB.address, toToken: tokenA.address, exchange, expectValid: false, maker: other });
             });
           }
+
           it("should not allow ETH transfers", async () => {
             const { targetExchange } = getSimpleSwapExchangeCallParams({ exchange });
             const simpleSwapParams = getSimpleSwapParams({ targetExchange, swapMethod: null, swapData: null });
@@ -687,12 +713,15 @@ contract("Paraswap Filter", (accounts) => {
 
       describe("simpleSwap authorisation via weth", () => {
         const exchange = "weth";
-        it.skip("should allow selling ETH for token WETH", async () => {
+
+        it("should allow selling ETH for token WETH", async () => {
           await testSimpleSwapAuthorisation({ fromToken: PARASWAP_ETH_TOKEN, toToken: weth.address, exchange });
         });
-        it.skip("should allow selling WETH for token ETH", async () => {
+
+        it("should allow selling WETH for token ETH", async () => {
           await testSimpleSwapAuthorisation({ fromToken: weth.address, toToken: PARASWAP_ETH_TOKEN, exchange });
         });
+
         it("should allow ETH transfers", async () => {
           const simpleSwapParams = getSimpleSwapParams({ targetExchange: weth, swapMethod: null, swapData: null });
           const swapData = paraswap.contract.methods.simpleSwap(...simpleSwapParams).encodeABI();

@@ -203,41 +203,33 @@ const utilities = {
 
   increaseTime: async (seconds) => {
     const client = await utilities.web3GetClient();
-    const p = new Promise((resolve, reject) => {
-      if (client.indexOf("TestRPC") === -1) {
-        console.warning("Client is not ganache-cli and cannot forward time");
-      } else {
-        web3.currentProvider.send(
-          {
-            jsonrpc: "2.0",
-            method: "evm_increaseTime",
-            params: [seconds],
-            id: 0,
-          },
-          (err) => {
-            if (err) {
-              return reject(err);
-            }
-            return web3.currentProvider.send(
-              {
-                jsonrpc: "2.0",
-                method: "evm_mine",
-                params: [],
-                id: 0,
-              },
-              (err2, res) => {
-                if (err2) {
-                  return reject(err2);
-                }
-                return resolve(res);
-              }
-            );
-          }
-        );
-      }
-    });
-    return p;
+    if (!client.includes("TestRPC")) {
+      console.warning("Client is not ganache-cli and cannot forward time");
+    } else {
+      await utilities.evmIncreaseTime(seconds);
+      await utilities.evmMine();
+    }
   },
+
+  evmIncreaseTime: (seconds) => new Promise((resolve, reject) => 
+    web3.currentProvider.send({
+      jsonrpc: "2.0",
+      method: "evm_increaseTime",
+      params: [seconds],
+      id: 0,
+    },
+    (err, res) => err ? reject(err) : resolve(res)
+  )),
+
+  evmMine: () => new Promise((resolve, reject) =>
+    web3.currentProvider.send({
+      jsonrpc: "2.0",
+      method: "evm_mine",
+      params: [],
+      id: 0,
+    },
+    (err, res) => err ? reject(err) : resolve(res)
+  )),
 
   getNonceForRelay: async () => {
     const block = await web3.eth.getBlockNumber();

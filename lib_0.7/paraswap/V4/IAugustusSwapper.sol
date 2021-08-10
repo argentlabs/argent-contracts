@@ -77,9 +77,13 @@ interface IAugustusSwapper {
     function paused() external view returns (bool);
 
     function changeUniswapProxy(address uniswapProxy) external;
+    
+    function confirmUniswapProxyChange() external;
 
     function withdrawAllWETH(address) external;
     
+    function getTimeLock() external view returns(uint256);
+
     function initialize(
         address whitelist,
         address reduxToken,
