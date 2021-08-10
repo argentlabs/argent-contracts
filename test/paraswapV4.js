@@ -330,7 +330,7 @@ contract("Paraswap Filter", (accounts) => {
         paraswapUniV2Router, uniswapV3Router, uniswapV1Exchanges, zeroExV2TargetExchange, zeroExV4TargetExchange, curvePool, weth
       },
       uniswapForkData: { factory: uniswapV2Factory.address, initCode },
-      uniswapV1Factory, 
+      uniswapV1Factory,
       zeroExV2Proxy,
       marketMaker,
       other,

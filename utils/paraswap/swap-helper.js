@@ -232,7 +232,7 @@ module.exports.makeParaswapHelpers = ({
     useUnauthorisedAdapter = false,
     useUnauthorisedTargetExchange = false,
     errorReason = null,
-    exchange =  "uniswapLike"
+    exchange = "uniswapLike"
   }) {
     const beforeFrom = await getBalance(fromToken, wallet);
     const beforeTo = await getBalance(toToken, wallet);
