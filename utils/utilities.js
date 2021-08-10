@@ -211,24 +211,22 @@ const utilities = {
     }
   },
 
-  evmIncreaseTime: (seconds) => new Promise((resolve, reject) => 
-    web3.currentProvider.send({
-      jsonrpc: "2.0",
-      method: "evm_increaseTime",
-      params: [seconds],
-      id: 0,
-    },
-    (err, res) => err ? reject(err) : resolve(res)
+  evmIncreaseTime: (seconds) => new Promise((resolve, reject) => web3.currentProvider.send({
+    jsonrpc: "2.0",
+    method: "evm_increaseTime",
+    params: [seconds],
+    id: 0,
+  },
+  (err, res) => (err ? reject(err) : resolve(res))
   )),
 
-  evmMine: () => new Promise((resolve, reject) =>
-    web3.currentProvider.send({
-      jsonrpc: "2.0",
-      method: "evm_mine",
-      params: [],
-      id: 0,
-    },
-    (err, res) => err ? reject(err) : resolve(res)
+  evmMine: () => new Promise((resolve, reject) => web3.currentProvider.send({
+    jsonrpc: "2.0",
+    method: "evm_mine",
+    params: [],
+    id: 0,
+  },
+  (err, res) => (err ? reject(err) : resolve(res))
   )),
 
   getNonceForRelay: async () => {

@@ -541,12 +541,12 @@ contract("Paraswap Filter", (accounts) => {
 
       const changeUniswapProxy = async (address) => {
         await paraswap.changeUniswapProxy(address, { from: PARASWAP_OWNER });
-        for (let i = 0; i < timelock; i++) {
+        for (let i = 0; i < timelock; i += 1) {
           await utils.evmMine();
         }
         await paraswap.confirmUniswapProxyChange({ from: PARASWAP_OWNER });
         await paraswapFilter.updateIsValidUniswapProxy();
-      }
+      };
 
       await changeUniswapProxy(other);
 
