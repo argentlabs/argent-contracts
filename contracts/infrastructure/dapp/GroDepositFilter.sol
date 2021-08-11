@@ -25,8 +25,8 @@ import "./BaseFilter.sol";
  */
 contract GroDepositFilter is BaseFilter {
 
-    bytes4 private constant DEPOSIT1 = bytes4(keccak256("depositPwrd(uint256[],uint256,address)"));
-    bytes4 private constant DEPOSIT2 = bytes4(keccak256("depositGvt(uint256[],uint256,address)"));
+    bytes4 private constant DEPOSIT1 = bytes4(keccak256("depositPwrd(uint256[3],uint256,address)"));
+    bytes4 private constant DEPOSIT2 = bytes4(keccak256("depositGvt(uint256[3],uint256,address)"));
     bytes4 private constant ERC20_APPROVE = bytes4(keccak256("approve(address,uint256)"));
 
     function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {

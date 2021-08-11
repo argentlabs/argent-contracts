@@ -26,9 +26,9 @@ import "./BaseFilter.sol";
 contract GroWithdrawFilter is BaseFilter {
 
     bytes4 private constant WITHDRAW1 = bytes4(keccak256("withdrawByStablecoin(bool,uint256,uint256,uint256)"));
-    bytes4 private constant WITHDRAW2 = bytes4(keccak256("withdrawByLPToken(bool,uint256,uint256[])"));
+    bytes4 private constant WITHDRAW2 = bytes4(keccak256("withdrawByLPToken(bool,uint256,uint256[3])"));
     bytes4 private constant WITHDRAW_ALL1 = bytes4(keccak256("withdrawAllSingle(bool,uint256,uint256)"));
-    bytes4 private constant WITHDRAW_ALL2 = bytes4(keccak256("withdrawAllBalanced(bool,uint256[])"));
+    bytes4 private constant WITHDRAW_ALL2 = bytes4(keccak256("withdrawAllBalanced(bool,uint256[3])"));
 
     function isValid(address /*_wallet*/, address _spender, address _to, bytes calldata _data) external view override returns (bool valid) {
         // disable ETH transfer
