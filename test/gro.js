@@ -42,7 +42,7 @@ const AMOUNT = web3.utils.toWei("0.01");
 
 const RelayManager = require("../utils/relay-manager");
 
-contract("yEarn Filter", (accounts) => {
+contract("Gro Filter", (accounts) => {
   let manager;
 
   const infrastructure = accounts[0];
