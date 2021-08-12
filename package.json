@@ -24,7 +24,7 @@
     "test:integration": "npx truffle test --compile-none --network prodFork test-integration/*",
     "provision:lib:artefacts": "bash ./scripts/provision_lib_artefacts.sh",
     "test:coverage": "COVERAGE=1 node scripts/coverage.js && istanbul check-coverage --branches 85 --lines 93",
-    "lint:js": "eslint .",
+    "lint:js": "eslint --fix .",
     "lint:contracts": "npx solhint contracts/**/*.sol && npx solhint contracts/**/**/*.sol",
     "test:deployment": "./scripts/deploy.sh --no-compile development `seq 1 5`",
     "validate:erc20": "bash ./scripts/validate_erc20.sh",
@@ -36,7 +36,8 @@
     "security:slither:infrastructure_0.5:triage": "rm -rf build && npm run compile:infrastructure_0.5 && slither . --triage-mode",
     "security:slither:infrastructure:triage": "rm -rf build && npm run compile:infrastructure_0.8 && slither . --triage-mode",
     "security:slither:modules:triage": "rm -rf build && npx truffle compile --config truffle-config-modules.js && slither . --triage-mode",
-    "security:slither:wallet:triage": "rm -rf build && npm run compile:wallet && slither . --triage-mode"
+    "security:slither:wallet:triage": "rm -rf build && npm run compile:wallet && slither . --triage-mode",
+    "preinstall": "bash ./scripts/preinstall.sh"
   },
   "lint-staged": {
     "*.js": [
@@ -77,6 +78,7 @@
   "devDependencies": {
     "-": "0.0.1",
     "@codechecks/client": "^0.1.10",
+    "@truffle/abi-utils": "^0.2.3",
     "@truffle/config": "^1.2.33",
     "@truffle/contract": "^4.3.0",
     "@truffle/hdwallet-provider": "^1.2.0",

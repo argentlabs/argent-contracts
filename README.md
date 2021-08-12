@@ -11,23 +11,34 @@ Ensure the correct node version is installed:
 nvm install `cat .nvmrc`
 ```
 
+Before installing, checkout the `argent-trustlists` repo in the same folder as `argent-contracts`. This way it will be easier to develop on both repos simultaneously.
+```
+git clone https://github.com/argentlabs/argent-trustlists.git ../argent-trustlists
+```
+
 Install requirements with npm:
 ```
 npm install
 ```
 
 ## Compile
-Compile the external contracts:
+
+Compile whole project
+```
+npm run cc
+```
+
+Compile only external contracts:
 ```
 npm run compile:lib
 ```
 
-Compile the contracts:
+Compile only contracts:
 ```
 npm run compile
 ```
 
-Compile the test contracts:
+Compile only test contracts:
 ```
 npm run compile:test
 ```
@@ -39,6 +50,8 @@ npm run provision:lib:artefacts
 
 
 ## Test
+
+Add a `.env` file in the root of the directory with the `INFURA_KEY` property set to your Infura API key.
 
 Launch ganache:
 ```
