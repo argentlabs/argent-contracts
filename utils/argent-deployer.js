@@ -119,10 +119,12 @@ module.exports.deployArgent = async ([infrastructure, owner, guardian1, , relaye
 
     // optionally fund wallet in ERC-20's
     for (const [ticker, amount] of Object.entries(amounts)) {
-      if (!Object.keys(tokens).includes(ticker) && ticker !== "ETH") {
-        throw new Error(`Unsupported ERC-20 token: ${ticker}`);
-      } else if (amount) {
-        await tokens[ticker].transfer(walletAddress, amount, { from: tokenHolder });
+      if (ticker !== "ETH") {
+        const token = tokens[ticker];
+        if (!token) {
+          throw new Error(`Unsupported ERC-20 token: ${ticker}`);
+        }
+        await token.transfer(walletAddress, amount, { from: tokenHolder });
       }
     }
 
