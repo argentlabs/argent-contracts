@@ -4,6 +4,7 @@ const { assert } = require("chai");
 const ArgentContext = require("../utils/argent-context.js");
 const utils = require("../utils/utilities.js");
 
+const ERC20 = artifacts.require("TestERC20");
 const CErc20 = artifacts.require("CErc20");
 const CEther = artifacts.require("CEther");
 const CompoundCTokenFilter = artifacts.require("CompoundCTokenFilter");
@@ -100,6 +101,42 @@ contract("Compound Filter", (accounts) => {
 
       assert.isTrue(success, `redeem failed: "${error}"`);
       await utils.hasEvent(receipt, cDai, "Redeem");
+    });
+  });
+
+  describe("Testing failure cases", () => {
+    beforeEach(async () => {
+      wallet = await argent.createFundedWallet();
+    });
+
+    it("should fail to send ETH to a cErc20", async () => {
+      const transaction = utils.encodeTransaction(cDai.address, web3.utils.toWei("1", "finney"), "0x");
+      const { receipt } = await argent.multiCall(wallet, [transaction]);
+      utils.assertFailedWithError(receipt, "TM: call not authorised");
+    });
+
+    it("should fail to call an unauthorised method", async () => {
+      const data = cDai.contract.methods.repayBorrowBehalf(argent.owner, 10000).encodeABI();
+      const transaction = utils.encodeTransaction(cDai.address, 0, data);
+      const { receipt } = await argent.multiCall(wallet, [transaction]);
+      utils.assertFailedWithError(receipt, "TM: call not authorised");
+    });
+
+    it("should fail to approve a token for cEther", async () => {
+      const amount = web3.utils.toWei("1", "finney");
+      const data = argent.DAI.contract.methods.approve(cEther.address, amount).encodeABI();
+      const transaction = utils.encodeTransaction(argent.DAI.address, 0, data, true);
+      const { receipt } = await argent.multiCall(wallet, [transaction]);
+      utils.assertFailedWithError(receipt, "TM: call not authorised");
+    });
+
+    it("should fail to approve a token not the underlying of a cToken", async () => {
+      const amount = web3.utils.toWei("1", "finney");
+      const notUnderlying = await ERC20.new([argent.infrastructure, wallet.address], 10000000, 18);
+      const data = notUnderlying.contract.methods.approve(cDai.address, amount).encodeABI();
+      const transaction = utils.encodeTransaction(notUnderlying.address, 0, data, true);
+      const { receipt } = await argent.multiCall(wallet, [transaction]);
+      utils.assertFailedWithError(receipt, "TM: call not authorised");
     });
   });
 });
