@@ -12,7 +12,8 @@ const DepositFilter = artifacts.require("GroDepositFilter");
 const WithdrawFilter = artifacts.require("GroWithdrawFilter");
 const ERC20 = artifacts.require("TestERC20");
 
-const amount = web3.utils.toWei("0.01");
+const ethAmount = web3.utils.toWei("0.01");
+const daiAmount = web3.utils.toWei("10");
 
 contract("Gro Filter", (accounts) => {
   let argent;
@@ -44,14 +45,14 @@ contract("Gro Filter", (accounts) => {
 
   beforeEach(async () => {
     wallet = await argent.createFundedWallet({
-      DAI: web3.utils.toWei("1"),
-      WETH: amount,
+      DAI: daiAmount,
+      WETH: ethAmount,
     });
   });
 
   const deposit = async (isPwrd) => argent.multiCall(wallet, [
-    [argent.DAI, "approve", [depositHandler.address, amount]],
-    [depositHandler, isPwrd ? "depositPwrd" : "depositGvt", [[amount, 0, 0], 1, utils.ZERO_ADDRESS]]
+    [argent.DAI, "approve", [depositHandler.address, daiAmount]],
+    [depositHandler, isPwrd ? "depositPwrd" : "depositGvt", [[daiAmount, 0, 0], 1, utils.ZERO_ADDRESS]]
   ]);
 
   const withdrawByLPToken = async (isPwrd, withdrawAmount) => argent.multiCall(wallet, [
@@ -142,7 +143,7 @@ contract("Gro Filter", (accounts) => {
 
   it("should not allow direct transfers to deposit handler", async () => {
     const { success, error } = await argent.multiCall(wallet, [
-      [argent.WETH, "transfer", [depositHandler.address, amount]]
+      [argent.WETH, "transfer", [depositHandler.address, ethAmount]]
     ]);
     assert.isFalse(success, "transfer should have failed");
     assert.equal(error, "TM: call not authorised");
@@ -150,20 +151,22 @@ contract("Gro Filter", (accounts) => {
 
   it("should not allow direct transfers to withdraw handler", async () => {
     const { success, error } = await argent.multiCall(wallet, [
-      [argent.WETH, "transfer", [withdrawHandler.address, amount]]
+      [argent.WETH, "transfer", [withdrawHandler.address, ethAmount]]
     ]);
     assert.isFalse(success, "transfer should have failed");
     assert.equal(error, "TM: call not authorised");
   });
 
   it("should not allow sending ETH to deposit handler", async () => {
-    const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(depositHandler.address, amount, "0x")]);
+    const transaction = utils.encodeTransaction(depositHandler.address, ethAmount, "0x");
+    const { success, error } = await argent.multiCall(wallet, [transaction]);
     assert.isFalse(success, "sending ETH to deposit handler should have failed");
     assert.equal(error, "TM: call not authorised");
   });
 
   it("should not allow sending ETH to withdraw handler", async () => {
-    const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(withdrawHandler.address, amount, "0x")]);
+    const transaction = utils.encodeTransaction(withdrawHandler.address, ethAmount, "0x");
+    const { success, error } = await argent.multiCall(wallet, [transaction]);
     assert.isFalse(success, "sending ETH to withdrawal handler should have failed");
     assert.equal(error, "TM: call not authorised");
   });
