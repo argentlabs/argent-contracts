@@ -2,7 +2,7 @@
 
 const { BN } = require("bn.js");
 const { assert } = require("chai");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 const utils = require("../utils/utilities.js");
 
 const DepositHandler = artifacts.require("GroDepositHandler");
@@ -24,7 +24,7 @@ contract("Gro Filter", (accounts) => {
   let withdrawHandler;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     gvt = await ERC20.at("0x3ADb04E127b9C0a5D36094125669d4603AC52a0c");
     pwrd = await ERC20.at("0xf0a93d4994b3d98fb5e3a2f90dbc2d69073cb86b");

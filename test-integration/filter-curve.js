@@ -1,6 +1,6 @@
 /* global artifacts */
 
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 
 const CurvePool = artifacts.require("CurvePoolMock");
 const CurveFilter = artifacts.require("CurveFilter");
@@ -15,7 +15,7 @@ contract("Curve Filter", (accounts) => {
   let curve4;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     curve2 = await CurvePool.at("0xDC24316b9AE028F1497c275EB9192a3Ea0f67022");
     curve3 = await CurvePool.at("0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7");

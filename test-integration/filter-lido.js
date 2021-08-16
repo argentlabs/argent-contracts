@@ -1,7 +1,7 @@
 /* global artifacts */
 
 const utils = require("../utils/utilities.js");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 
 const LidoFilter = artifacts.require("LidoFilter");
 const CurveFilter = artifacts.require("CurveFilter");
@@ -15,7 +15,7 @@ contract("Lido Filter", (accounts) => {
   let curve;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     lido = await ILido.at("0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84");
     curve = await ICurvePool.at("0xdc24316b9ae028f1497c275eb9192a3ea0f67022");

@@ -1,6 +1,6 @@
 /* global artifacts */
 
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 
 const BPool = artifacts.require("BPool");
 const BalancerFilter = artifacts.require("BalancerFilter");
@@ -13,7 +13,7 @@ contract("Balancer Filter", (accounts) => {
   let pool;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     pool = await BPool.at("0x1eff8af5d577060ba4ac8a29a13525bb0ee2a3d5");
     const filter = await BalancerFilter.new();

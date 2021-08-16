@@ -2,7 +2,7 @@
 
 const BN = require("bn.js");
 const { assert } = require("chai");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 const utils = require("../utils/utilities.js");
 const { WAD } = require("../utils/defi-deployer");
 
@@ -26,7 +26,7 @@ contract("Maker DSR Filter", (accounts) => {
   let pot;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     dai = argent.DAI;
     daiJoin = await DaiJoin.at("0x9759A6Ac90977b93B58547b4A71c78317f391A28");

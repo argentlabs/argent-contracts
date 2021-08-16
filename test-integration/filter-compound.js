@@ -1,7 +1,7 @@
 /* global artifacts */
 
 const { assert } = require("chai");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 const utils = require("../utils/utilities.js");
 
 const ERC20 = artifacts.require("TestERC20");
@@ -16,7 +16,7 @@ contract("Compound Filter", (accounts) => {
   let cDai;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     cEther = await CEther.at("0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5");
     cDai = await CErc20.at("0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643");

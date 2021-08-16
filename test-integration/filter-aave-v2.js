@@ -1,7 +1,7 @@
 /* global artifacts */
 
 const { assert } = require("chai");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 const utils = require("../utils/utilities.js");
 
 const AaveV2Filter = artifacts.require("AaveV2Filter");
@@ -15,7 +15,7 @@ contract("Aave V2 Filter", (accounts) => {
   let pool;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     pool = await AaveV2LendingPool.at("0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9");
     const filter = await AaveV2Filter.new();

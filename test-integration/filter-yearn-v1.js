@@ -1,7 +1,7 @@
 /* global artifacts */
 
 const { assert, expect } = require("chai");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 const utils = require("../utils/utilities.js");
 
 const YearnFilter = artifacts.require("YearnFilter");
@@ -16,7 +16,7 @@ contract("Yearn V1 Filter", (accounts) => {
   let wethVault;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     daiVault = await Vault.at("0xACd43E627e64355f1861cEC6d3a6688B31a6F952");
     wethVault = await Vault.at("0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7");

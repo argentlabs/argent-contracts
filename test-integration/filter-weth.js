@@ -2,7 +2,7 @@
 
 const { expect } = require("chai");
 const utils = require("../utils/utilities.js");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 
 const WethFilter = artifacts.require("WethFilter");
 
@@ -11,7 +11,7 @@ contract("WETH Filter", (accounts) => {
   let wallet;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     const filter = await WethFilter.new();
     await argent.dappRegistry.addDapp(0, argent.WETH.address, filter.address);

@@ -1,7 +1,7 @@
 /* global artifacts */
 
 const { assert } = require("chai");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 const { getSimpleSwapParams, getRoutesForExchange } = require("../utils/paraswap/sell-helper");
 const utils = require("../utils/utilities.js");
 const { makeParaswapHelpers } = require("../utils/paraswap/swap-helper.js");
@@ -132,7 +132,7 @@ contract("Paraswap Filter", (accounts) => {
   let getSimpleSwapExchangeCallParams;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     tokenA = argent.DAI;
     tokenB = argent.USDC;

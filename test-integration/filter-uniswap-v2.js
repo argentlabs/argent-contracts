@@ -2,7 +2,7 @@
 
 const { assert } = require("chai");
 const BN = require("bn.js");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 const utils = require("../utils/utilities.js");
 const { makeUniswapMethods } = require("../utils/uniswap.js");
 
@@ -35,7 +35,7 @@ contract("Uniswap V2", (accounts) => {
   const recipient = accounts[3];
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     token = argent.USDC;
     lpToken = await ERC20.at(USDC_ETH_PAIR);

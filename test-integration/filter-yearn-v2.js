@@ -1,7 +1,7 @@
 /* global artifacts */
 
 const { assert } = require("chai");
-const ArgentContext = require("../utils/argent-context.js");
+const { deployArgent } = require("../utils/argent-deployer.js");
 const utils = require("../utils/utilities.js");
 
 const Vault = artifacts.require("yVaultV2Mock");
@@ -17,7 +17,7 @@ contract("Yearn V2 Filter", (accounts) => {
   let yvDai;
 
   before(async () => {
-    argent = await new ArgentContext(accounts).initialise();
+    argent = await deployArgent(accounts);
 
     vault = await Vault.at("0x19D3364A399d251E894aC732651be8B0E4e85001");
     yvDai = await ERC20.at(vault.address);
