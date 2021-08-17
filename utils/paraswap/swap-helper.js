@@ -53,7 +53,7 @@ module.exports.makeParaswapHelpers = ({
 
   const multiCall = async (transactions, { errorReason = null }) => {
     const receipt = await manager.relay(
-      module, "multiCall", [wallet.address, transactions], wallet, [owner], 1, ETH_TOKEN, relayer
+      module, "multiCall", [wallet.address, transactions], wallet, [owner], 0, ETH_TOKEN, relayer
     );
     const { success, error } = utils.parseRelayReceipt(receipt);
     if (errorReason) {
