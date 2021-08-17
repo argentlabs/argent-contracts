@@ -17,6 +17,7 @@ const DappRegistry = artifacts.require("DappRegistry");
 const ERC20 = artifacts.require("TestERC20");
 const WETH9 = artifacts.require("WETH9");
 const IUSDCToken = artifacts.require("IUSDCToken");
+const TetherToken = artifacts.require("TetherToken");
 
 const SECURITY_PERIOD = 2;
 const SECURITY_WINDOW = 2;
@@ -29,32 +30,31 @@ let tokensFunded = false;
 
 const fundTokens = async (tokenHolder, infrastructure) => {
   const WETH = await WETH9.at("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+  const stETH = await ERC20.at("0xae7ab96520de3a18e5e111b5eaab095312d7fe84");
   const DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
   const USDC = await IUSDCToken.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+  const USDT = await TetherToken.at("0xdAC17F958D2ee523a2206206994597C13D831ec7");
+  const sUSD = await ERC20.at("0x57Ab1ec28D129707052df4dF418D58a2D46d5f51");
 
   if (!tokensFunded) {
-    // transfer tokens from mainnet whale addresses to a test address we control
-    try {
-      await WETH.transfer(tokenHolder, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
-      await DAI.transfer(tokenHolder, web3.utils.toWei("1000000"), { from: "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" });
-    } catch (error) {
-      if (error.toString().includes("transfer amount exceeds balance")) {
-        console.error("!!!!!!!!!!!!!!!!!!!!!");
-        console.error("One of the ERC-20 whales doesn't have enough balance on mainnet to use their tokens.");
-        console.error("Either find another whale with enough funds, or use the token's minter.");
-        console.error("!!!!!!!!!!!!!!!!!!!!!");
-        console.error("");
-      }
-    }
+    // transfer tokens from mainnet whale addresses to the tokenHolder account
+    await WETH.transfer(tokenHolder, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
+    await stETH.transfer(tokenHolder, web3.utils.toWei("100"), { from: "0xa2f987a546d4cd1c607ee8141276876c26b72bdf" });
+    await DAI.transfer(tokenHolder, web3.utils.toWei("1000000"), { from: "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" });
+    await sUSD.transfer(tokenHolder, web3.utils.toWei("1000000"), { from: "0x6c5024cd4f8a59110119c56f8933403a539555eb" });
 
     // mint USDC
     await USDC.configureMinter(infrastructure, web3.utils.toWei("10000000"), { from: "0xe982615d461dd5cd06575bbea87624fda4e3de17" });
     await USDC.mint(tokenHolder, web3.utils.toWei("10000000"));
 
+    // mint USDT
+    await USDT.issue(web3.utils.toWei("1000000"), { from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828" });
+    await USDT.transfer(tokenHolder, web3.utils.toWei("1000000"), { from: "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828" });
+
     tokensFunded = true;
   }
 
-  return { WETH, DAI, USDC };
+  return { WETH, stETH, DAI, USDC, USDT, sUSD };
 };
 
 module.exports.deployArgent = async ([infrastructure, owner, guardian1, , relayer, , tokenHolder, refundAddress]) => {
@@ -124,7 +124,7 @@ module.exports.deployArgent = async ([infrastructure, owner, guardian1, , relaye
         if (!token) {
           throw new Error(`Unsupported ERC-20 token: ${ticker}`);
         }
-        await token.transfer(walletAddress, amount, { from: tokenHolder });
+        await token.transfer(walletAddress, amount.toString(), { from: tokenHolder });
       }
     }
 
@@ -133,8 +133,11 @@ module.exports.deployArgent = async ([infrastructure, owner, guardian1, , relaye
 
   const tokenBalances = async () => ({
     WETH: web3.utils.fromWei(await tokens.WETH.balanceOf(tokenHolder)),
+    stETH: web3.utils.fromWei(await tokens.stETH.balanceOf(tokenHolder)),
     DAI: web3.utils.fromWei(await tokens.DAI.balanceOf(tokenHolder)),
     USDC: (await tokens.USDC.balanceOf(tokenHolder)).toString().slice(0, -6),
+    USDT: web3.utils.fromWei(await tokens.USDT.balanceOf(tokenHolder)),
+    sUSD: web3.utils.fromWei(await tokens.sUSD.balanceOf(tokenHolder)),
   });
 
   return {

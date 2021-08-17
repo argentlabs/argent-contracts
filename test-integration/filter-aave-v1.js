@@ -41,7 +41,7 @@ contract("Aave V1 Filter", (accounts) => {
   });
 
   beforeEach(async () => {
-    wallet = await argent.createFundedWallet({ USDC: "1000000" }); // 1 USDC
+    wallet = await argent.createFundedWallet({ USDC: utils.usdcToWei("1") });
   });
 
   describe("deposit", () => {

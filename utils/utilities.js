@@ -328,7 +328,9 @@ const utilities = {
     expect(receivedAfter.sub(receivedBefore)).to.be.gt.BN(0);
 
     return result;
-  }
+  },
+
+  usdcToWei: (amount) => new BN(amount).mul(new BN(1e6)).toString()
 };
 
 module.exports = utilities;
