@@ -36,8 +36,7 @@
     "security:slither:infrastructure_0.5:triage": "rm -rf build && npm run compile:infrastructure_0.5 && slither . --triage-mode",
     "security:slither:infrastructure:triage": "rm -rf build && npm run compile:infrastructure_0.8 && slither . --triage-mode",
     "security:slither:modules:triage": "rm -rf build && npx truffle compile --config truffle-config-modules.js && slither . --triage-mode",
-    "security:slither:wallet:triage": "rm -rf build && npm run compile:wallet && slither . --triage-mode",
-    "preinstall": "bash ./scripts/preinstall.sh"
+    "security:slither:wallet:triage": "rm -rf build && npm run compile:wallet && slither . --triage-mode"
   },
   "lint-staged": {
     "*.js": [
@@ -64,6 +63,7 @@
     "@uniswap/lib": "^1.1.2",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
+    "argent-trustlists": "argentlabs/argent-trustlists#fix-install",
     "ajv": "^6.10.0",
     "aws-sdk": "^2.799.0",
     "child_process": "^1.0.2",
