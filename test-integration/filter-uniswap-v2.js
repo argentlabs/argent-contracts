@@ -28,14 +28,14 @@ contract("Uniswap V2", (accounts) => {
   let token;
   let lpToken;
   let uniZap;
+  let recipient;
 
   let addLiquidity;
   let removeLiquidity;
 
-  const recipient = accounts[3];
-
   before(async () => {
     argent = await deployArgent(accounts);
+    [recipient] = argent.freeAccounts;
 
     token = argent.USDC;
     lpToken = await ERC20.at(USDC_ETH_PAIR);

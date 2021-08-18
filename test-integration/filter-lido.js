@@ -11,11 +11,14 @@ const ICurvePool = artifacts.require("ICurvePool");
 contract("Lido Filter", (accounts) => {
   let argent;
   let wallet;
+
+  let other;
   let lido;
   let curve;
 
   before(async () => {
     argent = await deployArgent(accounts);
+    [other] = argent.freeAccounts;
 
     lido = await ILido.at("0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84");
     curve = await ICurvePool.at("0xdc24316b9ae028f1497c275eb9192a3ea0f67022");
@@ -42,7 +45,7 @@ contract("Lido Filter", (accounts) => {
 
     it("should allow staking from wallet via submit", async () => {
       const { success, error } = await argent.multiCall(wallet, [
-        [lido, "submit", [accounts[5]], 100]
+        [lido, "submit", [other], 100]
       ]);
       assert.isTrue(success, `deposit failed: "${error}"`);
 
@@ -55,7 +58,7 @@ contract("Lido Filter", (accounts) => {
     beforeEach(async () => {
       // Stake some funds to use to test selling
       await argent.multiCall(wallet, [
-        [lido, "submit", [accounts[5]], 100]
+        [lido, "submit", [other], 100]
       ]);
     });
 

@@ -57,7 +57,9 @@ const fundTokens = async (tokenHolder, infrastructure) => {
   return { WETH, stETH, DAI, USDC, USDT, sUSD };
 };
 
-module.exports.deployArgent = async ([infrastructure, owner, guardian1, , relayer, , tokenHolder, refundAddress]) => {
+module.exports.deployArgent = async (accounts) => {
+  const [infrastructure, owner, guardian1, relayer, tokenHolder, refundAddress, ...freeAccounts] = accounts;
+
   const moduleRegistry = await ModuleRegistry.new();
   const guardianStorage = await GuardianStorage.new();
   const transferStorage = await TransferStorage.new();
@@ -143,6 +145,7 @@ module.exports.deployArgent = async ([infrastructure, owner, guardian1, , relaye
   return {
     infrastructure,
     owner,
+    freeAccounts,
     module,
     manager,
     dappRegistry,

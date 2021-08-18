@@ -106,9 +106,6 @@ contract("Paraswap Filter", (accounts) => {
   let argent;
   let wallet;
 
-  const other = accounts[3];
-  const marketMaker = MARKET_MAKERS[0];
-
   let uniswapV1Exchanges;
   let uniswapV3Router;
   let zeroExV2TargetExchange;
@@ -131,8 +128,12 @@ contract("Paraswap Filter", (accounts) => {
   let getMultiSwapData;
   let getSimpleSwapExchangeCallParams;
 
+  let other;
+  const marketMaker = MARKET_MAKERS[0];
+
   before(async () => {
     argent = await deployArgent(accounts);
+    [other] = argent.freeAccounts;
 
     tokenA = argent.DAI;
     tokenB = argent.USDC;
