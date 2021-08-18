@@ -57,7 +57,7 @@ const fundTokens = async (tokenHolder, infrastructure) => {
   return { WETH, stETH, DAI, USDC, USDT, sUSD };
 };
 
-module.exports.deployArgent = async (accounts) => {
+module.exports.deployArgent = async (accounts, options = {}) => {
   const [infrastructure, owner, guardian1, relayer, tokenHolder, refundAddress, ...freeAccounts] = accounts;
 
   const moduleRegistry = await ModuleRegistry.new();
@@ -89,14 +89,14 @@ module.exports.deployArgent = async (accounts) => {
   const manager = new RelayManager(guardianStorage.address, utils.ZERO_ADDRESS);
   const tokens = await fundTokens(tokenHolder, infrastructure);
 
-  const multiCall = async (wallet, calls, { gasPrice = 1 } = {}) => {
+  const multiCall = async (wallet, calls, { gasPrice } = {}) => {
     const receipt = await manager.relay(
       module,
       "multiCall",
       [wallet.address, utils.encodeCalls(calls)],
       wallet,
       [owner],
-      gasPrice,
+      gasPrice || options.gasPrice || 1,
       utils.ETH_TOKEN,
       relayer,
     );
@@ -133,14 +133,17 @@ module.exports.deployArgent = async (accounts) => {
     return wallet;
   };
 
-  const tokenBalances = async () => ({
-    WETH: web3.utils.fromWei(await tokens.WETH.balanceOf(tokenHolder)),
-    stETH: web3.utils.fromWei(await tokens.stETH.balanceOf(tokenHolder)),
-    DAI: web3.utils.fromWei(await tokens.DAI.balanceOf(tokenHolder)),
-    USDC: (await tokens.USDC.balanceOf(tokenHolder)).toString().slice(0, -6),
-    USDT: web3.utils.fromWei(await tokens.USDT.balanceOf(tokenHolder)),
-    sUSD: web3.utils.fromWei(await tokens.sUSD.balanceOf(tokenHolder)),
-  });
+  async function tokenBalances() {
+    return {
+      ETH: web3.utils.fromWei(await web3.eth.getBalance(tokenHolder)),
+      WETH: web3.utils.fromWei(await tokens.WETH.balanceOf(tokenHolder)),
+      stETH: web3.utils.fromWei(await tokens.stETH.balanceOf(tokenHolder)),
+      DAI: web3.utils.fromWei(await tokens.DAI.balanceOf(tokenHolder)),
+      USDC: new BN(await tokens.USDC.balanceOf(tokenHolder)).div(new BN(1e6)).toString(),
+      USDT: web3.utils.fromWei(await tokens.USDT.balanceOf(tokenHolder)),
+      sUSD: web3.utils.fromWei(await tokens.sUSD.balanceOf(tokenHolder)),
+    };
+  }
 
   return {
     infrastructure,
@@ -156,8 +159,8 @@ module.exports.deployArgent = async (accounts) => {
   };
 };
 
-// transfer tokens during global setup otherwise they get reverted by snapshots between tests
+// transfer tokens during global setup otherwise their state gets rolled back to initial snapshots
 before(async () => {
   const accounts = await web3.eth.getAccounts();
-  await fundTokens(accounts[6], accounts[0]);
+  await fundTokens(accounts[4], accounts[0]);
 });

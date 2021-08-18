@@ -8,8 +8,8 @@ const CurvePool = artifacts.require("CurvePoolMock");
 const CurveFilter = artifacts.require("CurveFilter");
 const ERC20 = artifacts.require("TestERC20");
 
-const amount = web3.utils.toWei("1");
-const usdcAmount = utils.usdcToWei("1");
+const amount = web3.utils.toWei("10");
+const usdcAmount = utils.usdcToWei("10");
 const ethAmount = web3.utils.toWei("0.01");
 
 contract("Curve Filter", (accounts) => {

@@ -3,11 +3,10 @@
 const readline = require("readline");
 const ethers = require("ethers");
 const BN = require("bn.js");
-const chai = require("chai");
+const { assert, expect } = require("chai");
 
 const WalletFactory = artifacts.require("WalletFactory");
 
-const { assert, expect } = chai;
 const ETH_TOKEN = ethers.constants.AddressZero;
 const ZERO_ADDRESS = ethers.constants.AddressZero;
 const ZERO_BYTES = "0x";

@@ -1,5 +1,6 @@
 /* global artifacts */
 
+const { assert, expect } = require("chai");
 const utils = require("../utils/utilities.js");
 const { deployArgent } = require("../utils/argent-deployer.js");
 
@@ -55,31 +56,33 @@ contract("Lido Filter", (accounts) => {
   });
 
   describe("Selling via CurvePool", () => {
+    const amount = web3.utils.toWei("0.01");
+
     beforeEach(async () => {
       // Stake some funds to use to test selling
       await argent.multiCall(wallet, [
-        [lido, "submit", [other], 100]
+        [lido, "submit", [other], amount]
       ]);
     });
 
     it("should allow selling stETH via Curve", async () => {
-      const before = await utils.getBalance(wallet.address);
+      const ethBefore = await utils.getBalance(wallet.address);
 
       const transactions = [
-        [lido, "approve", [curve.address, 99]],
-        [curve, "exchange", [1, 0, 99, 1]],
+        [lido, "approve", [curve.address, amount]],
+        [curve, "exchange", [1, 0, amount, 1]],
       ];
       const { success, error } = await argent.multiCall(wallet, transactions, { gasPrice: 0 });
 
       assert.isTrue(success, `exchange failed: "${error}"`);
 
       // Check ETH was received
-      const after = await utils.getBalance(wallet.address);
-      assert.closeTo(after.sub(before).toNumber(), 96, 3);
+      const ethAfter = await utils.getBalance(wallet.address);
+      expect(ethAfter.sub(ethBefore)).to.be.gt.BN(0);
 
       // Check only dust stETH left
-      const walletBalance = await lido.balanceOf(wallet.address);
-      assert.closeTo(walletBalance.toNumber(), 1, 1);
+      const lidoAfter = await lido.balanceOf(wallet.address);
+      expect(lidoAfter).to.be.lt.BN(10);
     });
   });
 });
