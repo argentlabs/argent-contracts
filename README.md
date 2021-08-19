@@ -11,11 +11,6 @@ Ensure the correct node version is installed:
 nvm install `cat .nvmrc`
 ```
 
-Before installing, checkout the `argent-trustlists` repo in the same folder as `argent-contracts`. This way it will be easier to develop on both repos simultaneously.
-```
-git clone https://github.com/argentlabs/argent-trustlists.git ../argent-trustlists
-```
-
 Install requirements with npm:
 ```
 npm install
@@ -28,17 +23,17 @@ Compile whole project
 npm run cc
 ```
 
-Compile only external contracts:
+Compile the external contracts:
 ```
 npm run compile:lib
 ```
 
-Compile only contracts:
+Compile the contracts:
 ```
 npm run compile
 ```
 
-Compile only test contracts:
+Compile the test contracts:
 ```
 npm run compile:test
 ```
