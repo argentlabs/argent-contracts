@@ -9,44 +9,56 @@ const ArgentENSManager = artifacts.require("ArgentENSManager");
 const ArgentENSResolver = artifacts.require("ArgentENSResolver");
 const ArgentEnsManagerFilter = artifacts.require("ArgentEnsManagerFilter");
 
-const ARGENT_ENS_ADDRESS = "0xF32FDDEF964b98b1d2d2b1C071ac60ED55d4D217";
-const ARGENT_ENS_OWNER_ADDRESS = "0xa5c603e1C27a96171487aea0649b01c56248d2e8";
-
 contract("ENS Filter", (accounts) => {
   let argent;
+  let wallet;
+
+  let ensManager;
   let ensRegistry;
   let ensResolver;
-  let argentEnsManager;
 
   before(async () => {
     argent = await deployArgent(accounts);
 
-    argentEnsManager = await ArgentENSManager.at(ARGENT_ENS_ADDRESS);
-    await argentEnsManager.addManager(argent.infrastructure, { from: ARGENT_ENS_OWNER_ADDRESS });
+    ensManager = await ArgentENSManager.at("0xF32FDDEF964b98b1d2d2b1C071ac60ED55d4D217");
+    ensRegistry = await ENSRegistry.at(await ensManager.ensRegistry());
+    ensResolver = await ArgentENSResolver.at(await ensManager.ensResolver());
 
-    ensRegistry = await ENSRegistry.at(await argentEnsManager.ensRegistry());
-    ensResolver = await ArgentENSResolver.at(await argentEnsManager.ensResolver());
+    const ensManagerOwner = await ensManager.owner();
+    await ensManager.addManager(argent.infrastructure, { from: ensManagerOwner });
+    await ensResolver.addManager(argent.infrastructure, { from: ensManagerOwner });
 
     const filter = await ArgentEnsManagerFilter.new();
-    await argent.dappRegistry.addDapp(0, argentEnsManager.address, filter.address);
+    await argent.dappRegistry.addDapp(0, ensManager.address, filter.address);
+  });
+
+  beforeEach(async () => {
+    wallet = await argent.createFundedWallet();
   });
 
   it("should register an ENS name", async () => {
     const label = Math.random().toString().slice(2);
-    const labelNode = ethers.utils.namehash(`${label}.argent.xyz`);
-    await argentEnsManager.register(label, argent.owner, "0x");
+    const hexLabel = ethers.utils.hexlify(ethers.utils.toUtf8Bytes(label));
+    const message = `0x${[wallet.address, hexLabel].map((hex) => hex.slice(2)).join("")}`;
+    const managerSig = await utils.signMessage(ethers.utils.keccak256(message), argent.infrastructure);
 
+    const { success, error } = await argent.multiCall(wallet, [
+      [ensManager, "register", [label, wallet.address, managerSig]]
+    ]);
+    assert.isTrue(success, `call failed: ${error}`);
+
+    const fullName = `${label}.argent.xyz`;
+    const labelNode = ethers.utils.namehash(fullName);
     const recordExists = await ensRegistry.recordExists(labelNode);
     assert.isTrue(recordExists);
     const nodeOwner = await ensRegistry.owner(labelNode);
-    assert.equal(nodeOwner, argent.owner);
+    assert.equal(nodeOwner, wallet.address);
     const result = await ensRegistry.resolver(labelNode);
     assert.equal(result, ensResolver.address);
   });
 
   it("should not allow sending ETH ", async () => {
-    const wallet = await argent.createFundedWallet();
-    const transaction = utils.encodeTransaction(argentEnsManager.address, web3.utils.toWei("0.01"), "0x");
+    const transaction = utils.encodeTransaction(ensManager.address, web3.utils.toWei("0.01"), "0x");
     const { success, error } = await argent.multiCall(wallet, [transaction]);
     assert.isFalse(success, "sending ETH should have failed");
     assert.equal(error, "TM: call not authorised");
