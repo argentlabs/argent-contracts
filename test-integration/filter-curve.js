@@ -43,7 +43,7 @@ contract("Curve Filter", (accounts) => {
   });
 
   describe("Testing filter for 2 token pool (stEth)", () => {
-    before(async () => {
+    beforeEach(async () => {
       wallet = await argent.createFundedWallet({
         ETH: new BN(ethAmount).mul(new BN(2)),
         stETH: ethAmount,
@@ -80,7 +80,7 @@ contract("Curve Filter", (accounts) => {
   });
 
   describe("Testing filter for 3 token pool (DAI/USDC/USDT)", () => {
-    before(async () => {
+    beforeEach(async () => {
       wallet = await argent.createFundedWallet({
         DAI: amount,
         USDC: usdcAmount,
@@ -120,7 +120,7 @@ contract("Curve Filter", (accounts) => {
   });
 
   describe("Testing filter for 4 token pool (sUsd v2)", () => {
-    before(async () => {
+    beforeEach(async () => {
       wallet = await argent.createFundedWallet({
         DAI: amount,
         USDC: usdcAmount,
@@ -170,7 +170,7 @@ contract("Curve Filter", (accounts) => {
   });
 
   describe("Failure cases", () => {
-    before(async () => {
+    beforeEach(async () => {
       wallet = await argent.createFundedWallet();
     });
 
