@@ -237,9 +237,10 @@ const utilities = {
       .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   },
 
-  getAccount: async (index) => {
-    const accounts = await web3.eth.getAccounts();
-    return accounts[index];
+  getNamedAccounts: async (accounts) => {
+    const addresses = accounts || await web3.eth.getAccounts();
+    const [infrastructure, owner, guardian1, relayer, tokenHolder, refundAddress, ...freeAccounts] = addresses;
+    return { infrastructure, owner, guardian1, relayer, tokenHolder, refundAddress, freeAccounts };
   },
 
   encodeFunctionCall: (method, params) => {
@@ -281,7 +282,7 @@ const utilities = {
 
   // set the relayer nonce to > 0
   initNonce: async (wallet, module, manager, securityPeriod) => {
-    const nonceInitialiser = await utilities.getAccount(8);
+    const nonceInitialiser = (await utilities.getNamedAccounts()).freeAccounts.slice(-1)[0];
     await utilities.addTrustedContact(wallet, nonceInitialiser, module, securityPeriod);
     const owner = await wallet.owner();
     const transaction = utilities.encodeTransaction(nonceInitialiser, 1, ZERO_BYTES);

@@ -57,8 +57,9 @@ const fundTokens = async (tokenHolder, infrastructure) => {
   return { WETH, stETH, DAI, USDC, USDT, sUSD };
 };
 
-module.exports.deployArgent = async (accounts, options = {}) => {
-  const [infrastructure, owner, guardian1, relayer, tokenHolder, refundAddress, ...freeAccounts] = accounts;
+module.exports.deployArgent = async (accountsArray, options = {}) => {
+  const accounts = await utils.getNamedAccounts(accountsArray);
+  const { infrastructure, owner, guardian1, relayer, tokenHolder, refundAddress } = accounts;
 
   const moduleRegistry = await ModuleRegistry.new();
   const guardianStorage = await GuardianStorage.new();
@@ -146,13 +147,11 @@ module.exports.deployArgent = async (accounts, options = {}) => {
   }
 
   return {
-    infrastructure,
-    owner,
-    freeAccounts,
+    ...accounts,
+    ...tokens,
     module,
     manager,
     dappRegistry,
-    ...tokens,
     createFundedWallet,
     multiCall,
     tokenBalances,
@@ -161,6 +160,6 @@ module.exports.deployArgent = async (accounts, options = {}) => {
 
 // transfer tokens during global setup otherwise their state gets rolled back to initial snapshots
 before(async () => {
-  const accounts = await web3.eth.getAccounts();
-  await fundTokens(accounts[4], accounts[0]);
+  const { infrastructure, tokenHolder } = await utils.getNamedAccounts();
+  await fundTokens(tokenHolder, infrastructure);
 });

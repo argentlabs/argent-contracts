@@ -17,7 +17,7 @@ class RelayManager {
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero) {
-    const relayerAccount = await utils.getAccount(9);
+    const { relayer: relayerAccount } = await utils.getNamedAccounts();
     const nonce = await utils.getNonceForRelay();
     const chainId = await utils.getChainId();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
