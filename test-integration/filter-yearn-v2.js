@@ -55,21 +55,34 @@ contract("Yearn V2 Filter", (accounts) => {
     ]);
 
     it("should allow deposits (0 params)", async () => {
-      const { success, error } = await utils.checkBalances(wallet, argent.DAI, yvDAI, deposit0);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: deposit0,
+        bought: yvDAI,
+        sold: argent.DAI,
+        wallet,
+      });
       assert.isTrue(success, `deposit failed: "${error}"`);
     });
 
     it("should allow deposits (1 param)", async () => {
-      const { success, error } = await utils.checkBalances(wallet, argent.DAI, yvDAI, deposit1);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: deposit1,
+        bought: yvDAI,
+        sold: argent.DAI,
+        wallet,
+      });
       assert.isTrue(success, `deposit failed: "${error}"`);
     });
 
     it("should allow withdrawals (0 params)", async () => {
       await deposit0();
 
-      const { success, error } = await utils.checkBalances(wallet, yvDAI, argent.DAI, () => (
-        argent.multiCall(wallet, [[daiVault, "withdraw", []]])
-      ));
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [[daiVault, "withdraw", []]]),
+        bought: argent.DAI,
+        sold: yvDAI,
+        wallet,
+      });
 
       assert.isTrue(success, `withdrawal failed: "${error}"`);
     });
@@ -77,9 +90,12 @@ contract("Yearn V2 Filter", (accounts) => {
     it("should allow withdrawals (1 param)", async () => {
       await deposit1();
 
-      const { success, error } = await utils.checkBalances(wallet, yvDAI, argent.DAI, () => (
-        argent.multiCall(wallet, [[daiVault, "withdraw", [1]]])
-      ));
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [[daiVault, "withdraw", [1]]]),
+        bought: argent.DAI,
+        sold: yvDAI,
+        wallet,
+      });
 
       assert.isTrue(success, `withdrawal failed: "${error}"`);
     });
@@ -119,21 +135,34 @@ contract("Yearn V2 Filter", (accounts) => {
     ]);
 
     it("should allow ETH deposits (0 params)", async () => {
-      const { success, error } = await utils.checkBalances(wallet, argent.WETH, yvWETH, depositETH0);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: depositETH0,
+        bought: yvWETH,
+        sold: argent.WETH,
+        wallet,
+      });
       assert.isTrue(success, `depositETH0 failed: "${error}"`);
     });
 
     it("should allow ETH deposits (1 params)", async () => {
-      const { success, error } = await utils.checkBalances(wallet, argent.WETH, yvWETH, depositETH1);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: depositETH1,
+        bought: yvWETH,
+        sold: argent.WETH,
+        wallet,
+      });
       assert.isTrue(success, `depositETH1 failed: "${error}"`);
     });
 
     it("should allow ETH withdrawals", async () => {
       await depositETH1();
 
-      const { success, error } = await utils.checkBalances(wallet, yvWETH, argent.WETH, () => argent.multiCall(wallet, [
-        [wethVault, "withdraw", []],
-      ]));
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [[wethVault, "withdraw", []]]),
+        bought: argent.WETH,
+        sold: yvWETH,
+        wallet,
+      });
       assert.isTrue(success, `withdrawETH failed: "${error}"`);
     });
   });

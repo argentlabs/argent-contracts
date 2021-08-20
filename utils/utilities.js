@@ -316,16 +316,16 @@ const utilities = {
     return event.args.wallet;
   },
 
-  checkBalances: async (wallet, providedToken, receivedToken, body) => {
+  swapAndCheckBalances: async ({ swap, bought, sold, wallet }) => {
     const balanceOf = (token) => (token === ETH_TOKEN ? utilities.getBalance : token.balanceOf)(wallet.address);
-    const getBalances = async () => [await balanceOf(providedToken), await balanceOf(receivedToken)];
+    const getBalances = async () => [await balanceOf(sold), await balanceOf(bought)];
 
-    const [providedBefore, receivedBefore] = await getBalances();
-    const result = await body();
-    const [providedAfter, receivedAfter] = await getBalances();
+    const [soldBefore, boughtBefore] = await getBalances();
+    const result = await swap();
+    const [soldAfter, boughtAfter] = await getBalances();
 
-    expect(providedBefore.sub(providedAfter)).to.be.gt.BN(0);
-    expect(receivedAfter.sub(receivedBefore)).to.be.gt.BN(0);
+    expect(soldBefore.sub(soldAfter)).to.be.gt.BN(0);
+    expect(boughtAfter.sub(boughtBefore)).to.be.gt.BN(0);
 
     return result;
   },

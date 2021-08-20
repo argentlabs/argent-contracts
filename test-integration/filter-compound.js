@@ -42,14 +42,24 @@ contract("Compound Filter", (accounts) => {
     ]);
 
     it("should allow minting", async () => {
-      const { success, error, receipt } = await utils.checkBalances(wallet, utils.ETH_TOKEN, cEther, mint);
+      const { success, error, receipt } = await utils.swapAndCheckBalances({
+        swap: mint,
+        bought: cEther,
+        sold: utils.ETH_TOKEN,
+        wallet,
+      });
 
       assert.isTrue(success, `mint failed: "${error}"`);
       await utils.hasEvent(receipt, cEther, "Mint");
     });
 
     it("should allow minting using fallback", async () => {
-      const { success, error, receipt } = await utils.checkBalances(wallet, utils.ETH_TOKEN, cEther, () => mint(true));
+      const { success, error, receipt } = await utils.swapAndCheckBalances({
+        swap: () => mint(true),
+        bought: cEther,
+        sold: utils.ETH_TOKEN,
+        wallet,
+      });
 
       assert.isTrue(success, `mint failed: "${error}"`);
       await utils.hasEvent(receipt, cEther, "Mint");
@@ -59,11 +69,12 @@ contract("Compound Filter", (accounts) => {
       await mint();
 
       const redeemAmount = await cEther.balanceOf(wallet.address);
-      const { success, error, receipt } = await utils.checkBalances(wallet, cEther, utils.ETH_TOKEN, () => (
-        argent.multiCall(wallet, [
-          [cEther, "redeem", [redeemAmount.toString()]]
-        ])
-      ));
+      const { success, error, receipt } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [[cEther, "redeem", [redeemAmount.toString()]]]),
+        bought: utils.ETH_TOKEN,
+        sold: cEther,
+        wallet,
+      });
 
       assert.isTrue(success, `withdrawal failed: "${error}"`);
       await utils.hasEvent(receipt, cEther, "Redeem");
@@ -83,7 +94,12 @@ contract("Compound Filter", (accounts) => {
     ]);
 
     it("should allow minting", async () => {
-      const { success, error, receipt } = await utils.checkBalances(wallet, argent.DAI, cDai, mint);
+      const { success, error, receipt } = await utils.swapAndCheckBalances({
+        swap: mint,
+        bought: cDai,
+        sold: argent.DAI,
+        wallet,
+      });
 
       assert.isTrue(success, `mint failed: "${error}"`);
       await utils.hasEvent(receipt, cDai, "Mint");
@@ -93,11 +109,12 @@ contract("Compound Filter", (accounts) => {
       await mint();
 
       const redeemAmount = await cDai.balanceOf(wallet.address);
-      const { success, error, receipt } = await utils.checkBalances(wallet, cDai, argent.DAI, () => (
-        argent.multiCall(wallet, [
-          [cDai, "redeem", [redeemAmount.toString()]]
-        ])
-      ));
+      const { success, error, receipt } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [[cDai, "redeem", [redeemAmount.toString()]]]),
+        bought: argent.DAI,
+        sold: cDai,
+        wallet,
+      });
 
       assert.isTrue(success, `redeem failed: "${error}"`);
       await utils.hasEvent(receipt, cDai, "Redeem");

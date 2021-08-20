@@ -43,7 +43,12 @@ contract("Balancer Filter", (accounts) => {
   };
 
   it("should allow deposits", async () => {
-    const { success, error } = await deposit();
+    const { success, error } = await utils.swapAndCheckBalances({
+      swap: deposit,
+      bought: pool,
+      sold: argent.WETH,
+      wallet,
+    });
     assert.isTrue(success, `deposit failed: "${error}"`);
   });
 

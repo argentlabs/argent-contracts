@@ -56,7 +56,12 @@ contract("Curve Filter", (accounts) => {
     ]);
 
     it("should allow deposits", async () => {
-      const { success, error } = await utils.checkBalances(wallet, utils.ETH_TOKEN, lpToken2, deposit);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: deposit,
+        bought: lpToken2,
+        sold: utils.ETH_TOKEN,
+        wallet,
+      });
       assert.isTrue(success, `deposit2 failed: "${error}"`);
     });
 
@@ -64,17 +69,27 @@ contract("Curve Filter", (accounts) => {
       await deposit();
 
       const withdrawalAmount = (await lpToken2.balanceOf(wallet.address)).div(new BN(2)).toString();
-      const { success, error } = await utils.checkBalances(wallet, lpToken2, utils.ETH_TOKEN, () => argent.multiCall(wallet, [
-        [curve2, "remove_liquidity(uint256,uint256[2])", [withdrawalAmount, [1, 1]]]
-      ]));
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [
+          [curve2, "remove_liquidity(uint256,uint256[2])", [withdrawalAmount, [1, 1]]]
+        ]),
+        bought: utils.ETH_TOKEN,
+        sold: lpToken2,
+        wallet,
+      });
       assert.isTrue(success, `withdraw2 failed: "${error}"`);
     });
 
     it("should swap", async () => {
       const swapAmount = new BN(ethAmount).div(new BN(2)).toString();
-      const { success, error } = await utils.checkBalances(wallet, utils.ETH_TOKEN, argent.stETH, () => argent.multiCall(wallet, [
-        [curve2, "exchange", [0, 1, swapAmount, 1], swapAmount]
-      ]));
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [
+          [curve2, "exchange", [0, 1, swapAmount, 1], swapAmount]
+        ]),
+        bought: argent.stETH,
+        sold: utils.ETH_TOKEN,
+        wallet,
+      });
       assert.isTrue(success, `exchange failed: "${error}"`);
     });
   });
@@ -96,7 +111,12 @@ contract("Curve Filter", (accounts) => {
     ]);
 
     it("should allow deposits", async () => {
-      const { success, error } = await utils.checkBalances(wallet, argent.DAI, lpToken3, deposit);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: deposit,
+        bought: lpToken3,
+        sold: argent.DAI,
+        wallet,
+      });
       assert.isTrue(success, `deposit3 failed: "${error}"`);
     });
 
@@ -104,17 +124,27 @@ contract("Curve Filter", (accounts) => {
       await deposit();
 
       const withdrawalAmount = (await lpToken3.balanceOf(wallet.address)).div(new BN(2)).toString();
-      const { success, error } = await utils.checkBalances(wallet, lpToken3, argent.DAI, () => argent.multiCall(wallet, [
-        [curve3, "remove_liquidity(uint256,uint256[3])", [withdrawalAmount, [1, 1, 1]]]
-      ]));
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [
+          [curve3, "remove_liquidity(uint256,uint256[3])", [withdrawalAmount, [1, 1, 1]]]
+        ]),
+        sold: lpToken3,
+        bought: argent.DAI,
+        wallet,
+      });
       assert.isTrue(success, `withdraw3 failed: "${error}"`);
     });
 
     it("should swap", async () => {
-      const { success, error } = await utils.checkBalances(wallet, argent.DAI, argent.USDC, () => argent.multiCall(wallet, [
-        [argent.DAI, "approve", [curve3.address, amount]],
-        [curve3, "exchange", [0, 1, amount, 1]]
-      ]));
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [
+          [argent.DAI, "approve", [curve3.address, amount]],
+          [curve3, "exchange", [0, 1, amount, 1]],
+        ]),
+        bought: argent.USDC,
+        sold: argent.DAI,
+        wallet,
+      });
       assert.isTrue(success, `exchange failed: "${error}"`);
     });
   });
@@ -139,21 +169,36 @@ contract("Curve Filter", (accounts) => {
 
     // TODO: investigate why this fails as 2 separate tests but works combined
     it("should allow deposits & withdrawals", async () => {
-      const depositResult = await utils.checkBalances(wallet, argent.DAI, lpToken4, deposit);
+      const depositResult = await utils.swapAndCheckBalances({
+        swap: deposit,
+        bought: lpToken4,
+        sold: argent.DAI,
+        wallet,
+      });
       assert.isTrue(depositResult.success, `deposit4 failed: "${depositResult.error}"`);
 
       const withdrawalAmount = (await lpToken4.balanceOf(wallet.address)).div(new BN(2)).toString();
-      const withdrawalResult = await utils.checkBalances(wallet, lpToken4, argent.DAI, () => argent.multiCall(wallet, [
-        [curve4, "remove_liquidity(uint256,uint256[4])", [withdrawalAmount, [1, 1, 1, 1]]]
-      ]));
+      const withdrawalResult = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [
+          [curve4, "remove_liquidity(uint256,uint256[4])", [withdrawalAmount, [1, 1, 1, 1]]]
+        ]),
+        bought: argent.DAI,
+        sold: lpToken4,
+        wallet,
+      });
       assert.isTrue(withdrawalResult.success, `withdraw4 failed: "${withdrawalResult.error}"`);
     });
 
     it("should swap", async () => {
-      const { success, error } = await utils.checkBalances(wallet, argent.DAI, argent.USDT, () => argent.multiCall(wallet, [
-        [argent.DAI, "approve", [curve4.address, amount]],
-        [curve4, "exchange", [0, 2, amount, 1]]
-      ]));
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => argent.multiCall(wallet, [
+          [argent.DAI, "approve", [curve4.address, amount]],
+          [curve4, "exchange", [0, 2, amount, 1]],
+        ]),
+        bought: argent.USDT,
+        sold: argent.DAI,
+        wallet,
+      });
       assert.isTrue(success, `exchange failed: "${error}"`);
     });
 
