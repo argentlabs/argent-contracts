@@ -324,6 +324,7 @@ const utilities = {
     const result = await swap();
     const [soldAfter, boughtAfter] = await getBalances();
 
+    assert.isTrue(result.success, `swap failed: "${result.error}"`);
     expect(soldBefore.sub(soldAfter)).to.be.gt.BN(0);
     expect(boughtAfter.sub(boughtBefore)).to.be.gt.BN(0);
 

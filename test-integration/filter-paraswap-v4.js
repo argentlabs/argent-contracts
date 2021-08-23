@@ -2,9 +2,8 @@
 
 const { assert } = require("chai");
 const { deployArgent } = require("../utils/argent-deployer.js");
-const { getSimpleSwapParams, getRoutesForExchange } = require("../utils/paraswap/sell-helper");
+const { getSimpleSwapParams, getRoutesForExchange, makeParaswapHelpers } = require("../utils/paraswap");
 const utils = require("../utils/utilities.js");
-const { makeParaswapHelpers } = require("../utils/paraswap/swap-helper.js");
 
 const IAugustusSwapper = artifacts.require("IAugustusSwapper");
 const ZeroxV2TargetExchange = artifacts.require("ZeroxV2TargetExchangeMock");

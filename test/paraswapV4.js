@@ -56,10 +56,9 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 // Utils
 const RelayManager = require("../utils/relay-manager");
 const { deployUniswap } = require("../utils/defi-deployer");
-const { getSimpleSwapParams, getRoutesForExchange } = require("../utils/paraswap/sell-helper.js");
+const { getSimpleSwapParams, getRoutesForExchange, makeParaswapHelpers } = require("../utils/paraswap.js");
 const utils = require("../utils/utilities.js");
 const { encodeTransaction, initNonce, encodeCalls, asciiToBytes32 } = require("../utils/utilities.js");
-const { makeParaswapHelpers } = require("../utils/paraswap/swap-helper.js");
 
 // Constants
 const DECIMALS = 18; // number of decimal for TOKEN_A, TOKEN_B contracts

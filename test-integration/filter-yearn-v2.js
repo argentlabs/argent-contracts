@@ -9,7 +9,7 @@ const YearnV2Filter = artifacts.require("YearnV2Filter");
 const WethFilter = artifacts.require("WethFilter");
 const ERC20 = artifacts.require("TestERC20");
 
-const amount = web3.utils.toWei("1");
+const amount = web3.utils.toWei("10");
 const ethAmount = web3.utils.toWei("0.01");
 
 contract("Yearn V2 Filter", (accounts) => {

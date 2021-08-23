@@ -13,7 +13,7 @@ const WithdrawFilter = artifacts.require("GroWithdrawFilter");
 const ERC20 = artifacts.require("TestERC20");
 
 const ethAmount = web3.utils.toWei("0.01");
-const daiAmount = web3.utils.toWei("10");
+const daiAmount = web3.utils.toWei("100");
 
 contract("Gro Filter", (accounts) => {
   let argent;
@@ -75,14 +75,25 @@ contract("Gro Filter", (accounts) => {
     const isPwrd = false;
 
     it("should allow deposits", async () => {
-      const { success, error } = await deposit(isPwrd);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => deposit(isPwrd),
+        bought: gvt,
+        sold: argent.DAI,
+        wallet,
+      });
       assert.isTrue(success, `depositGvt failed: "${error}"`);
     });
 
     it("should allow withdrawals (1/4)", async () => {
       await deposit(isPwrd);
+
       const lpAmount = (await gvt.balanceOf(wallet.address)).divn(new BN(2)).toString();
-      const { success, error } = await withdrawByLPToken(isPwrd, lpAmount);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => withdrawByLPToken(isPwrd, lpAmount),
+        bought: argent.DAI,
+        sold: gvt,
+        wallet,
+      });
       assert.isTrue(success, `withdrawByLPToken failed: "${error}"`);
     });
 
@@ -110,7 +121,12 @@ contract("Gro Filter", (accounts) => {
     const isPwrd = true;
 
     it("should allow deposits", async () => {
-      const { success, error } = await deposit(isPwrd);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => deposit(isPwrd),
+        bought: pwrd,
+        sold: argent.DAI,
+        wallet,
+      });
       assert.isTrue(success, `depositPwrd failed: "${error}"`);
     });
 
