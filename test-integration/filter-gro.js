@@ -88,9 +88,10 @@ contract("Gro Filter", (accounts) => {
       await deposit(isPwrd);
 
       const lpAmount = (await gvt.balanceOf(wallet.address)).divn(new BN(2)).toString();
+      // TODO: remove balance checks on withdrawals if bought token changes
       const { success, error } = await utils.swapAndCheckBalances({
         swap: () => withdrawByLPToken(isPwrd, lpAmount),
-        bought: argent.DAI,
+        bought: argent.USDT,
         sold: gvt,
         wallet,
       });
@@ -100,19 +101,34 @@ contract("Gro Filter", (accounts) => {
     it("should allow withdrawals (2/4)", async () => {
       await deposit(isPwrd);
       const lpAmount = (await gvt.balanceOf(wallet.address)).divn(new BN(2)).toString();
-      const { success, error } = await withdrawByStablecoin(isPwrd, lpAmount);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => withdrawByStablecoin(isPwrd, lpAmount),
+        bought: argent.DAI,
+        sold: gvt,
+        wallet,
+      });
       assert.isTrue(success, `withdrawByStablecoin failed: "${error}"`);
     });
 
     it("should allow withdrawals (3/4)", async () => {
       await deposit(isPwrd);
-      const { success, error } = await withdrawAllSingle(isPwrd);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => withdrawAllSingle(isPwrd),
+        bought: argent.DAI,
+        sold: gvt,
+        wallet,
+      });
       assert.isTrue(success, `withdrawAllSingle failed: "${error}"`);
     });
 
     it("should allow withdrawals (4/4)", async () => {
       await deposit(isPwrd);
-      const { success, error } = await withdrawAllBalanced(isPwrd);
+      const { success, error } = await utils.swapAndCheckBalances({
+        swap: () => withdrawAllBalanced(isPwrd),
+        bought: argent.USDT,
+        sold: gvt,
+        wallet,
+      });
       assert.isTrue(success, `withdrawAllBalanced failed: "${error}"`);
     });
   });

@@ -134,15 +134,16 @@ module.exports.deployArgent = async (accountsArray, options = {}) => {
     return wallet;
   };
 
-  async function tokenBalances() {
+  async function tokenBalances(address) {
+    const account = address || tokenHolder;
     return {
-      ETH: web3.utils.fromWei(await web3.eth.getBalance(tokenHolder)),
-      WETH: web3.utils.fromWei(await tokens.WETH.balanceOf(tokenHolder)),
-      stETH: web3.utils.fromWei(await tokens.stETH.balanceOf(tokenHolder)),
-      DAI: web3.utils.fromWei(await tokens.DAI.balanceOf(tokenHolder)),
-      USDC: new BN(await tokens.USDC.balanceOf(tokenHolder)).div(new BN(1e6)).toString(),
-      USDT: web3.utils.fromWei(await tokens.USDT.balanceOf(tokenHolder)),
-      sUSD: web3.utils.fromWei(await tokens.sUSD.balanceOf(tokenHolder)),
+      ETH: web3.utils.fromWei(await web3.eth.getBalance(account)),
+      WETH: web3.utils.fromWei(await tokens.WETH.balanceOf(account)),
+      stETH: web3.utils.fromWei(await tokens.stETH.balanceOf(account)),
+      DAI: web3.utils.fromWei(await tokens.DAI.balanceOf(account)),
+      USDC: new BN(await tokens.USDC.balanceOf(account)).div(new BN(1e6)).toString(),
+      USDT: web3.utils.fromWei(await tokens.USDT.balanceOf(account)),
+      sUSD: web3.utils.fromWei(await tokens.sUSD.balanceOf(account)),
     };
   }
 
