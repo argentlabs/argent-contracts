@@ -24,8 +24,7 @@ contract("Yearn V2 Filter", (accounts) => {
   before(async () => {
     argent = await deployArgent(accounts);
 
-    // TODO: use ABI unstead of mock to avoid having both variables
-    daiVault = await Vault.at("0x19D3364A399d251E894aC732651be8B0E4e85001");
+    daiVault = await Vault.at("0xdA816459F1AB5631232FE5e97a05BBBb94970c95");
     wethVault = await Vault.at("0xa9fE4601811213c340e850ea305481afF02f5b28");
 
     yvDAI = await ERC20.at(daiVault.address);
@@ -83,7 +82,6 @@ contract("Yearn V2 Filter", (accounts) => {
         sold: yvDAI,
         wallet,
       });
-
       assert.isTrue(success, `withdrawal failed: "${error}"`);
     });
 
@@ -96,26 +94,7 @@ contract("Yearn V2 Filter", (accounts) => {
         sold: yvDAI,
         wallet,
       });
-
       assert.isTrue(success, `withdrawal failed: "${error}"`);
-    });
-
-    it("should not allow direct transfers to pool", async () => {
-      const { success, error } = await argent.multiCall(wallet, [[argent.DAI, "transfer", [daiVault.address, amount]]]);
-      assert.isFalse(success, "transfer should have failed");
-      assert.equal(error, "TM: call not authorised");
-    });
-
-    it("should not allow calling unsupported method", async () => {
-      const { success, error } = await argent.multiCall(wallet, [[daiVault, "setManagementFee", [1]]]);
-      assert.isFalse(success, "setManagementFee() should have failed");
-      assert.equal(error, "TM: call not authorised");
-    });
-
-    it("should not allow sending ETH ", async () => {
-      const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(daiVault.address, ethAmount, "0x")]);
-      assert.isFalse(success, "sending ETH should have failed");
-      assert.equal(error, "TM: call not authorised");
     });
   });
 
@@ -164,6 +143,30 @@ contract("Yearn V2 Filter", (accounts) => {
         wallet,
       });
       assert.isTrue(success, `withdrawETH failed: "${error}"`);
+    });
+  });
+
+  describe("Failure cases", () => {
+    beforeEach(async () => {
+      wallet = await argent.createFundedWallet({ DAI: amount });
+    });
+
+    it("should not allow direct transfers to pool", async () => {
+      const { success, error } = await argent.multiCall(wallet, [[argent.DAI, "transfer", [daiVault.address, amount]]]);
+      assert.isFalse(success, "transfer should have failed");
+      assert.equal(error, "TM: call not authorised");
+    });
+
+    it("should not allow calling unsupported method", async () => {
+      const { success, error } = await argent.multiCall(wallet, [[daiVault, "setManagementFee", [1]]]);
+      assert.isFalse(success, "setManagementFee() should have failed");
+      assert.equal(error, "TM: call not authorised");
+    });
+
+    it("should not allow sending ETH", async () => {
+      const { success, error } = await argent.multiCall(wallet, [utils.encodeTransaction(daiVault.address, ethAmount, "0x")]);
+      assert.isFalse(success, "sending ETH should have failed");
+      assert.equal(error, "TM: call not authorised");
     });
   });
 });
