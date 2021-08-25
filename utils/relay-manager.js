@@ -17,7 +17,7 @@ class RelayManager {
     _gasPrice = 0,
     _refundToken = ETH_TOKEN,
     _refundAddress = ethers.constants.AddressZero) {
-    const relayerAccount = await utils.getAccount(9);
+    const { relayer: relayerAccount } = await utils.getNamedAccounts();
     const nonce = await utils.getNonceForRelay();
     const chainId = await utils.getChainId();
     const methodData = _module.contract.methods[_method](..._params).encodeABI();
@@ -67,10 +67,13 @@ class RelayManager {
       + 4 * empty calldata bytes
       + 70k buffer
     */
-    let gas = gasLimit + 21000 + nonZeros * 16 + zeros * 4 + 70000;
+    let gas = gasLimit + 21_000 + nonZeros * 16 + zeros * 4 + 70_000;
+
+    // TODO: added for an issue with curve but should investigate why needed
+    gas += 50_000;
 
     if (process.env.COVERAGE) {
-      gas += 50000;
+      gas += 50_000;
     }
 
     const tx = await _module.execute(

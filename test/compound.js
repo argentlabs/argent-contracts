@@ -217,7 +217,7 @@ contract("Compound V2", (accounts) => {
         [wallet.address, transactions],
         wallet,
         [owner]);
-      const { success, error } = await utils.parseRelayReceipt(txReceipt);
+      const { success, error } = utils.parseRelayReceipt(txReceipt);
       if (!success) {
         console.log(error);
       }

@@ -8,20 +8,8 @@ const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const ENSReverseRegistrar = artifacts.require("ReverseRegistrar");
 
-const WalletFactory = artifacts.require("WalletFactory");
-const BaseWallet = artifacts.require("BaseWallet");
-const Registry = artifacts.require("ModuleRegistry");
-const TransferStorage = artifacts.require("TransferStorage");
-const GuardianStorage = artifacts.require("GuardianStorage");
-const ArgentModule = artifacts.require("ArgentModule");
-const DappRegistry = artifacts.require("DappRegistry");
-const UniswapV2Router01 = artifacts.require("DummyUniV2Router");
-const Filter = artifacts.require("TestFilter");
-
 const truffleAssert = require("truffle-assertions");
 const utils = require("../utils/utilities.js");
-const { ETH_TOKEN, encodeTransaction } = require("../utils/utilities.js");
-const RelayManager = require("../utils/relay-manager");
 
 const WalletFactoryV16Contract = require("../build-legacy/v1.6.0/WalletFactory");
 const BaseWalletV16Contract = require("../build-legacy/v1.6.0/BaseWallet");
@@ -30,16 +18,12 @@ const WalletFactoryV16 = TruffleContract(WalletFactoryV16Contract);
 const BaseWalletV16 = TruffleContract(BaseWalletV16Contract);
 
 const ZERO_BYTES32 = ethers.constants.HashZero;
-const ZERO_ADDRESS = ethers.constants.AddressZero;
 
 contract("ENS contracts", (accounts) => {
   const infrastructure = accounts[0];
   const owner = accounts[1];
-  const guardian1 = accounts[2];
   const amanager = accounts[3];
   const anonmanager = accounts[4];
-  const recipient = accounts[5];
-  const refundAddress = accounts[7];
 
   const root = "xyz";
   const subnameWallet = "argent";
@@ -49,7 +33,6 @@ contract("ENS contracts", (accounts) => {
   let ensResolver;
   let ensReverse;
   let ensManager;
-  let factory;
 
   before(async () => {
     WalletFactoryV16.defaults({ from: accounts[0] });
@@ -269,128 +252,6 @@ contract("ENS contracts", (accounts) => {
 
       const ensRecord = await ensResolver.addr(labelNode);
       assert.equal(ensRecord, owner);
-    });
-  });
-
-  describe("ENS Integrations", () => {
-    let registry;
-    let wallet;
-    let module;
-    let manager;
-
-    beforeEach(async () => {
-      registry = await Registry.new();
-      const guardianStorage = await GuardianStorage.new();
-      const transferStorage = await TransferStorage.new();
-      const dappRegistry = await DappRegistry.new(0);
-      const filter = await Filter.new();
-
-      await dappRegistry.addDapp(0, ensReverse.address, filter.address);
-      await dappRegistry.addDapp(0, ensManager.address, filter.address);
-      await dappRegistry.addDapp(0, recipient, ZERO_ADDRESS);
-
-      const uniswapRouter = await UniswapV2Router01.new();
-      const SECURITY_PERIOD = 2;
-      const SECURITY_WINDOW = 2;
-      const LOCK_PERIOD = 4;
-      const RECOVERY_PERIOD = 4;
-
-      module = await ArgentModule.new(
-        registry.address,
-        guardianStorage.address,
-        transferStorage.address,
-        dappRegistry.address,
-        uniswapRouter.address,
-        SECURITY_PERIOD,
-        SECURITY_WINDOW,
-        LOCK_PERIOD,
-        RECOVERY_PERIOD);
-
-      manager = new RelayManager(guardianStorage.address, ZERO_ADDRESS);
-
-      await registry.registerModule(module.address, ethers.utils.formatBytes32String("ArgentModule"));
-
-      const walletImplementation = await BaseWallet.new();
-      factory = await WalletFactory.new(
-        walletImplementation.address,
-        guardianStorage.address,
-        refundAddress);
-      await factory.addManager(infrastructure);
-
-      // create wallet
-      const walletAddress = await utils.createWallet(factory.address, owner, [module.address], guardian1);
-      wallet = await BaseWallet.at(walletAddress);
-      await wallet.send(web3.utils.toWei("1"));
-    });
-
-    it("should be able to register label via a relayed multiCall", async () => {
-      const transactions = [];
-      // build the claimWithResolver call
-      let data = ensReverse.contract.methods.claimWithResolver(ensManager.address, ensResolver.address).encodeABI();
-      let transaction = encodeTransaction(ensReverse.address, 0, data);
-      transactions.push(transaction);
-
-      // build the ens register call
-      const label = "wallet";
-      const message = `0x${[
-        wallet.address,
-        ethers.utils.hexlify(ethers.utils.toUtf8Bytes(label)),
-      ].map((hex) => hex.slice(2)).join("")}`;
-      const managerSig = await utils.signMessage(ethers.utils.keccak256(message), infrastructure);
-      data = ensManager.contract.methods.register(label, wallet.address, managerSig).encodeABI();
-      transaction = encodeTransaction(ensManager.address, 0, data, false);
-      transactions.push(transaction);
-
-      const txReceipt = await manager.relay(
-        module,
-        "multiCall",
-        [wallet.address, transactions],
-        wallet,
-        [owner],
-        1,
-        ETH_TOKEN,
-        recipient);
-      const success = await utils.parseRelayReceipt(txReceipt).success;
-      assert.isTrue(success, "call failed");
-
-      const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
-      const recordExists = await ensRegistry.recordExists(labelNode);
-      assert.isTrue(recordExists);
-      const nodeOwner = await ensRegistry.owner(labelNode);
-      assert.equal(nodeOwner, wallet.address);
-      const res = await ensRegistry.resolver(labelNode);
-      assert.equal(res, ensResolver.address);
-
-      // check ens reverse record
-      const reverseNode = await ensReverse.node(wallet.address);
-      const name = await ensResolver.name(reverseNode);
-      assert.equal(name, "wallet.argent.xyz");
-
-      console.log("Gas to register ENS label: ", txReceipt.gasUsed);
-    });
-
-    it("should support registering ens for wallets created using the legacy wallet factory v1.6", async () => {
-      const walletImpl = await BaseWalletV16.new();
-      const factoryV16 = await WalletFactoryV16.new(registry.address, walletImpl.address, ensManager.address);
-      await factoryV16.addManager(infrastructure);
-      await ensManager.addManager(factoryV16.address);
-      const label = "wallet";
-      const tx = await factoryV16.createWallet(owner, [module.address], label, { from: infrastructure });
-      const event = await utils.getEvent(tx.receipt, factoryV16, "WalletCreated");
-      const walletAddr = event.args.wallet;
-
-      const labelNode = ethers.utils.namehash(`${label}.${subnameWallet}.${root}`);
-      const recordExists = await ensRegistry.recordExists(labelNode);
-      assert.isTrue(recordExists);
-      const nodeOwner = await ensRegistry.owner(labelNode);
-      assert.equal(nodeOwner, walletAddr);
-      const res = await ensRegistry.resolver(labelNode);
-      assert.equal(res, ensResolver.address);
-
-      // check ens reverse record
-      const reverseNode = await ensReverse.node(walletAddr);
-      const name = await ensResolver.name(reverseNode);
-      assert.equal(name, "wallet.argent.xyz");
     });
   });
 });
