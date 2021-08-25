@@ -3,17 +3,17 @@
 const readline = require("readline");
 const ethers = require("ethers");
 const BN = require("bn.js");
-const chai = require("chai");
+const { assert, expect } = require("chai");
 
 const WalletFactory = artifacts.require("WalletFactory");
 
-const { assert, expect } = chai;
 const ETH_TOKEN = ethers.constants.AddressZero;
+const ZERO_ADDRESS = ethers.constants.AddressZero;
 const ZERO_BYTES = "0x";
 
 const utilities = {
-
   ETH_TOKEN,
+  ZERO_ADDRESS,
 
   namehash: (name) => ethers.utils.namehash(name),
 
@@ -112,7 +112,7 @@ const utilities = {
 
   hasEvent: async (txReceipt, emitter, eventName) => {
     const event = await utilities.getEvent(txReceipt, emitter, eventName);
-    return expect(event, "Event does not exist in recept").to.exist;
+    return expect(event, "Event does not exist in receipt").to.exist;
   },
 
   getEvent: async (txReceipt, emitter, eventName) => {
@@ -202,41 +202,33 @@ const utilities = {
 
   increaseTime: async (seconds) => {
     const client = await utilities.web3GetClient();
-    const p = new Promise((resolve, reject) => {
-      if (client.indexOf("TestRPC") === -1) {
-        console.warning("Client is not ganache-cli and cannot forward time");
-      } else {
-        web3.currentProvider.send(
-          {
-            jsonrpc: "2.0",
-            method: "evm_increaseTime",
-            params: [seconds],
-            id: 0,
-          },
-          (err) => {
-            if (err) {
-              return reject(err);
-            }
-            return web3.currentProvider.send(
-              {
-                jsonrpc: "2.0",
-                method: "evm_mine",
-                params: [],
-                id: 0,
-              },
-              (err2, res) => {
-                if (err2) {
-                  return reject(err2);
-                }
-                return resolve(res);
-              }
-            );
-          }
-        );
-      }
-    });
-    return p;
+    if (!client.includes("TestRPC")) {
+      console.warning("Client is not ganache-cli and cannot forward time");
+    } else {
+      await utilities.evmIncreaseTime(seconds);
+      await utilities.evmMine();
+    }
   },
+
+  evmIncreaseTime: (seconds) => new Promise((resolve, reject) => web3.currentProvider.send(
+    {
+      jsonrpc: "2.0",
+      method: "evm_increaseTime",
+      params: [seconds],
+      id: 0,
+    },
+    (err, res) => (err ? reject(err) : resolve(res)))
+  ),
+
+  evmMine: () => new Promise((resolve, reject) => web3.currentProvider.send(
+    {
+      jsonrpc: "2.0",
+      method: "evm_mine",
+      params: [],
+      id: 0,
+    },
+    (err, res) => (err ? reject(err) : resolve(res))
+  )),
 
   getNonceForRelay: async () => {
     const block = await web3.eth.getBlockNumber();
@@ -245,9 +237,10 @@ const utilities = {
       .slice(2)}${ethers.utils.hexZeroPad(ethers.utils.hexlify(timestamp), 16).slice(2)}`;
   },
 
-  getAccount: async (index) => {
-    const accounts = await web3.eth.getAccounts();
-    return accounts[index];
+  getNamedAccounts: async (accounts) => {
+    const addresses = accounts || await web3.eth.getAccounts();
+    const [infrastructure, owner, guardian1, relayer, tokenHolder, refundAddress, ...freeAccounts] = addresses;
+    return { infrastructure, owner, guardian1, relayer, tokenHolder, refundAddress, freeAccounts };
   },
 
   encodeFunctionCall: (method, params) => {
@@ -266,9 +259,18 @@ const utilities = {
 
   encodeTransaction: (to, value, data) => ({ to, value, data }),
 
-  encodeCalls: (calls) => (Array.isArray(calls[0]) ? calls : [calls]).map(([instance, method, params = [], value = 0]) => utilities.encodeTransaction(
-    instance.address, value, instance.contract.methods[method](...params).encodeABI())
-  ),
+  /**
+   * @param {Array<Transaction | [TruffleContract, string, any[], NumberLike?]} calls
+   * @returns {Array<Transaction>}
+   */
+  encodeCalls: (calls) => calls.map((call) => {
+    if (!Array.isArray(call)) {
+      return call;
+    }
+    const [instance, method, params = [], value = 0] = call;
+    const data = instance.contract.methods[method](...params).encodeABI();
+    return utilities.encodeTransaction(instance.address, value, data);
+  }),
 
   addTrustedContact: async (wallet, target, module, securityPeriod) => {
     const owner = await wallet.owner();
@@ -280,7 +282,7 @@ const utilities = {
 
   // set the relayer nonce to > 0
   initNonce: async (wallet, module, manager, securityPeriod) => {
-    const nonceInitialiser = await utilities.getAccount(8);
+    const nonceInitialiser = (await utilities.getNamedAccounts()).freeAccounts.slice(-1)[0];
     await utilities.addTrustedContact(wallet, nonceInitialiser, module, securityPeriod);
     const owner = await wallet.owner();
     const transaction = utilities.encodeTransaction(nonceInitialiser, 1, ZERO_BYTES);
@@ -312,7 +314,24 @@ const utilities = {
 
     const event = await utilities.getEvent(tx.receipt, factory, "WalletCreated");
     return event.args.wallet;
-  }
+  },
+
+  swapAndCheckBalances: async ({ swap, bought, sold, wallet }) => {
+    const balanceOf = (token) => (token === ETH_TOKEN ? utilities.getBalance : token.balanceOf)(wallet.address);
+    const getBalances = async () => [await balanceOf(sold), await balanceOf(bought)];
+
+    const [soldBefore, boughtBefore] = await getBalances();
+    const result = await swap();
+    const [soldAfter, boughtAfter] = await getBalances();
+
+    assert.isTrue(result.success, `swap failed: "${result.error}"`);
+    expect(soldBefore.sub(soldAfter)).to.be.gt.BN(0);
+    expect(boughtAfter.sub(boughtBefore)).to.be.gt.BN(0);
+
+    return result;
+  },
+
+  usdcToWei: (amount) => new BN(amount).mul(new BN(1e6)).toString()
 };
 
 module.exports = utilities;
