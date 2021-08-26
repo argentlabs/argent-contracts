@@ -16,8 +16,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.3;
 
-import "../dapp/IFilter.sol";
-import "./IDappRegistry.sol";
+import "argent-trustlists/contracts/interfaces/IFilter.sol";
+import "argent-trustlists/contracts/DappRegistry.sol";
 import "../storage/ITransferStorage.sol";
 import "../../modules/common/Utils.sol";
 
@@ -39,9 +39,9 @@ contract MultiCallHelper {
     // The trusted contacts storage
     ITransferStorage internal immutable userWhitelist;
     // The dapp registry contract
-    IDappRegistry internal immutable dappRegistry;
+    DappRegistry internal immutable dappRegistry;
 
-    constructor(ITransferStorage _userWhitelist, IDappRegistry _dappRegistry) {
+    constructor(ITransferStorage _userWhitelist, DappRegistry _dappRegistry) {
         userWhitelist = _userWhitelist;
         dappRegistry = _dappRegistry;
     }

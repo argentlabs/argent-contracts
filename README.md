@@ -17,6 +17,12 @@ npm install
 ```
 
 ## Compile
+
+Compile whole project
+```
+npm run cc
+```
+
 Compile the external contracts:
 ```
 npm run compile:lib
@@ -39,6 +45,8 @@ npm run provision:lib:artefacts
 
 
 ## Test
+
+Add a `.env` file in the root of the directory with the `INFURA_KEY` property set to your Infura API key (if you need to do deployments) and similarly for `ALCHEMY_KEY` (if you need to run integration tests).
 
 Launch ganache:
 ```
