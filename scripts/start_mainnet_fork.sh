@@ -14,7 +14,7 @@ node_modules/.bin/ganache-cli \
     --gasPrice 0  \
     --gasLimit 20700000 \
     --deterministic \
-    --fork https://mainnet.infura.io/v3/"$INFURA_KEY" \
+    --fork https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_KEY \
     --unlock "0x2F0b23f53734252Bda2277357e97e1517d6B042A" `# WETH whale` \
     --unlock "0xa2f987a546d4cd1c607ee8141276876c26b72bdf" `# stETH whale (AnchorVault)` \
     --unlock "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" `# DAI whale (Compound)` \
