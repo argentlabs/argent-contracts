@@ -1,200 +1,111 @@
 {
-  "ENS": {
-    "deployOwnRegistry": true,
-    "ensRegistry": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
-    "domain": "argent.xyz"
-  },
-  "backend": {
-    "accounts": ["0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"],
-    "refundCollector": "0xdd32a8E9B39713b5Be04Cafb9C13761Ad92504A6",
-    "tradeCommissionCollector": "0xfb2a52012F5E757Ba748d1F8D7f582B8d1a613C0"
-  },
-  "multisig": {
-    "owners": ["0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"],
-    "threshold": 1,
-    "autosign": true
-  },
-  "settings": {
-    "deployer": { "type": "ganache" },
-    "lockPeriod": 480,
-    "timelockPeriod": 2,
-    "recoveryPeriod": 480,
-    "securityPeriod": 240,
-    "securityWindow": 240
-  },
-  "CryptoKitties": { "contract": "0x0000000000000000000000000000000000000000" },
-  "defi": {
-    "weth": "0x0000000000000000000000000000000000000000",
-    "maker": {
-      "deployOwn": true,
-      "tub": "0x0000000000000000000000000000000000000000",
-      "pot": "0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7",
-      "jug": "0x0000000000000000000000000000000000000000",
-      "migration": "0xA94B7f0465E98609391C623d0560C5720a3f2D33"
+    "ENS": {
+        "deployOwnRegistry": true,
+        "ensRegistry": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
+        "domain": "argent.xyz"
     },
-    "uniswap": {
-      "deployOwn": true,
-      "factory": "0x2612Af3A521c2df9EAF28422Ca335b04AdF3ac66",
-      "v2Router": "0x0E696947A06550DEf604e82C26fd9E493e576337",
-      "unizap": "0xDb56f2e9369E0D7bD191099125a3f6C370F8ed15",
-      "factoryV2": "0x630589690929E9cdEFDeF0734717a9eF3Ec7Fcfe",
-      "initCode": "0x505fef446e85683f8d469f9a29612718156edbc931150eb74e2f3ffae9b35392",
-      "initCodeV2": "0x0ad8b7ff6edc3a70462a8fcc2940b2697bf6c62471db0f6b7e88838f9f6a762d",
-      "paraswapUniV2Router": "0x86d3579b043585A97532514016dCF0C2d6C4b6a1",
-      "v3Router": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-      "initCodeV3": "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54",
-      "factoryV3": "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+    "backend": {
+        "accounts": [
+            "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+        ],
+        "refundCollector": "0xdd32a8E9B39713b5Be04Cafb9C13761Ad92504A6",
+        "tradeCommissionCollector": "0xfb2a52012F5E757Ba748d1F8D7f582B8d1a613C0"
     },
-
-    "compound": {
-      "comptroller": "0x0000000000000000000000000000000000000000",
-      "markets": {
-        "0x6b175474e89094c44da98b954eedeac495271d0f": "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643"
-      }
+    "multisig": {
+        "owners": [
+            "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+        ],
+        "threshold": 1,
+        "autosign": true
     },
-    "paraswap": {
-      "deployOwn": true,
-      "contract": "0x59d3631c86BbE35EF041872d502F218A39FBa150",
-      "adapters": {
-        "uniswap": "0x9b1f7F645351AF3631a656421eD2e40f2802E6c0",
-        "uniswapV3": "0xbfBFf2938E3bE0fE588FbF6007F1fdE73C5a9A4E"
-      },
-      "targetExchanges": {
-        "uniswapV3": "0xE592427A0AEce92De3Edee1F18E0157C05861564"
-      },
-      "marketMakers": [],
-      "proxies": { "zeroexv2": "0x95e6f48254609a6ee006f7d493c8e5fb97094cef" },
-      "uniswapProxy": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550",
-      "uniswapForks": [
-        {
-          "factory": "0x0000000000000000000000000000000000000001",
-          "initCode": "0x0000000000000000000000000000000000000000000000000000000000000001",
-          "paraswapUniV2Router": "0xBc1315CD2671BC498fDAb42aE1214068003DC51e"
+    "settings": {
+        "deployer": {
+            "type": "ganache"
         },
-        {
-          "factory": "0x0000000000000000000000000000000000000002",
-          "initCode": "0x0000000000000000000000000000000000000000000000000000000000000002",
-          "paraswapUniV2Router": "0xEC4c8110E5B5Bf0ad8aa89e3371d9C3b8CdCD778"
+        "lockPeriod": 480,
+        "timelockPeriod": 2,
+        "recoveryPeriod": 480,
+        "securityPeriod": 240,
+        "securityWindow": 240
+    },
+    "CryptoKitties": {
+        "contract": "0x0000000000000000000000000000000000000000"
+    },
+    "defi": {
+        "weth": "0x0000000000000000000000000000000000000000",
+        "maker": {
+            "deployOwn": true,
+            "tub": "0x0000000000000000000000000000000000000000",
+            "pot": "0x197E90f9FAD81970bA7976f33CbD77088E5D7cf7",
+            "jug": "0x0000000000000000000000000000000000000000",
+            "migration": "0x6eD79Aa1c71FD7BdBC515EfdA3Bd4e26394435cC"
         },
-        {
-          "factory": "0x0000000000000000000000000000000000000003",
-          "initCode": "0x0000000000000000000000000000000000000000000000000000000000000003",
-          "paraswapUniV2Router": "0xF806F9972F9A34FC05394cA6CF2cc606297Ca6D5"
+        "uniswap": {
+            "deployOwn": true,
+            "factory": "0xA57B8a5584442B467b4689F1144D269d096A3daF",
+            "v2Router": "0xDb56f2e9369E0D7bD191099125a3f6C370F8ed15",
+            "unizap": "0xA94B7f0465E98609391C623d0560C5720a3f2D33",
+            "factoryV2": "0x0E696947A06550DEf604e82C26fd9E493e576337",
+            "initCode": "0x505fef446e85683f8d469f9a29612718156edbc931150eb74e2f3ffae9b35392",
+            "initCodeV2": "0x03c37c1911cecc7ef302eb2548401771156ca5b14b7a1e8350063cd3f12a233f",
+            "paraswapUniV2Router": "0x86d3579b043585A97532514016dCF0C2d6C4b6a1",
+            "v3Router": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+            "initCodeV3": "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54",
+            "factoryV3": "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+        },
+        "paraswap": {
+            "deployOwn": true,
+            "contract": "0x0290FB167208Af455bB137780163b7B7a9a10C16",
+            "adapters": {
+                "uniswap": "0x67B5656d60a809915323Bf2C40A8bEF15A152e3e"
+            },
+            "targetExchanges": {},
+            "marketMakers": [],
+            "proxies": {
+                "zeroexv2": "0x95e6f48254609a6ee006f7d493c8e5fb97094cef"
+            },
+            "uniswapProxy": "0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb",
+            "uniswapForks": [
+                {
+                    "factory": "0x0000000000000000000000000000000000000001",
+                    "initCode": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                    "paraswapUniV2Router": "0xBc1315CD2671BC498fDAb42aE1214068003DC51e"
+                },
+                {
+                    "factory": "0x0000000000000000000000000000000000000002",
+                    "initCode": "0x0000000000000000000000000000000000000000000000000000000000000002",
+                    "paraswapUniV2Router": "0xEC4c8110E5B5Bf0ad8aa89e3371d9C3b8CdCD778"
+                },
+                {
+                    "factory": "0x0000000000000000000000000000000000000003",
+                    "initCode": "0x0000000000000000000000000000000000000000000000000000000000000003",
+                    "paraswapUniV2Router": "0xF806F9972F9A34FC05394cA6CF2cc606297Ca6D5"
+                }
+            ]
         }
-      ]
     },
-    "aave": {
-      "contract": "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",
-      "lendingPool": "0x9E5C7835E4b13368fd628196C4f1c6cEc89673Fa",
-      "lendingPoolCore": "0x4295ee704716950a4de7438086d6f0fbc0ba9472",
-      "aTokens": ["0x2433A1b6FcF156956599280C3Eb1863247CFE675"]
+    "trustlist": {
+        "deployOwn": true,
+        "dappRegistry": "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550"
     },
-    "balancer": {
-      "pools": [
-        "0x59a19d8c652fa0284f44113d0ff9aba70bd46fb4",
-        "0x1eff8af5d577060ba4ac8a29a13525bb0ee2a3d5",
-        "0x8a649274e4d777ffc6851f13d23a86bbfa2f2fbf",
-        "0x5b475f2cc362265ddf6a958f3519a35b305d2824",
-        "0xf54025af2dc86809be1153c1f20d77adb7e8ecf4",
-        "0xe036cce08cf4e23d33bc6b18e53caf532afa8513",
-        "0x72cd8f4504941bf8c5a21d1fd83a96499fd71d2c",
-        "0x454c1d458f9082252750ba42d60fae0887868a3b",
-        "0x9dde0b1d39d0d2c6589cde1bfed3542d2a3c5b11",
-        "0xb1f9ec02480dd9e16053b010dfc6e6c4b72ecad5",
-        "0xe867be952ee17d2d294f2de62b13b9f4af521e9a",
-        "0xe0e6b25b22173849668c85e06bc2ce1f69baff8c",
-        "0xe93e8aa4e88359dacf33c491cf5bd56eb6c110c1",
-        "0xee9a6009b926645d33e10ee5577e9c8d3c95c165",
-        "0xd3c8dcfcf2a5203f6a3210591dabea14e181db2d",
-        "0x9762c600a39bda3359f50a1fb1f90945cead379d",
-        "0x2e22a35a29f0ccafe8c6fb935f7d0269f706ea72",
-        "0xa5da8cc7167070b62fdcb332ef097a55a68d8824",
-        "0xf9ab7776c7baeed1d65f0492fe2bb3951a1787ef",
-        "0x9866772a9bdb4dc9d2c5a4753e8658b8b0ca1fc3",
-        "0x7c90a3cd7ec80dd2f633ed562480abbeed3be546",
-        "0x834fb8276b4e8a24010e2108fdd7f8417c8922bd",
-        "0x6b9887422e2a4ae11577f59ea9c01a6c998752e2",
-        "0xa0313dea2ed259edd2d95986cc9046d1a65f649b",
-        "0x5b18df96d3c8b9f1d1b9e38752498f92d1e2d490",
-        "0x41284a88d970d3552a26fae680692ed40b34010c",
-        "0x5e37910cfb8de1b14ec4e4bac0bec27c35dc07d5",
-        "0x57755f7dec33320bca83159c26e93751bfd30fbe",
-        "0xe010fcda8894c16a8acfef7b37741a760faeddc4"
-      ]
+    "contracts": {
+        "MultiSigWallet": "0x21a59654176f2689d12E828B77a783072CD26680",
+        "WalletFactory": "0x7C728214be9A0049e6a86f2137ec61030D0AA964",
+        "ENSResolver": "0x4bf749ec68270027C5910220CEAB30Cc284c7BA2",
+        "ENSManager": "0xaD888d0Ade988EbEe74B8D4F39BF29a8d0fe8A8D",
+        "TokenPriceProvider": "0xE09C322B745434Fbb2D18c107c13795D4bDF3657",
+        "ModuleRegistry": "0xD86C8F0327494034F60e25074420BcCF560D5610",
+        "BaseWallet": "0x5f8e26fAcC23FA4cbd87b8d9Dbbd33D5047abDE1",
+        "DappRegistry": "0x22d5C8BdD4346b390014a07109a8F830094d4abf",
+        "ArgentWalletDetector": "0x5017A545b09ab9a30499DE7F431DF0855bCb7275",
+        "MultiCallHelper": "0x86072CbFF48dA3C1F01824a6761A03F105BCC697",
+        "TokenRegistry": "0xB9bdBAEc07751F6d54d19A6B9995708873F3DE18",
+        "OnlyApproveFilter": "0x9e90054F4B6730cffAf1E6f6ea10e1bF9dD26dbb"
     },
-    "yearn": {
-      "pools": [
-        "0x597aD1e0c13Bfe8025993D9e79C69E1c0233522e",
-        "0x5dbcF33D8c2E976c6b560249878e6F1491Bca25c",
-        "0x37d19d1c4E1fa9DC47bD1eA12f742a0887eDa74a",
-        "0xACd43E627e64355f1861cEC6d3a6688B31a6F952",
-        "0x2f08119C6f07c006695E079AAFc638b8789FAf18",
-        "0xBA2E7Fed597fd0E3e70f5130BcDbbFE06bB94fe1",
-        "0x2994529C0652D127b7842094103715ec5299bBed",
-        "0x7Ff566E1d69DEfF32a7b244aE7276b9f90e9D0f6",
-        "0x9cA85572E6A3EbF24dEDd195623F188735A5179f",
-        "0xec0d8D3ED5477106c6D4ea27D90a60e594693C90",
-        "0x629c759D1E83eFbF63d84eb3868B564d9521C129",
-        "0x881b06da56BB5675c54E4Ed311c21E54C5025298",
-        "0x29E240CFD7946BA20895a7a02eDb25C210f9f324"
-      ],
-      "wethPools": ["0xe1237aA7f535b0CC33Fd973D66cBf830354D16c7"]
+    "modules": {
+        "GuardianStorage": "0xb09bCc172050fBd4562da8b229Cf3E45Dc3045A6",
+        "TransferStorage": "0xFC628dd79137395F3C9744e33b1c5DE554D94882",
+        "ArgentModule": "0x4339316e04CFfB5961D1c41fEF8E44bfA2A7fBd1"
     },
-    "yearnV2": { "pools": ["0xa9fE4601811213c340e850ea305481afF02f5b28"] },
-    "curve": { "pools": ["0x45f783cce6b7ff23b2ab2d70e416cdb7d6055f51"] },
-    "lido": { "contract": "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84" },
-    "gro": {
-      "depositHandler": "0xFbe33d436Feb07ff78Dc5Bb1AC6FDD069A7b997e",
-      "withdrawHandler": "0xd5cCda0C1E2900fD4B57c782bE4C72A85Ff3cD35"
-    }
-  },
-  "contracts": {
-    "MultiSigWallet": "0x5f8e26fAcC23FA4cbd87b8d9Dbbd33D5047abDE1",
-    "WalletFactory": "0xaD888d0Ade988EbEe74B8D4F39BF29a8d0fe8A8D",
-    "ENSResolver": "0xD86C8F0327494034F60e25074420BcCF560D5610",
-    "ENSManager": "0x4bf749ec68270027C5910220CEAB30Cc284c7BA2",
-    "TokenPriceProvider": "0xE09C322B745434Fbb2D18c107c13795D4bDF3657",
-    "ModuleRegistry": "0x21a59654176f2689d12E828B77a783072CD26680",
-    "BaseWallet": "0xFC628dd79137395F3C9744e33b1c5DE554D94882",
-    "DappRegistry": "0x22d5C8BdD4346b390014a07109a8F830094d4abf",
-    "ArgentWalletDetector": "0x7C728214be9A0049e6a86f2137ec61030D0AA964",
-    "MultiCallHelper": "0x7414e38377D6DAf6045626EC8a8ABB8a1BC4B97a",
-    "TokenRegistry": "0xB9bdBAEc07751F6d54d19A6B9995708873F3DE18",
-    "OnlyApproveFilter": "0x9e90054F4B6730cffAf1E6f6ea10e1bF9dD26dbb"
-  },
-  "filters": {
-    "OnlyApproveFilter": "0xD13ebb5C39fB00C06122827E1cbD389930C9E0E3",
-    "CompoundFilter": ["0x4339316e04CFfB5961D1c41fEF8E44bfA2A7fBd1"],
-    "ParaswapFilter": "0xf19A2A01B70519f67ADb309a994Ec8c69A967E8b",
-    "ParaswapUniV2RouterFilter": [
-      "0xc0b3B62DD0400E4baa721DdEc9B8A384147b23fF",
-      "0x47a2Db5D68751EeAdFBC44851E84AcDB4F7299Cc",
-      "0xeea2Fc1D255Fd28aA15c6c2324Ad40B03267f9c5",
-      "0xe97DbD7116D168190F8A6E7beB1092c103c53a12"
-    ],
-    "CurveFilter": "0x3acc15dE35aaB8A94B7D2426E27c887541e4DE6c",
-    "AaveV2Filter": "0x966d3e76E7a890A2d7B9AE1E370dC219E920F9D4",
-    "BalancerFilter": "0xdFccc9C59c7361307d47c558ffA75840B32DbA29",
-    "YearnFilter": [
-      "0x393A6a6850e0788e496d73c50a436606e6CcA874",
-      "0x71e7EC880873af0FE33Ad988F862bE200FdD85cC"
-    ],
-    "LidoFilter": "0xC045C7B6B976d24728872d2117073c893d0B09C2",
-    "PotFilter": "0xbCFC9461B73D7Fb423552d6cd594f406F7B0585D",
-    "DaiJoinFilter": "0x027e4121d4675465E8029F09511D813c3476Ebf5",
-    "VatFilter": "0xcCf27643fa6C4FC844a8945b7c2F8bd562153649",
-    "UniswapV2UniZapFilter": "0xaa8751Df9FC4b9424831Fb361F0C14096FC0C204",
-    "AaveV1LendingPoolFilter": "0x49455287eBCC42a875B40724C62519D03e2EDcff",
-    "AaveV1ATokenFilter": "0xACF05e2a9b757e70C2900432c9b4E08Fdc54dD53",
-    "WethFilter": "0x2c5f3c004878923f55A2a255F89Fe29393177509",
-    "YearnV2Filter": "0x01c4052ac7EEF0cbDdc83F3780149D52D4174776",
-    "GroWithdrawFilter": "0x01c4052ac7EEF0cbDdc83F3780149D52D4174776",
-    "GroDepositFilter": "0x29fa1c214B7242b704063F2Ec52494f4639A9cc3"
-  },
-  "modules": {
-    "GuardianStorage": "0x6eD79Aa1c71FD7BdBC515EfdA3Bd4e26394435cC",
-    "TransferStorage": "0xb09bCc172050fBd4562da8b229Cf3E45Dc3045A6",
-    "ArgentModule": "0x8c634b72fF5d6A9F6a0281EEF36365E4db8bDF8d"
-  },
-  "gitCommit": "b1f66bba411fc694f6df96fdf43e793f1e741b7c"
+    "gitCommit": "631ac2293d3405ea938a4d6b5e5668f592fc1b6d"
 }

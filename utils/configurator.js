@@ -36,6 +36,10 @@ class Configurator {
     this._config.ENS.ensRegistry = address;
   }
 
+  updateDappRegistry(address) {
+    this._config.trustlist.dappRegistry = address;
+  }
+
   updateParaswap(address, uniswapProxy, adapters, targetExchanges) {
     this._config.defi.paraswap.contract = address;
     this._config.defi.paraswap.uniswapProxy = uniswapProxy;

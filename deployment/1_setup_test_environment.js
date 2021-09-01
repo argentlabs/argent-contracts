@@ -6,6 +6,7 @@ const ENSRegistry = artifacts.require("ENSRegistry");
 const ENSRegistryWithFallback = artifacts.require("ENSRegistryWithFallback");
 const UniswapFactory = artifacts.require("../lib/uniswap/UniswapFactory");
 const UniswapExchange = artifacts.require("../lib/uniswap/UniswapExchange");
+const DappRegistry = artifacts.require("DappRegistry");
 
 // Uniswap V2
 const UniswapV2Router01 = artifacts.require("UniswapV2Router01Mock");
@@ -80,6 +81,12 @@ async function main() {
     // on some testnets, we use our own ENSRegistry
     const address = await deployENSRegistry(deploymentAccount, config.ENS.domain);
     configurator.updateENSRegistry(address);
+  }
+
+  if (config.trustlist.deployOwn) {
+    const DappRegistryWrapper = await DappRegistry.new(0);
+    console.log("Deployed local DappRegistry at ", DappRegistryWrapper.address);
+    configurator.updateDappRegistry(DappRegistryWrapper.address);
   }
 
   if (config.defi.paraswap.deployOwn) {
