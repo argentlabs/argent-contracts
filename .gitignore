@@ -3,6 +3,7 @@ build
 tmp
 bin
 .outputParameter
+.secret
 flatten
 flat
 ## Core latex/pdflatex auxiliary files:
