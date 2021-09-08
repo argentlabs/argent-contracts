@@ -35,13 +35,13 @@
       },
       "additionalProperties": false
     },
-    "Kyber": {
+    "trustlist": {
       "type": "object",
       "properties": {
         "deployOwn": {
           "type": "boolean"
         },
-        "contract": {
+        "dappRegistry": {
           "$ref": "#/definitions/ethaddress"
         }
       },
@@ -54,42 +54,16 @@
         }
       },
       "then": {
-        "required": ["contract"]
+        "required": ["dappRegistry"]
       },
       "additionalProperties": false
-    },
-    "CryptoKitties": {
-      "type": "object",
-      "properties": {
-        "contract": {
-          "$ref": "#/definitions/ethaddress"
-        }
-      },
-      "required": ["contract"]
     },
     "defi": {
       "type": "object",
       "properties": {
-        "weth": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "maker": {
-          "type": "object",
-          "properties": {
-            "pot": {
-              "$ref": "#/definitions/ethaddress"
-            },
-            "migration": {
-              "$ref": "#/definitions/ethaddress"
-            }
-          }
-        },
         "uniswap": {
           "type": "object",
           "properties": {
-            "factory": {
-              "$ref": "#/definitions/ethaddress"
-            },
             "factoryV2": {
               "$ref": "#/definitions/ethaddress"
             },
@@ -100,119 +74,6 @@
               "type": "string"
             },
             "unizap": {
-              "$ref": "#/definitions/ethaddress"
-            }
-          }
-        },
-        "compound": {
-          "type": "object",
-          "properties": {
-            "comptroller": {
-              "$ref": "#/definitions/ethaddress"
-            }
-          }
-        },
-        "paraswap": {
-          "type": "object",
-          "properties": {
-            "contract": {
-              "$ref": "#/definitions/ethaddress"
-            },
-            "paraswapProxy": {
-              "$ref": "#/definitions/ethaddress"
-            },
-            "adapters": {
-              "type": "object"
-            },
-            "uniswapForks": {
-              "type": "array",
-              "items": { "type": "object" }
-            },
-            "targetExchanges": {
-              "type": "object"
-            },
-            "proxies": {
-              "type": "object"
-            },
-            "marketMakers": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/ethaddress" }
-            }
-          }
-        },
-        "aave": {
-          "type": "object",
-          "properties": {
-            "contract": {
-              "$ref": "#/definitions/ethaddress"
-            },
-            "lendingPool": {
-              "$ref": "#/definitions/ethaddress"
-            },
-            "lendingPoolCore": {
-              "$ref": "#/definitions/ethaddress"
-            },
-            "aTokens": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/ethaddress" }
-            }
-          }
-        },
-        "balancer": {
-          "type": "object",
-          "properties": {
-            "pools": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/ethaddress" }
-            }
-          }
-        },
-        "yearn": {
-          "type": "object",
-          "properties": {
-            "pools": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/ethaddress" }
-            },
-            "wethpools": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/ethaddress" }
-            }
-          }
-        },
-        "yearnV2": {
-          "type": "object",
-          "properties": {
-            "pools": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/ethaddress" }
-            }
-          }
-        },
-        "curve": {
-          "type": "object",
-          "properties": {
-            "pools": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/ethaddress" }
-            }
-          }
-        },
-        "lido": {
-          "type": "object",
-          "properties": {
-            "contract": {
-              "$ref": "#/definitions/ethaddress"
-            }
-          }
-        },
-        "gro": {
-          "type": "object",
-          "properties": {
-            "depositHandler": {
-              "$ref": "#/definitions/ethaddress"
-            },
-            "withdrawHandler": {
               "$ref": "#/definitions/ethaddress"
             }
           }
@@ -228,22 +89,10 @@
         "WalletFactory": {
           "$ref": "#/definitions/ethaddress"
         },
-        "WalletFactory16": {
-          "$ref": "#/definitions/ethaddress"
-        },
         "ENSResolver": {
           "$ref": "#/definitions/ethaddress"
         },
         "ENSManager": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "TokenPriceProvider": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "ModuleRegistry": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "DappRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
         "BaseWallet": {
@@ -261,36 +110,16 @@
         "WalletFactory",
         "ENSResolver",
         "ENSManager",
-        "TokenPriceProvider",
-        "ModuleRegistry",
-        "BaseWallet"
+        "BaseWallet",
+        "ArgentWalletDetector",
+        "MultiCallHelper"
       ],
       "additionalProperties": true
-    },
-    "filters": {
-      "type": "object",
-      "patternProperties": {
-        "\\w+Filter$": {
-          "oneOf": [
-            { "$ref": "#/definitions/ethaddress" },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/ethaddress"
-              }
-            }
-          ]
-        }
-      },
-      "additionalProperties": false
     },
     "modules": {
       "type": "object",
       "properties": {
         "GuardianStorage": {
-          "$ref": "#/definitions/ethaddress"
-        },
-        "TokenRegistry": {
           "$ref": "#/definitions/ethaddress"
         },
         "TransferStorage": {
@@ -300,8 +129,8 @@
           "$ref": "#/definitions/ethaddress"
         }
       },
-      "required": ["GuardianStorage", "TransferStorage"],
-      "additionalProperties": true
+      "required": ["GuardianStorage", "TransferStorage", "ArgentModule"],
+      "additionalProperties": false
     },
     "backend": {
       "type": "object",
