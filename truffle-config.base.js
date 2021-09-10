@@ -58,6 +58,17 @@ module.exports = {
       network_id: process.env.PRIVATE_NETWORK_ID
     },
 
+    dev: {
+      provider: () => new AWSWalletProvider(
+        `https://rinkeby.infura.io/v3/${process.env.INFURA_KEY}`,
+        "argent-smartcontracts-dev",
+        "backend/deploy.key"
+      ),
+      network_id: 4, // rinkeby
+      gas: _gasLimit,
+      gasPrice: _gasPrice
+    },
+
     test: {
       provider: () => new AWSWalletProvider(
         `https://ropsten.infura.io/v3/${process.env.INFURA_KEY}`,
