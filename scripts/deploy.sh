@@ -32,7 +32,8 @@ else
     shift
 fi
 
-
+IS_AWS_VAULT_INSTALLED=$(command -v "aws-vault" || echo 0)
+IS_PROFILE_AVAILABLE=$(aws-vault list | grep "argent-$PROFILE" || echo 0)
 
 for IDX in "$@"
 do
@@ -44,7 +45,7 @@ do
         echo "ganache running on port 8545"
         npx truffle exec $FILE --network $NETWORK
     else
-        if ! command -v "aws-vault argent-$PROFILE" &> /dev/null
+        if [ "$IS_AWS_VAULT_INSTALLED" == "0" ] || [ "$IS_PROFILE_AVAILABLE" == "0" ];
         then
             AWS_PROFILE=argent-$PROFILE AWS_SDK_LOAD_CONFIG=true npx truffle exec $FILE --network $NETWORK
         else
