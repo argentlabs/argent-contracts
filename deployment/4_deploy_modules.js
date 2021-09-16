@@ -34,7 +34,7 @@ async function main() {
     config.contracts.ModuleRegistry,
     config.modules.GuardianStorage,
     config.modules.TransferStorage,
-    config.contracts.DappRegistry,
+    config.trustlist.dappRegistry,
     config.defi.uniswap.v2Router,
     config.settings.securityPeriod || 0,
     config.settings.securityWindow || 0,

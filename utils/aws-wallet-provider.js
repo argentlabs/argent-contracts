@@ -5,7 +5,7 @@ const ProviderSubprovider = require("@trufflesuite/web3-provider-engine/subprovi
 
 const Web3 = require("web3");
 const AWS = require("aws-sdk");
-const ethereumjsWallet = require("ethereumjs-wallet");
+const ethereumjsWallet = require("ethereumjs-wallet").default;
 
 const kms = new AWS.KMS();
 const s3 = new AWS.S3();

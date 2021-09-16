@@ -15,6 +15,7 @@ const ENSManager = artifacts.require("ArgentENSManager");
 const ENSResolver = artifacts.require("ArgentENSResolver");
 const WalletFactory = artifacts.require("WalletFactory");
 const ArgentWalletDetector = artifacts.require("ArgentWalletDetector");
+const MultiCallHelper = artifacts.require("MultiCallHelper");
 
 const utils = require("../utils/utilities.js");
 const deployManager = require("../utils/deploy-manager.js");
@@ -62,6 +63,9 @@ async function main() {
   // Deploy ArgentWalletDetector contract
   const ArgentWalletDetectorWrapper = await ArgentWalletDetector.new([], []);
   console.log("Deployed ArgentWalletDetector at ", ArgentWalletDetectorWrapper.address);
+  // Deploy MultiCall Helper
+  const MultiCallHelperWrapper = await MultiCallHelper.new(TransferStorageWrapper.address, config.trustlist.dappRegistry);
+  console.log("Deployed MultiCallHelper at ", MultiCallHelperWrapper.address);
 
   // /////////////////////////////////////////////////
   // Making ENSManager owner of the root wallet ENS
@@ -148,6 +152,7 @@ async function main() {
     ENSManager: ENSManagerWrapper.address,
     ModuleRegistry: ModuleRegistryWrapper.address,
     BaseWallet: BaseWalletWrapper.address,
+    MultiCallHelper: MultiCallHelperWrapper.address,
   });
   await configurator.save();
 
@@ -161,6 +166,7 @@ async function main() {
     abiUploader.upload(ENSManagerWrapper, "contracts"),
     abiUploader.upload(ModuleRegistryWrapper, "contracts"),
     abiUploader.upload(BaseWalletWrapper, "contracts"),
+    abiUploader.upload(MultiCallHelperWrapper, "contracts"),
   ]);
 
   console.log("## completed deployment script 2 ##");
