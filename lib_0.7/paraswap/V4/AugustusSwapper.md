@@ -15,7 +15,7 @@ To understand this better lets take an example. Suppose user wants to swap ETH -
     1. **Path #1**: ETH -> BNT
         1. 30% of ETH(0.3) sent to Uniswap and get 20 BNT in return
         2. 50% of ETH(0.5) sent to Bancor and get 35 BNT in return
-        3 20% of ETH(0.2) sent to Kyber and get 18 BNT in return
+        3. 20% of ETH(0.2) sent to Kyber and get 18 BNT in return
     2. Overall 73 BNTs are returned after path 01 is executed
     3. **Path #2**: BNT -> DAI
         1. 100% of BNT to 0x and get 100 DAIs
