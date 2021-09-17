@@ -43,6 +43,9 @@
         },
         "dappRegistry": {
           "$ref": "#/definitions/ethaddress"
+        },
+        "tokenRegistry": {
+          "$ref": "#/definitions/ethaddress"
         }
       },
       "required": ["deployOwn"],
@@ -54,7 +57,7 @@
         }
       },
       "then": {
-        "required": ["dappRegistry"]
+        "required": ["dappRegistry", "tokenRegistry"]
       },
       "additionalProperties": false
     },
@@ -130,7 +133,7 @@
         }
       },
       "required": ["GuardianStorage", "TransferStorage", "ArgentModule"],
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "backend": {
       "type": "object",
