@@ -36,7 +36,7 @@ async function main() {
   const accounts = await web3.eth.getAccounts();
   const deploymentAccount = accounts[0];
 
-  const TokenRegistryWrapper = await TokenRegistry.at(config.contracts.TokenRegistry);
+  const TokenRegistryWrapper = await TokenRegistry.at(config.trustlist.tokenRegistry);
 
   const data = JSON.parse(fs.readFileSync(input, "utf8"));
   const addresses = Object.keys(data);
