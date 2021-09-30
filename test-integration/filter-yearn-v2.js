@@ -25,7 +25,7 @@ contract("Yearn V2 Filter", (accounts) => {
     argent = await deployArgent(accounts);
 
     daiVault = await Vault.at("0xdA816459F1AB5631232FE5e97a05BBBb94970c95");
-    wethVault = await Vault.at("0xa9fE4601811213c340e850ea305481afF02f5b28");
+    wethVault = await Vault.at("0xa258C4606Ca8206D8aA700cE2143D7db854D168c");
 
     yvDAI = await ERC20.at(daiVault.address);
     yvWETH = await ERC20.at(wethVault.address);

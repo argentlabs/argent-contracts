@@ -42,5 +42,6 @@ coverage.json
 
 crytic-export
 gas-usage-report.log
+venv
 
 token-registry/

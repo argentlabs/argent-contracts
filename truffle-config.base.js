@@ -24,8 +24,8 @@ const HDWalletProvider = require("@truffle/hdwallet-provider");
 
 const AWSWalletProvider = require("./utils/aws-wallet-provider.js");
 
-const _gasPrice = process.env.DEPLOYER_GAS_PRICE || 20000000000;
-const _gasLimit = 8000000;
+const _gasPrice = (process.env.DEPLOYER_GAS_PRICE || "").replace(/_/g, "") || 20_000_000_000;
+const _gasLimit = 8_000_000;
 
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
@@ -123,9 +123,9 @@ module.exports = {
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
     // ropsten: {
-    // provider: () => new HDWalletProvider(mnemonic, `https://ropsten.infura.io/v3/YOUR-PROJECT-ID`),
+    // provider: () => new HDWalletProvider(mnemonic, `https://ropsten.infura.io/v3/${process.env.INFURA_KEY}`),
     // network_id: 3,       // Ropsten's id
-    // gas: 5500000,        // Ropsten has a lower block limit than mainnet
+    // gas: 5_500_000,      // Ropsten has a lower block limit than mainnet
     // confirmations: 2,    // # of confs to wait between deployments. (default: 0)
     // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
     // skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
@@ -142,7 +142,7 @@ module.exports = {
   // Set default mocha options here, use special reporters etc.
   mocha: {
     useColors: true,
-    timeout: 1000000,
+    timeout: 1_000_000,
     reporter: "eth-gas-reporter",
     reporterOptions: {
       currency: "USD",
