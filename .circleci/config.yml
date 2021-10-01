@@ -2,17 +2,10 @@ version: 2
 
 job_common: &job_common
   docker:
-    - image: circleci/node:14.17.3-stretch
+    - image: circleci/python:3.9.7-node  # uses node 14.17.5
       auth:
           username: argentcircleci
           password: $DOCKERHUB_PASSWORD
-  working_directory: ~/argent-contracts
-job_python: &job_python
-  docker:
-    - image: circleci/python:3.8.0b1-stretch-node
-      auth:
-        username: argentcircleci
-        password: $DOCKERHUB_PASSWORD
   working_directory: ~/argent-contracts
 step_save_cache: &step_save_cache
   save_cache:
@@ -28,19 +21,6 @@ step_setup_global_packages: &step_setup_global_packages
     name: "Set up global packages"
     command: |
       npm install
-step_setup_slither: &step_setup_slither
-  run:
-    name: "Setup slither analyser https://github.com/crytic/slither"
-    command: |
-      sudo pip3 install slither-analyzer
-      sudo apt-get install jq
-step_setup_solc_select: &step_setup_solc_select
-  run:
-    name: "Setup solc-select"
-    command: |
-      sudo pip3 install solc-select
-      solc-select install 0.5.4
-      solc-select install 0.8.3
 jobs:
   unit-test:
     <<: *job_common
@@ -93,13 +73,24 @@ jobs:
           path: coverage
           destination: coverage-artifacts
   security-test:
-    <<: *job_python
+    <<: *job_common
     steps:
       - checkout
       - <<: *step_restore_cache
       - <<: *step_setup_global_packages
-      - <<: *step_setup_slither
-      - <<: *step_setup_solc_select
+      - run:
+          name: "Setup slither analyser https://github.com/crytic/slither"
+          command: |
+            sudo pip3 install slither-analyzer
+            sudo apt-get install jq
+          when: always
+      - run:
+          name: "Setup solc-select"
+          command: |
+            sudo pip3 install solc-select
+            solc-select install 0.5.4
+            solc-select install 0.8.3
+          when: always
       - run:
           name: "Run slither on infrastructure contracts based on solc 0.5"
           command:  |
@@ -128,6 +119,7 @@ workflows:
   version: 2
   commit:
     jobs:
+      - security-test
       - unit-test
   nightly:
     triggers:
@@ -139,3 +131,4 @@ workflows:
                 - develop
     jobs:
       - security-test
+      - unit-test
