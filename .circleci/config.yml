@@ -83,14 +83,12 @@ jobs:
           command: |
             sudo pip3 install slither-analyzer
             sudo apt-get install jq
-          when: always
       - run:
           name: "Setup solc-select"
           command: |
             sudo pip3 install solc-select
             solc-select install 0.5.4
             solc-select install 0.8.3
-          when: always
       - run:
           name: "Run slither on infrastructure contracts based on solc 0.5"
           command:  |
@@ -119,8 +117,8 @@ workflows:
   version: 2
   commit:
     jobs:
-      - security-test
       - unit-test
+      - security-test
   nightly:
     triggers:
       - schedule:
@@ -130,5 +128,5 @@ workflows:
               only:
                 - develop
     jobs:
-      - security-test
       - unit-test
+      - security-test
