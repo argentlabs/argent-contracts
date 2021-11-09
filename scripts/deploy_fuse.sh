@@ -14,3 +14,4 @@ node_modules/.bin/etherlime deploy --file deployment/10_upgrade_v1_4.js --networ
 node_modules/.bin/etherlime deploy --file deployment/11_1_deploy_contracts_v141.js --network $NETWORK --compile false
 node_modules/.bin/etherlime deploy --file deployment/11_2_deploy_contracts_v142.js --network $NETWORK --compile false
 node_modules/.bin/etherlime deploy --file deployment/12_v1_5_upgrade_transfer_manager.js --network $NETWORK --compile false
+node_modules/.bin/etherlime deploy --file deployment/12_v1_6_add_nft_transfer.js --network $NETWORK --compile false

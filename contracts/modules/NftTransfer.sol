@@ -4,7 +4,7 @@ import "./common/BaseModule.sol";
 import "./common/RelayerModule.sol";
 import "./common/OnlyOwnerModule.sol";
 import "../storage/GuardianStorage.sol";
-
+import "../interfaces/INftFactory.sol";
 /**
  * @title NftTransfer
  * @dev Module to transfer NFTs (ERC721),
@@ -19,9 +19,9 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     // The Guardian storage 
     GuardianStorage public guardianStorage;
-    // The address of the CryptoKitties contract
-    address public ckAddress;
 
+    // Address of the nftFactory to claim Nft's
+    INftFactory public nftFactory;
     // *************** Events *************************** //
 
     event NonFungibleTransfer(address indexed wallet, address indexed nftContract, uint256 indexed tokenId, address to, bytes data);    
@@ -41,14 +41,14 @@ contract NftTransfer is BaseModule, RelayerModule, OnlyOwnerModule {
 
     constructor(
         ModuleRegistry _registry,
-        GuardianStorage _guardianStorage,
-        address _ckAddress
+        GuardianStorage _guardianStorage.
+        address _nftFactory
     )
         BaseModule(_registry, NAME)
         public
     {
         guardianStorage = _guardianStorage;
-        ckAddress = _ckAddress;
+        nftFactory = _nftFactory;
     }
 
     // *************** External/Public Functions ********************* //
@@ -103,20 +103,38 @@ function transferNFT(
         onlyWhenUnlocked(_wallet)
     {
         bytes memory methodData;
-        if(_nftContract == ckAddress) {
-            methodData = abi.encodeWithSignature("transfer(address,uint256)", _to, _tokenId);
+        if(_safe) {
+            methodData = abi.encodeWithSignature(
+                "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
         } else {
-           if(_safe) {
-               methodData = abi.encodeWithSignature(
-                   "safeTransferFrom(address,address,uint256,bytes)", address(_wallet), _to, _tokenId, _data);
-           } else {
-               require(isERC721(_nftContract, _tokenId), "NT: Non-compliant NFT contract");
-               methodData = abi.encodeWithSignature(
-                   "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
-           }
+            require(isERC721(_nftContract, _tokenId), "NT: Non-compliant NFT contract");
+            methodData = abi.encodeWithSignature(
+                "transferFrom(address,address,uint256)", address(_wallet), _to, _tokenId);
         }
+        
         _wallet.invoke(_nftContract, 0, methodData);
-        emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, _data);
+        emit NonFungibleTransfer(address(_wallet), _nftContract, _tokenId, _to, 0x);
+    }
+
+        /**
+    * @dev lets the owner transfer NFTs from a wallet.
+    * @param _wallet The target wallet.
+    * @param _nftContract The ERC721 address.
+    * @param _to The recipient.
+    * @param _tokenId The NFT id
+    * @param _safe Whether to execute a safe transfer or not
+    * @param _data The data to pass with the transfer.
+    */
+function claimNFT(
+        BaseWallet _wallet,
+        address _nftFactory,
+    )
+        external
+        onlyWalletOwner(_wallet)
+        onlyWhenUnlocked(_wallet)
+    {
+        uint256 tokenId = nftFactory.claimNft(_wallet);
+        emit NonFungibleTransfer(address(_wallet), nftFactory.nftContract(), _tokenId, address(_wallet), _data);
     }
 
     // *************** Internal Functions ********************* //

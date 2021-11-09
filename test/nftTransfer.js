@@ -14,7 +14,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 const TestManager = require("../utils/test-manager");
 const { parseRelayReceipt } = require("../utils/utilities.js");
 
-describe("Test Token Transfer", function () {
+describe.only("Test Token Transfer", function () {
     this.timeout(10000);
 
     const manager = new TestManager();
@@ -23,7 +23,7 @@ describe("Test Token Transfer", function () {
     const owner2 = accounts[2].signer;
     const eoaRecipient = accounts[3].signer;
 
-    let nftModule, wallet1, wallet2, erc721, ck, ckId, erc20, erc20Approver;
+    let nftModule, wallet1, wallet2, erc721, erc20, erc20Approver;
 
     const tokenId = 1;
 
@@ -33,11 +33,9 @@ describe("Test Token Transfer", function () {
         const registry = await deployer.deploy(Registry);
 
         const guardianStorage = await deployer.deploy(GuardianStorage);
-        ck = await deployer.deploy(CK);
         nftModule = await deployer.deploy(NftModule, {},
             registry.contractAddress,
-            guardianStorage.contractAddress,
-            ck.contractAddress
+            guardianStorage.contractAddress
         );
         erc20Approver = await deployer.deploy(ERC20Approver, {}, registry.contractAddress);
     });
@@ -107,30 +105,6 @@ describe("Test Token Transfer", function () {
             it('should allow safe NFT transfer from wallet1 to wallet2 (relayed)', async () => {
                 await testNftTransfer({ safe: true, relayed: true, recipientAddress: wallet2.contractAddress });
             });
-        });
-
-        describe("CK transfer", () => {
-            beforeEach(async () => {
-                await ck.createDumbKitty(wallet1.contractAddress);
-                ckId = (ckId === undefined) ? 0 : ckId + 1; // update the id of the CryptoKitty that was just created
-            });
-
-            it('should allow CK transfer from wallet1 to wallet2', async () => {
-                await testNftTransfer({ relayed: false, nftId: ckId, nftContract: ck, recipientAddress: wallet2.contractAddress });
-            });
-
-            it('should allow CK transfer from wallet1 to wallet2 (relayed)', async () => {
-                await testNftTransfer({ relayed: true, nftId: ckId, nftContract: ck, recipientAddress: wallet2.contractAddress });
-            });
-
-            it('should allow CK transfer from wallet1 to EOA account', async () => {
-                await testNftTransfer({ relayed: false, nftId: ckId, nftContract: ck, recipientAddress: eoaRecipient.address });
-            });
-
-            it('should allow CK transfer from wallet1 to EOA account (relayed)', async () => {
-                await testNftTransfer({ relayed: true, nftId: ckId, nftContract: ck, recipientAddress: eoaRecipient.address });
-            });
-
         });
 
         describe("Protecting from transferFrom hijacking", () => {
