@@ -14,7 +14,7 @@ const ZERO_BYTES32 = ethers.constants.HashZero;
 const TestManager = require("../utils/test-manager");
 const { parseRelayReceipt } = require("../utils/utilities.js");
 
-describe.only("Test Token Transfer", function () {
+describe("Test Token Transfer", function () {
     this.timeout(10000);
 
     const manager = new TestManager();
