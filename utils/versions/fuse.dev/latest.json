@@ -1,1 +1,47 @@
-{"version":"1.5.0","createdAt":1630845216,"modules":[{"address":"0x3879F0446E8F0ed428CCDAc5C373c163E9540D32","name":"GuardianManager"},{"address":"0xf132640136FF929e5a1D067f21030ec079bfa239","name":"LockManager"},{"address":"0xD201b3e96d6794fBB4Dc20A37e1a3757DEA971fD","name":"RecoveryManager"},{"address":"0xB8c17dDA33b331CA94B82f63f03a60f736cF5Cd7","name":"TokenExchanger"},{"address":"0xD79efF89dEcC300b19D9ee2AAc713da2D2253620","name":"MakerManager"},{"address":"0x6D04DC125227fCDABcC18EFE3De89eAde15e4eE8","name":"TransferManager"},{"address":"0x15eAEE837143D5509d4A3c1Bb1388225e689E830","name":"ApprovedTransfer"},{"address":"0xC85ee948605f3AF743D27D2A57bA0f0FB9805F0F","name":"CommunityManager"},{"address":"0xc81a757c05F42e299E5c66CA1e28b3c10b0594Bb","name":"WalletOwnershipManager"},{"address":"0x8EaB65C95212750BDA8748a87a9994e1Bad25354","name":"NftTransfer"}],"fingerprint":"0xdf4e180a"}
+{
+  "version": "1.7.0",
+  "createdAt": 1638973538,
+  "modules": [
+    {
+      "address": "0x3879F0446E8F0ed428CCDAc5C373c163E9540D32",
+      "name": "GuardianManager"
+    },
+    {
+      "address": "0xf132640136FF929e5a1D067f21030ec079bfa239",
+      "name": "LockManager"
+    },
+    {
+      "address": "0xD201b3e96d6794fBB4Dc20A37e1a3757DEA971fD",
+      "name": "RecoveryManager"
+    },
+    {
+      "address": "0xB8c17dDA33b331CA94B82f63f03a60f736cF5Cd7",
+      "name": "TokenExchanger"
+    },
+    {
+      "address": "0xD79efF89dEcC300b19D9ee2AAc713da2D2253620",
+      "name": "MakerManager"
+    },
+    {
+      "address": "0x6D04DC125227fCDABcC18EFE3De89eAde15e4eE8",
+      "name": "TransferManager"
+    },
+    {
+      "address": "0x15eAEE837143D5509d4A3c1Bb1388225e689E830",
+      "name": "ApprovedTransfer"
+    },
+    {
+      "address": "0xC85ee948605f3AF743D27D2A57bA0f0FB9805F0F",
+      "name": "CommunityManager"
+    },
+    {
+      "address": "0xc81a757c05F42e299E5c66CA1e28b3c10b0594Bb",
+      "name": "WalletOwnershipManager"
+    },
+    {
+      "address": "0x444cE70253F221E08B5B34dAbeA492847FFAaff5",
+      "name": "NftTransfer"
+    }
+  ],
+  "fingerprint": "0xd200af78"
+}

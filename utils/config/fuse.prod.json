@@ -45,7 +45,7 @@
     },
     "uniswap": { "factory": "0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30" }
   },
-  "gitCommit": "1fafa40781784589b76137f46f9bc97d71a4521f",
+  "gitCommit": "adc966209a5d6a08557cb0828bc0ffc058cd8f69",
   "modules": {
     "ApprovedTransfer": "0x2cbE5fE3d259313F25Ac2Dd10FAB8B851561F366",
     "CommunityManager": "0x0D4926876ba1ada6E9b542e018eBeD517FFc8050",
@@ -58,7 +58,7 @@
     "LockManager": "0x8221d124f8255f61fC5f1dbb2382364B53355574",
     "MakerManager": "0x30A822984eEdf3e619D05d24Bb109986AC1B5038",
     "MakerV2Manager": "0x0a78ECd7db74B00C010177E930EA429F0C7e0242",
-    "NftTransfer": "0xFaDD67a8CfA641b7020bdd99a77BF2a88ECfeDd9",
+    "NftTransfer": "0x856283dD385f53FEAd47aA981517eEa564379cFC",
     "RecoveryManager": "0xcB4606396746Cd62Ac9ea9Cc0fCc5B16BE73E7aF",
     "TokenExchanger": "0xaA556969CB2782052A2eADEA32e660d40f4C4281",
     "TokenTransfer": "0xb81eC49d93Ed336771C1bC6448bFB262403fEef4",
