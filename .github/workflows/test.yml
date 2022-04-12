@@ -50,7 +50,7 @@ jobs:
       - name: Save test artifacts
         run: mkdir -p reports && cp gas-usage-report.log reports
 
-      - run: npx codechecks
+      # - run: npx codechecks
 
       # Integration tests
 
