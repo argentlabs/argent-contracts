@@ -19,3 +19,25 @@ jobs:
 
       - name: Lint JavaScript
         run: npm run lint:js
+
+      - name: "Lint Solidity contracts"
+        run: npm run lint:contracts
+
+      - name: "Compiling external library contracts"
+        run: npm run compile:lib
+
+      - name: "Compiling contracts"
+        run: npm run compile
+
+      - name: "Compiling test contracts"
+        run: npm run compile:test
+
+      - name: "Provision lib artefacts"
+        run: npm run provision:lib:artefacts
+
+      - name: "Test deployment scripts"
+        run: npm run ganache >/dev/null 2>&1 & npm run test:deployment
+        # no_output_timeout: 60m
+
+      - name: "Running unit tests"
+        run: npm run ganache >/dev/null 2>&1 & npm run test
