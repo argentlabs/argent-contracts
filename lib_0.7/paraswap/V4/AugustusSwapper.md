@@ -50,7 +50,7 @@ The gas tokens are held in the wallet owned by paraswap.io and consumed during t
 
 ## Pausable
 
-The AugustusSwapper contract must be pausable in nature. This feature is required to ensure that the paraswap.io team is able to pause contract in case any severe attack vectors are found in the contract. This will allow them to render contract unusable for future trades and deploy the fixed version of the contract
+The AugustusSwapper contract must be pausable in nature. This feature is required to ensure that the paraswap.io team is able to pause contract in case any severe attack vectors are found in the contract. This will allow them to render contract unusable for future trades and deploy the fixed version of the contract.
 
 
 ## Fee
