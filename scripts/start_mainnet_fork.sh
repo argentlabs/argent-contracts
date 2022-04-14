@@ -2,7 +2,7 @@
 if [ -z "$CI" ]; then
     source .env
 
-    lsof -it tcp:3601 | xargs kill
+    lsof -ti tcp:3601 | xargs kill
 fi
 
 # Exit script as soon as a command fails.

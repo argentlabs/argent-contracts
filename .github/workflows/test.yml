@@ -2,6 +2,8 @@ name: Tests
 
 on:
   pull_request:
+  schedule:
+    - cron: "0 1 * * *" # 1am UTC
 
 jobs:
   unit-tests:
@@ -32,7 +34,7 @@ jobs:
         run: npm run ganache >/dev/null 2>&1 & npm run test
 
       - name: Cleaning up ganache
-        run: lsof -it tcp:8545 | xargs kill
+        run: lsof -ti tcp:8545 | xargs kill
 
       - name: Running coverage
         run: npm run test:coverage
@@ -55,7 +57,8 @@ jobs:
       - name: Running integration tests
         env: 
           ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
-        run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
+        run: npm run mainnet-fork
+        # run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
 
   security-tests:
     runs-on: ubuntu-latest

@@ -107,7 +107,7 @@ module.exports = {
       port: 3601,
       gasPrice: 0,
       network_id: "1",
-      networkCheckTimeout: 999999,
+      networkCheckTimeout: 5 * 60e3, // 5 minutes
     },
 
     // Another network with more advanced options...
