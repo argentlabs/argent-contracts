@@ -31,7 +31,7 @@ contract("Gro Filter", (accounts) => {
     pwrd = await ERC20.at("0xf0a93d4994b3d98fb5e3a2f90dbc2d69073cb86b");
 
     const controller = await Controller.at("0xCC5c60A319D33810b9EaB9764717EeF84deFB8F4");
-    await controller.switchEoaOnly(false, { from: "0xdc954086cf07f3889f186118395bad186179ac77" });
+    await controller.switchEoaOnly(false, { from: "0x359f4fe841f246a095a82cb26f5819e10a91fe0d" });
 
     depositHandler = await DepositHandler.at("0xB7207Ea9446DcA1dEC1c1FC93c6Fcdf8B4a44F40");
     withdrawHandler = await WithdrawHandler.at("0x641bEFA4dB601578A64F0Fc1f4E89E9869268Fe7");
