@@ -57,11 +57,11 @@ jobs:
       # - name: Running integration tests
         # run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
 
-      - name: "Running coverage"
-        run: |
-          npm run compile
-          npm run compile:test
-          npm run test:coverage
+      # - name: "Running coverage"
+        # run: |
+          # npm run compile
+          # npm run compile:test
+          # npm run test:coverage
 
       # Security tests
 
