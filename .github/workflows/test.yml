@@ -54,8 +54,8 @@ jobs:
 
       # Integration tests
 
-      - name: Running integration tests
-        run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
+      # - name: Running integration tests
+        # run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
 
       - name: "Running coverage"
         run: |
