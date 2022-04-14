@@ -57,8 +57,7 @@ jobs:
       - name: Running integration tests
         env: 
           ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
-        run: npm run mainnet-fork
-        # run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
+        run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
 
   security-tests:
     runs-on: ubuntu-latest
