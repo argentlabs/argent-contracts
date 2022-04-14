@@ -52,7 +52,7 @@
     "type": "git",
     "url": "git+https://github.com/argentlabs/argent-contracts.git"
   },
-  "author": "",
+  "author": "Argent Labs",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/argentlabs/argent-contracts/issues"
