@@ -31,10 +31,11 @@ jobs:
       - name: Running unit tests
         run: npm run ganache >/dev/null 2>&1 & npm run test
 
-      - name: "Running coverage"
-        run: |
-          lsof -ti tcp:8545 | xargs kill
-          npm run test:coverage
+      - name: Cleaning up ganache
+        run: lsof -ti tcp:8545 | xargs kill
+
+      - name: Running coverage
+        run: npm run test:coverage
 
   integration-tests:
     runs-on: ubuntu-latest
