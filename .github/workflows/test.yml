@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  tests:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -13,11 +13,6 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: "14"
-
-      - name: Setup Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.9.7" 
 
       - run: npm install
 
@@ -42,28 +37,57 @@ jobs:
       - name: Test deployment scripts
         run: npm run ganache >/dev/null 2>&1 & npm run test:deployment
 
-      # Unit tests
-
-      # - name: Running unit tests
-        # run: npm run ganache >/dev/null 2>&1 & npm run test
+      - name: Running unit tests
+        run: npm run ganache >/dev/null 2>&1 & npm run test
 
       - name: Save test artifacts
         run: mkdir -p reports && cp gas-usage-report.log reports
 
       # - run: npx codechecks
 
-      # Integration tests
+      - name: "Running coverage"
+        run: |
+          npm run compile
+          npm run compile:test
+          npm run test:coverage
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - run: npm install
+
+      - name: Compiling all contracts
+        run: npm run cc
 
       - name: Running integration tests
         run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
 
-      # - name: "Running coverage"
-        # run: |
-          # npm run compile
-          # npm run compile:test
-          # npm run test:coverage
+  security-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
-      # Security tests
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Setup Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9.7" 
+
+      - run: npm install
+
+      - name: Compiling all contracts
+        run: npm run cc
 
       - name: "Setup slither analyser https://github.com/crytic/slither"
         run: |
