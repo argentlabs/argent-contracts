@@ -25,7 +25,7 @@ const HDWalletProvider = require("@truffle/hdwallet-provider");
 const AWSWalletProvider = require("./utils/aws-wallet-provider.js");
 
 const _gasPrice = (process.env.DEPLOYER_GAS_PRICE || "").replace(/_/g, "") || 20_000_000_000;
-const _gasLimit = 8_000_000;
+const _gasLimit = (process.env.DEPLOYER_GAS_LIMIT || "").replace(/_/g, "") || 8_000_000;
 
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
@@ -143,7 +143,7 @@ module.exports = {
   mocha: {
     useColors: true,
     timeout: 1_000_000,
-    reporter: "eth-gas-reporter",
+    // reporter: "eth-gas-reporter",
     reporterOptions: {
       currency: "USD",
       onlyCalledMethods: true,
