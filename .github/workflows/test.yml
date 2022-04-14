@@ -44,8 +44,8 @@ jobs:
 
       # Unit tests
 
-      - name: Running unit tests
-        run: npm run ganache >/dev/null 2>&1 & npm run test
+      # - name: Running unit tests
+        # run: npm run ganache >/dev/null 2>&1 & npm run test
 
       - name: Save test artifacts
         run: mkdir -p reports && cp gas-usage-report.log reports
@@ -54,8 +54,8 @@ jobs:
 
       # Integration tests
 
-      # - name: Running integration tests
-        # run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
+      - name: Running integration tests
+        run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
 
       # - name: "Running coverage"
         # run: |
