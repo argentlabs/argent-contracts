@@ -31,11 +31,6 @@ jobs:
       - name: Running unit tests
         run: npm run ganache >/dev/null 2>&1 & npm run test
 
-      - name: Save test artifacts
-        run: mkdir -p reports && cp gas-usage-report.log reports
-
-      # - run: npx codechecks
-
       - name: "Running coverage"
         run: |
           lsof -ti tcp:8545 | xargs kill
