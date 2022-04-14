@@ -46,7 +46,7 @@ npm run provision:lib:artefacts
 
 ## Test
 
-Add a `.env` file in the root of the directory with the `INFURA_KEY` property set to your Infura API key (if you need to do deployments) and similarly for `ALCHEMY_KEY` (if you need to run integration tests).
+Add an `.env` file in the root of the directory with the `INFURA_KEY` property set to your Infura API key (if you need to do deployments) and similarly for `ALCHEMY_KEY` (if you need to run integration tests).
 
 Launch ganache:
 ```
