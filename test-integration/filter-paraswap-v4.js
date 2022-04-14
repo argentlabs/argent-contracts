@@ -96,7 +96,7 @@ const TARGET_EXCHANGES = {
 };
 const MARKET_MAKERS = ["0x56178a0d5f301baf6cf3e1cd53d9863437345bf9"];
 const ZEROEXV2_PROXY = "0x95e6f48254609a6ee006f7d493c8e5fb97094cef";
-const PARASWAP_OWNER = "0xe6B692dcC972b9a5C3C414ac75dDc420B9eDC92d";
+const PARASWAP_OWNER = "0x36fedc70fec3b77caaf50e6c524fd7e5dfbd629a";
 const ETHMOON_TOKEN = "0x5dcfa62f81b43ce7a3632454d327dee1f1d93b28";
 
 const { ZERO_ADDRESS, encodeTransaction, encodeCalls } = utils;

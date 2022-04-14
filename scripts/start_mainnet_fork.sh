@@ -2,7 +2,7 @@
 if [ -z "$CI" ]; then
     source .env
 
-    lsof -i tcp:3601 | grep LISTEN | awk '{print $2}' | xargs kill
+    lsof -ti tcp:3601 | xargs kill
 fi
 
 # Exit script as soon as a command fails.
@@ -21,6 +21,6 @@ node_modules/.bin/ganache-cli \
     --unlock "0xe982615d461dd5cd06575bbea87624fda4e3de17" `# USDC minter` \
     --unlock "0xc6cde7c39eb2f0f0095f41570af89efc2c1ea828" `# USDT minter` \
     --unlock "0x6c5024cd4f8a59110119c56f8933403a539555eb" `# sUSD whale (Aave)` \
-    --unlock "0xdc954086cf07f3889f186118395bad186179ac77" `# Gro Controller` \
-    --unlock "0xe6B692dcC972b9a5C3C414ac75dDc420B9eDC92d" `# Paraswap owner` \
+    --unlock "0x359f4fe841f246a095a82cb26f5819e10a91fe0d" `# Gro Controller owner` \
+    --unlock "0x36fedc70fec3b77caaf50e6c524fd7e5dfbd629a" `# Paraswap owner` \
     --unlock "0xa5c603e1C27a96171487aea0649b01c56248d2e8" `# Argent ENS owner` \

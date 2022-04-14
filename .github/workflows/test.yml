@@ -1,0 +1,111 @@
+name: Tests
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 1 * * *" # 1am UTC
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - run: npm install
+
+      - name: Lint JavaScript
+        run: npm run lint:js
+
+      - name: Lint Solidity contracts
+        run: npm run lint:contracts
+
+      - name: Compiling all contracts
+        run: npm run cc
+
+      - name: Test deployment scripts
+        run: npm run ganache >/dev/null 2>&1 & npm run test:deployment
+
+      - name: Running unit tests
+        run: npm run ganache >/dev/null 2>&1 & npm run test
+
+      - name: Cleaning up ganache
+        run: lsof -ti tcp:8545 | xargs kill
+
+      - name: Running coverage
+        run: npm run test:coverage
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - run: npm install
+
+      - name: Compiling all contracts
+        run: npm run cc
+
+      - name: Running integration tests
+        env: 
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+        run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
+
+  security-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Setup Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.9.7" 
+
+      - run: npm install
+
+      - name: Compiling all contracts
+        run: npm run cc
+
+      - name: "Setup slither analyser https://github.com/crytic/slither"
+        run: |
+          sudo pip3 install slither-analyzer
+          sudo apt-get install jq
+
+      - name: "Setup solc-select"
+        run: |
+          sudo pip3 install solc-select
+          solc-select install 0.5.4
+          solc-select install 0.8.3
+
+      - name: "Run slither on infrastructure contracts based on solc 0.5"
+        run: |
+          export PATH=/home/circleci/.solc-select:$PATH
+          npm run security:slither:infrastructure_0.5
+
+      - name: "Run slither on infrastructure contracts based on solc 0.8"
+        run: |
+          export PATH=/home/circleci/.solc-select:$PATH
+          npm run security:slither:infrastructure
+
+      - name: "Run slither on wallet modules contracts"
+        run: |
+          export PATH=/home/circleci/.solc-select:$PATH
+          npm run security:slither:modules
+
+      - name: "Run slither on wallet contracts"
+        run: |
+          export PATH=/home/circleci/.solc-select:$PATH
+          npm run security:slither:wallet
