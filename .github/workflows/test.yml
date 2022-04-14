@@ -32,7 +32,7 @@ jobs:
         run: npm run ganache >/dev/null 2>&1 & npm run test
 
       - name: Cleaning up ganache
-        run: lsof -ti tcp:8545 | xargs kill
+        run: lsof -it tcp:8545 | xargs kill
 
       - name: Running coverage
         run: npm run test:coverage
@@ -53,6 +53,8 @@ jobs:
         run: npm run cc
 
       - name: Running integration tests
+        env: 
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
         run: npm run mainnet-fork >/dev/null 2>&1 & npm run test:integration
 
   security-tests:
@@ -105,4 +107,3 @@ jobs:
         run: |
           export PATH=/home/circleci/.solc-select:$PATH
           npm run security:slither:wallet
-    

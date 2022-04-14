@@ -2,7 +2,7 @@
 if [ -z "$CI" ]; then
     source .env
 
-    lsof -i tcp:3601 | grep LISTEN | awk '{print $2}' | xargs kill
+    lsof -it tcp:3601 | xargs kill
 fi
 
 # Exit script as soon as a command fails.
