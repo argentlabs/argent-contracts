@@ -25,7 +25,7 @@ const HDWalletProvider = require("@truffle/hdwallet-provider");
 const AWSWalletProvider = require("./utils/aws-wallet-provider.js");
 
 const _gasPrice = (process.env.DEPLOYER_GAS_PRICE || "").replace(/_/g, "") || 20_000_000_000;
-const _gasLimit = 8_000_000;
+const _gasLimit = (process.env.DEPLOYER_GAS_LIMIT || "").replace(/_/g, "") || 8_000_000;
 
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
@@ -107,7 +107,7 @@ module.exports = {
       port: 3601,
       gasPrice: 0,
       network_id: "1",
-      networkCheckTimeout: 999999,
+      networkCheckTimeout: 5 * 60e3, // 5 minutes
     },
 
     // Another network with more advanced options...
