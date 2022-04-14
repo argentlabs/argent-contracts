@@ -22,17 +22,8 @@ jobs:
       - name: Lint Solidity contracts
         run: npm run lint:contracts
 
-      - name: Compiling external library contracts
-        run: npm run compile:lib
-
-      - name: Compiling contracts
-        run: npm run compile
-
-      - name: Compiling test contracts
-        run: npm run compile:test
-
-      - name: Provision lib artefacts
-        run: npm run provision:lib:artefacts
+      - name: Compiling all contracts
+        run: npm run cc
 
       - name: Test deployment scripts
         run: npm run ganache >/dev/null 2>&1 & npm run test:deployment
@@ -47,8 +38,7 @@ jobs:
 
       - name: "Running coverage"
         run: |
-          npm run compile
-          npm run compile:test
+          lsof -ti tcp:8545 | xargs kill
           npm run test:coverage
 
   integration-tests:
