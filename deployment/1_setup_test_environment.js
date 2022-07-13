@@ -40,7 +40,7 @@ async function deployENSRegistry(owner, domain) {
 }
 
 async function main() {
-  const { configurator, deploymentAccount } = await deployManager.getProps();
+  const { configurator, deploymentAccount, abiUploader } = await deployManager.getProps();
   const { config } = configurator;
 
   if (config.ENS.deployOwnRegistry) {
@@ -53,6 +53,7 @@ async function main() {
     const DappRegistryWrapper = await DappRegistry.new(0);
     console.log("Deployed local DappRegistry at ", DappRegistryWrapper.address);
     configurator.updateDappRegistry(DappRegistryWrapper.address);
+    await abiUploader.upload(DappRegistryWrapper, "contracts");
   }
 
   if (config.defi.uniswap.deployOwn) {

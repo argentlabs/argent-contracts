@@ -80,6 +80,17 @@ module.exports = {
       gasPrice: _gasPrice
     },
 
+    hydrogen: {
+      provider: () => new AWSWalletProvider(
+        `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`,
+        "argent-smartcontracts-hydrogen",
+        "backend/deploy.key"
+      ),
+      network_id: 5, // goerli
+      gas: _gasLimit,
+      gasPrice: _gasPrice
+    },
+
     staging: {
       provider: () => new AWSWalletProvider(
         `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
