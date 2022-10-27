@@ -21,6 +21,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 async function deployENSRegistry(owner, domain) {
   // Deploy the public ENS registry
   const ensRegistryWithoutFallback = await ENSRegistry.new();
+  console.log("Deploying local ENSRegistry");
   const ENSWrapper = await ENSRegistryWithFallback.new(ensRegistryWithoutFallback.address);
   console.log("Deployed local ENSRegistry at ", ENSWrapper.address);
   // ENS domain

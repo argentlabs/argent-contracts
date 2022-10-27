@@ -33,7 +33,7 @@ async function main() {
     await deployENSReverseRegistrar(config, deploymentAccount);
   }
 
-  console.log("## completed deployment script 4 ##");
+  console.log("## completed deployment script 3 ##");
 }
 
 // For truffle exec

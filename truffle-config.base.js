@@ -60,11 +60,11 @@ module.exports = {
 
     dev: {
       provider: () => new AWSWalletProvider(
-        `https://rinkeby.infura.io/v3/${process.env.INFURA_KEY}`,
+        `https://eth-goerli.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
         "argent-smartcontracts-dev",
         "backend/deploy.key"
       ),
-      network_id: 4, // rinkeby
+      network_id: 5, // goerli
       gas: _gasLimit,
       gasPrice: _gasPrice
     },
