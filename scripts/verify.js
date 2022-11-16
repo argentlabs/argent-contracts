@@ -16,8 +16,12 @@ const ConfiguratorLoader = require("../utils/configurator-loader.js");
 const Configurator = require("../utils/configurator.js");
 
 async function execVerify(contractName, contractAddress, network) {
-  const res = await exec(`npx truffle run verify ${contractName}@${contractAddress} --network ${network}`).catch((e) => e);
-  console.log(res.stdout);
+  try {
+    const res = await exec(`npx truffle run verify ${contractName}@${contractAddress} --network ${network}`);
+    console.log(res.stdout || res);
+  } catch (error) {
+    console.error(`Error verifying: ${error}`);
+  }
 }
 
 async function main() {
@@ -42,18 +46,20 @@ async function main() {
   const configuration = configurator.copyConfig();
 
   for (const [contractName, contractAddress] of Object.entries(configuration.contracts)) {
+    console.log(`Verifying contract ${contractName} at ${contractAddress} ...`);
     await execVerify(contractName, contractAddress, network);
   }
 
-  for (const [contractName, value] of Object.entries(configuration.filters)) {
+  for (const [contractName, value] of Object.entries(configuration.filters || {})) {
     const contractAddresses = [].concat(...[value]); // value can be an address or array of addresses
     for (const addr of contractAddresses) {
-      console.log(`Verifying ${contractName} at ${addr} ...`);
+      console.log(`Verifying filter ${contractName} at ${addr} ...`);
       await execVerify(contractName, addr, network);
     }
   }
 
   for (const [moduleName, moduleAddress] of Object.entries(configuration.modules)) {
+    console.log(`Verifying module ${moduleName} at ${moduleAddress} ...`);
     await execVerify(moduleName, moduleAddress, network);
   }
 }

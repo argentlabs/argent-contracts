@@ -10,13 +10,14 @@ If setting up a new environment `ENV_NAME` for the first time:
 - Add a new AWS configuration locally
 - Add it to `S3_BUCKET_SUFFIXES` in `.env`
 
-## 2. Deploy the contracts:
+## 2. Deploy and verify the contracts:
 
 ```
 ./scripts/deploy.sh --no-compile ENV_NAME 1
 ./scripts/deploy.sh --no-compile ENV_NAME 2
 ./scripts/deploy.sh --no-compile ENV_NAME 3
 ./scripts/deploy.sh --no-compile ENV_NAME 4
+./scripts/execute_script.sh --no-compile scripts/verify.js ENV_NAME
 ```
 
 If you need to do some manual changes to the config file and reupload it to S3 you can do it like this:
