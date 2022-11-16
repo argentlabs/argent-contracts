@@ -84,7 +84,7 @@ async function main() {
   };
   await versionUploader.upload(version);
 
-  console.log("## completed deployment script 5 ##");
+  console.log("## completed deployment script 4 ##");
 }
 
 // For truffle exec
