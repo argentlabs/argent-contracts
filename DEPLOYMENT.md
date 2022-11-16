@@ -12,6 +12,8 @@ If setting up a new environment `ENV_NAME` for the first time:
 
 ## 2. Deploy and verify the contracts:
 
+Run the four deployments scripts in order (you can find them in the `deployment/` directory).
+
 ```
 ./scripts/deploy.sh --no-compile ENV_NAME 1
 ./scripts/deploy.sh --no-compile ENV_NAME 2
