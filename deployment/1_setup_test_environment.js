@@ -21,6 +21,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 async function deployENSRegistry(owner, domain) {
   // Deploy the public ENS registry
   const ensRegistryWithoutFallback = await ENSRegistry.new();
+  console.log("Deploying local ENSRegistry");
   const ENSWrapper = await ENSRegistryWithFallback.new(ensRegistryWithoutFallback.address);
   console.log("Deployed local ENSRegistry at ", ENSWrapper.address);
   // ENS domain
@@ -40,7 +41,7 @@ async function deployENSRegistry(owner, domain) {
 }
 
 async function main() {
-  const { configurator, deploymentAccount } = await deployManager.getProps();
+  const { configurator, deploymentAccount, abiUploader } = await deployManager.getProps();
   const { config } = configurator;
 
   if (config.ENS.deployOwnRegistry) {
@@ -53,6 +54,7 @@ async function main() {
     const DappRegistryWrapper = await DappRegistry.new(0);
     console.log("Deployed local DappRegistry at ", DappRegistryWrapper.address);
     configurator.updateDappRegistry(DappRegistryWrapper.address);
+    await abiUploader.upload(DappRegistryWrapper, "contracts");
   }
 
   if (config.defi.uniswap.deployOwn) {

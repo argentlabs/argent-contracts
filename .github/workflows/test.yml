@@ -81,7 +81,7 @@ jobs:
 
       - name: "Setup slither analyser https://github.com/crytic/slither"
         run: |
-          sudo pip3 install slither-analyzer
+          sudo pip3 install slither-analyzer==0.8.3
           sudo apt-get install jq
 
       - name: "Setup solc-select"

@@ -34,14 +34,12 @@ const fundTokens = async (tokenHolder, infrastructure) => {
   const DAI = await ERC20.at("0x6b175474e89094c44da98b954eedeac495271d0f");
   const USDC = await IUSDCToken.at("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
   const USDT = await TetherToken.at("0xdAC17F958D2ee523a2206206994597C13D831ec7");
-  const sUSD = await ERC20.at("0x57Ab1ec28D129707052df4dF418D58a2D46d5f51");
 
   if (!tokensFunded) {
     // transfer tokens from mainnet whale addresses to the tokenHolder account
     await WETH.transfer(tokenHolder, web3.utils.toWei("10000"), { from: "0x2F0b23f53734252Bda2277357e97e1517d6B042A" });
     await stETH.transfer(tokenHolder, web3.utils.toWei("100"), { from: "0xa2f987a546d4cd1c607ee8141276876c26b72bdf" });
     await DAI.transfer(tokenHolder, web3.utils.toWei("1000000"), { from: "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" });
-    await sUSD.transfer(tokenHolder, web3.utils.toWei("1000000"), { from: "0x6c5024cd4f8a59110119c56f8933403a539555eb" });
 
     // mint USDC
     await USDC.configureMinter(infrastructure, web3.utils.toWei("10000000"), { from: "0xe982615d461dd5cd06575bbea87624fda4e3de17" });
@@ -54,7 +52,7 @@ const fundTokens = async (tokenHolder, infrastructure) => {
     tokensFunded = true;
   }
 
-  return { WETH, stETH, DAI, USDC, USDT, sUSD };
+  return { WETH, stETH, DAI, USDC, USDT };
 };
 
 module.exports.deployArgent = async (accountsArray, options = {}) => {
@@ -143,7 +141,6 @@ module.exports.deployArgent = async (accountsArray, options = {}) => {
       DAI: web3.utils.fromWei(await tokens.DAI.balanceOf(account)),
       USDC: new BN(await tokens.USDC.balanceOf(account)).div(new BN(1e6)).toString(),
       USDT: web3.utils.fromWei(await tokens.USDT.balanceOf(account)),
-      sUSD: web3.utils.fromWei(await tokens.sUSD.balanceOf(account)),
     };
   }
 
