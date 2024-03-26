@@ -82,11 +82,11 @@ module.exports = {
 
     hydrogen: {
       provider: () => new AWSWalletProvider(
-        `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`,
+        `https://sepolia.infura.io/v3/${process.env.INFURA_KEY}`,
         "argent-smartcontracts-hydrogen",
         "backend/deploy.key"
       ),
-      network_id: 5, // goerli
+      network_id: 11155111, // sepolia
       gas: _gasLimit,
       gasPrice: _gasPrice
     },
