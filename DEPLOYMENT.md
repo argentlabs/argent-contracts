@@ -12,15 +12,6 @@ If setting up a new environment `ENV_NAME` for the first time:
 
 ## 2. Deploy and verify the contracts:
 
-Run the four deployments scripts in order (you can find them in the `deployment/` directory).
-
-```
-./scripts/deploy.sh --no-compile ENV_NAME 1
-./scripts/deploy.sh --no-compile ENV_NAME 2
-./scripts/deploy.sh --no-compile ENV_NAME 3
-./scripts/deploy.sh --no-compile ENV_NAME 4
-./scripts/execute_script.sh --no-compile scripts/verify.js ENV_NAME
-```
 
 If you need to do some manual changes to the config file and reupload it to S3 you can do it like this:
 
@@ -31,6 +22,17 @@ Download:
 Upload:
 
 `aws-vault exec argent-ENV_NAME -- aws s3 cp ./config.json s3://argent-smartcontracts-ENV_NAME/backend/config.json`
+
+
+Run the four deployments scripts in order (you can find them in the `deployment/` directory).
+
+```
+./scripts/deploy.sh --no-compile ENV_NAME 1
+./scripts/deploy.sh --no-compile ENV_NAME 2
+./scripts/deploy.sh --no-compile ENV_NAME 3
+./scripts/deploy.sh --no-compile ENV_NAME 4
+./scripts/execute_script.sh --no-compile scripts/verify.js ENV_NAME
+```
 
 ## 3. Configure the DappRegistry
 
