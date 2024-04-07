@@ -82,7 +82,7 @@ contract DssCdpManager is LibNote {
         cdpCan[owns[cdp]][cdp][usr] = ok;
     }
 
-    // Allow/disallow a usr address to quit to the the sender urn.
+    // Allow/disallow a usr address to quit to the sender urn.
     function urnAllow(
         address usr,
         uint ok
