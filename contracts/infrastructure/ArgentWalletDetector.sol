@@ -41,7 +41,7 @@ contract ArgentWalletDetector is Owned {
     address[] private implementations;
     // mapping to efficiently check if a code is accepted
     mapping (bytes32 => Info) public acceptedCodes;
-    // mapping to efficiently check is an implementation is accepted
+    // mapping to efficiently check if an implementation is accepted
     mapping (address => Info) public acceptedImplementations;
 
     struct Info {
